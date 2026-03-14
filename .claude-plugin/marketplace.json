@@ -1,0 +1,21 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "rhize-plugins",
+  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, marketing, and web development tools",
+  "owner": {
+    "name": "Rhize Media"
+  },
+  "plugins": [
+    {
+      "name": "seo-aeo-geo",
+      "source": "./seo-aeo-geo",
+      "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
+      "version": "1.0.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": ["seo", "aeo", "geo", "search-engine-optimization"],
+      "category": "workflow"
+    }
+  ]
+}
