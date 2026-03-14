@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, marketing, and web development tools",
+  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, and web development tools",
   "owner": {
     "name": "Rhize Media"
   },
@@ -15,6 +15,17 @@
         "name": "Rhize Media"
       },
       "keywords": ["seo", "aeo", "geo", "search-engine-optimization"],
+      "category": "workflow"
+    },
+    {
+      "name": "obsidian-skills",
+      "source": "./obsidian-skills-plugin",
+      "description": "Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, and knowledge graph workflows",
+      "version": "0.2.0",
+      "author": {
+        "name": "Jim Deola"
+      },
+      "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management"],
       "category": "workflow"
     }
   ]
