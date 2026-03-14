@@ -10,6 +10,10 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 
 ### obsidian-skills
 - [ ] Sync with upstream kepano/obsidian-skills when new features land
+- [ ] Eval suite for vault-setup wizard — test fresh vault and existing vault paths
+- [ ] Eval suite for vault-align — test health check scoring and fix execution
+- [ ] Explore `obsidian eval` for deeper plugin configuration inspection during setup
+- [ ] Investigate Obsidian URI scheme for plugin install links (obsidian://show-plugin?id=dataview)
 
 ### seo-aeo-geo
 - [ ] (none yet)

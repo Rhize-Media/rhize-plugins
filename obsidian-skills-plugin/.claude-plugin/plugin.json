@@ -1,11 +1,11 @@
 {
   "name": "obsidian-skills",
-  "version": "0.2.0",
-  "description": "Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, and knowledge graph workflows.",
+  "version": "0.3.0",
+  "description": "Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, knowledge graph workflows, interactive setup wizard, and ongoing vault alignment.",
   "author": {
     "name": "Jim Deola"
   },
   "repository": "https://github.com/kepano/obsidian-skills",
   "license": "MIT",
-  "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management", "second-brain", "zettelkasten", "moc", "research"]
+  "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management", "second-brain", "zettelkasten", "moc", "research", "setup", "migration", "alignment", "dataview", "kanban"]
 }

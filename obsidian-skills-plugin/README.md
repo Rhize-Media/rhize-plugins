@@ -4,7 +4,7 @@ Skills and commands for working with Obsidian vaults in Claude Desktop, Cowork, 
 
 ## What's Included
 
-### Skills (7)
+### Skills (8)
 
 | Skill | Triggers on |
 | ------- | ------------- |
@@ -15,18 +15,20 @@ Skills and commands for working with Obsidian vaults in Claude Desktop, Cowork, 
 | **defuddle** | Web clipping, article extraction, saving URLs to vault |
 | **second-brain** | Zettelkasten, PARA, MOCs, progressive summarization, PKM methodology |
 | **vault-templates** | Note archetypes — meeting notes, book reviews, project briefs, weekly reviews |
+| **vault-alignment** | Vault health assessment, drift detection, ongoing improvement strategies |
 
-### Commands (7)
+### Commands (8)
 
 | Command | Description |
 | --------- | ------------- |
 | `/vault-search <query>` | Search vault for notes, tags, or content |
 | `/vault-capture <content>` | Quick-capture a note, idea, or task |
 | `/vault-daily [read\|add\|summarize]` | Read, append to, or summarize today's daily note |
-| `/vault-organize [tags\|structure\|recent]` | Analyze vault health and organization |
 | `/vault-research <url or topic>` | Research pipeline — clip, summarize, and connect to vault |
 | `/vault-connect [note\|topic\|recent]` | Find and build missing links between related notes |
 | `/vault-review [daily\|weekly\|monthly]` | Periodic review — summarize activity, surface themes, plan ahead |
+| `/vault-setup [new\|existing\|resume]` | Interactive setup wizard — personalized folders, templates, dashboards, plugins |
+| `/vault-align [check\|fix\|migrate\|plugins]` | Vault health monitor — check alignment, analyze areas, fix issues, bulk migrate |
 
 ## Setup
 

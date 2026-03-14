@@ -127,19 +127,6 @@ Works with your daily note. The CLI resolves the correct daily note automaticall
 - `/vault-daily yesterday` — read yesterday's note
 - `/vault-daily path` — show where the daily note file lives on disk
 
-### /vault-organize
-
-**Usage:** `/vault-organize [tags|orphans|links|structure|full]`
-
-Analyzes your vault health and organization. Each mode focuses on a different aspect; use `full` to run everything at once.
-
-**Examples:**
-- `/vault-organize tags` — tag frequency, hierarchy, duplicates
-- `/vault-organize orphans` — notes with zero connections
-- `/vault-organize links` — broken/unresolved wikilinks
-- `/vault-organize structure` — folder tree, note counts, size distribution
-- `/vault-organize full` — comprehensive audit with all of the above
-
 ## How the Skills Work Together
 
 The skills are designed to cross-reference each other rather than operate in isolation. Here's how they connect:
@@ -220,6 +207,57 @@ Periodic review that summarizes recent vault activity, surfaces patterns, and fl
 - `/vault-review weekly`
 - `/vault-review monthly`
 
+## Setup & Alignment
+
+### Getting Started with /vault-setup
+
+The setup wizard is the recommended starting point for new users and for anyone who wants to reorganize an existing vault. Run `/vault-setup` and it will:
+
+1. **Interview you** about your role, focus areas, and how you want to use your vault
+2. **Audit your vault** (if you have existing notes) to understand current structure, tags, and conventions
+3. **Generate a personalized archetype** — a complete vault blueprint with folder structure, templates, a dashboard, MOCs, and Kanban boards tailored to your specific workflow
+4. **Check for community plugins** as each component is built — recommending only what your archetype actually needs
+5. **Scaffold everything** — create the folders, save templates, build the dashboard
+6. **Offer migration** (existing vaults) — reorganize your notes into the new structure, consolidate tags, and standardize frontmatter, with opt-in approval at each step
+
+The wizard creates a `_vault-setup-log.md` note in your vault that records your archetype choices. This log is used by `/vault-align` to understand what your vault should look like.
+
+You can pass `new` (skip audit), `existing` (force audit), or `resume` (pick up where you left off) as arguments.
+
+### vault-alignment Skill
+
+**When it activates:** You ask about vault health, organization quality, improving your vault, cleaning up your knowledge system, or maintaining your second brain.
+
+**What it knows:** How to evaluate vault health across five dimensions — structure (folder organization), connectivity (links and MOCs), consistency (frontmatter and tags), processing (capture-to-permanent pipeline), and plugin utilization. It knows drift detection patterns, improvement prioritization (fix broken links before reorganizing folders), and safe migration strategies.
+
+### Ongoing Improvement with /vault-align
+
+Run `/vault-align` periodically to keep your vault aligned with best practices. It has four modes:
+
+**`/vault-align`** or **`/vault-align check`** — Run a full health report. Scores your vault on structure, connectivity, consistency, processing, and plugins. Surfaces specific actionable suggestions ranked by impact. If you ran `/vault-setup`, it also checks for any skipped items that are ready to revisit.
+
+You can also focus on a specific area: `/vault-align check tags` (tag frequency, duplicates, renames), `/vault-align check orphans` (unlinked notes), `/vault-align check links` (broken wikilinks), `/vault-align check structure` (folder tree and distribution), or `/vault-align check full` (all areas in one pass).
+
+**`/vault-align fix`** — Execute the single highest-impact improvement. Confirms changes before executing, then re-checks the affected area.
+
+**`/vault-align migrate`** — Aggressive batch reorganization. Builds a complete migration plan (file moves, tag consolidation, frontmatter standardization) and executes each phase with per-phase approval. All file moves use `obsidian move` to preserve wikilinks.
+
+**`/vault-align plugins`** — Audit installed community plugins against recommendations for your archetype. Enables disabled plugins, provides installation instructions for missing ones.
+
+### Community Plugins
+
+The setup wizard and alignment command recommend these community plugins when your workflow benefits from them:
+
+| Plugin | What it does | Recommended when |
+| ------- | ------------- | ----------------- |
+| **Dataview** | Query notes like a database — auto-updating tables, lists, and task views | You want a dashboard, structured queries, or auto-generated MOC sections |
+| **Kanban** | Renders markdown as drag-and-drop Kanban boards | You manage projects and want visual task boards |
+| **Templater** | Advanced template variables, conditional logic, dynamic dates | You use templates heavily and need more power than the built-in Templates plugin |
+| **Calendar** | Calendar view integrated with daily notes | You use daily notes and want a visual calendar sidebar |
+| **Tasks** | Enhanced task management with due dates, recurring tasks, and queries | You track tasks across multiple notes and need aggregated views |
+
+The Obsidian CLI can enable and disable these plugins but cannot install them. When a plugin is needed, the wizard walks you through installation: Settings → Community plugins → Browse → search for the plugin → Install → Enable.
+
 ## Tips for Getting the Best Results
 
 **Be specific about what you want.** "Create a note" triggers the CLI skill. "Create a base that tracks my reading list with columns for title, author, status, and rating" triggers the bases skill with enough context to produce a complete, useful `.base` file.
@@ -230,7 +268,7 @@ Periodic review that summarizes recent vault activity, surfaces patterns, and fl
 
 **Ask for automation when you have repeating patterns.** If you find yourself doing the same vault operation regularly, ask Claude to write a shell alias, a cron job, or a script. The CLI skill has patterns for all of these.
 
-**Use `/vault-organize full` periodically.** It's the quickest way to find broken links, orphan notes, inconsistent tags, and structural issues before they accumulate.
+**Use `/vault-align check` periodically.** It's the quickest way to find broken links, orphan notes, inconsistent tags, and structural issues before they accumulate. Focus on a specific area with `/vault-align check tags` or `/vault-align check orphans`.
 
 ## Troubleshooting
 
