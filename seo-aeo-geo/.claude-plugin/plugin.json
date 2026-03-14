@@ -1,0 +1,26 @@
+{
+  "name": "seo-aeo-geo",
+  "version": "1.0.0",
+  "description": "Comprehensive SEO, AEO (Answer Engine Optimization), and GEO (Generative Engine Optimization) plugin for auditing, analyzing, and optimizing codebases and websites. Powered by DataForSEO API with Next.js + Sanity CMS best practices built in.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "keywords": [
+    "seo",
+    "aeo",
+    "geo",
+    "search-engine-optimization",
+    "answer-engine-optimization",
+    "generative-engine-optimization",
+    "dataforseo",
+    "keyword-research",
+    "backlinks",
+    "serp",
+    "technical-seo",
+    "ai-visibility",
+    "next-js",
+    "sanity-cms",
+    "structured-data",
+    "schema-markup"
+  ]
+}

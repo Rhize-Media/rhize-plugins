@@ -1,0 +1,14 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active\n\nDataForSEO-powered SEO, AEO, and GEO tools are available. Use /seo-audit, /keyword-research, /serp-check, /backlink-audit, /content-optimize, /competitor-analysis, /ai-visibility, /technical-audit, /rank-track, or /code-seo-review.'",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}
