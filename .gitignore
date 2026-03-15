@@ -12,6 +12,18 @@ node_modules/
 *.plugin
 *.zip
 
+# Python
+__pycache__/
+*.pyc
+
 # Eval results (regenerated on each run)
-evals/results/*.json
-evals/results/*.md
+evals/results/
+
+# Claude Code local config
+.claude/
+
+# Local scripts (not part of plugin distribution)
+scripts/
+
+# Squirrel config
+squirrel.toml
