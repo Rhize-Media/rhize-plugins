@@ -1,0 +1,140 @@
+[
+  {
+    "id": "trigger-seo-audit-casual",
+    "prompt": "hey can you audit rhize.media for SEO problems? mainly interested in page speed and broken links",
+    "target_skill": "seo-site-audit",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-seo-audit-formal",
+    "prompt": "Please run a comprehensive technical SEO audit on https://example.com including Core Web Vitals, meta tags, heading structure, and structured data validation",
+    "target_skill": "seo-site-audit",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-seo-audit-vague",
+    "prompt": "whats wrong with my site's SEO? the url is acme.com and we just launched last month",
+    "target_skill": "seo-site-audit",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-seo-audit-neg-scraper",
+    "prompt": "write me a python script that scrapes google search results for 'best coffee shops in Austin' and saves them to csv",
+    "target_skill": "seo-site-audit",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-seo-audit-neg-analytics",
+    "prompt": "help me set up Google Analytics 4 tracking on my Next.js app, I need pageview and click events",
+    "target_skill": "seo-site-audit",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-seo-audit-neg-gsc",
+    "prompt": "check my Google Search Console data and tell me which pages are losing impressions this month compared to last month",
+    "target_skill": "seo-site-audit",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-keyword-research-casual",
+    "prompt": "I need keyword ideas for our SaaS project management tool, we're trying to rank for stuff related to team collaboration and task tracking",
+    "target_skill": "keyword-intelligence",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-keyword-research-volume",
+    "prompt": "can you pull search volume and difficulty data for these keywords: 'crm software', 'best crm for small business', 'salesforce alternative'",
+    "target_skill": "keyword-intelligence",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-keyword-neg-content",
+    "prompt": "write a 1500 word blog post about sustainable fashion trends for 2026 targeting millennials",
+    "target_skill": "keyword-intelligence",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-keyword-neg-ppc",
+    "prompt": "help me find the best negative keywords for my Google Ads campaign selling running shoes, I want to exclude irrelevant clicks",
+    "target_skill": "keyword-intelligence",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-backlink-audit",
+    "prompt": "check the backlink profile for rhize.media, I want to know who's linking to us and if there are any toxic links we should disavow",
+    "target_skill": "backlink-intelligence",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-backlink-competitor",
+    "prompt": "find out where our competitors ahrefs.com and semrush.com are getting their backlinks from, I want link gap analysis",
+    "target_skill": "backlink-intelligence",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-backlink-neg-internal",
+    "prompt": "audit the internal linking structure on our blog at /blog/ and suggest better cross-linking between related posts",
+    "target_skill": "backlink-intelligence",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-backlink-neg-alttext",
+    "prompt": "help me write alt text for all the images on our /about page, we have around 12 team member photos that need descriptive alt attributes",
+    "target_skill": "backlink-intelligence",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-serp-check",
+    "prompt": "check where we rank for 'headless cms comparison' and 'sanity vs contentful' on google, and show me what SERP features are showing up",
+    "target_skill": "serp-intelligence",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-serp-neg-ads",
+    "prompt": "help me set up Google Ads campaigns for our product launch, I need keyword targeting and ad copy suggestions",
+    "target_skill": "serp-intelligence",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-content-seo-optimize",
+    "prompt": "optimize this blog post for SEO, it's about 'react server components explained' and targets mid-level devs. check the structured data and E-E-A-T signals too",
+    "target_skill": "content-seo",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-content-seo-neg-copywriting",
+    "prompt": "rewrite our landing page copy to be more persuasive, focus on emotional triggers and clear CTAs for our fitness app",
+    "target_skill": "content-seo",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-aeo-geo-ai",
+    "prompt": "how visible is our brand in AI search results? check if ChatGPT and Perplexity mention us when people ask about headless CMS options",
+    "target_skill": "aeo-geo-optimization",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-aeo-geo-optimize",
+    "prompt": "optimize our content so AI assistants are more likely to cite us as a source when answering questions about web development agencies",
+    "target_skill": "aeo-geo-optimization",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-aeo-geo-neg-chatbot",
+    "prompt": "build me a customer support chatbot using the Claude API that can answer questions about our product catalog",
+    "target_skill": "aeo-geo-optimization",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-nextjs-sanity-seo",
+    "prompt": "review my Next.js + Sanity site for SEO best practices, check the metadata generation, sitemap, robots.txt, and structured data in the app router",
+    "target_skill": "nextjs-sanity-seo",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-nextjs-sanity-neg-deploy",
+    "prompt": "deploy my Next.js app to Vercel and set up the sanity webhook for on-demand revalidation",
+    "target_skill": "nextjs-sanity-seo",
+    "should_trigger": false
+  }
+]

@@ -11,3 +11,7 @@ node_modules/
 # Build artifacts
 *.plugin
 *.zip
+
+# Eval results (regenerated on each run)
+evals/results/*.json
+evals/results/*.md

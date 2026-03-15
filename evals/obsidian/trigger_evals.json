@@ -1,0 +1,201 @@
+[
+  {
+    "id": "trigger-obsidian-cli-shell-script",
+    "prompt": "write a shell script that finds all orphan notes in my Obsidian vault and moves them to an Archive folder using the obsidian CLI",
+    "target_skill": "obsidian-cli",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-cli-cron-daily",
+    "prompt": "set up a cron job that creates today's daily note and appends my clipboard contents to it every morning at 8am using the obsidian command line tool",
+    "target_skill": "obsidian-cli",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-cli-neg-python-cli",
+    "prompt": "write a Python CLI tool that manages my todo list using plain text files in a folder, with commands for add, remove, and list",
+    "target_skill": "obsidian-cli",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-obsidian-cli-neg-bash-files",
+    "prompt": "create a bash script that renames all .txt files in a directory to .md files and adds a timestamp header to each one",
+    "target_skill": "obsidian-cli",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-obsidian-markdown-callouts",
+    "prompt": "how do I create a nested callout with a block reference inside it in Obsidian? I want a warning callout that contains a tip callout with a link to another note",
+    "target_skill": "obsidian-markdown",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-markdown-frontmatter",
+    "prompt": "add YAML frontmatter properties to my research note in Obsidian with tags, aliases, a cssclasses field, and a custom date-read property",
+    "target_skill": "obsidian-markdown",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-markdown-neg-pdf",
+    "prompt": "convert this markdown document to a PDF with custom styles, a table of contents, and page numbers using pandoc",
+    "target_skill": "obsidian-markdown",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-obsidian-markdown-neg-yaml-docker",
+    "prompt": "write a YAML config file for my Docker Compose setup with three services: postgres, redis, and a Node.js API server",
+    "target_skill": "obsidian-markdown",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-obsidian-bases-project-tracker",
+    "prompt": "create a .base file in my Obsidian vault that shows all project notes filtered by status:active, sorted by due-date, with columns for priority, assignee, and a formula calculating days until deadline",
+    "target_skill": "obsidian-bases",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-bases-reading-list",
+    "prompt": "I want to build an Obsidian Base that acts as a reading list tracker — it should pull all notes with type:literature, show their rating and author properties, and let me filter by status",
+    "target_skill": "obsidian-bases",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-obsidian-bases-neg-sqlite",
+    "prompt": "set up a SQLite database to track my reading list with tables for books, authors, and reading progress, plus a query that shows unfinished books sorted by date added",
+    "target_skill": "obsidian-bases",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-obsidian-bases-neg-postgres",
+    "prompt": "create a PostgreSQL query that aggregates project metrics by team, calculates average completion time, and pivots the results into a summary table",
+    "target_skill": "obsidian-bases",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-json-canvas-architecture",
+    "prompt": "create an Obsidian canvas file that maps out our microservices architecture with 6 service nodes, labeled connections showing API calls between them, and color-coded groups for frontend vs backend",
+    "target_skill": "json-canvas",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-json-canvas-mindmap",
+    "prompt": "build a mind map .canvas file in Obsidian for my content strategy — I want a central node for 'Blog Topics' with branches for SEO, tutorials, case studies, and each branch should link to existing notes in my vault",
+    "target_skill": "json-canvas",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-json-canvas-neg-mermaid",
+    "prompt": "generate a Mermaid diagram showing our database schema with all the entity relationships, cardinality labels, and primary/foreign key indicators",
+    "target_skill": "json-canvas",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-json-canvas-neg-react-tree",
+    "prompt": "create a React component that renders an interactive tree visualization of our file system, with collapsible nodes and drag-and-drop reordering",
+    "target_skill": "json-canvas",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-defuddle-save-article",
+    "prompt": "save this article to my Obsidian vault as a clean markdown note: https://example.com/blog/great-article-on-productivity — strip the ads and navigation and just keep the main content",
+    "target_skill": "defuddle",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-defuddle-clip-daily",
+    "prompt": "clip this web page and add the extracted content to today's daily note in Obsidian as clean markdown, with the page title as a heading",
+    "target_skill": "defuddle",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-defuddle-neg-scrape-prices",
+    "prompt": "scrape all product prices from this e-commerce site and save them to a CSV, I need the product name, price, and availability for each item",
+    "target_skill": "defuddle",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-defuddle-neg-puppeteer",
+    "prompt": "use puppeteer to take full-page screenshots of these 10 URLs and save them as PNGs with timestamps in the filename",
+    "target_skill": "defuddle",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-second-brain-zettelkasten",
+    "prompt": "help me organize my 500-note Obsidian vault using Zettelkasten methodology — I have mostly research notes and literature summaries but they're all just dumped in one folder with no links between them",
+    "target_skill": "second-brain",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-second-brain-para-vs-zettel",
+    "prompt": "should I use PARA or Zettelkasten for my Obsidian vault? I have a mix of project docs, meeting notes, and research papers, and I want to start connecting ideas across them with MOCs",
+    "target_skill": "second-brain",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-second-brain-neg-react-folders",
+    "prompt": "help me organize my React project folder structure by feature instead of by file type — I have components, hooks, and utils all mixed together and want a cleaner architecture",
+    "target_skill": "second-brain",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-second-brain-neg-state-mgmt",
+    "prompt": "help me decide between Redux and Zustand for state management in my Next.js app — I need global auth state, a shopping cart, and theme preferences",
+    "target_skill": "second-brain",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-vault-templates-meeting",
+    "prompt": "create a meeting notes template for my Obsidian vault with frontmatter properties for attendees, date, project, and status, plus sections for decisions and action items",
+    "target_skill": "vault-templates",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-vault-templates-weekly-review",
+    "prompt": "what properties should a weekly review note have in my Obsidian vault? I want to track what I accomplished, what got stalled, and set priorities for next week",
+    "target_skill": "vault-templates",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-vault-templates-neg-jinja",
+    "prompt": "set up a Jinja2 email template with dynamic variables for recipient name, order number, and delivery date that renders to HTML",
+    "target_skill": "vault-templates",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-vault-templates-neg-github-issue",
+    "prompt": "create a GitHub issue template for bug reports with sections for steps to reproduce, expected behavior, actual behavior, and environment details",
+    "target_skill": "vault-templates",
+    "should_trigger": false
+  },
+
+  {
+    "id": "trigger-vault-alignment-messy",
+    "prompt": "my Obsidian vault is a mess — I have 200 orphan notes, tags like #meeting and #meetings and #mtg all meaning the same thing, and no MOCs despite having 300+ notes. help me clean this up",
+    "target_skill": "vault-alignment",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-vault-alignment-health-check",
+    "prompt": "how healthy is my vault organization? can you check if I'm following second brain best practices and tell me what to fix first?",
+    "target_skill": "vault-alignment",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-vault-alignment-neg-codebase-audit",
+    "prompt": "audit my TypeScript codebase for unused imports, dead code, and circular dependencies — I want a report of everything that should be cleaned up",
+    "target_skill": "vault-alignment",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-vault-alignment-neg-test-coverage",
+    "prompt": "review my project's code quality and test coverage — run the linter, check for type errors, and tell me which modules have less than 80% test coverage",
+    "target_skill": "vault-alignment",
+    "should_trigger": false
+  }
+]

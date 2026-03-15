@@ -1,7 +1,7 @@
 ---
 description: Track keyword rankings and visibility trends over time
 argument-hint: <domain> [keywords comma-separated]
-allowed-tools: Read, WebSearch
+allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
 ---
 
 Track keyword rankings and visibility for $ARGUMENTS using the serp-intelligence skill.

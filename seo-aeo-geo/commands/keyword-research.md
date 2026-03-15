@@ -1,7 +1,7 @@
 ---
 description: Research and analyze keywords for SEO targeting
 argument-hint: <topic or seed keyword> [domain for gap analysis]
-allowed-tools: Read, WebSearch
+allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
 ---
 
 Perform comprehensive keyword research for $ARGUMENTS using the keyword-intelligence skill.

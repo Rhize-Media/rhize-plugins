@@ -1,0 +1,90 @@
+[
+  {
+    "id": "quality-seo-audit-full",
+    "skill": "seo-site-audit",
+    "prompt": "Run a full SEO audit on https://rhize.media focusing on technical health, on-page SEO, and content quality. Output the complete audit report as text in your response (do not write to a file).",
+    "assertions": [
+      {"type": "contains", "value": "meta description", "name": "Analyzes meta descriptions"},
+      {"type": "contains", "value": "heading", "name": "Checks heading structure"},
+      {"type": "regex", "value": "(?i)(core web vitals|LCP|CLS|INP|page speed)", "name": "Mentions performance metrics"},
+      {"type": "regex", "value": "(?i)(structured data|schema|json-ld)", "name": "Checks structured data"},
+      {"type": "section_count", "value": 3, "name": "Has at least 3 report sections"},
+      {"type": "min_length", "value": 800, "name": "Substantive output (800+ chars)"},
+      {"type": "has_data", "value": 5, "name": "Contains concrete data points (URLs, numbers, scores)"},
+      {"type": "regex", "value": "(?i)(<!-- skill:seo-site-audit -->|\\[skill:seo-site-audit\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-seo-audit-single-page",
+    "skill": "seo-site-audit",
+    "prompt": "Do a deep SEO analysis on just this one page: https://rhize.media/blog. Print the full analysis in your response.",
+    "assertions": [
+      {"type": "contains", "value": "title", "name": "Analyzes title tag"},
+      {"type": "regex", "value": "(?i)(internal link|linking)", "name": "Checks internal linking"},
+      {"type": "min_length", "value": 500, "name": "Substantive output (500+ chars)"},
+      {"type": "has_data", "value": 3, "name": "Contains concrete data points"},
+      {"type": "regex", "value": "(?i)(<!-- skill:seo-site-audit -->|\\[skill:seo-site-audit\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-keyword-research",
+    "skill": "keyword-intelligence",
+    "prompt": "Research keywords for a new blog about headless CMS comparisons. I want to target developers evaluating Sanity vs Contentful vs Strapi. Give me volume, difficulty, and clustering. Print all results in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(search volume|monthly search|volume)", "name": "Reports search volume"},
+      {"type": "regex", "value": "(?i)(difficulty|KD|keyword difficulty)", "name": "Reports keyword difficulty"},
+      {"type": "regex", "value": "(?i)(cluster|group|topic)", "name": "Clusters or groups keywords"},
+      {"type": "contains", "value": "sanity", "name": "Includes Sanity-related keywords"},
+      {"type": "min_length", "value": 600, "name": "Substantive output (600+ chars)"},
+      {"type": "has_data", "value": 5, "name": "Contains numeric volume/difficulty data"},
+      {"type": "regex", "value": "(?i)(<!-- skill:keyword-intelligence -->|\\[skill:keyword-intelligence\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-backlink-profile",
+    "skill": "backlink-intelligence",
+    "prompt": "Analyze the backlink profile for rhize.media. Show me top referring domains, anchor text distribution, and any toxic links. Print all findings in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(referring domain|backlink)", "name": "Reports referring domains"},
+      {"type": "regex", "value": "(?i)(anchor text|anchor)", "name": "Analyzes anchor text"},
+      {"type": "min_length", "value": 400, "name": "Substantive output (400+ chars)"},
+      {"type": "has_data", "value": 3, "name": "Contains concrete backlink metrics"},
+      {"type": "regex", "value": "(?i)(<!-- skill:backlink-intelligence -->|\\[skill:backlink-intelligence\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-serp-check",
+    "skill": "serp-intelligence",
+    "prompt": "Check Google SERP for 'headless cms for nextjs' and 'sanity cms review'. Show me our ranking position, SERP features present, and top competitors. Print all results in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(position|rank|ranking)", "name": "Reports ranking positions"},
+      {"type": "regex", "value": "(?i)(featured snippet|people also ask|SERP feature|knowledge panel)", "name": "Identifies SERP features"},
+      {"type": "min_length", "value": 400, "name": "Substantive output (400+ chars)"},
+      {"type": "has_data", "value": 3, "name": "Contains concrete SERP data"},
+      {"type": "regex", "value": "(?i)(<!-- skill:serp-intelligence -->|\\[skill:serp-intelligence\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-aeo-visibility",
+    "skill": "aeo-geo-optimization",
+    "prompt": "Check our AI visibility — do ChatGPT or Perplexity mention rhize.media when people ask about web development agencies or headless CMS consulting? Print your full analysis in the response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(ChatGPT|Perplexity|AI search|LLM|AI visibility)", "name": "References AI platforms"},
+      {"type": "regex", "value": "(?i)(mention|cited|referenced|visibility)", "name": "Reports on brand mentions"},
+      {"type": "min_length", "value": 400, "name": "Substantive output (400+ chars)"},
+      {"type": "regex", "value": "(?i)(<!-- skill:aeo-geo-optimization -->|\\[skill:aeo-geo-optimization\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-content-seo",
+    "skill": "content-seo",
+    "prompt": "Optimize this page for SEO: https://rhize.media. Check structured data, E-E-A-T signals, content depth, and keyword targeting. Print the full optimization report in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(E-E-A-T|EEAT|expertise|authority|trust)", "name": "Evaluates E-E-A-T"},
+      {"type": "regex", "value": "(?i)(structured data|schema|json-ld)", "name": "Reviews structured data"},
+      {"type": "min_length", "value": 500, "name": "Substantive output (500+ chars)"},
+      {"type": "has_data", "value": 3, "name": "Contains concrete optimization data"},
+      {"type": "regex", "value": "(?i)(<!-- skill:content-seo -->|\\[skill:content-seo\\])", "name": "Skill watermark present"}
+    ]
+  }
+]

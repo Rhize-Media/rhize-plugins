@@ -1,7 +1,7 @@
 ---
 description: Check SERP features and rankings for keywords
 argument-hint: <keyword> [domain]
-allowed-tools: Read, WebSearch
+allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
 ---
 
 Analyze the SERP landscape for $ARGUMENTS using the serp-intelligence skill.

@@ -1,7 +1,7 @@
 ---
 description: Compare SEO performance against competitors
 argument-hint: <your domain> <competitor domain> [competitor 2]
-allowed-tools: Read, WebSearch
+allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
 ---
 
 Run a competitive SEO analysis for $ARGUMENTS.

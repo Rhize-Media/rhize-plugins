@@ -1,0 +1,106 @@
+[
+  {
+    "id": "quality-obsidian-cli-orphan-script",
+    "skill": "obsidian-cli",
+    "prompt": "Write a shell script that finds all orphan notes in my Obsidian vault and moves them to an Archive/ folder. Use the Obsidian CLI commands. Print the full script in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)obsidian\\s+orphans", "name": "Uses obsidian orphans command"},
+      {"type": "regex", "value": "(?i)obsidian\\s+move", "name": "Uses obsidian move for safe relocation"},
+      {"type": "regex", "value": "(?i)(#!/bin/(ba)?sh|#!/usr/bin/env\\s+(ba)?sh)", "name": "Has shell shebang"},
+      {"type": "min_length", "value": 400, "name": "Substantive script (400+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:obsidian-cli\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-obsidian-markdown-complex-note",
+    "skill": "obsidian-markdown",
+    "prompt": "Create an Obsidian note for a literature review with: nested callouts (a warning inside a tip), a block reference, YAML frontmatter with tags/aliases/cssclasses, and a wikilink to another note. Print the full note content in your response.",
+    "assertions": [
+      {"type": "regex", "value": ">\\s*\\[!", "name": "Has callout syntax"},
+      {"type": "regex", "value": "\\^[a-zA-Z0-9-]+", "name": "Has block reference ID"},
+      {"type": "regex", "value": "---\\n", "name": "Has YAML frontmatter fences"},
+      {"type": "regex", "value": "(?i)(tags|aliases)", "name": "Frontmatter includes tags or aliases"},
+      {"type": "regex", "value": "\\[\\[.+\\]\\]", "name": "Has wikilink syntax"},
+      {"type": "min_length", "value": 400, "name": "Substantive note (400+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:obsidian-markdown\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-obsidian-bases-reading-list",
+    "skill": "obsidian-bases",
+    "prompt": "Build an Obsidian .base file for a reading list that shows all literature notes with columns for title, author, status, and rating, sorted by date-read descending, filtered to only show notes with type:literature. Print the complete .base file content in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)\\.base", "name": "References .base file extension"},
+      {"type": "regex", "value": "(?i)(filter|where)", "name": "Has filter configuration"},
+      {"type": "regex", "value": "(?i)sort", "name": "Has sort configuration"},
+      {"type": "regex", "value": "(?i)literature", "name": "Filters for literature type"},
+      {"type": "min_length", "value": 300, "name": "Substantive base file (300+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:obsidian-bases\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-json-canvas-microservices",
+    "skill": "json-canvas",
+    "prompt": "Create an Obsidian .canvas file mapping a 4-service microservices architecture (API Gateway, Auth Service, User Service, Notification Service) with labeled connections showing which services call which. Print the complete JSON canvas content in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)\"nodes\"", "name": "Has nodes array"},
+      {"type": "regex", "value": "(?i)\"edges\"", "name": "Has edges array"},
+      {"type": "regex", "value": "(?i)\\.canvas", "name": "References .canvas extension"},
+      {"type": "regex", "value": "(?i)(api gateway|auth service|user service|notification)", "name": "Contains the specified services"},
+      {"type": "min_length", "value": 500, "name": "Substantive canvas (500+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:json-canvas\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-defuddle-pipeline",
+    "skill": "defuddle",
+    "prompt": "Explain how to save a web article to my Obsidian vault using the command line, including extracting clean content, auto-naming the note from the page title, and adding metadata properties. Print the full instructions and commands in your response.",
+    "assertions": [
+      {"type": "contains", "value": "defuddle", "name": "References defuddle tool"},
+      {"type": "regex", "value": "(?i)(obsidian\\s+create|obsidian create)", "name": "Uses obsidian create command"},
+      {"type": "regex", "value": "(?i)--md", "name": "Uses --md flag for markdown output"},
+      {"type": "regex", "value": "(?i)(-p\\s+title|-p title)", "name": "Extracts title with -p flag"},
+      {"type": "min_length", "value": 400, "name": "Substantive instructions (400+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:defuddle\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-second-brain-organization",
+    "skill": "second-brain",
+    "prompt": "I have 500 unorganized notes in my Obsidian vault — mostly research papers, meeting notes, and random ideas all in one folder. Help me decide between Zettelkasten and PARA for organizing them, and explain how to get started with Maps of Content. Print your full recommendation in your response.",
+    "assertions": [
+      {"type": "contains", "value": "Zettelkasten", "name": "Discusses Zettelkasten method"},
+      {"type": "contains", "value": "PARA", "name": "Discusses PARA method"},
+      {"type": "regex", "value": "(?i)(MOC|map of content|maps of content)", "name": "Explains Maps of Content"},
+      {"type": "regex", "value": "(?i)(permanent note|evergreen note|atomic note)", "name": "Mentions note types"},
+      {"type": "min_length", "value": 600, "name": "Substantive recommendation (600+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:second-brain\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-vault-templates-weekly-review",
+    "skill": "vault-templates",
+    "prompt": "Create a weekly review template for my Obsidian vault with YAML frontmatter, sections for reflection and planning, and task checkboxes. Print the complete template in your response.",
+    "assertions": [
+      {"type": "regex", "value": "---\\n", "name": "Has YAML frontmatter fences"},
+      {"type": "regex", "value": "(?i)(type:\\s*review|review-type:\\s*weekly)", "name": "Has review type in frontmatter"},
+      {"type": "regex", "value": "- \\[ \\]", "name": "Has task checkboxes"},
+      {"type": "section_count", "value": 3, "name": "Has at least 3 template sections"},
+      {"type": "min_length", "value": 400, "name": "Substantive template (400+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:vault-templates\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-vault-alignment-priorities",
+    "skill": "vault-alignment",
+    "prompt": "My Obsidian vault has 200 orphan notes, tags like #meeting and #meetings and #mtg all meaning the same thing, and 15 broken wikilinks. What should I fix first and in what order? Print your full prioritized improvement plan in your response.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(broken (wiki)?link|unresolved)", "name": "Addresses broken wikilinks first"},
+      {"type": "regex", "value": "(?i)(orphan|connectivity)", "name": "Addresses orphan notes / connectivity"},
+      {"type": "regex", "value": "(?i)(tag\\s*(sprawl|consolidat|merg|rename))", "name": "Addresses tag consolidation"},
+      {"type": "regex", "value": "(?i)(priorit|order|first|then|next|before)", "name": "Provides prioritized ordering"},
+      {"type": "min_length", "value": 500, "name": "Substantive plan (500+ chars)"},
+      {"type": "regex", "value": "(?i)(\\[skill:vault-alignment\\])", "name": "Skill watermark present"}
+    ]
+  }
+]

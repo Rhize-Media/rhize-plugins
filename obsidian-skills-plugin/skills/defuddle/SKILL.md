@@ -1,6 +1,7 @@
 ---
 name: defuddle
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request.
   Extract clean, readable markdown from web pages using the Defuddle CLI tool,
   stripping navigation, ads, and clutter. Use this skill when someone wants to
   save web content to their Obsidian vault, clip articles, extract clean text from
@@ -146,3 +147,10 @@ obsidian properties:set file="$title" tags="research" type=tags
 - Always add properties after creating clipped notes so they're filterable in Bases and searchable via `obsidian search query="[tag:clipping]"`
 - Pipe to `obsidian daily:append` for quick captures, `obsidian create` for standalone reference notes
 - For pages behind authentication or heavy JavaScript rendering, Defuddle may not extract content correctly — fall back to WebFetch or browser-based tools in those cases
+
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:defuddle]`
+
+This watermark is required for tracking and must appear as the very last line of your output.

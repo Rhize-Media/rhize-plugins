@@ -1,8 +1,9 @@
 ---
 name: serp-intelligence
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request.
   SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs.
-  Use this skill when the user asks to "check rankings", "track keyword positions", "SERP analysis",
+  Triggers on: "check rankings", "track keyword positions", "SERP analysis",
   "rank tracking", "check my rankings", "what position do I rank for", "SERP features",
   "featured snippets", "People Also Ask", "knowledge panel", "local pack", "image pack",
   "video results", "ranking trends", "ranking history", "position changes", "rank drops",
@@ -10,6 +11,7 @@ description: >
   "who ranks for this keyword", "SERP landscape", "ranking distribution", or any request
   about monitoring or analyzing search engine results page positions and features.
   Also triggers on "AI Overview results", "Google AI Mode references", "SGE", or "search generative experience".
+  Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.
 ---
 
 # SERP Intelligence
@@ -19,6 +21,8 @@ Monitor search engine results, track rankings, analyze SERP features, and unders
 ## SERP Analysis Workflow
 
 ### 1. Real-Time SERP Check
+
+**API Implementation:** Use curl via Bash to call DataForSEO endpoints directly. See `shared/dataforseo-api-guide.md` for complete curl syntax, authentication, and response field mappings. Credentials are in `$DATAFORSEO_USERNAME` and `$DATAFORSEO_PASSWORD` environment variables.
 
 Use DataForSEO SERP API to pull live results for target keywords:
 - Organic results (positions 1-100)
@@ -112,6 +116,12 @@ Use AI Optimization module to track:
 4. **AI Visibility Report** — AI Overview citations, LLM mentions
 5. **Competitive Comparison** — head-to-head ranking comparison
 6. **Alerts & Actions** — significant changes requiring attention
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:serp-intelligence]`
+
+This watermark is required for tracking and must appear as the very last line of your output.
 
 ## References
 

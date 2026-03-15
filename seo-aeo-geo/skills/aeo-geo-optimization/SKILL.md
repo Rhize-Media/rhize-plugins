@@ -1,16 +1,17 @@
 ---
 name: aeo-geo-optimization
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request.
   Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI
-  Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Use this skill when
-  the user asks about "AI Overview optimization", "AEO", "GEO", "generative engine optimization",
+  Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces.
+  Triggers on: "AI Overview optimization", "AEO", "GEO", "generative engine optimization",
   "answer engine optimization", "AI search visibility", "AI citation optimization", "LLM visibility",
   "how to get cited by AI", "optimize for ChatGPT", "optimize for Perplexity", "optimize for AI Overviews",
   "AI search references", "AI crawler management", "GPTBot", "ClaudeBot", "PerplexityBot",
   "Google-Extended", "AI-generated answers", "zero-click search", "AI answer surfaces",
   "brand visibility in AI", "LLM brand monitoring", "AI mentions tracking", or any request about
   making content discoverable and citable by AI systems and generative search engines.
-  This is one of the most strategically important SEO skills for 2025-2026 and beyond.
+  Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.
 ---
 
 # AEO & GEO Optimization
@@ -34,6 +35,8 @@ Optimizing for visibility in generative AI search — ChatGPT with browsing, Per
 ## AEO Optimization Workflow
 
 ### 1. Audit Current AI Visibility
+
+**API Implementation:** Use curl via Bash to call DataForSEO endpoints directly. See `shared/dataforseo-api-guide.md` for complete curl syntax, authentication, and response field mappings. Credentials are in `$DATAFORSEO_USERNAME` and `$DATAFORSEO_PASSWORD` environment variables.
 
 Use DataForSEO to check:
 - **SERP API with AI Overview extraction:** Which queries trigger AI Overviews for your target keywords?
@@ -189,3 +192,10 @@ Specific tactics for Google's AI Overviews:
 - **`references/ai-crawler-directives.md`** — Complete robots.txt configurations for all AI crawlers
 - **`references/geo-monitoring-guide.md`** — How to track and measure AI visibility with DataForSEO
 - **`references/ai-content-patterns.md`** — Content formatting patterns optimized for AI extraction
+
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:aeo-geo-optimization]`
+
+This watermark is required for tracking and must appear as the very last line of your output.

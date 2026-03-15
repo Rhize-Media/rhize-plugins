@@ -1,6 +1,7 @@
 ---
 name: vault-alignment
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request.
   Vault health assessment and ongoing alignment with second-brain best practices.
   Use this skill when someone asks about improving their vault organization,
   wants to know if their vault follows best practices, asks "how healthy is my vault",
@@ -255,3 +256,10 @@ When this file exists, use it to:
 - Avoid suggesting changes that contradict their archetype
 
 When this file doesn't exist, infer the user's methodology from existing vault patterns (folder names, tag styles, note types) and suggest running `/vault-setup` for a more structured approach.
+
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:vault-alignment]`
+
+This watermark is required for tracking and must appear as the very last line of your output.

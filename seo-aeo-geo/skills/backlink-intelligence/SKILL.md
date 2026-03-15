@@ -1,14 +1,16 @@
 ---
 name: backlink-intelligence
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request.
   Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API.
-  Use this skill when the user asks about "backlink analysis", "backlink audit", "link profile",
+  Triggers on: "backlink analysis", "backlink audit", "link profile",
   "referring domains", "anchor text analysis", "link gap analysis", "competitor backlinks",
   "broken backlinks", "lost backlinks", "toxic links", "link building opportunities",
   "who links to my competitors", "find link prospects", "domain authority", "backlink quality",
   "link equity", "dofollow vs nofollow", "link reclamation", or any request involving analyzing
   or improving a website's inbound link profile. Also triggers on "disavow links", "unnatural links",
   "link outreach targets", or "content that attracts links".
+  Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.
 ---
 
 # Backlink Intelligence
@@ -18,6 +20,8 @@ Analyze backlink profiles, identify link-building opportunities, and monitor lin
 ## Analysis Workflow
 
 ### 1. Profile Analysis
+
+**API Implementation:** Use curl via Bash to call DataForSEO endpoints directly. See `shared/dataforseo-api-guide.md` for complete curl syntax, authentication, and response field mappings. Credentials are in `$DATAFORSEO_USERNAME` and `$DATAFORSEO_PASSWORD` environment variables.
 
 Use DataForSEO Backlinks API to pull:
 - Total backlinks and referring domains
@@ -105,6 +109,12 @@ Based on analysis, recommend:
 4. **Competitor Gap** — table of outreach opportunities sorted by authority
 5. **Issues Found** — broken links, toxic links, over-optimized anchors
 6. **Action Plan** — prioritized link-building recommendations
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:backlink-intelligence]`
+
+This watermark is required for tracking and must appear as the very last line of your output.
 
 ## References
 

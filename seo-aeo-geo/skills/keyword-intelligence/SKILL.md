@@ -1,8 +1,9 @@
 ---
 name: keyword-intelligence
 description: >
+  ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request.
   Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data
-  and Labs APIs. Use this skill when the user asks to "find keywords", "keyword research", "keyword analysis",
+  and Labs APIs. Triggers on: "find keywords", "keyword research", "keyword analysis",
   "keyword gap analysis", "keyword clustering", "find search terms", "what keywords should I target",
   "competitor keyword analysis", "keyword difficulty check", "search volume data", "long-tail keywords",
   "question keywords", "People Also Ask keywords", "keyword opportunities", "content gap analysis",
@@ -10,6 +11,7 @@ description: >
   involving discovering, analyzing, or prioritizing keywords for SEO or content strategy.
   Also triggers on "decision-stage keywords", "commercial intent keywords", "informational keywords",
   "compare keywords", "keyword trends", or "seasonal keywords".
+  Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.
 ---
 
 # Keyword Intelligence
@@ -28,6 +30,8 @@ Gather from the user:
 - Content types planned (blog, landing pages, product pages)
 
 ### 2. Expand Keywords with DataForSEO
+
+**API Implementation:** Use curl via Bash to call DataForSEO endpoints directly. See `shared/dataforseo-api-guide.md` for complete curl syntax, authentication, and response field mappings. Credentials are in `$DATAFORSEO_USERNAME` and `$DATAFORSEO_PASSWORD` environment variables.
 
 Use multiple DataForSEO endpoints for comprehensive expansion:
 
@@ -130,6 +134,12 @@ For clustering strategies, read `references/clustering-strategies.md`.
 3. **Gap Analysis** — competitor comparison showing opportunities
 4. **Quick Wins** — page 2 keywords that can move to page 1
 5. **Content Calendar Suggestions** — what to create first, second, third
+**IMPORTANT — Skill Watermark (REQUIRED):**
+You MUST end your final response with the following line on its own, after all other content:
+
+`[skill:keyword-intelligence]`
+
+This watermark is required for tracking and must appear as the very last line of your output.
 
 ## Edge Cases
 
@@ -138,3 +148,4 @@ For clustering strategies, read `references/clustering-strategies.md`.
 - **YMYL topics:** Health, finance, legal — require E-E-A-T signals regardless of keyword targeting.
 - **Seasonal keywords:** Use Google Trends data to identify spike windows. Standard volume averages are misleading.
 - **Multilingual:** Run separate research per locale. Don't assume translation equivalence.
+
