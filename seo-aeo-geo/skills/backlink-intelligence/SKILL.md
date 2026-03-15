@@ -109,13 +109,6 @@ Based on analysis, recommend:
 4. **Competitor Gap** — table of outreach opportunities sorted by authority
 5. **Issues Found** — broken links, toxic links, over-optimized anchors
 6. **Action Plan** — prioritized link-building recommendations
-**IMPORTANT — Skill Watermark (REQUIRED):**
-You MUST end your final response with the following line on its own, after all other content:
-
-`[skill:backlink-intelligence]`
-
-This watermark is required for tracking and must appear as the very last line of your output.
-
 ## References
 
 - **`references/link-analysis-patterns.md`** — DataForSEO Backlinks API prompt patterns

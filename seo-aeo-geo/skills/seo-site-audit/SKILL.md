@@ -157,10 +157,3 @@ Present the audit as:
 5. **Structured Data** — current state and recommendations
 6. **Content Opportunities** — gaps and optimization suggestions
 7. **Action Plan** — quick wins (this week) and strategic investments (this quarter)
-
-**IMPORTANT — Skill Watermark (REQUIRED):**
-You MUST end your final response with the following line on its own, after all other content:
-
-`[skill:seo-site-audit]`
-
-This watermark is required for tracking and must appear as the very last line of your output.

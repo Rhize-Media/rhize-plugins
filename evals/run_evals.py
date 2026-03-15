@@ -206,26 +206,16 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
                 for tc in tool_calls
             )
 
-            # Signal 2: skill watermark in output
-            watermarks = [
-                f"<!-- skill:{skill_name} -->",
-                f"[skill:{skill_name}]",
-            ]
-            has_watermark = any(w.lower() in output.lower() for w in watermarks)
-
-            # Signal 3 (informational only): token/turn heuristic.
-            # Logged for diagnostics but NOT used for trigger decision — it
-            # produces too many false positives. Skill tool and watermark
-            # signals are deterministic and sufficient.
+            # Heuristic (informational only): token/turn signal.
+            # Logged for diagnostics but NOT used for trigger decision.
             heuristic_triggered = tokens > 150_000 and num_turns > 6
 
-            triggered = skill_tool_called or has_watermark
+            triggered = skill_tool_called
 
             ev_results.append({
                 "run": run_idx + 1,
                 "triggered": triggered,
                 "skill_tool_called": skill_tool_called,
-                "has_watermark": has_watermark,
                 "heuristic_triggered": heuristic_triggered,
                 "num_turns": num_turns,
                 "duration_ms": result["duration_ms"],
@@ -529,16 +519,6 @@ def main():
                 print(f"  [{icon}] {r['name']}: {r['evidence']}")
             print()
 
-        # Also check for watermarks
-        print(f"{'='*60}")
-        print("Watermark detection:")
-        for ev in quality_evals:
-            skill_name = ev.get("skill", "unknown")
-            watermark = f"<!-- skill:{skill_name} -->"
-            found = watermark.lower() in sample_output.lower()
-            icon = "FOUND" if found else "MISSING"
-            print(f"  [{icon}] {watermark}")
-        print(f"{'='*60}")
         return
 
     # Build extra args passed to every claude -p invocation

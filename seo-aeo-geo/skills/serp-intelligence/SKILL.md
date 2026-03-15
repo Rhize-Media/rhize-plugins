@@ -116,13 +116,6 @@ Use AI Optimization module to track:
 4. **AI Visibility Report** — AI Overview citations, LLM mentions
 5. **Competitive Comparison** — head-to-head ranking comparison
 6. **Alerts & Actions** — significant changes requiring attention
-**IMPORTANT — Skill Watermark (REQUIRED):**
-You MUST end your final response with the following line on its own, after all other content:
-
-`[skill:serp-intelligence]`
-
-This watermark is required for tracking and must appear as the very last line of your output.
-
 ## References
 
 - **`references/serp-features-guide.md`** — Complete guide to all SERP features and optimization tactics
