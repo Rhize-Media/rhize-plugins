@@ -281,3 +281,17 @@ The Obsidian CLI can enable and disable these plugins but cannot install them. W
 **Defuddle returns errors on a URL:** Some sites block automated extraction. Try a different URL, or use the `--md` flag explicitly. Sites behind login walls won't work.
 
 **Base files don't show expected notes:** The notes are missing the frontmatter properties that the base filters against. Use `obsidian properties:set` to add the required properties to your notes.
+
+**Dataview queries render as raw code blocks (not executing):** The Dataview plugin is installed but not enabled. Check `.obsidian/community-plugins.json` — the string `"dataview"` must be in the array. Go to Settings → Community plugins and toggle Dataview on. A plugin folder existing in `.obsidian/plugins/dataview/` does NOT mean it's enabled.
+
+**New folders don't appear in Obsidian's file explorer:** Empty folders are invisible in Obsidian. Create a placeholder `.md` file (e.g., `.folder-note.md`) inside each empty folder. Obsidian only shows folders that contain at least one recognized file.
+
+**"Recent Notes" Dataview query shows all notes after migration:** Bulk file moves (even with `obsidian move`) can reset `file.mtime` to the migration date. Add a date filter to your Recent Notes query: `WHERE file.mtime > date(YYYY-MM-DD)` using the migration date. This filters out notes that haven't been genuinely modified since.
+
+**File timestamps lost after copying notes:** Using bare `cp` to move notes destroys modification timestamps. Always use `mv` (preserves timestamps) or `cp -p` (preserves timestamps on copy). Original timestamps cannot be recovered after bare `cp`.
+
+**MCP tools return "This tool has been disabled":** The Obsidian MCP connector is installed but the specific tool is disabled in connector settings. Fall back to filesystem operations (`Bash`, `Read`, `Write` tools) for vault access. Use `mv` or `cp -p` instead of `obsidian move` — but note that filesystem moves do NOT auto-update wikilinks.
+
+**File deletion blocked in Cowork:** Cowork sandboxes block `rm` by default. Call `mcp__cowork__allow_cowork_file_delete` with the vault path first to enable deletion permissions for the session.
+
+**Nested .obsidian folder causing weird behavior:** A `.obsidian` directory inside a subfolder creates an accidental sub-vault. Find it with `find <vault> -mindepth 2 -name ".obsidian" -type d` and delete it (after backing up).

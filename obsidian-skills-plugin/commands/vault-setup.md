@@ -78,6 +78,16 @@ obsidian orphans
 obsidian plugins format=json
 ```
 
+**MCP/CLI Fallback:** If `obsidian` CLI commands or MCP tools fail (disabled connectors, CLI not registered, Obsidian not running), fall back to direct filesystem operations:
+```bash
+# Filesystem fallback for vault structure
+find "$VAULT_PATH" -name "*.md" | wc -l                    # total notes
+find "$VAULT_PATH" -type d | head -30                       # folder tree
+find "$VAULT_PATH" -name "*.md" -path "*/templates/*"       # templates
+find "$VAULT_PATH" -name "*.md" -path "*/Templates/*"       # templates (alt)
+```
+Log which method was used so later phases know whether `obsidian move` (link-safe) or `mv`/`cp -p` (requires manual link checking) should be used for migration.
+
 Then sample 5-10 representative notes to check frontmatter conventions:
 ```bash
 obsidian properties file="<note1>" format=json
@@ -92,14 +102,33 @@ obsidian files folder=templates
 obsidian files folder="_templates"
 ```
 
+**Plugin enabled-vs-installed check (CRITICAL):**
+A plugin folder existing in `.obsidian/plugins/<plugin>/` does NOT mean the plugin is enabled. The source of truth is `.obsidian/community-plugins.json`, which lists only the enabled plugin IDs. Always verify both:
+```bash
+# Check if plugin folder exists (installed)
+ls "$VAULT_PATH/.obsidian/plugins/dataview/" 2>/dev/null && echo "installed" || echo "not installed"
+# Check if plugin is actually enabled (in the enabled list)
+cat "$VAULT_PATH/.obsidian/community-plugins.json" 2>/dev/null
+# Look for the plugin ID string in the JSON array — if absent, the plugin is installed but NOT enabled
+```
+When reporting plugin status, use three states: **enabled**, **installed but disabled**, or **not installed**. If a plugin is installed but disabled, tell the user: "I found [plugin] installed but not enabled. You can enable it in Settings → Community plugins → toggle it on. Want to pause and do that now?"
+
+**Nested `.obsidian` detection:**
+Check for `.obsidian` folders inside subfolders — these indicate an accidentally nested vault and should be flagged as a health issue:
+```bash
+find "$VAULT_PATH" -mindepth 2 -name ".obsidian" -type d
+```
+If found, warn the user: "I found a nested .obsidian folder inside [path], which means Obsidian may treat that subfolder as a separate vault. This can cause unexpected behavior. You should delete or move that nested .obsidian folder."
+
 Present the audit summary:
 - **Size**: X notes across Y folders
 - **Structure**: describe the current folder hierarchy and any clear organizational scheme
 - **Tags**: top 10 tags, style pattern (flat/nested, singular/plural), any obvious duplicates
 - **Frontmatter**: common properties found, naming conventions in use
-- **Plugins installed**: list with enabled/disabled status
+- **Plugins**: list with three-state status (enabled / installed-but-disabled / not installed)
 - **Templates**: whether a template folder exists and what templates are in it
-- **Health**: orphan count, note about any broken links found
+- **Health**: orphan count, broken links, and any nested `.obsidian` folders found
+- **Tool availability**: which tools are available (MCP, CLI, filesystem-only) — this affects migration strategy in Phase 6
 
 Then say: "I'll design the new structure to work with what you already have — preserving your existing folders and conventions where they make sense."
 
@@ -258,13 +287,23 @@ For not-installed plugins, remind the user they can install them anytime and run
 
 Execute the confirmed archetype. Create everything using CLI commands:
 
-**Folders:**
+**Folders (CRITICAL — placeholder notes required):**
+Empty folders are invisible in Obsidian's file explorer. Every new folder MUST contain at least one `.md` file or it will not appear to the user. Create a `.folder-note.md` placeholder in each new folder:
 ```bash
 # Create a placeholder note in each new folder (folders are created implicitly)
 obsidian create name=".folder-note" path=Projects/ content="# Projects\nActive work with deadlines." --silent
 obsidian create name=".folder-note" path=Areas/ content="# Areas\nOngoing responsibilities." --silent
 # ... etc for each folder
 ```
+
+**Filesystem fallback for folder creation:**
+If the CLI/MCP is unavailable, use `mkdir -p` followed by creating a placeholder file in every folder:
+```bash
+mkdir -p "$VAULT_PATH/Projects"
+echo "# Projects\nActive work with deadlines." > "$VAULT_PATH/Projects/.folder-note.md"
+# Repeat for EVERY new folder — do not skip this step
+```
+Never use `mkdir -p` alone without also creating a placeholder `.md` file — the folder will be invisible in Obsidian.
 
 **Templates:**
 ```bash
@@ -296,6 +335,13 @@ After scaffolding, confirm what was created: "Setup complete. I created X folder
 
 For existing vaults, after scaffolding the overlay structure, offer to reorganize existing notes. Present each migration opportunity separately — the user can accept or skip each one independently.
 
+**Record the pre-migration timestamp** before any moves begin:
+```bash
+PRE_MIGRATION_DATE=$(date +%Y-%m-%d)
+echo "Migration started: $PRE_MIGRATION_DATE"
+```
+This date is needed later to fix Dataview `file.mtime` queries that break after bulk moves.
+
 **Note relocation:**
 Analyze notes in the root and suggest where they should go:
 ```bash
@@ -317,6 +363,31 @@ obsidian move file="<note>" to=Areas/Health/
 # ... etc
 ```
 
+**Filesystem fallback — TIMESTAMP PRESERVATION (CRITICAL):**
+When the CLI/MCP `obsidian move` is unavailable and you must use filesystem commands, ALWAYS use `mv` (which preserves timestamps) or `cp -p` (which preserves modification times). NEVER use bare `cp` — it resets `mtime` to the current time, permanently destroying the original modification dates. This breaks Dataview queries that sort or filter by `file.mtime`, and the original timestamps cannot be recovered.
+```bash
+# CORRECT — preserves timestamps:
+mv "$VAULT_PATH/old/note.md" "$VAULT_PATH/new/note.md"
+# CORRECT — preserves timestamps when copying:
+cp -p "$VAULT_PATH/old/note.md" "$VAULT_PATH/new/note.md"
+# WRONG — destroys timestamps (NEVER DO THIS):
+# cp "$VAULT_PATH/old/note.md" "$VAULT_PATH/new/note.md"
+```
+
+**Deletion permissions in Cowork/sandboxed environments:**
+When running in Cowork or other sandboxed environments, file deletion may be blocked by default. Before attempting to remove old folders/files after migration, request deletion permissions first:
+```
+Call: mcp__cowork__allow_cowork_file_delete with the vault path
+```
+If deletion is not available, leave old folders in place and note them in the setup log as "pending cleanup — user should delete manually."
+
+**Old folder cleanup strategy:**
+After migration, the old folders should be removed to avoid confusion (users seeing duplicate structure). Always:
+1. Verify 100% of files were successfully moved (compare file counts)
+2. Request deletion permissions if in a sandboxed environment
+3. Delete old empty folders
+4. If deletion fails, document remaining cleanup in the setup log
+
 **Tag consolidation:**
 If the audit found duplicate tags:
 "I found these tag duplicates: `#meeting` (45 uses) and `#meetings` (12 uses). Want me to merge `#meetings` into `#meeting`?"
@@ -331,6 +402,21 @@ If the audit found inconsistent properties:
 obsidian properties:set file="<note>" status=open
 # ... for each note
 ```
+
+**Post-migration Dataview query fix (CRITICAL):**
+After bulk file moves (even with `obsidian move`), `file.mtime` values may be updated to the migration timestamp. This means any Dataview query using `file.mtime` for "Recent Notes" will show ALL migrated notes as recently modified, rendering the query useless. Fix this by adding a date filter to mtime-based queries:
+````markdown
+## Recent Notes
+```dataview
+LIST
+FROM ""
+WHERE file.name != "Home" AND file.name != ".folder-note"
+  AND file.mtime > date(<PRE_MIGRATION_DATE>)
+SORT file.mtime DESC
+LIMIT 10
+```
+````
+Replace `<PRE_MIGRATION_DATE>` with the actual date recorded at the start of Phase 6. This ensures only notes modified AFTER migration appear in "Recent Notes." Mention this to the user: "I've set the Recent Notes query to only show notes modified after today's migration. As you edit notes going forward, they'll appear here naturally."
 
 ---
 

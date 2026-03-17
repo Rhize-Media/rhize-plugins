@@ -135,6 +135,15 @@ obsidian plugins format=json         # List all installed plugins
 obsidian plugin:enable id=<plugin>   # Enable a disabled plugin
 ```
 
+**IMPORTANT — Installed ≠ Enabled:**
+A plugin folder existing at `.obsidian/plugins/<id>/` only means it is installed, NOT that it is enabled. The source of truth for enabled plugins is `.obsidian/community-plugins.json`. Always cross-check:
+```bash
+cat "$VAULT_PATH/.obsidian/community-plugins.json"
+# This is a JSON array of enabled plugin ID strings, e.g. ["dataview", "obsidian-kanban"]
+# If a plugin folder exists but its ID is not in this array, it is installed but disabled
+```
+Report three states: **enabled**, **installed but disabled**, **not installed**. An installed-but-disabled plugin will NOT execute — Dataview queries render as raw code blocks, Kanban notes show as plain markdown, etc.
+
 **Recommended plugins by methodology:**
 
 | Methodology | Essential Plugins | Nice-to-Have |
@@ -171,6 +180,15 @@ Over time, vaults drift from their intended structure. Common drift patterns and
 **Project zombie** — Completed or abandoned projects still in active folders.
 - Detect: `obsidian search query="[type:project]"` → check `status` and last modified date
 - Fix: Move to Archive with `obsidian move`
+
+**Nested `.obsidian` folder** — A `.obsidian` directory exists inside a subfolder, creating an accidental vault-within-a-vault.
+- Detect: `find "$VAULT_PATH" -mindepth 2 -name ".obsidian" -type d`
+- Symptoms: Notes in the nested folder may behave unexpectedly, plugins may not apply, settings may diverge
+- Fix: Delete the nested `.obsidian` folder (after confirming the user didn't intentionally create a sub-vault). Back up before deleting.
+
+**Invisible empty folders** — Folders created with `mkdir` but containing no `.md` files don't appear in Obsidian's file explorer.
+- Detect: `find "$VAULT_PATH" -type d -empty` or folders containing only non-`.md` files
+- Fix: Create a `.folder-note.md` placeholder in each empty folder
 
 ## Improvement Prioritization
 
@@ -209,11 +227,16 @@ When the user explicitly chooses aggressive reorganization:
 
 1. **Plan** — Present the full move plan: which notes go where, how many per folder
 2. **Confirm** — Get explicit approval before starting
-3. **Execute** — Use `obsidian move` for each note (preserves all wikilinks)
-4. **Verify** — After the batch, run `obsidian unresolved` to check for any broken links
-5. **Report** — Summarize what moved and confirm the new structure
+3. **Record pre-migration date** — Save the current date; needed to fix mtime-based Dataview queries afterward
+4. **Execute** — Use `obsidian move` for each note (preserves all wikilinks). If CLI/MCP is unavailable, use `mv` or `cp -p` (NEVER bare `cp` — it destroys file modification timestamps permanently)
+5. **Clean up old folders** — In sandboxed environments (Cowork), request deletion permissions via `mcp__cowork__allow_cowork_file_delete` before attempting `rm`. If unavailable, document remaining folders for manual cleanup
+6. **Fix Dataview queries** — Any `file.mtime`-based queries (e.g., "Recent Notes") will show all migrated notes. Add a date filter: `WHERE file.mtime > date(<pre-migration-date>)`
+7. **Verify** — After the batch, run `obsidian unresolved` to check for any broken links
+8. **Report** — Summarize what moved and confirm the new structure
 
 Always process moves in small batches (10-15 notes) with confirmation between batches for large vaults.
+
+**Why timestamp preservation matters:** Dataview's `file.mtime` is the primary way users track "recent" activity. If migration resets all timestamps to the same date, the Recent Notes dashboard becomes useless — every note appears equally "recent." Use `mv` (moves preserve timestamps on all OS) or `cp -p` (copies preserve timestamps). Never use bare `cp`.
 
 ### Tag Consolidation
 
