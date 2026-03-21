@@ -469,3 +469,65 @@ last-updated: {{date}}
 ```
 
 This log is read by `/vault-align` to understand the vault's intended state and track what still needs attention.
+
+
+---
+
+## Phase 7: qmd Semantic Search Setup (Optional)
+
+After all other phases, offer to set up qmd for enhanced search, connection discovery, and natural language recall.
+
+"Would you like to enable semantic search for your vault? qmd is a local-first search engine that lets you search by concept (not just keywords), find hidden connections between notes, and ask natural language questions about your vault. Everything runs on your machine — no cloud services."
+
+### If the user says yes:
+
+**Step 1: Check prerequisites**
+```bash
+# Check Node.js
+node --version 2>/dev/null || echo "Node.js not found — install from https://nodejs.org"
+
+# Check if qmd is already installed
+command -v qmd >/dev/null 2>&1 && echo "qmd already installed" || echo "qmd not installed"
+```
+
+**Step 2: Install qmd** (if not already installed)
+```bash
+npm install -g qmd
+```
+
+**Step 3: Create vault collection and index**
+```bash
+# Add the vault as a qmd collection
+qmd collection add vault "/path/to/vault" --include "*.md"
+
+# Generate vector embeddings (this may take a few minutes for large vaults)
+qmd embed vault
+
+# Verify indexing
+qmd status vault
+```
+
+Tell the user: "Indexing is complete. Your vault now has [X] documents indexed for semantic search. The commands `/vault-search`, `/vault-connect`, and `/vault-recall` will automatically use qmd when available."
+
+**Step 4: Document in setup log**
+Add to the Plugin Status table in `_vault-setup-log.md`:
+```markdown
+| qmd | installed | Semantic search, connection discovery, vault recall |
+```
+
+### Keeping the index fresh
+
+Tell the user: "After adding or editing notes, run `qmd embed vault` to update the index. You can also add this to a cron job or alias for convenience:
+```bash
+alias qmd-reindex='qmd embed vault'
+```
+The `/vault-align` command will check if your qmd index is stale and remind you to re-embed."
+
+### If the user declines:
+
+Add to the Skipped Items in the setup log:
+```markdown
+- [ ] Install qmd for semantic search (`npm install -g qmd`)
+```
+
+Say: "No problem — all commands work without qmd using keyword search. You can set it up anytime by running `npm install -g qmd` and then `/vault-setup resume` to pick up where we left off."
