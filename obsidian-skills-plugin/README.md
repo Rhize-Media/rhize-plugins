@@ -77,10 +77,11 @@ obsidian daily                              # Today's daily note
 obsidian files folder=Projects format=json  # List files in folder
 ```
 
-### qmd Semantic Search (optional)
+### qmd Semantic Search (dependency: `qmd@qmd` plugin)
 
-qmd adds local vector embeddings and LLM re-ranking — no cloud services required. Once installed, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use it.
+qmd adds local vector embeddings and LLM re-ranking — no cloud services required. It is a **plugin dependency** — enable the `qmd@qmd` plugin alongside this plugin for full semantic search support. The `qmd@qmd` plugin registers its own MCP server (`qmd mcp`).
 
+**Setup:**
 ```bash
 npm install -g qmd
 qmd collection add vault /path/to/your/vault --include "*.md"
@@ -88,7 +89,7 @@ qmd embed vault
 qmd status vault
 ```
 
-All commands gracefully fall back to MCP/CLI keyword search when qmd is not installed.
+Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use semantic search. All commands gracefully fall back to MCP/CLI keyword search when qmd is not available.
 
 ## Setup
 
@@ -98,7 +99,7 @@ All commands gracefully fall back to MCP/CLI keyword search when qmd is not inst
 - **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
 - **Obsidian CLI** (v1.12.4+) registered and on PATH
 - **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) — optional, for semantic search
+- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — for semantic search
 
 ### Installation
 
