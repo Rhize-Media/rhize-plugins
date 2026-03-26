@@ -30,3 +30,7 @@ This project contains Claude Code skills (plugins). When a user's request matche
 - Second brain / PKM methodology (`second-brain`)
 - Vault note templates (`vault-templates`)
 - Vault health and alignment (`vault-alignment`)
+
+*Project Launcher plugin:*
+- Full project launch pipeline — research, PRD, gap analysis, scaffold, GSD v2 handoff (`project-launcher`)
+- Commands: `/launch-project`, `/write-prd`, `/scaffold-gsd`, `/grill-prd`
