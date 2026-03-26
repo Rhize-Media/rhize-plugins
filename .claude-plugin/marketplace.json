@@ -27,6 +27,17 @@
       },
       "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management", "setup", "alignment", "dataview", "kanban"],
       "category": "workflow"
+    },
+    {
+      "name": "project-launcher",
+      "source": "./project-launcher",
+      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development",
+      "version": "1.0.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": ["project-launcher", "prd", "requirements", "gsd", "autonomous", "scaffolding", "planning", "handoff"],
+      "category": "workflow"
     }
   ]
 }
