@@ -7,7 +7,8 @@ A curated collection of Claude plugins by [Rhize Media](https://rhize.media) —
 | Plugin | Description |
 | --- | --- |
 | [seo-aeo-geo](./seo-aeo-geo) | Comprehensive SEO, AEO, and GEO auditing powered by DataForSEO API with Next.js + Sanity CMS best practices |
-| [obsidian-skills](./obsidian-skills-plugin) | Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, and web clipping |
+| [obsidian-second-brain](./obsidian-second-brain) | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, Zettelkasten/PARA/MOC, semantic search |
+| [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, scaffolding, GSD v2 handoff |
 
 ## Installation
 
@@ -32,11 +33,13 @@ export DATAFORSEO_USERNAME="your_email"
 export DATAFORSEO_PASSWORD="your_api_password"
 ```
 
-### Obsidian Prerequisites (for obsidian-skills)
+### Obsidian Prerequisites (for obsidian-second-brain)
 
-- **Obsidian MCP Server** connected for vault commands to work
+- **Obsidian** running with Local REST API plugin enabled
+- **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
 - **Obsidian CLI** (v1.12.4+) — enable in Obsidian Settings > General > CLI
 - **Defuddle** (`npm install -g defuddle`) for the web clipping skill
+- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — for semantic search
 
 ## Contributing
 

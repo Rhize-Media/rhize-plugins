@@ -50,7 +50,7 @@ Phase 6: GSD v2 Handoff
 ### Sources to Check (in parallel where possible)
 
 1. **Obsidian Vault** — Search for related notes, past ideas, existing plans
-   - Use `obsidian-skills:vault-search` skill or Obsidian MCP (`obsidian_global_search`)
+   - Use `obsidian-second-brain:vault-search` skill or Obsidian MCP (`obsidian_global_search`)
    - Look for: prior art, related projects, decision history, domain knowledge
    - Check memory files for existing project context
 
@@ -341,8 +341,8 @@ These MCP servers are commonly used across the 6 phases:
 
 | Skill | Phase(s) | Purpose |
 |-------|----------|---------|
-| `obsidian-skills:vault-search` † | 1 | Search vault for related ideas |
-| `obsidian-skills:vault-research` † | 1 | Deep research on topics |
+| `obsidian-second-brain:vault-search` † | 1 | Search vault for related ideas |
+| `obsidian-second-brain:vault-research` † | 1 | Deep research on topics |
 | `grill-me` † | 4 | Critical gap analysis of PRD |
 | `write-a-prd` † | 3 | PRD generation (can complement this skill) |
 | `seo-aeo-geo:*` † | 1, 3 | SEO skills for content projects |

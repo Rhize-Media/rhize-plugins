@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **obsidian-skills** plugin (v0.2.0) — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, and knowledge graph workflows
+- **obsidian-second-brain** plugin (v0.2.0) — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, and knowledge graph workflows
 - Obsidian prerequisites section in marketplace README
 - **second-brain** skill — Zettelkasten, PARA, MOCs, progressive summarization, atomic notes methodology
 - **vault-templates** skill — Note archetypes for meeting notes, book reviews, project briefs, weekly reviews, permanent notes, person notes
@@ -24,7 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - Updated marketplace manifest and README to reflect multi-plugin catalog
-- Bumped obsidian-skills from v0.2.0 to v0.3.0
+- Bumped obsidian-second-brain from v0.2.0 to v0.3.0
 - Updated GUIDE.md with Setup & Alignment section and community plugins guide
 - Consolidated `/vault-organize` into `/vault-align` — all vault analysis and organization now lives in one command with granular focus options (`check tags`, `check orphans`, `check links`, `check structure`, `check full`)
 

@@ -18,14 +18,14 @@
       "category": "workflow"
     },
     {
-      "name": "obsidian-skills",
-      "source": "./obsidian-skills-plugin",
-      "description": "Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, knowledge graph workflows, interactive setup wizard, and ongoing vault alignment",
-      "version": "0.3.0",
+      "name": "obsidian-second-brain",
+      "source": "./obsidian-second-brain",
+      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
+      "version": "1.1.0",
       "author": {
-        "name": "Jim Deola"
+        "name": "Rhize Media"
       },
-      "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management", "setup", "alignment", "dataview", "kanban"],
+      "keywords": ["obsidian", "notes", "vault", "second-brain", "zettelkasten", "pkm", "knowledge-management", "moc", "research", "qmd", "semantic-search"],
       "category": "workflow"
     },
     {
