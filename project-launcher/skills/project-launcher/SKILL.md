@@ -239,6 +239,7 @@ The CLAUDE.md is the most important file — it's what the autonomous Claude ins
 - **MCP servers available** — Every MCP server with its purpose
 - **Skills to use** — Table mapping skills to workflow steps
 - **Key files** — Directory tree with descriptions
+- **Execution Strategy: Worktree + Subagent-Driven Development (MANDATORY)** — The 3-layer execution stack (GSD parent → worktree agent → per-task subagents with review gates) that prevents context window exhaustion while maintaining quality. See `references/gsd-handoff-guide.md` for the full template text to include.
 - **Post-Phase Verification** — The `/sc:reflect` + `/simplify` command to run after each GSD phase
 - **Important notes** — Deployment patterns, credentials, gotchas
 
@@ -271,7 +272,9 @@ Generate from the PRD:
 Verify all of these exist and are consistent:
 
 - [ ] `CLAUDE.md` references correct file paths and MCP servers
+- [ ] `CLAUDE.md` includes `## Execution Strategy: Worktree + Subagent-Driven Development (MANDATORY)` section
 - [ ] `CLAUDE.md` includes `## Post-Phase Verification` section with `/sc:reflect` + `/simplify` command
+- [ ] `.claude/settings.json` has `superpowers@claude-plugins-official` set to `true`
 - [ ] `.planning/PROJECT.md` matches PRD executive summary
 - [ ] `.planning/REQUIREMENTS.md` covers all PRD requirements
 - [ ] `.planning/ROADMAP.md` has realistic phases with concrete plans
@@ -355,6 +358,10 @@ These MCP servers are commonly used across the 6 phases:
 
 | Command/Flag | Phase(s) | Purpose |
 |-------------|----------|---------|
+| `Agent(isolation: "worktree")` | All GSD execution | **MANDATORY** — Every plan runs in a worktree-isolated sub-agent to prevent context window exhaustion |
+| `subagent-driven-development` | Inside each worktree | Per-task dispatch with spec compliance + code quality review gates |
+| `dispatching-parallel-agents` | GSD execution | Run independent plans concurrently in separate worktrees |
+| `using-git-worktrees` | Plan execution | Worktree creation, .gitignore safety, branch management |
 | `/batch` | 5, 6 | Batch parallel operations during scaffold and multi-file generation |
 | `/sc:reflect` | Post-phase | Validate all planned tasks were implemented |
 | `/simplify` | Post-phase | Review and simplify code changes |
