@@ -1,4 +1,4 @@
-# Obsidian Skills Plugin
+# Obsidian Second Brain
 
 A second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, and vault health management, backed by semantic search (qmd), MCP server, and CLI integration.
 
@@ -127,7 +127,7 @@ Accept the plugin when presented in chat, or install the `.plugin` file from you
 ## Architecture
 
 ```
-obsidian-skills-plugin/
+obsidian-second-brain/
 ├── .claude-plugin/plugin.json
 ├── .mcp.json                          # Obsidian MCP server connector
 ├── commands/                          # 9 slash commands

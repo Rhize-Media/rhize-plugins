@@ -1,4 +1,4 @@
-## Obsidian Skills Plugin Active
+## Obsidian Second Brain Active
 
 Your second brain is connected. Every note should be linked, tagged, and discoverable.
 

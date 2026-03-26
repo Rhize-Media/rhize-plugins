@@ -48,8 +48,8 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 
 | Skill | Phase | Purpose |
 |-------|-------|---------|
-| `obsidian-skills:vault-search` † | 1 | Vault search for prior art |
-| `obsidian-skills:vault-research` † | 1 | Deep topic research |
+| `obsidian-second-brain:vault-search` † | 1 | Vault search for prior art |
+| `obsidian-second-brain:vault-research` † | 1 | Deep topic research |
 | `grill-me` † | 4 | Critical gap analysis |
 | `write-a-prd` † | 3 | PRD generation |
 | `seo-aeo-geo:*` † | 1, 3 | SEO skills for content projects |
