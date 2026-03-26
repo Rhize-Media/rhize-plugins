@@ -1,43 +1,62 @@
 # Obsidian Skills Plugin
 
-Skills and commands for working with Obsidian vaults in Claude Desktop, Cowork, and Claude Code.
+A second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, and vault health management, backed by semantic search (qmd), MCP server, and CLI integration.
 
-## What's Included
+## Knowledge Workflows
 
-### Skills (9)
+The core of this plugin. These skills and commands turn your vault into an active thinking tool, not just a file store.
 
-| Skill | Triggers on |
-| ------- | ------------- |
-| **obsidian-cli** | CLI commands, terminal vault operations, shell automation, cron jobs |
-| **obsidian-markdown** | Wikilinks, embeds, callouts, frontmatter, block references, Obsidian formatting |
-| **obsidian-bases** | .base files, database views, filters, formulas, summaries, task trackers |
-| **json-canvas** | .canvas files, visual boards, node diagrams, mind maps |
-| **defuddle** | Web clipping, article extraction, saving URLs to vault |
-| **second-brain** | Zettelkasten, PARA, MOCs, progressive summarization, PKM methodology |
-| **vault-templates** | Note archetypes — meeting notes, book reviews, project briefs, weekly reviews |
-| **vault-alignment** | Vault health assessment, drift detection, ongoing improvement strategies |
-| **qmd-search** | qmd semantic search setup, search modes (BM25/vector/hybrid), indexing, MCP server |
+### Skills — Second Brain
 
-### Commands (9)
+| Skill | Purpose |
+|-------|---------|
+| **second-brain** | Zettelkasten, PARA, MOCs, progressive summarization, atomic notes — the methodology behind effective knowledge management |
+| **vault-templates** | Note archetypes — meeting notes, book reviews, project briefs, weekly reviews, literature notes |
+| **vault-alignment** | Vault health assessment, drift detection, structural improvement strategies |
+| **qmd-search** | Semantic vector search setup and configuration (BM25, vector, hybrid modes) |
+| **defuddle** | Web clipping and article extraction — bring external knowledge into your vault |
+
+### Commands — Research & Connect
 
 | Command | Description |
-| --------- | ------------- |
-| `/vault-search <query>` | Search vault for notes, tags, or content (uses qmd semantic search when available) |
-| `/vault-capture <content>` | Quick-capture a note, idea, or task |
-| `/vault-daily [read\|add\|summarize]` | Read, append to, or summarize today's daily note |
-| `/vault-research <url or topic>` | Research pipeline — clip, summarize, and connect to vault |
+|---------|-------------|
+| `/vault-research <url or topic>` | Research pipeline — clip, summarize, link to vault with MOC placement and tags |
 | `/vault-connect [note\|topic\|recent]` | Find and build missing links between related notes (qmd-enhanced) |
 | `/vault-recall <question>` | Ask your vault a natural language question and get a synthesized answer |
 | `/vault-review [daily\|weekly\|monthly]` | Periodic review — summarize activity, surface themes, plan ahead |
+
+### Commands — Capture & Daily
+
+| Command | Description |
+|---------|-------------|
+| `/vault-capture <content>` | Quick-capture a note, idea, or task (auto-tagged, inbox placement) |
+| `/vault-daily [read\|add\|summarize]` | Read, append to, or summarize today's daily note |
+| `/vault-search <query>` | Search vault for notes, tags, or content (semantic search when qmd available) |
+
+### Commands — Vault Health
+
+| Command | Description |
+|---------|-------------|
+| `/vault-align [check\|fix\|migrate\|plugins]` | Vault health monitor — audit structure, fix orphans, bulk migrate |
 | `/vault-setup [new\|existing\|resume]` | Interactive setup wizard — personalized folders, templates, dashboards, plugins, qmd |
-| `/vault-align [check\|fix\|migrate\|plugins]` | Vault health monitor — check alignment, analyze areas, fix issues, bulk migrate |
+
+## Format Skills
+
+Lower-level skills that auto-trigger when you're working with specific Obsidian file types or syntax. You rarely invoke these directly — they activate when needed.
+
+| Skill | Triggers on |
+|-------|-------------|
+| **obsidian-markdown** | Wikilinks, embeds, callouts, frontmatter, block references, Obsidian formatting |
+| **obsidian-bases** | .base files, database views, filters, formulas, summaries, task trackers |
+| **json-canvas** | .canvas files, visual boards, node diagrams, mind maps |
+| **obsidian-cli** | CLI commands, terminal vault operations, shell automation, cron jobs |
 
 ## Hooks
 
 | Hook | Matcher | Behavior |
 |------|---------|----------|
-| **SessionStart** | All sessions | Loads command menu, skills list, MCP servers, and vault path into context |
-| **PreToolUse** | `Write\|Edit` on vault `.md` files | Enforces Obsidian-native formatting: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
+| **SessionStart** | All sessions | Loads knowledge workflow commands, skills, connectors, and vault path into context |
+| **PreToolUse** | `Write\|Edit` on vault `.md` files | Enforces second-brain practices: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
 | **PostToolUse** | `Read` on vault `.md` files | Suggests following `[[wikilinks]]`, searching tags, `/vault-connect` for related notes, and `/vault-align` for orphan detection and health checks |
 
 All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
@@ -112,28 +131,28 @@ obsidian-skills-plugin/
 ├── .claude-plugin/plugin.json
 ├── .mcp.json                          # Obsidian MCP server connector
 ├── commands/                          # 9 slash commands
-│   ├── vault-search.md
-│   ├── vault-capture.md
-│   ├── vault-daily.md
-│   ├── vault-research.md
-│   ├── vault-connect.md
-│   ├── vault-recall.md
-│   ├── vault-review.md
-│   ├── vault-setup.md
-│   └── vault-align.md
+│   ├── vault-research.md              # Research pipeline
+│   ├── vault-connect.md               # Connection discovery
+│   ├── vault-recall.md                # Natural language recall
+│   ├── vault-review.md                # Periodic review
+│   ├── vault-capture.md               # Quick capture
+│   ├── vault-daily.md                 # Daily notes
+│   ├── vault-search.md                # Search
+│   ├── vault-align.md                 # Vault health
+│   └── vault-setup.md                 # Setup wizard
 ├── skills/
-│   ├── obsidian-cli/                  # + references/cli-commands.md
-│   ├── obsidian-markdown/
-│   ├── obsidian-bases/
-│   ├── json-canvas/
-│   ├── defuddle/
-│   ├── second-brain/
-│   ├── vault-templates/
-│   ├── vault-alignment/
-│   └── qmd-search/
+│   ├── second-brain/                  # PKM methodology
+│   ├── vault-templates/               # Note archetypes
+│   ├── vault-alignment/               # Health monitoring
+│   ├── qmd-search/                    # Semantic search config
+│   ├── defuddle/                      # Web clipping
+│   ├── obsidian-markdown/             # Markdown syntax
+│   ├── obsidian-bases/                # Bases databases
+│   ├── json-canvas/                   # Canvas files
+│   └── obsidian-cli/                  # + references/cli-commands.md
 ├── hooks/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
-│   └── obsidian-context.md            # Session context with connectors + hooks reference
+│   └── obsidian-context.md            # Session context (knowledge-first ordering)
 └── README.md
 ```
 

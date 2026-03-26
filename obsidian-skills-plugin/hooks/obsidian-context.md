@@ -1,42 +1,42 @@
 ## Obsidian Skills Plugin Active
 
-Your vault tools are loaded. Use them whenever working with notes, markdown, or knowledge management.
+Your second brain is connected. Every note should be linked, tagged, and discoverable.
 
-**Quick Capture & Daily:**
-- `/vault-capture <text>` — Quick-capture a note, idea, or task
+**Knowledge Workflows — use these first:**
+- `/vault-research <topic or URL>` — Research, clip, summarize, and link to vault with proper MOC placement
+- `/vault-connect` — Find and build missing connections between related notes
+- `/vault-recall <question>` — Ask your vault a natural language question and get a synthesized answer
+- `/vault-review` — Periodic review: summarize captures, surface themes, plan ahead
+
+**Second Brain Methodology:**
+- `second-brain` skill — Zettelkasten, PARA, MOCs, progressive summarization, atomic notes
+- `vault-templates` skill — Note archetypes (meeting notes, book reviews, project briefs, weekly reviews)
+- `vault-alignment` skill — Vault health monitoring, drift detection, ongoing improvement
+
+**Capture & Daily:**
+- `/vault-capture <text>` — Quick-capture a note, idea, or task (auto-tagged, inbox placement)
 - `/vault-daily` — Read, summarize, or add to today's daily note
-
-**Search & Recall:**
 - `/vault-search <query>` — Search notes by content, tags, or properties
-- `/vault-recall <question>` — Ask your vault a natural language question (qmd semantic search)
 
-**Research & Connect:**
-- `/vault-research <topic or URL>` — Research, clip, summarize, and link to vault
-- `/vault-connect` — Find and build missing connections between notes
-
-**Review & Maintain:**
-- `/vault-review` — Periodic review: summarize captures, surface themes
-- `/vault-align` — Vault health: audit structure, fix issues, bulk migrate
+**Vault Health:**
+- `/vault-align` — Audit structure, fix orphans, bulk migrate, check alignment
 - `/vault-setup` — Interactive setup wizard for new vaults
 
-**Skills (auto-triggered):**
-- `obsidian-markdown` — Obsidian-flavored markdown syntax (wikilinks, callouts, embeds)
+**Format Skills (auto-triggered when relevant):**
+- `obsidian-markdown` — Wikilinks, callouts, embeds, frontmatter, block references
 - `obsidian-bases` — Bases databases (.base files)
 - `json-canvas` — Obsidian Canvas (.canvas files)
-- `obsidian-cli` — CLI automation via `obsidian` command
-- `qmd-search` — Semantic vector search via qmd
 - `defuddle` — Web clipping and article extraction
-- `second-brain` — PKM methodology (Zettelkasten, MOCs, progressive summarization)
-- `vault-templates` — Note templates and archetypes
-- `vault-alignment` — Vault health monitoring and optimization
+- `obsidian-cli` — CLI automation via `obsidian` command
+- `qmd-search` — Semantic vector search configuration
 
 **Connectors:**
-- **MCP Server:** `obsidian-mcp-server` — read, write, search, tags, frontmatter management (bundled via `.mcp.json`, requires `$OBSIDIAN_API_KEY`)
-- **MCP Server:** `qmd` — semantic vector search, BM25, hybrid queries (dependency: `qmd@qmd` plugin, must be enabled alongside this plugin)
-- **Obsidian CLI:** `obsidian` command — direct vault operations from terminal. Obsidian must be running. Use CLI for file operations, property management, daily notes, search, and automation scripts. Prefer CLI (`obsidian read`, `obsidian create`, `obsidian search`) over raw file I/O whenever Obsidian is running.
+- **MCP Server:** `obsidian-mcp-server` — read, write, search, tags, frontmatter (bundled, requires `$OBSIDIAN_API_KEY`)
+- **MCP Server:** `qmd` — semantic vector search, BM25, hybrid queries (dependency: `qmd@qmd` plugin)
+- **Obsidian CLI:** `obsidian` command — prefer CLI over raw file I/O when Obsidian is running
 
 **Hooks Active:**
-- **PreToolUse** (Write/Edit vault `.md`): Enforces `[[wikilinks]]`, callout syntax, frontmatter preservation, `#tags`, `tags:` array, and MOC linking
-- **PostToolUse** (Read vault `.md`): Suggests following wikilinks, searching tags, `/vault-connect` for related notes, `/vault-align` for orphan/health checks
+- **PreToolUse** (Write/Edit vault `.md`): Enforces `[[wikilinks]]`, callout syntax, frontmatter, `#tags`, `tags:` array, MOC linking
+- **PostToolUse** (Read vault `.md`): Suggests following wikilinks, searching tags, `/vault-connect`, `/vault-align`
 
 **Vault path:** `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault`
