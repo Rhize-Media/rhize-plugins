@@ -1,0 +1,14 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}

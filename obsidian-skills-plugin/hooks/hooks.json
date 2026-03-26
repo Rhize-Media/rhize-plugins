@@ -1,0 +1,38 @@
+{
+  "SessionStart": [
+    {
+      "matcher": "",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
+          "timeout": 5
+        }
+      ]
+    }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    vault = 'iCloud~md~obsidian/Documents/Obsidian Vault'\n    if vault in path:\n        # Inside vault - gentle reminder about markdown format\n        if path.endswith('.md'):\n            print('Writing to Obsidian vault. Use [[wikilinks]] for internal links, not [text](path). Use callout syntax (> [!type]) for admonitions. Preserve existing frontmatter YAML.')\n        else:\n            print('')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+          "timeout": 3
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Read",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    vault = 'iCloud~md~obsidian/Documents/Obsidian Vault'\n    if vault in path and path.endswith('.md'):\n        print('Vault note loaded. Consider: Are there [[wikilinks]] to follow? Tags to search? Related notes via /vault-connect?')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+          "timeout": 3
+        }
+      ]
+    }
+  ]
+}
