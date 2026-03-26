@@ -10,5 +10,17 @@
         }
       ]
     }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json, os\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    content = data.get('content', data.get('new_string', '')).lower()\n    launcher_patterns = ['prd', 'requirements', 'research', 'context', 'gap-analysis', 'interview', 'discovery', 'roadmap', 'project.md', 'requirements.md']\n    is_launcher_artifact = any(p in path.lower() for p in launcher_patterns) or any(p in content[:200] for p in ['## prd', '## requirements', '## research', '# product requirements', '## project overview'])\n    vault_path = os.path.expanduser('~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault')\n    has_vault = os.path.isdir(vault_path)\n    if is_launcher_artifact and has_vault:\n        print('Launcher artifact detected and Obsidian vault found. Also save this to the vault using second-brain methodology: [[wikilinks]] to related projects, #tags in frontmatter, and place under the appropriate Projects/ folder with MOC links.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+          "timeout": 3
+        }
+      ]
+    }
   ]
 }
