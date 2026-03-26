@@ -42,36 +42,99 @@ Skills and commands for working with Obsidian vaults in Claude Desktop, Cowork, 
 
 All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
 
-## Setup
+## Connectors
 
-### Prerequisites
+### Obsidian MCP Server (bundled)
 
-- **Obsidian MCP Server** connected for commands to work (the commands use `obsidian-mcp-server` tools)
-- **Obsidian CLI** (v1.12.4+) for the CLI skill's terminal commands — enable in Settings → General → CLI
-- **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) — optional but recommended for semantic search, connection discovery, and natural language vault recall
+The plugin bundles an `obsidian-mcp-server` connector via `.mcp.json`. This provides read, write, search, tag management, and frontmatter operations through the Obsidian REST API.
 
-### Installation
+**Required env var:**
+```bash
+export OBSIDIAN_API_KEY=your_api_key_here
+```
 
-Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder.
+Get your API key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key.
 
-### qmd Setup (Optional)
+The server connects to `https://127.0.0.1:27124/` (Obsidian's local REST API). Obsidian must be running.
 
-qmd adds semantic search powered by local vector embeddings and LLM re-ranking — no cloud services required. Once installed, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use it.
+### Obsidian CLI
+
+The Obsidian CLI (`obsidian` command, v1.12.4+) provides direct vault operations from the terminal. **Prefer CLI over raw file I/O** whenever Obsidian is running — it respects plugins, templates, and link resolution.
+
+**Setup:**
+1. Enable CLI: Obsidian → Settings → General → Command line interface → Register CLI
+2. Restart your terminal so `obsidian` is on PATH
+3. Verify: `obsidian --version`
+
+**Key operations:**
+```bash
+obsidian read file="Note Name"              # Read note by wikilink name
+obsidian create name="New Note"             # Create note
+obsidian search query="keyword"             # Full-text search
+obsidian properties file="Note" format=json # Read frontmatter
+obsidian tags                               # List all tags
+obsidian daily                              # Today's daily note
+obsidian files folder=Projects format=json  # List files in folder
+```
+
+### qmd Semantic Search (optional)
+
+qmd adds local vector embeddings and LLM re-ranking — no cloud services required. Once installed, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use it.
 
 ```bash
-# Install qmd
 npm install -g qmd
-
-# Index your vault
 qmd collection add vault /path/to/your/vault --include "*.md"
 qmd embed vault
-
-# Verify
 qmd status vault
 ```
 
 All commands gracefully fall back to MCP/CLI keyword search when qmd is not installed.
+
+## Setup
+
+### Prerequisites
+
+- **Obsidian** running with Local REST API plugin enabled (for MCP server)
+- **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
+- **Obsidian CLI** (v1.12.4+) registered and on PATH
+- **Defuddle** (`npm install -g defuddle`) for the web clipping skill
+- **qmd** (`npm install -g qmd`) — optional, for semantic search
+
+### Installation
+
+Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server.
+
+## Architecture
+
+```
+obsidian-skills-plugin/
+├── .claude-plugin/plugin.json
+├── .mcp.json                          # Obsidian MCP server connector
+├── commands/                          # 9 slash commands
+│   ├── vault-search.md
+│   ├── vault-capture.md
+│   ├── vault-daily.md
+│   ├── vault-research.md
+│   ├── vault-connect.md
+│   ├── vault-recall.md
+│   ├── vault-review.md
+│   ├── vault-setup.md
+│   └── vault-align.md
+├── skills/
+│   ├── obsidian-cli/                  # + references/cli-commands.md
+│   ├── obsidian-markdown/
+│   ├── obsidian-bases/
+│   ├── json-canvas/
+│   ├── defuddle/
+│   ├── second-brain/
+│   ├── vault-templates/
+│   ├── vault-alignment/
+│   └── qmd-search/
+├── hooks/
+│   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
+│   └── obsidian-context.md            # Session context with connectors + hooks reference
+└── README.md
+```
 
 ## Sources
 
