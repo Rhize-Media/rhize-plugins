@@ -1,6 +1,6 @@
 {
   "name": "project-launcher",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "End-to-end project launcher: research and context gathering, requirements interviews, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Takes a project idea from napkin sketch to autonomous execution.",
   "author": {
     "name": "Rhize Media"
