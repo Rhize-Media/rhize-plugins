@@ -1,6 +1,6 @@
 {
   "name": "obsidian-skills",
-  "version": "0.6.0",
+  "version": "1.0.0",
   "description": "Skills and commands for working with Obsidian vaults — CLI operations, markdown syntax, Bases databases, JSON Canvas, web clipping, second brain methodology, note templates, research pipelines, knowledge graph workflows, interactive setup wizard, ongoing vault alignment, and qmd-powered semantic search with natural language recall.",
   "author": {
     "name": "Jim Deola"
