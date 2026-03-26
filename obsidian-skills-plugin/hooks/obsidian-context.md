@@ -30,7 +30,10 @@ Your vault tools are loaded. Use them whenever working with notes, markdown, or 
 - `vault-templates` — Note templates and archetypes
 - `vault-alignment` — Vault health monitoring and optimization
 
-**MCP Servers:** `obsidian-mcp-server` (read/write/search/tags/frontmatter), `qmd` (semantic search)
+**Connectors:**
+- **MCP Server:** `obsidian-mcp-server` — read, write, search, tags, frontmatter management (bundled via `.mcp.json`, requires `$OBSIDIAN_API_KEY`)
+- **MCP Server:** `qmd` — semantic vector search, BM25, hybrid queries (installed separately)
+- **Obsidian CLI:** `obsidian` command — direct vault operations from terminal. Obsidian must be running. Use CLI for file operations, property management, daily notes, search, and automation scripts. Prefer CLI (`obsidian read`, `obsidian create`, `obsidian search`) over raw file I/O whenever Obsidian is running.
 
 **Hooks Active:**
 - **PreToolUse** (Write/Edit vault `.md`): Enforces `[[wikilinks]]`, callout syntax, frontmatter preservation, `#tags`, `tags:` array, and MOC linking
