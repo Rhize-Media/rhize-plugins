@@ -69,6 +69,17 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 | `/sc:reflect` | Post-phase | Validate task implementation |
 | `/simplify` | Post-phase | Review and simplify code |
 
+## Hooks
+
+| Hook | Matcher | Behavior |
+|------|---------|----------|
+| **SessionStart** | All sessions | Loads command menu and integrations list into context |
+| **PreToolUse** | `Write\|Edit` on launcher artifacts | When writing PRDs, requirements, research docs, context files, discovery notes, or roadmaps — and an Obsidian vault exists at `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault` — nudges Claude to also save the artifact to the vault using second-brain methodology: `[[wikilinks]]` to related projects, `#tags` in frontmatter, parent MOC links, and placement under the appropriate `Projects/` folder. If no vault exists, the hook stays silent. |
+
+Hooks fail silently on error (3-5s timeout) and never block operations. The vault detection is path-based — no external tools required.
+
+**Artifact detection patterns** (path or content): `prd`, `requirements`, `research`, `context`, `gap-analysis`, `interview`, `discovery`, `roadmap`, `project.md`, `requirements.md`, plus content headings like `## PRD`, `## Requirements`, `# Product Requirements`.
+
 ## Post-Phase Verification Pattern
 
 After each GSD phase, the autonomous Claude runs:

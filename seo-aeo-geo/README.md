@@ -102,6 +102,16 @@ The plugin includes ready-to-use DataForSEO prompt templates for:
 - Backlink analysis (top links, gaps, broken links, toxic detection)
 - SERP analytics (visibility trends, competitive comparison)
 
+## Hooks
+
+| Hook | Matcher | Behavior |
+|------|---------|----------|
+| **SessionStart** | All sessions | Loads command menu, DataForSEO modules list, and tech stack focus into context |
+| **PreToolUse** | `Write\|Edit` on SEO-related files | Detects files with SEO-related path segments (`metadata`, `sitemap`, `robots`, `json-ld`, `jsonld`, `structured-data`, `schema-markup`, `seo`) and reminds about structured data best practices. Suggests `/content-optimize` or `/code-seo-review` to validate changes. |
+| **PostToolUse** | `Read` on SEO-related files | When reading SEO-related files (same patterns plus `head.tsx`, `head.jsx`, `layout.tsx`, `layout.jsx`), suggests `/code-seo-review` for issue detection or `/content-optimize` for on-page improvements. |
+
+All hooks are scoped to SEO file patterns — non-SEO files pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
+
 ## Architecture
 
 ```
@@ -118,7 +128,7 @@ seo-aeo-geo/
 │   ├── serp-intelligence/             # + 1 reference file
 │   └── nextjs-sanity-seo/            # Implementation patterns
 ├── hooks/
-│   ├── hooks.json                     # SessionStart context
-│   └── seo-context.md                 # Available commands summary
+│   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
+│   └── seo-context.md                 # Available commands summary + hooks reference
 └── README.md
 ```

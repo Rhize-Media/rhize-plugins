@@ -32,4 +32,8 @@ Your vault tools are loaded. Use them whenever working with notes, markdown, or 
 
 **MCP Servers:** `obsidian-mcp-server` (read/write/search/tags/frontmatter), `qmd` (semantic search)
 
+**Hooks Active:**
+- **PreToolUse** (Write/Edit vault `.md`): Enforces `[[wikilinks]]`, callout syntax, frontmatter preservation, `#tags`, `tags:` array, and MOC linking
+- **PostToolUse** (Read vault `.md`): Suggests following wikilinks, searching tags, `/vault-connect` for related notes, `/vault-align` for orphan/health checks
+
 **Vault path:** `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault`

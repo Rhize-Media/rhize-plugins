@@ -32,6 +32,16 @@ Skills and commands for working with Obsidian vaults in Claude Desktop, Cowork, 
 | `/vault-setup [new\|existing\|resume]` | Interactive setup wizard — personalized folders, templates, dashboards, plugins, qmd |
 | `/vault-align [check\|fix\|migrate\|plugins]` | Vault health monitor — check alignment, analyze areas, fix issues, bulk migrate |
 
+## Hooks
+
+| Hook | Matcher | Behavior |
+|------|---------|----------|
+| **SessionStart** | All sessions | Loads command menu, skills list, MCP servers, and vault path into context |
+| **PreToolUse** | `Write\|Edit` on vault `.md` files | Enforces Obsidian-native formatting: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
+| **PostToolUse** | `Read` on vault `.md` files | Suggests following `[[wikilinks]]`, searching tags, `/vault-connect` for related notes, and `/vault-align` for orphan detection and health checks |
+
+All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
+
 ## Setup
 
 ### Prerequisites
