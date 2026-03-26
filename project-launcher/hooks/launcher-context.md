@@ -11,3 +11,6 @@ End-to-end project scaffolding and GSD v2 handoff tools are loaded.
 - `/scaffold-gsd` — Scaffold a project directory and prepare for GSD v2 autonomous handoff
 
 **Integrations:** Obsidian vault search, Firecrawl web scraping, DataForSEO keyword analysis, GSD v2 framework, Superpowers worktree execution strategy.
+
+**Hooks Active:**
+- **PreToolUse** (Write/Edit launcher artifacts): When writing PRDs, requirements, research docs, context files, or roadmaps — and an Obsidian vault is detected — nudges to also save the artifact to the vault using second-brain methodology (`[[wikilinks]]`, `#tags`, MOC links, `Projects/` folder).
