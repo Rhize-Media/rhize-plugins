@@ -32,7 +32,7 @@ Your vault tools are loaded. Use them whenever working with notes, markdown, or 
 
 **Connectors:**
 - **MCP Server:** `obsidian-mcp-server` — read, write, search, tags, frontmatter management (bundled via `.mcp.json`, requires `$OBSIDIAN_API_KEY`)
-- **MCP Server:** `qmd` — semantic vector search, BM25, hybrid queries (installed separately)
+- **MCP Server:** `qmd` — semantic vector search, BM25, hybrid queries (dependency: `qmd@qmd` plugin, must be enabled alongside this plugin)
 - **Obsidian CLI:** `obsidian` command — direct vault operations from terminal. Obsidian must be running. Use CLI for file operations, property management, daily notes, search, and automation scripts. Prefer CLI (`obsidian read`, `obsidian create`, `obsidian search`) over raw file I/O whenever Obsidian is running.
 
 **Hooks Active:**
