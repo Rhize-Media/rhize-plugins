@@ -106,7 +106,7 @@ The plugin includes ready-to-use DataForSEO prompt templates for:
 
 | Hook | Matcher | Behavior |
 |------|---------|----------|
-| **SessionStart** | All sessions | Loads command menu, DataForSEO modules list, and tech stack focus into context |
+| **SessionStart** | SEO-relevant projects only | Conditionally loads context when signals detected: `$DATAFORSEO_USERNAME` env var, sitemap/robots files, Next.js/Sanity config, or CLAUDE.md/ROADMAP.md mentioning SEO/AEO/GEO. Silent in non-SEO projects. |
 | **PreToolUse** | `Write\|Edit` on SEO-related files | Detects files with SEO-related path segments (`metadata`, `sitemap`, `robots`, `json-ld`, `jsonld`, `structured-data`, `schema-markup`, `seo`) and reminds about structured data best practices. Suggests `/content-optimize` or `/code-seo-review` to validate changes. |
 | **PostToolUse** | `Read` on SEO-related files | When reading SEO-related files (same patterns plus `head.tsx`, `head.jsx`, `layout.tsx`, `layout.jsx`), suggests `/code-seo-review` for issue detection or `/content-optimize` for on-page improvements. |
 

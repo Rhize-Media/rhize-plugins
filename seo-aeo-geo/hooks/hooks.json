@@ -5,7 +5,7 @@
       "hooks": [
         {
           "type": "command",
-          "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active\n\nDataForSEO-powered SEO, AEO, and GEO tools are available. Use /seo-audit, /keyword-research, /serp-check, /backlink-audit, /content-optimize, /competitor-analysis, /ai-visibility, /technical-audit, /rank-track, or /code-seo-review.'",
+          "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
           "timeout": 5
         }
       ]
