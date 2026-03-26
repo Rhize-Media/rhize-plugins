@@ -10,5 +10,29 @@
         }
       ]
     }
+  ],
+  "PreToolUse": [
+    {
+      "matcher": "Write|Edit",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_patterns = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo']\n    seo_extensions = ['sitemap.xml', 'sitemap.ts', 'robots.txt', 'robots.ts']\n    filename = path.split('/')[-1].lower()\n    path_lower = path.lower()\n    is_seo = any(p in path_lower for p in seo_patterns) or any(filename == e or filename.startswith(e.split('.')[0]) for e in seo_extensions)\n    if is_seo:\n        print('SEO-related file detected. Consider: Does this follow structured data best practices? Use /content-optimize or /code-seo-review to validate.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+          "timeout": 3
+        }
+      ]
+    }
+  ],
+  "PostToolUse": [
+    {
+      "matcher": "Read",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_files = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo', 'head.tsx', 'head.jsx', 'layout.tsx', 'layout.jsx']\n    path_lower = path.lower()\n    filename = path.split('/')[-1].lower()\n    is_seo = any(p in path_lower for p in seo_files[:8]) or filename in seo_files[8:]\n    if is_seo:\n        print('SEO file loaded. Use /code-seo-review to check for issues, or /content-optimize for on-page improvements.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+          "timeout": 3
+        }
+      ]
+    }
   ]
 }
