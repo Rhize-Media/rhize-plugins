@@ -22,5 +22,13 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 ### seo-aeo-geo
 - [ ] (none yet)
 
+### Content Flywheel (standalone repo)
+- [ ] Standalone repo: Neo4j graph database + Next.js kanban dashboard + Vercel API routes
+- [ ] Analysis doc: `docs/content-flywheel-storage-analysis.md`
+- [ ] Decisions: Neo4j over Supabase/Sheets (graph-native data model), Next.js API routes over n8n (eliminates separate service), CMS/CRM-agnostic adapter pattern (Sanity + GHL first)
+- [ ] Phase 1: Neo4j schema + MCP integration (`mcp-neo4j-cypher`, `mcp-neo4j-memory`, `mcp-neo4j-data-modeling`)
+- [ ] Phase 2: Next.js kanban dashboard with graph explorer
+- [ ] Phase 3: Sanity CMS adapter + GoHighLevel distribution adapter + Vercel cron for DataForSEO pulls
+
 ### New Plugin Ideas
 - (add ideas here as they come up)
