@@ -22,13 +22,17 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 ### seo-aeo-geo
 - [ ] (none yet)
 
-### Content Flywheel (standalone repo)
-- [ ] Standalone repo: Neo4j graph database + Next.js kanban dashboard + Vercel API routes
-- [ ] Analysis doc: `docs/content-flywheel-storage-analysis.md`
-- [ ] Decisions: Neo4j over Supabase/Sheets (graph-native data model), Next.js API routes over n8n (eliminates separate service), CMS/CRM-agnostic adapter pattern (Sanity + GHL first)
-- [ ] Phase 1: Neo4j schema + MCP integration (`mcp-neo4j-cypher`, `mcp-neo4j-memory`, `mcp-neo4j-data-modeling`)
-- [ ] Phase 2: Next.js kanban dashboard with graph explorer
-- [ ] Phase 3: Sanity CMS adapter + GoHighLevel distribution adapter + Vercel cron for DataForSEO pulls
+### Content Flywheel (standalone repo at `/home/user/content-flywheel/`)
+- [x] Analysis doc: `docs/content-flywheel-storage-analysis.md`
+- [x] Decisions: Neo4j over Supabase/Sheets, Next.js API routes over n8n, CMS/CRM-agnostic adapters
+- [x] Phase 1: Neo4j schema + MCP integration + DataForSEO client + core types
+- [x] Phase 2: Next.js kanban dashboard + content detail page + graph query API
+- [x] Phase 3: Sanity CMS adapter + GoHighLevel distribution adapter + Vercel cron routes
+- [x] Phase 4: Migrate all 6 SEO workflow modules from seo-aeo-geo plugin
+  - Keyword Research, Content Optimization, SERP Analysis, Backlink Analysis, AI Visibility, Site Audit
+  - 7 skills, 7 commands, hooks, dashboard workflow action buttons
+- [ ] Phase 5: E2E testing with live Neo4j + DataForSEO credentials
+- [ ] Phase 6: Deploy to Vercel with production Neo4j instance
 
 ### New Plugin Ideas
 - (add ideas here as they come up)
