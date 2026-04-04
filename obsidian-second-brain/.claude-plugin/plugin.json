@@ -8,7 +8,5 @@
   "repository": "https://github.com/Rhize-Media/rhize-plugins",
   "license": "MIT",
   "keywords": ["obsidian", "notes", "vault", "cli", "markdown", "pkm", "knowledge-management", "second-brain", "zettelkasten", "moc", "research", "setup", "migration", "alignment", "dataview", "kanban", "qmd", "semantic-search", "vector-search", "recall"],
-  "dependencies": {
-    "plugins": ["qmd@qmd"]
-  }
+  "dependencies": ["qmd@qmd"]
 }
