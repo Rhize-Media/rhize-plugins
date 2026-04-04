@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/seo-pull",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/serp-snapshot",
+      "schedule": "0 7 * * 1"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "hooks": [
+    {
+      "event": "on_tool_call",
+      "description": "Load flywheel context when Neo4j or DataForSEO tools are used",
+      "matcher": {
+        "tool_name_pattern": "mcp__(neo4j|dataforseo)__.*"
+      },
+      "action": {
+        "type": "inject_context",
+        "file": "hooks/flywheel-context.md"
+      }
+    },
+    {
+      "event": "on_tool_call",
+      "description": "Remind about graph schema when writing Cypher queries",
+      "matcher": {
+        "tool_name_pattern": "mcp__neo4j-cypher__.*"
+      },
+      "action": {
+        "type": "inject_context",
+        "file": "cypher/schema.cypher"
+      }
+    }
+  ]
+}

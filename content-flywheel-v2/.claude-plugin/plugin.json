@@ -1,0 +1,23 @@
+{
+  "name": "content-flywheel",
+  "version": "0.1.0",
+  "description": "Content pipeline dashboard with Neo4j graph storage, SEO workflow automation, and CMS/CRM-agnostic publishing. Tracks content from inspiration through research, optimization, publishing, monitoring, and refresh.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "keywords": [
+    "content-pipeline",
+    "neo4j",
+    "kanban",
+    "seo",
+    "aeo",
+    "geo",
+    "keyword-research",
+    "serp-tracking",
+    "backlinks",
+    "sanity-cms",
+    "gohighlevel",
+    "content-flywheel",
+    "dashboard"
+  ]
+}
