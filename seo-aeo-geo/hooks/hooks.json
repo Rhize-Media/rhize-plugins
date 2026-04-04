@@ -1,38 +1,41 @@
 {
-  "SessionStart": [
-    {
-      "matcher": "",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
-          "timeout": 5
-        }
-      ]
-    }
-  ],
-  "PreToolUse": [
-    {
-      "matcher": "Write|Edit",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_patterns = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo']\n    seo_extensions = ['sitemap.xml', 'sitemap.ts', 'robots.txt', 'robots.ts']\n    filename = path.split('/')[-1].lower()\n    path_lower = path.lower()\n    is_seo = any(p in path_lower for p in seo_patterns) or any(filename == e or filename.startswith(e.split('.')[0]) for e in seo_extensions)\n    if is_seo:\n        print('SEO-related file detected. Consider: Does this follow structured data best practices? Use /content-optimize or /code-seo-review to validate.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
-          "timeout": 3
-        }
-      ]
-    }
-  ],
-  "PostToolUse": [
-    {
-      "matcher": "Read",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_files = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo', 'head.tsx', 'head.jsx', 'layout.tsx', 'layout.jsx']\n    path_lower = path.lower()\n    filename = path.split('/')[-1].lower()\n    is_seo = any(p in path_lower for p in seo_files[:8]) or filename in seo_files[8:]\n    if is_seo:\n        print('SEO file loaded. Use /code-seo-review to check for issues, or /content-optimize for on-page improvements.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
-          "timeout": 3
-        }
-      ]
-    }
-  ]
+  "description": "SEO/AEO/GEO Plugin - SEO-aware context hooks",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_patterns = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo']\n    seo_extensions = ['sitemap.xml', 'sitemap.ts', 'robots.txt', 'robots.ts']\n    filename = path.split('/')[-1].lower()\n    path_lower = path.lower()\n    is_seo = any(p in path_lower for p in seo_patterns) or any(filename == e or filename.startswith(e.split('.')[0]) for e in seo_extensions)\n    if is_seo:\n        print('SEO-related file detected. Consider: Does this follow structured data best practices? Use /content-optimize or /code-seo-review to validate.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+            "timeout": 3
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$TOOL_INPUT\" | python3 -c \"\nimport sys, json\ntry:\n    data = json.load(sys.stdin)\n    path = data.get('file_path', data.get('filePath', ''))\n    seo_files = ['metadata', 'meta', 'sitemap', 'robots', 'json-ld', 'jsonld', 'structured-data', 'schema-markup', 'seo', 'head.tsx', 'head.jsx', 'layout.tsx', 'layout.jsx']\n    path_lower = path.lower()\n    filename = path.split('/')[-1].lower()\n    is_seo = any(p in path_lower for p in seo_files[:8]) or filename in seo_files[8:]\n    if is_seo:\n        print('SEO file loaded. Use /code-seo-review to check for issues, or /content-optimize for on-page improvements.')\n    else:\n        print('')\nexcept:\n    print('')\n\" 2>/dev/null || echo ''",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
 }
