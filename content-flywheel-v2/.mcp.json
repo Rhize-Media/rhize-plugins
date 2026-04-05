@@ -1,59 +1,68 @@
 {
   "mcpServers": {
-    "neo4j-cypher": {
-      "command": "uvx",
-      "args": ["mcp-neo4j-cypher"],
-      "env": {
-        "NEO4J_URI": "${NEO4J_URI}",
-        "NEO4J_USERNAME": "${NEO4J_USERNAME}",
-        "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
-      }
-    },
-    "neo4j-memory": {
-      "command": "uvx",
-      "args": ["mcp-neo4j-memory"],
-      "env": {
-        "NEO4J_URI": "${NEO4J_URI}",
-        "NEO4J_USERNAME": "${NEO4J_USERNAME}",
-        "NEO4J_PASSWORD": "${NEO4J_PASSWORD}"
-      }
-    },
-    "neo4j-data-modeling": {
-      "command": "uvx",
-      "args": ["mcp-neo4j-data-modeling"]
-    },
-    "dataforseo": {
-      "command": "npx",
-      "args": ["dataforseo-mcp-server"],
-      "env": {
-        "DATAFORSEO_USERNAME": "${DATAFORSEO_USERNAME}",
-        "DATAFORSEO_PASSWORD": "${DATAFORSEO_PASSWORD}",
-        "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,AI_OPTIMIZATION"
-      }
-    },
-    "firecrawl": {
-      "command": "npx",
-      "args": ["-y", "firecrawl-mcp"],
-      "env": {
-        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
-      }
-    },
-    "obsidian-mcp-server": {
-      "command": "npx",
-      "args": ["obsidian-mcp-server"],
-      "env": {
-        "OBSIDIAN_API_KEY": "${OBSIDIAN_API_KEY}",
-        "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124/",
-        "OBSIDIAN_VERIFY_SSL": "false",
-        "OBSIDIAN_ENABLE_CACHE": "true"
-      }
-    },
-    "slack": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/slack-mcp"],
-      "env": {
-        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
-      }
-    }
-  }
+		"neo4j-cypher": {
+			"command": "uvx",
+			"args": ["mcp-neo4j-cypher"],
+			"env": {
+				"NEO4J_URI": "${NEO4J_URI}",
+				"NEO4J_USERNAME": "${NEO4J_USERNAME}",
+				"NEO4J_PASSWORD": "${NEO4J_PASSWORD}",
+				"NEO4J_DATABASE": "${NEO4J_DATABASE}"
+			}
+		},
+		"neo4j-memory": {
+			"command": "uvx",
+			"args": ["mcp-neo4j-memory"],
+			"env": {
+				"NEO4J_URI": "${NEO4J_URI}",
+				"NEO4J_USERNAME": "${NEO4J_USERNAME}",
+				"NEO4J_PASSWORD": "${NEO4J_PASSWORD}",
+				"NEO4J_DATABASE": "${NEO4J_DATABASE}"
+			}
+		},
+		"neo4j-data-modeling": {
+			"command": "uvx",
+			"args": ["mcp-neo4j-data-modeling"]
+		},
+		"dataforseo": {
+			"command": "npx",
+			"args": ["dataforseo-mcp-server"],
+			"env": {
+				"DATAFORSEO_USERNAME": "${DATAFORSEO_USERNAME}",
+				"DATAFORSEO_PASSWORD": "${DATAFORSEO_PASSWORD}",
+				"ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,AI_OPTIMIZATION"
+			}
+		},
+		"firecrawl": {
+			"command": "npx",
+			"args": ["-y", "firecrawl-mcp"],
+			"env": {
+				"FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+			}
+		},
+		"exa-web-search": {
+			"command": "npx",
+			"args": ["-y", "exa-mcp-server"],
+			"env": {
+				"EXA_API_KEY": "${EXA_API_KEY}"
+			}
+		},
+		"obsidian-mcp-server": {
+			"command": "npx",
+			"args": ["obsidian-mcp-server"],
+			"env": {
+				"OBSIDIAN_API_KEY": "${OBSIDIAN_API_KEY}",
+				"OBSIDIAN_BASE_URL": "https://127.0.0.1:27124/",
+				"OBSIDIAN_VERIFY_SSL": "false",
+				"OBSIDIAN_ENABLE_CACHE": "true"
+			}
+		},
+		"slack": {
+			"command": "npx",
+			"args": ["-y", "@anthropic/slack-mcp"],
+			"env": {
+				"SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}"
+			}
+		}
+	}
 }

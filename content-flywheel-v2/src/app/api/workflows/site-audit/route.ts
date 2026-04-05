@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runSiteAudit } from "@/lib/workflows/site-audit";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { domain, maxPages, locationCode, languageCode } = await req.json();

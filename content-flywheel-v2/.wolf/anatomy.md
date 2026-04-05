@@ -1,15 +1,15 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-04T18:27:58.546Z
-> Files: 60 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-05T15:28:28.344Z
+> Files: 63 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~122 tok)
-- `.mcp.json` (~450 tok)
+- `.gitignore` — Git ignore rules (~146 tok)
+- `.mcp.json` (~466 tok)
 - `CLAUDE.md` — OpenWolf (~817 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
-- `next.config.ts` — Next.js configuration (~38 tok)
+- `next.config.ts` — Declares nextConfig (~42 tok)
 - `package.json` — Node.js package manifest (~172 tok)
 - `postcss.config.mjs` — Declares config (~26 tok)
 - `README.md` — Project documentation (~363 tok)
@@ -42,10 +42,19 @@
 
 - `schema.cypher` — Content Flywheel — Neo4j Graph Schema (~870 tok)
 
+## docs/plans/
+
+- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~7404 tok)
+
 ## hooks/
 
 - `flywheel-context.md` — Content Flywheel Context (~392 tok)
 - `hooks.json` (~184 tok)
+
+## scripts/
+
+- `init-schema.ts` — API routes: GET (2 endpoints) (~775 tok)
+- `seed.ts` — API routes: GET (4 endpoints) (~784 tok)
 
 ## skills/ai-visibility/
 
@@ -83,11 +92,11 @@
 
 ## src/app/api/cron/seo-pull/
 
-- `route.ts` — Vercel Cron: runs daily to pull keyword ranking data from DataForSEO (~693 tok)
+- `route.ts` — Vercel Cron: runs daily to pull keyword ranking data from DataForSEO (~702 tok)
 
 ## src/app/api/cron/serp-snapshot/
 
-- `route.ts` — Vercel Cron: runs weekly for broader SERP feature analysis (~704 tok)
+- `route.ts` — Vercel Cron: runs weekly for broader SERP feature analysis (~714 tok)
 
 ## src/app/api/graph/query/
 
@@ -111,31 +120,31 @@
 
 ## src/app/api/workflows/ai-visibility/
 
-- `route.ts` — Next.js API route: POST (~217 tok)
+- `route.ts` — Next.js API route: POST (~226 tok)
 
 ## src/app/api/workflows/backlink-analysis/
 
-- `route.ts` — Next.js API route: POST (~214 tok)
+- `route.ts` — Next.js API route: POST (~224 tok)
 
 ## src/app/api/workflows/content-optimize/
 
-- `route.ts` — Next.js API route: POST (~230 tok)
+- `route.ts` — Next.js API route: POST (~239 tok)
 
 ## src/app/api/workflows/keyword-research/
 
-- `route.ts` — Next.js API route: POST (~232 tok)
+- `route.ts` — Next.js API route: POST (~241 tok)
 
 ## src/app/api/workflows/serp-analysis/
 
-- `route.ts` — Next.js API route: POST (~235 tok)
+- `route.ts` — Next.js API route: POST (~245 tok)
 
 ## src/app/api/workflows/site-audit/
 
-- `route.ts` — Next.js API route: POST (~208 tok)
+- `route.ts` — Next.js API route: POST (~217 tok)
 
 ## src/app/board/
 
-- `page.tsx` — BoardPage — uses useState, useCallback, useEffect (~1795 tok)
+- `page.tsx` — BoardPage (~1796 tok)
 
 ## src/app/content/[id]/
 
@@ -156,7 +165,7 @@
 ## src/lib/neo4j/
 
 - `driver.ts` — Exports getDriver, closeDriver (~184 tok)
-- `queries.ts` — --- Content CRUD --- (~1234 tok)
+- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~1649 tok)
 
 ## src/lib/workflows/
 

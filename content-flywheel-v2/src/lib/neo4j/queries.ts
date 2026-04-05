@@ -1,5 +1,46 @@
+import neo4j from "neo4j-driver";
 import { getDriver } from "./driver";
 import type { ContentPiece, PipelineStage, Keyword, SERPSnapshot } from "@/types";
+
+/**
+ * Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration)
+ * into plain JS values so results can safely cross the JSON boundary.
+ */
+export function toPlain(value: unknown): unknown {
+  if (value == null) return value;
+  if (neo4j.isInt(value)) {
+    const i = value as { toNumber: () => number; toString: () => string };
+    const n = i.toNumber();
+    return Number.isSafeInteger(n) ? n : i.toString();
+  }
+  if (
+    neo4j.isDateTime(value) ||
+    neo4j.isDate(value) ||
+    neo4j.isLocalDateTime(value) ||
+    neo4j.isLocalTime(value) ||
+    neo4j.isTime(value)
+  ) {
+    return (value as { toString: () => string }).toString();
+  }
+  if (neo4j.isDuration(value)) {
+    return (value as { toString: () => string }).toString();
+  }
+  if (neo4j.isNode(value) || neo4j.isRelationship(value)) {
+    const entity = value as { properties: Record<string, unknown> };
+    return toPlain(entity.properties);
+  }
+  if (Array.isArray(value)) {
+    return value.map(toPlain);
+  }
+  if (typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = toPlain(v);
+    }
+    return out;
+  }
+  return value;
+}
 
 // --- Content CRUD ---
 
@@ -25,7 +66,7 @@ export async function createContent(
       RETURN c { .* } AS content`,
       content
     );
-    return result.records[0].get("content") as ContentPiece;
+    return toPlain(result.records[0].get("content")) as ContentPiece;
   } finally {
     await session.close();
   }
@@ -60,12 +101,14 @@ export async function getContentByStage(): Promise<
   try {
     const result = await session.run(
       `MATCH (c:ContentPiece)-[:IN_STAGE]->(s:PipelineStage)
-       RETURN s.name AS stage, collect(c { .* }) AS pieces
-       ORDER BY s.order`
+       RETURN s.name AS stage, s.order AS ord, collect(c { .* }) AS pieces
+       ORDER BY ord`
     );
     const grouped = {} as Record<PipelineStage, ContentPiece[]>;
     for (const record of result.records) {
-      grouped[record.get("stage") as PipelineStage] = record.get("pieces");
+      grouped[record.get("stage") as PipelineStage] = toPlain(
+        record.get("pieces")
+      ) as ContentPiece[];
     }
     return grouped;
   } finally {
@@ -83,7 +126,7 @@ export async function getContentById(id: string): Promise<ContentPiece | null> {
       { id }
     );
     if (result.records.length === 0) return null;
-    return result.records[0].get("content") as ContentPiece;
+    return toPlain(result.records[0].get("content")) as ContentPiece;
   } finally {
     await session.close();
   }
@@ -102,7 +145,7 @@ export async function getKeywordsForContent(
        RETURN collect(k { .* }) AS keywords`,
       { contentId }
     );
-    return result.records[0]?.get("keywords") ?? [];
+    return toPlain(result.records[0]?.get("keywords") ?? []) as Keyword[];
   } finally {
     await session.close();
   }
@@ -137,11 +180,11 @@ export async function getSERPHistory(
     const result = await session.run(
       `MATCH (c:ContentPiece {id: $contentId})-[:RANKS_FOR]->(snap:SERPSnapshot)
        WHERE snap.keywordId = $keywordId
-       RETURN collect(snap { .* }) AS snapshots
-       ORDER BY snap.date DESC`,
+       WITH snap ORDER BY snap.date DESC
+       RETURN collect(snap { .* }) AS snapshots`,
       { contentId, keywordId }
     );
-    return result.records[0]?.get("snapshots") ?? [];
+    return toPlain(result.records[0]?.get("snapshots") ?? []) as SERPSnapshot[];
   } finally {
     await session.close();
   }
@@ -157,7 +200,9 @@ export async function runCypher(
   const session = driver.session();
   try {
     const result = await session.run(query, params);
-    return result.records.map((r) => r.toObject());
+    return result.records.map(
+      (r) => toPlain(r.toObject()) as Record<string, unknown>
+    );
   } finally {
     await session.close();
   }

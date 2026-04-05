@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAIVisibility } from "@/lib/workflows/ai-visibility";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { contentId, brand, queries, locationCode, languageCode } = await req.json();

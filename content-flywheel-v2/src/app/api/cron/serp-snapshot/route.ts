@@ -5,6 +5,8 @@ import { serpLive } from "@/lib/dataforseo/client";
 // Vercel Cron: runs weekly for broader SERP feature analysis
 // Configure in vercel.json: { "crons": [{ "path": "/api/cron/serp-snapshot", "schedule": "0 7 * * 1" }] }
 
+export const maxDuration = 300;
+
 export async function GET() {
   try {
     // Get all content with published URLs for SERP monitoring
