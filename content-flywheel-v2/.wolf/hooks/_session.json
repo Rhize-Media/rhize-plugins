@@ -1,12 +1,426 @@
 {
   "session_id": "session-2026-04-04-1428",
   "started": "2026-04-04T18:28:22.493Z",
-  "files_read": {},
-  "files_written": [],
-  "edit_counts": {},
-  "anatomy_hits": 0,
-  "anatomy_misses": 0,
-  "repeated_reads_warned": 0,
+  "files_read": {
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/cypher/schema.cypher": {
+      "count": 1,
+      "tokens": 870,
+      "first_read": "2026-04-04T18:42:57.450Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/types/index.ts": {
+      "count": 1,
+      "tokens": 1221,
+      "first_read": "2026-04-04T18:42:57.903Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/package.json": {
+      "count": 1,
+      "tokens": 172,
+      "first_read": "2026-04-04T18:42:58.391Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/driver.ts": {
+      "count": 1,
+      "tokens": 184,
+      "first_read": "2026-04-04T18:43:03.312Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts": {
+      "count": 2,
+      "tokens": 1601,
+      "first_read": "2026-04-04T18:43:03.619Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/board/page.tsx": {
+      "count": 1,
+      "tokens": 1795,
+      "first_read": "2026-04-04T18:43:04.015Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/content/[id]/page.tsx": {
+      "count": 1,
+      "tokens": 4087,
+      "first_read": "2026-04-04T18:43:09.128Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/keyword-research.ts": {
+      "count": 1,
+      "tokens": 2304,
+      "first_read": "2026-04-04T18:43:09.770Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/dataforseo/client.ts": {
+      "count": 1,
+      "tokens": 1783,
+      "first_read": "2026-04-04T18:43:10.145Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/graph/query/route.ts": {
+      "count": 1,
+      "tokens": 190,
+      "first_read": "2026-04-04T18:43:16.217Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/cron/seo-pull/route.ts": {
+      "count": 2,
+      "tokens": 693,
+      "first_read": "2026-04-04T18:43:16.661Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/adapters/cms/sanity.ts": {
+      "count": 1,
+      "tokens": 763,
+      "first_read": "2026-04-04T18:43:17.583Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/adapters/distribution/ghl.ts": {
+      "count": 1,
+      "tokens": 644,
+      "first_read": "2026-04-04T18:43:18.151Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/vercel.json": {
+      "count": 1,
+      "tokens": 53,
+      "first_read": "2026-04-04T18:43:22.317Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.env.example": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-04-04T18:43:22.801Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/page.tsx": {
+      "count": 1,
+      "tokens": 30,
+      "first_read": "2026-04-04T18:43:23.319Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/layout.tsx": {
+      "count": 1,
+      "tokens": 129,
+      "first_read": "2026-04-04T18:43:23.648Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/site-audit.ts": {
+      "count": 1,
+      "tokens": 2449,
+      "first_read": "2026-04-04T18:44:41.208Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/content-optimize.ts": {
+      "count": 1,
+      "tokens": 3494,
+      "first_read": "2026-04-04T18:44:42.107Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/serp-analysis.ts": {
+      "count": 1,
+      "tokens": 1971,
+      "first_read": "2026-04-04T18:44:42.526Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/backlink-analysis.ts": {
+      "count": 1,
+      "tokens": 1601,
+      "first_read": "2026-04-04T18:44:43.420Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/workflows/ai-visibility.ts": {
+      "count": 1,
+      "tokens": 1556,
+      "first_read": "2026-04-04T18:44:43.753Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/keyword-research/route.ts": {
+      "count": 1,
+      "tokens": 232,
+      "first_read": "2026-04-04T18:44:48.520Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/publish/sanity/route.ts": {
+      "count": 1,
+      "tokens": 416,
+      "first_read": "2026-04-04T18:44:49.382Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/webhooks/sanity/route.ts": {
+      "count": 1,
+      "tokens": 441,
+      "first_read": "2026-04-04T18:44:49.816Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/webhooks/ghl/route.ts": {
+      "count": 1,
+      "tokens": 330,
+      "first_read": "2026-04-04T18:44:50.269Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/commands/flywheel-status.md": {
+      "count": 1,
+      "tokens": 469,
+      "first_read": "2026-04-04T18:45:01.503Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/next.config.ts": {
+      "count": 1,
+      "tokens": 38,
+      "first_read": "2026-04-04T18:45:06.169Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/tsconfig.json": {
+      "count": 1,
+      "tokens": 192,
+      "first_read": "2026-04-04T18:45:06.385Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.mcp.json": {
+      "count": 3,
+      "tokens": 492,
+      "first_read": "2026-04-04T18:52:22.420Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/msci-mvp/.mcp.json": {
+      "count": 1,
+      "tokens": 450,
+      "first_read": "2026-04-04T18:52:36.178Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/seo-aeo-geo/.claude-plugin/plugin.json": {
+      "count": 1,
+      "tokens": 165,
+      "first_read": "2026-04-04T18:52:43.879Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.claude/settings.json": {
+      "count": 1,
+      "tokens": 441,
+      "first_read": "2026-04-04T18:52:49.531Z"
+    },
+    "/Users/jamesdeola/.claude/plugins/marketplaces/everything-claude-code/mcp-configs/mcp-servers.json": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-04-04T18:53:24.576Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/docs/plans/2026-04-04-content-flywheel-production-ready.md": {
+      "count": 2,
+      "tokens": 5961,
+      "first_read": "2026-04-04T18:57:38.419Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.env.local": {
+      "count": 1,
+      "tokens": 0,
+      "first_read": "2026-04-04T19:00:18.222Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/content-optimize/route.ts": {
+      "count": 1,
+      "tokens": 230,
+      "first_read": "2026-04-05T15:14:10.741Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/serp-analysis/route.ts": {
+      "count": 1,
+      "tokens": 235,
+      "first_read": "2026-04-05T15:14:26.133Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/backlink-analysis/route.ts": {
+      "count": 1,
+      "tokens": 214,
+      "first_read": "2026-04-05T15:14:27.385Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/ai-visibility/route.ts": {
+      "count": 1,
+      "tokens": 217,
+      "first_read": "2026-04-05T15:14:28.193Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/site-audit/route.ts": {
+      "count": 1,
+      "tokens": 208,
+      "first_read": "2026-04-05T15:14:28.964Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/cron/serp-snapshot/route.ts": {
+      "count": 1,
+      "tokens": 704,
+      "first_read": "2026-04-05T15:14:57.428Z"
+    },
+    "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.gitignore": {
+      "count": 1,
+      "tokens": 122,
+      "first_read": "2026-04-05T15:27:45.744Z"
+    }
+  },
+  "files_written": [
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "action": "create",
+      "tokens": 6162,
+      "at": "2026-04-04T18:48:16.344Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.mcp.json",
+      "action": "edit",
+      "tokens": 544,
+      "at": "2026-04-04T18:54:55.422Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.mcp.json",
+      "action": "edit",
+      "tokens": 158,
+      "at": "2026-04-04T18:57:26.491Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "action": "edit",
+      "tokens": 681,
+      "at": "2026-04-04T18:57:57.382Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.mcp.json",
+      "action": "edit",
+      "tokens": 166,
+      "at": "2026-04-04T18:58:55.889Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.mcp.json",
+      "action": "edit",
+      "tokens": 466,
+      "at": "2026-04-04T19:07:00.522Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "action": "edit",
+      "tokens": 1678,
+      "at": "2026-04-05T15:07:25.226Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/scripts/init-schema.ts",
+      "action": "create",
+      "tokens": 775,
+      "at": "2026-04-05T15:12:13.293Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/next.config.ts",
+      "action": "edit",
+      "tokens": 42,
+      "at": "2026-04-05T15:12:38.482Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/scripts/seed.ts",
+      "action": "create",
+      "tokens": 781,
+      "at": "2026-04-05T15:13:15.534Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/scripts/seed.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-05T15:13:39.184Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 58,
+      "at": "2026-04-05T15:13:45.367Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/board/page.tsx",
+      "action": "edit",
+      "tokens": 71,
+      "at": "2026-04-05T15:13:52.082Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/keyword-research/route.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-05T15:14:16.122Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/content-optimize/route.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-05T15:14:21.862Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/serp-analysis/route.ts",
+      "action": "edit",
+      "tokens": 58,
+      "at": "2026-04-05T15:14:33.131Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/backlink-analysis/route.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-05T15:14:38.835Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/ai-visibility/route.ts",
+      "action": "edit",
+      "tokens": 58,
+      "at": "2026-04-05T15:14:44.521Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/workflows/site-audit/route.ts",
+      "action": "edit",
+      "tokens": 56,
+      "at": "2026-04-05T15:14:50.162Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/cron/seo-pull/route.ts",
+      "action": "edit",
+      "tokens": 68,
+      "at": "2026-04-05T15:15:02.634Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/app/api/cron/serp-snapshot/route.ts",
+      "action": "edit",
+      "tokens": 67,
+      "at": "2026-04-05T15:15:08.397Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 399,
+      "at": "2026-04-05T15:24:22.535Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 50,
+      "at": "2026-04-05T15:24:35.712Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 72,
+      "at": "2026-04-05T15:24:42.175Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 54,
+      "at": "2026-04-05T15:24:48.451Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 56,
+      "at": "2026-04-05T15:24:54.633Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 71,
+      "at": "2026-04-05T15:25:00.898Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 60,
+      "at": "2026-04-05T15:25:07.527Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/src/lib/neo4j/queries.ts",
+      "action": "edit",
+      "tokens": 83,
+      "at": "2026-04-05T15:25:16.888Z"
+    },
+    {
+      "file": "/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/content-flywheel-v2/.gitignore",
+      "action": "edit",
+      "tokens": 35,
+      "at": "2026-04-05T15:28:28.357Z"
+    }
+  ],
+  "edit_counts": {
+    "docs/plans/2026-04-04-content-flywheel-production-ready.md": 3,
+    ".mcp.json": 4,
+    "scripts/init-schema.ts": 1,
+    "next.config.ts": 1,
+    "scripts/seed.ts": 2,
+    "src/lib/neo4j/queries.ts": 9,
+    "src/app/board/page.tsx": 1,
+    "src/app/api/workflows/keyword-research/route.ts": 1,
+    "src/app/api/workflows/content-optimize/route.ts": 1,
+    "src/app/api/workflows/serp-analysis/route.ts": 1,
+    "src/app/api/workflows/backlink-analysis/route.ts": 1,
+    "src/app/api/workflows/ai-visibility/route.ts": 1,
+    "src/app/api/workflows/site-audit/route.ts": 1,
+    "src/app/api/cron/seo-pull/route.ts": 1,
+    "src/app/api/cron/serp-snapshot/route.ts": 1,
+    ".gitignore": 1
+  },
+  "anatomy_hits": 40,
+  "anatomy_misses": 3,
+  "repeated_reads_warned": 5,
   "cerebrum_warnings": 0,
-  "stop_count": 1
+  "stop_count": 8
 }

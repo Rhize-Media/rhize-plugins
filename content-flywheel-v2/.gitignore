@@ -32,7 +32,10 @@ yarn-error.log*
 
 # env files
 .env*
-!.env.example
+
+# Override parent repo's scripts/ ignore — content-flywheel ships its own scripts
+!scripts/
+!scripts/**
 
 # vercel
 .vercel

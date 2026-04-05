@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runSERPAnalysis } from "@/lib/workflows/serp-analysis";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { contentId, keywords, domain, locationCode, languageCode } = await req.json();

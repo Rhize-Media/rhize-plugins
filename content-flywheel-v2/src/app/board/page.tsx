@@ -20,7 +20,7 @@ export default function BoardPage() {
         body: JSON.stringify({
           query: `MATCH (c:ContentPiece)-[:IN_STAGE]->(s:PipelineStage)
                   RETURN s.name AS stage, s.order AS stageOrder, collect(c { .* }) AS pieces
-                  ORDER BY s.order`,
+                  ORDER BY stageOrder`,
         }),
       });
       const data = await res.json();

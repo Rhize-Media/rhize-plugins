@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runContentOptimize } from "@/lib/workflows/content-optimize";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { contentId, url, primaryKeyword, locationCode, languageCode } = await req.json();

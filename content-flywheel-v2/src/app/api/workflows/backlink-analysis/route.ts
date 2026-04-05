@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runBacklinkAnalysis } from "@/lib/workflows/backlink-analysis";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { contentId, domain, locationCode, languageCode } = await req.json();

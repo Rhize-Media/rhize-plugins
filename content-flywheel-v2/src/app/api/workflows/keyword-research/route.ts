@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runKeywordResearch } from "@/lib/workflows/keyword-research";
 
+export const maxDuration = 300;
+
 export async function POST(req: NextRequest) {
   try {
     const { seeds, domain, contentId, locationCode, languageCode } = await req.json();

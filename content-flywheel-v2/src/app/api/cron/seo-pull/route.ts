@@ -5,6 +5,8 @@ import { serpLiveBatch } from "@/lib/dataforseo/client";
 // Vercel Cron: runs daily to pull keyword ranking data from DataForSEO
 // Configure in vercel.json: { "crons": [{ "path": "/api/cron/seo-pull", "schedule": "0 6 * * *" }] }
 
+export const maxDuration = 300;
+
 export async function GET() {
   try {
     // Get all keywords we're tracking
