@@ -37,6 +37,10 @@ yarn-error.log*
 !scripts/
 !scripts/**
 
+# Override parent repo's .claude/ ignore — content-flywheel ships hooks + settings
+!.claude/
+!.claude/**
+
 # vercel
 .vercel
 
