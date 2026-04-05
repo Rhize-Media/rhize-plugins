@@ -136,6 +136,26 @@ All secrets live in `.env.local` (gitignored). MCP servers reference them via `$
 **Pending:**
 - `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID` — Slack notifications (token stored in n8n Cloud, needs manual extraction)
 
+## Jira Sync (Automatic)
+
+Development tasks are tracked in Jira project **RT** (Rhize Tools) under epic **RT-9** (Content Flywheel v2).
+
+**Atlassian Cloud ID:** `ac62d3a2-66bb-4513-a8e8-b634d3465466`
+
+**Workflow:** When you commit code that references a Jira issue key (e.g. `RT-11`), a PostToolUse hook on Bash detects it and outputs a `JIRA_SYNC:` reminder. When you see this reminder, you MUST:
+
+1. Transition the referenced Jira issue to **Done** (transition ID `31`) using `mcp__claude_ai_Atlassian__transitionJiraIssue`
+2. Add a comment to the issue with the commit SHA and summary using `mcp__claude_ai_Atlassian__addIssueComment`
+
+When **starting** work on a task, transition it to **In Progress** (transition ID `21`).
+
+**Commit message convention:** Include the Jira key in the commit message:
+```
+feat: add Claude SDK wrapper with prompt caching (RT-11)
+```
+
+**Current task mapping:** See `docs/plans/2026-04-04-content-flywheel-production-ready.md` for full task descriptions, or query Jira: `project = RT AND parent = RT-9 ORDER BY key ASC`
+
 ## CMS/CRM Adapter Pattern
 
 Adapters implement standard interfaces (`CMSAdapter`, `DistributionAdapter`) defined in `src/types/`. To add a new CMS or distribution channel:
