@@ -227,6 +227,121 @@ export async function getSERPHistory(
   }
 }
 
+// --- Graph statistics ---
+
+export interface GraphStats {
+  nodeCounts: Record<string, number>;
+  relationshipCounts: Record<string, number>;
+  stageDistribution: Array<{ stage: string; order: number; count: number }>;
+  recentWorkflows: Array<{
+    id: string;
+    type: string;
+    status: string;
+    summary: string | null;
+    startedAt: string;
+  }>;
+  topClusters: Array<{ name: string; pillarTopic: string; keywordCount: number }>;
+}
+
+export async function getGraphStats(): Promise<GraphStats> {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    // Node counts by label
+    const nodeLabels = [
+      "ContentPiece",
+      "Keyword",
+      "KeywordCluster",
+      "SERPSnapshot",
+      "BacklinkSource",
+      "Competitor",
+      "SEOScore",
+      "AIVisibilitySnapshot",
+      "WorkflowRun",
+    ];
+    const nodeCounts: Record<string, number> = {};
+    for (const label of nodeLabels) {
+      const res = await session.run(
+        `MATCH (n:\`${label}\`) RETURN count(n) AS count`
+      );
+      nodeCounts[label] = (toPlain(res.records[0]?.get("count")) as number) ?? 0;
+    }
+
+    // Relationship counts by type
+    const relTypes = [
+      "IN_STAGE",
+      "TARGETS",
+      "BELONGS_TO",
+      "RANKS_FOR",
+      "HAS_BACKLINK_FROM",
+      "LINKS_TO",
+      "HAS_SCORE",
+      "PUBLISHED_TO",
+      "DISTRIBUTED_TO",
+    ];
+    const relationshipCounts: Record<string, number> = {};
+    for (const t of relTypes) {
+      const res = await session.run(
+        `MATCH ()-[r:\`${t}\`]->() RETURN count(r) AS count`
+      );
+      relationshipCounts[t] =
+        (toPlain(res.records[0]?.get("count")) as number) ?? 0;
+    }
+
+    // Stage distribution
+    const stageRes = await session.run(
+      `MATCH (s:PipelineStage)
+       OPTIONAL MATCH (c:ContentPiece)-[:IN_STAGE]->(s)
+       RETURN s.name AS stage, s.order AS ord, count(c) AS count
+       ORDER BY ord`
+    );
+    const stageDistribution = stageRes.records.map((r) => ({
+      stage: r.get("stage") as string,
+      order: toPlain(r.get("ord")) as number,
+      count: toPlain(r.get("count")) as number,
+    }));
+
+    // Recent workflow runs
+    const workflowRes = await session.run(
+      `MATCH (w:WorkflowRun)
+       RETURN w.id AS id, w.type AS type, w.status AS status,
+              w.summary AS summary, w.startedAt AS startedAt
+       ORDER BY w.startedAt DESC LIMIT 10`
+    );
+    const recentWorkflows = workflowRes.records.map((r) => ({
+      id: r.get("id") as string,
+      type: r.get("type") as string,
+      status: r.get("status") as string,
+      summary: r.get("summary") as string | null,
+      startedAt: (toPlain(r.get("startedAt")) as string) ?? "",
+    }));
+
+    // Top keyword clusters
+    const clusterRes = await session.run(
+      `MATCH (cl:KeywordCluster)
+       OPTIONAL MATCH (k:Keyword)-[:BELONGS_TO]->(cl)
+       WITH cl, count(k) AS keywordCount
+       ORDER BY keywordCount DESC LIMIT 10
+       RETURN cl.name AS name, cl.pillarTopic AS pillarTopic, keywordCount`
+    );
+    const topClusters = clusterRes.records.map((r) => ({
+      name: r.get("name") as string,
+      pillarTopic: r.get("pillarTopic") as string,
+      keywordCount: toPlain(r.get("keywordCount")) as number,
+    }));
+
+    return {
+      nodeCounts,
+      relationshipCounts,
+      stageDistribution,
+      recentWorkflows,
+      topClusters,
+    };
+  } finally {
+    await session.close();
+  }
+}
+
 // --- Generic Cypher ---
 
 export async function runCypher(
