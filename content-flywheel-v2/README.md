@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Content Flywheel v2
 
-## Getting Started
+Content pipeline dashboard powered by Neo4j graph database. Tracks content from inspiration through publication with automated SEO monitoring via DataForSEO.
 
-First, run the development server:
+**Production:** https://content-flywheel-nu.vercel.app
+
+## Stack
+
+- **Next.js 16** (App Router) + TypeScript + Tailwind CSS 4
+- **Neo4j Aura** — graph database for content, keywords, clusters, SERP data, backlinks
+- **DataForSEO** — keyword research, SERP tracking, backlink analysis, on-page auditing
+- **Sanity CMS** — publishing adapter
+- **GoHighLevel** — social distribution adapter
+- **Vercel** — hosting + cron jobs
+
+## Quick Start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run init-schema    # seed Neo4j with constraints + pipeline stages
+npm run seed           # create 5 sample content pieces
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Requires `.env.local` with Neo4j + DataForSEO credentials. See [CLAUDE.md](CLAUDE.md) for full env var reference.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Pages
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/board` — Kanban pipeline board with drag-and-drop stage transitions and content creation
+- `/content/[id]` — Content detail view with keyword, SERP, backlink, and SEO score panels + workflow action buttons
+- `/graph` — Graph explorer with node counts, pipeline funnel, keyword clusters, and workflow history
 
-## Learn More
+## API Routes
 
-To learn more about Next.js, take a look at the following resources:
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/board` | GET | Board data grouped by pipeline stage |
+| `/api/board/move` | POST | Move content between stages |
+| `/api/content` | POST | Create new content piece |
+| `/api/content/[id]` | GET | Full content detail with graph neighborhood |
+| `/api/graph/stats` | GET | Graph statistics and aggregations |
+| `/api/graph/query` | POST | Generic Cypher proxy (requires `x-graph-secret` header) |
+| `/api/workflows/*` | POST | DataForSEO workflow runners (6 workflows) |
+| `/api/cron/seo-pull` | GET | Daily keyword ranking pull (Vercel Cron) |
+| `/api/cron/serp-snapshot` | GET | Weekly SERP feature analysis (Vercel Cron) |
+| `/api/publish/sanity` | POST | Publish/draft content to Sanity CMS |
+| `/api/publish/social` | POST | Schedule social posts via GoHighLevel |
+| `/api/webhooks/sanity` | POST | Sanity publish/unpublish webhook receiver |
+| `/api/webhooks/ghl` | POST | GoHighLevel post status webhook receiver |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev            # dev server
+npm run build          # production build
+npm run lint           # eslint
+npm test               # vitest (43 tests)
+npm run seed           # seed sample content into Neo4j
+npm run init-schema    # initialize Neo4j constraints + pipeline stages
+```
 
-## Deploy on Vercel
+## Pipeline Stages
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Inspiration → Research → Draft → Optimize → Review → Published → Monitor → Refresh

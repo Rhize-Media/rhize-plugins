@@ -1021,6 +1021,411 @@ Use Vercel CLI or dashboard to deploy. Set environment variables in Vercel proje
 
 ---
 
+## Milestone 8: AI Feature Parity + Cost Optimization
+
+Bring back the AI capabilities from the old n8n version (article generation, theme extraction, semantic clustering, brand voice scoring) — but rebuilt with modern models, prompt caching, and Neo4j-backed memoization for dramatic cost reduction.
+
+**Old version pipeline** (expensive, ~$3–5 per article):
+- Claude Haiku → theme extraction
+- Claude Sonnet → article outline
+- **Claude Opus → full article draft** (main cost)
+- Claude Sonnet → self-review + brand voice pass
+- Gemini text-embedding-004 → embeddings for keyword clustering
+
+**New v2 target pipeline** (~$0.20–0.50 per article):
+- Haiku 4.5 → theme extraction, intent classification, quality screening
+- **Sonnet 4.6 → outline + full draft** (Opus-tier quality at ~1/5 cost)
+- Haiku 4.5 → brand voice validation pass
+- Voyage-3 or Gemini text-embedding-004 → semantic embeddings (cheap, high-quality)
+- Neo4j caching — if keywords/embeddings/outlines already exist, reuse
+
+### Task 22: Install AI SDK dependencies
+
+**Files:**
+- Modify: `package.json`
+
+**Step 1: Install dependencies**
+
+Run: `npm install @anthropic-ai/sdk@latest`
+
+Optional (pick one for embeddings):
+
+- `@google/generative-ai` — Gemini text-embedding-004 (cheapest, 768-dim)
+- `voyageai` — Voyage-3 (better quality, 1024-dim)
+- `openai` — text-embedding-3-small (good middle ground)
+
+Default recommendation: **Gemini** for cost (free tier: 1500 req/min, paid: $0.00002/1K tokens).
+
+**Step 2: Add env vars**
+
+Add to `.env.local` and Vercel production:
+- `ANTHROPIC_API_KEY`
+- `GEMINI_API_KEY` (or chosen embedding provider)
+
+**Step 3: Commit**
+
+```bash
+git add package.json package-lock.json
+git commit -m "chore: add Anthropic SDK and embeddings client"
+```
+
+### Task 23: Add Claude client with prompt caching
+
+**Files:**
+- Create: `src/lib/ai/claude.ts`
+
+**Step 1: Write client wrapper**
+
+Build a thin wrapper around `@anthropic-ai/sdk` that:
+
+- Configures the client with API key from env
+- Exposes `generateText(params)` with built-in prompt caching (`cache_control: { type: "ephemeral" }` on system prompts)
+- Exposes `generateStructured<T>(params, schema)` using tool-use for guaranteed JSON output
+- Records token usage and cost to Neo4j as `(:AIUsage)` nodes for cost tracking
+- Defaults to `claude-haiku-4-5-20251001` for cheap operations, `claude-sonnet-4-6` for generation
+- Implements exponential backoff on 429/overload errors
+
+**Why prompt caching matters:** System prompts for article generation are long (brand voice guidelines, examples, format specs). Caching them reduces input cost by 90% on repeated calls within 5 min, 50% within 1 hour.
+
+**Step 2: Commit**
+
+```bash
+git add src/lib/ai/claude.ts
+git commit -m "feat: add Claude SDK wrapper with prompt caching"
+```
+
+### Task 24: Add embeddings client
+
+**Files:**
+- Create: `src/lib/ai/embeddings.ts`
+
+**Step 1: Write embeddings helper**
+
+Single function `embedBatch(texts: string[]): Promise<number[][]>` that:
+
+- Uses Gemini text-embedding-004 (default) or configured provider
+- Batches up to 100 texts per API call
+- Returns arrays of 768-dim vectors (or provider-specific)
+- Caches embeddings in Neo4j: `MERGE (k:Keyword {term: $term}) SET k.embedding = $vector`
+- Skips re-embedding keywords that already have an `embedding` property
+
+**Step 2: Commit**
+
+```bash
+git add src/lib/ai/embeddings.ts
+git commit -m "feat: add batched embeddings client with Neo4j cache"
+```
+
+### Task 25: Semantic keyword clustering (replace regex classifier)
+
+**Files:**
+- Modify: `src/lib/workflows/keyword-research.ts`
+- Create: `src/lib/ai/clustering.ts`
+
+**Step 1: Write clustering module**
+
+Implement k-means or HDBSCAN clustering on keyword embeddings:
+
+- Input: array of keywords with their embedding vectors from Neo4j
+- Output: cluster assignments (cluster id per keyword)
+- Use `ml-kmeans` package (~10KB, no heavy deps) with auto-selected k via elbow method
+- Each cluster gets a Claude Haiku call to generate a descriptive name + pillar topic
+
+**Step 2: Replace `classifyIntent` regex**
+
+In `keyword-research.ts`, the current `classifyIntent()` uses regex patterns. Replace with a Haiku call that batch-classifies up to 50 keywords at once into `informational | navigational | commercial | transactional`. Cost: ~$0.0003 per 50 keywords vs. $0 for regex, but dramatically more accurate.
+
+Keep regex as fallback if Haiku API fails.
+
+**Step 3: Update workflow to use clustering**
+
+When `runKeywordResearch` creates `KeywordCluster` nodes, use semantic clustering instead of "contains seed string" matching. This produces better clusters and enables finding related keywords that don't share exact substrings.
+
+**Step 4: Commit**
+
+```bash
+git add src/lib/ai/clustering.ts src/lib/workflows/keyword-research.ts
+git commit -m "feat: semantic keyword clustering via embeddings"
+```
+
+### Task 26: Content ingestion workflow (theme extraction)
+
+**Files:**
+- Create: `src/lib/workflows/content-ingest.ts`
+- Create: `src/app/api/workflows/content-ingest/route.ts`
+
+**Step 1: Write ingestion workflow**
+
+Takes a URL, does:
+
+1. Fetch page content via Firecrawl (already have FIRECRAWL_API_KEY env var, just need to add `@mendable/firecrawl-js` or call via fetch)
+2. Extract main article content + metadata (title, description, published date, author)
+3. Claude Haiku call: extract 5–8 themes and a 2-sentence summary
+4. Create `ContentPiece` in `inspiration` stage with extracted metadata
+5. Create `Theme` nodes linked via `HAS_THEME` relationship
+6. Embed the summary and store on the ContentPiece for later similarity search
+
+Add `(:Theme)` node to schema via a new `cypher/migrations/001-add-themes.cypher` file.
+
+**Step 2: Write API route**
+
+`POST /api/workflows/content-ingest` — accepts `{ url }`, returns created content.
+
+**Step 3: Add "Ingest URL" button to board header**
+
+Replace the current `prompt("Enter domain to audit")` flow with a proper modal that accepts a URL and runs content-ingest.
+
+**Step 4: Commit**
+
+```bash
+git add src/lib/workflows/content-ingest.ts src/app/api/workflows/content-ingest/route.ts cypher/migrations/ src/app/board/page.tsx
+git commit -m "feat: content ingestion workflow with theme extraction"
+```
+
+### Task 27: AI outline generation workflow
+
+**Files:**
+- Create: `src/lib/workflows/article-outline.ts`
+- Create: `src/app/api/workflows/article-outline/route.ts`
+
+**Step 1: Write outline workflow**
+
+Takes a `contentId` (must be in `research` stage with linked keywords), generates:
+
+1. Gather context from Neo4j: target keywords, competitor SERP pages (from SERPSnapshots), internal linking opportunities
+2. Claude Sonnet call with prompt-cached system prompt containing Rhize brand voice guide
+3. Structured output: `{ title, metaDescription, h2Sections: [{ heading, bullets, targetWordCount }], faqTopics, internalLinks }`
+4. Store as `(:Outline)` node linked to `ContentPiece` via `HAS_OUTLINE`
+5. Move content to `draft` stage automatically
+
+**Step 2: Write API route + content detail button**
+
+Button on content detail page: "Generate Outline" (visible when in research/draft stage).
+
+**Step 3: Commit**
+
+```bash
+git add src/lib/workflows/article-outline.ts src/app/api/workflows/article-outline/ src/app/content/\[id\]/page.tsx
+git commit -m "feat: AI article outline generation workflow"
+```
+
+### Task 28: AI article draft generation workflow
+
+**Files:**
+- Create: `src/lib/workflows/article-draft.ts`
+- Create: `src/app/api/workflows/article-draft/route.ts`
+
+**Step 1: Write draft workflow**
+
+Takes a `contentId` with an outline attached:
+
+1. Load the outline from Neo4j
+2. For each H2 section, call Claude Sonnet to generate section content (parallelized with `Promise.all`, rate-limited to 3 concurrent)
+3. Assemble sections into full article markdown
+4. Store as `(:Draft)` node with content, word count, generation metadata
+5. Calculate approximate cost from usage tokens, log to `(:AIUsage)`
+6. Move to `optimize` stage
+
+Uses prompt caching extensively — the brand voice guide + outline gets cached once, then reused across all H2 generation calls.
+
+**Step 2: Write API route + UI**
+
+Button on content detail: "Generate Draft" (visible when outline exists).
+Show generation progress: "Writing section 3 of 7..." via streaming or polling.
+
+**Step 3: Commit**
+
+```bash
+git add src/lib/workflows/article-draft.ts src/app/api/workflows/article-draft/ src/app/content/\[id\]/page.tsx
+git commit -m "feat: AI article draft generation with parallel section writing"
+```
+
+### Task 29: Brand voice scoring pass
+
+**Files:**
+- Create: `src/lib/workflows/brand-voice-check.ts`
+- Create: `src/app/api/workflows/brand-voice-check/route.ts`
+
+**Step 1: Write brand voice check**
+
+Takes a `contentId` with a draft:
+
+1. Haiku call with draft + brand voice reference
+2. Returns `{ score: 0-100, issues: [{ section, issue, suggestion }] }`
+3. Store as `(:BrandVoiceScore)` node
+
+**Step 2: Show in UI**
+
+Add brand voice score card to content detail page below SEO score. Red/yellow/green based on score thresholds.
+
+**Step 3: Commit**
+
+```bash
+git add src/lib/workflows/brand-voice-check.ts src/app/api/workflows/brand-voice-check/ src/app/content/\[id\]/page.tsx
+git commit -m "feat: brand voice scoring via Claude Haiku"
+```
+
+### Task 30: Cost tracking dashboard panel
+
+**Files:**
+- Modify: `src/lib/neo4j/queries.ts` (add `getCostStats`)
+- Modify: `src/app/api/graph/stats/route.ts`
+- Modify: `src/app/graph/page.tsx`
+
+**Step 1: Add cost aggregation query**
+
+Query total AIUsage cost grouped by: model, workflow type, last 7/30 days.
+
+**Step 2: Add cost panel to graph explorer page**
+
+Show: total cost last 30 days, cost per article, cost by model, tokens saved via prompt caching.
+
+**Step 3: Commit**
+
+```bash
+git add src/lib/neo4j/queries.ts src/app/api/graph/stats/route.ts src/app/graph/page.tsx
+git commit -m "feat: AI cost tracking dashboard panel"
+```
+
+### Task 31: Tests for AI workflows
+
+**Files:**
+- Create: `tests/lib/ai/claude.test.ts`
+- Create: `tests/lib/ai/embeddings.test.ts`
+- Create: `tests/lib/ai/clustering.test.ts`
+
+Mock the Anthropic SDK and embeddings provider. Test: prompt cache headers are set, token usage is logged, structured output parsing works, clustering produces reasonable groups for synthetic data.
+
+**Step 1: Write tests + run**
+
+```bash
+npm test
+```
+
+**Step 2: Commit**
+
+```bash
+git add tests/lib/ai/
+git commit -m "test: AI workflow unit tests"
+```
+
+---
+
+## Milestone 9: Replace DataForSEO with SEO Utils
+
+**CRITICAL ARCHITECTURAL NOTE:** SEO Utils operates as a **local HTTP server** (`http://localhost:19515/mcp`) bundled with the SEO Utils desktop app. Two distinct questions:
+
+1. **MCP integration** (for Claude local dev tools) — straightforward swap in `.mcp.json`
+2. **Runtime integration** (for deployed Vercel serverless functions) — blocked unless SEO Utils exposes a public cloud API
+
+**SEO Utils MCP wraps DataForSEO internally** — it holds the DataForSEO credentials itself, then adds GSC, GA4, local GMB, LLM rank tracking, content briefs, NLP entity analysis, indexing status checks, and keyword cannibalization detection on top.
+
+### Task 32: Purchase SEO Utils MCP access
+
+**MANUAL STEP** — `$1 one-time fee` per the docs.
+
+1. Purchase "MCP Access" via SEO Utils Settings → Services
+2. Generate Bearer token in Settings → MCP Server → Manual Config
+3. Save token for next task
+
+### Task 33: Add SEO Utils MCP server to .mcp.json
+
+**Files:**
+- Modify: `.mcp.json`
+
+**Step 1: Add the new entry**
+
+```json
+"seo-utils": {
+  "url": "http://localhost:19515/mcp",
+  "headers": {
+    "Authorization": "Bearer ${SEO_UTILS_TOKEN}"
+  }
+}
+```
+
+**Step 2: Add `SEO_UTILS_TOKEN` to `.env.local`**
+
+(Not added to Vercel — this is local-dev MCP only.)
+
+**Step 3: Commit**
+
+```bash
+git add .mcp.json
+git commit -m "chore: add seo-utils MCP server alongside dataforseo"
+```
+
+### Task 34: Verify SEO Utils tools work in Claude
+
+After next Claude Code session restart, verify the new MCP server loads and tools are available (`mcp__seo-utils__*`). Test one tool end-to-end (e.g., keyword suggestions, GSC query, or LLM rank tracker).
+
+### Task 35: Evaluate SEO Utils cloud/REST API for runtime use
+
+**Research task — no code changes unless viable.**
+
+Investigate whether SEO Utils offers any of:
+
+1. A public REST API separate from the MCP server
+2. A self-hosted server mode (run SEO Utils headless on a VPS/Railway box, expose the port to Vercel via a secure tunnel)
+3. A webhook/relay pattern (SEO Utils pushes data to a Vercel endpoint on schedule)
+
+**Outcome options:**
+
+- **Option A — Public REST API exists:** proceed to Task 36 (rewrite `src/lib/dataforseo/client.ts` to call SEO Utils)
+- **Option B — Only local MCP:** keep DataForSEO for Vercel runtime, use SEO Utils for local dev/research. This is acceptable: the MCP gives us better ad-hoc analysis in Claude Code sessions, while runtime workflows still use the direct DataForSEO API (which SEO Utils wraps anyway).
+- **Option C — Self-hosted server:** more complex, defer to a future phase. Requires running SEO Utils on Railway/fly.io, exposing auth-protected HTTP endpoint, updating Vercel env vars to point at it.
+
+### Task 36: (Conditional on Option A) Migrate runtime client
+
+**Only proceed if Task 35 confirms SEO Utils has a usable cloud API.**
+
+**Files:**
+- Create: `src/lib/seo-utils/client.ts`
+- Modify: all workflow files in `src/lib/workflows/`
+
+**Step 1: Port DataForSEO function signatures**
+
+Build a new client with equivalent functions (`keywordSuggestions`, `serpLive`, `backlinksSummary`, etc.) that calls SEO Utils endpoints. Keep the same TypeScript shapes so workflow files don't need heavy changes.
+
+**Step 2: Dual-run both clients side-by-side for 1 week**
+
+Add a feature flag `USE_SEO_UTILS=true/false`. Run the same workflow through both; compare results; validate equivalence.
+
+**Step 3: Remove DataForSEO client after validation**
+
+```bash
+git rm src/lib/dataforseo/client.ts
+# update all imports to seo-utils client
+```
+
+**Step 4: Remove DataForSEO env vars from Vercel**
+
+```bash
+vercel env rm DATAFORSEO_USERNAME production
+vercel env rm DATAFORSEO_PASSWORD production
+```
+
+**Step 5: Commit**
+
+```bash
+git commit -m "feat: migrate runtime from DataForSEO to SEO Utils"
+```
+
+### Task 37: Add SEO Utils-exclusive features as new workflows
+
+**Only applicable if Option A or C from Task 35.**
+
+SEO Utils exposes capabilities DataForSEO doesn't:
+
+1. **GSC integration** — pull actual Rhize Media search console data (clicks, impressions, positions, queries). Create `src/lib/workflows/gsc-sync.ts`.
+2. **LLM rank tracker** — monitor brand mentions across ChatGPT/Perplexity/Gemini. Create `src/lib/workflows/llm-rank-sync.ts`.
+3. **Keyword cannibalization detection** — find pages competing for the same query. Create `src/lib/workflows/cannibalization-check.ts`.
+4. **Content briefs via NLP** — automatic entity/topic extraction for article outlines (could feed into M8 Task 27).
+
+Each becomes its own task with outline → workflow file → API route → UI surface.
+
+---
+
 ## Task Dependency Graph
 
 ```
@@ -1046,6 +1451,41 @@ M6: Testing
 
 M7: Deploy
   All milestones complete → Task 20 (verify config) → Task 21 (deploy)
+
+M8: AI Feature Parity (post-deploy)
+  Task 22 (SDK install) → Task 23 (Claude client) → Task 24 (embeddings)
+                                                       ↓
+                                                  Task 25 (clustering)
+                                                       ↓
+  Task 26 (ingest) → Task 27 (outline) → Task 28 (draft) → Task 29 (brand voice)
+                                                               ↓
+                                                        Task 30 (cost dashboard)
+                                                               ↓
+                                                        Task 31 (AI tests)
+
+M9: SEO Utils Migration (research + conditional)
+  Task 32 (purchase) → Task 33 (MCP config) → Task 34 (verify tools)
+                                                     ↓
+                                              Task 35 (evaluate cloud API)
+                                                ↓              ↓
+                                          Option A/C      Option B (stop)
+                                                ↓
+                                          Task 36 (migrate client)
+                                                ↓
+                                          Task 37 (new features)
 ```
 
-**Parallelizable:** M3 + M4 can run in parallel after M2. M6 can start after M1.
+**Parallelizable:** M3 + M4 can run in parallel after M2. M6 can start after M1. M8 and M9 are independent — can run concurrently after M7. Within M8, Tasks 27/28/29 depend sequentially (draft needs outline, brand voice needs draft), but Tasks 22–25 can all run before Task 26.
+
+**Cost expectations for M8:**
+
+Per article generation, target costs with prompt caching + Sonnet 4.6:
+- Theme extraction (Haiku): ~$0.001
+- Keyword classification (Haiku batch): ~$0.001
+- Clustering + naming (Haiku): ~$0.003
+- Outline generation (Sonnet): ~$0.05
+- Full draft generation (Sonnet, 7 sections parallel): ~$0.25
+- Brand voice check (Haiku): ~$0.002
+- Embeddings (Gemini, one-time per keyword): ~$0.0001
+
+**Total per article: ~$0.31** vs. old n8n pipeline at $3–5 = **~90% cost reduction** with comparable quality.
