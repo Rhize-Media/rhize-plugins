@@ -14,22 +14,14 @@ export default function BoardPage() {
 
   const fetchBoard = useCallback(async () => {
     try {
-      const res = await fetch("/api/graph/query", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `MATCH (c:ContentPiece)-[:IN_STAGE]->(s:PipelineStage)
-                  RETURN s.name AS stage, s.order AS stageOrder, collect(c { .* }) AS pieces
-                  ORDER BY stageOrder`,
-        }),
-      });
+      const res = await fetch("/api/board");
       const data = await res.json();
       const grouped: BoardData = {};
       for (const stage of PIPELINE_STAGES) {
         grouped[stage.name] = [];
       }
-      for (const row of data.results ?? []) {
-        grouped[row.stage as string] = row.pieces as ContentPiece[];
+      for (const [stage, pieces] of Object.entries(data.board ?? {})) {
+        grouped[stage] = pieces as ContentPiece[];
       }
       setBoard(grouped);
     } catch (err) {
@@ -61,18 +53,13 @@ export default function BoardPage() {
 
     setDraggedItem(null);
 
-    // Persist to Neo4j
-    await fetch("/api/graph/query", {
+    // Persist to Neo4j via dedicated endpoint
+    await fetch("/api/board/move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        query: `MATCH (c:ContentPiece {id: $contentId})-[r:IN_STAGE]->()
-                DELETE r
-                WITH c
-                MATCH (s:PipelineStage {name: $newStage})
-                CREATE (c)-[:IN_STAGE]->(s)
-                SET c.updatedAt = datetime()`,
-        params: { contentId: draggedItem.id, newStage: targetStage },
+        contentId: draggedItem.id,
+        newStage: targetStage,
       }),
     });
   }
