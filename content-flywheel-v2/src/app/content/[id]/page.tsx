@@ -12,37 +12,9 @@ interface ContentDetail extends ContentPiece {
 }
 
 async function fetchContentDetail(id: string): Promise<ContentDetail | null> {
-  const res = await fetch("/api/graph/query", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: `MATCH (c:ContentPiece {id: $id})-[:IN_STAGE]->(s:PipelineStage)
-              OPTIONAL MATCH (c)-[:TARGETS]->(k:Keyword)
-              OPTIONAL MATCH (c)-[:RANKS_FOR]->(snap:SERPSnapshot)
-              OPTIONAL MATCH (c)-[:HAS_BACKLINK_FROM]->(b:BacklinkSource)
-              OPTIONAL MATCH (c)-[:LINKS_TO]->(linked:ContentPiece)
-              OPTIONAL MATCH (c)-[:HAS_SCORE]->(seo:SEOScore)
-              WITH c, s, k, snap, b, linked, seo ORDER BY seo.date DESC
-              RETURN c { .*, stage: s.name } AS content,
-                     collect(DISTINCT k { .* }) AS keywords,
-                     collect(DISTINCT snap { .* }) AS serpSnapshots,
-                     collect(DISTINCT b { .domain, .authorityRank, .anchorText }) AS backlinks,
-                     collect(DISTINCT linked { targetTitle: linked.title, targetSlug: linked.slug }) AS internalLinks,
-                     head(collect(DISTINCT seo { .* })) AS seoScore`,
-      params: { id },
-    }),
-  });
-  const data = await res.json();
-  const row = data.results?.[0];
-  if (!row?.content) return null;
-  return {
-    ...row.content,
-    keywords: row.keywords ?? [],
-    serpSnapshots: row.serpSnapshots ?? [],
-    backlinks: row.backlinks ?? [],
-    internalLinks: row.internalLinks ?? [],
-    seoScore: row.seoScore ?? null,
-  };
+  const res = await fetch(`/api/content/${id}`);
+  if (!res.ok) return null;
+  return res.json();
 }
 
 async function runWorkflow(workflow: string, body: Record<string, unknown>) {

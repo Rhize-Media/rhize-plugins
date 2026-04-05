@@ -132,6 +132,43 @@ export async function getContentById(id: string): Promise<ContentPiece | null> {
   }
 }
 
+export async function getContentDetailById(id: string) {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (c:ContentPiece {id: $id})-[:IN_STAGE]->(s:PipelineStage)
+       OPTIONAL MATCH (c)-[:TARGETS]->(k:Keyword)
+       OPTIONAL MATCH (c)-[:RANKS_FOR]->(snap:SERPSnapshot)
+       OPTIONAL MATCH (c)-[:HAS_BACKLINK_FROM]->(b:BacklinkSource)
+       OPTIONAL MATCH (c)-[:LINKS_TO]->(linked:ContentPiece)
+       OPTIONAL MATCH (c)-[:HAS_SCORE]->(seo:SEOScore)
+       RETURN c { .*, stage: s.name } AS content,
+              collect(DISTINCT k { .* }) AS keywords,
+              collect(DISTINCT snap { .* }) AS serpSnapshots,
+              collect(DISTINCT b { .domain, .authorityRank, .anchorText }) AS backlinks,
+              collect(DISTINCT { targetTitle: linked.title, targetSlug: linked.slug }) AS internalLinks,
+              head(collect(DISTINCT seo { .* })) AS seoScore`,
+      { id }
+    );
+    if (result.records.length === 0) return null;
+    const row = result.records[0];
+    const content = toPlain(row.get("content")) as Record<string, unknown>;
+    return {
+      ...content,
+      keywords: toPlain(row.get("keywords") ?? []),
+      serpSnapshots: toPlain(row.get("serpSnapshots") ?? []),
+      backlinks: toPlain(row.get("backlinks") ?? []),
+      internalLinks: (toPlain(row.get("internalLinks") ?? []) as Array<
+        Record<string, unknown>
+      >).filter((l) => l.targetSlug != null),
+      seoScore: toPlain(row.get("seoScore")),
+    };
+  } finally {
+    await session.close();
+  }
+}
+
 // --- Keywords ---
 
 export async function getKeywordsForContent(
