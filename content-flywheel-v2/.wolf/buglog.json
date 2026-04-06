@@ -48,6 +48,422 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-04-05T15:25:07.529Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-04-05T15:32:13.337Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T15:32:13.337Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-04-05T15:32:39.905Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 26→18 lines (11 removed) | Also: // Persist to Neo4j; await fetch(\"/api/graph/query\", { | Also: const res = await fetch(\"/api/graph/query\", {; method: \"POST\",",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-05T15:33:11.450Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-04-05T15:33:28.964Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/app/api/graph/query/route.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 22→39 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T15:33:28.964Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-04-05T15:42:24.059Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T15:42:24.059Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-04-05T15:43:02.183Z",
+      "error_message": "Type error",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T15:43:02.183Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-04-05T15:45:03.595Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T15:45:03.596Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-04-05T23:22:37.704Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "23 lines replaced/restructured",
+      "fix": "Rewrote 78→140 lines (23 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T23:22:37.704Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-04-05T23:46:42.714Z",
+      "error_message": "Significant refactor of ",
+      "file": "hooks/flywheel-context.md",
+      "root_cause": "19 lines replaced/restructured",
+      "fix": "Rewrote 36→81 lines (19 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-05T23:46:42.714Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-04-06T16:54:52.833Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/content-optimize.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed) | Also: `MATCH (c:ContentPiece {id: $contentId}); WHERE c.stage IN [\"draft\", \"optimize\"]",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T16:55:16.065Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-04-06T16:55:05.335Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/content-optimize.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:55:05.335Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-04-06T16:55:40.861Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/ai-visibility.ts",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 35→50 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:55:40.861Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-04-06T16:55:42.397Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/site-audit.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→11 lines (2 removed) | Also: c.slug = $slug, c.stage = \"refresh\",; c.createdAt = datetime(), c.updatedAt = datetime()",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T16:56:04.265Z"
+    },
+    {
+      "id": "bug-016",
+      "timestamp": "2026-04-06T16:57:17.650Z",
+      "error_message": "Missing await",
+      "file": "src/lib/adapters/cms/sanity.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:57:17.650Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-04-06T16:57:30.146Z",
+      "error_message": "Type error",
+      "file": "src/lib/adapters/distribution/ghl.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:57:30.146Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-04-06T16:58:13.573Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/app/api/publish/sanity/route.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:58:13.573Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-04-06T16:58:54.250Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/app/api/publish/social/route.ts",
+      "root_cause": "14 lines replaced/restructured",
+      "fix": "Rewrote 16→3 lines (14 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T16:58:54.250Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-04-06T17:03:15.878Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:03:15.878Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-04-06T17:03:38.451Z",
+      "error_message": "Missing await",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: // Link competitors to this gap keyword; for (const comp of topCompetitors) {",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T17:03:54.222Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-04-06T17:04:02.764Z",
+      "error_message": "Type error",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:04:02.764Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-04-06T17:04:12.384Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→10 lines (2 removed) | Also: // Node counts by label; for (const label of nodeLabels) {",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T17:04:49.524Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-04-06T17:04:34.252Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:04:34.252Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-04-06T17:20:58.506Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/app/content/[id]/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Workflow History */}; {content.workflowRuns && content.workflowRuns.length > 0 && ",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T17:21:22.170Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-04-06T17:25:32.009Z",
+      "error_message": "Missing await",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:25:32.009Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-04-06T17:41:46.816Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/ai-visibility.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:41:46.816Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-04-06T17:46:51.872Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 15→23 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:46:51.872Z"
+    },
+    {
+      "id": "bug-029",
+      "timestamp": "2026-04-06T17:53:30.075Z",
+      "error_message": "Significant refactor of ",
+      "file": "hooks/flywheel-context.md",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 10→21 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T17:53:30.075Z"
     }
   ]
 }

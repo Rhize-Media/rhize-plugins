@@ -27,7 +27,7 @@ Requires `.env.local` with Neo4j + DataForSEO credentials. See [CLAUDE.md](CLAUD
 ## Pages
 
 - `/board` — Kanban pipeline board with drag-and-drop stage transitions and content creation
-- `/content/[id]` — Content detail view with keyword, SERP, backlink, and SEO score panels + workflow action buttons
+- `/content/[id]` — Content detail view with keyword, SERP, backlink, SEO score, workflow history, AI visibility, and stage history panels + workflow action buttons
 - `/graph` — Graph explorer with node counts, pipeline funnel, keyword clusters, and workflow history
 
 ## API Routes
@@ -57,6 +57,7 @@ npm run lint           # eslint
 npm test               # vitest (43 tests)
 npm run seed           # seed sample content into Neo4j
 npm run init-schema    # initialize Neo4j constraints + pipeline stages
+npx tsx scripts/migrate-graph-relationships.ts  # backfill graph relationships (one-time)
 ```
 
 ## Pipeline Stages
