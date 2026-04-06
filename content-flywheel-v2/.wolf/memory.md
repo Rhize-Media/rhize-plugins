@@ -252,3 +252,20 @@
 | 14:37 | Edited tests/ai/claude.test.ts | modified makeMockUsage() | ~358 |
 | 14:37 | Edited tests/ai/claude.test.ts | reduced (-13 lines) | ~806 |
 | 14:38 | Edited tests/ai/claude.test.ts | 44→43 lines | ~314 |
+| 14:40 | Session end: 14 writes across 5 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 11 reads | ~33317 tok |
+| 14:47 | Created .claude/plans/m8-embeddings-clustering.md | — | ~2044 |
+| 14:47 | Session end: 15 writes across 6 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 12 reads | ~38168 tok |
+| 14:52 | Edited src/types/index.ts | 9→10 lines | ~68 |
+| 14:52 | Created src/lib/ai/embeddings.ts | — | ~923 |
+| 14:52 | Created src/lib/ai/clustering.ts | — | ~1468 |
+| 14:53 | Edited src/lib/workflows/keyword-research.ts | expanded (+7 lines) | ~122 |
+| 14:53 | Edited src/lib/workflows/keyword-research.ts | inline fix | ~10 |
+| 14:53 | Edited src/lib/workflows/keyword-research.ts | added 1 condition(s) | ~248 |
+| 14:53 | Edited src/lib/workflows/keyword-research.ts | added nullish coalescing | ~656 |
+| 14:54 | Edited src/lib/workflows/keyword-research.ts | — | ~0 |
+| 14:54 | Edited src/lib/workflows/keyword-research.ts | inline fix | ~16 |
+| 14:54 | Edited src/lib/workflows/keyword-research.ts | inline fix | ~17 |
+| 14:55 | Created tests/ai/embeddings.test.ts | — | ~1462 |
+| 14:56 | Created tests/ai/clustering.test.ts | — | ~1410 |
+| 14:56 | Created tests/ai/clustering.test.ts — 12 tests across 4 describe blocks (clusterKeywords, classifyIntentRegex, classifyIntentAI, nameCluster) | tests/ai/clustering.test.ts | all 12 pass | ~1100 |
+| 14:57 | Edited tests/ai/embeddings.test.ts | inline fix | ~13 |

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T18:38:09.175Z
-> Files: 90 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T18:57:31.152Z
+> Files: 95 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -37,6 +37,7 @@
 ## .claude/plans/
 
 - `m8-ai-sdk-foundation.md` — M8 AI SDK Foundation — RT-10 + RT-11 (~1102 tok)
+- `m8-embeddings-clustering.md` — M8 Embeddings + Semantic Clustering — RT-12 + RT-13 (~1916 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
 
 ## .claude/rules/
@@ -209,7 +210,9 @@
 
 ## src/lib/ai/
 
-- `claude.ts` — --------------------------------------------------------------------------- (~2390 tok)
+- `claude.ts` — Claude SDK wrapper: generateText(), generateStructured(), cost tracking, prompt caching, Neo4j AIUsage recording (~2390 tok)
+- `clustering.ts` — K-means clustering on embeddings, AI intent classification via Haiku, cluster naming, regex fallback (~1468 tok)
+- `embeddings.ts` — Gemini text-embedding-004 client: embedBatch(), embedAndCacheKeywords() with Neo4j caching (~923 tok)
 
 ## src/lib/dataforseo/
 
@@ -225,17 +228,19 @@
 - `ai-visibility.ts` — Exports runAIVisibility (~1557 tok)
 - `backlink-analysis.ts` — Exports runBacklinkAnalysis (~1773 tok)
 - `content-optimize.ts` — Exports runContentOptimize (~3827 tok)
-- `keyword-research.ts` — Exports runKeywordResearch (~2661 tok)
+- `keyword-research.ts` — Exports runKeywordResearch (~3158 tok)
 - `serp-analysis.ts` — Exports runSERPAnalysis (~2023 tok)
 - `site-audit.ts` — Exports runSiteAudit (~2582 tok)
 
 ## src/types/
 
-- `index.ts` — ============================================================ (~1402 tok)
+- `index.ts` — ============================================================ (~1408 tok)
 
 ## tests/ai/
 
 - `claude.test.ts` — --------------------------------------------------------------------------- (~2199 tok)
+- `clustering.test.ts` — Vitest tests for clusterKeywords, classifyIntentRegex, classifyIntentAI, nameCluster (~1100 tok)
+- `embeddings.test.ts` — --------------------------------------------------------------------------- (~1478 tok)
 
 ## tests/app/api/
 
