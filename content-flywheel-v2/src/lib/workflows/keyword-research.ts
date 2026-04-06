@@ -30,6 +30,26 @@ interface KeywordResearchResult {
   gapKeywords: number;
 }
 
+/** Extract keyword metrics from a DataForSEO item into a flat object. */
+function extractKeywordData(item: {
+  keyword: string;
+  keyword_info?: {
+    search_volume?: number;
+    keyword_difficulty?: number;
+    cpc?: number;
+    competition?: number;
+  };
+}): Record<string, unknown> {
+  return {
+    term: item.keyword,
+    volume: item.keyword_info?.search_volume ?? 0,
+    difficulty: item.keyword_info?.keyword_difficulty ?? 0,
+    cpc: item.keyword_info?.cpc ?? 0,
+    competition: item.keyword_info?.competition ?? 0,
+    intent: classifyIntentRegex(item.keyword),
+  };
+}
+
 export async function runKeywordResearch(
   input: KeywordResearchInput
 ): Promise<KeywordResearchResult> {
@@ -62,32 +82,16 @@ export async function runKeywordResearch(
       keywordIdeas(seeds[0], locationCode, languageCode).catch(() => null),
     ]);
 
-    // Process suggestions
+    // Process suggestions + ideas (ideas only added if not already present)
     for (const task of suggestionsRes?.tasks ?? []) {
       for (const item of task.result?.[0]?.items ?? []) {
-        allKeywords.set(item.keyword, {
-          term: item.keyword,
-          volume: item.keyword_info?.search_volume ?? 0,
-          difficulty: item.keyword_info?.keyword_difficulty ?? 0,
-          cpc: item.keyword_info?.cpc ?? 0,
-          competition: item.keyword_info?.competition ?? 0,
-          intent: classifyIntentRegex(item.keyword),
-        });
+        allKeywords.set(item.keyword, extractKeywordData(item));
       }
     }
-
-    // Process ideas
     for (const task of ideasRes?.tasks ?? []) {
       for (const item of task.result?.[0]?.items ?? []) {
         if (!allKeywords.has(item.keyword)) {
-          allKeywords.set(item.keyword, {
-            term: item.keyword,
-            volume: item.keyword_info?.search_volume ?? 0,
-            difficulty: item.keyword_info?.keyword_difficulty ?? 0,
-            cpc: item.keyword_info?.cpc ?? 0,
-            competition: item.keyword_info?.competition ?? 0,
-            intent: classifyIntentRegex(item.keyword),
-          });
+          allKeywords.set(item.keyword, extractKeywordData(item));
         }
       }
     }
@@ -100,14 +104,7 @@ export async function runKeywordResearch(
         for (const item of task.result?.[0]?.items ?? []) {
           const kw = item.keyword_data;
           if (kw && !allKeywords.has(kw.keyword)) {
-            allKeywords.set(kw.keyword, {
-              term: kw.keyword,
-              volume: kw.keyword_info?.search_volume ?? 0,
-              difficulty: kw.keyword_info?.keyword_difficulty ?? 0,
-              cpc: kw.keyword_info?.cpc ?? 0,
-              competition: kw.keyword_info?.competition ?? 0,
-              intent: classifyIntentRegex(kw.keyword),
-            });
+            allKeywords.set(kw.keyword, extractKeywordData(kw));
           }
           if (kw) {
             relatedPairs.push({ seed, related: kw.keyword });
@@ -260,16 +257,16 @@ export async function runKeywordResearch(
           for (const item of task.result?.[0]?.items ?? []) {
             // Keywords where competitors rank but we don't
             if (item.keyword_data) {
-              const kd = item.keyword_data;
+              const kd = extractKeywordData(item.keyword_data);
               await runCypher(
                 `MERGE (k:Keyword {term: $term})
                  ON CREATE SET k.id = randomUUID(),
                    k.volume = $volume, k.difficulty = $difficulty, k.intent = $intent`,
                 {
-                  term: kd.keyword,
-                  volume: kd.keyword_info?.search_volume ?? 0,
-                  difficulty: kd.keyword_info?.keyword_difficulty ?? 0,
-                  intent: classifyIntentRegex(kd.keyword),
+                  term: kd.term,
+                  volume: kd.volume,
+                  difficulty: kd.difficulty,
+                  intent: kd.intent,
                 }
               );
               // Link competitors to this gap keyword
@@ -278,7 +275,7 @@ export async function runKeywordResearch(
                   `MATCH (comp:Competitor {domain: $compDomain})
                    MATCH (k:Keyword {term: $term})
                    MERGE (comp)-[:RANKS_FOR]->(k)`,
-                  { compDomain: comp, term: kd.keyword }
+                  { compDomain: comp, term: kd.term as string }
                 );
               }
               gapKeywords++;

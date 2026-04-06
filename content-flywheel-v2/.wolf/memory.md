@@ -3,6 +3,11 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+| 15:01 | Simplify: extracted `extractKeywordData()` helper in keyword-research.ts to DRY up 3 duplicated keyword data extraction blocks | src/lib/workflows/keyword-research.ts | 3 blocks reduced to 1 helper + 3 calls | ~100 tok saved |
+| 15:01 | Simplify: batched Neo4j embedding writes via UNWIND in embedAndCacheKeywords, replacing N individual session.run() calls | src/lib/ai/embeddings.ts | N+1 queries reduced to 2 queries | ~50 tok saved |
+| 15:01 | Updated embedding test to expect batched UNWIND call instead of N individual SET calls | tests/ai/embeddings.test.ts | test assertions updated | ~20 tok |
+| 15:01 | All 74 tests pass, 0 lint errors | — | verified | — |
+
 ## Session: 2026-04-06 14:20 — M8 AI SDK Foundation (RT-10 + RT-11)
 
 | Time | Description | File(s) | Outcome | ~Tokens |
@@ -269,3 +274,12 @@
 | 14:56 | Created tests/ai/clustering.test.ts | — | ~1410 |
 | 14:56 | Created tests/ai/clustering.test.ts — 12 tests across 4 describe blocks (clusterKeywords, classifyIntentRegex, classifyIntentAI, nameCluster) | tests/ai/clustering.test.ts | all 12 pass | ~1100 |
 | 14:57 | Edited tests/ai/embeddings.test.ts | inline fix | ~13 |
+| 14:58 | Session end: 28 writes across 11 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 15 reads | ~48434 tok |
+| 14:58 | Session end: 28 writes across 11 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 15 reads | ~48434 tok |
+| 15:00 | Edited src/lib/workflows/keyword-research.ts | added optional chaining | ~248 |
+| 15:00 | Edited src/lib/workflows/keyword-research.ts | modified for() | ~146 |
+| 15:00 | Edited src/lib/workflows/keyword-research.ts | classifyIntentRegex() → extractKeywordData() | ~54 |
+| 15:01 | Edited src/lib/workflows/keyword-research.ts | classifyIntentRegex() → extractKeywordData() | ~150 |
+| 15:01 | Edited src/lib/workflows/keyword-research.ts | modified for() | ~116 |
+| 15:01 | Edited src/lib/ai/embeddings.ts | 8→11 lines | ~94 |
+| 15:01 | Edited tests/ai/embeddings.test.ts | 13→11 lines | ~157 |

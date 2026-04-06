@@ -122,17 +122,15 @@ describe("embedAndCacheKeywords", () => {
 
     await embedAndCacheKeywords(["seo", "marketing"]);
 
-    // Should have called session.run 3 times:
-    // 1x to find missing embeddings, 2x to SET k.embedding
-    expect(mockRun).toHaveBeenCalledTimes(3);
-    const secondCall = mockRun.mock.calls[1];
-    expect(secondCall[0]).toContain("SET k.embedding");
-    expect(secondCall[1].term).toBe("seo");
-    expect(secondCall[1].vector).toHaveLength(256);
-
-    const thirdCall = mockRun.mock.calls[2];
-    expect(thirdCall[0]).toContain("SET k.embedding");
-    expect(thirdCall[1].term).toBe("marketing");
+    // Should have called session.run 2 times:
+    // 1x to find missing embeddings, 1x batched UNWIND to SET embeddings
+    expect(mockRun).toHaveBeenCalledTimes(2);
+    const batchCall = mockRun.mock.calls[1];
+    expect(batchCall[0]).toContain("SET k.embedding");
+    expect(batchCall[1].entries).toHaveLength(2);
+    expect(batchCall[1].entries[0].term).toBe("seo");
+    expect(batchCall[1].entries[0].vector).toHaveLength(256);
+    expect(batchCall[1].entries[1].term).toBe("marketing");
   });
 
   it("returns correct counts", async () => {
