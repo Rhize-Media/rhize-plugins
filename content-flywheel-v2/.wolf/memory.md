@@ -297,3 +297,21 @@
 | 15:13 | Created tests/workflows/article-outline.test.ts | — | ~1597 |
 | 15:13 | Created tests/workflows/content-ingest.test.ts — 3 Vitest tests for runContentIngest (scrape+themes, workflow lifecycle, error handling) | tests/workflows/content-ingest.test.ts | 3/3 pass | ~1200 |
 | 15:13 | Created article-outline.test.ts — 3 Vitest tests for runArticleOutline workflow | tests/workflows/article-outline.test.ts | 3/3 passing | ~1050 tok |
+| 15:15 | Session end: 46 writes across 17 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 21 reads | ~74860 tok |
+| 15:15 | Session end: 46 writes across 17 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 21 reads | ~74860 tok |
+| 15:17 | Created .claude/plans/m8-draft-brandvoice.md | — | ~1207 |
+| 15:18 | Created src/lib/workflows/helpers.ts | — | ~711 |
+| 15:18 | Edited src/lib/workflows/content-ingest.ts | added 1 import(s) | ~106 |
+| 15:18 | Edited src/lib/workflows/content-ingest.ts | removed 16 lines | ~30 |
+| 15:19 | Edited src/lib/workflows/content-ingest.ts | added 1 condition(s) | ~119 |
+| 15:19 | Edited src/lib/workflows/content-ingest.ts | reduced (-7 lines) | ~48 |
+| 15:19 | Edited src/lib/workflows/content-ingest.ts | modified catch() | ~24 |
+| 15:19 | Edited src/lib/workflows/content-ingest.ts | 9→9 lines | ~65 |
+| 15:19 | Edited src/lib/workflows/article-outline.ts | added 1 import(s) | ~104 |
+| 15:19 | Edited src/lib/workflows/article-outline.ts | reduced (-10 lines) | ~37 |
+| 15:19 | Edited src/lib/workflows/article-outline.ts | reduced (-7 lines) | ~60 |
+| 15:20 | Edited src/lib/workflows/article-outline.ts | modified catch() | ~24 |
+| 15:20 | Edited src/lib/workflows/article-outline.ts | inline fix | ~9 |
+| 15:20 | Edited src/lib/workflows/helpers.ts | 11→11 lines | ~76 |
+| 15:20 | Edited src/lib/workflows/content-ingest.ts | modified for() | ~106 |
+| 15:21 | DRY refactor: extracted workflow lifecycle helpers (create/complete/fail) into helpers.ts, refactored content-ingest.ts + article-outline.ts to use them. Removed unused OutlineSection import. All 80 tests pass, 0 lint errors. | src/lib/workflows/helpers.ts, content-ingest.ts, article-outline.ts | success | ~500 |

@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { runCypher, moveContentToStage } from "@/lib/neo4j/queries";
 import { generateStructured } from "@/lib/ai/claude";
+import { createWorkflowRun, completeWorkflowRun, failWorkflowRun } from "@/lib/workflows/helpers";
 import type { CacheableSystemMessage } from "@/lib/ai/claude";
-import type { WorkflowRun, Outline, OutlineSection } from "@/types";
+import type { WorkflowRun, Outline } from "@/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,19 +68,9 @@ export async function runArticleOutline(
   const { contentId } = input;
 
   // Create workflow run
-  const runResult = await runCypher(
-    `CREATE (w:WorkflowRun {
-      id: randomUUID(), type: "article-outline",
-      contentId: $contentId, status: "running",
-      startedAt: datetime()
-    })
-    WITH w
-    MATCH (c:ContentPiece {id: $contentId})
-    CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
-    RETURN w.id AS runId`,
-    { contentId }
-  );
-  const runId = runResult[0].runId as string;
+  const runId = await createWorkflowRun("article-outline", contentId, {
+    requireContent: true,
+  });
 
   try {
     // 1. Load content context from Neo4j
@@ -180,15 +171,8 @@ export async function runArticleOutline(
     await moveContentToStage(contentId, "draft");
 
     // Mark workflow complete
-    await runCypher(
-      `MATCH (w:WorkflowRun {id: $runId})
-       SET w.status = "completed", w.completedAt = datetime(),
-           w.summary = $summary`,
-      {
-        runId,
-        summary: `Generated outline "${data.title}" — ${data.sections.length} sections, ${data.faqTopics.length} FAQs`,
-      }
-    );
+    const summaryText = `Generated outline "${data.title}" — ${data.sections.length} sections, ${data.faqTopics.length} FAQs`;
+    await completeWorkflowRun(runId, summaryText);
 
     return {
       workflowRun: {
@@ -197,7 +181,7 @@ export async function runArticleOutline(
         contentId,
         status: "completed",
         startedAt: new Date().toISOString(),
-        summary: `Generated outline "${data.title}" — ${data.sections.length} sections`,
+        summary: summaryText,
       },
       outline: {
         id: outlineId,
@@ -211,12 +195,7 @@ export async function runArticleOutline(
       },
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    await runCypher(
-      `MATCH (w:WorkflowRun {id: $runId})
-       SET w.status = "failed", w.completedAt = datetime(), w.error = $error`,
-      { runId, error: message }
-    );
+    await failWorkflowRun(runId, error);
     throw error;
   }
 }
