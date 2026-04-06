@@ -56,6 +56,9 @@ FOR (w:WorkflowRun) REQUIRE w.id IS UNIQUE;
 CREATE CONSTRAINT site_audit_id IF NOT EXISTS
 FOR (a:SiteAudit) REQUIRE a.id IS UNIQUE;
 
+CREATE CONSTRAINT ai_usage_id IF NOT EXISTS
+FOR (a:AIUsage) REQUIRE a.id IS UNIQUE;
+
 // --- Indexes for common lookups ---
 
 CREATE INDEX content_slug IF NOT EXISTS

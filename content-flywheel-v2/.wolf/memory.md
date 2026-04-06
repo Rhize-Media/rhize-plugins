@@ -3,6 +3,18 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+## Session: 2026-04-06 14:20 — M8 AI SDK Foundation (RT-10 + RT-11)
+
+| Time | Description | File(s) | Outcome | ~Tokens |
+|------|-------------|---------|---------|---------|
+| 14:22 | Recreated plan from last session | .claude/plans/m8-ai-sdk-foundation.md | Plan saved | ~1200 |
+| 14:25 | Installed @anthropic-ai/sdk + zod | package.json, package-lock.json | 3 packages added | ~100 |
+| 14:26 | Added AIUsage type + schema constraint | src/types/index.ts, cypher/schema.cypher | AIUsage interface + constraint | ~200 |
+| 14:27 | Created Claude client wrapper | src/lib/ai/claude.ts | generateText, generateStructured, cost tracking, prompt caching | ~3200 |
+| 14:28 | Fixed Usage type access (cache fields are direct, not Record<string,number>) | src/lib/ai/claude.ts | Extracted buildUsage() helper, tsc passes | ~200 |
+| 14:29 | Created unit tests | tests/ai/claude.test.ts | 13 tests: cost calc, generateText, generateStructured, cache metrics | ~2800 |
+| 14:30 | Verified build + tests | — | tsc clean, 56/56 tests pass (13 new) | ~50 |
+
 | 13:45 | Code simplification review: 3 changes across queries.ts, ai-visibility.ts, content-optimize.ts | queries.ts, ai-visibility.ts, content-optimize.ts | Removed duplicate RANKS_FOR in relTypes, unified snapshot if/else with FOREACH/CASE, removed redundant type cast | ~500 tok |
 
 | Time | Description | Files | Outcome | ~Tokens |
@@ -213,3 +225,30 @@
 | 13:57 | Edited .gitignore | 3→4 lines | ~36 |
 | 13:57 | Session end: 64 writes across 20 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 27 reads | ~54094 tok |
 | 13:57 | Edited .gitignore | 4→3 lines | ~30 |
+| 13:58 | Session end: 65 writes across 20 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 27 reads | ~54126 tok |
+
+## Session: 2026-04-06 14:00
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-06 14:19
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 14:22 | Created .claude/plans/m8-ai-sdk-foundation.md | — | ~1175 |
+| 14:22 | Session end: 1 writes across 1 files (m8-ai-sdk-foundation.md) | 2 reads | ~12907 tok |
+| 14:26 | Edited src/types/index.ts | expanded (+16 lines) | ~153 |
+| 14:26 | Edited cypher/schema.cypher | 2→5 lines | ~46 |
+| 14:26 | Created src/lib/ai/claude.ts | — | ~2436 |
+| 14:28 | Edited src/lib/ai/claude.ts | calculateCost() → buildUsage() | ~353 |
+| 14:28 | Edited src/lib/ai/claude.ts | added nullish coalescing | ~307 |
+| 14:29 | Created tests/ai/claude.test.ts | — | ~2291 |
+| 14:30 | Session end: 7 writes across 5 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 9 reads | ~26443 tok |
+| 14:36 | Edited src/lib/ai/claude.ts | added 1 condition(s) | ~396 |
+| 14:36 | Edited src/lib/ai/claude.ts | modified generateText() | ~123 |
+| 14:36 | Edited src/lib/ai/claude.ts | modified generateStructured() | ~137 |
+| 14:37 | Edited tests/ai/claude.test.ts | 3→3 lines | ~61 |
+| 14:37 | Edited tests/ai/claude.test.ts | modified makeMockUsage() | ~358 |
+| 14:37 | Edited tests/ai/claude.test.ts | reduced (-13 lines) | ~806 |
+| 14:38 | Edited tests/ai/claude.test.ts | 44→43 lines | ~314 |

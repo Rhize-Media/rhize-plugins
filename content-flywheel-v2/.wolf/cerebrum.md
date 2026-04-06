@@ -25,7 +25,15 @@
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
 - [2026-04-06] Duplicate relationship type in getGraphStats relTypes array. `RANKS_FOR` appeared both as an original entry and was re-added when adding new types. UNION ALL queries with duplicate clauses double-count. Always check for existing entries before appending to arrays.
 
+## Key Learnings (continued)
+
+- **Anthropic SDK Usage type:** `cache_creation_input_tokens` and `cache_read_input_tokens` are directly on the `Usage` interface as `number | null` — no need for `Record<string, number>` casting.
+- **Structured output:** Use `messages.parse()` + `zodOutputFormat()` from `@anthropic-ai/sdk/helpers/zod` — not the old tool-use hack. Requires `zod` as dependency.
+- **SDK retry:** Anthropic SDK has built-in `maxRetries` option (default 2). No need for custom exponential backoff.
+- **AIUsage nodes:** `(:AIUsage {id, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, cost, createdAt})` linked via `(ContentPiece)-[:HAS_AI_USAGE]->(AIUsage)`.
+
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->
+- [2026-04-06] Direct Anthropic SDK over Vercel AI SDK: Chose `@anthropic-ai/sdk` directly because we need `cache_control` for prompt caching, per-token cache metrics, `messages.parse()` for structured output, and custom Neo4j cost tracking. AI SDK abstracts these away.
 - [2026-04-06] Graph relationship overhaul: Replaced property-based foreign keys with proper Neo4j relationships across all 6 workflows, queries, adapters, and webhooks. Added 9 new relationship types (HAS_WORKFLOW_RUN, HAS_AI_VISIBILITY, WAS_IN_STAGE, FOR_KEYWORD, RELATED_TO, AUDITS, WROTE, EXPERT_IN, RANKS_FOR for competitors). Chose UNION ALL single query over N+1 for graph stats. Used FOREACH/CASE pattern for conditional relationship creation to avoid separate queries.

@@ -213,3 +213,19 @@ export interface WorkflowRun {
   error?: string;
   summary?: string;
 }
+
+// --- AI Usage (cost tracking) ---
+
+export type AIModel = "haiku" | "sonnet";
+
+export interface AIUsage {
+  id: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  cost: number;
+  contentId?: string;
+  createdAt: string;
+}
