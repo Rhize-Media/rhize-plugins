@@ -38,6 +38,8 @@
 - **classifyIntent replacement:** `replace_all` on `Edit` only matches exact strings. When a function is called with different argument names (`item.keyword` vs `kw.keyword` vs `kd.keyword`), each call site needs individual replacement.
 - **Firecrawl package:** The npm package is `firecrawl` (not `firecrawl-js` or `@mendable/firecrawl-js`). Main class: `Firecrawl`. Method: `.scrape(url, { formats: ["markdown"] })` returns `{ markdown, metadata }`.
 - **Outline sections storage:** Neo4j doesn't support nested objects. Store `sections` as a JSON string, parse on read. Use `JSON.stringify(data.sections)` on write.
+- **Workflow lifecycle helpers:** `src/lib/workflows/helpers.ts` exports `createWorkflowRun`, `completeWorkflowRun`, `failWorkflowRun`. All workflows share this boilerplate. `createWorkflowRun` accepts `{ requireContent: true }` for workflows that always have a ContentPiece (uses `MATCH`) vs optional (uses `OPTIONAL MATCH` + `FOREACH/CASE`).
+- **Cypher type inline vs parameter:** WorkflowRun `type` is embedded inline in the Cypher string (not as `$type` param) because existing tests assert on the literal string being present in the query.
 
 ## Decision Log
 
