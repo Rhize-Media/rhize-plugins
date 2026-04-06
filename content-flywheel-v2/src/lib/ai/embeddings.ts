@@ -91,14 +91,17 @@ export async function embedAndCacheKeywords(
     // Embed the missing keywords
     const vectors = await embedBatch(needsEmbedding, options);
 
-    // Write embeddings back to Neo4j
-    for (let i = 0; i < needsEmbedding.length; i++) {
-      await session.run(
-        `MATCH (k:Keyword {term: $term})
-         SET k.embedding = $vector`,
-        { term: needsEmbedding[i], vector: vectors[i] }
-      );
-    }
+    // Write embeddings back to Neo4j in a single batched query
+    const entries = needsEmbedding.map((term, i) => ({
+      term,
+      vector: vectors[i],
+    }));
+    await session.run(
+      `UNWIND $entries AS entry
+       MATCH (k:Keyword {term: entry.term})
+       SET k.embedding = entry.vector`,
+      { entries }
+    );
 
     return {
       embedded: needsEmbedding.length,
