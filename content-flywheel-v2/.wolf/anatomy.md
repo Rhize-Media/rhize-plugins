@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:28:14.698Z
-> Files: 110 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:40:01.183Z
+> Files: 112 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -38,6 +38,7 @@
 
 - `m8-ai-sdk-foundation.md` — M8 AI SDK Foundation — RT-10 + RT-11 (~1102 tok)
 - `m8-content-ingest-outline.md` — M8 Content Ingestion + AI Outline — RT-14 + RT-15 (~1775 tok)
+- `m8-cost-dashboard-tests.md` — M8 Cost Dashboard + Test Completion — RT-18 + RT-19 (~669 tok)
 - `m8-draft-brandvoice.md` — M8 Article Draft + Brand Voice Scoring — RT-16 + RT-17 (~1131 tok)
 - `m8-embeddings-clustering.md` — M8 Embeddings + Semantic Clustering — RT-12 + RT-13 (~1916 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
@@ -139,7 +140,7 @@
 
 ## src/app/api/graph/stats/
 
-- `route.ts` — Next.js API route: GET (~110 tok)
+- `route.ts` — Next.js API route: GET (~138 tok)
 
 ## src/app/api/publish/sanity/
 
@@ -211,7 +212,7 @@
 
 ## src/app/graph/
 
-- `page.tsx` — GraphPage — renders table (~2788 tok)
+- `page.tsx` — GraphPage — renders table (~4155 tok)
 
 ## src/components/
 
@@ -239,7 +240,7 @@
 ## src/lib/neo4j/
 
 - `driver.ts` — Exports getDriver, closeDriver (~184 tok)
-- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~3670 tok)
+- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~4563 tok)
 
 ## src/lib/workflows/
 
@@ -286,3 +287,4 @@
 - `article-outline.test.ts` — --------------------------------------------------------------------------- (~1597 tok)
 - `brand-voice-check.test.ts` — Vitest tests for runBrandVoiceCheck: draft scoring via Haiku, BrandVoiceScore node creation, workflow run lifecycle (create/complete/fail) (~900 tok)
 - `content-ingest.test.ts` — Vitest tests for runContentIngest: scrape URL, theme extraction, workflow run lifecycle (create/complete/fail) (~900 tok)
+- `helpers.test.ts` — Declares mockRunCypher (~1067 tok)
