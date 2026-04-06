@@ -3,6 +3,16 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+| 13:45 | Code simplification review: 3 changes across queries.ts, ai-visibility.ts, content-optimize.ts | queries.ts, ai-visibility.ts, content-optimize.ts | Removed duplicate RANKS_FOR in relTypes, unified snapshot if/else with FOREACH/CASE, removed redundant type cast | ~500 tok |
+
+| Time | Description | Files | Outcome | ~Tokens |
+|------|-------------|-------|---------|---------|
+| 2026-04-06 | Added graph writes to CMS/distribution adapters and webhook/publish routes | sanity.ts, ghl.ts, webhooks/sanity/route.ts, webhooks/ghl/route.ts, publish/sanity/route.ts, publish/social/route.ts | PUBLISHED_TO and DISTRIBUTED_TO relationships now recorded in Neo4j | ~500 |
+
+| Time | Description | File(s) | Outcome | ~Tokens |
+|------|-------------|---------|---------|---------|
+| -- | Refactored ai-visibility.ts: linked WorkflowRun to ContentPiece via HAS_WORKFLOW_RUN; combined snapshot+relationship into single Cypher query | src/lib/workflows/ai-visibility.ts | tsc --noEmit passes | ~800 |
+
 ## Session: 2026-04-04 14:28
 
 | Time | Action | File(s) | Outcome | ~Tokens |
@@ -48,3 +58,158 @@
 | 11:25 | Edited src/lib/neo4j/queries.ts | 7→9 lines | ~60 |
 | 11:25 | Edited src/lib/neo4j/queries.ts | 7→7 lines | ~83 |
 | 11:28 | Edited .gitignore | 3→6 lines | ~33 |
+| 11:31 | Created src/app/api/board/route.ts | — | ~114 |
+| 11:31 | Created src/app/api/board/move/route.ts | — | ~317 |
+| 11:32 | Edited src/lib/neo4j/queries.ts | added nullish coalescing | ~459 |
+| 11:32 | Created src/app/api/content/[id]/route.ts | — | ~177 |
+| 11:32 | Created src/app/api/content/route.ts | — | ~421 |
+| 11:32 | Edited src/app/board/page.tsx | modified for() | ~157 |
+| 11:32 | Edited src/app/board/page.tsx | 17→12 lines | ~87 |
+| 11:33 | Edited src/app/content/[id]/page.tsx | removed 33 lines | ~51 |
+| 11:33 | Edited src/app/api/graph/query/route.ts | added 2 condition(s) | ~380 |
+| 11:42 | Edited src/app/board/page.tsx | added nullish coalescing | ~460 |
+| 11:43 | Edited src/app/board/page.tsx | modified prompt() | ~1952 |
+| 11:43 | Created src/components/sidebar.tsx | — | ~470 |
+| 11:43 | Edited src/app/layout.tsx | modified RootLayout() | ~180 |
+| 11:43 | Created src/components/error-page.tsx | — | ~247 |
+| 11:44 | Created src/app/board/error.tsx | — | ~71 |
+| 11:44 | Created src/app/content/[id]/error.tsx | — | ~72 |
+| 11:44 | Created src/app/board/loading.tsx | — | ~411 |
+| 11:44 | Created src/app/content/[id]/loading.tsx | — | ~256 |
+| 11:45 | Edited src/lib/neo4j/queries.ts | added optional chaining | ~981 |
+| 11:45 | Created src/app/api/graph/stats/route.ts | — | ~110 |
+| 11:45 | Created src/app/graph/page.tsx | — | ~2788 |
+| 11:50 | Created vitest.config.ts | — | ~85 |
+| 11:50 | Edited package.json | 6→10 lines | ~86 |
+| 11:50 | Created tests/lib/neo4j/to-plain.test.ts | — | ~631 |
+| 12:09 | Created tests/lib/dataforseo/client.test.ts | — | ~1016 |
+| 12:09 | Created tests/app/api/board-move.test.ts | — | ~801 |
+| 12:09 | Created tests/app/api/content-create.test.ts | — | ~1112 |
+| 12:09 | Created tests/app/api/graph-query.test.ts | — | ~821 |
+| 12:10 | Created tests/app/api/content-detail.test.ts | — | ~539 |
+| 12:33 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 43 reads | ~67241 tok |
+| 12:43 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 43 reads | ~67241 tok |
+| 12:55 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 44 reads | ~67241 tok |
+| 14:07 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 47 reads | ~67241 tok |
+| 14:07 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 47 reads | ~67241 tok |
+| 14:07 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 47 reads | ~67241 tok |
+| 14:14 | Session end: 59 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 47 reads | ~67241 tok |
+| 14:22 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | modified signatures() | ~3999 |
+| 14:22 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | modified extraction() | ~580 |
+| 14:23 | Session end: 61 writes across 22 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 47 reads | ~77334 tok |
+| 19:22 | Edited CLAUDE.md | modified only() | ~1793 |
+| 19:23 | Created README.md | — | ~712 |
+| 19:23 | Session end: 63 writes across 24 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 49 reads | ~81198 tok |
+| 19:30 | Created ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/reference_jira_content_flywheel.md | — | ~395 |
+| 19:31 | Created ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/MEMORY.md | — | ~33 |
+| 19:31 | Session end: 65 writes across 26 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 50 reads | ~81657 tok |
+| 19:39 | Created .claude/hooks/jira-sync.sh | — | ~251 |
+| 19:40 | Edited .claude/settings.json | expanded (+10 lines) | ~213 |
+| 19:40 | Edited CLAUDE.md | expanded (+20 lines) | ~289 |
+| 19:40 | Created .claude/hooks/jira-sync.sh | — | ~231 |
+| 19:42 | Edited .gitignore | 3→7 lines | ~56 |
+| 19:45 | Session end: 70 writes across 28 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 50 reads | ~82756 tok |
+| 19:46 | Edited hooks/flywheel-context.md | modified Board() | ~1161 |
+| 19:55 | Session end: 71 writes across 29 files (2026-04-04-content-flywheel-production-ready.md, .mcp.json, init-schema.ts, next.config.ts, seed.ts) | 52 reads | ~84576 tok |
+
+## Session: 2026-04-06 10:17
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-06 12:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-06 12:21
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+
+## Session: 2026-04-06 12:44
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 12:52 | Created .claude/plans/neo4j-graph-relationship-enhancements.md | — | ~4657 |
+| 12:52 | Session end: 1 writes across 1 files (neo4j-graph-relationship-enhancements.md) | 11 reads | ~30017 tok |
+| 12:53 | Edited cypher/schema.cypher | 16→19 lines | ~159 |
+| 12:53 | Edited cypher/schema.cypher | expanded (+9 lines) | ~90 |
+| 12:53 | Edited src/types/index.ts | expanded (+18 lines) | ~198 |
+| 12:54 | Edited src/lib/workflows/content-optimize.ts | 9→13 lines | ~114 |
+| 12:55 | Edited src/lib/workflows/serp-analysis.ts | expanded (+6 lines) | ~126 |
+| 12:55 | Edited src/lib/workflows/content-optimize.ts | added optional chaining | ~265 |
+| 12:55 | Edited src/lib/workflows/backlink-analysis.ts | expanded (+6 lines) | ~128 |
+| 12:55 | Edited src/lib/workflows/serp-analysis.ts | 12→17 lines | ~189 |
+| 12:55 | Edited src/lib/workflows/content-optimize.ts | 8→11 lines | ~152 |
+| 12:55 | Edited src/lib/workflows/backlink-analysis.ts | modified if() | ~105 |
+| 12:55 | Edited src/lib/workflows/ai-visibility.ts | expanded (+6 lines) | ~126 |
+| 12:55 | Edited src/lib/workflows/backlink-analysis.ts | modified for() | ~195 |
+| 09:00 | Edit content-optimize.ts: 3 changes (HAS_WORKFLOW_RUN rel, LINKS_TO from crawl, proper IN_STAGE transition) | src/lib/workflows/content-optimize.ts | tsc --noEmit passes | ~3K |
+
+## Session: 2026-04-06
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| -- | Add HAS_WORKFLOW_RUN relationship (ContentPiece->WorkflowRun) to serp-analysis | src/lib/workflows/serp-analysis.ts | tsc pass | ~200 |
+| -- | Add FOR_KEYWORD relationship (SERPSnapshot->Keyword) to serp-analysis | src/lib/workflows/serp-analysis.ts | tsc pass | ~200 |
+| 12:55 | Edited src/lib/workflows/ai-visibility.ts | modified for() | ~433 |
+| 12:55 | Edited src/lib/workflows/site-audit.ts | 6→11 lines | ~106 |
+| 12:55 | Edited src/lib/workflows/site-audit.ts | 20→23 lines | ~224 |
+| 12:56 | Edited src/lib/workflows/site-audit.ts | 11→14 lines | ~154 |
+| -- | Enhanced backlink-analysis.ts: HAS_WORKFLOW_RUN rel, relationship props on HAS_BACKLINK_FROM, Competitor->BacklinkSource links | src/lib/workflows/backlink-analysis.ts | tsc pass | ~300 |
+| 12:56 | Session end: 16 writes across 8 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 15 reads | ~33033 tok |
+| 12:57 | Edited src/lib/adapters/cms/sanity.ts | added 1 import(s) | ~48 |
+| 12:57 | Edited src/lib/adapters/distribution/ghl.ts | added 1 import(s) | ~36 |
+| 12:57 | Edited src/lib/adapters/cms/sanity.ts | expanded (+13 lines) | ~178 |
+| 12:57 | Edited src/lib/adapters/distribution/ghl.ts | expanded (+11 lines) | ~209 |
+| 12:57 | Edited src/app/api/webhooks/sanity/route.ts | modified if() | ~355 |
+| 12:57 | Edited src/app/api/webhooks/ghl/route.ts | 6→9 lines | ~126 |
+| 12:58 | Edited src/app/api/publish/sanity/route.ts | 3→3 lines | ~52 |
+| 12:58 | Edited src/app/api/publish/sanity/route.ts | added nullish coalescing | ~287 |
+| 12:58 | Edited src/app/api/publish/social/route.ts | 14→14 lines | ~161 |
+| 12:58 | Edited src/app/api/publish/social/route.ts | removed 16 lines | ~28 |
+| 12:59 | Edited src/app/api/publish/social/route.ts | 2→1 lines | ~16 |
+| 12:59 | Edited src/app/api/webhooks/sanity/route.ts | 3→2 lines | ~19 |
+| 13:03 | Edited src/lib/workflows/keyword-research.ts | expanded (+6 lines) | ~143 |
+| 13:03 | Edited src/lib/workflows/keyword-research.ts | added 1 condition(s) | ~273 |
+| 13:03 | Edited src/lib/workflows/keyword-research.ts | modified for() | ~119 |
+| 13:03 | Edited src/lib/workflows/keyword-research.ts | modified for() | ~145 |
+| 13:04 | Edited src/lib/neo4j/queries.ts | 2→2 lines | ~27 |
+| 13:04 | Edited src/lib/neo4j/queries.ts | 9→10 lines | ~131 |
+| 13:04 | Edited src/lib/neo4j/queries.ts | expanded (+6 lines) | ~315 |
+| 13:04 | Edited src/lib/neo4j/queries.ts | added nullish coalescing | ~104 |
+| 13:04 | Edited src/lib/neo4j/queries.ts | modified for() | ~429 |
+| 13:05 | Edited tests/app/api/content-detail.test.ts | 3→6 lines | ~36 |
+| 13:20 | Edited src/app/content/[id]/page.tsx | 9→12 lines | ~171 |
+| 13:20 | Edited src/app/content/[id]/page.tsx | expanded (+7 lines) | ~163 |
+| 13:21 | Edited src/app/content/[id]/page.tsx | added optional chaining | ~1375 |
+| 13:25 | Edited src/lib/neo4j/queries.ts | 3→7 lines | ~71 |
+| 13:25 | Edited src/lib/neo4j/queries.ts | modified linkAuthorExpertise() | ~144 |
+| 13:25 | Edited src/lib/workflows/keyword-research.ts | 9→9 lines | ~71 |
+| 13:25 | Edited src/lib/workflows/keyword-research.ts | added 1 condition(s) | ~139 |
+| 13:26 | Edited src/lib/neo4j/queries.ts | 3→4 lines | ~18 |
+| 13:26 | Edited src/lib/neo4j/queries.ts | 3→6 lines | ~28 |
+| 13:32 | Created scripts/migrate-graph-relationships.ts | — | ~1102 |
+| 13:37 | Edited scripts/migrate-graph-relationships.ts | 4→1 lines | ~10 |
+| 13:39 | Session end: 49 writes across 16 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 23 reads | ~45689 tok |
+| 13:39 | Session end: 49 writes across 16 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 23 reads | ~45689 tok |
+| 13:41 | Edited src/lib/neo4j/queries.ts | 20→19 lines | ~109 |
+| 13:41 | Edited src/lib/workflows/ai-visibility.ts | added nullish coalescing | ~266 |
+| 13:41 | Edited src/lib/workflows/content-optimize.ts | modified if() | ~84 |
+| 13:46 | Edited CLAUDE.md | expanded (+8 lines) | ~296 |
+| 13:46 | Edited CLAUDE.md | inline fix | ~37 |
+| 13:47 | Edited CLAUDE.md | inline fix | ~34 |
+| 13:47 | Edited CLAUDE.md | expanded (+13 lines) | ~203 |
+| 13:47 | Edited CLAUDE.md | 2→3 lines | ~48 |
+| 13:51 | Session end: 57 writes across 17 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 24 reads | ~51129 tok |
+| 13:52 | Session end: 57 writes across 17 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 24 reads | ~51129 tok |
+| 13:53 | Edited hooks/flywheel-context.md | expanded (+11 lines) | ~436 |
+| 13:53 | Edited hooks/flywheel-context.md | inline fix | ~39 |
+| 13:53 | Edited hooks/flywheel-context.md | expanded (+6 lines) | ~302 |
+| 13:53 | Edited README.md | inline fix | ~44 |
+| 13:53 | Edited README.md | 2→3 lines | ~44 |
+| 13:57 | Edited .gitignore | 2→7 lines | ~39 |
+| 13:57 | Edited .gitignore | 3→4 lines | ~36 |
+| 13:57 | Session end: 64 writes across 20 files (neo4j-graph-relationship-enhancements.md, schema.cypher, index.ts, content-optimize.ts, serp-analysis.ts) | 27 reads | ~54094 tok |
+| 13:57 | Edited .gitignore | 4→3 lines | ~30 |

@@ -44,7 +44,6 @@ yarn-error.log*
 
 # openwolf session state (ephemeral, not project knowledge)
 .wolf/hooks/_session.json
-.wolf/memory.md
 .wolf/token-ledger.json
 
 # vercel
