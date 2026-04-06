@@ -204,7 +204,9 @@ export type WorkflowType =
   | "ai-visibility"
   | "site-audit"
   | "content-ingest"
-  | "article-outline";
+  | "article-outline"
+  | "article-draft"
+  | "brand-voice-check";
 
 export interface WorkflowRun {
   id: string;
@@ -238,6 +240,28 @@ export interface Outline {
   sections: OutlineSection[];
   faqTopics: string[];
   internalLinks: string[];
+  createdAt: string;
+}
+
+export interface Draft {
+  id: string;
+  contentId: string;
+  content: string;
+  wordCount: number;
+  createdAt: string;
+}
+
+export interface BrandVoiceIssue {
+  section: string;
+  issue: string;
+  suggestion: string;
+}
+
+export interface BrandVoiceScore {
+  id: string;
+  contentId: string;
+  score: number;
+  issues: BrandVoiceIssue[];
   createdAt: string;
 }
 

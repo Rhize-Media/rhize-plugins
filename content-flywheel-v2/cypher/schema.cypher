@@ -65,6 +65,12 @@ FOR (t:Theme) REQUIRE t.name IS UNIQUE;
 CREATE CONSTRAINT outline_id IF NOT EXISTS
 FOR (o:Outline) REQUIRE o.id IS UNIQUE;
 
+CREATE CONSTRAINT draft_id IF NOT EXISTS
+FOR (d:Draft) REQUIRE d.id IS UNIQUE;
+
+CREATE CONSTRAINT brand_voice_score_id IF NOT EXISTS
+FOR (b:BrandVoiceScore) REQUIRE b.id IS UNIQUE;
+
 // --- Indexes for common lookups ---
 
 CREATE INDEX content_slug IF NOT EXISTS

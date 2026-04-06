@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:20:58.503Z
-> Files: 104 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:28:14.698Z
+> Files: 110 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -58,7 +58,7 @@
 
 ## cypher/
 
-- `schema.cypher` — ============================================================ (~1029 tok)
+- `schema.cypher` — ============================================================ (~1078 tok)
 
 ## docs/plans/
 
@@ -161,6 +161,10 @@
 
 - `route.ts` — Next.js API route: POST (~226 tok)
 
+## src/app/api/workflows/article-draft/
+
+- `route.ts` — Next.js API route: POST (~203 tok)
+
 ## src/app/api/workflows/article-outline/
 
 - `route.ts` — Next.js API route: POST (~205 tok)
@@ -168,6 +172,10 @@
 ## src/app/api/workflows/backlink-analysis/
 
 - `route.ts` — Next.js API route: POST (~224 tok)
+
+## src/app/api/workflows/brand-voice-check/
+
+- `route.ts` — Next.js API route: POST (~206 tok)
 
 ## src/app/api/workflows/content-ingest/
 
@@ -236,8 +244,10 @@
 ## src/lib/workflows/
 
 - `ai-visibility.ts` — Exports runAIVisibility (~1557 tok)
+- `article-draft.ts` — Exports runArticleDraft (~1840 tok)
 - `article-outline.ts` — Exports runArticleOutline: AI outline generation via Sonnet + prompt caching, stores Outline node, moves to draft (~2100 tok)
 - `backlink-analysis.ts` — Exports runBacklinkAnalysis (~1773 tok)
+- `brand-voice-check.ts` — Zod schemas: brandVoiceSchema (~1225 tok)
 - `content-ingest.ts` — Exports runContentIngest: Firecrawl scrape + Haiku theme extraction, creates ContentPiece + Theme nodes (~1800 tok)
 - `content-optimize.ts` — Exports runContentOptimize (~3827 tok)
 - `helpers.ts` — Shared workflow run lifecycle: createWorkflowRun, completeWorkflowRun, failWorkflowRun (~710 tok)
@@ -247,7 +257,7 @@
 
 ## src/types/
 
-- `index.ts` — ============================================================ (~1536 tok)
+- `index.ts` — ============================================================ (~1651 tok)
 
 ## tests/ai/
 
@@ -272,5 +282,7 @@
 
 ## tests/workflows/
 
+- `article-draft.test.ts` — Vitest tests for runArticleDraft: parallel section generation, draft creation, stage move to optimize, cost calculation, failure on missing outline (~1361 tok)
 - `article-outline.test.ts` — --------------------------------------------------------------------------- (~1597 tok)
+- `brand-voice-check.test.ts` — Vitest tests for runBrandVoiceCheck: draft scoring via Haiku, BrandVoiceScore node creation, workflow run lifecycle (create/complete/fail) (~900 tok)
 - `content-ingest.test.ts` — Vitest tests for runContentIngest: scrape URL, theme extraction, workflow run lifecycle (create/complete/fail) (~900 tok)
