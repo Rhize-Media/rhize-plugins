@@ -52,6 +52,7 @@ export interface Keyword {
   intent: "informational" | "navigational" | "commercial" | "transactional";
   cpc?: number;
   clusterId?: string;
+  embedding?: number[];
 }
 
 export interface KeywordCluster {
