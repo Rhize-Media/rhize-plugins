@@ -32,6 +32,13 @@
 - **SDK retry:** Anthropic SDK has built-in `maxRetries` option (default 2). No need for custom exponential backoff.
 - **AIUsage nodes:** `(:AIUsage {id, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, cost, createdAt})` linked via `(ContentPiece)-[:HAS_AI_USAGE]->(AIUsage)`.
 
+- **Google GenAI SDK:** `@google/generative-ai` is deprecated. Use `@google/genai` with `GoogleGenAI` class. Embedding API: `ai.models.embedContent({ model: 'text-embedding-004', contents: [...], config: { outputDimensionality: 256 } })`.
+- **ml-kmeans:** Named export `{ kmeans }`, not default export. Options: `{ initialization: "kmeans++", maxIterations: 100 }`. Returns `{ clusters: number[] }`.
+- **Neo4j batch writes:** Use `UNWIND $entries AS entry` for batch writes instead of N individual `session.run()` calls — fewer round-trips, simpler code.
+- **classifyIntent replacement:** `replace_all` on `Edit` only matches exact strings. When a function is called with different argument names (`item.keyword` vs `kw.keyword` vs `kd.keyword`), each call site needs individual replacement.
+- **Firecrawl package:** The npm package is `firecrawl` (not `firecrawl-js` or `@mendable/firecrawl-js`). Main class: `Firecrawl`. Method: `.scrape(url, { formats: ["markdown"] })` returns `{ markdown, metadata }`.
+- **Outline sections storage:** Neo4j doesn't support nested objects. Store `sections` as a JSON string, parse on read. Use `JSON.stringify(data.sections)` on write.
+
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->

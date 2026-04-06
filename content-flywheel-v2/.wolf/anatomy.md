@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:01:47.908Z
-> Files: 95 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:13:25.013Z
+> Files: 102 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -37,6 +37,7 @@
 ## .claude/plans/
 
 - `m8-ai-sdk-foundation.md` — M8 AI SDK Foundation — RT-10 + RT-11 (~1102 tok)
+- `m8-content-ingest-outline.md` — M8 Content Ingestion + AI Outline — RT-14 + RT-15 (~1775 tok)
 - `m8-embeddings-clustering.md` — M8 Embeddings + Semantic Clustering — RT-12 + RT-13 (~1916 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
 
@@ -56,7 +57,7 @@
 
 ## cypher/
 
-- `schema.cypher` — ============================================================ (~984 tok)
+- `schema.cypher` — ============================================================ (~1029 tok)
 
 ## docs/plans/
 
@@ -159,9 +160,17 @@
 
 - `route.ts` — Next.js API route: POST (~226 tok)
 
+## src/app/api/workflows/article-outline/
+
+- `route.ts` — Next.js API route: POST (~205 tok)
+
 ## src/app/api/workflows/backlink-analysis/
 
 - `route.ts` — Next.js API route: POST (~224 tok)
+
+## src/app/api/workflows/content-ingest/
+
+- `route.ts` — Next.js API route: POST (~202 tok)
 
 ## src/app/api/workflows/content-optimize/
 
@@ -226,7 +235,9 @@
 ## src/lib/workflows/
 
 - `ai-visibility.ts` — Exports runAIVisibility (~1557 tok)
+- `article-outline.ts` — --------------------------------------------------------------------------- (~2415 tok)
 - `backlink-analysis.ts` — Exports runBacklinkAnalysis (~1773 tok)
+- `content-ingest.ts` — --------------------------------------------------------------------------- (~1977 tok)
 - `content-optimize.ts` — Exports runContentOptimize (~3827 tok)
 - `keyword-research.ts` — Extract keyword metrics from a DataForSEO item into a flat object. (~3054 tok)
 - `serp-analysis.ts` — Exports runSERPAnalysis (~2023 tok)
@@ -234,7 +245,7 @@
 
 ## src/types/
 
-- `index.ts` — ============================================================ (~1408 tok)
+- `index.ts` — ============================================================ (~1536 tok)
 
 ## tests/ai/
 
@@ -256,3 +267,8 @@
 ## tests/lib/neo4j/
 
 - `to-plain.test.ts` — Declares int (~631 tok)
+
+## tests/workflows/
+
+- `article-outline.test.ts` — --------------------------------------------------------------------------- (~1597 tok)
+- `content-ingest.test.ts` — Vitest tests for runContentIngest: scrape URL, theme extraction, workflow run lifecycle (create/complete/fail) (~900 tok)

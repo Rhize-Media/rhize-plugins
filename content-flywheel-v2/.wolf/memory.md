@@ -283,3 +283,17 @@
 | 15:01 | Edited src/lib/workflows/keyword-research.ts | modified for() | ~116 |
 | 15:01 | Edited src/lib/ai/embeddings.ts | 8→11 lines | ~94 |
 | 15:01 | Edited tests/ai/embeddings.test.ts | 13→11 lines | ~157 |
+| 15:05 | Created .claude/plans/m8-content-ingest-outline.md | — | ~1893 |
+| 15:05 | Session end: 36 writes across 12 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 19 reads | ~62139 tok |
+| 15:08 | Edited src/types/index.ts | expanded (+24 lines) | ~126 |
+| 15:08 | Edited cypher/schema.cypher | expanded (+6 lines) | ~78 |
+| 15:09 | Created src/lib/workflows/content-ingest.ts | — | ~1973 |
+| 15:09 | Edited src/types/index.ts | 7→9 lines | ~57 |
+| 15:10 | Edited src/lib/workflows/content-ingest.ts | added nullish coalescing | ~22 |
+| 15:11 | Created src/lib/workflows/article-outline.ts | — | ~2415 |
+| 15:11 | Created src/app/api/workflows/content-ingest/route.ts | — | ~202 |
+| 15:11 | Created src/app/api/workflows/article-outline/route.ts | — | ~205 |
+| 15:13 | Created tests/workflows/content-ingest.test.ts | — | ~1505 |
+| 15:13 | Created tests/workflows/article-outline.test.ts | — | ~1597 |
+| 15:13 | Created tests/workflows/content-ingest.test.ts — 3 Vitest tests for runContentIngest (scrape+themes, workflow lifecycle, error handling) | tests/workflows/content-ingest.test.ts | 3/3 pass | ~1200 |
+| 15:13 | Created article-outline.test.ts — 3 Vitest tests for runArticleOutline workflow | tests/workflows/article-outline.test.ts | 3/3 passing | ~1050 tok |
