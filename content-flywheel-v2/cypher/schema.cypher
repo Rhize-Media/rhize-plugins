@@ -59,6 +59,12 @@ FOR (a:SiteAudit) REQUIRE a.id IS UNIQUE;
 CREATE CONSTRAINT ai_usage_id IF NOT EXISTS
 FOR (a:AIUsage) REQUIRE a.id IS UNIQUE;
 
+CREATE CONSTRAINT theme_name IF NOT EXISTS
+FOR (t:Theme) REQUIRE t.name IS UNIQUE;
+
+CREATE CONSTRAINT outline_id IF NOT EXISTS
+FOR (o:Outline) REQUIRE o.id IS UNIQUE;
+
 // --- Indexes for common lookups ---
 
 CREATE INDEX content_slug IF NOT EXISTS

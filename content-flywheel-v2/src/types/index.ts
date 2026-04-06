@@ -202,7 +202,9 @@ export type WorkflowType =
   | "serp-analysis"
   | "backlink-analysis"
   | "ai-visibility"
-  | "site-audit";
+  | "site-audit"
+  | "content-ingest"
+  | "article-outline";
 
 export interface WorkflowRun {
   id: string;
@@ -213,6 +215,30 @@ export interface WorkflowRun {
   completedAt?: string;
   error?: string;
   summary?: string;
+}
+
+// --- Content enrichment ---
+
+export interface Theme {
+  id: string;
+  name: string;
+}
+
+export interface OutlineSection {
+  heading: string;
+  bullets: string[];
+  targetWordCount: number;
+}
+
+export interface Outline {
+  id: string;
+  contentId: string;
+  title: string;
+  metaDescription: string;
+  sections: OutlineSection[];
+  faqTopics: string[];
+  internalLinks: string[];
+  createdAt: string;
 }
 
 // --- AI Usage (cost tracking) ---
