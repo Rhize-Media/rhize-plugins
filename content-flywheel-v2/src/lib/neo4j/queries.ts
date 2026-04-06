@@ -276,6 +276,11 @@ export async function getGraphStats(): Promise<GraphStats> {
       "WorkflowRun",
       "SiteAudit",
       "Author",
+      "AIUsage",
+      "Theme",
+      "Outline",
+      "Draft",
+      "BrandVoiceScore",
     ];
     const nodeCounts: Record<string, number> = {};
     const nodeCountRes = await session.run(
@@ -307,6 +312,11 @@ export async function getGraphStats(): Promise<GraphStats> {
       "AUDITS",
       "WROTE",
       "EXPERT_IN",
+      "HAS_AI_USAGE",
+      "HAS_THEME",
+      "HAS_OUTLINE",
+      "HAS_DRAFT",
+      "HAS_BRAND_VOICE_SCORE",
     ];
     const relationshipCounts: Record<string, number> = {};
     const relCountRes = await session.run(
@@ -367,6 +377,83 @@ export async function getGraphStats(): Promise<GraphStats> {
       stageDistribution,
       recentWorkflows,
       topClusters,
+    };
+  } finally {
+    await session.close();
+  }
+}
+
+// --- AI Cost Stats ---
+
+export interface CostStats {
+  totalCost: number;
+  last7DaysCost: number;
+  last30DaysCost: number;
+  costByModel: Array<{ model: string; cost: number; calls: number }>;
+  topContentCost: Array<{ contentId: string; title: string; cost: number }>;
+  cacheSavings: { tokensRead: number; estimatedSavings: number };
+  totalTokens: { input: number; output: number };
+}
+
+export async function getCostStats(): Promise<CostStats> {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    // Total cost all time
+    const totalRes = await session.run(
+      `MATCH (a:AIUsage)
+       RETURN sum(a.cost) AS totalCost,
+              sum(CASE WHEN a.createdAt >= datetime() - duration('P7D') THEN a.cost ELSE 0 END) AS last7DaysCost,
+              sum(CASE WHEN a.createdAt >= datetime() - duration('P30D') THEN a.cost ELSE 0 END) AS last30DaysCost,
+              sum(a.inputTokens) AS totalInput,
+              sum(a.outputTokens) AS totalOutput,
+              sum(a.cacheReadInputTokens) AS totalCacheRead`
+    );
+
+    const totals = totalRes.records[0];
+    const totalCost = (toPlain(totals?.get("totalCost")) as number) ?? 0;
+    const last7DaysCost = (toPlain(totals?.get("last7DaysCost")) as number) ?? 0;
+    const last30DaysCost = (toPlain(totals?.get("last30DaysCost")) as number) ?? 0;
+    const totalInput = (toPlain(totals?.get("totalInput")) as number) ?? 0;
+    const totalOutput = (toPlain(totals?.get("totalOutput")) as number) ?? 0;
+    const totalCacheRead = (toPlain(totals?.get("totalCacheRead")) as number) ?? 0;
+
+    // Cost by model
+    const modelRes = await session.run(
+      `MATCH (a:AIUsage)
+       RETURN a.model AS model, sum(a.cost) AS cost, count(a) AS calls
+       ORDER BY cost DESC`
+    );
+    const costByModel = modelRes.records.map((r) => ({
+      model: r.get("model") as string,
+      cost: (toPlain(r.get("cost")) as number) ?? 0,
+      calls: (toPlain(r.get("calls")) as number) ?? 0,
+    }));
+
+    // Top content pieces by cost
+    const contentRes = await session.run(
+      `MATCH (c:ContentPiece)-[:HAS_AI_USAGE]->(a:AIUsage)
+       RETURN c.id AS contentId, c.title AS title, sum(a.cost) AS cost
+       ORDER BY cost DESC
+       LIMIT 5`
+    );
+    const topContentCost = contentRes.records.map((r) => ({
+      contentId: r.get("contentId") as string,
+      title: r.get("title") as string,
+      cost: (toPlain(r.get("cost")) as number) ?? 0,
+    }));
+
+    // Estimate cache savings (cache reads at ~90% discount vs regular input)
+    const estimatedSavings = totalCacheRead * 0.000003 * 0.9; // rough avg input price * 90% discount
+
+    return {
+      totalCost,
+      last7DaysCost,
+      last30DaysCost,
+      costByModel,
+      topContentCost,
+      cacheSavings: { tokensRead: totalCacheRead, estimatedSavings },
+      totalTokens: { input: totalInput, output: totalOutput },
     };
   } finally {
     await session.close();

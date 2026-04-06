@@ -329,3 +329,14 @@
 | 15:28 | Edited tests/workflows/brand-voice-check.test.ts | clearAllMocks() → mockReset() | ~73 |
 | 19:27 | Created tests/workflows/article-draft.test.ts — 4 tests covering parallel section gen, draft creation, stage move, cost calc, missing outline failure | tests/workflows/article-draft.test.ts | all 4 pass | ~1400 tok |
 | 15:28 | Created brand-voice-check.test.ts with 3 tests: score+node creation, workflow completion summary, failure on missing draft | tests/workflows/brand-voice-check.test.ts | 3/3 pass | ~800 tok |
+| 15:30 | Session end: 73 writes across 23 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 28 reads | ~90629 tok |
+| 15:30 | Session end: 73 writes across 23 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 28 reads | ~90629 tok |
+| 15:34 | Session end: 73 writes across 23 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 28 reads | ~90629 tok |
+| 15:37 | Created .claude/plans/m8-cost-dashboard-tests.md | — | ~713 |
+| 15:37 | Edited src/lib/neo4j/queries.ts | added optional chaining | ~844 |
+| 15:38 | Edited src/lib/neo4j/queries.ts | 4→9 lines | ~44 |
+| 15:38 | Edited src/lib/neo4j/queries.ts | 2→7 lines | ~42 |
+| 15:38 | Edited src/app/api/graph/stats/route.ts | modified GET() | ~137 |
+| 15:38 | Edited src/app/graph/page.tsx | expanded (+11 lines) | ~226 |
+| 15:39 | Edited src/app/graph/page.tsx | expanded (+81 lines) | ~1268 |
+| 15:40 | Created tests/workflows/helpers.test.ts | — | ~1067 |
