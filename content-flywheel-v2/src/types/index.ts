@@ -177,6 +177,24 @@ export interface Competitor {
   authorityRank: number;
 }
 
+export interface StageTransition {
+  from: PipelineStage;
+  to: PipelineStage;
+  enteredAt: string;
+  leftAt: string;
+}
+
+export interface SiteAudit {
+  id: string;
+  domain: string;
+  totalPages: number;
+  criticalIssues: number;
+  highIssues: number;
+  mediumIssues: number;
+  lowIssues: number;
+  date: string;
+}
+
 export type WorkflowType =
   | "keyword-research"
   | "content-optimize"

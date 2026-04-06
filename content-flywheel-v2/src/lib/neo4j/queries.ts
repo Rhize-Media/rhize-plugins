@@ -62,7 +62,11 @@ export async function createContent(
       })
       WITH c
       MATCH (s:PipelineStage {name: $stage})
-      CREATE (c)-[:IN_STAGE]->(s)
+      CREATE (c)-[:IN_STAGE {enteredAt: datetime()}]->(s)
+      WITH c
+      MERGE (a:Author {name: $author})
+      ON CREATE SET a.id = randomUUID(), a.expertise = []
+      CREATE (a)-[:WROTE]->(c)
       RETURN c { .* } AS content`,
       content
     );
@@ -80,11 +84,12 @@ export async function moveContentToStage(
   const session = driver.session();
   try {
     await session.run(
-      `MATCH (c:ContentPiece {id: $contentId})-[r:IN_STAGE]->()
+      `MATCH (c:ContentPiece {id: $contentId})-[r:IN_STAGE]->(oldStage:PipelineStage)
+       CREATE (c)-[:WAS_IN_STAGE {stage: oldStage.name, enteredAt: coalesce(r.enteredAt, datetime()), leftAt: datetime()}]->(oldStage)
        DELETE r
        WITH c
        MATCH (s:PipelineStage {name: $newStage})
-       CREATE (c)-[:IN_STAGE]->(s)
+       CREATE (c)-[:IN_STAGE {enteredAt: datetime()}]->(s)
        SET c.updatedAt = datetime()`,
       { contentId, newStage }
     );
@@ -143,12 +148,18 @@ export async function getContentDetailById(id: string) {
        OPTIONAL MATCH (c)-[:HAS_BACKLINK_FROM]->(b:BacklinkSource)
        OPTIONAL MATCH (c)-[:LINKS_TO]->(linked:ContentPiece)
        OPTIONAL MATCH (c)-[:HAS_SCORE]->(seo:SEOScore)
+       OPTIONAL MATCH (c)-[:HAS_WORKFLOW_RUN]->(w:WorkflowRun)
+       OPTIONAL MATCH (c)-[:HAS_AI_VISIBILITY]->(av:AIVisibilitySnapshot)
+       OPTIONAL MATCH (c)-[wasIn:WAS_IN_STAGE]->(wasStage:PipelineStage)
        RETURN c { .*, stage: s.name } AS content,
               collect(DISTINCT k { .* }) AS keywords,
               collect(DISTINCT snap { .* }) AS serpSnapshots,
               collect(DISTINCT b { .domain, .authorityRank, .anchorText }) AS backlinks,
               collect(DISTINCT { targetTitle: linked.title, targetSlug: linked.slug }) AS internalLinks,
-              head(collect(DISTINCT seo { .* })) AS seoScore`,
+              head(collect(DISTINCT seo { .* })) AS seoScore,
+              collect(DISTINCT w { .id, .type, .status, .summary, .startedAt, .completedAt }) AS workflowRuns,
+              collect(DISTINCT av { .llm, .mentionRate, .accuracy, .citationCount, .date, .query }) AS aiVisibility,
+              collect(DISTINCT { stage: wasStage.name, enteredAt: wasIn.enteredAt, leftAt: wasIn.leftAt }) AS stageHistory`,
       { id }
     );
     if (result.records.length === 0) return null;
@@ -163,6 +174,11 @@ export async function getContentDetailById(id: string) {
         Record<string, unknown>
       >).filter((l) => l.targetSlug != null),
       seoScore: toPlain(row.get("seoScore")),
+      workflowRuns: toPlain(row.get("workflowRuns") ?? []),
+      aiVisibility: toPlain(row.get("aiVisibility") ?? []),
+      stageHistory: (toPlain(row.get("stageHistory") ?? []) as Array<
+        Record<string, unknown>
+      >).filter((s) => s.stage != null),
     };
   } finally {
     await session.close();
@@ -247,7 +263,7 @@ export async function getGraphStats(): Promise<GraphStats> {
   const driver = getDriver();
   const session = driver.session();
   try {
-    // Node counts by label
+    // Node counts by label — single UNION query
     const nodeLabels = [
       "ContentPiece",
       "Keyword",
@@ -258,16 +274,21 @@ export async function getGraphStats(): Promise<GraphStats> {
       "SEOScore",
       "AIVisibilitySnapshot",
       "WorkflowRun",
+      "SiteAudit",
+      "Author",
     ];
     const nodeCounts: Record<string, number> = {};
-    for (const label of nodeLabels) {
-      const res = await session.run(
-        `MATCH (n:\`${label}\`) RETURN count(n) AS count`
-      );
-      nodeCounts[label] = (toPlain(res.records[0]?.get("count")) as number) ?? 0;
+    const nodeCountRes = await session.run(
+      nodeLabels
+        .map((l) => `MATCH (n:\`${l}\`) RETURN "${l}" AS label, count(n) AS count`)
+        .join(" UNION ALL ")
+    );
+    for (const record of nodeCountRes.records) {
+      nodeCounts[record.get("label") as string] =
+        (toPlain(record.get("count")) as number) ?? 0;
     }
 
-    // Relationship counts by type
+    // Relationship counts by type — single UNION query
     const relTypes = [
       "IN_STAGE",
       "TARGETS",
@@ -278,14 +299,24 @@ export async function getGraphStats(): Promise<GraphStats> {
       "HAS_SCORE",
       "PUBLISHED_TO",
       "DISTRIBUTED_TO",
+      "HAS_WORKFLOW_RUN",
+      "HAS_AI_VISIBILITY",
+      "WAS_IN_STAGE",
+      "FOR_KEYWORD",
+      "RELATED_TO",
+      "AUDITS",
+      "WROTE",
+      "EXPERT_IN",
     ];
     const relationshipCounts: Record<string, number> = {};
-    for (const t of relTypes) {
-      const res = await session.run(
-        `MATCH ()-[r:\`${t}\`]->() RETURN count(r) AS count`
-      );
-      relationshipCounts[t] =
-        (toPlain(res.records[0]?.get("count")) as number) ?? 0;
+    const relCountRes = await session.run(
+      relTypes
+        .map((t) => `MATCH ()-[r:\`${t}\`]->() RETURN "${t}" AS type, count(r) AS count`)
+        .join(" UNION ALL ")
+    );
+    for (const record of relCountRes.records) {
+      relationshipCounts[record.get("type") as string] =
+        (toPlain(record.get("count")) as number) ?? 0;
     }
 
     // Stage distribution
@@ -337,6 +368,22 @@ export async function getGraphStats(): Promise<GraphStats> {
       recentWorkflows,
       topClusters,
     };
+  } finally {
+    await session.close();
+  }
+}
+
+// --- Author expertise ---
+
+export async function linkAuthorExpertise(contentId: string): Promise<void> {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    await session.run(
+      `MATCH (a:Author)-[:WROTE]->(c:ContentPiece {id: $contentId})-[:TARGETS]->(k:Keyword)-[:BELONGS_TO]->(cl:KeywordCluster)
+       MERGE (a)-[:EXPERT_IN]->(cl)`,
+      { contentId }
+    );
   } finally {
     await session.close();
   }

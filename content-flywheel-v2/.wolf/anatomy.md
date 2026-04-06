@@ -1,20 +1,26 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-05T15:28:28.344Z
-> Files: 63 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T17:47:24.021Z
+> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
+
+- `MEMORY.md` (~31 tok)
+- `reference_jira_content_flywheel.md` (~370 tok)
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~146 tok)
+- `.gitignore` — Git ignore rules (~175 tok)
 - `.mcp.json` (~466 tok)
-- `CLAUDE.md` — OpenWolf (~817 tok)
+- `CLAUDE.md` — OpenWolf (~2349 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
-- `package.json` — Node.js package manifest (~172 tok)
+- `package.json` — Node.js package manifest (~279 tok)
 - `postcss.config.mjs` — Declares config (~26 tok)
-- `README.md` — Project documentation (~363 tok)
+- `README.md` — Project documentation (~668 tok)
 - `tsconfig.json` — TypeScript configuration (~192 tok)
 - `vercel.json` (~53 tok)
+- `vitest.config.ts` — /*.test.{ts,tsx}"], (~85 tok)
 
 ## .claude-plugin/
 
@@ -22,7 +28,15 @@
 
 ## .claude/
 
-- `settings.json` (~441 tok)
+- `settings.json` (~508 tok)
+
+## .claude/hooks/
+
+- `jira-sync.sh` — PostToolUse hook for Bash: detects git commit and extracts RT-XX Jira keys. (~231 tok)
+
+## .claude/plans/
+
+- `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
 
 ## .claude/rules/
 
@@ -40,20 +54,21 @@
 
 ## cypher/
 
-- `schema.cypher` — Content Flywheel — Neo4j Graph Schema (~870 tok)
+- `schema.cypher` — ============================================================ (~962 tok)
 
 ## docs/plans/
 
-- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~7404 tok)
+- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~11648 tok)
 
 ## hooks/
 
-- `flywheel-context.md` — Content Flywheel Context (~392 tok)
+- `flywheel-context.md` — Content Flywheel Context (~1088 tok)
 - `hooks.json` (~184 tok)
 
 ## scripts/
 
 - `init-schema.ts` — API routes: GET (2 endpoints) (~775 tok)
+- `migrate-graph-relationships.ts` — One-time migration script to backfill graph relationships for existing data. (~1084 tok)
 - `seed.ts` — API routes: GET (4 endpoints) (~784 tok)
 
 ## skills/ai-visibility/
@@ -87,8 +102,24 @@
 ## src/app/
 
 - `globals.css` — Styles: 3 rules, 8 vars, 1 media queries (~140 tok)
-- `layout.tsx` — metadata (~129 tok)
+- `layout.tsx` — metadata (~180 tok)
 - `page.tsx` — Home (~30 tok)
+
+## src/app/api/board/
+
+- `route.ts` — Next.js API route: GET (~114 tok)
+
+## src/app/api/board/move/
+
+- `route.ts` — Next.js API route: POST (~317 tok)
+
+## src/app/api/content/
+
+- `route.ts` — Next.js API route: POST (~421 tok)
+
+## src/app/api/content/[id]/
+
+- `route.ts` — Next.js API route: GET (~177 tok)
 
 ## src/app/api/cron/seo-pull/
 
@@ -100,23 +131,27 @@
 
 ## src/app/api/graph/query/
 
-- `route.ts` — Next.js API route: POST (~190 tok)
+- `route.ts` — Generic Cypher proxy. Protected by GRAPH_QUERY_SECRET header so it cannot (~380 tok)
+
+## src/app/api/graph/stats/
+
+- `route.ts` — Next.js API route: GET (~110 tok)
 
 ## src/app/api/publish/sanity/
 
-- `route.ts` — Next.js API route: POST (~416 tok)
+- `route.ts` — Next.js API route: POST (~600 tok)
 
 ## src/app/api/publish/social/
 
-- `route.ts` — Next.js API route: POST (~469 tok)
+- `route.ts` — Next.js API route: POST (~320 tok)
 
 ## src/app/api/webhooks/ghl/
 
-- `route.ts` — GoHighLevel webhook receiver — fires when a social post is published. (~330 tok)
+- `route.ts` — GoHighLevel webhook receiver — fires when a social post is published. (~352 tok)
 
 ## src/app/api/webhooks/sanity/
 
-- `route.ts` — Sanity webhook receiver — fires when a document is published/unpublished. (~441 tok)
+- `route.ts` — Sanity webhook receiver — fires when a document is published/unpublished. (~614 tok)
 
 ## src/app/api/workflows/ai-visibility/
 
@@ -144,19 +179,32 @@
 
 ## src/app/board/
 
-- `page.tsx` — BoardPage (~1796 tok)
+- `error.tsx` — BoardError (~71 tok)
+- `loading.tsx` — BoardLoading (~411 tok)
+- `page.tsx` — slugify — renders form (~3616 tok)
 
 ## src/app/content/[id]/
 
-- `page.tsx` — fetchContentDetail — renders table — uses useState, useEffect (~4087 tok)
+- `error.tsx` — ContentError (~72 tok)
+- `loading.tsx` — ContentLoading (~256 tok)
+- `page.tsx` — fetchContentDetail — renders table (~5242 tok)
+
+## src/app/graph/
+
+- `page.tsx` — GraphPage — renders table (~2788 tok)
+
+## src/components/
+
+- `error-page.tsx` — ErrorPage (~247 tok)
+- `sidebar.tsx` — NAV_ITEMS (~470 tok)
 
 ## src/lib/adapters/cms/
 
-- `sanity.ts` — Zustand store (~763 tok)
+- `sanity.ts` — Exports sanityAdapter (~928 tok)
 
 ## src/lib/adapters/distribution/
 
-- `ghl.ts` — Exports ghlAdapter (~644 tok)
+- `ghl.ts` — Exports ghlAdapter (~806 tok)
 
 ## src/lib/dataforseo/
 
@@ -165,17 +213,32 @@
 ## src/lib/neo4j/
 
 - `driver.ts` — Exports getDriver, closeDriver (~184 tok)
-- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~1649 tok)
+- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~3670 tok)
 
 ## src/lib/workflows/
 
-- `ai-visibility.ts` — Exports runAIVisibility (~1556 tok)
-- `backlink-analysis.ts` — Exports runBacklinkAnalysis (~1601 tok)
-- `content-optimize.ts` — Exports runContentOptimize (~3494 tok)
-- `keyword-research.ts` — Exports runKeywordResearch (~2304 tok)
-- `serp-analysis.ts` — Exports runSERPAnalysis (~1971 tok)
-- `site-audit.ts` — Exports runSiteAudit (~2449 tok)
+- `ai-visibility.ts` — Exports runAIVisibility (~1557 tok)
+- `backlink-analysis.ts` — Exports runBacklinkAnalysis (~1773 tok)
+- `content-optimize.ts` — Exports runContentOptimize (~3827 tok)
+- `keyword-research.ts` — Exports runKeywordResearch (~2661 tok)
+- `serp-analysis.ts` — Exports runSERPAnalysis (~2023 tok)
+- `site-audit.ts` — Exports runSiteAudit (~2582 tok)
 
 ## src/types/
 
-- `index.ts` — Content Flywheel — Core Types (~1221 tok)
+- `index.ts` — ============================================================ (~1312 tok)
+
+## tests/app/api/
+
+- `board-move.test.ts` — Mock the Neo4j queries module before importing the route (~801 tok)
+- `content-create.test.ts` — Declares mockRequest (~1112 tok)
+- `content-detail.test.ts` — Declares mockRequest (~559 tok)
+- `graph-query.test.ts` — Declares mockRequest (~821 tok)
+
+## tests/lib/dataforseo/
+
+- `client.test.ts` — ORIGINAL_FETCH: mockFetch (~1016 tok)
+
+## tests/lib/neo4j/
+
+- `to-plain.test.ts` — Declares int (~631 tok)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sanityAdapter } from "@/lib/adapters/cms/sanity";
-import { getContentById } from "@/lib/neo4j/queries";
+import { getContentById, runCypher } from "@/lib/neo4j/queries";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,6 +35,22 @@ export async function POST(req: NextRequest) {
           );
         }
         const result = await sanityAdapter.publish(sanityId);
+
+        // Record PUBLISHED_TO relationship using contentId
+        await runCypher(
+          `MATCH (c:ContentPiece {id: $contentId})
+           MERGE (t:CMSTarget {type: "sanity", projectId: $projectId})
+           ON CREATE SET t.id = randomUUID(), t.dataset = $dataset
+           MERGE (c)-[r:PUBLISHED_TO]->(t)
+           SET r.publishedAt = datetime(), r.documentId = $documentId`,
+          {
+            contentId,
+            projectId: process.env.SANITY_PROJECT_ID ?? "",
+            dataset: process.env.SANITY_DATASET ?? "production",
+            documentId: sanityId.replace(/^drafts\./, ""),
+          }
+        );
+
         return NextResponse.json({ result });
       }
       default:

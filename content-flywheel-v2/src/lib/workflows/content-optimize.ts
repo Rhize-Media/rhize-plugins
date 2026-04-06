@@ -20,13 +20,17 @@ export async function runContentOptimize(
 ): Promise<ContentOptimizeResult> {
   const { contentId, url, primaryKeyword } = input;
 
-  // Create workflow run node
+  // Create workflow run node and link to content piece
   const runResult = await runCypher(
     `CREATE (w:WorkflowRun {
       id: randomUUID(), type: "content-optimize",
       contentId: $contentId, status: "running",
       startedAt: datetime()
-    }) RETURN w.id AS runId`,
+    })
+    WITH w
+    MATCH (c:ContentPiece {id: $contentId})
+    CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+    RETURN w.id AS runId`,
     { contentId }
   );
   const runId = runResult[0].runId as string;
@@ -120,14 +124,37 @@ export async function runContentOptimize(
       }
     );
 
+    // 5b. Map internal links to LINKS_TO relationships
+    if (pageData) {
+      const onPage = pageData.on_page as Record<string, unknown> | undefined;
+      const internalLinks = onPage?.internal_links as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(internalLinks)) {
+        for (const link of internalLinks.slice(0, 50)) {
+          const targetUrl = link.url as string | undefined;
+          if (targetUrl) {
+            await runCypher(
+              `MATCH (c:ContentPiece {id: $contentId})
+               MATCH (target:ContentPiece) WHERE target.url IS NOT NULL AND $targetUrl STARTS WITH target.url
+               WHERE c <> target
+               MERGE (c)-[:LINKS_TO]->(target)`,
+              { contentId, targetUrl }
+            );
+          }
+        }
+      }
+    }
+
     // 6. If content is in draft/optimize stage, check if it should advance
     if (overall >= 80) {
       await runCypher(
-        `MATCH (c:ContentPiece {id: $contentId})
-         WHERE c.stage IN ["draft", "optimize"]
+        `MATCH (c:ContentPiece {id: $contentId})-[oldRel:IN_STAGE]->(oldStage:PipelineStage)
+         WHERE oldStage.name IN ["draft", "optimize"]
+         CREATE (c)-[:WAS_IN_STAGE {stage: oldStage.name, enteredAt: coalesce(oldRel.enteredAt, datetime()), leftAt: datetime()}]->(oldStage)
+         DELETE oldRel
+         WITH c
          MATCH (s:PipelineStage {name: "review"})
-         SET c.stage = "review", c.updatedAt = datetime()
-         MERGE (c)-[:IN_STAGE]->(s)`,
+         CREATE (c)-[:IN_STAGE {enteredAt: datetime()}]->(s)
+         SET c.updatedAt = datetime()`,
         { contentId }
       );
     }

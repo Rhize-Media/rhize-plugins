@@ -1,4 +1,5 @@
 import type { DistributionAdapter, SocialPost, PostResult } from "@/types";
+import { runCypher } from "@/lib/neo4j/queries";
 
 function getGHLConfig() {
   const apiKey = process.env.GHL_API_KEY;
@@ -54,12 +55,23 @@ export const ghlAdapter: DistributionAdapter = {
     }
 
     const data = await res.json();
-    return {
+    const result = {
       id: data.id ?? data.postId ?? "unknown",
       platform: content.platform,
-      status: "scheduled",
+      status: "scheduled" as const,
       scheduledAt: scheduledAt.toISOString(),
     };
+
+    // Record in graph
+    await runCypher(
+      `MATCH (c:ContentPiece {id: $contentId})
+       MERGE (d:DistributionChannel {type: "ghl", platform: $platform})
+       ON CREATE SET d.id = randomUUID(), d.accountId = $accountId
+       CREATE (c)-[:DISTRIBUTED_TO {scheduledAt: datetime(), postId: $postId, status: $status}]->(d)`,
+      { contentId: content.contentId, platform: content.platform, accountId: locationId ?? "", postId: result.id, status: result.status }
+    );
+
+    return result;
   },
 
   async getPostStatus(

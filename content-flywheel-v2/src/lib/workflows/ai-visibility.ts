@@ -36,7 +36,13 @@ export async function runAIVisibility(
       id: randomUUID(), type: "ai-visibility",
       contentId: $contentId, status: "running",
       startedAt: datetime()
-    }) RETURN w.id AS runId`,
+    })
+    WITH w
+    OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+    FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+      CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+    )
+    RETURN w.id AS runId`,
     { contentId: contentId ?? null }
   );
   const runId = runResult[0].runId as string;
@@ -130,7 +136,12 @@ export async function runAIVisibility(
            accuracy: $accuracy,
            citationCount: $citationCount,
            date: datetime()
-         })`,
+         })
+         WITH a
+         OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+         FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+           CREATE (c)-[:HAS_AI_VISIBILITY]->(a)
+         )`,
         {
           contentId: contentId ?? null,
           query: snap.query,
@@ -141,17 +152,6 @@ export async function runAIVisibility(
           citationCount: snap.citationCount,
         }
       );
-
-      // Link to content if provided
-      if (contentId) {
-        await runCypher(
-          `MATCH (c:ContentPiece {id: $contentId}),
-                 (a:AIVisibilitySnapshot {contentId: $contentId})
-           WHERE a.query = $query AND a.llm = $llm
-           MERGE (c)-[:HAS_AI_VISIBILITY]->(a)`,
-          { contentId, query: snap.query, llm: snap.llm }
-        );
-      }
     }
 
     const summaryText = `AI Visibility: ${overallMentionRate}% mention rate, ${overallAccuracy}% accuracy across ${totalChecks} checks. ${totalMentions}/${totalChecks} queries mention the brand.`;

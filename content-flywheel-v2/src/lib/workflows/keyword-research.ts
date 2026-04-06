@@ -1,4 +1,4 @@
-import { runCypher } from "@/lib/neo4j/queries";
+import { runCypher, linkAuthorExpertise } from "@/lib/neo4j/queries";
 import {
   keywordSuggestions,
   relatedKeywords,
@@ -28,13 +28,19 @@ export async function runKeywordResearch(
 ): Promise<KeywordResearchResult> {
   const { seeds, domain, contentId, locationCode = 2840, languageCode = "en" } = input;
 
-  // Create workflow run node
+  // Create workflow run node and link to content piece
   const runResult = await runCypher(
     `CREATE (w:WorkflowRun {
       id: randomUUID(), type: "keyword-research",
       contentId: $contentId, status: "running",
       startedAt: datetime()
-    }) RETURN w.id AS runId`,
+    })
+    WITH w
+    OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+    FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+      CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+    )
+    RETURN w.id AS runId`,
     { contentId: contentId ?? null }
   );
   const runId = runResult[0].runId as string;
@@ -80,6 +86,7 @@ export async function runKeywordResearch(
     }
 
     // Get related keywords for top seeds
+    const relatedPairs: { seed: string; related: string }[] = [];
     for (const seed of seeds.slice(0, 3)) {
       const related = await relatedKeywords(seed, locationCode, languageCode).catch(() => null);
       for (const task of related?.tasks ?? []) {
@@ -94,6 +101,9 @@ export async function runKeywordResearch(
               competition: kw.keyword_info?.competition ?? 0,
               intent: classifyIntent(kw.keyword),
             });
+          }
+          if (kw) {
+            relatedPairs.push({ seed, related: kw.keyword });
           }
         }
       }
@@ -113,6 +123,17 @@ export async function runKeywordResearch(
         kw
       );
       keywordsCreated++;
+    }
+
+    // 2b. Create keyword-to-keyword semantic relationships
+    for (const pair of relatedPairs) {
+      await runCypher(
+        `MATCH (k1:Keyword {term: $seed})
+         MATCH (k2:Keyword {term: $related})
+         WHERE k1 <> k2
+         MERGE (k1)-[:RELATED_TO]->(k2)`,
+        { seed: pair.seed, related: pair.related }
+      );
     }
 
     // 3. Cluster keywords by seed topic
@@ -186,11 +207,25 @@ export async function runKeywordResearch(
                   intent: classifyIntent(kd.keyword),
                 }
               );
+              // Link competitors to this gap keyword
+              for (const comp of topCompetitors) {
+                await runCypher(
+                  `MATCH (comp:Competitor {domain: $compDomain})
+                   MATCH (k:Keyword {term: $term})
+                   MERGE (comp)-[:RANKS_FOR]->(k)`,
+                  { compDomain: comp, term: kd.keyword }
+                );
+              }
               gapKeywords++;
             }
           }
         }
       }
+    }
+
+    // Link author expertise to keyword clusters
+    if (contentId) {
+      await linkAuthorExpertise(contentId);
     }
 
     // Mark workflow complete

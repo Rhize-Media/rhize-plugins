@@ -38,6 +38,9 @@ describe("GET /api/content/[id]", () => {
       backlinks: [],
       internalLinks: [],
       seoScore: null,
+      workflowRuns: [],
+      aiVisibility: [],
+      stageHistory: [],
     };
     vi.mocked(getContentDetailById).mockResolvedValueOnce(mockDetail);
     const res = await GET(mockRequest() as never, {

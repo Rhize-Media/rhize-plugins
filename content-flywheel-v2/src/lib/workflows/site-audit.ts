@@ -36,10 +36,15 @@ export async function runSiteAudit(
   const { domain } = input;
 
   const runResult = await runCypher(
-    `CREATE (w:WorkflowRun {
-      id: randomUUID(), type: "site-audit",
-      status: "running", startedAt: datetime()
-    }) RETURN w.id AS runId`
+    `MERGE (comp:Competitor {domain: $domain})
+     ON CREATE SET comp.id = randomUUID(), comp.authorityRank = 0
+     CREATE (w:WorkflowRun {
+       id: randomUUID(), type: "site-audit",
+       status: "running", startedAt: datetime()
+     })
+     CREATE (comp)-[:HAS_WORKFLOW_RUN]->(w)
+     RETURN w.id AS runId`,
+    { domain }
   );
   const runId = runResult[0].runId as string;
 
@@ -208,7 +213,9 @@ export async function runSiteAudit(
 
     // 5. Store audit results in Neo4j
     await runCypher(
-      `CREATE (a:SiteAudit {
+      `MERGE (comp:Competitor {domain: $domain})
+       ON CREATE SET comp.id = randomUUID(), comp.authorityRank = 0
+       CREATE (a:SiteAudit {
          id: randomUUID(),
          domain: $domain,
          totalPages: $totalPages,
@@ -217,7 +224,8 @@ export async function runSiteAudit(
          mediumIssues: $medium,
          lowIssues: $low,
          date: datetime()
-       })`,
+       })
+       CREATE (a)-[:AUDITS]->(comp)`,
       {
         domain,
         totalPages,
@@ -233,8 +241,11 @@ export async function runSiteAudit(
       await runCypher(
         `MERGE (c:ContentPiece {url: $url})
          ON CREATE SET c.id = randomUUID(), c.title = $title,
-           c.slug = $slug, c.stage = "refresh",
-           c.createdAt = datetime(), c.updatedAt = datetime()`,
+           c.slug = $slug, c.author = "site-audit",
+           c.createdAt = datetime(), c.updatedAt = datetime()
+         WITH c
+         MATCH (s:PipelineStage {name: "refresh"})
+         MERGE (c)-[:IN_STAGE {enteredAt: datetime()}]->(s)`,
         {
           url: opp.url,
           title: opp.title,
