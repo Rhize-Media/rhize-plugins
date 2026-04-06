@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T17:47:24.021Z
-> Files: 87 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T18:38:09.175Z
+> Files: 90 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -10,14 +10,14 @@
 
 ## ./
 
-- `.gitignore` — Git ignore rules (~175 tok)
+- `.gitignore` — Git ignore rules (~212 tok)
 - `.mcp.json` (~466 tok)
 - `CLAUDE.md` — OpenWolf (~2349 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
 - `package.json` — Node.js package manifest (~279 tok)
 - `postcss.config.mjs` — Declares config (~26 tok)
-- `README.md` — Project documentation (~668 tok)
+- `README.md` — Project documentation (~702 tok)
 - `tsconfig.json` — TypeScript configuration (~192 tok)
 - `vercel.json` (~53 tok)
 - `vitest.config.ts` — /*.test.{ts,tsx}"], (~85 tok)
@@ -36,6 +36,7 @@
 
 ## .claude/plans/
 
+- `m8-ai-sdk-foundation.md` — M8 AI SDK Foundation — RT-10 + RT-11 (~1102 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
 
 ## .claude/rules/
@@ -54,7 +55,7 @@
 
 ## cypher/
 
-- `schema.cypher` — ============================================================ (~962 tok)
+- `schema.cypher` — ============================================================ (~984 tok)
 
 ## docs/plans/
 
@@ -62,7 +63,7 @@
 
 ## hooks/
 
-- `flywheel-context.md` — Content Flywheel Context (~1088 tok)
+- `flywheel-context.md` — Content Flywheel Context (~1565 tok)
 - `hooks.json` (~184 tok)
 
 ## scripts/
@@ -206,6 +207,10 @@
 
 - `ghl.ts` — Exports ghlAdapter (~806 tok)
 
+## src/lib/ai/
+
+- `claude.ts` — --------------------------------------------------------------------------- (~2390 tok)
+
 ## src/lib/dataforseo/
 
 - `client.ts` — Exports keywordSuggestions, relatedKeywords, keywordIdeas, serpLive + 13 more (~1783 tok)
@@ -226,7 +231,11 @@
 
 ## src/types/
 
-- `index.ts` — ============================================================ (~1312 tok)
+- `index.ts` — ============================================================ (~1402 tok)
+
+## tests/ai/
+
+- `claude.test.ts` — --------------------------------------------------------------------------- (~2199 tok)
 
 ## tests/app/api/
 
