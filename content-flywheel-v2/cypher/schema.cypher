@@ -53,6 +53,9 @@ FOR (c:Competitor) REQUIRE c.domain IS UNIQUE;
 CREATE CONSTRAINT workflow_run_id IF NOT EXISTS
 FOR (w:WorkflowRun) REQUIRE w.id IS UNIQUE;
 
+CREATE CONSTRAINT site_audit_id IF NOT EXISTS
+FOR (a:SiteAudit) REQUIRE a.id IS UNIQUE;
+
 // --- Indexes for common lookups ---
 
 CREATE INDEX content_slug IF NOT EXISTS
@@ -78,6 +81,15 @@ FOR (w:WorkflowRun) ON (w.type);
 
 CREATE INDEX ai_vis_date IF NOT EXISTS
 FOR (a:AIVisibilitySnapshot) ON (a.date);
+
+CREATE INDEX ai_vis_content IF NOT EXISTS
+FOR (a:AIVisibilitySnapshot) ON (a.contentId);
+
+CREATE INDEX workflow_run_content IF NOT EXISTS
+FOR (w:WorkflowRun) ON (w.contentId);
+
+CREATE INDEX site_audit_domain IF NOT EXISTS
+FOR (a:SiteAudit) ON (a.domain);
 
 // --- Seed pipeline stages ---
 

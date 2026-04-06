@@ -18,10 +18,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Update distribution status in Neo4j
+    const resolvedStatus = status ?? "posted";
     await runCypher(
-      `MATCH (c:ContentPiece {id: $contentId})-[r:DISTRIBUTED_TO]->(ch:DistributionChannel {platform: $platform})
-       SET r.status = $status, r.postId = $postId, r.updatedAt = datetime()`,
-      { contentId, platform: platform ?? "unknown", status: status ?? "posted", postId: postId ?? "" }
+      `MATCH (c:ContentPiece {id: $contentId})-[r:DISTRIBUTED_TO]->(ch:DistributionChannel)
+       WHERE r.postId = $postId
+       SET r.status = $status, r.updatedAt = datetime()` +
+        (resolvedStatus === "posted" ? `, r.postedAt = datetime()` : ``),
+      { contentId, postId: postId ?? "", status: resolvedStatus }
     );
 
     return NextResponse.json({ processed: true, contentId, status });

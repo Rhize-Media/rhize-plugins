@@ -41,7 +41,13 @@ export async function runBacklinkAnalysis(
       id: randomUUID(), type: "backlink-analysis",
       contentId: $contentId, status: "running",
       startedAt: datetime()
-    }) RETURN w.id AS runId`,
+    })
+    WITH w
+    OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+    FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+      CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+    )
+    RETURN w.id AS runId`,
     { contentId: contentId ?? null }
   );
   const runId = runResult[0].runId as string;
@@ -113,7 +119,9 @@ export async function runBacklinkAnalysis(
       if (contentId) {
         await runCypher(
           `MATCH (c:ContentPiece {id: $contentId}), (b:BacklinkSource {domain: $refDomain})
-           MERGE (c)-[:HAS_BACKLINK_FROM]->(b)`,
+           MERGE (c)-[r:HAS_BACKLINK_FROM]->(b)
+           SET r.discoveredAt = coalesce(r.discoveredAt, datetime()),
+               r.lastSeenAt = datetime()`,
           { contentId, refDomain: ref.domain }
         );
       }
@@ -128,6 +136,15 @@ export async function runBacklinkAnalysis(
            c.referringDomains = $referringDomains, c.updatedAt = datetime()`,
       { domain, domainRank, totalBacklinks, referringDomains }
     );
+
+    // Link competitor to its backlink sources
+    for (const ref of topReferrers) {
+      await runCypher(
+        `MATCH (comp:Competitor {domain: $domain}), (b:BacklinkSource {domain: $refDomain})
+         MERGE (comp)-[:HAS_BACKLINK_FROM]->(b)`,
+        { domain, refDomain: ref.domain }
+      );
+    }
 
     const profile: BacklinkProfile = {
       totalBacklinks,

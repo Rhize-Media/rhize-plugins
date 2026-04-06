@@ -1,5 +1,6 @@
 import { createClient } from "@sanity/client";
 import type { CMSAdapter, CMSDocument, ContentPiece } from "@/types";
+import { runCypher } from "@/lib/neo4j/queries";
 
 function getSanityClient() {
   const projectId = process.env.SANITY_PROJECT_ID;
@@ -61,6 +62,19 @@ export const sanityAdapter: CMSAdapter = {
     }
 
     const slug = draft?.slug?.current ?? publishedId;
+
+    // Record in graph
+    const projectId = process.env.SANITY_PROJECT_ID;
+    const dataset = process.env.SANITY_DATASET ?? "production";
+    await runCypher(
+      `MATCH (c:ContentPiece {slug: $slug})
+       MERGE (t:CMSTarget {type: "sanity", projectId: $projectId})
+       ON CREATE SET t.id = randomUUID(), t.dataset = $dataset
+       MERGE (c)-[r:PUBLISHED_TO]->(t)
+       SET r.publishedAt = datetime(), r.documentId = $documentId`,
+      { slug, projectId: projectId ?? "", dataset, documentId: publishedId }
+    );
+
     return { url: `/blog/${slug}` };
   },
 

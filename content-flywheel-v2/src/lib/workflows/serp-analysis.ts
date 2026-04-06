@@ -36,7 +36,13 @@ export async function runSERPAnalysis(
       id: randomUUID(), type: "serp-analysis",
       contentId: $contentId, status: "running",
       startedAt: datetime()
-    }) RETURN w.id AS runId`,
+    })
+    WITH w
+    OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+    FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+      CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+    )
+    RETURN w.id AS runId`,
     { contentId: contentId ?? null }
   );
   const runId = runResult[0].runId as string;
@@ -142,7 +148,12 @@ export async function runSERPAnalysis(
                features: $features,
                aiOverviewCited: $aiOverviewCited
              })
-             CREATE (c)-[:RANKS_FOR]->(snap)`,
+             CREATE (c)-[:RANKS_FOR]->(snap)
+             WITH snap
+             OPTIONAL MATCH (k:Keyword {id: $keywordId})
+             FOREACH (_ IN CASE WHEN k IS NOT NULL THEN [1] ELSE [] END |
+               CREATE (snap)-[:FOR_KEYWORD]->(k)
+             )`,
             {
               contentId: kw.contentId,
               keywordId: kw.keywordId,

@@ -27,7 +27,7 @@ API Routes:
   /api/board           — GET board data (grouped by stage)
   /api/board/move      — POST move content between stages
   /api/content         — POST create new content
-  /api/content/[id]    — GET full content detail (keywords, SERP, backlinks, SEO, internal links)
+  /api/content/[id]    — GET full content detail (keywords, SERP, backlinks, SEO, internal links, workflows, AI visibility, stage history)
   /api/graph/stats     — GET graph statistics
   /api/graph/query     — POST generic Cypher (auth-gated via x-graph-secret header)
   /api/cron/*          — Vercel Cron: daily DataForSEO pulls, weekly SERP snapshots
@@ -51,7 +51,7 @@ API Routes:
 - `src/app/graph/` — Graph explorer dashboard
 - `src/app/api/` — All API routes
 - `cypher/` — Neo4j schema (run via `npm run init-schema`)
-- `scripts/` — `init-schema.ts` (DB setup), `seed.ts` (sample data)
+- `scripts/` — `init-schema.ts` (DB setup), `seed.ts` (sample data), `migrate-graph-relationships.ts` (backfill existing data)
 - `tests/` — Vitest unit tests (43 tests across 6 files)
 - `docs/plans/` — Implementation plans
 
@@ -59,18 +59,26 @@ API Routes:
 
 Pipeline stages are nodes, not enum values — content moves between stages via relationships:
 ```
-(ContentPiece)-[:IN_STAGE]->(PipelineStage)
+(ContentPiece)-[:IN_STAGE {enteredAt}]->(PipelineStage)
+(ContentPiece)-[:WAS_IN_STAGE {stage, enteredAt, leftAt}]->(PipelineStage)
 (ContentPiece)-[:TARGETS]->(Keyword)
 (Keyword)-[:BELONGS_TO]->(KeywordCluster)
+(Keyword)-[:RELATED_TO]->(Keyword)
 (ContentPiece)-[:RANKS_FOR]->(SERPSnapshot)
-(ContentPiece)-[:HAS_BACKLINK_FROM]->(BacklinkSource)
+(SERPSnapshot)-[:FOR_KEYWORD]->(Keyword)
+(ContentPiece)-[:HAS_BACKLINK_FROM {discoveredAt, lastSeenAt}]->(BacklinkSource)
 (ContentPiece)-[:LINKS_TO]->(ContentPiece)
 (ContentPiece)-[:HAS_SCORE]->(SEOScore)
-(ContentPiece)-[:PUBLISHED_TO]->(CMSTarget)
-(ContentPiece)-[:DISTRIBUTED_TO]->(DistributionChannel)
-(WorkflowRun) — tracks workflow executions with status/summary
-(Competitor) — competitor domains from gap analysis
-(AIVisibilitySnapshot) — LLM brand mention tracking
+(ContentPiece)-[:HAS_WORKFLOW_RUN]->(WorkflowRun)
+(ContentPiece)-[:HAS_AI_VISIBILITY]->(AIVisibilitySnapshot)
+(ContentPiece)-[:PUBLISHED_TO {publishedAt, documentId}]->(CMSTarget)
+(ContentPiece)-[:DISTRIBUTED_TO {scheduledAt, postId, status}]->(DistributionChannel)
+(Author)-[:WROTE]->(ContentPiece)
+(Author)-[:EXPERT_IN]->(KeywordCluster)
+(Competitor)-[:RANKS_FOR]->(Keyword)
+(Competitor)-[:HAS_BACKLINK_FROM]->(BacklinkSource)
+(Competitor)-[:HAS_WORKFLOW_RUN]->(WorkflowRun)
+(SiteAudit)-[:AUDITS]->(Competitor)
 ```
 
 ## Important Patterns
@@ -90,6 +98,19 @@ RETURN s.name AS stage, collect(c { .* }) AS pieces ORDER BY s.order
 -- RIGHT: include s.order in RETURN as alias
 RETURN s.name AS stage, s.order AS ord, collect(c { .* }) AS pieces ORDER BY ord
 ```
+
+### Conditional Relationship Creation
+When a relationship target may not exist (e.g., contentId is optional), use the FOREACH/CASE pattern instead of separate queries:
+```cypher
+OPTIONAL MATCH (c:ContentPiece {id: $contentId})
+FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
+  CREATE (c)-[:HAS_WORKFLOW_RUN]->(w)
+)
+```
+All 6 workflows use this pattern for `HAS_WORKFLOW_RUN`. When the target always exists (e.g., content-optimize always has a contentId), use a direct `MATCH` + `CREATE` instead.
+
+### Stage Transition History
+`moveContentToStage` archives the old `IN_STAGE` as a `WAS_IN_STAGE` relationship with `{stage, enteredAt, leftAt}` timestamps before creating the new `IN_STAGE`. This enables pipeline velocity analytics.
 
 ## MCP Servers
 
@@ -113,6 +134,7 @@ npm test               # Run vitest unit tests (43 tests)
 npm run test:watch     # Run tests in watch mode
 npm run seed           # Seed 5 sample content pieces into Neo4j
 npm run init-schema    # Run cypher/schema.cypher against Neo4j Aura
+npx tsx scripts/migrate-graph-relationships.ts  # Backfill graph relationships for existing data (one-time)
 ```
 
 ## Environment Variables

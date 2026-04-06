@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { PIPELINE_STAGES, type ContentPiece, type Keyword, type SERPSnapshot, type SEOScore } from "@/types";
+import { PIPELINE_STAGES, type ContentPiece, type Keyword, type SERPSnapshot, type SEOScore, type WorkflowRun, type AIVisibilitySnapshot } from "@/types";
 
 interface ContentDetail extends ContentPiece {
   keywords: Keyword[];
@@ -9,6 +9,9 @@ interface ContentDetail extends ContentPiece {
   backlinks: { domain: string; authorityRank: number; anchorText: string }[];
   internalLinks: { targetTitle: string; targetSlug: string }[];
   seoScore: SEOScore | null;
+  workflowRuns: WorkflowRun[];
+  aiVisibility: (AIVisibilitySnapshot & { query: string })[];
+  stageHistory: { stage: string; enteredAt: string; leftAt: string }[];
 }
 
 async function fetchContentDetail(id: string): Promise<ContentDetail | null> {
@@ -142,6 +145,13 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
             {runningWorkflow === "backlink-analysis" ? "Running..." : "Analyze Backlinks"}
           </button>
         )}
+        <button
+          onClick={() => handleRunWorkflow("ai-visibility", { contentId: id, brand: content.title.split(" ").slice(0, 2).join(" ") })}
+          disabled={runningWorkflow !== null}
+          className="rounded-md bg-teal-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+        >
+          {runningWorkflow === "ai-visibility" ? "Running..." : "AI Visibility"}
+        </button>
       </section>
 
       {/* SEO Score */}
@@ -319,6 +329,111 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-sm text-zinc-400">No internal links yet.</p>
         )}
       </section>
+
+      {/* Workflow History */}
+      {content.workflowRuns && content.workflowRuns.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Workflow History ({content.workflowRuns.length})
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 text-left text-zinc-500 dark:border-zinc-700">
+                  <th className="pb-2 pr-4">Type</th>
+                  <th className="pb-2 pr-4">Status</th>
+                  <th className="pb-2 pr-4">Summary</th>
+                  <th className="pb-2">Started</th>
+                </tr>
+              </thead>
+              <tbody>
+                {content.workflowRuns.map((w) => (
+                  <tr key={w.id} className="border-b border-zinc-100 dark:border-zinc-800">
+                    <td className="py-2 pr-4 font-mono text-xs">{w.type}</td>
+                    <td className="py-2 pr-4">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        w.status === "completed"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          : w.status === "failed"
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                      }`}>
+                        {w.status}
+                      </span>
+                    </td>
+                    <td className="max-w-xs truncate py-2 pr-4 text-zinc-600 dark:text-zinc-400">
+                      {w.summary ?? "—"}
+                    </td>
+                    <td className="py-2 text-xs text-zinc-500">
+                      {w.startedAt?.slice(0, 19).replace("T", " ") ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* AI Visibility */}
+      {content.aiVisibility && content.aiVisibility.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            AI Visibility ({content.aiVisibility.length})
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 text-left text-zinc-500 dark:border-zinc-700">
+                  <th className="pb-2 pr-4">Query</th>
+                  <th className="pb-2 pr-4">LLM</th>
+                  <th className="pb-2 pr-4">Mention Rate</th>
+                  <th className="pb-2 pr-4">Accuracy</th>
+                  <th className="pb-2">Citations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {content.aiVisibility.map((av, i) => (
+                  <tr key={i} className="border-b border-zinc-100 dark:border-zinc-800">
+                    <td className="py-2 pr-4">{av.query}</td>
+                    <td className="py-2 pr-4 font-mono text-xs">{av.llm}</td>
+                    <td className="py-2 pr-4">{av.mentionRate}%</td>
+                    <td className="py-2 pr-4">{av.accuracy}%</td>
+                    <td className="py-2">{av.citationCount}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Stage History */}
+      {content.stageHistory && content.stageHistory.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Stage History ({content.stageHistory.length})
+          </h2>
+          <div className="space-y-2">
+            {content.stageHistory.map((transition, i) => {
+              const cfg = PIPELINE_STAGES.find((s) => s.name === transition.stage);
+              return (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <span
+                    className="inline-block rounded-full px-2 py-0.5 text-xs font-medium text-white"
+                    style={{ backgroundColor: cfg?.color ?? "#71717a" }}
+                  >
+                    {cfg?.label ?? transition.stage}
+                  </span>
+                  <span className="text-zinc-500">
+                    {transition.enteredAt?.slice(0, 10) ?? "?"} — {transition.leftAt?.slice(0, 10) ?? "?"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

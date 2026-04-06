@@ -12,6 +12,12 @@
 
 - **Project:** content-flywheel
 - **Description:** This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+- **Neo4j relationships:** All node connections MUST use graph relationships, never property-based foreign keys. Use `OPTIONAL MATCH` + `FOREACH/CASE` pattern for conditional relationship creation when the source node may be null.
+- **WorkflowRun linking:** Every workflow uses `HAS_WORKFLOW_RUN` relationship to link to ContentPiece or Competitor.
+- **Stage transitions:** `moveContentToStage` archives old `IN_STAGE` as `WAS_IN_STAGE` with timestamps before creating new one.
+- **Graph stats:** `getGraphStats` uses `UNION ALL` single queries instead of N+1 loops.
+- **Author nodes:** Created automatically via `MERGE` when creating ContentPiece — `(Author)-[:WROTE]->(ContentPiece)`.
+- **Worktree agents:** Changes made by worktree-isolated agents DO persist to the main working directory files even after worktree cleanup. The branches may not survive but file edits do.
 
 ## Do-Not-Repeat
 
@@ -21,3 +27,4 @@
 ## Decision Log
 
 <!-- Significant technical decisions with rationale. Why X was chosen over Y. -->
+- [2026-04-06] Graph relationship overhaul: Replaced property-based foreign keys with proper Neo4j relationships across all 6 workflows, queries, adapters, and webhooks. Added 9 new relationship types (HAS_WORKFLOW_RUN, HAS_AI_VISIBILITY, WAS_IN_STAGE, FOR_KEYWORD, RELATED_TO, AUDITS, WROTE, EXPERT_IN, RANKS_FOR for competitors). Chose UNION ALL single query over N+1 for graph stats. Used FOREACH/CASE pattern for conditional relationship creation to avoid separate queries.

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ghlAdapter } from "@/lib/adapters/distribution/ghl";
 import { getContentById } from "@/lib/neo4j/queries";
-import { runCypher } from "@/lib/neo4j/queries";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,20 +27,7 @@ export async function POST(req: NextRequest) {
       scheduledAt ? new Date(scheduledAt) : new Date()
     );
 
-    // Record the distribution relationship in Neo4j
-    await runCypher(
-      `MATCH (c:ContentPiece {id: $contentId})
-       MERGE (ch:DistributionChannel {platform: $platform, type: "ghl"})
-       MERGE (c)-[r:DISTRIBUTED_TO]->(ch)
-       SET r.postId = $postId, r.status = $status, r.scheduledAt = $scheduledAt, r.createdAt = datetime()`,
-      {
-        contentId,
-        platform,
-        postId: result.id,
-        status: result.status,
-        scheduledAt: result.scheduledAt ?? new Date().toISOString(),
-      }
-    );
+    // Graph write handled by ghlAdapter.schedulePost()
 
     return NextResponse.json({ result });
   } catch (error) {

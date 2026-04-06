@@ -34,6 +34,23 @@ export async function POST(req: NextRequest) {
          SET c.publishedAt = datetime(), c.updatedAt = datetime(), c.sanityId = $sanityId, c.sanityRev = $rev`,
         { slug: slugValue, sanityId: _id, rev: _rev }
       );
+
+      // Record PUBLISHED_TO relationship
+      await runCypher(
+        `MATCH (c:ContentPiece {slug: $slug})
+         MERGE (t:CMSTarget {type: "sanity"})
+         ON CREATE SET t.id = randomUUID()
+         MERGE (c)-[r:PUBLISHED_TO]->(t)
+         SET r.publishedAt = datetime()`,
+        { slug: slugValue }
+      );
+    } else {
+      // Unpublish — mark the PUBLISHED_TO relationship with unpublishedAt
+      await runCypher(
+        `MATCH (c:ContentPiece {slug: $slug})-[r:PUBLISHED_TO]->(t:CMSTarget {type: "sanity"})
+         SET r.unpublishedAt = datetime()`,
+        { slug: slugValue }
+      );
     }
 
     return NextResponse.json({ processed: true, slug: slugValue, isPublished });
