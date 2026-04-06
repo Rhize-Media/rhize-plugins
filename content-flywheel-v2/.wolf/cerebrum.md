@@ -2,7 +2,7 @@
 
 > OpenWolf's learning memory. Updated automatically as the AI learns from interactions.
 > Do not edit manually unless correcting an error.
-> Last updated: 2026-04-04
+> Last updated: 2026-04-06
 
 ## User Preferences
 
@@ -23,6 +23,7 @@
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
+- [2026-04-06] Duplicate relationship type in getGraphStats relTypes array. `RANKS_FOR` appeared both as an original entry and was re-added when adding new types. UNION ALL queries with duplicate clauses double-count. Always check for existing entries before appending to arrays.
 
 ## Decision Log
 
