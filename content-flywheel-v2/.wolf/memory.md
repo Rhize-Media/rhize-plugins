@@ -315,3 +315,17 @@
 | 15:20 | Edited src/lib/workflows/helpers.ts | 11→11 lines | ~76 |
 | 15:20 | Edited src/lib/workflows/content-ingest.ts | modified for() | ~106 |
 | 15:21 | DRY refactor: extracted workflow lifecycle helpers (create/complete/fail) into helpers.ts, refactored content-ingest.ts + article-outline.ts to use them. Removed unused OutlineSection import. All 80 tests pass, 0 lint errors. | src/lib/workflows/helpers.ts, content-ingest.ts, article-outline.ts | success | ~500 |
+| 15:23 | Edited src/types/index.ts | 2→4 lines | ~25 |
+| 15:23 | Edited src/types/index.ts | expanded (+22 lines) | ~113 |
+| 15:24 | Edited cypher/schema.cypher | expanded (+6 lines) | ~81 |
+| 15:24 | Created src/lib/workflows/article-draft.ts | — | ~1840 |
+| 15:25 | Created src/lib/workflows/brand-voice-check.ts | — | ~1225 |
+| 15:25 | Created src/app/api/workflows/article-draft/route.ts | — | ~203 |
+| 15:25 | Created src/app/api/workflows/brand-voice-check/route.ts | — | ~206 |
+| 15:27 | Created tests/workflows/article-draft.test.ts | — | ~1297 |
+| 15:27 | Created tests/workflows/brand-voice-check.test.ts | — | ~1200 |
+| 15:27 | Edited tests/workflows/article-draft.test.ts | 11→15 lines | ~150 |
+| 15:27 | Edited tests/workflows/article-draft.test.ts | 15→16 lines | ~166 |
+| 15:28 | Edited tests/workflows/brand-voice-check.test.ts | clearAllMocks() → mockReset() | ~73 |
+| 19:27 | Created tests/workflows/article-draft.test.ts — 4 tests covering parallel section gen, draft creation, stage move, cost calc, missing outline failure | tests/workflows/article-draft.test.ts | all 4 pass | ~1400 tok |
+| 15:28 | Created brand-voice-check.test.ts with 3 tests: score+node creation, workflow completion summary, failure on missing draft | tests/workflows/brand-voice-check.test.ts | 3/3 pass | ~800 tok |
