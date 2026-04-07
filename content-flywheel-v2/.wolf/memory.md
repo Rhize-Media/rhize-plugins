@@ -3,6 +3,11 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+| 20:34 | Added semantic relevance filter to keyword-research workflow — embedText(), cosineSimilarity() in embeddings.ts, similarity gate in keyword-research.ts step 4 | src/lib/ai/embeddings.ts, src/lib/workflows/keyword-research.ts, tests/ai/embeddings.test.ts | 100/100 tests pass, tsc clean | ~500 tok |
+| 20:38 | Created prune-irrelevant-keywords.ts script to backfill-clean existing bad TARGETS relationships via cosine similarity. Added npm script "prune-keywords". | scripts/prune-irrelevant-keywords.ts, package.json | dry-run default, --apply to delete | ~900 tok |
+| 20:48 | Fixed embedding model: text-embedding-004 retired → gemini-embedding-001. Updated embeddings.ts, script, and test. | src/lib/ai/embeddings.ts, scripts/prune-irrelevant-keywords.ts, tests/ai/embeddings.test.ts | all 100 tests pass | ~50 tok |
+| 20:50 | Raised RELEVANCE_THRESHOLD from 0.35 → 0.65 based on live data (relevant: 0.67+, irrelevant: <0.60). Ran --apply: pruned 20 bad TARGETS from "State of AI Search Optimization", kept all 28 for other articles. | keyword-research.ts, prune script | 20 deleted, 28 kept | ~0 tok |
+
 | 15:01 | Simplify: extracted `extractKeywordData()` helper in keyword-research.ts to DRY up 3 duplicated keyword data extraction blocks | src/lib/workflows/keyword-research.ts | 3 blocks reduced to 1 helper + 3 calls | ~100 tok saved |
 | 15:01 | Simplify: batched Neo4j embedding writes via UNWIND in embedAndCacheKeywords, replacing N individual session.run() calls | src/lib/ai/embeddings.ts | N+1 queries reduced to 2 queries | ~50 tok saved |
 | 15:01 | Updated embedding test to expect batched UNWIND call instead of N individual SET calls | tests/ai/embeddings.test.ts | test assertions updated | ~20 tok |
@@ -340,3 +345,47 @@
 | 15:38 | Edited src/app/graph/page.tsx | expanded (+11 lines) | ~226 |
 | 15:39 | Edited src/app/graph/page.tsx | expanded (+81 lines) | ~1268 |
 | 15:40 | Created tests/workflows/helpers.test.ts | — | ~1067 |
+| 15:41 | Session end: 81 writes across 27 files (m8-ai-sdk-foundation.md, index.ts, schema.cypher, claude.ts, claude.test.ts) | 30 reads | ~97919 tok |
+
+## Session: 2026-04-06 15:43
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:50 | Edited .mcp.json | expanded (+6 lines) | ~78 |
+| 19:51 | Session end: 1 writes across 1 files (.mcp.json) | 3 reads | ~12192 tok |
+
+## Session: 2026-04-06 19:51
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 19:55 | Edited .mcp.json | 6→6 lines | ~51 |
+| 19:56 | Session end: 1 writes across 1 files (.mcp.json) | 1 reads | ~555 tok |
+| 20:02 | Session end: 1 writes across 1 files (.mcp.json) | 1 reads | ~555 tok |
+| 20:06 | Edited ../../../../.zshrc | 3→6 lines | ~63 |
+| 20:06 | Edited .mcp.json | inline fix | ~13 |
+| 20:06 | Session end: 3 writes across 2 files (.mcp.json, .zshrc) | 2 reads | ~636 tok |
+| 20:07 | Session end: 3 writes across 2 files (.mcp.json, .zshrc) | 2 reads | ~636 tok |
+| 20:12 | Session end: 3 writes across 2 files (.mcp.json, .zshrc) | 3 reads | ~12284 tok |
+
+## Session: 2026-04-07 20:31
+
+| Time | Action | File(s) | Outcome | ~Tokens |
+|------|--------|---------|---------|--------|
+| 20:33 | Edited src/lib/ai/embeddings.ts | modified embedText() | ~341 |
+| 20:33 | Edited src/lib/workflows/keyword-research.ts | inline fix | ~26 |
+| 20:33 | Edited src/lib/workflows/keyword-research.ts | added optional chaining | ~437 |
+| 20:33 | Edited tests/ai/embeddings.test.ts | inline fix | ~32 |
+| 20:34 | Edited tests/ai/embeddings.test.ts | expanded (+37 lines) | ~345 |
+| 20:35 | Session end: 5 writes across 3 files (embeddings.ts, keyword-research.ts, embeddings.test.ts) | 4 reads | ~11215 tok |
+| 20:45 | Created scripts/prune-irrelevant-keywords.ts | — | ~2165 |
+| 20:45 | Edited package.json | 1→2 lines | ~44 |
+| 20:47 | Edited src/lib/ai/embeddings.ts | "text-embedding-004" → "gemini-embedding-001" | ~9 |
+| 20:47 | Edited scripts/prune-irrelevant-keywords.ts | "text-embedding-004" → "gemini-embedding-001" | ~9 |
+| 20:47 | Edited tests/ai/embeddings.test.ts | "text-embedding-004" → "gemini-embedding-001" | ~9 |
+| 20:48 | Edited src/lib/workflows/keyword-research.ts | 0.35 → 0.65 | ~10 |
+| 20:48 | Edited scripts/prune-irrelevant-keywords.ts | 0.35 → 0.65 | ~2 |
+| 20:49 | Session end: 12 writes across 5 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 6 reads | ~14826 tok |
+| 20:53 | Edited src/lib/ai/embeddings.ts | inline fix | ~21 |
+| 20:53 | Edited scripts/prune-irrelevant-keywords.ts | inline fix | ~18 |
+| 20:53 | Edited scripts/prune-irrelevant-keywords.ts | modified embedText() | ~85 |
+| 20:54 | Edited scripts/prune-irrelevant-keywords.ts | embedBatch() → embedText() | ~206 |

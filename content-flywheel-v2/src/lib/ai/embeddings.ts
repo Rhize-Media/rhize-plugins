@@ -28,7 +28,7 @@ export function _setGenAI(mock: GoogleGenAI | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// embedBatch — embed an array of texts via Gemini text-embedding-004
+// embedBatch — embed an array of texts via Gemini gemini-embedding-001
 // ---------------------------------------------------------------------------
 
 export async function embedBatch(
@@ -45,7 +45,7 @@ export async function embedBatch(
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const chunk = texts.slice(i, i + BATCH_SIZE);
     const response = await ai.models.embedContent({
-      model: "text-embedding-004",
+      model: "gemini-embedding-001",
       contents: chunk,
       config: { outputDimensionality: dimensions },
     });
@@ -56,6 +56,35 @@ export async function embedBatch(
   }
 
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// embedText — embed a single text string and return its vector
+// ---------------------------------------------------------------------------
+
+export async function embedText(
+  text: string,
+  options?: { dimensions?: number }
+): Promise<number[]> {
+  const [vector] = await embedBatch([text], options);
+  return vector;
+}
+
+// ---------------------------------------------------------------------------
+// cosineSimilarity — compute cosine similarity between two vectors
+// ---------------------------------------------------------------------------
+
+export function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
 }
 
 // ---------------------------------------------------------------------------

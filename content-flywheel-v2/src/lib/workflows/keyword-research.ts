@@ -6,7 +6,7 @@ import {
   competitorDomains,
   keywordGap,
 } from "@/lib/dataforseo/client";
-import { embedAndCacheKeywords } from "@/lib/ai/embeddings";
+import { embedAndCacheKeywords, embedText, cosineSimilarity } from "@/lib/ai/embeddings";
 import {
   clusterKeywords,
   classifyIntentAI,
@@ -217,15 +217,45 @@ export async function runKeywordResearch(
       }
     }
 
-    // 4. Link keywords to content piece if provided
+    // 4. Link keywords to content piece if provided — filtered by semantic relevance
     if (contentId) {
-      // Link the top keywords (by volume, filtered by reasonable difficulty)
-      await runCypher(
-        `MATCH (c:ContentPiece {id: $contentId})
-         MATCH (k:Keyword) WHERE k.term IN $terms
-         MERGE (c)-[:TARGETS]->(k)`,
-        { contentId, terms: Array.from(allKeywords.keys()).slice(0, 20) }
+      // Fetch the content title to build a topic description for similarity comparison
+      const contentResult = await runCypher(
+        `MATCH (c:ContentPiece {id: $contentId}) RETURN c.title AS title`,
+        { contentId }
       );
+      const contentTitle = (contentResult[0]?.title as string) ?? seeds.join(" ");
+      const topicDescription = `${contentTitle} ${seeds.join(" ")}`;
+
+      // Embed the topic and compare against keyword embeddings
+      const topicVector = await embedText(topicDescription);
+
+      const RELEVANCE_THRESHOLD = 0.65;
+      const relevantTerms: string[] = [];
+
+      for (const { term, embedding } of keywordsWithEmbeddings) {
+        const similarity = cosineSimilarity(topicVector, embedding);
+        if (similarity >= RELEVANCE_THRESHOLD) {
+          relevantTerms.push(term);
+        }
+      }
+
+      // Sort by volume descending, take top 20
+      relevantTerms.sort((a, b) => {
+        const volA = (allKeywords.get(a)?.volume as number) ?? 0;
+        const volB = (allKeywords.get(b)?.volume as number) ?? 0;
+        return volB - volA;
+      });
+      const topRelevant = relevantTerms.slice(0, 20);
+
+      if (topRelevant.length > 0) {
+        await runCypher(
+          `MATCH (c:ContentPiece {id: $contentId})
+           MATCH (k:Keyword) WHERE k.term IN $terms
+           MERGE (c)-[:TARGETS]->(k)`,
+          { contentId, terms: topRelevant }
+        );
+      }
     }
 
     // 5. Competitor gap analysis if domain provided

@@ -1,7 +1,11 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-06T19:40:01.183Z
-> Files: 112 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-07T00:54:01.984Z
+> Files: 114 tracked | Anatomy hits: 0 | Misses: 0
+
+## ../../../../
+
+- `.zshrc` — Created by `pipx` on 2025-09-16 22:24:26 (~353 tok)
 
 ## ../../../../.claude/projects/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/memory/
 
@@ -11,11 +15,11 @@
 ## ./
 
 - `.gitignore` — Git ignore rules (~212 tok)
-- `.mcp.json` (~466 tok)
+- `.mcp.json` (~504 tok)
 - `CLAUDE.md` — OpenWolf (~2349 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
-- `package.json` — Node.js package manifest (~279 tok)
+- `package.json` — Node.js package manifest (~345 tok)
 - `postcss.config.mjs` — Declares config (~26 tok)
 - `README.md` — Project documentation (~702 tok)
 - `tsconfig.json` — TypeScript configuration (~192 tok)
@@ -74,6 +78,7 @@
 
 - `init-schema.ts` — API routes: GET (2 endpoints) (~775 tok)
 - `migrate-graph-relationships.ts` — One-time migration script to backfill graph relationships for existing data. (~1084 tok)
+- `prune-irrelevant-keywords.ts` — One-time script to prune irrelevant TARGETS relationships. (~1852 tok)
 - `seed.ts` — API routes: GET (4 endpoints) (~784 tok)
 
 ## skills/ai-visibility/
@@ -231,7 +236,7 @@
 
 - `claude.ts` — Claude SDK wrapper: generateText(), generateStructured(), cost tracking, prompt caching, Neo4j AIUsage recording (~2390 tok)
 - `clustering.ts` — K-means clustering on embeddings, AI intent classification via Haiku, cluster naming, regex fallback (~1468 tok)
-- `embeddings.ts` — --------------------------------------------------------------------------- (~941 tok)
+- `embeddings.ts` — --------------------------------------------------------------------------- (~1218 tok)
 
 ## src/lib/dataforseo/
 
@@ -252,7 +257,7 @@
 - `content-ingest.ts` — Exports runContentIngest: Firecrawl scrape + Haiku theme extraction, creates ContentPiece + Theme nodes (~1800 tok)
 - `content-optimize.ts` — Exports runContentOptimize (~3827 tok)
 - `helpers.ts` — Shared workflow run lifecycle: createWorkflowRun, completeWorkflowRun, failWorkflowRun (~710 tok)
-- `keyword-research.ts` — Extract keyword metrics from a DataForSEO item into a flat object. (~3054 tok)
+- `keyword-research.ts` — Extract keyword metrics from a DataForSEO item into a flat object. (~3385 tok)
 - `serp-analysis.ts` — Exports runSERPAnalysis (~2023 tok)
 - `site-audit.ts` — Exports runSiteAudit (~2582 tok)
 
@@ -264,7 +269,7 @@
 
 - `claude.test.ts` — --------------------------------------------------------------------------- (~2199 tok)
 - `clustering.test.ts` — Vitest tests for clusterKeywords, classifyIntentRegex, classifyIntentAI, nameCluster (~1100 tok)
-- `embeddings.test.ts` — --------------------------------------------------------------------------- (~1476 tok)
+- `embeddings.test.ts` — --------------------------------------------------------------------------- (~1818 tok)
 
 ## tests/app/api/
 
