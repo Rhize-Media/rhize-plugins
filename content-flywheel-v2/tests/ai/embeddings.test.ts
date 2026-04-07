@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { embedBatch, embedAndCacheKeywords, _setGenAI } from "@/lib/ai/embeddings";
+import { embedBatch, embedAndCacheKeywords, embedText, cosineSimilarity, _setGenAI } from "@/lib/ai/embeddings";
 
 // ---------------------------------------------------------------------------
 // Mock Neo4j driver — prevent real DB calls
@@ -63,7 +63,7 @@ describe("embedBatch", () => {
     expect(mock.models.embedContent).toHaveBeenCalledOnce();
     expect(mock.models.embedContent).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "text-embedding-004",
+        model: "gemini-embedding-001",
         contents: ["hello", "world"],
       })
     );
@@ -87,6 +87,43 @@ describe("embedBatch", () => {
 
     expect(mock.models.embedContent).toHaveBeenCalledTimes(2);
     expect(result).toHaveLength(150);
+  });
+});
+
+describe("cosineSimilarity", () => {
+  it("returns 1 for identical vectors", () => {
+    const v = [1, 2, 3];
+    expect(cosineSimilarity(v, v)).toBeCloseTo(1.0);
+  });
+
+  it("returns 0 for orthogonal vectors", () => {
+    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0.0);
+  });
+
+  it("returns -1 for opposite vectors", () => {
+    expect(cosineSimilarity([1, 0], [-1, 0])).toBeCloseTo(-1.0);
+  });
+
+  it("returns 0 for zero vectors", () => {
+    expect(cosineSimilarity([0, 0], [1, 1])).toBe(0);
+  });
+});
+
+describe("embedText", () => {
+  it("returns a single embedding vector", async () => {
+    const mock = makeMockGenAI() as { models: { embedContent: ReturnType<typeof vi.fn> } };
+    mock.models.embedContent.mockResolvedValueOnce({
+      embeddings: [{ values: new Array(256).fill(0.5) }],
+    });
+    _setGenAI(mock as unknown as Parameters<typeof _setGenAI>[0]);
+
+    const result = await embedText("AI search optimization");
+
+    expect(result).toHaveLength(256);
+    expect(result[0]).toBe(0.5);
+    expect(mock.models.embedContent).toHaveBeenCalledWith(
+      expect.objectContaining({ contents: ["AI search optimization"] })
+    );
   });
 });
 

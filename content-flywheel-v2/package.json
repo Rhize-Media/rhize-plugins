@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx --env-file=.env.local scripts/seed.ts",
-    "init-schema": "tsx --env-file=.env.local scripts/init-schema.ts"
+    "init-schema": "tsx --env-file=.env.local scripts/init-schema.ts",
+    "prune-keywords": "tsx --env-file=.env.local scripts/prune-irrelevant-keywords.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

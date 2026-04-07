@@ -19,10 +19,13 @@
 - **Author nodes:** Created automatically via `MERGE` when creating ContentPiece — `(Author)-[:WROTE]->(ContentPiece)`.
 - **Worktree agents:** Changes made by worktree-isolated agents DO persist to the main working directory files even after worktree cleanup. The branches may not survive but file edits do.
 
+- **Keyword TARGETS relevance filter:** keyword-research.ts step 4 embeds the content topic via `embedText()`, computes `cosineSimilarity()` against each keyword embedding, and only links keywords above threshold (0.65). Threshold was calibrated from live data: relevant keywords score 0.67+, irrelevant score below 0.60. Without this, DataForSEO returns lexically similar but semantically irrelevant keywords (e.g., "map of the state of florida" for an article about "The State of AI Search Optimization").
+
 ## Do-Not-Repeat
 
 <!-- Mistakes made and corrected. Each entry prevents the same mistake recurring. -->
 <!-- Format: [YYYY-MM-DD] Description of what went wrong and what to do instead. -->
+- [2026-04-06] Keyword research linked irrelevant keywords to content because step 4 just took the first 20 keywords with no semantic check. DataForSEO matches lexically ("state" → "state of the union") not semantically. Always filter via embedding similarity before creating TARGETS relationships.
 - [2026-04-06] Duplicate relationship type in getGraphStats relTypes array. `RANKS_FOR` appeared both as an original entry and was re-added when adding new types. UNION ALL queries with duplicate clauses double-count. Always check for existing entries before appending to arrays.
 
 ## Key Learnings (continued)
@@ -32,7 +35,7 @@
 - **SDK retry:** Anthropic SDK has built-in `maxRetries` option (default 2). No need for custom exponential backoff.
 - **AIUsage nodes:** `(:AIUsage {id, model, inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, cost, createdAt})` linked via `(ContentPiece)-[:HAS_AI_USAGE]->(AIUsage)`.
 
-- **Google GenAI SDK:** `@google/generative-ai` is deprecated. Use `@google/genai` with `GoogleGenAI` class. Embedding API: `ai.models.embedContent({ model: 'text-embedding-004', contents: [...], config: { outputDimensionality: 256 } })`.
+- **Google GenAI SDK:** `@google/generative-ai` is deprecated. Use `@google/genai` with `GoogleGenAI` class. Embedding API: `ai.models.embedContent({ model: 'gemini-embedding-001', contents: [...], config: { outputDimensionality: 256 } })`. Note: `text-embedding-004` is retired — use `gemini-embedding-001`.
 - **ml-kmeans:** Named export `{ kmeans }`, not default export. Options: `{ initialization: "kmeans++", maxIterations: 100 }`. Returns `{ clusters: number[] }`.
 - **Neo4j batch writes:** Use `UNWIND $entries AS entry` for batch writes instead of N individual `session.run()` calls — fewer round-trips, simpler code.
 - **classifyIntent replacement:** `replace_all` on `Edit` only matches exact strings. When a function is called with different argument names (`item.keyword` vs `kw.keyword` vs `kd.keyword`), each call site needs individual replacement.
