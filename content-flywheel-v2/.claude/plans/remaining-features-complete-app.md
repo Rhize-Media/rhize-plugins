@@ -246,79 +246,132 @@ Final documentation pass reflecting all M10-M13 changes.
 
 ---
 
-## M14: SEO Utils MCP (Non-Blocking)
+## M14: SEO Utils — Option B (Dual-Stack, Local MCP) ✅
 
-M9 runtime migration is blocked on cloud API, but the MCP setup for local dev is straightforward.
+**Architecture decision (2026-04-09):** SEO Utils runs as a local desktop app server at `http://localhost:19515/mcp`. Vercel serverless functions cannot reach localhost, so runtime workflows keep DataForSEO. SEO Utils is used for Claude Code sessions via MCP — providing GSC data, indexing API, autocomplete scraping, and gap analysis that DataForSEO doesn't offer.
 
-### Task 55: Purchase SEO Utils MCP access + configure
+### Task 55: Purchase + configure ✅
 
-**Manual step** — same as original plan Tasks 32-34.
+- MCP access purchased
+- `.mcp.json` entry configured with Bearer token
+- SEO Utils server confirmed running (401 → auth works)
+- MCP handshake verified: `seo-utils-intelligence` v1.45.0, 40+ tools available
 
-1. Purchase MCP access ($1)
-2. Generate Bearer token
-3. Add `seo-utils` entry to `.mcp.json`
-4. Add `SEO_UTILS_TOKEN` to `.env.local`
-5. Verify tools load in Claude Code session
+### Task 56: Create flywheel commands for SEO Utils ✅
 
-### Task 56: Document SEO Utils availability
+Created 4 new commands that leverage SEO Utils MCP tools:
 
-**Files:**
-- Modify: `CLAUDE.md` (add to MCP Servers section)
+| Command | File | SEO Utils Tools Used |
+|---------|------|---------------------|
+| `/flywheel-gsc` | `commands/flywheel-gsc.md` | `query_gsc`, `query_database` |
+| `/flywheel-indexing` | `commands/flywheel-indexing.md` | `check_google_indexing_status`, `submit_url_for_google_indexing`, `submit_url_to_index_now` |
+| `/flywheel-gap` | `commands/flywheel-gap.md` | `get_content_gap`, `get_backlink_gap` |
+| `/flywheel-autocomplete` | `commands/flywheel-autocomplete.md` | `fetch_autocomplete_keywords`, `check_keyword_metrics` |
 
-Note: runtime workflows still use DataForSEO directly. SEO Utils is available for ad-hoc Claude research (GSC data, LLM rank tracking, cannibalization detection).
+### Task 57: Document dual-stack architecture
 
-**Commit:** `chore(content-flywheel): add seo-utils MCP for local dev`
+**Files:** CLAUDE.md, hooks/flywheel-context.md
+
+Document: DataForSEO = Vercel runtime, SEO Utils = Claude Code sessions. Which tools are available where.
 
 ---
 
-## Implementation Order & Dependencies
+## M15: SEO Utils — Option C (VPS-Hosted, Vercel-Accessible) 🔮 Future
 
+**Goal:** Run SEO Utils headlessly on a VPS so Vercel serverless functions can call it as a REST API, enabling runtime migration away from direct DataForSEO calls.
+
+### Task 58: Provision VPS for SEO Utils
+
+**Manual step:**
+1. Provision a VPS (Hostinger/Railway/fly.io) — SEO Utils is lightweight, 1GB RAM sufficient
+2. Install SEO Utils in headless/server mode
+3. Configure firewall to allow inbound on port 19515 from Vercel IP ranges only
+4. Set up SSL (Let's Encrypt or Cloudflare tunnel) for HTTPS
+
+### Task 59: Configure SEO Utils on VPS
+
+1. Copy SEO Utils config (API keys, GSC credentials) to VPS
+2. Set up SEO Utils as a systemd service for auto-restart
+3. Generate a Bearer token for Vercel access
+4. Verify the MCP endpoint is reachable: `curl https://seo-utils.your-vps.com/mcp`
+
+### Task 60: Create SEO Utils runtime client
+
+**Files:**
+- Create: `src/lib/seo-utils/client.ts`
+
+Build a client that calls the VPS-hosted SEO Utils MCP endpoint using JSON-RPC over HTTP. Implement equivalent functions to `src/lib/dataforseo/client.ts` but routing through SEO Utils:
+
+```typescript
+// Same function signatures as dataforseo/client.ts
+export async function keywordSuggestions(...) { ... }
+export async function serpLive(...) { ... }
+// etc.
 ```
-M10 (AI Workflow UI) — NO DEPENDENCIES, start immediately
-  Task 38 (expand API) → Task 39 (buttons) + Task 40 (display) → Task 41 (ingest modal) → Task 42 (tests)
 
-M11 (Content Management) — can run in parallel with M10
-  Task 43 (edit API) + Task 44 (delete API) → Task 45 (edit/delete UI) → Task 46 (search/filter) → Task 47 (tests)
+Key: maintain identical TypeScript return shapes so workflow files need zero changes.
 
-M12 (Publishing UI) — after M10 (needs content detail changes to land first)
-  Task 48 (publish buttons) → Task 49 (status display) → Task 50 (tests)
+### Task 61: Feature flag + dual-run validation
 
-M13 (Polish) — after M10 + M11 + M12
-  Task 51 (webhook verify) + Task 52 (Slack) + Task 53 (context) + Task 54 (docs)
+**Files:**
+- Modify: all workflow files in `src/lib/workflows/`
+- Add: `SEO_UTILS_API_URL` and `USE_SEO_UTILS` env vars
 
-M14 (SEO Utils MCP) — independent, can run anytime
-  Task 55 (purchase + config) → Task 56 (document)
+Add a feature flag `USE_SEO_UTILS=true` that swaps the import:
+```typescript
+const client = process.env.USE_SEO_UTILS === 'true'
+  ? await import('@/lib/seo-utils/client')
+  : await import('@/lib/dataforseo/client');
 ```
 
-**Parallelizable:** M10 and M11 can run concurrently (different files). M14 is independent.
+Run both clients side-by-side for 1 week, compare results, validate equivalence.
 
-**Estimated scope:**
-- M10: ~4 tasks, touches queries.ts + content detail page + board page
-- M11: ~5 tasks, touches content API + content detail page + board page
-- M12: ~3 tasks, touches queries.ts + content detail page
-- M13: ~4 tasks, various polish files
-- M14: ~2 tasks, config only
+### Task 62: Migrate + add SEO Utils-exclusive runtime workflows
 
-**Total: 19 tasks across 5 milestones to reach feature-complete.**
+After validation, remove DataForSEO client and add new workflows:
+
+1. **GSC sync workflow** — `src/lib/workflows/gsc-sync.ts` — pull real Search Console data into Neo4j
+2. **Indexing workflow** — `src/lib/workflows/indexing-check.ts` — check/submit URLs after publishing
+3. **Cannibalization detection** — `src/lib/workflows/cannibalization-check.ts` — find competing pages
+
+### Task 63: Decommission DataForSEO
+
+1. Remove `src/lib/dataforseo/client.ts`
+2. Update all imports
+3. Remove `DATAFORSEO_USERNAME` / `DATAFORSEO_PASSWORD` from Vercel env vars
+4. Update documentation
+
+**Blocked on:** VPS provisioned + SEO Utils headless mode confirmed working.
+
+---
+
+## Milestone Status (updated 2026-04-09)
+
+| Milestone | Status | Notes |
+|-----------|--------|-------|
+| M10: AI Workflow UI | ✅ Done | All 4 AI workflow buttons + display sections |
+| M11: Content Management | ✅ Done | Edit, delete, board search/filter |
+| M12: Publishing UI | ✅ Done | Publish buttons + status display |
+| M13: Polish & Hardening | ✅ Done | Webhook verification, Slack, docs |
+| M14: SEO Utils Option B | ✅ Done | MCP configured, 4 flywheel commands created |
+| M15: SEO Utils Option C | 🔮 Future | VPS hosting, runtime migration |
 
 ---
 
 ## Post-Completion State
 
-After M10-M14, the Content Flywheel will support the full lifecycle:
+The Content Flywheel now supports the full lifecycle:
 
 1. **Discover** — Ingest URL → extract themes → create content in Inspiration
-2. **Research** — Run keyword research → semantic clustering → competitor gap analysis
+2. **Research** — Keyword research + semantic clustering + competitor gap analysis + autocomplete discovery (SEO Utils)
 3. **Generate** — AI outline → AI draft → brand voice check
 4. **Optimize** — SEO audit → content optimization → internal link suggestions
 5. **Review** — Brand voice score + SEO score visible side-by-side
-6. **Publish** — Push to Sanity CMS → schedule social via GHL
-7. **Monitor** — Daily SERP tracking → backlink monitoring → AI visibility
-8. **Refresh** — Re-run workflows to identify content decay → cycle back to Optimize
+6. **Publish** — Push to Sanity CMS → schedule social via GHL → submit for indexing (SEO Utils)
+7. **Monitor** — Daily SERP tracking + backlink monitoring + AI visibility + GSC data (SEO Utils)
+8. **Refresh** — Identify content decay via GSC declining queries → cycle back to Optimize
 
-All with:
-- Board search/filter for pipeline management at scale
-- Content editing/deletion for data hygiene
-- Slack notifications for team awareness
-- Cost tracking for AI budget management
-- Webhook verification for production security
+**Dual-stack architecture:**
+- **Vercel runtime** (deployed): DataForSEO API for all 10 workflow engines
+- **Claude Code sessions** (local): SEO Utils MCP for GSC, indexing, autocomplete, gap analysis
+- **Future (M15):** VPS-hosted SEO Utils replaces DataForSEO for runtime too

@@ -19,10 +19,12 @@
 | M3: Create Content Flow | ✅ Done | Board + content creation modal |
 | M4: App Shell & Error Handling | ✅ Done | Sidebar, error pages, loading states |
 | M5: Graph Explorer | ✅ Done | Stats, funnel, clusters, workflow history |
-| M6: Testing | ✅ Done | 100 tests across 14 files (was 43/6) |
+| M6: Testing | ✅ Done | 111 tests across 15 files |
 | M7: Deploy to Vercel | ✅ Done | Production at content-flywheel-nu.vercel.app |
 | M8: AI Feature Parity | ✅ Done | Claude SDK, embeddings, clustering, article gen, brand voice, cost tracking |
-| M9: Replace DataForSEO w/ SEO Utils | ⏳ Blocked | Requires SEO Utils cloud API (currently local-only) |
+| M9: SEO Utils Option B | ✅ Done | Dual-stack: DataForSEO (Vercel runtime) + SEO Utils MCP (local Claude sessions) |
+| M10-M13: UI + Polish | ✅ Done | AI workflow UI, content CRUD, publish UI, Slack, webhook verification |
+| M15: SEO Utils Option C | 🔮 Future | VPS-hosted SEO Utils for Vercel runtime access |
 
 ---
 
