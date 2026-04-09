@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-09T13:49:54.131Z
-> Files: 117 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-09T14:09:35.412Z
+> Files: 121 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -16,7 +16,7 @@
 
 - `.gitignore` — Git ignore rules (~212 tok)
 - `.mcp.json` (~504 tok)
-- `CLAUDE.md` — OpenWolf (~2733 tok)
+- `CLAUDE.md` — OpenWolf (~3001 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
 - `package.json` — Node.js package manifest (~345 tok)
@@ -46,7 +46,7 @@
 - `m8-draft-brandvoice.md` — M8 Article Draft + Brand Voice Scoring — RT-16 + RT-17 (~1131 tok)
 - `m8-embeddings-clustering.md` — M8 Embeddings + Semantic Clustering — RT-12 + RT-13 (~1916 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
-- `remaining-features-complete-app.md` — Content Flywheel — Remaining Features Plan (~3214 tok)
+- `remaining-features-complete-app.md` — Content Flywheel — Remaining Features Plan (~3920 tok)
 
 ## .claude/rules/
 
@@ -54,8 +54,12 @@
 
 ## commands/
 
+- `flywheel-autocomplete.md` — Process (~339 tok)
 - `flywheel-discover.md` — Process (~337 tok)
 - `flywheel-distribute.md` — Process (~370 tok)
+- `flywheel-gap.md` — Process (~454 tok)
+- `flywheel-gsc.md` — Process (~568 tok)
+- `flywheel-indexing.md` — Process (~379 tok)
 - `flywheel-monitor.md` — Process (~556 tok)
 - `flywheel-optimize.md` — Process (~409 tok)
 - `flywheel-publish.md` — Process (~298 tok)
@@ -68,7 +72,7 @@
 
 ## docs/plans/
 
-- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~11861 tok)
+- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~11910 tok)
 
 ## hooks/
 

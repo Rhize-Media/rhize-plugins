@@ -130,11 +130,23 @@ Configured in `.mcp.json` (all credentials via `${ENV_VAR}` refs resolved from `
 - **neo4j-cypher** — Read/write content data via Cypher queries
 - **neo4j-memory** — Persist entities across Claude sessions
 - **neo4j-data-modeling** — Design and validate graph schemas
-- **dataforseo** — SEO/keyword/SERP/backlinks data
+- **dataforseo** — SEO/keyword/SERP/backlinks data (used by Vercel runtime workflows)
+- **seo-utils** — SEO Utils MCP (`localhost:19515`) — GSC data, indexing API, autocomplete, gap analysis (local Claude sessions only, requires SEO Utils desktop app running)
 - **firecrawl** — Web scraping and site crawling
 - **exa-web-search** — Neural web search and research
 - **obsidian-mcp-server** — Vault research for content inspiration (local only)
 - **slack** — Notifications and approvals (pending bot token)
+
+### Dual-Stack SEO Architecture
+- **Vercel runtime** (deployed workflows): `src/lib/dataforseo/client.ts` calls DataForSEO API directly
+- **Claude Code sessions** (local): SEO Utils MCP for exclusive features — GSC data (`query_gsc`), Google/Bing indexing (`submit_url_for_google_indexing`, `submit_url_to_index_now`), autocomplete scraping (`fetch_autocomplete_keywords`), content/backlink gap analysis (`get_content_gap`, `get_backlink_gap`)
+- **Future (M15)**: VPS-hosted SEO Utils will replace DataForSEO for runtime too
+
+### Flywheel Commands (SEO Utils)
+- `/flywheel-gsc` — Query GSC data: top queries, declining pages, branded traffic
+- `/flywheel-indexing` — Check/submit URLs for Google and Bing indexing
+- `/flywheel-gap` — Content gap and backlink gap analysis vs competitors
+- `/flywheel-autocomplete` — Discover autocomplete and question keywords
 
 ## Commands
 
