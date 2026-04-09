@@ -3,10 +3,12 @@
 > Chronological action log. Hooks and AI append to this file automatically.
 > Old sessions are consolidated by the daemon weekly.
 
+| 09:48 | M10-M13 implementation: expanded getContentDetailById (outline/draft/brandVoice/themes/publishedTo/distributedTo), added PATCH+DELETE content API, AI workflow buttons (ingest/outline/draft/brand-voice/publish), all display sections, edit/delete UI, Slack module, webhook HMAC verification, board search+filter+ingest modal, flywheel-context.md update | queries.ts, content/[id]/page.tsx, content/[id]/route.ts, board/page.tsx, slack.ts, webhooks/sanity/route.ts, flywheel-context.md | 111/111 tests, tsc clean | ~3000 tok |
 | 20:34 | Added semantic relevance filter to keyword-research workflow — embedText(), cosineSimilarity() in embeddings.ts, similarity gate in keyword-research.ts step 4 | src/lib/ai/embeddings.ts, src/lib/workflows/keyword-research.ts, tests/ai/embeddings.test.ts | 100/100 tests pass, tsc clean | ~500 tok |
 | 20:38 | Created prune-irrelevant-keywords.ts script to backfill-clean existing bad TARGETS relationships via cosine similarity. Added npm script "prune-keywords". | scripts/prune-irrelevant-keywords.ts, package.json | dry-run default, --apply to delete | ~900 tok |
 | 20:48 | Fixed embedding model: text-embedding-004 retired → gemini-embedding-001. Updated embeddings.ts, script, and test. | src/lib/ai/embeddings.ts, scripts/prune-irrelevant-keywords.ts, tests/ai/embeddings.test.ts | all 100 tests pass | ~50 tok |
 | 20:50 | Raised RELEVANCE_THRESHOLD from 0.35 → 0.65 based on live data (relevant: 0.67+, irrelevant: <0.60). Ran --apply: pruned 20 bad TARGETS from "State of AI Search Optimization", kept all 28 for other articles. | keyword-research.ts, prune script | 20 deleted, 28 kept | ~0 tok |
+| 21:30 | Created remaining-features plan: 19 tasks across M10-M14 to reach feature-complete. Key gaps: AI workflow UI, content edit/delete, publish buttons, Slack, webhook verification. | .claude/plans/remaining-features-complete-app.md | plan only | ~2500 tok |
 | 21:15 | Documentation audit: Updated CLAUDE.md (added src/lib/ai/, 10 workflows, 100 tests, GEMINI/ANTHROPIC env vars, prune-keywords script, keyword relevance filter pattern, 6 new graph relationships). Updated README.md (expanded workflow routes table, AI stack, 100 tests, prune-keywords). Updated production plan (milestone status table, fixed deprecated model/package refs, Firecrawl package name). | CLAUDE.md, README.md, docs/plans/2026-04-04-*.md | all docs synced with codebase | ~800 tok |
 
 | 15:01 | Simplify: extracted `extractKeywordData()` helper in keyword-research.ts to DRY up 3 duplicated keyword data extraction blocks | src/lib/workflows/keyword-research.ts | 3 blocks reduced to 1 helper + 3 calls | ~100 tok saved |
@@ -408,3 +410,38 @@
 | 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | 3→3 lines | ~51 |
 | 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | "@mendable/firecrawl-js" → "firecrawl" | ~33 |
 | 09:09 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | inline fix | ~11 |
+| 09:10 | Session end: 32 writes across 8 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 10 reads | ~34415 tok |
+| 09:16 | Created .claude/plans/remaining-features-complete-app.md | — | ~3428 |
+| 09:16 | Session end: 33 writes across 9 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 18 reads | ~55921 tok |
+| 09:17 | Session end: 33 writes across 9 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 18 reads | ~55921 tok |
+| 09:42 | Edited src/app/board/page.tsx | modified BoardPage() | ~242 |
+| 09:42 | Edited src/app/board/page.tsx | inline fix | ~19 |
+| 09:42 | Edited src/lib/neo4j/queries.ts | expanded (+12 lines) | ~528 |
+| 09:43 | Edited src/app/board/page.tsx | added nullish coalescing | ~495 |
+| 09:43 | Edited src/app/api/webhooks/sanity/route.ts | added 3 condition(s) | ~398 |
+| 09:43 | Created src/lib/notifications/slack.ts | — | ~474 |
+| 09:43 | Edited src/app/board/page.tsx | CSS: hover | ~117 |
+| 09:43 | Edited hooks/flywheel-context.md | 2→6 lines | ~104 |
+| 09:43 | Edited src/lib/neo4j/queries.ts | expanded (+12 lines) | ~221 |
+| 09:43 | Created tests/notifications/slack.test.ts | — | ~1080 |
+| 09:43 | Edited hooks/flywheel-context.md | 1→6 lines | ~126 |
+| 09:43 | Edited src/app/board/page.tsx | expanded (+83 lines) | ~1044 |
+| 09:43 | Edited hooks/flywheel-context.md | 1→3 lines | ~124 |
+| 09:43 | Edited src/lib/neo4j/queries.ts | added optional chaining | ~536 |
+| 09:43 | Edited src/app/board/page.tsx | 3→3 lines | ~62 |
+| 09:43 | Edited hooks/flywheel-context.md | expanded (+6 lines) | ~132 |
+| 09:43 | Edited src/app/api/content/[id]/route.ts | 2→2 lines | ~42 |
+| 09:43 | Edited src/app/board/page.tsx | inline fix | ~19 |
+| 09:43 | Edited src/app/api/content/[id]/route.ts | added 2 condition(s) | ~361 |
+| 09:44 | Edited src/app/content/[id]/page.tsx | expanded (+6 lines) | ~268 |
+| 09:44 | Edited src/app/content/[id]/page.tsx | 3→6 lines | ~108 |
+| 09:44 | Edited src/app/content/[id]/page.tsx | modified handleSaveField() | ~146 |
+| 09:45 | Edited src/app/content/[id]/page.tsx | added 2 condition(s) | ~734 |
+| 09:45 | Edited src/app/content/[id]/page.tsx | CSS: url, action | ~765 |
+| 09:46 | Edited src/app/content/[id]/page.tsx | added optional chaining | ~2111 |
+| 09:46 | Edited tests/app/api/content-detail.test.ts | 6→8 lines | ~82 |
+| 09:46 | Edited tests/app/api/content-detail.test.ts | expanded (+6 lines) | ~61 |
+| 09:46 | Edited tests/app/api/content-detail.test.ts | expanded (+54 lines) | ~722 |
+| 09:49 | Edited CLAUDE.md | 1→2 lines | ~41 |
+| 09:49 | Edited CLAUDE.md | 100 → 111 | ~16 |
+| 09:49 | Edited README.md | inline fix | ~15 |

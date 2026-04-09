@@ -65,7 +65,7 @@ Requires `.env.local` with Neo4j + DataForSEO credentials. See [CLAUDE.md](CLAUD
 npm run dev            # dev server
 npm run build          # production build
 npm run lint           # eslint
-npm test               # vitest (100 tests, 14 files)
+npm test               # vitest (111 tests, 15 files)
 npm run seed           # seed sample content into Neo4j
 npm run init-schema    # initialize Neo4j constraints + pipeline stages
 npm run prune-keywords # audit/prune irrelevant keyword TARGETS by cosine similarity

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { PIPELINE_STAGES, type ContentPiece, type PipelineStage } from "@/types";
 
 interface BoardData {
@@ -31,10 +31,68 @@ export default function BoardPage() {
   });
   const [slugEdited, setSlugEdited] = useState(false);
 
+  // Ingest URL modal state
+  const [showIngest, setShowIngest] = useState(false);
+  const [ingesting, setIngesting] = useState(false);
+  const [ingestUrl, setIngestUrl] = useState("");
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [authorFilter, setAuthorFilter] = useState("");
+
   function resetForm() {
     setForm({ title: "", slug: "", author: "", url: "", stage: "inspiration" });
     setSlugEdited(false);
   }
+
+  async function handleIngest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ingestUrl) return;
+    setIngesting(true);
+    try {
+      const res = await fetch("/api/workflows/content-ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: ingestUrl }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(`Failed to ingest: ${err.error ?? "unknown error"}`);
+        return;
+      }
+      await fetchBoard();
+      setShowIngest(false);
+      setIngestUrl("");
+    } finally {
+      setIngesting(false);
+    }
+  }
+
+  // Derive unique authors from board data for the filter dropdown
+  const uniqueAuthors = useMemo(() => {
+    const authors = new Set<string>();
+    for (const pieces of Object.values(board)) {
+      for (const piece of pieces) {
+        if (piece.author) authors.add(piece.author);
+      }
+    }
+    return Array.from(authors).sort();
+  }, [board]);
+
+  // Filter board data by search query and author
+  const filteredBoard = useMemo(() => {
+    const result: BoardData = {};
+    for (const [stage, pieces] of Object.entries(board)) {
+      result[stage] = pieces.filter((piece) => {
+        const matchesSearch =
+          !searchQuery ||
+          piece.title.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesAuthor = !authorFilter || piece.author === authorFilter;
+        return matchesSearch && matchesAuthor;
+      });
+    }
+    return result;
+  }, [board, searchQuery, authorFilter]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -145,6 +203,15 @@ export default function BoardPage() {
             + New Content
           </button>
           <button
+            onClick={() => {
+              setIngestUrl("");
+              setShowIngest(true);
+            }}
+            className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            Ingest URL
+          </button>
+          <button
             onClick={async () => {
               const domain = prompt("Enter domain to audit:");
               if (!domain) return;
@@ -175,6 +242,89 @@ export default function BoardPage() {
           </button>
         </div>
       </header>
+
+      {/* Search and Filter Bar */}
+      <div className="flex items-center gap-3 border-b border-zinc-200 bg-zinc-50 px-6 py-2 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search by title..."
+          className="w-64 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 placeholder-zinc-400 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder-zinc-500"
+        />
+        <select
+          value={authorFilter}
+          onChange={(e) => setAuthorFilter(e.target.value)}
+          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          <option value="">All Authors</option>
+          {uniqueAuthors.map((author) => (
+            <option key={author} value={author}>
+              {author}
+            </option>
+          ))}
+        </select>
+        {(searchQuery || authorFilter) && (
+          <button
+            onClick={() => {
+              setSearchQuery("");
+              setAuthorFilter("");
+            }}
+            className="text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Ingest URL Modal */}
+      {showIngest && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !ingesting && setShowIngest(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-zinc-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="mb-4 text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+              Ingest URL
+            </h2>
+            <form onSubmit={handleIngest} className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  URL
+                </label>
+                <input
+                  type="url"
+                  required
+                  value={ingestUrl}
+                  onChange={(e) => setIngestUrl(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                  placeholder="https://example.com/article-to-ingest"
+                />
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowIngest(false)}
+                  disabled={ingesting}
+                  className="rounded-md px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={ingesting}
+                  className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {ingesting ? "Ingesting..." : "Ingest"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Create Content Modal */}
       {showCreate && (
@@ -309,13 +459,13 @@ export default function BoardPage() {
                 {stage.label}
               </h2>
               <span className="ml-auto rounded-full bg-zinc-200 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                {board[stage.name]?.length ?? 0}
+                {filteredBoard[stage.name]?.length ?? 0}
               </span>
             </div>
 
             {/* Cards */}
             <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-3">
-              {(board[stage.name] ?? []).map((piece) => (
+              {(filteredBoard[stage.name] ?? []).map((piece) => (
                 <a
                   key={piece.id}
                   href={`/content/${piece.id}`}

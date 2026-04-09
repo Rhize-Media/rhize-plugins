@@ -55,7 +55,8 @@ API Routes:
 - `src/app/api/` — All API routes
 - `cypher/` — Neo4j schema (run via `npm run init-schema`)
 - `scripts/` — `init-schema.ts` (DB setup), `seed.ts` (sample data), `migrate-graph-relationships.ts` (backfill existing data), `prune-irrelevant-keywords.ts` (remove semantically irrelevant TARGETS)
-- `tests/` — Vitest unit tests (100 tests across 14 files)
+- `src/lib/notifications/` — Slack notification module (graceful no-op when env vars not set)
+- `tests/` — Vitest unit tests (111 tests across 15 files)
 - `docs/plans/` — Implementation plans
 
 ## Graph Schema
@@ -141,7 +142,7 @@ Configured in `.mcp.json` (all credentials via `${ENV_VAR}` refs resolved from `
 npm run dev            # Start dev server at localhost:3000
 npm run build          # Production build
 npm run lint           # ESLint check
-npm test               # Run vitest unit tests (100 tests)
+npm test               # Run vitest unit tests (111 tests)
 npm run test:watch     # Run tests in watch mode
 npm run seed           # Seed 5 sample content pieces into Neo4j
 npm run init-schema    # Run cypher/schema.cypher against Neo4j Aura

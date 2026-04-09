@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { runCypher } from "@/lib/neo4j/queries";
 
 // Sanity webhook receiver — fires when a document is published/unpublished.
@@ -6,7 +7,42 @@ import { runCypher } from "@/lib/neo4j/queries";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    // --- Webhook signature verification ---
+    const rawBody = await req.text();
+    const secret = process.env.SANITY_WEBHOOK_SECRET;
+    const signature = req.headers.get("sanity-webhook-signature");
+
+    if (secret) {
+      if (!signature) {
+        return NextResponse.json(
+          { error: "Missing webhook signature" },
+          { status: 401 }
+        );
+      }
+
+      const expected = createHmac("sha256", secret)
+        .update(rawBody)
+        .digest("hex");
+
+      const sigBuffer = Buffer.from(signature, "hex");
+      const expectedBuffer = Buffer.from(expected, "hex");
+
+      if (
+        sigBuffer.length !== expectedBuffer.length ||
+        !timingSafeEqual(sigBuffer, expectedBuffer)
+      ) {
+        return NextResponse.json(
+          { error: "Invalid webhook signature" },
+          { status: 401 }
+        );
+      }
+    } else {
+      console.warn(
+        "SANITY_WEBHOOK_SECRET is not configured — skipping signature verification"
+      );
+    }
+
+    const body = JSON.parse(rawBody);
 
     const { _id, _type, slug, _rev } = body;
 

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-07T00:54:01.984Z
-> Files: 114 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-09T13:49:54.131Z
+> Files: 117 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -16,12 +16,12 @@
 
 - `.gitignore` — Git ignore rules (~212 tok)
 - `.mcp.json` (~504 tok)
-- `CLAUDE.md` — OpenWolf (~2349 tok)
+- `CLAUDE.md` — OpenWolf (~2733 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
 - `package.json` — Node.js package manifest (~345 tok)
 - `postcss.config.mjs` — Declares config (~26 tok)
-- `README.md` — Project documentation (~702 tok)
+- `README.md` — Project documentation (~960 tok)
 - `tsconfig.json` — TypeScript configuration (~192 tok)
 - `vercel.json` (~53 tok)
 - `vitest.config.ts` — /*.test.{ts,tsx}"], (~85 tok)
@@ -46,6 +46,7 @@
 - `m8-draft-brandvoice.md` — M8 Article Draft + Brand Voice Scoring — RT-16 + RT-17 (~1131 tok)
 - `m8-embeddings-clustering.md` — M8 Embeddings + Semantic Clustering — RT-12 + RT-13 (~1916 tok)
 - `neo4j-graph-relationship-enhancements.md` — Neo4j Graph Relationship Enhancements — Implementation Plan (~4366 tok)
+- `remaining-features-complete-app.md` — Content Flywheel — Remaining Features Plan (~3214 tok)
 
 ## .claude/rules/
 
@@ -67,11 +68,11 @@
 
 ## docs/plans/
 
-- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~11648 tok)
+- `2026-04-04-content-flywheel-production-ready.md` — Content Flywheel — Production-Ready Implementation Plan (~11861 tok)
 
 ## hooks/
 
-- `flywheel-context.md` — Content Flywheel Context (~1565 tok)
+- `flywheel-context.md` — Content Flywheel Context (~1877 tok)
 - `hooks.json` (~184 tok)
 
 ## scripts/
@@ -129,7 +130,7 @@
 
 ## src/app/api/content/[id]/
 
-- `route.ts` — Next.js API route: GET (~177 tok)
+- `route.ts` — Next.js API route: GET, PATCH, DELETE (~487 tok)
 
 ## src/app/api/cron/seo-pull/
 
@@ -161,7 +162,7 @@
 
 ## src/app/api/webhooks/sanity/
 
-- `route.ts` — Sanity webhook receiver — fires when a document is published/unpublished. (~614 tok)
+- `route.ts` — Sanity webhook receiver — fires when a document is published/unpublished. (~912 tok)
 
 ## src/app/api/workflows/ai-visibility/
 
@@ -207,13 +208,13 @@
 
 - `error.tsx` — BoardError (~71 tok)
 - `loading.tsx` — BoardLoading (~411 tok)
-- `page.tsx` — slugify — renders form (~3616 tok)
+- `page.tsx` — slugify — renders form (~5271 tok)
 
 ## src/app/content/[id]/
 
 - `error.tsx` — ContentError (~72 tok)
 - `loading.tsx` — ContentLoading (~256 tok)
-- `page.tsx` — fetchContentDetail — renders table (~5242 tok)
+- `page.tsx` — fetchContentDetail (~8739 tok)
 
 ## src/app/graph/
 
@@ -245,7 +246,11 @@
 ## src/lib/neo4j/
 
 - `driver.ts` — Exports getDriver, closeDriver (~184 tok)
-- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~4563 tok)
+- `queries.ts` — Convert Neo4j driver types (Integer, DateTime, Date, Node, Relationship, Point, Duration) (~5508 tok)
+
+## src/lib/notifications/
+
+- `slack.ts` — Post a message to Slack using the Web API `chat.postMessage` endpoint. (~474 tok)
 
 ## src/lib/workflows/
 
@@ -275,7 +280,7 @@
 
 - `board-move.test.ts` — Mock the Neo4j queries module before importing the route (~801 tok)
 - `content-create.test.ts` — Declares mockRequest (~1112 tok)
-- `content-detail.test.ts` — Declares mockRequest (~559 tok)
+- `content-detail.test.ts` — Declares mockRequest (~1237 tok)
 - `graph-query.test.ts` — Declares mockRequest (~821 tok)
 
 ## tests/lib/dataforseo/
@@ -285,6 +290,10 @@
 ## tests/lib/neo4j/
 
 - `to-plain.test.ts` — Declares int (~631 tok)
+
+## tests/notifications/
+
+- `slack.test.ts` — --------------------------------------------------------------------------- (~1080 tok)
 
 ## tests/workflows/
 
