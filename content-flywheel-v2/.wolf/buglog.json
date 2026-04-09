@@ -464,6 +464,662 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-04-06T17:53:30.075Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-04-06T18:28:19.392Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/ai/claude.ts",
+      "root_cause": "32 lines replaced/restructured",
+      "fix": "Rewrote 71→38 lines (32 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:28:19.392Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-04-06T18:28:30.723Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/ai/claude.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:28:30.723Z"
+    },
+    {
+      "id": "bug-032",
+      "timestamp": "2026-04-06T18:36:26.899Z",
+      "error_message": "Missing guard clause",
+      "file": "src/lib/ai/claude.ts",
+      "root_cause": "No early return/throw for edge case: typeof system === \"string\"",
+      "fix": "Added guard clause: if (typeof system === \"string\")",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:36:26.899Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-04-06T18:37:06.418Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/ai/claude.test.ts",
+      "root_cause": "Had \"@/lib/ai/claude\"",
+      "fix": "Changed to \"@anthropic-ai/sdk\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:37:06.418Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-04-06T18:53:27.932Z",
+      "error_message": "Wrong reference: classifyIntent should be classifyIntentRegex",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Used \"classifyIntent\" instead of \"classifyIntentRegex\"",
+      "fix": "Changed classifyIntent → classifyIntentRegex",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-06T18:54:33.026Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-04-06T18:53:59.640Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:53:59.640Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-04-06T18:57:31.177Z",
+      "error_message": "Type error",
+      "file": "tests/ai/embeddings.test.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T18:57:31.177Z"
+    },
+    {
+      "id": "bug-037",
+      "timestamp": "2026-04-06T19:00:36.244Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:00:36.244Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-04-06T19:00:49.207Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "18 lines replaced/restructured",
+      "fix": "Rewrote 29→13 lines (18 removed) | Also: allKeywords.set(kw.keyword, {; term: kw.keyword,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T19:00:58.031Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-04-06T19:01:24.098Z",
+      "error_message": "Type error",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:01:24.098Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-04-06T19:08:34.087Z",
+      "error_message": "Type error",
+      "file": "src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:08:34.087Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-04-06T19:10:14.327Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/content-ingest.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:10:14.327Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-04-06T19:19:11.735Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/content-ingest.ts",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 10→3 lines (9 removed) | Also: const message = error instanceof Error ? error.mes; await runCypher(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-06T19:19:21.478Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-04-06T19:19:51.254Z",
+      "error_message": "Significant refactor of ",
+      "file": "src/lib/workflows/article-outline.ts",
+      "root_cause": "13 lines replaced/restructured",
+      "fix": "Rewrote 14→4 lines (13 removed) | Also: await runCypher(; `MATCH (w:WorkflowRun {id: $runId}) | Also: const message = error instanceof Error ? error.mes; await runCypher(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-04-06T19:20:06.192Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-04-06T19:20:12.793Z",
+      "error_message": "Wrong reference: Generated should be summaryText",
+      "file": "src/lib/workflows/article-outline.ts",
+      "root_cause": "Used \"Generated\" instead of \"summaryText\"",
+      "fix": "Changed Generated → summaryText",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:20:12.793Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-04-06T19:23:50.216Z",
+      "error_message": "Type error",
+      "file": "src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:23:50.216Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-04-06T19:37:51.199Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:37:51.199Z"
+    },
+    {
+      "id": "bug-047",
+      "timestamp": "2026-04-06T19:39:17.825Z",
+      "error_message": "Type error",
+      "file": "src/app/graph/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-06T19:39:17.825Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-04-07T00:06:26.664Z",
+      "error_message": "Incorrect value in code",
+      "file": ".mcp.json",
+      "root_cause": "Had \"Bearer 018b1ed71fab23406d9c6ecd74e6ec66f606c52d8b",
+      "fix": "Changed to \"Bearer ${SEO_UTILS_TOKEN}\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:06:26.664Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-04-07T00:33:16.590Z",
+      "error_message": "Missing await",
+      "file": "src/lib/ai/embeddings.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:33:16.590Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-04-07T00:33:38.167Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/workflows/keyword-research.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:33:38.167Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-04-07T00:34:04.993Z",
+      "error_message": "Missing await",
+      "file": "tests/ai/embeddings.test.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:34:04.993Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-04-07T00:47:12.686Z",
+      "error_message": "Incorrect value in code",
+      "file": "src/lib/ai/embeddings.ts",
+      "root_cause": "Had \"text-embedding-004\"",
+      "fix": "Changed to \"gemini-embedding-001\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:47:12.686Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-04-07T00:47:19.820Z",
+      "error_message": "Incorrect value in code",
+      "file": "scripts/prune-irrelevant-keywords.ts",
+      "root_cause": "Had \"text-embedding-004\"",
+      "fix": "Changed to \"gemini-embedding-001\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:47:19.820Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-04-07T00:47:27.699Z",
+      "error_message": "Incorrect value in code",
+      "file": "tests/ai/embeddings.test.ts",
+      "root_cause": "Had \"text-embedding-004\"",
+      "fix": "Changed to \"gemini-embedding-001\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-07T00:47:27.699Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-04-07T00:53:47.513Z",
+      "error_message": "Significant refactor of ",
+      "file": "scripts/prune-irrelevant-keywords.ts",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 32→11 lines (12 removed) | Also: if (!embedding || embedding.length === 0) {; // No embedding — need to embed it first, then che",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-07T00:54:01.998Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-04-09T13:06:54.692Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `src/lib/workflows/`",
+      "fix": "Changed to `src/lib/ai/`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-09T13:07:01.060Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-04-09T13:08:39.939Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→19 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:08:39.939Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-04-09T13:08:55.110Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "root_cause": "Had `@mendable/firecrawl-js`",
+      "fix": "Changed to `firecrawl`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:08:55.110Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-04-09T13:43:03.505Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {/* Themes */}; {content.themes && content.themes.length > 0 && (",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-09T13:46:02.379Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-04-09T13:43:28.898Z",
+      "error_message": "Type error",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:43:28.898Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-04-09T13:43:33.170Z",
+      "error_message": "Null/undefined access in ",
+      "file": "src/lib/neo4j/queries.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:43:33.170Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-04-09T13:43:36.630Z",
+      "error_message": "Wrong reference: board should be filteredBoard",
+      "file": "src/app/board/page.tsx",
+      "root_cause": "Used \"board\" instead of \"filteredBoard\"",
+      "fix": "Changed board → filteredBoard",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-09T13:43:43.734Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-04-09T13:43:54.046Z",
+      "error_message": "Missing await",
+      "file": "src/app/api/content/[id]/route.ts",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:43:54.046Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-04-09T13:44:49.405Z",
+      "error_message": "Missing await",
+      "file": "src/app/content/[id]/page.tsx",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:44:49.405Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-04-09T13:45:07.965Z",
+      "error_message": "CSS fix: dark",
+      "file": "src/app/content/[id]/page.tsx",
+      "root_cause": "dark: text-zinc-100\"> → bg-zinc-700\">Cancel</button>",
+      "fix": "Changed dark: text-zinc-100\"> → bg-zinc-700\">Cancel</button>",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-04-09T13:45:28.261Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-04-09T13:46:26.002Z",
+      "error_message": "Significant refactor of ",
+      "file": "tests/app/api/content-detail.test.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:46:26.002Z"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-04-09T13:49:43.062Z",
+      "error_message": "Incorrect value in code",
+      "file": "CLAUDE.md",
+      "root_cause": "Had `tests/`",
+      "fix": "Changed to `src/lib/notifications/`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:49:43.062Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-04-09T13:49:48.361Z",
+      "error_message": "Wrong reference: 100 should be 111",
+      "file": "CLAUDE.md",
+      "root_cause": "Used \"100\" instead of \"111\"",
+      "fix": "Changed 100 → 111",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T13:49:48.361Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-04-09T14:08:58.538Z",
+      "error_message": "Missing await",
+      "file": ".claude/plans/remaining-features-complete-app.md",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T14:08:58.538Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-04-09T14:09:35.426Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/plans/2026-04-04-content-flywheel-production-ready.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→6 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-04-09T14:09:35.426Z"
     }
   ]
 }
