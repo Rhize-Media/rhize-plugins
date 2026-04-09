@@ -9,6 +9,8 @@ Content pipeline dashboard powered by Neo4j graph database. Tracks content from 
 - **Next.js 16** (App Router) + TypeScript + Tailwind CSS 4
 - **Neo4j Aura** — graph database for content, keywords, clusters, SERP data, backlinks
 - **DataForSEO** — keyword research, SERP tracking, backlink analysis, on-page auditing
+- **Claude API** (Anthropic) — article generation, brand voice scoring, intent classification, with prompt caching
+- **Gemini Embeddings** — keyword semantic embeddings (gemini-embedding-001, 256-dim) for clustering and relevance filtering
 - **Sanity CMS** — publishing adapter
 - **GoHighLevel** — social distribution adapter
 - **Vercel** — hosting + cron jobs
@@ -40,7 +42,16 @@ Requires `.env.local` with Neo4j + DataForSEO credentials. See [CLAUDE.md](CLAUD
 | `/api/content/[id]` | GET | Full content detail with graph neighborhood |
 | `/api/graph/stats` | GET | Graph statistics and aggregations |
 | `/api/graph/query` | POST | Generic Cypher proxy (requires `x-graph-secret` header) |
-| `/api/workflows/*` | POST | DataForSEO workflow runners (6 workflows) |
+| `/api/workflows/keyword-research` | POST | Keyword research + semantic clustering |
+| `/api/workflows/content-optimize` | POST | On-page SEO optimization analysis |
+| `/api/workflows/serp-analysis` | POST | SERP feature analysis |
+| `/api/workflows/backlink-analysis` | POST | Backlink profile analysis |
+| `/api/workflows/ai-visibility` | POST | AI/LLM mention monitoring |
+| `/api/workflows/site-audit` | POST | Technical site audit |
+| `/api/workflows/content-ingest` | POST | URL scraping + theme extraction (Firecrawl + Haiku) |
+| `/api/workflows/article-outline` | POST | AI outline generation (Sonnet) |
+| `/api/workflows/article-draft` | POST | AI article draft generation (Sonnet) |
+| `/api/workflows/brand-voice-check` | POST | Brand voice scoring (Haiku) |
 | `/api/cron/seo-pull` | GET | Daily keyword ranking pull (Vercel Cron) |
 | `/api/cron/serp-snapshot` | GET | Weekly SERP feature analysis (Vercel Cron) |
 | `/api/publish/sanity` | POST | Publish/draft content to Sanity CMS |
@@ -54,9 +65,10 @@ Requires `.env.local` with Neo4j + DataForSEO credentials. See [CLAUDE.md](CLAUD
 npm run dev            # dev server
 npm run build          # production build
 npm run lint           # eslint
-npm test               # vitest (43 tests)
+npm test               # vitest (100 tests, 14 files)
 npm run seed           # seed sample content into Neo4j
 npm run init-schema    # initialize Neo4j constraints + pipeline stages
+npm run prune-keywords # audit/prune irrelevant keyword TARGETS by cosine similarity
 npx tsx scripts/migrate-graph-relationships.ts  # backfill graph relationships (one-time)
 ```
 

@@ -4,9 +4,25 @@
 
 **Goal:** Take the content-flywheel-v2 from scaffolded-but-unrunnable to a working, secure, deployable dashboard with full CRUD and graph exploration.
 
-**Architecture:** Next.js 15 App Router + Neo4j Aura + DataForSEO. The core workflow engines and adapters are already implemented. This plan focuses on: getting the build working, closing security holes, adding missing UI flows, and deploying.
+**Architecture:** Next.js 16 App Router + Neo4j Aura + DataForSEO + Claude API + Gemini Embeddings.
 
-**Tech Stack:** Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, neo4j-driver 6, Vercel, DataForSEO API
+**Tech Stack:** Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, neo4j-driver 6, Vercel, DataForSEO API, Anthropic SDK, @google/genai
+
+## Milestone Status (as of 2026-04-09)
+
+| Milestone | Status | Notes |
+|-----------|--------|-------|
+| M0: Credentials & MCP Setup | ✅ Done | Neo4j Aura `ec4405e5`, all MCP servers configured |
+| M0.5: POC Critical Path | ✅ Done | Seed, schema, smoke test all passing |
+| M1: Build & Boot | ✅ Done | Turbopack root fix, lockfile, clean build |
+| M2: Security | ✅ Done | Dedicated API endpoints replace raw Cypher proxy |
+| M3: Create Content Flow | ✅ Done | Board + content creation modal |
+| M4: App Shell & Error Handling | ✅ Done | Sidebar, error pages, loading states |
+| M5: Graph Explorer | ✅ Done | Stats, funnel, clusters, workflow history |
+| M6: Testing | ✅ Done | 100 tests across 14 files (was 43/6) |
+| M7: Deploy to Vercel | ✅ Done | Production at content-flywheel-nu.vercel.app |
+| M8: AI Feature Parity | ✅ Done | Claude SDK, embeddings, clustering, article gen, brand voice, cost tracking |
+| M9: Replace DataForSEO w/ SEO Utils | ⏳ Blocked | Requires SEO Utils cloud API (currently local-only) |
 
 ---
 
@@ -1030,13 +1046,13 @@ Bring back the AI capabilities from the old n8n version (article generation, the
 - Claude Sonnet → article outline
 - **Claude Opus → full article draft** (main cost)
 - Claude Sonnet → self-review + brand voice pass
-- Gemini text-embedding-004 → embeddings for keyword clustering
+- Gemini embeddings → keyword clustering
 
 **New v2 target pipeline** (~$0.20–0.50 per article):
 - Haiku 4.5 → theme extraction, intent classification, quality screening
 - **Sonnet 4.6 → outline + full draft** (Opus-tier quality at ~1/5 cost)
 - Haiku 4.5 → brand voice validation pass
-- Voyage-3 or Gemini text-embedding-004 → semantic embeddings (cheap, high-quality)
+- Gemini gemini-embedding-001 → semantic embeddings (256-dim, cheap, high-quality)
 - Neo4j caching — if keywords/embeddings/outlines already exist, reuse
 
 ### Task 22: Install AI SDK dependencies
@@ -1050,11 +1066,10 @@ Run: `npm install @anthropic-ai/sdk@latest`
 
 Optional (pick one for embeddings):
 
-- `@google/generative-ai` — Gemini text-embedding-004 (cheapest, 768-dim)
-- `voyageai` — Voyage-3 (better quality, 1024-dim)
-- `openai` — text-embedding-3-small (good middle ground)
+- `@google/genai` — Gemini gemini-embedding-001 (cheapest, 256-dim) ✅ **CHOSEN**
 
-Default recommendation: **Gemini** for cost (free tier: 1500 req/min, paid: $0.00002/1K tokens).
+Note: `@google/generative-ai` is deprecated. Use `@google/genai` with `GoogleGenAI` class.
+Model `text-embedding-004` is retired — use `gemini-embedding-001`.
 
 **Step 2: Add env vars**
 
@@ -1103,9 +1118,9 @@ git commit -m "feat: add Claude SDK wrapper with prompt caching"
 
 Single function `embedBatch(texts: string[]): Promise<number[][]>` that:
 
-- Uses Gemini text-embedding-004 (default) or configured provider
+- Uses Gemini gemini-embedding-001 via `@google/genai` GoogleGenAI class
 - Batches up to 100 texts per API call
-- Returns arrays of 768-dim vectors (or provider-specific)
+- Returns arrays of 256-dim vectors (configurable via `outputDimensionality`)
 - Caches embeddings in Neo4j: `MERGE (k:Keyword {term: $term}) SET k.embedding = $vector`
 - Skips re-embedding keywords that already have an `embedding` property
 
@@ -1158,7 +1173,7 @@ git commit -m "feat: semantic keyword clustering via embeddings"
 
 Takes a URL, does:
 
-1. Fetch page content via Firecrawl (already have FIRECRAWL_API_KEY env var, just need to add `@mendable/firecrawl-js` or call via fetch)
+1. Fetch page content via Firecrawl (`firecrawl` npm package, `Firecrawl` class, `.scrape(url, { formats: ["markdown"] })`)
 2. Extract main article content + metadata (title, description, published date, author)
 3. Claude Haiku call: extract 5–8 themes and a 2-sentence summary
 4. Create `ContentPiece` in `inspiration` stage with extracted metadata
