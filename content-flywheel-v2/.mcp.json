@@ -57,6 +57,12 @@
 				"OBSIDIAN_ENABLE_CACHE": "true"
 			}
 		},
+		"seo-utils": {
+			"url": "http://localhost:19515/mcp",
+			"headers": {
+				"Authorization": "Bearer ${SEO_UTILS_TOKEN}"
+			}
+		},
 		"slack": {
 			"command": "npx",
 			"args": ["-y", "@anthropic/slack-mcp"],
