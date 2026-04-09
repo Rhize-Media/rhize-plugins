@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-04-09T14:09:35.412Z
-> Files: 121 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-04-09T14:14:01.326Z
+> Files: 122 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -16,7 +16,7 @@
 
 - `.gitignore` — Git ignore rules (~212 tok)
 - `.mcp.json` (~504 tok)
-- `CLAUDE.md` — OpenWolf (~3001 tok)
+- `CLAUDE.md` — OpenWolf (~3282 tok)
 - `eslint.config.mjs` — ESLint flat configuration (~124 tok)
 - `next.config.ts` — Declares nextConfig (~42 tok)
 - `package.json` — Node.js package manifest (~345 tok)
@@ -69,6 +69,10 @@
 ## cypher/
 
 - `schema.cypher` — ============================================================ (~1078 tok)
+
+## docs/
+
+- `flywheel-commands.md` — Content Flywheel — Command Reference (~2180 tok)
 
 ## docs/plans/
 

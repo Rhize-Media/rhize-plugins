@@ -148,7 +148,25 @@ Configured in `.mcp.json` (all credentials via `${ENV_VAR}` refs resolved from `
 - `/flywheel-gap` — Content gap and backlink gap analysis vs competitors
 - `/flywheel-autocomplete` — Discover autocomplete and question keywords
 
-## Commands
+## Flywheel Commands
+
+11 slash commands for managing the content pipeline from Claude Code. Full reference with examples and typical workflows: **[docs/flywheel-commands.md](docs/flywheel-commands.md)**
+
+| Command | Purpose | Requires |
+|---------|---------|----------|
+| `/flywheel-status` | Pipeline overview or content detail | Neo4j |
+| `/flywheel-research` | Keyword research + clustering | DataForSEO |
+| `/flywheel-discover` | Site audit for SEO issues | DataForSEO |
+| `/flywheel-optimize` | SEO scoring for a content piece | DataForSEO |
+| `/flywheel-monitor` | SERP, backlink, or AI visibility | DataForSEO |
+| `/flywheel-publish` | Publish to Sanity CMS | Sanity |
+| `/flywheel-distribute` | Schedule social posts via GHL | GHL |
+| `/flywheel-gsc` | Query Google Search Console data | SEO Utils |
+| `/flywheel-indexing` | Check/submit URLs for indexing | SEO Utils |
+| `/flywheel-gap` | Content/backlink gap vs competitors | SEO Utils |
+| `/flywheel-autocomplete` | Discover autocomplete keywords | SEO Utils |
+
+## npm Scripts
 
 ```bash
 npm run dev            # Start dev server at localhost:3000
@@ -178,6 +196,7 @@ All secrets live in `.env.local` (gitignored). MCP servers reference them via `$
 - `GHL_API_KEY`, `GHL_LOCATION_ID` — GoHighLevel (Rhize Media location)
 
 **MCP-only (not used by runtime, Claude dev tools only):**
+- `SEO_UTILS_TOKEN` — SEO Utils MCP Bearer token (requires desktop app running at localhost:19515)
 - `FIRECRAWL_API_KEY` — Firecrawl web scraping
 - `EXA_API_KEY` — Exa neural search
 - `OBSIDIAN_API_KEY` — Obsidian Local REST API
