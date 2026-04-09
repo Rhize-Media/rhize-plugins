@@ -33,8 +33,10 @@ API Routes:
   /api/cron/*          — Vercel Cron: daily DataForSEO pulls, weekly SERP snapshots
   /api/webhooks/*      — Sanity + GHL webhook receivers
   /api/publish/*       — CMS + social distribution adapters
-  /api/workflows/*     — DataForSEO workflow runners (keyword-research, content-optimize,
-                         serp-analysis, backlink-analysis, ai-visibility, site-audit)
+  /api/workflows/*     — Workflow runners:
+                         DataForSEO: keyword-research, content-optimize, serp-analysis,
+                         backlink-analysis, ai-visibility, site-audit
+                         AI/Claude: content-ingest, article-outline, article-draft, brand-voice-check
 ```
 
 ## Key Directories
@@ -42,7 +44,8 @@ API Routes:
 - `src/types/` — Core TypeScript types and pipeline stage definitions
 - `src/lib/neo4j/` — Neo4j driver singleton, Cypher query functions, `toPlain()` serializer
 - `src/lib/dataforseo/` — DataForSEO API client (15+ endpoint wrappers)
-- `src/lib/workflows/` — 6 workflow engines (keyword-research, content-optimize, serp-analysis, backlink-analysis, ai-visibility, site-audit)
+- `src/lib/ai/` — Claude SDK wrapper (prompt caching, cost tracking), Gemini embeddings client, k-means clustering
+- `src/lib/workflows/` — 10 workflow engines + shared helpers (keyword-research, content-optimize, serp-analysis, backlink-analysis, ai-visibility, site-audit, content-ingest, article-outline, article-draft, brand-voice-check)
 - `src/lib/adapters/cms/` — CMS adapters (Sanity)
 - `src/lib/adapters/distribution/` — Distribution adapters (GoHighLevel)
 - `src/components/` — Shared UI: sidebar, error page
@@ -51,8 +54,8 @@ API Routes:
 - `src/app/graph/` — Graph explorer dashboard
 - `src/app/api/` — All API routes
 - `cypher/` — Neo4j schema (run via `npm run init-schema`)
-- `scripts/` — `init-schema.ts` (DB setup), `seed.ts` (sample data), `migrate-graph-relationships.ts` (backfill existing data)
-- `tests/` — Vitest unit tests (43 tests across 6 files)
+- `scripts/` — `init-schema.ts` (DB setup), `seed.ts` (sample data), `migrate-graph-relationships.ts` (backfill existing data), `prune-irrelevant-keywords.ts` (remove semantically irrelevant TARGETS)
+- `tests/` — Vitest unit tests (100 tests across 14 files)
 - `docs/plans/` — Implementation plans
 
 ## Graph Schema
@@ -71,6 +74,11 @@ Pipeline stages are nodes, not enum values — content moves between stages via 
 (ContentPiece)-[:HAS_SCORE]->(SEOScore)
 (ContentPiece)-[:HAS_WORKFLOW_RUN]->(WorkflowRun)
 (ContentPiece)-[:HAS_AI_VISIBILITY]->(AIVisibilitySnapshot)
+(ContentPiece)-[:HAS_AI_USAGE]->(AIUsage)
+(ContentPiece)-[:HAS_OUTLINE]->(Outline)
+(ContentPiece)-[:HAS_DRAFT]->(Draft)
+(ContentPiece)-[:HAS_BRAND_VOICE_SCORE]->(BrandVoiceScore)
+(ContentPiece)-[:HAS_THEME]->(Theme)
 (ContentPiece)-[:PUBLISHED_TO {publishedAt, documentId}]->(CMSTarget)
 (ContentPiece)-[:DISTRIBUTED_TO {scheduledAt, postId, status}]->(DistributionChannel)
 (Author)-[:WROTE]->(ContentPiece)
@@ -109,6 +117,9 @@ FOREACH (_ IN CASE WHEN c IS NOT NULL THEN [1] ELSE [] END |
 ```
 All 6 workflows use this pattern for `HAS_WORKFLOW_RUN`. When the target always exists (e.g., content-optimize always has a contentId), use a direct `MATCH` + `CREATE` instead.
 
+### Keyword Relevance Filter
+The keyword-research workflow filters candidate keywords by semantic relevance before creating `TARGETS` relationships. It embeds the content title via Gemini, computes cosine similarity against each keyword's embedding, and only links keywords scoring >= 0.65. This prevents DataForSEO from linking lexically similar but semantically irrelevant keywords (e.g., "map of the state of florida" for an article about "The State of AI Search Optimization"). Run `npm run prune-keywords` to audit/clean existing data.
+
 ### Stage Transition History
 `moveContentToStage` archives the old `IN_STAGE` as a `WAS_IN_STAGE` relationship with `{stage, enteredAt, leftAt}` timestamps before creating the new `IN_STAGE`. This enables pipeline velocity analytics.
 
@@ -130,10 +141,11 @@ Configured in `.mcp.json` (all credentials via `${ENV_VAR}` refs resolved from `
 npm run dev            # Start dev server at localhost:3000
 npm run build          # Production build
 npm run lint           # ESLint check
-npm test               # Run vitest unit tests (43 tests)
+npm test               # Run vitest unit tests (100 tests)
 npm run test:watch     # Run tests in watch mode
 npm run seed           # Seed 5 sample content pieces into Neo4j
 npm run init-schema    # Run cypher/schema.cypher against Neo4j Aura
+npm run prune-keywords # Dry-run: show irrelevant TARGETS by cosine similarity (--apply to delete)
 npx tsx scripts/migrate-graph-relationships.ts  # Backfill graph relationships for existing data (one-time)
 ```
 
@@ -145,6 +157,8 @@ All secrets live in `.env.local` (gitignored). MCP servers reference them via `$
 - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE` — Neo4j Aura (dedicated instance `ec4405e5`)
 - `DATAFORSEO_USERNAME`, `DATAFORSEO_PASSWORD` — DataForSEO API
 - `GRAPH_QUERY_SECRET` — Auth header for generic Cypher proxy endpoint
+- `ANTHROPIC_API_KEY` — Claude API (article generation, brand voice, intent classification)
+- `GEMINI_API_KEY` — Google Gemini (keyword embeddings via gemini-embedding-001, 256-dim)
 
 **Required for CMS/distribution adapters:**
 - `SANITY_PROJECT_ID`, `SANITY_DATASET`, `SANITY_API_TOKEN` — Sanity CMS (Rhize Media project `3g5yoen6`)

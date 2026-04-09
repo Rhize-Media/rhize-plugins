@@ -7,6 +7,7 @@
 | 20:38 | Created prune-irrelevant-keywords.ts script to backfill-clean existing bad TARGETS relationships via cosine similarity. Added npm script "prune-keywords". | scripts/prune-irrelevant-keywords.ts, package.json | dry-run default, --apply to delete | ~900 tok |
 | 20:48 | Fixed embedding model: text-embedding-004 retired → gemini-embedding-001. Updated embeddings.ts, script, and test. | src/lib/ai/embeddings.ts, scripts/prune-irrelevant-keywords.ts, tests/ai/embeddings.test.ts | all 100 tests pass | ~50 tok |
 | 20:50 | Raised RELEVANCE_THRESHOLD from 0.35 → 0.65 based on live data (relevant: 0.67+, irrelevant: <0.60). Ran --apply: pruned 20 bad TARGETS from "State of AI Search Optimization", kept all 28 for other articles. | keyword-research.ts, prune script | 20 deleted, 28 kept | ~0 tok |
+| 21:15 | Documentation audit: Updated CLAUDE.md (added src/lib/ai/, 10 workflows, 100 tests, GEMINI/ANTHROPIC env vars, prune-keywords script, keyword relevance filter pattern, 6 new graph relationships). Updated README.md (expanded workflow routes table, AI stack, 100 tests, prune-keywords). Updated production plan (milestone status table, fixed deprecated model/package refs, Firecrawl package name). | CLAUDE.md, README.md, docs/plans/2026-04-04-*.md | all docs synced with codebase | ~800 tok |
 
 | 15:01 | Simplify: extracted `extractKeywordData()` helper in keyword-research.ts to DRY up 3 duplicated keyword data extraction blocks | src/lib/workflows/keyword-research.ts | 3 blocks reduced to 1 helper + 3 calls | ~100 tok saved |
 | 15:01 | Simplify: batched Neo4j embedding writes via UNWIND in embedAndCacheKeywords, replacing N individual session.run() calls | src/lib/ai/embeddings.ts | N+1 queries reduced to 2 queries | ~50 tok saved |
@@ -389,3 +390,21 @@
 | 20:53 | Edited scripts/prune-irrelevant-keywords.ts | inline fix | ~18 |
 | 20:53 | Edited scripts/prune-irrelevant-keywords.ts | modified embedText() | ~85 |
 | 20:54 | Edited scripts/prune-irrelevant-keywords.ts | embedBatch() → embedText() | ~206 |
+| 20:54 | Session end: 16 writes across 5 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 7 reads | ~17929 tok |
+| 09:05 | Session end: 16 writes across 5 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 7 reads | ~17929 tok |
+| 09:06 | Edited CLAUDE.md | 1→2 lines | ~91 |
+| 09:07 | Edited CLAUDE.md | 2→2 lines | ~69 |
+| 09:07 | Edited CLAUDE.md | 2→4 lines | ~81 |
+| 09:07 | Edited CLAUDE.md | 1→6 lines | ~74 |
+| 09:07 | Edited CLAUDE.md | 10→11 lines | ~160 |
+| 09:07 | Edited CLAUDE.md | 4→6 lines | ~125 |
+| 09:07 | Edited CLAUDE.md | 1→4 lines | ~152 |
+| 09:07 | Edited README.md | expanded (+9 lines) | ~206 |
+| 09:07 | Edited README.md | 4→5 lines | ~95 |
+| 09:08 | Edited README.md | 2→4 lines | ~98 |
+| 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | inline fix | ~22 |
+| 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | 5→4 lines | ~64 |
+| 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | expanded (+16 lines) | ~335 |
+| 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | 3→3 lines | ~51 |
+| 09:08 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | "@mendable/firecrawl-js" → "firecrawl" | ~33 |
+| 09:09 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | inline fix | ~11 |
