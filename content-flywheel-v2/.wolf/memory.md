@@ -455,3 +455,7 @@
 | 10:08 | Edited .claude/plans/remaining-features-complete-app.md | modified signatures() | ~1532 |
 | 10:09 | Edited CLAUDE.md | expanded (+12 lines) | ~364 |
 | 10:09 | Edited docs/plans/2026-04-04-content-flywheel-production-ready.md | 4→6 lines | ~150 |
+| 10:10 | Session end: 70 writes across 20 files (embeddings.ts, keyword-research.ts, embeddings.test.ts, prune-irrelevant-keywords.ts, package.json) | 30 reads | ~84631 tok |
+| 10:13 | Created docs/flywheel-commands.md | — | ~2326 |
+| 10:13 | Edited CLAUDE.md | expanded (+18 lines) | ~438 |
+| 10:14 | Edited CLAUDE.md | modified only() | ~64 |
