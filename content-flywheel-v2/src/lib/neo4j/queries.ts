@@ -137,6 +137,62 @@ export async function getContentById(id: string): Promise<ContentPiece | null> {
   }
 }
 
+export async function updateContent(
+  id: string,
+  fields: { title?: string; slug?: string; author?: string; url?: string }
+): Promise<ContentPiece | null> {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (c:ContentPiece {id: $id})-[:IN_STAGE]->(s:PipelineStage)
+       SET c.title = COALESCE($title, c.title),
+           c.slug = COALESCE($slug, c.slug),
+           c.author = COALESCE($author, c.author),
+           c.url = COALESCE($url, c.url),
+           c.updatedAt = datetime()
+       RETURN c { .*, stage: s.name } AS content`,
+      {
+        id,
+        title: fields.title ?? null,
+        slug: fields.slug ?? null,
+        author: fields.author ?? null,
+        url: fields.url ?? null,
+      }
+    );
+    if (result.records.length === 0) return null;
+    return toPlain(result.records[0].get("content")) as ContentPiece;
+  } finally {
+    await session.close();
+  }
+}
+
+export async function deleteContent(id: string): Promise<boolean> {
+  const driver = getDriver();
+  const session = driver.session();
+  try {
+    const result = await session.run(
+      `MATCH (c:ContentPiece {id: $id})
+       OPTIONAL MATCH (c)-[:HAS_OUTLINE]->(o:Outline) DETACH DELETE o
+       WITH c
+       OPTIONAL MATCH (c)-[:HAS_DRAFT]->(d:Draft) DETACH DELETE d
+       WITH c
+       OPTIONAL MATCH (c)-[:HAS_BRAND_VOICE_SCORE]->(bvs:BrandVoiceScore) DETACH DELETE bvs
+       WITH c
+       OPTIONAL MATCH (c)-[:HAS_WORKFLOW_RUN]->(w:WorkflowRun) DETACH DELETE w
+       WITH c
+       OPTIONAL MATCH (c)-[:HAS_AI_USAGE]->(u:AIUsage) DETACH DELETE u
+       WITH c
+       DETACH DELETE c
+       RETURN count(*) AS deleted`,
+      { id }
+    );
+    return (result.records[0]?.get("deleted") as number) > 0;
+  } finally {
+    await session.close();
+  }
+}
+
 export async function getContentDetailById(id: string) {
   const driver = getDriver();
   const session = driver.session();
@@ -151,6 +207,12 @@ export async function getContentDetailById(id: string) {
        OPTIONAL MATCH (c)-[:HAS_WORKFLOW_RUN]->(w:WorkflowRun)
        OPTIONAL MATCH (c)-[:HAS_AI_VISIBILITY]->(av:AIVisibilitySnapshot)
        OPTIONAL MATCH (c)-[wasIn:WAS_IN_STAGE]->(wasStage:PipelineStage)
+       OPTIONAL MATCH (c)-[:HAS_OUTLINE]->(outline:Outline)
+       OPTIONAL MATCH (c)-[:HAS_DRAFT]->(draft:Draft)
+       OPTIONAL MATCH (c)-[:HAS_BRAND_VOICE_SCORE]->(bvs:BrandVoiceScore)
+       OPTIONAL MATCH (c)-[:HAS_THEME]->(theme:Theme)
+       OPTIONAL MATCH (c)-[pubRel:PUBLISHED_TO]->(cms:CMSTarget)
+       OPTIONAL MATCH (c)-[distRel:DISTRIBUTED_TO]->(dc:DistributionChannel)
        RETURN c { .*, stage: s.name } AS content,
               collect(DISTINCT k { .* }) AS keywords,
               collect(DISTINCT snap { .* }) AS serpSnapshots,
@@ -159,7 +221,13 @@ export async function getContentDetailById(id: string) {
               head(collect(DISTINCT seo { .* })) AS seoScore,
               collect(DISTINCT w { .id, .type, .status, .summary, .startedAt, .completedAt }) AS workflowRuns,
               collect(DISTINCT av { .llm, .mentionRate, .accuracy, .citationCount, .date, .query }) AS aiVisibility,
-              collect(DISTINCT { stage: wasStage.name, enteredAt: wasIn.enteredAt, leftAt: wasIn.leftAt }) AS stageHistory`,
+              collect(DISTINCT { stage: wasStage.name, enteredAt: wasIn.enteredAt, leftAt: wasIn.leftAt }) AS stageHistory,
+              head(collect(DISTINCT outline { .* })) AS outline,
+              head(collect(DISTINCT draft { .* })) AS draft,
+              head(collect(DISTINCT bvs { .* })) AS brandVoiceScore,
+              collect(DISTINCT theme { .name }) AS themes,
+              collect(DISTINCT { type: cms.type, publishedAt: pubRel.publishedAt, documentId: pubRel.documentId }) AS publishedTo,
+              collect(DISTINCT { platform: dc.platform, scheduledAt: distRel.scheduledAt, status: distRel.status, postId: distRel.postId }) AS distributedTo`,
       { id }
     );
     if (result.records.length === 0) return null;
@@ -179,6 +247,18 @@ export async function getContentDetailById(id: string) {
       stageHistory: (toPlain(row.get("stageHistory") ?? []) as Array<
         Record<string, unknown>
       >).filter((s) => s.stage != null),
+      outline: toPlain(row.get("outline")),
+      draft: toPlain(row.get("draft")),
+      brandVoiceScore: toPlain(row.get("brandVoiceScore")),
+      themes: (toPlain(row.get("themes") ?? []) as Array<
+        Record<string, unknown>
+      >).filter((t) => t.name != null),
+      publishedTo: (toPlain(row.get("publishedTo") ?? []) as Array<
+        Record<string, unknown>
+      >).filter((p) => p.type != null),
+      distributedTo: (toPlain(row.get("distributedTo") ?? []) as Array<
+        Record<string, unknown>
+      >).filter((d) => d.platform != null),
     };
   } finally {
     await session.close();

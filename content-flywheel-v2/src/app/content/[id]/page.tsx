@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { PIPELINE_STAGES, type ContentPiece, type Keyword, type SERPSnapshot, type SEOScore, type WorkflowRun, type AIVisibilitySnapshot } from "@/types";
+import { PIPELINE_STAGES, type ContentPiece, type Keyword, type SERPSnapshot, type SEOScore, type WorkflowRun, type AIVisibilitySnapshot, type Outline, type Draft, type BrandVoiceScore } from "@/types";
 
 interface ContentDetail extends ContentPiece {
   keywords: Keyword[];
@@ -12,6 +12,12 @@ interface ContentDetail extends ContentPiece {
   workflowRuns: WorkflowRun[];
   aiVisibility: (AIVisibilitySnapshot & { query: string })[];
   stageHistory: { stage: string; enteredAt: string; leftAt: string }[];
+  outline: Outline | null;
+  draft: Draft | null;
+  brandVoiceScore: BrandVoiceScore | null;
+  themes: { name: string }[];
+  publishedTo: { type: string; publishedAt: string; documentId: string }[];
+  distributedTo: { platform: string; scheduledAt: string; status: string; postId: string }[];
 }
 
 async function fetchContentDetail(id: string): Promise<ContentDetail | null> {
@@ -34,6 +40,9 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
   const [content, setContent] = useState<ContentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [runningWorkflow, setRunningWorkflow] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const refresh = () => fetchContentDetail(id).then(setContent);
 
@@ -42,6 +51,21 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
       .then(setContent)
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleSaveField(field: string, value: string) {
+    await fetch(`/api/content/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value }),
+    });
+    setEditing(null);
+    await refresh();
+  }
+
+  async function handleDelete() {
+    await fetch(`/api/content/${id}`, { method: "DELETE" });
+    window.location.href = "/board";
+  }
 
   async function handleRunWorkflow(workflow: string, body: Record<string, unknown>) {
     setRunningWorkflow(workflow);
@@ -84,9 +108,24 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-            {content.title}
-          </h1>
+          {editing === "title" ? (
+            <input
+              autoFocus
+              className="rounded border border-zinc-300 bg-transparent px-2 py-1 text-2xl font-bold dark:border-zinc-600"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveField("title", editValue); if (e.key === "Escape") setEditing(null); }}
+              onBlur={() => handleSaveField("title", editValue)}
+            />
+          ) : (
+            <h1
+              className="cursor-pointer text-2xl font-bold text-zinc-900 hover:underline dark:text-zinc-100"
+              onClick={() => { setEditing("title"); setEditValue(content.title); }}
+              title="Click to edit"
+            >
+              {content.title}
+            </h1>
+          )}
           {stageConfig && (
             <span
               className="rounded-full px-3 py-1 text-xs font-medium text-white"
@@ -95,6 +134,12 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
               {stageConfig.label}
             </span>
           )}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="ml-auto rounded px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            Delete
+          </button>
         </div>
         <p className="mt-1 text-sm text-zinc-500">
           by {content.author} &middot; /{content.slug}
@@ -108,6 +153,17 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
           )}
         </p>
       </div>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="mb-6 rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-700 dark:bg-red-900/20">
+          <p className="text-sm text-red-700 dark:text-red-400">Delete &ldquo;{content.title}&rdquo;? This removes the content and all associated outlines, drafts, and workflow runs.</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={handleDelete} className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700">Confirm Delete</button>
+            <button onClick={() => setShowDeleteConfirm(false)} className="rounded bg-zinc-200 px-3 py-1 text-sm dark:bg-zinc-700">Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Workflow Actions */}
       <section className="mb-8 flex flex-wrap gap-2">
@@ -152,6 +208,51 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
         >
           {runningWorkflow === "ai-visibility" ? "Running..." : "AI Visibility"}
         </button>
+        {content.url && (
+          <button
+            onClick={() => handleRunWorkflow("content-ingest", { url: content.url })}
+            disabled={runningWorkflow !== null}
+            className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          >
+            {runningWorkflow === "content-ingest" ? "Running..." : "Ingest URL"}
+          </button>
+        )}
+        {content.keywords.length > 0 && (
+          <button
+            onClick={() => handleRunWorkflow("article-outline", { contentId: id })}
+            disabled={runningWorkflow !== null}
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {runningWorkflow === "article-outline" ? "Running..." : "Generate Outline"}
+          </button>
+        )}
+        {content.outline && (
+          <button
+            onClick={() => handleRunWorkflow("article-draft", { contentId: id })}
+            disabled={runningWorkflow !== null}
+            className="rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+          >
+            {runningWorkflow === "article-draft" ? "Running..." : "Generate Draft"}
+          </button>
+        )}
+        {content.draft && (
+          <button
+            onClick={() => handleRunWorkflow("brand-voice-check", { contentId: id })}
+            disabled={runningWorkflow !== null}
+            className="rounded-md bg-pink-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-pink-700 disabled:opacity-50"
+          >
+            {runningWorkflow === "brand-voice-check" ? "Running..." : "Check Brand Voice"}
+          </button>
+        )}
+        {(content.stage === "review" || content.stage === "published") && content.url && (
+          <button
+            onClick={() => handleRunWorkflow("publish-sanity", { contentId: id, action: "create-draft" })}
+            disabled={runningWorkflow !== null}
+            className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-cyan-700 disabled:opacity-50"
+          >
+            Publish to Sanity
+          </button>
+        )}
       </section>
 
       {/* SEO Score */}
@@ -404,6 +505,144 @@ export default function ContentDetailPage({ params }: { params: Promise<{ id: st
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>
+      )}
+
+      {/* Themes */}
+      {content.themes && content.themes.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Themes ({content.themes.length})
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {content.themes.map((t, i) => (
+              <span key={i} className="rounded-full bg-violet-100 px-3 py-1 text-xs font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+                {t.name}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Outline */}
+      {content.outline && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Article Outline
+          </h2>
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <p className="mb-3 text-sm italic text-zinc-600 dark:text-zinc-400">{content.outline.metaDescription}</p>
+            {(() => {
+              const sections = typeof content.outline.sections === "string"
+                ? JSON.parse(content.outline.sections)
+                : content.outline.sections;
+              return (Array.isArray(sections) ? sections : []).map((sec: { heading: string; bullets: string[]; targetWordCount: number }, i: number) => (
+                <div key={i} className="mb-3">
+                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200">{sec.heading}</h3>
+                  <ul className="ml-4 list-disc text-sm text-zinc-600 dark:text-zinc-400">
+                    {(sec.bullets ?? []).map((b: string, j: number) => <li key={j}>{b}</li>)}
+                  </ul>
+                  <p className="mt-1 text-xs text-zinc-400">~{sec.targetWordCount} words</p>
+                </div>
+              ));
+            })()}
+            {content.outline.faqTopics && (() => {
+              const faqs = typeof content.outline.faqTopics === "string"
+                ? JSON.parse(content.outline.faqTopics)
+                : content.outline.faqTopics;
+              return Array.isArray(faqs) && faqs.length > 0 ? (
+                <div className="mt-4 border-t border-zinc-200 pt-3 dark:border-zinc-700">
+                  <p className="mb-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">FAQ Topics</p>
+                  <ul className="list-inside list-disc text-sm text-zinc-600 dark:text-zinc-400">
+                    {faqs.map((f: string, i: number) => <li key={i}>{f}</li>)}
+                  </ul>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        </section>
+      )}
+
+      {/* Draft */}
+      {content.draft && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Article Draft ({content.draft.wordCount?.toLocaleString()} words)
+          </h2>
+          <details className="rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800">
+              Expand draft content
+            </summary>
+            <div className="max-h-96 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300">
+              {content.draft.content}
+            </div>
+          </details>
+        </section>
+      )}
+
+      {/* Brand Voice Score */}
+      {content.brandVoiceScore && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Brand Voice Score
+          </h2>
+          <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <div className="mb-4 flex items-center gap-4">
+              <div className={`flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-white ${
+                content.brandVoiceScore.score >= 80 ? "bg-green-500" : content.brandVoiceScore.score >= 60 ? "bg-yellow-500" : "bg-red-500"
+              }`}>
+                {content.brandVoiceScore.score}
+              </div>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                {content.brandVoiceScore.score >= 80 ? "Strong brand alignment" : content.brandVoiceScore.score >= 60 ? "Needs minor adjustments" : "Significant voice issues"}
+              </p>
+            </div>
+            {(() => {
+              const issues = typeof content.brandVoiceScore.issues === "string"
+                ? JSON.parse(content.brandVoiceScore.issues)
+                : content.brandVoiceScore.issues;
+              return Array.isArray(issues) && issues.length > 0 ? (
+                <div className="space-y-2">
+                  {issues.map((issue: { section: string; issue: string; suggestion: string }, i: number) => (
+                    <div key={i} className="rounded bg-zinc-50 p-3 text-sm dark:bg-zinc-800">
+                      <p className="font-medium text-zinc-800 dark:text-zinc-200">{issue.section}</p>
+                      <p className="text-red-600 dark:text-red-400">{issue.issue}</p>
+                      <p className="text-green-600 dark:text-green-400">{issue.suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null;
+            })()}
+          </div>
+        </section>
+      )}
+
+      {/* Publishing Status */}
+      {(content.publishedTo?.length > 0 || content.distributedTo?.length > 0) && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-zinc-800 dark:text-zinc-200">
+            Publishing Status
+          </h2>
+          <div className="space-y-2">
+            {content.publishedTo?.map((pub, i) => (
+              <div key={i} className="flex items-center gap-3 rounded bg-cyan-50 p-3 text-sm dark:bg-cyan-900/20">
+                <span className="rounded bg-cyan-200 px-2 py-0.5 text-xs font-medium text-cyan-800 dark:bg-cyan-800 dark:text-cyan-200">{pub.type}</span>
+                <span className="text-zinc-600 dark:text-zinc-400">Published {pub.publishedAt?.slice(0, 10)}</span>
+                {pub.documentId && <span className="font-mono text-xs text-zinc-400">{pub.documentId}</span>}
+              </div>
+            ))}
+            {content.distributedTo?.map((dist, i) => (
+              <div key={i} className="flex items-center gap-3 rounded bg-orange-50 p-3 text-sm dark:bg-orange-900/20">
+                <span className="rounded bg-orange-200 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-800 dark:text-orange-200">{dist.platform}</span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  dist.status === "posted" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : dist.status === "failed" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                    : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                }`}>{dist.status}</span>
+                {dist.scheduledAt && <span className="text-zinc-500">{dist.scheduledAt.slice(0, 10)}</span>}
+              </div>
+            ))}
           </div>
         </section>
       )}

@@ -40,6 +40,11 @@ You are working with the Content Flywheel v2 — a Neo4j-backed content pipeline
 - `(Competitor)-[:HAS_BACKLINK_FROM]->(BacklinkSource)` — competitor backlink profile
 - `(Competitor)-[:HAS_WORKFLOW_RUN]->(WorkflowRun)` — site audit workflow link
 - `(SiteAudit)-[:AUDITS]->(Competitor)` — audit-to-domain link
+- `(ContentPiece)-[:HAS_AI_USAGE]->(AIUsage)` — AI token/cost tracking per content piece
+- `(ContentPiece)-[:HAS_OUTLINE]->(Outline)` — AI-generated article outline
+- `(ContentPiece)-[:HAS_DRAFT]->(Draft)` — AI-generated article draft
+- `(ContentPiece)-[:HAS_BRAND_VOICE_SCORE]->(BrandVoiceScore)` — brand voice analysis score
+- `(ContentPiece)-[:HAS_THEME]->(Theme)` — extracted themes from content ingestion
 
 ## API Endpoints
 
@@ -62,6 +67,10 @@ You are working with the Content Flywheel v2 — a Neo4j-backed content pipeline
 - `/api/workflows/backlink-analysis` — backlink profile + referring domains
 - `/api/workflows/ai-visibility` — AI engine brand mention monitoring
 - `/api/workflows/site-audit` — full site crawl + issue identification
+- `/api/workflows/content-ingest` — URL scraping + theme extraction
+- `/api/workflows/article-outline` — AI outline generation
+- `/api/workflows/article-draft` — AI article draft generation
+- `/api/workflows/brand-voice-check` — Brand voice scoring
 
 **Cron** (Vercel scheduled):
 - `GET /api/cron/seo-pull` — daily keyword ranking pull (6am UTC)
@@ -85,7 +94,15 @@ You are working with the Content Flywheel v2 — a Neo4j-backed content pipeline
 
 **Stage Transition History:** `moveContentToStage` archives the old IN_STAGE as WAS_IN_STAGE with `{stage, enteredAt, leftAt}` timestamps before creating the new IN_STAGE. Enables pipeline velocity analytics.
 
+**Keyword Relevance Filter:** The keyword-research workflow uses cosine similarity (threshold 0.65) to filter irrelevant keywords before creating TARGETS relationships. Keywords with embeddings below the threshold are discarded to keep the graph clean.
+
 **Graph Stats Performance:** `getGraphStats` uses `UNION ALL` single queries for node and relationship counts instead of N+1 sequential queries.
+
+## Environment Variables
+
+- `ANTHROPIC_API_KEY` — Claude API for AI workflows (outline, draft, brand voice)
+- `GEMINI_API_KEY` — Gemini embeddings (gemini-embedding-001, 256-dim) for keyword relevance filtering
+- `SANITY_WEBHOOK_SECRET` — Webhook signature verification (HMAC-SHA256); if not set, verification is skipped with a warning
 
 ## Jira Sync
 
