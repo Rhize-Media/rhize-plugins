@@ -15,18 +15,35 @@
       "author": {
         "name": "Rhize Media"
       },
-      "keywords": ["seo", "aeo", "geo", "search-engine-optimization"],
+      "keywords": [
+        "seo",
+        "aeo",
+        "geo",
+        "search-engine-optimization"
+      ],
       "category": "workflow"
     },
     {
       "name": "obsidian-second-brain",
       "source": "./obsidian-second-brain",
       "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Rhize Media"
       },
-      "keywords": ["obsidian", "notes", "vault", "second-brain", "zettelkasten", "pkm", "knowledge-management", "moc", "research", "qmd", "semantic-search"],
+      "keywords": [
+        "obsidian",
+        "notes",
+        "vault",
+        "second-brain",
+        "zettelkasten",
+        "pkm",
+        "knowledge-management",
+        "moc",
+        "research",
+        "qmd",
+        "semantic-search"
+      ],
       "category": "workflow"
     },
     {
@@ -37,7 +54,16 @@
       "author": {
         "name": "Rhize Media"
       },
-      "keywords": ["project-launcher", "prd", "requirements", "gsd", "autonomous", "scaffolding", "planning", "handoff"],
+      "keywords": [
+        "project-launcher",
+        "prd",
+        "requirements",
+        "gsd",
+        "autonomous",
+        "scaffolding",
+        "planning",
+        "handoff"
+      ],
       "category": "workflow"
     }
   ]

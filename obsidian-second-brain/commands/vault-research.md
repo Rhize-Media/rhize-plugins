@@ -1,6 +1,6 @@
 ---
 description: Research a topic or URL — clip, summarize, and connect to your vault
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "WebFetch", "WebSearch"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "WebFetch", "WebSearch", "Read", "Write", "Edit", "Glob", "Grep", "mcp__workspace__web_fetch"]
 argument-hint: <url or topic to research>
 ---
 
