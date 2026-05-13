@@ -1,6 +1,6 @@
 ---
 description: Ask your vault a natural language question and get a synthesized answer
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
 argument-hint: <natural language question about your vault>
 ---
 

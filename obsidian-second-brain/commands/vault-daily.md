@@ -1,6 +1,6 @@
 ---
 description: Read, summarize, or add to today's daily note
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: [read|add <content>|summarize]
 ---
 
