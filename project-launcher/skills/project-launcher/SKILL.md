@@ -228,6 +228,29 @@ After the grill-me session, update the PRD with all resolved questions and new r
 cd {project-dir} && npx get-shit-done-cc --claude --local
 ```
 
+### Install Hookify Guardrails (Next.js + Rhize stack projects)
+
+If the project uses the Rhize Next.js stack (Next.js + Supabase + Sanity), install the hookify starter rule set:
+
+```bash
+mkdir -p {project-dir}/.claude
+cp ~/.claude/plugins/marketplaces/rhize-plugins/project-launcher/skills/project-launcher/references/hookify-rules/nextjs-rhize-stack/hookify.*.local.md {project-dir}/.claude/
+```
+
+This installs 7 rules covering the highest-cost dev mistakes:
+
+| Rule | Event | Action | Purpose |
+|------|-------|--------|---------|
+| `pr-review-on-create` | bash | warn | Triggers review skill when `gh pr create` runs |
+| `block-direct-push-to-main` | bash | **block** | Forces all changes through PRs |
+| `nextjs-public-secret-leak` | file | **block** | Catches `NEXT_PUBLIC_*` secrets before they ship |
+| `supabase-service-role-in-client` | file | **block** | Blocks service-role key in `'use client'` files |
+| `nextjs-stop-checks` | stop | warn | Reminds to run typecheck/lint/build before ending |
+| `sanity-schema-skill-hint` | file | warn | Suggests Sanity best-practices skill on schema edits |
+| `seo-skill-hint` | file | warn | Suggests SEO skills on metadata/sitemap/structured-data edits |
+
+Prerequisites: target project must have the `hookify` plugin (or `claude-plugins-official:hookify`) enabled — it's what reads `.local.md` rule files. Decide with the user whether to commit `.claude/hookify.*.local.md` to the repo (recommended for team-wide enforcement of secret-leak and PR-review rules) or `.gitignore` them. See `references/hookify-rules/nextjs-rhize-stack/README.md` for the full reference.
+
 ### CLAUDE.md Template
 
 The CLAUDE.md is the most important file — it's what the autonomous Claude instance reads first. See `references/claude-md-template.md` for the full template. It must include:
