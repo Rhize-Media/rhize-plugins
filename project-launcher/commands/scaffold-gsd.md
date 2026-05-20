@@ -32,6 +32,12 @@ If no PRD is found, tell the user to run `/launch-project` for the full pipeline
 5. **Install GSD v2** — `npx get-shit-done-cc --claude --local`
 6. **Initialize git** — `git init`, create `.gitignore`
 7. **Create deliverable directories** — Based on project type (workflows/, src/, scripts/, templates/)
-8. **Copy PRD** — Into `prd/` directory
-9. **Run handoff checklist** — Verify all files exist and are consistent
-10. **Brief user** — How to start `/gsd:autonomous`
+8. **Install hookify guardrails** — If the project uses the Rhize Next.js stack (Next.js + Supabase + Sanity), copy the starter rule set into `.claude/`:
+   ```bash
+   mkdir -p .claude
+   cp "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/plugins/marketplaces/rhize-plugins/project-launcher}/skills/project-launcher/references/hookify-rules/nextjs-rhize-stack/hookify."*.local.md .claude/
+   ```
+   This installs 7 rules: PR-review trigger, direct-push-to-main block, `NEXT_PUBLIC_` secret-leak block, Supabase service-role-in-client block, pre-stop verification, Sanity schema skill hint, and SEO skill hint. See `references/hookify-rules/nextjs-rhize-stack/README.md` for the full table. Tell the user which rules were installed and which are `block` vs `warn`.
+9. **Copy PRD** — Into `prd/` directory
+10. **Run handoff checklist** — Verify all files exist and are consistent
+11. **Brief user** — How to start `/gsd:autonomous`
