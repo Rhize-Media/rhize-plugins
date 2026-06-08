@@ -15,9 +15,8 @@ A PR is being opened. After `gh pr create` returns the PR URL, **immediately** r
 1. Capture the PR number/URL returned by `gh pr create`.
 2. If the PR base is `main`, this is a release-candidate review — be strict.
 3. Invoke the review skill on the new PR:
-   - Primary: `/pr-review-toolkit:review-pr` (multi-pass review)
-   - Or: `/code-review:code-review` (single-pass review)
-   - Or: `/review` (lightweight default)
+   - Primary: `/rhize-review` (prod merge-gate orchestrator — routes the diff to ecc specialist + security reviewers, returns one merge verdict)
+   - Fallback (if `/rhize-review` is unavailable): `/pr-review-toolkit:review-pr`, `/code-review:code-review`, or `/review`
 4. Cover at minimum:
    - Spec compliance vs. the PRD / linked plan
    - Type safety, lint, and build status (`pnpm typecheck && pnpm lint && pnpm build`)

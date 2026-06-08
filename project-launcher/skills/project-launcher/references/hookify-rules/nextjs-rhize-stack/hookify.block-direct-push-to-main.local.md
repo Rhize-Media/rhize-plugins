@@ -6,7 +6,7 @@ action: block
 conditions:
   - field: command
     operator: regex_match
-    pattern: git\s+push\b.*\b(origin\s+)?(main|master)\b
+    pattern: git\s+(-C\s+\S+\s+)?push\b.*\b(main|master)\b
   - field: command
     operator: not_contains
     pattern: --dry-run

@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **nextjs-rhize-stack hookify rules** — `pr-review-on-create` now invokes `/rhize-review` first (prior review skills kept as fallback); `block-direct-push-to-main` regex now also catches the `git -C <path> push` form
 - Updated marketplace manifest and README to reflect multi-plugin catalog
 - Bumped obsidian-second-brain from v0.2.0 to v0.3.0
 - Updated GUIDE.md with Setup & Alignment section and community plugins guide
