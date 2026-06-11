@@ -1,0 +1,21 @@
+# Mutation Analysis Summary
+
+**Overall Score:** {{overall_score}}/10 {{status_emoji}}
+
+{{#if sub_skills}}
+**Sub-Skills Loaded:**
+{{#each sub_skills}}
+  - {{name}}: {{average_score}}/10
+{{/each}}
+{{/if}}
+
+**Stats:** {{passing_count}} passing, {{warning_count}} warnings, {{critical_count}} critical
+
+{{#if top_issues}}
+**Top Issues:**
+{{#each top_issues}}
+{{index}}. {{severity_icon}} {{message}} ({{file_name}})
+{{/each}}
+{{/if}}
+
+📄 Full report: `.claude/analysis/mutation-report-{{date}}.md`

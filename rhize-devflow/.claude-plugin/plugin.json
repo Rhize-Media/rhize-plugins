@@ -1,0 +1,26 @@
+{
+  "name": "rhize-devflow",
+  "version": "2.1.0",
+  "description": "Rhize Media's development-workflow skill set: context/session/memory engineering, production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, dev-flow foundations, plus the skill-refinement and rhize-skill-forge meta-skills for improving and ingesting skills.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "development-workflow",
+    "context-engineering",
+    "error-lifecycle",
+    "sentry",
+    "vercel",
+    "data-mutation",
+    "next-js",
+    "sanity-cms",
+    "payload-cms",
+    "supabase",
+    "chrome-devtools",
+    "skill-refinement",
+    "skill-forge",
+    "meta-skills",
+    "rhize"
+  ]
+}

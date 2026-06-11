@@ -1,0 +1,9 @@
+# Error Lifecycle Management Skill Dependencies
+# Python 3.9+ required
+
+# No external dependencies required for core validators
+# All scripts use Python standard library only
+
+# Optional dependencies for enhanced functionality:
+# requests>=2.28.0      # For API correlation features
+# rich>=13.0.0          # For enhanced terminal output
