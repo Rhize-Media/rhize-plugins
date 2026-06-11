@@ -1,0 +1,173 @@
+# Refinement Entry Template
+
+Template for individual refinement history entries stored in `~/.claude/skill-refinements/refinement-history/`.
+
+---
+
+```markdown
+# Refinement: {{REFINEMENT_ID}}
+
+> Created: {{CREATED_TIMESTAMP}}
+> Status: {{STATUS}}
+
+## Summary
+
+- **Skill:** {{SKILL_NAME}}
+- **Category:** {{CATEGORY}}
+- **Override Type:** {{OVERRIDE_TYPE}}
+- **Target:** {{TARGET_SECTION}}
+- **Project:** {{PROJECT_NAME}}
+
+## Issue
+
+**Expected:**
+{{EXPECTED_BEHAVIOR}}
+
+**Actual:**
+{{ACTUAL_BEHAVIOR}}
+
+**Example:**
+```
+{{REPRODUCTION_EXAMPLE}}
+```
+
+## Analysis
+
+**Root Cause:**
+{{ROOT_CAUSE}}
+
+**Confidence:** {{CONFIDENCE}}%
+
+## Resolution
+
+**Patch Action:** {{PATCH_ACTION}}
+**Marker:** {{PATCH_MARKER}}
+
+**Content:**
+```
+{{PATCH_CONTENT}}
+```
+
+## Pattern Tracking
+
+- **Pattern ID:** {{PATTERN_ID}}
+- **Generalization Potential:** {{GENERALIZATION_POTENTIAL}}
+
+## Files Modified
+
+- {{FILE_1}}
+- {{FILE_2}}
+
+---
+
+> Applied: {{APPLIED_TIMESTAMP}}
+```
+
+---
+
+## Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{REFINEMENT_ID}}` | Unique ID | `REF-2024-1204-001` |
+| `{{CREATED_TIMESTAMP}}` | Creation time | `2024-12-04T14:30:00Z` |
+| `{{STATUS}}` | Current status | `applied`, `pending`, `generalized` |
+| `{{SKILL_NAME}}` | Target skill | `context-engineering` |
+| `{{CATEGORY}}` | Refinement category | `hook`, `trigger`, `pattern` |
+| `{{OVERRIDE_TYPE}}` | Type of override | `patch`, `extend`, `config` |
+| `{{TARGET_SECTION}}` | Target path | `hooks/duplicate-check` |
+| `{{PROJECT_NAME}}` | Project name | `vba-lms-app` |
+| `{{EXPECTED_BEHAVIOR}}` | What should happen | Free text |
+| `{{ACTUAL_BEHAVIOR}}` | What actually happens | Free text |
+| `{{REPRODUCTION_EXAMPLE}}` | How to reproduce | Code/commands |
+| `{{ROOT_CAUSE}}` | Why the issue occurs | Free text |
+| `{{CONFIDENCE}}` | Analysis confidence | `80`, `95` |
+| `{{PATCH_ACTION}}` | Action type | `append`, `insert-after` |
+| `{{PATCH_MARKER}}` | Marker text | `"Only check paths"` |
+| `{{PATCH_CONTENT}}` | Patch content | Code/text |
+| `{{PATTERN_ID}}` | Associated pattern | `PATTERN-001` or `new` |
+| `{{GENERALIZATION_POTENTIAL}}` | Likelihood of reuse | `high`, `medium`, `low` |
+| `{{APPLIED_TIMESTAMP}}` | When applied | `2024-12-04T14:35:00Z` |
+
+---
+
+## Filename Convention
+
+Files are named: `YYYY-MM-DD-[skill]-[category].md`
+
+Examples:
+- `2024-12-04-context-engineering-hook.md`
+- `2024-12-04-error-lifecycle-management-trigger.md`
+- `2024-12-03-dev-flow-foundations-pattern.md`
+
+If multiple refinements exist for the same skill/category on the same day, append a counter:
+- `2024-12-04-context-engineering-hook-2.md`
+- `2024-12-04-context-engineering-hook-3.md`
+
+---
+
+## Example Entry
+
+```markdown
+# Refinement: REF-2024-1204-001
+
+> Created: 2024-12-04T14:30:00Z
+> Status: applied
+
+## Summary
+
+- **Skill:** context-engineering
+- **Category:** hook
+- **Override Type:** patch
+- **Target:** hooks/duplicate-check
+- **Project:** vba-lms-app
+
+## Issue
+
+**Expected:**
+Test fixtures should be allowed even if they match existing component names.
+
+**Actual:**
+The duplicate-check hook blocks ANY new file that matches a component name in the registry, including legitimate test fixtures.
+
+**Example:**
+```bash
+# This is blocked but shouldn't be:
+touch components/__tests__/fixtures/MockButton.tsx
+# Error: Duplicate component detected - MockButton
+```
+
+## Analysis
+
+**Root Cause:**
+The hook checks all paths against the component registry without excluding test directories. This causes false positives for legitimate test fixtures.
+
+**Confidence:** 95%
+
+## Resolution
+
+**Patch Action:** insert-after
+**Marker:** Only check paths
+
+**Content:**
+```bash
+# Exclude test directories
+EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-__tests__|fixtures|__mocks__|\.test\.|\.spec\.}"
+if echo "$FILE_PATH" | grep -qE "($EXCLUDE_PATTERNS)"; then
+  exit 0
+fi
+```
+
+## Pattern Tracking
+
+- **Pattern ID:** PATTERN-001
+- **Generalization Potential:** high
+
+## Files Modified
+
+- .claude/skills/context-engineering/SKILL.patch.md
+
+---
+
+> Applied: 2024-12-04T14:35:00Z
+```

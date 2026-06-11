@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.2.0",
-  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, and web development tools",
+  "version": "1.3.0",
+  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, and web development tools",
   "owner": {
     "name": "Rhize Media"
   },
@@ -63,6 +63,27 @@
         "scaffolding",
         "planning",
         "handoff"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "rhize-devflow",
+      "source": "./rhize-devflow",
+      "description": "Rhize development-workflow skill set — context/session/memory engineering, production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, dev-flow foundations, plus the skill-refinement and rhize-skill-forge meta-skills",
+      "version": "2.1.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": [
+        "development-workflow",
+        "context-engineering",
+        "error-lifecycle",
+        "data-mutation",
+        "sentry",
+        "chrome-devtools",
+        "skill-refinement",
+        "skill-forge",
+        "rhize"
       ],
       "category": "workflow"
     }

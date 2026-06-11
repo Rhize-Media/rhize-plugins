@@ -1,0 +1,134 @@
+# SKILL.patch.md Template
+
+Use this template to create section-level patches for skills.
+
+---
+
+```markdown
+# SKILL.patch.md
+# Patches for: {{SKILL_NAME}}
+# Generated: {{TIMESTAMP}}
+# Refinement: {{REFINEMENT_ID}}
+
+## PATCH: {{TARGET_SECTION}}
+<!-- ACTION: {{PATCH_ACTION}} "{{MARKER}}" -->
+{{PATCH_CONTENT}}
+```
+
+---
+
+## Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{SKILL_NAME}}` | Target skill name | `context-engineering` |
+| `{{TIMESTAMP}}` | ISO timestamp | `2024-12-04T14:30:00Z` |
+| `{{REFINEMENT_ID}}` | Refinement ID | `REF-2024-1204-001` |
+| `{{TARGET_SECTION}}` | Section path | `hooks/duplicate-check` |
+| `{{PATCH_ACTION}}` | Action type | `insert-after`, `append`, etc. |
+| `{{MARKER}}` | Marker for positioned actions | `"Only check paths"` |
+| `{{PATCH_CONTENT}}` | Actual patch content | Code or markdown |
+
+---
+
+## Patch Actions
+
+### append
+Adds content to the end of the section.
+
+```markdown
+## PATCH: triggers
+<!-- ACTION: append -->
+- "new trigger phrase"
+- "another trigger"
+```
+
+### prepend
+Adds content to the start of the section.
+
+```markdown
+## PATCH: triggers
+<!-- ACTION: prepend -->
+- "high priority trigger"
+```
+
+### replace-section
+Replaces a named subsection entirely.
+
+```markdown
+## PATCH: hooks/duplicate-check
+<!-- ACTION: replace-section "EXCLUDE PATTERNS" -->
+# Exclude patterns (updated)
+EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-__tests__|fixtures|__mocks__}"
+```
+
+### insert-after
+Inserts content after a marker line.
+
+```markdown
+## PATCH: commands/start
+<!-- ACTION: insert-after "Step 3:" -->
+### Step 3.5: Additional Validation
+Run project-specific checks before proceeding.
+```
+
+### insert-before
+Inserts content before a marker line.
+
+```markdown
+## PATCH: hooks/pre-commit-guard
+<!-- ACTION: insert-before "exit 1" -->
+# Log the failure reason
+echo "Pre-commit check failed: $REASON"
+```
+
+### delete-section
+Removes a named subsection.
+
+```markdown
+## PATCH: config
+<!-- ACTION: delete-section "DEPRECATED OPTIONS" -->
+```
+
+---
+
+## Multiple Patches
+
+A single SKILL.patch.md can contain multiple patches:
+
+```markdown
+# SKILL.patch.md
+# Patches for: context-engineering
+# Generated: 2024-12-04T14:30:00Z
+# Refinements: REF-2024-1204-001, REF-2024-1204-002
+
+## PATCH: triggers
+<!-- ACTION: append -->
+- "test fixture"
+- "mock component"
+
+## PATCH: hooks/duplicate-check
+<!-- ACTION: insert-after "Only check paths" -->
+# Exclude test directories
+if echo "$FILE_PATH" | grep -qE "(__tests__|fixtures|__mocks__)"; then
+  exit 0
+fi
+
+## PATCH: commands/done
+<!-- ACTION: replace-section "Validation Steps" -->
+### Validation Steps
+1. Run tests: `npm test`
+2. Run lint: `npm run lint`
+3. Run build: `npm run build`
+4. Run project validation: `./scripts/validate.sh`
+```
+
+---
+
+## Best Practices
+
+1. **Be specific with markers** - Use unique text that won't match multiple locations
+2. **Include context comments** - Add comments explaining why the patch exists
+3. **Test incrementally** - Apply and test one patch at a time
+4. **Document refinement IDs** - Track which refinement created each patch
+5. **Prefer minimal changes** - Only patch what's necessary

@@ -1,0 +1,17 @@
+{
+  "description": "rhize-devflow — lightweight SessionStart banner. Heavier guard hooks (duplicate-check, prewrite mutation check, rca-enforcer, regression-guard) ship bundled under this directory and inside each skill but are OPT-IN: wire them into your project's .claude/settings.json when you want them, so nothing untested fires automatically on every session.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — context-engineering, error-lifecycle, data-mutation, sentry, chrome-devtools, sanity, skill-refinement, skill-forge. Commands: /rhize-devflow:*'; else echo ''; fi",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+# Mutation Consistency Scoring Weights
+#
+# Higher weights = more impact on final score
+# Weights are normalized in the scoring calculation
+#
+# Override this file per-project by placing in:
+#   .claude/config/scoring-weights.yaml
+
+# Thresholds for status determination
+thresholds:
+  warning: 9.0    # Score < 9.0 triggers warning status
+  critical: 7.0   # Score < 7.0 triggers critical status
+
+# Platform weights (Vercel/Next.js/Supabase)
+# These apply to all mutations
+platform:
+  # Required elements (high weight)
+  error_handling: 1.5        # Must handle errors from Supabase/API calls
+  cache_revalidation: 1.5    # Must revalidate Next.js cache after mutations
+  type_safety: 1.3           # Must have TypeScript types for params/returns
+
+  # Recommended elements
+  input_validation: 1.0      # Should validate with zod before mutation
+  rls_awareness: 1.1         # Should handle RLS errors appropriately
+  audit_trail: 0.6           # Nice to have logging/tracking
+
+# User experience weights
+# Applied when mutation is user-facing (components, hooks)
+user_experience:
+  optimistic_ui: 1.2         # Required for user-facing mutations
+  rollback_logic: 1.4        # Required if optimistic_ui is present
+  user_feedback: 0.8         # Recommended toast/notification on result
+
+# React Query specific weights
+react_query:
+  query_key_factory: 1.5     # Must use factory pattern, not inline keys
+  on_error_handler: 1.3      # Must handle errors with rollback
+  on_settled_handler: 1.4    # Must invalidate queries on settlement
+  mutation_fn_typed: 1.0     # Should have typed mutation function
+
+# Payload CMS specific weights
+payload:
+  after_change_hook: 1.5     # Must have afterChange hook
+  after_change_cache: 1.5    # afterChange must call revalidateTag/Path
+  after_delete_hook: 1.3     # Must have afterDelete hook
+  after_delete_cache: 1.3    # afterDelete must invalidate cache
+  before_change_validation: 1.0  # Should validate before changes
+  cleanup_references: 0.8    # Should clean related records on delete
+
+# Category-specific required elements
+# Used to determine which weights apply to which mutation types
+categories:
+  server_action:
+    required:
+      - error_handling
+      - cache_revalidation
+      - type_safety
+    recommended:
+      - input_validation
+      - audit_trail
+
+  api_route:
+    required:
+      - error_handling
+      - type_safety
+      - rls_awareness
+    recommended:
+      - input_validation
+      - audit_trail
+
+  client_mutation:
+    required:
+      - error_handling
+      - type_safety
+    conditional:
+      optimistic_ui: "user-facing"      # Required if user-facing
+      rollback_logic: "has optimistic"  # Required if optimistic_ui
+    recommended:
+      - user_feedback
+
+  react_query:
+    required:
+      - query_key_factory
+      - on_error_handler
+      - on_settled_handler
+      - type_safety
+    conditional:
+      optimistic_ui: "user-facing"
+      rollback_logic: "has optimistic"
+    recommended:
+      - user_feedback
+
+  payload_hook:
+    required:
+      - after_change_hook
+      - after_change_cache
+      - after_delete_hook
+      - after_delete_cache
+    recommended:
+      - before_change_validation
+      - cleanup_references

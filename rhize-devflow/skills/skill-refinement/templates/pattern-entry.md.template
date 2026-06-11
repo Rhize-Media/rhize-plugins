@@ -1,0 +1,216 @@
+# Pattern Entry Template
+
+Template for pattern entries in `aggregated-patterns.md` and `generalization-queue.md`.
+
+---
+
+## Pattern Entry (aggregated-patterns.md)
+
+```markdown
+### {{STATUS_EMOJI}} {{PATTERN_ID}}: {{PATTERN_NAME}}
+- **First seen:** {{FIRST_SEEN_DATE}} ({{FIRST_PROJECT}})
+- **Also seen:** {{OTHER_PROJECTS}}
+- **Count:** {{COUNT}}
+- **Status:** {{STATUS}}
+
+**Affected Skills:**
+{{AFFECTED_SKILLS_LIST}}
+
+**Pattern Description:**
+{{PATTERN_DESCRIPTION}}
+
+**Proposed Generalization:**
+{{PROPOSED_CHANGES}}
+
+**Refinement IDs:** {{REFINEMENT_IDS}}
+```
+
+---
+
+## Queue Entry (generalization-queue.md)
+
+```markdown
+### {{PATTERN_ID}}: {{PATTERN_NAME}}
+- **Priority:** {{PRIORITY}} ({{COUNT}} occurrences)
+- **Confidence:** {{CONFIDENCE}}
+- **Breaking Changes:** {{BREAKING_CHANGES}}
+
+**Skills to Update:**
+{{SKILLS_TO_UPDATE_LIST}}
+
+**Proposed Changes:**
+
+#### {{SKILL_1}}/{{FILE_1}}
+```diff
+{{DIFF_1}}
+```
+
+#### {{SKILL_2}}/{{FILE_2}}
+```diff
+{{DIFF_2}}
+```
+
+**To Apply:**
+```bash
+/apply-generalization {{PATTERN_ID}}
+```
+```
+
+---
+
+## Variables
+
+### Pattern Entry Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{STATUS_EMOJI}}` | Status indicator | `⚪` (tracking), `🟡` (ready), `✅` (done) |
+| `{{PATTERN_ID}}` | Unique ID | `PATTERN-001` |
+| `{{PATTERN_NAME}}` | Descriptive name | `Test Directory Exclusion` |
+| `{{FIRST_SEEN_DATE}}` | First occurrence | `2024-12-01` |
+| `{{FIRST_PROJECT}}` | First project | `vba-lms-app` |
+| `{{OTHER_PROJECTS}}` | Other occurrences | `2024-12-03 (rhize-lms)` |
+| `{{COUNT}}` | Total occurrences | `3` |
+| `{{STATUS}}` | Current status | `tracking`, `ready-for-generalization` |
+| `{{AFFECTED_SKILLS_LIST}}` | Skills involved | Bulleted list |
+| `{{PATTERN_DESCRIPTION}}` | What the pattern does | Free text |
+| `{{PROPOSED_CHANGES}}` | Code/config changes | Code block |
+| `{{REFINEMENT_IDS}}` | Related refinements | `REF-001, REF-002` |
+
+### Queue Entry Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{{PRIORITY}}` | Urgency level | `High`, `Medium`, `Low` |
+| `{{CONFIDENCE}}` | Analysis confidence | `High`, `Medium` |
+| `{{BREAKING_CHANGES}}` | Risk assessment | `None`, `Minor`, description |
+| `{{SKILLS_TO_UPDATE_LIST}}` | Numbered list | `1. context-engineering/hooks/...` |
+| `{{DIFF_N}}` | Diff for each file | Standard diff format |
+
+---
+
+## Status Emojis
+
+| Emoji | Status | Meaning |
+|-------|--------|---------|
+| ⚪ | `tracking` | Count = 1, watching for more occurrences |
+| 🟡 | `ready-for-generalization` | Count >= 2, ready to apply |
+| ✅ | `generalized` | Already applied to user-scope |
+| ⛔ | `dismissed` | Won't be generalized |
+
+---
+
+## Example: Tracking Pattern
+
+```markdown
+### ⚪ PATTERN-002: CMS-Specific Error Validators
+- **First seen:** 2024-12-02 (vba-lms-app)
+- **Count:** 1
+- **Status:** tracking
+
+**Affected Skills:**
+- error-lifecycle-management
+
+**Pattern Description:**
+CMS-specific error validators (e.g., Payload CMS) require custom error patterns
+that may not apply universally but could be abstracted into a plugin system.
+
+**Notes:**
+If seen again with a different CMS, consider creating a plugin architecture
+for CMS-specific validators rather than adding individual patterns.
+
+**Refinement IDs:** REF-2024-1202-001
+```
+
+---
+
+## Example: Ready for Generalization
+
+```markdown
+### 🟡 PATTERN-001: Test Directory Exclusion
+- **First seen:** 2024-12-01 (vba-lms-app)
+- **Also seen:** 2024-12-03 (rhize-lms), 2024-12-04 (client-project)
+- **Count:** 3
+- **Status:** ready-for-generalization
+
+**Affected Skills:**
+- context-engineering (duplicate-check hook)
+- context-engineering (pre-commit-guard hook)
+- error-lifecycle-management (all validators)
+
+**Pattern Description:**
+Hooks and validators need standard exclusion patterns for test directories
+(__tests__, fixtures, __mocks__) to avoid false positives on legitimate
+test files that may share names with production components.
+
+**Proposed Generalization:**
+Add `EXCLUDE_PATTERNS` environment variable to all hooks/validators:
+```bash
+EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-__tests__|fixtures|__mocks__|\.test\.|\.spec\.}"
+```
+
+**Refinement IDs:** REF-2024-1201-003, REF-2024-1203-001, REF-2024-1204-001
+```
+
+---
+
+## Example: Queue Entry
+
+```markdown
+### PATTERN-001: Test Directory Exclusion
+- **Priority:** High (3 occurrences)
+- **Confidence:** High (consistent pattern across projects)
+- **Breaking Changes:** None (additive only)
+
+**Skills to Update:**
+1. context-engineering/hooks/duplicate-check.sh
+2. context-engineering/hooks/pre-commit-guard.sh
+3. error-lifecycle-management/scripts/common/base_validator.py
+
+**Proposed Changes:**
+
+#### context-engineering/hooks/duplicate-check.sh
+```diff
++ # Configurable exclusion patterns
++ EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS:-__tests__|fixtures|__mocks__|\.test\.|\.spec\.}"
++
++ # Skip excluded paths
++ if echo "$FILE_PATH" | grep -qE "($EXCLUDE_PATTERNS)"; then
++   exit 0
++ fi
+```
+
+#### error-lifecycle-management/scripts/common/base_validator.py
+```diff
++ DEFAULT_EXCLUDE_PATTERNS = [
++     r'__tests__',
++     r'fixtures',
++     r'__mocks__',
++     r'\.test\.',
++     r'\.spec\.',
++ ]
++
++ def should_exclude(self, path: str) -> bool:
++     """Check if path matches exclusion patterns."""
++     return any(re.search(p, path) for p in self.exclude_patterns)
+```
+
+**To Apply:**
+```bash
+/apply-generalization PATTERN-001
+```
+```
+
+---
+
+## Example: Archived (Generalized)
+
+```markdown
+### ✅ PATTERN-000: API Pattern Configuration
+- **Generalized:** 2024-11-28
+- **Applied to:** error-lifecycle-management v2.0.0
+- **Description:** Made API detection patterns configurable via .error-lifecycle.json
+- **Impact:** Reduced false positives by 40% across all projects
+
+**Original Refinements:** REF-2024-1115-001, REF-2024-1120-002
+```

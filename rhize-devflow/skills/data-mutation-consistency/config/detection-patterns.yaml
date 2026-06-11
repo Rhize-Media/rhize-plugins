@@ -1,0 +1,201 @@
+# Mutation Detection Patterns
+#
+# Regex patterns for detecting mutations and their elements.
+# These patterns are used by the pattern matcher to find mutations in code.
+
+# Platform patterns (Vercel/Next.js/Supabase)
+platform:
+  # Supabase mutations
+  supabase_insert:
+    pattern: 'supabase\s*\.\s*from\s*\(\s*[''"](\w+)[''"]\s*\)\s*\.\s*insert'
+    category: client_mutation
+    extracts:
+      - table_name
+
+  supabase_update:
+    pattern: 'supabase\s*\.\s*from\s*\(\s*[''"](\w+)[''"]\s*\)\s*\.\s*update'
+    category: client_mutation
+    extracts:
+      - table_name
+
+  supabase_delete:
+    pattern: 'supabase\s*\.\s*from\s*\(\s*[''"](\w+)[''"]\s*\)\s*\.\s*delete'
+    category: client_mutation
+    extracts:
+      - table_name
+
+  supabase_upsert:
+    pattern: 'supabase\s*\.\s*from\s*\(\s*[''"](\w+)[''"]\s*\)\s*\.\s*upsert'
+    category: client_mutation
+    extracts:
+      - table_name
+
+  # Server action detection
+  server_action:
+    pattern: '[''"]use server[''"]'
+    category: server_action
+
+  # Cache revalidation
+  revalidate_tag:
+    pattern: 'revalidateTag\s*\(\s*[''"](\w+)[''"]'
+    extracts:
+      - tag_name
+
+  revalidate_path:
+    pattern: 'revalidatePath\s*\(\s*[''"]([^''\"]+)[''"]'
+    extracts:
+      - path
+
+# Element detection patterns
+elements:
+  # Error handling patterns
+  error_handling:
+    patterns:
+      - 'try\s*\{'
+      - 'if\s*\(\s*error\s*\)'
+      - '\{\s*data\s*,\s*error\s*\}'
+      - 'throw\s+(new\s+)?Error'
+      - '\.catch\s*\('
+    any_match: true  # Any pattern matching counts as present
+
+  # Type safety patterns
+  type_safety:
+    patterns:
+      - ':\s*\w+(?:<[^>]+>)?(?:\s*\||\s*\)|\s*=>|\s*\{)'
+      - 'interface\s+\w+'
+      - 'type\s+\w+\s*='
+    any_match: true
+
+  # Input validation patterns
+  input_validation:
+    patterns:
+      - '\.parse\('
+      - '\.safeParse\('
+      - 'validate'
+      - 'schema\.'
+      - 'zod\.'
+    any_match: true
+    case_insensitive: true
+
+  # User feedback patterns
+  user_feedback:
+    patterns:
+      - 'toast\.'
+      - 'notification\.'
+      - 'alert\('
+      - 'showMessage'
+      - 'showToast'
+    any_match: true
+    case_insensitive: true
+
+# React Query specific patterns
+react_query:
+  use_mutation:
+    pattern: 'useMutation\s*\(\s*\{'
+    category: react_query
+
+  query_key_factory:
+    pattern: 'export\s+const\s+(\w+)Keys\s*='
+    category: react_query
+    extracts:
+      - factory_name
+
+  inline_query_key:
+    pattern: 'queryKey:\s*\[[''"][^''\"]+[''"]'
+    category: react_query
+    is_violation: true
+    message: "Use query key factory instead of inline keys"
+
+  on_mutate:
+    pattern: 'onMutate\s*:'
+    element: optimistic_ui
+
+  on_error:
+    pattern: 'onError\s*:'
+    element: on_error_handler
+
+  on_settled:
+    pattern: 'onSettled\s*:'
+    element: on_settled_handler
+
+  on_success:
+    pattern: 'onSuccess\s*:'
+    element: success_handler
+
+  invalidate_queries:
+    pattern: 'invalidateQueries\s*\('
+    element: cache_invalidation
+
+  set_query_data:
+    pattern: 'setQueryData\s*\('
+    element: optimistic_update
+
+# Payload CMS specific patterns
+payload:
+  collection_config:
+    pattern: 'CollectionConfig\s*=\s*\{'
+    category: payload_hook
+
+  after_change:
+    pattern: 'afterChange\s*:\s*\['
+    element: after_change_hook
+
+  after_delete:
+    pattern: 'afterDelete\s*:\s*\['
+    element: after_delete_hook
+
+  before_change:
+    pattern: 'beforeChange\s*:\s*\['
+    element: before_change_hook
+
+  empty_hooks:
+    pattern: 'hooks\s*:\s*\{\s*\}'
+    is_violation: true
+    message: "Empty hooks object - add afterChange and afterDelete"
+
+  slug_extraction:
+    pattern: 'slug\s*:\s*[''"](\w+)[''"]'
+    extracts:
+      - collection_slug
+
+# Anti-patterns to detect
+anti_patterns:
+  # Direct Supabase in components
+  supabase_in_component:
+    pattern: 'import.*from\s*[''"]@supabase'
+    context: 'components/'
+    message: "Move Supabase calls to lib/api/ layer"
+    severity: warning
+
+  # No error destructuring
+  supabase_no_error_check:
+    pattern: 'const\s*\{\s*data\s*\}\s*=\s*await\s+supabase'
+    message: "Destructure error: const { data, error } = await supabase..."
+    severity: error
+
+  # Server action without revalidation
+  server_action_no_revalidate:
+    pattern: '[''"]use server[''"][\s\S]*?supabase[\s\S]*?(?:insert|update|delete)(?![\s\S]*?revalidate)'
+    message: "Server action must call revalidateTag/revalidatePath after mutation"
+    severity: error
+    multiline: true
+
+  # useMutation without invalidation
+  mutation_no_invalidation:
+    pattern: 'useMutation\s*\(\s*\{[^}]*mutationFn[^}]*\}(?![^}]*onSettled|invalidateQueries)'
+    message: "Add onSettled with invalidateQueries for cache consistency"
+    severity: warning
+    multiline: true
+
+  # Convenience hook without spread
+  convenience_no_spread:
+    pattern: 'const\s+mutation\s*=\s*use\w+\(\)[^}]*return\s*\{\s*mutate:'
+    message: "Spread parent mutation to inherit handlers: {...mutation, mutate: ...}"
+    severity: warning
+
+  # Optimistic without rollback
+  optimistic_no_rollback:
+    pattern: 'onMutate[\s\S]*?setQueryData(?![\s\S]*?onError[\s\S]*?setQueryData)'
+    message: "Add onError with rollback using context.previous"
+    severity: error
+    multiline: true
