@@ -1,11 +1,11 @@
-# /rhize-devflow:forge-scan
+# /rhize-meta:forge-scan
 
 Read-only assessment of an external skill. No changes — just the profile, overlap, and a
 recommended verb. Use this to triage a backlog of candidates before committing to any ingestion.
 
 ## Usage
 ```
-/rhize-devflow:forge-scan <source>
+/rhize-meta:forge-scan <source>
 ```
 
 ## Steps
@@ -20,4 +20,4 @@ recommended verb. Use this to triage a backlog of candidates before committing t
    Worth a closer look : <yes/no + one line>
    ```
 
-Stop there. If the user wants to proceed, continue with `/rhize-devflow:forge-ingest`.
+Stop there. If the user wants to proceed, continue with `/rhize-meta:forge-ingest`.
