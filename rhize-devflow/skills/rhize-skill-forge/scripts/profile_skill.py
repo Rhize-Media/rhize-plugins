@@ -166,9 +166,60 @@ def profile(path: Path) -> dict:
             shutil.rmtree(tmp, ignore_errors=True)
 
 
+def classify_input(p: Path) -> str:
+    """skill | plugin | mcp — by manifest/config presence (directories only)."""
+    if (p / ".claude-plugin" / "plugin.json").exists():
+        return "plugin"
+    if (p / ".mcp.json").exists() or (p / "mcp.json").exists():
+        return "mcp"
+    return "skill"
+
+
+def profile_plugin(p: Path) -> dict:
+    try:
+        manifest = json.loads((p / ".claude-plugin" / "plugin.json").read_text(errors="ignore"))
+    except Exception as e:  # noqa: BLE001 — fail loudly with the parse error
+        fail(f"could not parse plugin.json under {p}: {e}")
+    skills = []
+    sk_dir = p / "skills"
+    if sk_dir.is_dir():
+        skills = sorted(d.name for d in sk_dir.glob("*") if (d / "SKILL.md").exists())
+    commands = len(list((p / "commands").glob("*.md"))) if (p / "commands").is_dir() else 0
+    mc = manifest.get("mcpServers") or manifest.get("mcp_servers") or {}
+    mcp_servers = sorted(mc.keys()) if isinstance(mc, dict) else []
+    return {
+        "kind": "plugin",
+        "input_path": str(p),
+        "name": manifest.get("name"),
+        "version": manifest.get("version"),
+        "description": manifest.get("description"),
+        "skills": skills,
+        "skill_count": len(skills),
+        "commands": commands,
+        "mcp_servers": mcp_servers,
+    }
+
+
+def profile_mcp(p: Path) -> dict:
+    cfgp = (p / ".mcp.json") if (p / ".mcp.json").exists() else (p / "mcp.json")
+    try:
+        cfg = json.loads(cfgp.read_text(errors="ignore"))
+    except Exception as e:  # noqa: BLE001
+        fail(f"could not parse MCP config {cfgp}: {e}")
+    servers = cfg.get("mcpServers") or cfg.get("servers") or {}
+    names = sorted(servers.keys()) if isinstance(servers, dict) else []
+    return {
+        "kind": "mcp",
+        "input_path": str(p),
+        "config": str(cfgp),
+        "servers": names,
+        "server_count": len(names),
+    }
+
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Profile an external skill candidate.")
-    ap.add_argument("path", help="skill dir, SKILL.md, or .skill bundle")
+    ap = argparse.ArgumentParser(description="Profile an external skill, plugin, or MCP config.")
+    ap.add_argument("path", help="skill dir/SKILL.md/.skill, a plugin dir, or an MCP config dir")
     ap.add_argument("--json", action="store_true", help="emit JSON")
     args = ap.parse_args()
 
@@ -176,9 +227,29 @@ def main() -> None:
     if not p.exists():
         fail(f"path does not exist: {p}")
 
-    data = profile(p)
+    kind = classify_input(p) if p.is_dir() else "skill"
+    if kind == "plugin":
+        data = profile_plugin(p)
+    elif kind == "mcp":
+        data = profile_mcp(p)
+    else:
+        data = profile(p)
+        data["kind"] = "skill"
+
     if args.json:
         print(json.dumps(data, indent=2))
+        return
+
+    if data["kind"] == "plugin":
+        print(f"Plugin:       {data['name']}  (v{data['version']})")
+        print(f"Skills:       {data['skill_count']} — {', '.join(data['skills']) or 'none'}")
+        print(f"Commands:     {data['commands']}")
+        print(f"MCP servers:  {', '.join(data['mcp_servers']) or 'none'}")
+        print(f"\nDescription:\n  {data.get('description')}")
+        return
+    if data["kind"] == "mcp":
+        print(f"MCP config:   {data['config']}")
+        print(f"Servers:      {data['server_count']} — {', '.join(data['servers']) or 'none'}")
         return
 
     print(f"Skill:        {data['name']}  (v{data['version']})")

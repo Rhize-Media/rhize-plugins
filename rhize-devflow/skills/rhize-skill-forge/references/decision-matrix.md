@@ -68,3 +68,16 @@ citation. Revisit on drift.
 - **FORK when DEFER would do** — if you'd copy it nearly verbatim and it's well maintained, defer.
 - **Skipping verification** because the candidate "is obviously good" — prove it beats baseline.
 - **Two verbs at once** — if it looks like ABSORB *and* FORK, your overlap analysis is unfinished.
+
+## Verb variants (set-level / organizer mode)
+
+Two refinements used when building *custom* skills from *resources* (see `composition-patterns.md`).
+They reuse the same machinery and human gate — they are **not** new verbs.
+
+- **DEFER+wrap** — a DEFER (you copy nothing) plus a thin custom skill that injects Rhize context
+  and points at the resource via a `consumes:` edge. Use when a maintained resource just needs
+  company context; it stays synced with upstream. Record as DEFER with `tier: custom`.
+- **Merge & override (N-way ABSORB)** — ABSORB from *several* overlapping resources at once, surfaced
+  by `overlap_scan.py --set-mode`. Pick the strongest section per source, patch via
+  `skill-refinement`, verify it beats baseline. **A scored proposal a human approves — never a
+  silent auto-merge** (that fights verify-first and is gated to a later, product-only phase).
