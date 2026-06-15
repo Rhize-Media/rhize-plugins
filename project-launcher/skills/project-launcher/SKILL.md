@@ -44,6 +44,27 @@ Phase 6: GSD v2 Handoff
 
 ---
 
+## Skill discovery & safety
+
+When scaffolding a project (Phase 5) or preparing the GSD handoff (Phase 6), proactively suggest
+skills relevant to the project's stack and goals, and **prove each one safe before adding it**. This
+reuses the meta-skills tooling in `rhize-meta` (no duplication):
+
+```bash
+# Suggest relevant skills for the project (skills.sh; needs VERCEL_OIDC_TOKEN)
+python3 ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills/rhize-skill-forge/scripts/skills_sh.py \
+  search "<project stack / goal>" --limit 10
+
+# Gate any skill before adding it (SkillSpector) — BLOCK on HIGH/CRITICAL
+python3 ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills/rhize-skill-forge/scripts/skill_safety.py \
+  <path-or-git-url> --no-llm
+```
+
+**Rule:** never add a skill the safety gate rates HIGH/CRITICAL (or a skills.sh partner marks
+`fail`). For setup, run `/rhize-meta:skill-doctor`; for guided discovery, `/rhize-meta:skill-find <query>`.
+
+---
+
 ## Phase 1: Research & Context Gathering
 
 **Goal**: Build a comprehensive understanding of the problem space before asking the user anything.

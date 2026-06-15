@@ -1,6 +1,6 @@
 {
   "name": "rhize-meta",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Rhize Media's meta-skills — skill governance for the Rhize toolchain: rhize-skill-forge (investigate & absorb external skills with provenance + the set-level organizer: capability registry, N-way overlap, dependency graph, drift boundaries) and skill-refinement (improve your own skills from usage feedback).",
   "author": {
     "name": "Rhize Media"
