@@ -1,5 +1,8 @@
 ---
 name: error-lifecycle-management
+tier: custom
+domain: error-lifecycle
+maturity: stable
 description: >-
   End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause
   analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use

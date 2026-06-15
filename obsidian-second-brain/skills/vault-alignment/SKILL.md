@@ -1,5 +1,8 @@
 ---
 name: vault-alignment
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request.
   Vault health assessment and ongoing alignment with second-brain best practices.

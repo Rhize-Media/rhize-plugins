@@ -1,5 +1,8 @@
 ---
 name: seo-site-audit
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request.
   Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on:

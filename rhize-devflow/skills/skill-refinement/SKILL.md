@@ -1,5 +1,8 @@
 ---
 name: skill-refinement
+tier: custom
+domain: meta
+maturity: stable
 version: 1.0.0
 description: >-
   Capture, apply, and generalize improvements to your own Rhize skills based on real usage feedback.

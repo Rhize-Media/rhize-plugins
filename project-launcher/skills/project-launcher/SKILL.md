@@ -1,5 +1,8 @@
 ---
 name: project-launcher
+tier: custom
+domain: dev-flow
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD,
   plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development.

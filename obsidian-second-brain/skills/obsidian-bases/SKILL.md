@@ -1,5 +1,8 @@
 ---
 name: obsidian-bases
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request.
   Create and edit Obsidian Base files (.base) for database-like views, filters,

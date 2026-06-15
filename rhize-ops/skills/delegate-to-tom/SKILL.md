@@ -1,5 +1,8 @@
 ---
 name: delegate-to-tom
+tier: custom
+domain: ops
+maturity: stable
 description: |
   Delegate tasks to Tom Cassidy by gathering session context, formatting clear instructions, creating Jira issues, and notifying via Slack. ALWAYS use this skill when Jim says "delegate this to Tom", "hand this off to Tom", "assign this to Tom", "Tom should handle this", "send this to Tom", "create a task for Tom", "Tom can do this", "pass this to Tom", or any variation of asking Tom to take over a task. Also trigger when Jim says "delegate", "hand off", or "assign" in the context of passing work to someone else — Tom is the default recipient. This skill handles the full delegation pipeline: context gathering, Fireflies transcript analysis, task formatting, Jira issue creation, and Slack notification with @mention.
 ---

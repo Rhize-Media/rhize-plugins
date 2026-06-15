@@ -1,5 +1,8 @@
 ---
 name: data-mutation-consistency
+tier: custom
+domain: data-mutation
+maturity: stable
 version: 2.0.0
 description: >-
   Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity,
