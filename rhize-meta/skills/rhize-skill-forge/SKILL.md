@@ -205,6 +205,32 @@ graph are legible; untagged skills surface as rot in the registry output. To bui
 
 ---
 
+## Skill discovery & safety (skills.sh + SkillSpector)
+
+Forge ingests external skills — so it owns both **finding** candidates and **proving them safe**
+before anything is adopted. Two layered checks; a candidate must clear **both**.
+
+```bash
+# Discover candidates for a need (skills.sh — 600k+ skills; needs VERCEL_OIDC_TOKEN)
+python3 scripts/skills_sh.py search "<what you need>" --limit 10
+
+# Fast partner audit (Socket / Snyk / Gen Agent Trust Hub / ...) — pass | warn | fail
+python3 scripts/skills_sh.py audit <id>
+
+# Deep local scan — MANDATORY before DEFER/ABSORB/FORK. BLOCK on HIGH/CRITICAL.
+python3 scripts/skill_safety.py <path-or-git-url> --no-llm
+```
+
+**Gate rule (folds into Step 3, the human gate):** never DEFER/ABSORB/FORK a candidate that
+SkillSpector rates HIGH or CRITICAL, or that any skills.sh partner marks `fail`. MEDIUM/`warn` →
+review findings first. The safety scan is as non-negotiable as provenance.
+
+Setup is checked by `/rhize-meta:skill-doctor` (SkillSpector install + `VERCEL_OIDC_TOKEN`); the
+scripts also print exact setup steps when a tool or token is missing. Static scanning needs only
+SkillSpector (no key); skills.sh discovery needs the Vercel OIDC token.
+
+---
+
 ## Commands
 
 | Command | Purpose |
@@ -212,6 +238,8 @@ graph are legible; untagged skills surface as rot in the registry output. To bui
 | `/rhize-meta:forge-ingest <source>` | Full pipeline: profile → scan → decide → execute → verify → record |
 | `/rhize-meta:forge-scan <source>` | Overlap report only — no changes, just the recommendation |
 | `/rhize-meta:forge-watch` | Drift check across all absorbed sources |
+| `/rhize-meta:skill-find <query>` | Discover relevant skills (skills.sh) + partner audit + safety gate |
+| `/rhize-meta:skill-doctor` | Check skills.sh + SkillSpector setup |
 
 ---
 
@@ -224,6 +252,9 @@ graph are legible; untagged skills surface as rot in the registry output. To bui
 | `index_skills.py` | 🔧 EXECUTE | `python3 scripts/index_skills.py --skills-root <root> --json` |
 | `build_dependency_graph.py` | 🔧 EXECUTE | `python3 scripts/build_dependency_graph.py --skills-root <root> --json` |
 | `record_provenance.py` | 🔧 EXECUTE | `python3 scripts/record_provenance.py --source ... --name ...` · drift: `--check-drift` |
+| `skills_sh.py` | 🔧 EXECUTE | `python3 scripts/skills_sh.py search/audit/get/curated ...` (skills.sh discovery + audits) |
+| `skill_safety.py` | 🔧 EXECUTE | `python3 scripts/skill_safety.py <target> --no-llm` (SkillSpector safety gate) |
+| `skill_doctor.py` | 🔧 EXECUTE | `python3 scripts/skill_doctor.py` (skills.sh + SkillSpector setup check) |
 
 All scripts are stdlib-only (no pip installs), accept `--json`, and fail loudly with clear errors
 rather than guessing.
