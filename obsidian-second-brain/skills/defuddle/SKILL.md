@@ -1,5 +1,8 @@
 ---
 name: defuddle
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request.
   Extract clean, readable markdown from web pages using the Defuddle CLI tool,

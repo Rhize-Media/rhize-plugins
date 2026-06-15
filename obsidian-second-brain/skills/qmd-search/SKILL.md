@@ -1,5 +1,8 @@
 ---
 name: qmd-search
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request.
   Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text,

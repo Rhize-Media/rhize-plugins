@@ -1,5 +1,8 @@
 ---
 name: keyword-intelligence
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request.
   Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data

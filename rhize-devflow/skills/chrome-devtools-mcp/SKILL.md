@@ -1,5 +1,8 @@
 ---
 name: chrome-devtools-mcp
+tier: custom
+domain: dev-flow
+maturity: stable
 version: 1.0.0
 description: >-
   Browser automation, debugging, and performance analysis via the official Google Chrome DevTools

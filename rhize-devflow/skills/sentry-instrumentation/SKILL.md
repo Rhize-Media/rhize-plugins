@@ -1,5 +1,8 @@
 ---
 name: sentry-instrumentation
+tier: custom
+domain: sentry
+maturity: stable
 description: >-
   Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture
   (captureException), custom performance spans (startSpan), and structured logging (logger.fmt).

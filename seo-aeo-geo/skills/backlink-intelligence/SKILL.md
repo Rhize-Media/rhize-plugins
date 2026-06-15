@@ -1,5 +1,8 @@
 ---
 name: backlink-intelligence
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request.
   Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API.

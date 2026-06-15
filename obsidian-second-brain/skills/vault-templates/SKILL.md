@@ -1,5 +1,8 @@
 ---
 name: vault-templates
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request.
   Library of proven note templates and archetypes for Obsidian vaults — meeting notes,

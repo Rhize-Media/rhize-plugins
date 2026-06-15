@@ -1,5 +1,8 @@
 ---
 name: context-engineering
+tier: custom
+domain: dev-flow
+maturity: stable
 version: 2.0.0
 description: >-
   Systematic context, session, and memory management for Claude Code development sessions:
