@@ -1,0 +1,33 @@
+name: tag-release
+
+# When the marketplace top-level version changes on main, cut a matching `v<version>` git tag.
+# Lightweight Phase-3 release automation (no release-please dependency).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .claude-plugin/marketplace.json
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read marketplace version
+        id: ver
+        run: echo "v=$(python3 -c "import json;print(json.load(open('.claude-plugin/marketplace.json'))['version'])")" >> "$GITHUB_OUTPUT"
+      - name: Tag if new
+        run: |
+          tag="v${{ steps.ver.outputs.v }}"
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            echo "Tag $tag already exists — nothing to do."
+          else
+            git tag "$tag"
+            git push origin "$tag"
+            echo "Created tag $tag"
+          fi

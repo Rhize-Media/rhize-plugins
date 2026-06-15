@@ -1,6 +1,6 @@
 {
   "name": "rhize-ops",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Rhize Media's operations skill set: internal delegation, hand-offs, and team workflow automation. Houses delegate-to-tom (package a session's work into a structured hand-off for Tom Cassidy — Jira issue + Slack notification + Fireflies context).",
   "author": {
     "name": "Rhize Media"
