@@ -1,6 +1,12 @@
 ---
 name: rhize-skill-forge
-version: 1.0.0
+version: 1.1.0
+tier: custom
+domain: meta
+consumes:
+  - skill-refinement
+  - skill-creator
+maturity: stable
 description: >-
   Investigate an EXTERNAL skill and decide how to absorb it into the Rhize skill set. Use when the
   user wants to "ingest", "absorb", "evaluate", "import", "vendor", "steal the good parts of", or
@@ -26,6 +32,19 @@ licensing risk, or duplicating something you already have.
 The core idea: most external skills are *not* worth adopting whole. The value is usually a few
 patterns, a reference doc, or one good script. Forge exists to extract that signal and reject the
 rest — and to prove the absorbed version is actually better before you keep it.
+
+---
+
+## Two modes
+
+Forge works at two scopes:
+
+- **Per-candidate (default)** — one external skill at a time: profile → scan → decide → execute →
+  verify → record. That's the workflow below.
+- **Set-level (organizer)** — the whole installed set at once: build a capability registry, surface
+  internal redundancy, map dependencies. See [Set-level mode](#set-level-mode-organizer) and
+  `references/capability-schema.md`. This is the metadata-first on-ramp to the *Skill Customizer &
+  Organizer* — no runtime engine.
 
 ---
 
@@ -65,8 +84,10 @@ ABSORB and FORK, that's a signal the overlap analysis isn't finished — go back
 ### Step 1 — Profile the candidate
 
 Run the profiler to get a structured read of what you're dealing with. It handles a directory, a
-single `SKILL.md`, or a `.skill` zip. For a GitHub URL, clone/fetch it to a temp dir first, then
-point the profiler at it. For an installed marketplace skill, point it at the skill's directory.
+single `SKILL.md`, a `.skill` zip, a **plugin** dir (`.claude-plugin/plugin.json`), or an **MCP
+config** dir — reporting the right structure for each. For a GitHub URL, clone/fetch it to a temp
+dir first, then point the profiler at it. For an installed marketplace skill, point it at the
+skill's directory.
 
 ```bash
 python3 scripts/profile_skill.py <path-to-skill-or-.skill> --json
@@ -155,7 +176,32 @@ python3 scripts/record_provenance.py --check-drift --skills-root <rhize-skills-r
 ```
 
 This lists absorbed sources whose upstream version/commit has moved, so you can re-run the forge
-on the delta. Good candidates for a scheduled task (weekly).
+on the delta. **Don't schedule this separately** — detection is owned by the `ai-stack-version-drift`
+sensor (the only drift cron); `--check-drift` is the on-demand *classifier* it feeds, run via
+`/rhize-devflow:forge-watch` or off the sensor's report. See `references/drift-boundaries.md`.
+
+---
+
+## Set-level mode (organizer)
+
+Beyond one-candidate-at-a-time, Forge reasons over the **whole installed set** — the metadata
+backbone of the Skill Customizer & Organizer. All stdlib, all `--json`.
+
+```bash
+# 1. Build the capability registry (tier/domain/consumes/provenance + usage join)
+python3 scripts/index_skills.py --skills-root <root> \
+  --usage-snapshot rhize-ops/skill-monitor/data/snapshots/<latest>.json --json
+
+# 2. Find internal redundancy (N-way overlap across the set — e.g. duplicate SEO skills)
+python3 scripts/overlap_scan.py --set-mode --skills-root <root> --threshold 0.45
+
+# 3. Map custom→resource dependencies from `consumes:` edges
+python3 scripts/build_dependency_graph.py --skills-root <root> --json
+```
+
+Tag skills with the capability frontmatter (`references/capability-schema.md`) so the registry and
+graph are legible; untagged skills surface as rot in the registry output. To build custom skills
+*from* resources, see `references/composition-patterns.md` (DEFER+wrap, N-way ABSORB).
 
 ---
 
@@ -173,9 +219,11 @@ on the delta. Good candidates for a scheduled task (weekly).
 
 | Script | Type | Command |
 |--------|------|---------|
-| `profile_skill.py` | 🔧 EXECUTE | `python3 scripts/profile_skill.py <path> --json` |
-| `overlap_scan.py` | 🔧 EXECUTE | `python3 scripts/overlap_scan.py <path> --skills-root <root> --json` |
-| `record_provenance.py` | 🔧 EXECUTE | `python3 scripts/record_provenance.py --source ... --name ...` |
+| `profile_skill.py` | 🔧 EXECUTE | `python3 scripts/profile_skill.py <path> --json` (skill, plugin, or MCP) |
+| `overlap_scan.py` | 🔧 EXECUTE | `python3 scripts/overlap_scan.py <path> --skills-root <root> --json` · set-level: `--set-mode` |
+| `index_skills.py` | 🔧 EXECUTE | `python3 scripts/index_skills.py --skills-root <root> --json` |
+| `build_dependency_graph.py` | 🔧 EXECUTE | `python3 scripts/build_dependency_graph.py --skills-root <root> --json` |
+| `record_provenance.py` | 🔧 EXECUTE | `python3 scripts/record_provenance.py --source ... --name ...` · drift: `--check-drift` |
 
 All scripts are stdlib-only (no pip installs), accept `--json`, and fail loudly with clear errors
 rather than guessing.
@@ -184,9 +232,12 @@ rather than guessing.
 
 ## References
 
-- `references/decision-matrix.md` — full criteria for each of the five verbs + edge cases
+- `references/decision-matrix.md` — full criteria for each of the five verbs (+ DEFER+wrap / N-way ABSORB variants)
 - `references/overlap-analysis.md` — how the similarity score works and when to override it
 - `references/provenance.md` — license handling, attribution rules, `SOURCES.md` format
+- `references/capability-schema.md` — the tier/domain/consumes/provenance metadata standard (set-level)
+- `references/composition-patterns.md` — wrap vs. absorb vs. reference vs. chain (which to actually use)
+- `references/drift-boundaries.md` — how drift detection is divided (sensor / classifier / propagator)
 
 ---
 

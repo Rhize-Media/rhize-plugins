@@ -103,26 +103,75 @@ def suggest_verb(top_score: float) -> str:
     return "DEFER / new FORK (little overlap)"
 
 
+def set_scan(root: Path, threshold: float) -> list:
+    """N-way: pairwise overlap across the whole installed set; report pairs >= threshold.
+
+    Symmetric: the pair score is max(score(a,b), score(b,a)) since `score` is candidate-centric.
+    Surfaces internal redundancy (e.g. several skills covering one domain) for N-way ABSORB.
+    """
+    found: set = set()
+    for g in ("*/SKILL.md", "skills/*/SKILL.md", "*/skills/*/SKILL.md"):
+        found |= set(root.glob(g))
+    paths = sorted(p for p in found if "/.git/" not in str(p))
+    metas = [read_frontmatter(p) for p in paths]
+    pairs = []
+    for i in range(len(metas)):
+        for j in range(i + 1, len(metas)):
+            sc = max(score(metas[i], metas[j]), score(metas[j], metas[i]))
+            if sc >= threshold:
+                pairs.append({"a": metas[i]["name"], "b": metas[j]["name"], "score": round(sc, 3)})
+    pairs.sort(key=lambda r: r["score"], reverse=True)
+    return pairs
+
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Rank candidate vs existing Rhize skills.")
-    ap.add_argument("candidate", help="candidate skill dir or SKILL.md")
+    try:  # ASCII-locale safety for the human-readable output path (e.g. LANG=C cron)
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+    ap = argparse.ArgumentParser(
+        description="Rank a candidate vs the Rhize set, or scan the set for internal overlap.")
+    ap.add_argument("candidate", nargs="?", help="candidate skill dir or SKILL.md (omit with --set-mode)")
     ap.add_argument("--skills-root", required=True, help="root containing existing Rhize skills")
+    ap.add_argument("--set-mode", action="store_true",
+                    help="N-way: rank internal redundancy across the whole set (no candidate)")
+    ap.add_argument("--threshold", type=float, default=0.45,
+                    help="min pair score to report in --set-mode (default 0.45)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
+    root = Path(os.path.expanduser(args.skills_root)).resolve()
+    if not root.is_dir():
+        fail(f"skills-root not a directory: {root}")
+
+    if args.set_mode:
+        pairs = set_scan(root, args.threshold)
+        if args.json:
+            print(json.dumps({"set_mode": True, "threshold": args.threshold, "pairs": pairs}, indent=2))
+            return
+        print(f"Internal redundancy — pairs scoring >= {args.threshold}:")
+        if not pairs:
+            print("  none above threshold.")
+            return
+        for p in pairs:
+            bar = "█" * int(p["score"] * 20)
+            print(f"  {p['score']:.3f} {bar:<20} {p['a']}  <=>  {p['b']}")
+        print("\nHigh pairs = merge candidates (N-way ABSORB) or DEFER one to the other.")
+        print("The score points; you decide — open both bodies (see references/overlap-analysis.md).")
+        return
+
+    if not args.candidate:
+        fail("candidate is required unless --set-mode is set")
     cpath = Path(os.path.expanduser(args.candidate)).resolve()
     if cpath.is_dir():
         cpath = cpath / "SKILL.md"
     if not cpath.exists():
         fail(f"candidate SKILL.md not found: {cpath}")
 
-    root = Path(os.path.expanduser(args.skills_root)).resolve()
-    if not root.is_dir():
-        fail(f"skills-root not a directory: {root}")
-
     cand = read_frontmatter(cpath)
 
-    existing = sorted(set(root.glob("*/SKILL.md")) | set(root.glob("skills/*/SKILL.md")))
+    existing = sorted(set(root.glob("*/SKILL.md")) | set(root.glob("skills/*/SKILL.md"))
+                      | set(root.glob("*/skills/*/SKILL.md")))
     existing = [p for p in existing if p.resolve() != cpath.resolve() and "/.git/" not in str(p)]
     if not existing:
         fail(f"no existing skills found under {root}")
