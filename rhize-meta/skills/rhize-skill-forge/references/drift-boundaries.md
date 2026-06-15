@@ -8,7 +8,7 @@ This file fixes the boundaries so they never re-collide. Division locked 2026-06
 | Stage | System | Owns | Cadence |
 |-------|--------|------|---------|
 | **Sensor** | `ai-stack-version-drift` (scheduled task, `~/Documents/Claude/Scheduled/ai-stack-version-drift/`) | Detect version movement across the whole stack (AI CLI tools, MCP servers, plugins/skills as installed artifacts); auto-apply **SAFE** bumps (branch-only for repos); flag **RISKY**; report to vault + Slack | Mon/Thu 06:00, unattended |
-| **Classifier** | `rhize-skill-forge --check-drift` (`record_provenance.py`) | Of what moved, which sources we **borrowed patterns from** (the `SOURCES.md` ledger) → which need a **re-forge** on the delta | On demand (`/rhize-devflow:forge-watch`) or triggered off the sensor's report — **never its own cron** |
+| **Classifier** | `rhize-skill-forge --check-drift` (`record_provenance.py`) | Of what moved, which sources we **borrowed patterns from** (the `SOURCES.md` ledger) → which need a **re-forge** on the delta | On demand (`/rhize-meta:forge-watch`) or triggered off the sensor's report — **never its own cron** |
 | **Propagator** *(Phase 3)* | update-propagation + diff review (not built) | Given a moved resource + the `consumes:` dependency graph, generate per-dependent diffs + a **human-gated** apply | Only once a dependency graph exists and is non-trivial |
 
 ## Rules
@@ -20,7 +20,7 @@ This file fixes the boundaries so they never re-collide. Division locked 2026-06
 
 ## Handoffs
 
-- **Sensor → Classifier:** the sensor tags any moved item that also appears in `SOURCES.md` as *"tracked — see Forge."* (Future change: add this lookup step to the `ai-stack-version-drift` task SKILL.md. Until then, run `/rhize-devflow:forge-watch` after a drift report lands.)
+- **Sensor → Classifier:** the sensor tags any moved item that also appears in `SOURCES.md` as *"tracked — see Forge."* (Future change: add this lookup step to the `ai-stack-version-drift` task SKILL.md. Until then, run `/rhize-meta:forge-watch` after a drift report lands.)
 - **Classifier → Propagator (Phase 3):** a re-forged resource whose `consumes:` edges are non-empty hands its changed sections to the propagator for per-dependent diff review.
 
 ## Anti-patterns

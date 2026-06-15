@@ -29,9 +29,9 @@ rhize-skill-forge/
 ├── SKILL.md                       # router + workflow (per-candidate + set-level modes)
 ├── SOURCES.md                     # provenance ledger (one entry per ingestion)
 ├── commands/
-│   ├── forge-ingest.md            # /rhize-devflow:forge-ingest <source>  (full pipeline)
-│   ├── forge-scan.md              # /rhize-devflow:forge-scan <source>    (read-only)
-│   └── forge-watch.md             # /rhize-devflow:forge-watch            (drift classifier)
+│   ├── forge-ingest.md            # /rhize-meta:forge-ingest <source>  (full pipeline)
+│   ├── forge-scan.md              # /rhize-meta:forge-scan <source>    (read-only)
+│   └── forge-watch.md             # /rhize-meta:forge-watch            (drift classifier)
 ├── references/
 │   ├── decision-matrix.md         # the five verbs (+ DEFER+wrap / N-way ABSORB variants)
 │   ├── overlap-analysis.md        # how the similarity score works
@@ -57,18 +57,18 @@ All scripts are stdlib-only and support `--json`.
 # Per-candidate triage (read-only)
 python3 scripts/profile_skill.py /path/to/candidate-skill
 python3 scripts/overlap_scan.py /path/to/candidate-skill \
-  --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-devflow/skills
+  --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills
 
 # Set-level (organizer): registry, internal redundancy, dependency graph
-python3 scripts/index_skills.py --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-devflow/skills --json
-python3 scripts/overlap_scan.py --set-mode --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-devflow/skills
-python3 scripts/build_dependency_graph.py --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-devflow/skills
+python3 scripts/index_skills.py --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills --json
+python3 scripts/overlap_scan.py --set-mode --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills
+python3 scripts/build_dependency_graph.py --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills
 
 # After deciding + verifying, record provenance (ledger lives at the forge dir)
 python3 scripts/record_provenance.py \
   --source "https://github.com/org/repo" --name "their-skill" --version "1.2.0" \
   --license "MIT" --verb ABSORB --target data-mutation-consistency \
   --took "the optimistic-update reference doc" --verified "beats baseline 2/2" \
-  --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-devflow/skills/rhize-skill-forge \
+  --skills-root ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills/rhize-skill-forge \
   --vault "/path/to/vault/Projects/Skill Forge"
 ```
