@@ -215,7 +215,7 @@ Post a structured delegation to the `#[REDACTED_CHANNEL]` Slack channel (Channel
 Use the `mcp__e6f1171c-902d-4f23-920c-131343ab5e80__slack_send_message` tool.
 
 The Slack MCP does NOT support Block Kit — use standard Slack mrkdwn only.
-#### 7a. Post the Main Channel Message
+#### 8a. Post the Main Channel Message
 
 This is what the recipient sees first in the channel. Keep it clean and scannable.
 
@@ -247,7 +247,7 @@ Delegated by Jim · [date]
 
 **IMPORTANT:** Capture the `ts` (timestamp) from the response of this first message. You'll need it for the thread replies.
 
-#### 7b. Post Thread Reply: Per-Task Details
+#### 8b. Post Thread Reply: Per-Task Details
 
 For EACH task, send a thread reply using the `thread_ts` parameter set to the main message's `ts`.
 Format each task's thread reply:
