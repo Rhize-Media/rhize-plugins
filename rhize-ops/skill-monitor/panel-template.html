@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Audit — Live Panel</title>
+<!--
+  Cowork live-artifact panel for the weekly skill audit.
+  dashboard.py --out panel inlines PANEL_DATA at the marker below, then the
+  weekly-skill-audit scheduled task calls update_artifact(id="skill-audit-live")
+  with the rendered file. Data source: data/snapshots/*-7d.json and *-28d.json.
+  Self-contained, light-mode; only the Chart.js CDN (allow-listed by Cowork) loads.
+-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #f7f7f5; color: #1d1c1a;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 18px;
+  }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: #6b6862; font-size: 12px; margin-bottom: 16px; }
+  .sub b { color: #1d1c1a; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi { background: #fff; border: 1px solid #e7e4de; border-radius: 10px; padding: 12px 14px; }
+  .kpi .n { font-size: 24px; font-weight: 650; letter-spacing: -0.5px; }
+  .kpi .l { font-size: 11px; color: #6b6862; text-transform: uppercase; letter-spacing: 0.4px; }
+  .kpi .d { font-size: 11px; color: #9a968e; margin-top: 2px; }
+  .grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .card { background: #fff; border: 1px solid #e7e4de; border-radius: 10px; padding: 14px; }
+  .card h2 { font-size: 13px; margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.4px; color: #4a473f; }
+  .chartwrap { position: relative; height: 220px; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { text-align: left; padding: 4px 6px; font-size: 13px; border-bottom: 1px solid #f0ede7; }
+  th { font-size: 11px; color: #6b6862; text-transform: uppercase; letter-spacing: 0.3px; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  code { background: #f0ede7; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .bar { height: 6px; border-radius: 3px; background: #d8b4a0; display: inline-block; vertical-align: middle; }
+  .pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: #efe9e1; color: #6b5; margin-left: 6px; }
+  .sc { background: #e8eef0; color: #35606b; }
+  .actions { display: flex; gap: 10px; align-items: center; margin: 4px 0 14px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+    background: #cc785c; color: #fff; border: none; border-radius: 8px; padding: 9px 16px;
+  }
+  button:hover { background: #b8674d; }
+  button:disabled { background: #c9c4bb; cursor: default; }
+  .dash-link { display: inline-block; color: #35606b; font-weight: 600; text-decoration: none; font-size: 14px; }
+  .dash-link:hover { text-decoration: underline; }
+  .note { font-size: 12px; color: #6b6862; }
+  .full { font-size: 12px; }
+  .full a, .full code { color: #35606b; }
+  #status { font-size: 12px; color: #6b6862; min-height: 16px; }
+  .legend { font-size: 11px; color: #6b6862; margin-top: 6px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle; margin-right:4px; }
+</style>
+</head>
+<body>
+  <h1>Skill Audit — Live Panel</h1>
+  <div class="sub">Data as of <b id="asof">&mdash;</b> &middot; auto-refreshed every Monday by the <code>weekly-skill-audit</code> task. The full interactive dashboard lives in your vault.</div>
+
+  <div class="actions">
+    <button id="rerun" onclick="rerun()">&#8635; Re-run weekly audit now</button>
+    <span id="status"></span>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Invocations per ISO week (28-day window)</h2>
+      <div class="chartwrap"><canvas id="trend"></canvas></div>
+      <div class="legend">Totals per week, reconciled across both channels. Edge weeks (oldest/newest) are partial.</div>
+    </div>
+    <div class="card">
+      <h2>Invocation channel (28&nbsp;days)</h2>
+      <div class="chartwrap"><canvas id="donut"></canvas></div>
+      <div class="legend"><span class="dot" style="background:#7ea88f"></span>Skill tool &nbsp; <span class="dot" style="background:#5b8aa6"></span>Slash command (recovered blind spot)</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Top skills — 28 days</h2>
+      <table id="top"><thead><tr><th>#</th><th>Skill</th><th class="n">Count</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Recovered by slash-command channel <span class="pill sc">new visibility</span></h2>
+      <table id="sc"><thead><tr><th>Skill</th><th class="n">Count</th></tr></thead><tbody></tbody></table>
+      <div class="legend">These ran as <code>/commands</code> with no Skill tool_use &mdash; invisible before the channel fix.</div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h2>Full dashboard</h2>
+    The rich 10-section interactive view (trend, leverage scatter, prune candidates, subagent breakdown, project density) is a self-contained, offline HTML file in your vault:<br>
+    <div style="margin-top:10px">
+      <a class="dash-link" href="file:///Users/jamesdeola/Library/Mobile%20Documents/iCloud~md~obsidian/Documents/Obsidian%20Vault/Projects/Skill-Audit-and-Monitoring/dashboard.html" target="_blank" rel="noopener">&#8599;&nbsp; Open the full dashboard in your browser</a>
+    </div>
+    <div class="note" style="margin-top:6px">Offline &mdash; no network needed. If your browser doesn't allow opening a local file from here, it's at <code>Projects/Skill-Audit-and-Monitoring/dashboard.html</code> in your vault.</div>
+  </div>
+
+<script>
+const DATA = /*__PANEL_DATA__*/{"generated_at":"","d7":{"total":0,"unique":0,"by_channel":{"skill_tool":0,"slash_command":0},"raw":0,"dedup":0,"top":[]},"d28":{"total":0,"unique":0,"by_channel":{"skill_tool":0,"slash_command":0},"top":[],"by_week":{},"sc_top":[]}};
+const TASK_ID = "weekly-skill-audit";
+
+try {
+  const dt = new Date(DATA.generated_at);
+  document.getElementById("asof").textContent = isNaN(dt) ? (DATA.generated_at || "—")
+    : dt.toLocaleString(undefined,{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"});
+} catch(e){ document.getElementById("asof").textContent = DATA.generated_at || "—"; }
+
+const d7 = DATA.d7, d28 = DATA.d28;
+const pct = d28.total ? (100*d28.by_channel.slash_command/d28.total).toFixed(0) : "0";
+const kpis = [
+  {n:d7.total, l:"This week", d:`${d7.by_channel.skill_tool} tool · ${d7.by_channel.slash_command} slash`},
+  {n:d7.unique, l:"Unique skills (7d)", d:`${d28.unique} in 28d`},
+  {n:d28.by_channel.slash_command, l:"Slash-cmd (28d)", d:`${pct}% of usage`},
+  {n:d28.total, l:"Total (28d)", d:`${d28.dedup||0} dedup'd`},
+];
+document.getElementById("kpis").innerHTML = kpis.map(k=>
+  `<div class="kpi"><div class="n">${k.n}</div><div class="l">${k.l}</div><div class="d">${k.d}</div></div>`).join("");
+
+const maxTop = (d28.top[0] && d28.top[0][1]) || 1;
+document.querySelector("#top tbody").innerHTML = d28.top.map(([s,c],i)=>
+  `<tr><td class="n">${i+1}</td><td><code>${s}</code></td><td class="n">${c}</td><td><span class="bar" style="width:${Math.max(6,80*c/maxTop)}px"></span></td></tr>`).join("");
+
+document.querySelector("#sc tbody").innerHTML = (d28.sc_top||[]).map(([s,c])=>
+  `<tr><td><code>${s}</code></td><td class="n">${c}</td></tr>`).join("");
+
+requestAnimationFrame(()=>{
+  const weeks = Object.keys(d28.by_week||{}).sort();
+  const totals = weeks.map(w=>d28.by_week[w]._total);
+  if (weeks.length) new Chart(document.getElementById("trend"), {
+    type: "bar",
+    data: { labels: weeks.map(w=>w.replace(/^\d+-/,"")), datasets:[{ label:"Invocations", data: totals, backgroundColor:"#cc785c", borderRadius:5 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, grid:{color:"#f0ede7"} }, x:{ grid:{display:false} } } }
+  });
+  new Chart(document.getElementById("donut"), {
+    type: "doughnut",
+    data: { labels:["Skill tool","Slash command"], datasets:[{ data:[d28.by_channel.skill_tool, d28.by_channel.slash_command], backgroundColor:["#7ea88f","#5b8aa6"], borderWidth:0 }] },
+    options: { responsive:true, maintainAspectRatio:false, cutout:"62%", plugins:{legend:{display:false}} }
+  });
+});
+
+async function rerun(){
+  const btn = document.getElementById("rerun");
+  const st = document.getElementById("status");
+  btn.disabled = true;
+  st.textContent = "Triggering the weekly audit…";
+  try {
+    if (window.cowork && typeof window.cowork.runScheduledTask === "function") {
+      await window.cowork.runScheduledTask(TASK_ID);
+      st.textContent = "✓ Audit triggered. It runs in the background, regenerates the reports + dashboard, and refreshes this panel. Reopen shortly or ask Claude to refresh.";
+    } else {
+      st.textContent = "Run trigger unavailable here — ask Claude: “rerun the weekly skill audit.”";
+      btn.disabled = false;
+    }
+  } catch (e) {
+    st.textContent = "Couldn't trigger automatically — ask Claude: “rerun the weekly skill audit.”";
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

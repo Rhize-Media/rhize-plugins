@@ -1,0 +1,1056 @@
+#!/usr/bin/env python3
+"""
+skill-monitor — Track which Claude skills actually get invoked on this Mac.
+
+Walks  ~/.claude/projects/**/*.jsonl AND
+       ~/Library/Application Support/Claude/local-agent-mode-sessions/**/*.jsonl
+extracts Skill `tool_use` events,
+aggregates by skill / week / direct-vs-indirect / project / entrypoint,
+and writes:
+  - JSON raw + aggregated data (for downstream analysis)
+  - Markdown report into the Obsidian vault weekly-reports folder
+
+The signal being measured:
+  A skill invocation is any `tool_use` block where `name == "Skill"` and
+  `input.skill == "<skill-name>"`. These appear in:
+    ~/.claude/projects/<encoded-proj>/<sessionId>.jsonl              (main, host CLI)
+    ~/.claude/projects/<encoded-proj>/<sessionId>/subagents/*.jsonl  (indirect, host CLI)
+  And, for the desktop ("Cowork") app:
+    .../local-agent-mode-sessions/<root>/<user>/local_<id>/.claude/projects/...
+    .../local-agent-mode-sessions/<root>/<user>/local_<id>/audit.jsonl  (alt schema)
+
+Usage:
+  python3 monitor.py                     # last 7 days, write MD into vault
+  python3 monitor.py --days 0            # all-time
+  python3 monitor.py --days 28
+  python3 monitor.py --report-dir ./out  # override vault path (for testing)
+  python3 monitor.py --cowork-dir ""     # disable Cowork scanning (debug)
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Iterable, Iterator
+
+HOME = Path.home()
+CLAUDE_PROJECTS = HOME / ".claude" / "projects"
+COWORK_SESSIONS_ROOT = (
+    HOME / "Library" / "Application Support" / "Claude" / "local-agent-mode-sessions"
+)
+COWORK_SESSION_META = (
+    HOME / "Library" / "Application Support" / "Claude" / "claude-code-sessions"
+)
+DEFAULT_VAULT_REPORT_DIR = (
+    HOME
+    / "Library"
+    / "Mobile Documents"
+    / "iCloud~md~obsidian"
+    / "Documents"
+    / "Obsidian Vault"
+    / "Projects"
+    / "Skill-Audit-and-Monitoring"
+    / "weekly-reports"
+)
+SCRIPT_DIR = Path(__file__).resolve().parent
+DEFAULT_JSON_OUT = SCRIPT_DIR / "data" / "skill-usage.json"
+SNAPSHOTS_DIR = SCRIPT_DIR / "data" / "snapshots"
+
+# The canonical weekly cadence. Reports for this window keep the plain
+# `YYYY-MM-DD-skill-usage.md` filename; all other windows are suffixed with
+# their window tag (e.g. `-28d`, `-0d`) to avoid same-day clobbering.
+WEEKLY_WINDOW_DAYS = 7
+
+# A skill is invoked through one of two channels (see
+# .claude/plans/capture-slash-command-skill-invocations.md):
+#   - "skill_tool"    : a `tool_use` block with name == "Skill"
+#   - "slash_command" : a `type:"user"` turn typing `/<name>` (often fires no
+#                       Skill tool_use, so it is otherwise invisible)
+CHANNEL_SKILL_TOOL = "skill_tool"
+CHANNEL_SLASH_COMMAND = "slash_command"
+
+# Built-in / framework slash commands that are NOT skills. Typed as `/<name>`
+# but represent CLI control, not skill usage — excluded from the audit. Bare
+# names only; anything namespaced (contains ':') is always a real plugin
+# command and is never in this list. Unknown bare names default to COUNTED
+# (under-pruning is safer than silently dropping real usage). Revisit quarterly.
+COMMAND_BUILTINS = frozenset({
+    "clear", "compact", "model", "effort", "goal", "loop", "batch", "resume",
+    "help", "init", "config", "cost", "login", "logout", "status", "agents",
+    "plugin", "usage-credits", "mcp", "export", "doctor", "memory", "vim",
+    "terminal-setup", "bug", "pr-comments", "add-dir", "exit", "quit",
+})
+
+# Live slash-command envelope. MUST only be matched against a live
+# `message.content` *string* on a `type:"user"` line — never against
+# `attachment` payloads, which embed prior-session summaries that also contain
+# `<command-name>` tags (historical echoes, not live invocations).
+_COMMAND_NAME_RE = re.compile(r"<command-name>\s*/?([^<]+?)\s*</command-name>")
+
+
+# ---------------------------------------------------------------------------
+# Extraction
+# ---------------------------------------------------------------------------
+
+def iso_to_week(iso_ts: str) -> str:
+    """Convert an ISO-8601 timestamp to YYYY-Www (ISO week)."""
+    dt = datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
+    y, w, _ = dt.isocalendar()
+    return f"{y}-W{w:02d}"
+
+
+def decode_project_path(encoded: str) -> str:
+    """DEPRECATED fallback. Approx-decodes ~/.claude/projects/ folder names back to
+    a filesystem path. Lossy because the CLI escapes '/' as '-' but real '-' in
+    directory names collide. Every JSONL line carries a real `cwd`; prefer that.
+    Kept only as a last-resort fallback when `cwd` is missing.
+    """
+    if encoded.startswith("-"):
+        return "/" + encoded[1:].replace("-", "/")
+    return encoded
+
+
+def _cowork_local_id_from_path(jsonl_path: Path) -> str | None:
+    """Walk path parents looking for the `local_<UUID>` directory that names a
+    Cowork session. Returns the directory name or None if not on a Cowork path."""
+    for p in jsonl_path.parents:
+        if p.name.startswith("local_"):
+            return p.name
+    return None
+
+
+def extract_skill_events(
+    jsonl_path: Path, source_type: str
+) -> Iterator[dict]:
+    """Yield a dict for every Skill `tool_use` in `jsonl_path` (main/subagent schema)."""
+    try:
+        fp = jsonl_path.open("r", encoding="utf-8", errors="replace")
+    except OSError as e:
+        print(f"  ! cannot open {jsonl_path}: {e}", file=sys.stderr)
+        return
+    cowork_local_id = _cowork_local_id_from_path(jsonl_path)
+    with fp:
+        for line_no, raw in enumerate(fp, 1):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            msg = obj.get("message") or {}
+            content = msg.get("content")
+            if not isinstance(content, list):
+                continue
+
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+                if block.get("type") != "tool_use":
+                    continue
+                if block.get("name") != "Skill":
+                    continue
+
+                inp = block.get("input") or {}
+                skill = inp.get("skill")
+                if not skill:
+                    continue
+
+                if source_type == "main":
+                    project_dir = jsonl_path.parent.name
+                else:  # subagent: .../<proj>/<session>/subagents/<agent>.jsonl
+                    project_dir = jsonl_path.parents[2].name
+
+                yield {
+                    "skill": skill,
+                    "args": inp.get("args"),
+                    "channel": CHANNEL_SKILL_TOOL,
+                    "source_type": source_type,          # 'main' | 'subagent'
+                    "uuid": obj.get("uuid"),
+                    "session_id": obj.get("sessionId"),
+                    "agent_id": obj.get("agentId"),
+                    "agent_slug": None,                  # resolved post-hoc from main toolUseResults
+                    "entrypoint": obj.get("entrypoint"),
+                    "cwd": obj.get("cwd"),
+                    "git_branch": obj.get("gitBranch"),
+                    "model": msg.get("model"),
+                    "timestamp": obj.get("timestamp"),
+                    "project_dir_encoded": project_dir,
+                    "project_dir_decoded": decode_project_path(project_dir),
+                    "cowork_local_id": cowork_local_id,
+                    "transcript_file": str(jsonl_path),
+                    "transcript_line": line_no,
+                }
+
+
+def extract_command_events(
+    jsonl_path: Path, source_type: str
+) -> Iterator[dict]:
+    """Yield a dict for every *live* slash-command invocation in `jsonl_path`.
+
+    A live slash command is a `type:"user"` line whose `message.content` is a
+    STRING containing a `<command-name>/foo</command-name>` envelope. We deliberately
+    ignore the tag when it appears anywhere else (attachment payloads, assistant
+    echoes), because SessionStart hook summaries embed prior-session text that
+    also contains `<command-name>` tags — those are historical, not live.
+
+    Built-in CLI commands (see COMMAND_BUILTINS) are skipped; everything else,
+    including all namespaced (`plugin:name`) commands, counts as a skill use on
+    the `slash_command` channel.
+    """
+    try:
+        fp = jsonl_path.open("r", encoding="utf-8", errors="replace")
+    except OSError as e:
+        print(f"  ! cannot open {jsonl_path}: {e}", file=sys.stderr)
+        return
+    cowork_local_id = _cowork_local_id_from_path(jsonl_path)
+    with fp:
+        for line_no, raw in enumerate(fp, 1):
+            raw = raw.strip()
+            if not raw or "<command-name>" not in raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            if obj.get("type") != "user":
+                continue
+            msg = obj.get("message") or {}
+            content = msg.get("content")
+            if not isinstance(content, str):     # live command turns carry a str
+                continue
+            m = _COMMAND_NAME_RE.search(content)
+            if not m:
+                continue
+            name = m.group(1).strip().lstrip("/")
+            if not name or name in COMMAND_BUILTINS:
+                continue
+
+            args_m = re.search(r"<command-args>([^<]*)</command-args>", content)
+
+            if source_type == "main":
+                project_dir = jsonl_path.parent.name
+            else:  # subagent: .../<proj>/<session>/subagents/<agent>.jsonl
+                project_dir = jsonl_path.parents[2].name
+
+            yield {
+                "skill": name,
+                "args": (args_m.group(1).strip() if args_m else None) or None,
+                "channel": CHANNEL_SLASH_COMMAND,
+                "source_type": source_type,
+                "uuid": obj.get("uuid"),
+                "session_id": obj.get("sessionId"),
+                "agent_id": obj.get("agentId"),
+                "agent_slug": None,
+                "entrypoint": obj.get("entrypoint"),
+                "cwd": obj.get("cwd"),
+                "git_branch": obj.get("gitBranch"),
+                "model": msg.get("model"),
+                "timestamp": obj.get("timestamp"),
+                "project_dir_encoded": project_dir,
+                "project_dir_decoded": decode_project_path(project_dir),
+                "cowork_local_id": cowork_local_id,
+                "transcript_file": str(jsonl_path),
+                "transcript_line": line_no,
+            }
+
+
+def extract_skill_events_from_audit(jsonl_path: Path) -> Iterator[dict]:
+    """Cowork audit.jsonl uses a snake_case schema (session_id, parent_tool_use_id)
+    and `system`-typed lines have content at the top level rather than under
+    `message`. For Skill detection we only care about lines with `message.content`
+    arrays containing tool_use blocks — same logic as main, but key names differ.
+    Treat all events as source_type='audit' so we can debug overlap with main.
+    """
+    try:
+        fp = jsonl_path.open("r", encoding="utf-8", errors="replace")
+    except OSError as e:
+        print(f"  ! cannot open {jsonl_path}: {e}", file=sys.stderr)
+        return
+    cowork_local_id = _cowork_local_id_from_path(jsonl_path)
+    # First pass: capture session-level cwd from any `system` line (audit assistant
+    # lines themselves don't carry cwd).
+    audit_cwd: str | None = None
+    audit_entrypoint: str | None = None
+    with fp:
+        lines = fp.readlines()
+    for raw in lines:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+        if obj.get("type") == "system":
+            audit_cwd = audit_cwd or obj.get("cwd")
+            audit_entrypoint = audit_entrypoint or obj.get("entrypoint")
+            if audit_cwd:
+                break
+    for line_no, raw in enumerate(lines, 1):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            obj = json.loads(raw)
+        except json.JSONDecodeError:
+            continue
+
+        msg = obj.get("message") or {}
+        content = msg.get("content")
+        if not isinstance(content, list):
+            continue
+
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") != "tool_use":
+                continue
+            if block.get("name") != "Skill":
+                continue
+
+            inp = block.get("input") or {}
+            skill = inp.get("skill")
+            if not skill:
+                continue
+
+            yield {
+                "skill": skill,
+                "args": inp.get("args"),
+                "channel": CHANNEL_SKILL_TOOL,
+                "source_type": "audit",
+                "uuid": obj.get("uuid"),
+                "session_id": obj.get("session_id"),  # snake_case
+                "agent_id": obj.get("agent_id") or obj.get("agentId"),
+                "agent_slug": None,
+                "entrypoint": audit_entrypoint or "local-agent",
+                "cwd": audit_cwd,
+                "git_branch": None,
+                "model": msg.get("model"),
+                "timestamp": obj.get("timestamp") or obj.get("_audit_timestamp"),
+                "project_dir_encoded": None,
+                "project_dir_decoded": None,
+                "cowork_local_id": cowork_local_id,
+                "transcript_file": str(jsonl_path),
+                "transcript_line": line_no,
+            }
+
+
+def extract_agent_type_map(jsonl_path: Path) -> Iterator[tuple[str, str]]:
+    """Yield (agent_id, agent_type) from any `toolUseResult` blocks in a main jsonl.
+
+    Cowork desktop and host CLI both record subagent-completion data here;
+    the inner `agent_id` matches the agentId field on the corresponding
+    subagent transcript, and `agent_type` is the canonical subagent slug
+    (e.g. 'code-reviewer', 'general-purpose'). This is the only reliable
+    source of agent-type attribution — the subagent transcripts themselves
+    carry only the session slug, not the agent type.
+    """
+    try:
+        fp = jsonl_path.open("r", encoding="utf-8", errors="replace")
+    except OSError:
+        return
+    with fp:
+        for raw in fp:
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+            tur = obj.get("toolUseResult")
+            if not isinstance(tur, dict):
+                continue
+            agent_id = tur.get("agentId")
+            agent_type = tur.get("agentType")
+            if agent_id and agent_type:
+                yield agent_id, agent_type
+
+
+def _is_excluded(jsonl_path: Path) -> bool:
+    """Skip plugin marketplaces / test fixtures that ship inside Cowork sandboxes."""
+    s = str(jsonl_path)
+    return "/plugins/" in s or "/marketplaces/" in s
+
+
+def walk_projects(
+    projects_root: Path, mtime_cutoff: float | None = None
+) -> Iterator[tuple[Path, str]]:
+    """Yield (jsonl_path, source_type) for every session/subagent transcript under
+    a host-style ~/.claude/projects/ tree."""
+    if not projects_root.exists():
+        return
+    for project_dir in projects_root.iterdir():
+        if not project_dir.is_dir():
+            continue
+        # main session transcripts: project_dir/<sessionId>.jsonl
+        for f in project_dir.glob("*.jsonl"):
+            if _is_excluded(f):
+                continue
+            if mtime_cutoff is not None:
+                try:
+                    if f.stat().st_mtime < mtime_cutoff:
+                        continue
+                except OSError:
+                    continue
+            yield f, "main"
+        # subagent transcripts: project_dir/<sessionId>/subagents/*.jsonl
+        for sess_dir in project_dir.iterdir():
+            if not sess_dir.is_dir():
+                continue
+            subagents_dir = sess_dir / "subagents"
+            if subagents_dir.is_dir():
+                for f in subagents_dir.glob("*.jsonl"):
+                    if _is_excluded(f):
+                        continue
+                    if mtime_cutoff is not None:
+                        try:
+                            if f.stat().st_mtime < mtime_cutoff:
+                                continue
+                        except OSError:
+                            continue
+                    yield f, "subagent"
+
+
+def walk_cowork_projects(
+    cowork_root: Path, mtime_cutoff: float | None = None
+) -> Iterator[tuple[Path, str]]:
+    """Yield (jsonl_path, source_type) for transcripts in the Cowork desktop tree.
+
+    Each Cowork session lives at:
+        <cowork_root>/<rootId>/<userId>/local_<sessId>/
+
+    Inside that directory:
+        .claude/projects/<encoded-proj>/<sess>.jsonl              -> 'main'
+        .claude/projects/<encoded-proj>/<sess>/subagents/*.jsonl  -> 'subagent'
+        audit.jsonl                                               -> 'audit'
+
+    Filter out plugin/marketplace test fixtures that Cowork bundles inside
+    each session sandbox — those are not real user activity.
+    """
+    if not cowork_root.exists():
+        return
+    # Yield every <local_*> dir's interior projects tree.
+    for local_dir in cowork_root.glob("*/*/local_*"):
+        if not local_dir.is_dir():
+            continue
+        projects_dir = local_dir / ".claude" / "projects"
+        if projects_dir.is_dir():
+            yield from walk_projects(projects_dir, mtime_cutoff=mtime_cutoff)
+        # NOTE: audit.jsonl scanning is intentionally disabled.
+        # Verified 2026-05-08: 100% of Skill events in Cowork audit.jsonl
+        # files share (uuid, session_id) with the main session transcript,
+        # i.e. they are fully redundant. Keeping the parser
+        # (extract_skill_events_from_audit) available for future use, but the
+        # walk does not yield them by default — otherwise the defensive
+        # dedup guard fires loudly on every run for noise-only duplicates.
+
+
+def load_cowork_origin_map() -> dict[str, str]:
+    """Build {local_<id> -> originCwd} from Cowork session metadata files.
+
+    The metadata file's `sessionId` is identical to the Cowork session
+    directory name (`local_<UUID>`). Used to attribute Cowork events
+    (whose `cwd` is a sandbox path like `/sessions/...`) back to the
+    user-side project they originated from.
+    """
+    out: dict[str, str] = {}
+    if not COWORK_SESSION_META.exists():
+        return out
+    for f in COWORK_SESSION_META.rglob("local_*.json"):
+        try:
+            with f.open("r", encoding="utf-8", errors="replace") as fp:
+                d = json.load(fp)
+        except (OSError, json.JSONDecodeError):
+            continue
+        sid = d.get("sessionId")
+        origin = d.get("originCwd")
+        if sid and origin:
+            out[sid] = origin
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Skill-name canonicalization
+# ---------------------------------------------------------------------------
+# Some skills surface under multiple names because different runtimes sanitize
+# the SKILL.md `name:` field differently. The clearest case: the delegate-to-tom
+# skill historically carried `name: rhize:delegate-to-tom` (a colon in a
+# standalone skill name), which the host CLI kept verbatim, the Cowork harness
+# flattened to `rhizedelegate-to-tom`, and the bundled copy re-namespaced to
+# `anthropic-skills:rhizedelegate-to-tom`. The skill now lives in the
+# `rhize-ops` plugin as a plain `delegate-to-tom` slug → canonical
+# `rhize-ops:delegate-to-tom`. This map rolls every historical variant up to
+# the canonical name so week-over-week ranking isn't fragmented. Add new
+# variant→canonical pairs here as they are discovered.
+CANONICAL_ALIASES: dict[str, str] = {
+    "rhize:delegate-to-tom": "rhize-ops:delegate-to-tom",
+    "rhizedelegate-to-tom": "rhize-ops:delegate-to-tom",
+    "anthropic-skills:rhizedelegate-to-tom": "rhize-ops:delegate-to-tom",
+    "delegate-to-tom": "rhize-ops:delegate-to-tom",
+}
+
+
+def canonical_skill(name: str) -> str:
+    """Map a raw skill name to its canonical form (see CANONICAL_ALIASES)."""
+    return CANONICAL_ALIASES.get(name, name)
+
+
+# ---------------------------------------------------------------------------
+# Aggregation
+# ---------------------------------------------------------------------------
+
+def build_report(
+    events: list[dict],
+    since_days: int | None = None,
+    cowork_origin_map: dict[str, str] | None = None,
+) -> dict:
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=since_days) if since_days else None
+    cowork_origin_map = cowork_origin_map or {}
+
+    filtered: list[dict] = []
+    for e in events:
+        ts = e.get("timestamp")
+        if cutoff is not None and ts:
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if dt < cutoff:
+                    continue
+            except ValueError:
+                pass
+        e["skill"] = canonical_skill(e["skill"])
+        filtered.append(e)
+
+    # --- Channel reconciliation (avoid cross-channel double counting) -------
+    # If a (session, skill) pair was recorded on the skill_tool channel, drop any
+    # overlapping slash_command events for that same pair — the tool_use already
+    # counts it. Keep slash_command events that are the ONLY signal: those are
+    # the real blind spot the channel was added to capture. Within-channel
+    # multiplicity is preserved (3 tool_use calls still count as 3).
+    skill_tool_keys = {
+        (e.get("session_id"), e["skill"])
+        for e in filtered
+        if e.get("channel") == CHANNEL_SKILL_TOOL
+    }
+    raw_total = len(filtered)
+    reconciled = [
+        e for e in filtered
+        if e.get("channel") == CHANNEL_SKILL_TOOL
+        or (e.get("session_id"), e["skill"]) not in skill_tool_keys
+    ]
+    overlap_deduped = raw_total - len(reconciled)
+    by_channel: Counter = Counter(
+        e.get("channel", CHANNEL_SKILL_TOOL) for e in reconciled
+    )
+    top_by_channel: dict[str, list] = {}
+    for ch in (CHANNEL_SKILL_TOOL, CHANNEL_SLASH_COMMAND):
+        ch_counts = Counter(e["skill"] for e in reconciled if e.get("channel") == ch)
+        top_by_channel[ch] = ch_counts.most_common(15)
+
+    totals: Counter = Counter(e["skill"] for e in reconciled)
+    by_week: dict[str, Counter] = defaultdict(Counter)
+    direct: Counter = Counter()
+    indirect_real: Counter = Counter()        # subagent work, excluding compaction
+    indirect_compaction: Counter = Counter()  # acompact-* background agents
+    by_project: dict[str, Counter] = defaultdict(Counter)
+    by_entrypoint: Counter = Counter()
+    by_source_type: Counter = Counter()
+    indirect_by_slug: dict[str, Counter] = defaultdict(Counter)
+
+    for e in reconciled:
+        ts = e.get("timestamp")
+        if ts:
+            try:
+                by_week[iso_to_week(ts)][e["skill"]] += 1
+            except Exception:
+                pass
+
+        # The cleanest direct/indirect signal is the file location:
+        # a skill invocation inside a subagent transcript is always indirect.
+        # Audit events roll into 'direct' for the headline numbers but keep
+        # source_type for downstream debugging.
+        if e["source_type"] == "subagent":
+            agent_id = e.get("agent_id") or ""
+            if agent_id.startswith("acompact-"):
+                indirect_compaction[e["skill"]] += 1
+            else:
+                indirect_real[e["skill"]] += 1
+                slug = e.get("agent_slug") or "unknown"
+                indirect_by_slug[slug][e["skill"]] += 1
+        else:
+            direct[e["skill"]] += 1
+
+        by_source_type[e["source_type"]] += 1
+
+        # Project rollup: prefer real cwd over the lossy decoded folder name.
+        # For Cowork sandbox cwds, swap in the metadata-derived originCwd.
+        cwd = e.get("cwd") or ""
+        if cwd.startswith("/sessions/"):
+            local_id = e.get("cowork_local_id")
+            real = cowork_origin_map.get(local_id) if local_id else None
+            if real:
+                cwd = real
+            else:
+                cwd = f"[Cowork: {cwd}]"
+        bucket = cwd or e.get("project_dir_decoded") or "unknown"
+        by_project[bucket][e["skill"]] += 1
+        if e.get("entrypoint"):
+            by_entrypoint[e["entrypoint"]] += 1
+
+    return {
+        "generated_at": now.isoformat(),
+        "window_days": since_days,
+        "total_invocations": sum(totals.values()),
+        "total_raw_invocations": raw_total,
+        "overlap_deduped": overlap_deduped,
+        "by_channel": dict(by_channel.most_common()),
+        "top_by_channel": top_by_channel,
+        "unique_skills_used": len(totals),
+        "top_skills": totals.most_common(50),
+        "direct_top": direct.most_common(50),
+        "indirect_top": indirect_real.most_common(50),
+        "indirect_compaction_top": indirect_compaction.most_common(20),
+        "by_week": {
+            w: dict(c.most_common(25)) for w, c in sorted(by_week.items())
+        },
+        "by_project": {
+            p: dict(c.most_common(15)) for p, c in by_project.items()
+        },
+        "by_entrypoint": dict(by_entrypoint.most_common()),
+        "by_source_type": dict(by_source_type.most_common()),
+        "indirect_by_slug": {
+            slug: dict(c.most_common(10))
+            for slug, c in sorted(
+                indirect_by_slug.items(),
+                key=lambda kv: -sum(kv[1].values()),
+            )
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# Rendering
+# ---------------------------------------------------------------------------
+
+def render_markdown(report: dict, files_scanned: int) -> str:
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    window = report["window_days"]
+    window_label = f"last {window} days" if window else "all-time"
+    total = report["total_invocations"]
+    unique = report["unique_skills_used"]
+
+    lines: list[str] = []
+    lines.append("---")
+    lines.append("type: weekly-skill-report")
+    lines.append(f"date: {datetime.now().strftime('%Y-%m-%d')}")
+    lines.append(f"window: {window_label}")
+    lines.append(f"total-invocations: {total}")
+    lines.append(f"unique-skills: {unique}")
+    lines.append("tags:")
+    lines.append("  - skill-audit")
+    lines.append("  - claude-code")
+    lines.append("  - monitoring")
+    lines.append("---")
+    lines.append("")
+    lines.append(f"# Skill Usage Report — {now_str}")
+    lines.append("")
+    lines.append(
+        f"> **{files_scanned}** transcripts scanned • "
+        f"**{total}** skill invocations ({window_label}, reconciled across the "
+        f"Skill-tool and slash-command channels) • "
+        f"**{unique}** unique skills used."
+    )
+    lines.append("")
+    lines.append(
+        "> Related: [[Anthropic Runs Hundreds of Skills - Only 12 Run Weekly]] • "
+        "[[Skill Audit and Monitoring System]]"
+    )
+    lines.append("")
+
+    # Top skills
+    lines.append("## Top skills")
+    lines.append("")
+    lines.append("| Rank | Skill | Count |")
+    lines.append("| ---: | --- | ---: |")
+    for i, (s, c) in enumerate(report["top_skills"][:25], 1):
+        lines.append(f"| {i} | `{s}` | {c} |")
+    lines.append("")
+
+    # By invocation channel
+    by_channel = report.get("by_channel") or {}
+    if by_channel:
+        lines.append("## By invocation channel")
+        lines.append("")
+        lines.append(
+            "*Two ways a skill gets invoked: the **Skill tool** (`tool_use`) and "
+            "**slash commands** (`/name`). Slash commands often fire no Skill "
+            "tool_use, so they were historically invisible. Counts below are "
+            "post-reconciliation: a `(session, skill)` pair recorded on both "
+            "channels is counted once (under skill_tool).*"
+        )
+        lines.append("")
+        st = by_channel.get(CHANNEL_SKILL_TOOL, 0)
+        sc = by_channel.get(CHANNEL_SLASH_COMMAND, 0)
+        deduped = report.get("overlap_deduped", 0)
+        raw = report.get("total_raw_invocations", st + sc)
+        lines.append(f"- `skill_tool` — {st}")
+        lines.append(f"- `slash_command` — {sc}")
+        lines.append(
+            f"- *raw events before reconciliation: {raw}; "
+            f"cross-channel overlaps deduped: {deduped}*"
+        )
+        lines.append("")
+        top_ch = report.get("top_by_channel") or {}
+        sc_top = top_ch.get(CHANNEL_SLASH_COMMAND) or []
+        if sc_top:
+            lines.append("Top slash-command-channel skills (the recovered blind spot):")
+            lines.append("")
+            lines.append("| Skill | Count |")
+            lines.append("| --- | ---: |")
+            for s, c in sc_top[:10]:
+                lines.append(f"| `{s}` | {c} |")
+            lines.append("")
+
+    # Direct vs indirect
+    lines.append("## Direct vs. indirect")
+    lines.append("")
+    lines.append(
+        "*Direct* = invoked in the main session. "
+        "*Indirect* = invoked by a subagent (Task-delegated work)."
+    )
+    lines.append("")
+    lines.append("### Top 15 direct")
+    lines.append("")
+    lines.append("| Skill | Count |")
+    lines.append("| --- | ---: |")
+    for s, c in report["direct_top"][:15]:
+        lines.append(f"| `{s}` | {c} |")
+    lines.append("")
+    lines.append("### Top 15 indirect (real subagent work)")
+    lines.append("")
+    lines.append("| Skill | Count |")
+    lines.append("| --- | ---: |")
+    for s, c in report["indirect_top"][:15]:
+        lines.append(f"| `{s}` | {c} |")
+    lines.append("")
+    if report["indirect_compaction_top"]:
+        lines.append("### Top 5 indirect (auto-compaction)")
+        lines.append("")
+        lines.append(
+            "*Background context-compaction agents (`agentId` starts with `acompact-`). "
+            "Bucketed separately so they don't crowd real subagent-delegation signal.*"
+        )
+        lines.append("")
+        lines.append("| Skill | Count |")
+        lines.append("| --- | ---: |")
+        for s, c in report["indirect_compaction_top"][:5]:
+            lines.append(f"| `{s}` | {c} |")
+        lines.append("")
+
+    # By project
+    lines.append("## By project")
+    lines.append("")
+    for proj, skills in sorted(
+        report["by_project"].items(),
+        key=lambda kv: -sum(kv[1].values()),
+    ):
+        if not skills:
+            continue
+        total_p = sum(skills.values())
+        lines.append(f"### `{proj}` — {total_p} invocations")
+        lines.append("")
+        for s, c in list(skills.items())[:8]:
+            lines.append(f"- `{s}` — {c}")
+        lines.append("")
+
+    # By entrypoint
+    lines.append("## By entrypoint")
+    lines.append("")
+    for ep, c in report["by_entrypoint"].items():
+        lines.append(f"- `{ep}` — {c}")
+    lines.append("")
+
+    # Week-by-week
+    lines.append("## Week-by-week")
+    lines.append("")
+    for w, skills in report["by_week"].items():
+        top3 = ", ".join(
+            f"`{s}` ({n})" for s, n in list(skills.items())[:3]
+        )
+        lines.append(
+            f"- **{w}** — {sum(skills.values())} total; top: {top3}"
+        )
+    lines.append("")
+
+    # Action items
+    lines.append("## Action items")
+    lines.append("")
+    lines.append(
+        "- [ ] Any skill with **0 invocations in the last 28 days** and "
+        "not on a keep-list → candidate to disable."
+    )
+    lines.append(
+        "- [ ] Any skill with **high indirect but low direct** usage → "
+        "consider elevating its trigger description."
+    )
+    lines.append(
+        "- [ ] Any **project with unexpected skill dominance** → inspect "
+        "for quality (may indicate a runaway prompt pattern)."
+    )
+    lines.append("")
+
+    # NEW: Indirect skill use by subagent type (added at bottom; positional-parser-safe)
+    if report.get("indirect_by_slug"):
+        lines.append("## Indirect skill use by subagent type")
+        lines.append("")
+        lines.append(
+            "*Subagent-delegated skill invocations grouped by the parent's "
+            "`subagent_type`. Resolved from each main session's "
+            "`toolUseResult.agentType`. Auto-compaction agents excluded.*"
+        )
+        lines.append("")
+        lines.append("| Agent type | Top skill | Count |")
+        lines.append("| --- | --- | ---: |")
+        for slug, skills in report["indirect_by_slug"].items():
+            if not skills:
+                continue
+            top_skill, top_count = next(iter(skills.items()))
+            lines.append(f"| `{slug}` | `{top_skill}` | {top_count} |")
+        lines.append("")
+
+    # NEW: Limitations footer
+    lines.append("## Limitations")
+    lines.append("")
+    lines.append(
+        "- **Slash commands are now counted** (as of 2026-06) via the "
+        "`slash_command` channel — see *By invocation channel*. Residual gaps: "
+        "built-in CLI commands are filtered by a maintained denylist (a new "
+        "built-in could be miscounted until added), and **hook-triggered skills "
+        "are out of scope** (measured as effectively non-existent: of ~380k hook "
+        "attachments in a 28-day window only ~38 referenced a skill, all embedded "
+        "prior-session echoes, not live runs)."
+    )
+    lines.append(
+        "- **No surface-level breakdown for terminals vs. IDEs.** Both log as "
+        "`entrypoint: cli`. Cowork desktop-app sessions log as `entrypoint: local-agent`."
+    )
+    lines.append(
+        "- **Compaction agents are bucketed separately.** Subagents whose "
+        "`agentId` starts with `acompact-` are background context-compaction "
+        "agents, not user-delegated work; their skill use is reported in a "
+        "dedicated subsection of \"Direct vs. indirect\"."
+    )
+    lines.append("")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Monitor Claude skill invocations across session transcripts.",
+    )
+    ap.add_argument("--projects-dir", default=str(CLAUDE_PROJECTS),
+                    help=f"default: {CLAUDE_PROJECTS}")
+    ap.add_argument("--cowork-dir", default=str(COWORK_SESSIONS_ROOT),
+                    help=("Cowork desktop-app sessions root. "
+                          "Pass empty string to disable. "
+                          f"default: {COWORK_SESSIONS_ROOT}"))
+    ap.add_argument("--report-dir", default=str(DEFAULT_VAULT_REPORT_DIR),
+                    help="where to write the markdown report (default: Obsidian vault)")
+    ap.add_argument("--json-out", default=str(DEFAULT_JSON_OUT),
+                    help=f"default: {DEFAULT_JSON_OUT}")
+    ap.add_argument("--days", type=int, default=7,
+                    help="window in days (0 or negative = all-time; default 7)")
+    ap.add_argument("--quiet", action="store_true",
+                    help="suppress per-file progress")
+    args = ap.parse_args()
+
+    projects_root = Path(args.projects_dir).expanduser()
+    cowork_root = Path(args.cowork_dir).expanduser() if args.cowork_dir else None
+    report_dir = Path(args.report_dir).expanduser()
+    json_out = Path(args.json_out).expanduser()
+    since = args.days if args.days and args.days > 0 else None
+
+    # mtime prefilter: skip files clearly outside the window. 1-day grace because
+    # mtime can lag the last write inside a long-running session.
+    if since is not None:
+        mtime_cutoff = (datetime.now() - timedelta(days=since + 1)).timestamp()
+    else:
+        mtime_cutoff = None
+
+    print(f"→ Scanning {projects_root} (window = {since or 'all-time'} days)")
+    if cowork_root:
+        print(f"→ Scanning {cowork_root} (Cowork desktop-app)")
+
+    # Collect (file, source_type) pairs from both trees.
+    walks: list[Iterable[tuple[Path, str]]] = [
+        walk_projects(projects_root, mtime_cutoff=mtime_cutoff),
+    ]
+    if cowork_root:
+        walks.append(walk_cowork_projects(cowork_root, mtime_cutoff=mtime_cutoff))
+
+    all_events: list[dict] = []
+    agent_type_map: dict[str, str] = {}
+    files_scanned = 0
+    for walk in walks:
+        for jsonl_path, source_type in walk:
+            files_scanned += 1
+            if source_type == "audit":
+                for ev in extract_skill_events_from_audit(jsonl_path):
+                    all_events.append(ev)
+            else:
+                for ev in extract_skill_events(jsonl_path, source_type):
+                    all_events.append(ev)
+                # Same files also carry slash-command invocations (a separate
+                # channel that usually fires no Skill tool_use).
+                for ev in extract_command_events(jsonl_path, source_type):
+                    all_events.append(ev)
+                # Main jsonls additionally contribute (agentId -> agentType)
+                # mappings via toolUseResult — only useful source of subagent
+                # type attribution.
+                if source_type == "main":
+                    for agent_id, agent_type in extract_agent_type_map(jsonl_path):
+                        agent_type_map.setdefault(agent_id, agent_type)
+
+    # Resolve subagent attribution.
+    for ev in all_events:
+        if ev.get("source_type") == "subagent" and ev.get("agent_id"):
+            ev["agent_slug"] = agent_type_map.get(ev["agent_id"])
+
+    # Defensive dedup on (uuid, session_id).
+    #
+    # Two distinct dedup cases exist:
+    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
+    #       transcripts (especially `acompact-*` context-compaction agents)
+    #       re-embed parent main events so the subagent has continuity. The
+    #       same (uuid, session_id) appears in both the main jsonl and a
+    #       subagent jsonl. Dropping the subagent copy is correct, and we
+    #       silence this case because it would otherwise warn on every run.
+    #   (b) two main events or two subagent events sharing a key — UNEXPECTED.
+    #       Would indicate an actual ingestion bug (host/Cowork uuid collision,
+    #       audit-file double-walk, etc.). We warn loudly for this case so it
+    #       doesn't go unnoticed.
+    # Two distinct dedup cases exist:
+    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
+    #       transcripts (especially `acompact-*` context-compaction agents)
+    #       re-embed parent main events so the subagent has continuity. The
+    #       same (uuid, session_id) appears in both the main jsonl and a
+    #       subagent jsonl. Dropping the subagent copy is correct.
+    #   (b) acompact-* subagents replaying each other — also EXPECTED. When
+    #       the main jsonl has been rotated/deleted, multiple compaction
+    #       snapshots for one session can each independently preserve the
+    #       same parent event. All compaction copies are dropped except one.
+    #   (c) anything else (e.g. two main events sharing a key, host/Cowork
+    #       uuid collision, audit-file double-walk) — UNEXPECTED. We warn so
+    #       it can't go unnoticed.
+    def _is_compaction(ev: dict) -> bool:
+        return (ev.get("agent_id") or "").startswith("acompact-")
+
+    seen: dict = {}  # key -> first event seen (for category check)
+    deduped: list[dict] = []
+    unexpected_dups = 0
+    for ev in all_events:
+        uuid = ev.get("uuid")
+        if uuid is None:
+            deduped.append(ev)
+            continue
+        key = (uuid, ev.get("session_id"))
+        if key in seen:
+            prior = seen[key]
+            this_src = ev.get("source_type")
+            prior_src = prior.get("source_type")
+            expected = (
+                {prior_src, this_src} == {"main", "subagent"}
+                or (prior_src == "subagent" and this_src == "subagent"
+                    and (_is_compaction(prior) or _is_compaction(ev)))
+            )
+            if not expected:
+                unexpected_dups += 1
+            continue
+        seen[key] = ev
+        deduped.append(ev)
+    if unexpected_dups:
+        print(
+            f"  ! warning: dropped {unexpected_dups} unexpected duplicate events "
+            f"(same source_type sharing uuid+session_id) — investigate",
+            file=sys.stderr,
+        )
+    all_events = deduped
+
+    cowork_origin_map = load_cowork_origin_map() if cowork_root else {}
+
+    report = build_report(
+        all_events,
+        since_days=since,
+        cowork_origin_map=cowork_origin_map,
+    )
+    md = render_markdown(report, files_scanned=files_scanned)
+
+    json_out.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(
+        {"events": all_events, "report": report},
+        indent=2,
+        default=str,
+    )
+    json_out.write_text(payload)
+
+    # Per-run snapshot for the live dashboard. The rolling json_out above is
+    # overwritten every run; the snapshot is immutable per-window-per-day
+    # history. Same payload, different filename. Cheap (~500KB/snapshot).
+    #
+    # The filename encodes both the date and the window so a same-day
+    # `--days 28` rerun does NOT overwrite the canonical weekly `--days 7`
+    # snapshot — that would break trend-chart comparability in the dashboard.
+    SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    window_tag = f"{since}d" if since else "0d"
+    snap_path = (
+        SNAPSHOTS_DIR
+        / f"{datetime.now().strftime('%Y-%m-%d')}-skill-usage-{window_tag}.json"
+    )
+    snap_path.write_text(payload)
+
+    # The 7-day window is the canonical weekly report and keeps the plain
+    # filename that the dashboard, week-over-week diff, and scheduled task all
+    # reference. Any other window (28d, all-time, custom) gets the same
+    # -{window_tag} suffix the snapshot uses, so a same-day rerun (e.g. the
+    # 4th-Monday `--days 28` pass) can't clobber the weekly report.
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_stem = f"{datetime.now().strftime('%Y-%m-%d')}-skill-usage"
+    if since != WEEKLY_WINDOW_DAYS:
+        report_stem += f"-{window_tag}"
+    md_path = report_dir / f"{report_stem}.md"
+    md_path.write_text(md)
+
+    print(f"  ✓ JSON written  → {json_out}")
+    print(f"  ✓ Snapshot      → {snap_path}")
+    print(f"  ✓ Markdown report → {md_path}")
+    print(
+        f"\nSummary: {files_scanned} files scanned, "
+        f"{len(all_events)} events, "
+        f"{report['unique_skills_used']} unique skills."
+    )
+    if report.get("by_source_type"):
+        srcs = ", ".join(f"{k}={v}" for k, v in report["by_source_type"].items())
+        print(f"By source: {srcs}")
+    print("\nTop 10 skills in window:")
+    for s, c in report["top_skills"][:10]:
+        print(f"  {c:>5}  {s}")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,18 @@
+# Generated output
+data/*.json
+data/snapshots/
+data/cdn-cache/
+data/*.html
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
