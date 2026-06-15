@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -11,7 +11,7 @@
       "name": "seo-aeo-geo",
       "source": "./seo-aeo-geo",
       "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -27,7 +27,7 @@
       "name": "obsidian-second-brain",
       "source": "./obsidian-second-brain",
       "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "author": {
         "name": "Rhize Media"
       },
@@ -50,7 +50,7 @@
       "name": "project-launcher",
       "source": "./project-launcher",
       "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -70,7 +70,7 @@
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
       "description": "Rhize development-workflow skill set — context/session/memory engineering, production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, dev-flow foundations, plus the skill-refinement and rhize-skill-forge meta-skills",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -91,7 +91,7 @@
       "name": "rhize-ops",
       "source": "./rhize-ops",
       "description": "Rhize operations skill set — internal delegation, hand-offs, and team-workflow automation. Houses delegate-to-tom: package a session's work into a structured hand-off for Tom Cassidy (Jira issue + Slack notification + Fireflies context)",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Rhize Media"
       },
