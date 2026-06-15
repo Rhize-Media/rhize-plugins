@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.3.0",
-  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, and web development tools",
+  "version": "1.4.0",
+  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
   },
@@ -83,6 +83,26 @@
         "chrome-devtools",
         "skill-refinement",
         "skill-forge",
+        "rhize"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "rhize-ops",
+      "source": "./rhize-ops",
+      "description": "Rhize operations skill set — internal delegation, hand-offs, and team-workflow automation. Houses delegate-to-tom: package a session's work into a structured hand-off for [REDACTED_NAME] (Jira issue + Slack notification + Fireflies context)",
+      "version": "0.1.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": [
+        "operations",
+        "delegation",
+        "handoff",
+        "jira",
+        "slack",
+        "fireflies",
+        "team-workflow",
         "rhize"
       ],
       "category": "workflow"
