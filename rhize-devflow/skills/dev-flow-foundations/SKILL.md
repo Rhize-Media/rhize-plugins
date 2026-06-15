@@ -1,5 +1,8 @@
 ---
 name: dev-flow-foundations
+tier: custom
+domain: dev-flow
+maturity: stable
 version: 1.0.0
 description: >-
   Foundational workflow patterns for large-codebase development — dependency-graph impact mapping,

@@ -1,5 +1,8 @@
 ---
 name: serp-intelligence
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request.
   SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs.

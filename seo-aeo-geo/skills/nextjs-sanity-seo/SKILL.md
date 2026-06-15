@@ -1,5 +1,8 @@
 ---
 name: nextjs-sanity-seo
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request.
   SEO implementation patterns for Next.js and Sanity CMS codebases.

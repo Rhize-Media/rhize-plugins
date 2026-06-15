@@ -1,5 +1,8 @@
 ---
 name: obsidian-markdown
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Obsidian markdown syntax or formatting request.
   Create and edit Obsidian-flavored Markdown files (.md) with wikilinks, embeds,
