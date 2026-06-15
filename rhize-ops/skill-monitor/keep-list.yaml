@@ -1,0 +1,17 @@
+# keep-list.yaml — skills to exclude from "Prune candidates" in the dashboard.
+#
+# Add a skill name here if you want to keep it around even when it shows zero
+# invocations in recent weeks. The dashboard's prune-candidates table reads
+# this file at render time and filters out anything listed.
+#
+# Format: one skill per line, optionally prefixed with "- ". Comments (#) and
+# blank lines are ignored. No PyYAML — dashboard.py does the parsing in stdlib.
+#
+# Example entries (commented out — uncomment / replace with your actual
+# rarely-used-but-strategic skills):
+#
+# - rhizedelegate-to-tom
+# - obsidian-second-brain:vault-recall
+# - seo-aeo-geo:keyword-research
+# - resend-cli
+# - programmatic-seo
