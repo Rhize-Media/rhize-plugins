@@ -1,10 +1,10 @@
-# /rhize-devflow:forge-ingest
+# /rhize-meta:forge-ingest
 
 Full ingestion pipeline for an external skill: profile → scan → decide → execute → verify → record.
 
 ## Usage
 ```
-/rhize-devflow:forge-ingest <source>
+/rhize-meta:forge-ingest <source>
 ```
 `<source>` = a directory, a `SKILL.md`, a `.skill` bundle, a marketplace skill name, or a GitHub URL.
 For a GitHub URL, fetch it to a temp dir first, then proceed.

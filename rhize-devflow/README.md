@@ -15,14 +15,13 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 | `chrome-devtools-mcp` | Browser automation, perf traces, network/console debugging |
 | `sanity-development` | Rhize house style for Sanity schema/GROQ/TypeGen/next-sanity |
 | `dev-flow-foundations` | Dependency graphs, component registry, regression prevention |
-| `skill-refinement` | Improve *your own* skills from usage feedback (patches + generalization) |
-| `rhize-skill-forge` | Investigate & absorb *external* skills (profile → decide → verify → provenance) |
+
+> The `skill-refinement` and `rhize-skill-forge` meta-skills moved to the **`rhize-meta`** plugin (2026-06-15).
 
 ## Commands
 
 `/rhize-devflow:` start · done · impact-map · context-hygiene · mutation-analyze · mutation-check ·
-mutation-fix · refine-skills · apply-generalization · review-patterns · browser-debug · browser-help ·
-browser-perf · browser-test · forge-ingest · forge-scan · forge-watch
+mutation-fix · browser-debug · browser-help · browser-perf · browser-test
 
 ## Install
 
@@ -40,5 +39,5 @@ them, so nothing untested fires automatically.
 
 ## Lineage
 
-Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). Provenance for any externally-absorbed
-patterns is tracked by `rhize-skill-forge` in `SOURCES.md`.
+Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `rhize-skill-forge` and
+`skill-refinement` meta-skills were promoted to the `rhize-meta` plugin (2026-06-15).

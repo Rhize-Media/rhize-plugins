@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -69,8 +69,8 @@
     {
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
-      "description": "Rhize development-workflow skill set — context/session/memory engineering, production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, dev-flow foundations, plus the skill-refinement and rhize-skill-forge meta-skills",
-      "version": "2.2.0",
+      "description": "Rhize development-workflow skill set — context/session/memory engineering, production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations",
+      "version": "2.3.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -103,6 +103,24 @@
         "slack",
         "fireflies",
         "team-workflow",
+        "rhize"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "rhize-meta",
+      "source": "./rhize-meta",
+      "description": "Rhize meta-skills — skill governance: rhize-skill-forge (investigate & absorb external skills + the set-level organizer) and skill-refinement (improve your own skills from usage feedback)",
+      "version": "1.0.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": [
+        "meta-skills",
+        "skill-forge",
+        "skill-refinement",
+        "skill-governance",
+        "skill-organizer",
         "rhize"
       ],
       "category": "workflow"
