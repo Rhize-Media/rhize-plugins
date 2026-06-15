@@ -6,7 +6,7 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 
 ### Marketplace Infrastructure
 - [ ] Use git submodule for `obsidian-second-brain/` to auto-sync with [kepano/obsidian-second-brain](https://github.com/kepano/obsidian-second-brain) upstream
-- [ ] Add version bump script to coordinate plugin.json + marketplace.json + changelog updates
+- [x] Add version bump script to coordinate plugin.json + marketplace.json + changelog updates — `scripts/bump_version.py` (+ `/rhize-ops:bump-version`, `.githooks/pre-push`, CI version-check + tag-release)
 
 ### obsidian-second-brain
 

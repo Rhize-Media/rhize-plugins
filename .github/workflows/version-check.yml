@@ -1,0 +1,19 @@
+name: version-check
+
+# Pre-merge gate: if a PR changes any plugin, fail unless its version, the marketplace
+# top-level version, and the CHANGELOG were bumped. Mirrors the local .githooks/pre-push.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate version bumps
+        run: |
+          python3 scripts/bump_version.py --check --since "origin/${{ github.base_ref }}"
