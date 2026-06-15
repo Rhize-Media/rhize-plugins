@@ -48,7 +48,7 @@ target skill, plus a `SOURCES.md` entry.
 
 ### FORK
 Copy the candidate into a new `rhize-<name>/` skill and re-skin it: valid frontmatter, pushy
-description, Rhize stack assumptions, `/rhize-devflow:` command namespace, provenance entry. Use when the
+description, Rhize stack assumptions, `/rhize-meta:` command namespace, provenance entry. Use when the
 bones are good but it's a new capability for Rhize (low overlap) OR the house style differs enough
 that a patch would be messier than a clean fork. Forking is heavier — justify it over DEFER.
 

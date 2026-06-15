@@ -178,7 +178,7 @@ python3 scripts/record_provenance.py --check-drift --skills-root <rhize-skills-r
 This lists absorbed sources whose upstream version/commit has moved, so you can re-run the forge
 on the delta. **Don't schedule this separately** — detection is owned by the `ai-stack-version-drift`
 sensor (the only drift cron); `--check-drift` is the on-demand *classifier* it feeds, run via
-`/rhize-devflow:forge-watch` or off the sensor's report. See `references/drift-boundaries.md`.
+`/rhize-meta:forge-watch` or off the sensor's report. See `references/drift-boundaries.md`.
 
 ---
 
@@ -209,9 +209,9 @@ graph are legible; untagged skills surface as rot in the registry output. To bui
 
 | Command | Purpose |
 |---------|---------|
-| `/rhize-devflow:forge-ingest <source>` | Full pipeline: profile → scan → decide → execute → verify → record |
-| `/rhize-devflow:forge-scan <source>` | Overlap report only — no changes, just the recommendation |
-| `/rhize-devflow:forge-watch` | Drift check across all absorbed sources |
+| `/rhize-meta:forge-ingest <source>` | Full pipeline: profile → scan → decide → execute → verify → record |
+| `/rhize-meta:forge-scan <source>` | Overlap report only — no changes, just the recommendation |
+| `/rhize-meta:forge-watch` | Drift check across all absorbed sources |
 
 ---
 
