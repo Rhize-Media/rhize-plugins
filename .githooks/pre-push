@@ -1,0 +1,11 @@
+#!/bin/sh
+# rhize-plugins pre-push gate — blocks a push if a changed plugin's version,
+# the marketplace top-level version, or the CHANGELOG wasn't bumped.
+#
+# Opt-in (per clone):   git config core.hooksPath .githooks
+# Bypass once:          git push --no-verify
+#
+# It only validates — it never edits or bumps. To fix a failure, run:
+#   python3 scripts/bump_version.py --auto --yes
+root="$(git rev-parse --show-toplevel)"
+exec python3 "$root/scripts/bump_version.py" --check

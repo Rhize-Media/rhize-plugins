@@ -24,7 +24,7 @@ evals/results/
 
 # Local scripts (not part of plugin distribution) — exceptions below
 scripts/*
-!scripts/bump-plugin.sh
+!scripts/bump_version.py
 
 # Squirrel config
 squirrel.toml
