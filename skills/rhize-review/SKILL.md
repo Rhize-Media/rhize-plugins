@@ -1,5 +1,8 @@
 ---
 name: rhize-review
+tier: custom
+domain: dev-flow
+maturity: stable
 description: Use when about to merge or push changes on a production-level website or app (a Vercel or deploy-on-push repo — e.g. a Next.js/Sanity site or rhize-salesforce), or whenever a pre-merge / pre-push review of a feature branch or PR is needed and a clear go / no-go merge decision is required. Triggers on "review before merge", "is this safe to ship", "production code review".
 ---
 

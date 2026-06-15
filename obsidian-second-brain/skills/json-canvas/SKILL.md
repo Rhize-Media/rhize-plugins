@@ -1,5 +1,8 @@
 ---
 name: json-canvas
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request.
   Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0

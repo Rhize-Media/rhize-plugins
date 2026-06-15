@@ -1,5 +1,8 @@
 ---
 name: sanity-development
+tier: custom
+domain: sanity
+maturity: stable
 version: 2.0.0
 description: >-
   Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen,

@@ -1,5 +1,8 @@
 ---
 name: obsidian-cli
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any Obsidian CLI or terminal automation request.
   Execute Obsidian vault operations via the official command-line interface (v1.12.4+).

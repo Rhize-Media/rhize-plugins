@@ -13,7 +13,7 @@ So nothing here is throwaway if the product path (Decision #0: internal-now, pro
 |-------|--------|----------|---------|
 | `tier` | `resource` \| `custom` | yes | `resource` = installed as-is (a DEFER target / library item); `custom` = Rhize-authored or -personalized (FORK / wrap / merge output). The resource/custom split **as a tag**, not a runtime layer. |
 | `domain` | controlled vocab (below) | yes | classification + the grouping that bounds overlap scans |
-| `consumes` | list of skill names | when `tier: custom` | dependency edges → the graph (open Q#6). Empty for from-scratch customs. |
+| `consumes` | list of skill names | when it consumes resources | dependency edges → the graph (open Q#6); omit for standalone customs. |
 | `provenance` | `SOURCES.md` slug | when derived from an external source | join key to the ledger + the drift classifier |
 | `source` | url \| path \| `internal` | when external | where it came from |
 | `license` | SPDX id or class | when external | gates ABSORB/FORK (see `provenance.md`) |
@@ -44,8 +44,8 @@ So nothing here is throwaway if the product path (Decision #0: internal-now, pro
 ## Controlled vocabulary — `domain`
 
 Keep it small and Rhize-shaped; extend deliberately. Seed set: `seo`, `aeo-geo`, `obsidian`,
-`sanity`, `payload`, `supabase`, `dev-flow`, `error-lifecycle`, `data-mutation`, `ops`, `comms`,
-`research`, `meta` (skills about skills: forge, refinement, monitor). **One domain per skill** — if
+`sanity`, `payload`, `supabase`, `dev-flow`, `error-lifecycle`, `data-mutation`, `sentry`, `ops`,
+`comms`, `research`, `meta` (skills about skills: forge, refinement, dashboard). **One domain per skill** — if
 two genuinely fit, the skill may be doing two jobs, which is a FORK/split signal.
 
 ## Engine-optional / product-forward rule

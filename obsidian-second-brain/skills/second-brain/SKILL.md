@@ -1,5 +1,8 @@
 ---
 name: second-brain
+tier: custom
+domain: obsidian
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request.
   Personal knowledge management methodology for Obsidian vaults — Zettelkasten,

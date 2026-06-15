@@ -1,5 +1,8 @@
 ---
 name: content-seo
+tier: custom
+domain: seo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request.
   On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation.

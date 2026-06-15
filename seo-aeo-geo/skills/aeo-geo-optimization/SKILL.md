@@ -1,5 +1,8 @@
 ---
 name: aeo-geo-optimization
+tier: custom
+domain: aeo-geo
+maturity: stable
 description: >
   ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request.
   Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI
