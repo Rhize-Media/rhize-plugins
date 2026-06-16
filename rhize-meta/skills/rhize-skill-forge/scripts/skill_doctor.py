@@ -50,8 +50,11 @@ def main() -> None:
            f"{prov} key set" if has_llm
            else "not set — static scan works without it (use --no-llm); set SKILLSPECTOR_PROVIDER + key for semantic analysis")
 
-    print("\nMinimum to gate skills on safety: install SkillSpector (no API key needed for static scan).")
-    print("skills.sh discovery + partner audits additionally require the Vercel OIDC token.")
+    print("\nVercel is OPTIONAL — it powers skills.sh *discovery* only:")
+    print("  - Safety gating (SkillSpector) works with NO Vercel and NO API key (static scan).")
+    print("  - skills.sh discovery + partner audits need VERCEL_OIDC_TOKEN (a Vercel project as an")
+    print("    auth anchor — it deploys nothing). Team setup + client guidance: rhize-meta README /")
+    print("    vault ADR-001-skills-sh-vercel-auth.")
 
 
 if __name__ == "__main__":
