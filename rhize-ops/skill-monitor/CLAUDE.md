@@ -6,9 +6,9 @@ Project-level instructions for Claude (and other coding agents) working on this 
 
 A small audit tool that walks every Claude Code transcript on the user's Mac, extracts `Skill` `tool_use` events, and produces:
 
-1. A weekly **markdown report** in the user's Obsidian vault at `Projects/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`
+1. A weekly **markdown report** in the user's Obsidian vault at `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`
 2. A **JSON snapshot** at `data/snapshots/YYYY-MM-DD-skill-usage.json` (immutable per-run history)
-3. A **live HTML dashboard** at `<vault>/Projects/Skill-Audit-and-Monitoring/dashboard.html` aggregating every snapshot into one interactive view
+3. A **live HTML dashboard** at `<vault>/Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/dashboard.html` aggregating every snapshot into one interactive view
 
 The thesis: skill libraries obey a power law (Anthropic data: ~300 skills installed, ~12 run weekly). You can't prune what you don't measure. This is the measurement.
 
@@ -94,8 +94,8 @@ Source: `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`. That file li
 
 The conceptual home for the project is in the user's Obsidian vault:
 
-- `Projects/Skill-Audit-and-Monitoring/README.md` — the *why* (power-law thesis, tier strategy, 90-day prune plan)
-- `Projects/Skill-Audit-and-Monitoring/Skill Audit and Monitoring System.md` — the *how* (technical design, data model, components)
-- `Projects/Skill-Audit-and-Monitoring/Live Dashboard.md` — what `dashboard.html` is, when it refreshes, what each section means
+- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/README.md` — the *why* (power-law thesis, tier strategy, 90-day prune plan)
+- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/Skill Audit and Monitoring System.md` — the *how* (technical design, data model, components)
+- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/Live Dashboard.md` — what `dashboard.html` is, when it refreshes, what each section means
 
 When meaningful behavior changes here, update the vault System doc to match. When the dashboard's section list changes, update the vault Live Dashboard note too.

@@ -29,7 +29,7 @@ Aggregates:
 - By project (cwd-based), by entrypoint, week-by-week
 - Indirect skill use grouped by `subagent_type` (resolved from each main session's `toolUseResult.agentType`)
 - Writes a timestamped markdown report into the Obsidian vault at
-  `Projects/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`. Only
+  `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`. Only
   the canonical `--days 7` weekly keeps that plain name; any other window self-suffixes
   (e.g. `YYYY-MM-DD-skill-usage-28d.md`, `-0d` for all-time), mirroring the snapshot
   naming so a same-day `--days 28` run can't overwrite the weekly report.
@@ -66,7 +66,7 @@ sandboxed iframes that block external `<script src>`. Pass `--online` to keep re
 
 ```bash
 # Render to the default vault path (offline, CDN inlined):
-#   <vault>/Projects/Skill-Audit-and-Monitoring/dashboard.html
+#   <vault>/Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/dashboard.html
 python3 dashboard.py --out html
 
 # Keep remote CDN tags instead of inlining (smaller, needs network to view)
