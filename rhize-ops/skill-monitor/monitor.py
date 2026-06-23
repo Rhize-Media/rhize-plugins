@@ -54,6 +54,7 @@ DEFAULT_VAULT_REPORT_DIR = (
     / "Documents"
     / "Obsidian Vault"
     / "Projects"
+    / "Scheduled Maintenance"
     / "Skill-Audit-and-Monitoring"
     / "weekly-reports"
 )

@@ -4,7 +4,7 @@ dashboard.py — Live artifact dashboard renderer for skill-monitor.
 
 Reads every JSON file from data/snapshots/, templates them into either:
   --out html      → a self-contained HTML file (default destination is in
-                    the Obsidian vault at Projects/Skill-Audit-and-Monitoring/
+                    the Obsidian vault at Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/
                     dashboard.html)
   --out artifact  → ready-to-paste JSX source for an `application/vnd.ant.react`
                     Claude Artifact, with snapshots and keep-list inlined as
@@ -27,6 +27,7 @@ import re
 import sys
 import urllib.error
 import urllib.request
+from urllib.parse import quote
 from datetime import datetime
 from pathlib import Path
 
@@ -65,6 +66,7 @@ DEFAULT_HTML_PATH = (
     / "Documents"
     / "Obsidian Vault"
     / "Projects"
+    / "Scheduled Maintenance"
     / "Skill-Audit-and-Monitoring"
     / "dashboard.html"
 )
@@ -341,9 +343,31 @@ def build_panel_data(snapshots_dir: Path) -> dict:
     }
 
 
+DASH_URL_MARKER = "__DASH_FILE_URL__"
+
+
+def _user_facing_path(p: Path) -> str:
+    """Return the path as the user's macOS filesystem sees it.
+
+    When this script runs inside a Cowork sandbox, paths resolve under
+    `/sessions/<id>/mnt/<user>/...`. Rewrite that prefix to the real
+    `/Users/<user>/...` home so the emitted file:// link is valid in the
+    user's browser. No-op on native runs (where the prefix never matches).
+    """
+    return re.sub(r"^/sessions/[^/]+/mnt/", "/Users/", str(p))
+
+
+def _file_url(p: Path) -> str:
+    """Build a browser-pasteable file:// URL for a local path (spaces → %20)."""
+    return "file://" + quote(_user_facing_path(p))
+
+
 def render_panel(snapshots_dir: Path) -> str:
     """Inline the panel data object into panel-template.html at its marker."""
     template = PANEL_TEMPLATE_PATH.read_text()
+    # Inject the live dashboard.html location as a copyable file:// URL so the
+    # panel's "Copy dashboard path" button never goes stale on a vault reorg.
+    template = template.replace(DASH_URL_MARKER, _file_url(DEFAULT_HTML_PATH))
     data_json = json.dumps(build_panel_data(snapshots_dir), default=str)
     # Replace `/*__PANEL_DATA__*/<fallback literal>` up to the first `;` after
     # the marker's object. Simplest robust approach: swap the marker plus the

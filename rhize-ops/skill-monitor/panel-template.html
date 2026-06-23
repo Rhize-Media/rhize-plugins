@@ -95,16 +95,47 @@
 
   <div class="card full">
     <h2>Full dashboard</h2>
-    The rich 10-section interactive view (trend, leverage scatter, prune candidates, subagent breakdown, project density) is a self-contained, offline HTML file in your vault:<br>
-    <div style="margin-top:10px">
-      <a class="dash-link" href="file:///Users/jamesdeola/Library/Mobile%20Documents/iCloud~md~obsidian/Documents/Obsidian%20Vault/Projects/Skill-Audit-and-Monitoring/dashboard.html" target="_blank" rel="noopener">&#8599;&nbsp; Open the full dashboard in your browser</a>
+    The rich 10-section interactive view (trend, leverage scatter, prune candidates, subagent breakdown, project density) is a self-contained, offline HTML file in your vault.
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button id="copybtn" type="button" data-clip="__DASH_FILE_URL__"
+        style="cursor:pointer;border:1px solid #888;border-radius:6px;padding:6px 12px;font:inherit;font-weight:600;background:transparent;color:inherit">
+        &#128203;&nbsp; Copy dashboard path
+      </button>
+      <a class="dash-link" href="__DASH_FILE_URL__" target="_blank" rel="noopener">&#8599;&nbsp; Open in browser</a>
     </div>
-    <div class="note" style="margin-top:6px">Offline &mdash; no network needed. If your browser doesn't allow opening a local file from here, it's at <code>Projects/Skill-Audit-and-Monitoring/dashboard.html</code> in your vault.</div>
+    <div style="margin-top:8px">
+      <code id="dashpath" style="display:block;word-break:break-all;font-size:11px;opacity:.85;user-select:all;-webkit-user-select:all">__DASH_FILE_URL__</code>
+    </div>
+    <div class="note" style="margin-top:6px">The &ldquo;Open&rdquo; link is often blocked for local <code>file://</code> URLs inside this panel &mdash; click <b>Copy dashboard path</b> and paste into your browser&rsquo;s address bar. Offline; no network needed.</div>
   </div>
 
 <script>
 const DATA = /*__PANEL_DATA__*/{"generated_at":"","d7":{"total":0,"unique":0,"by_channel":{"skill_tool":0,"slash_command":0},"raw":0,"dedup":0,"top":[]},"d28":{"total":0,"unique":0,"by_channel":{"skill_tool":0,"slash_command":0},"top":[],"by_week":{},"sc_top":[]}};
 const TASK_ID = "weekly-skill-audit";
+
+// Copy-to-clipboard for the full dashboard file:// path (with execCommand fallback
+// for webviews where navigator.clipboard is unavailable). The <code> block is
+// user-select:all as a last-resort manual fallback.
+(function(){
+  const btn = document.getElementById("copybtn");
+  if(!btn) return;
+  btn.addEventListener("click", async () => {
+    const txt = btn.getAttribute("data-clip") || "";
+    let ok = false;
+    try { await navigator.clipboard.writeText(txt); ok = true; }
+    catch(e){
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.focus(); ta.select();
+        ok = document.execCommand("copy"); document.body.removeChild(ta);
+      } catch(_){ ok = false; }
+    }
+    const orig = btn.innerHTML;
+    btn.innerHTML = ok ? "&#10003;&nbsp; Copied!" : "Select the path below &amp; copy";
+    setTimeout(() => { btn.innerHTML = orig; }, 2200);
+  });
+})();
 
 try {
   const dt = new Date(DATA.generated_at);
