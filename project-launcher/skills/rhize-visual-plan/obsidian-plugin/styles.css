@@ -1,0 +1,528 @@
+/* ===========================================================================
+ * styles.css — the viewer stylesheet. Reproduces the component styling that the
+ * original Tailwind-based Next.js renderer expressed via utility classes, as
+ * plain CSS so the singlefile build is fully self-contained and offline (no CDN,
+ * no Tailwind runtime). Token colors mirror the wireframe palette; the document
+ * supports light/dark via prefers-color-scheme.
+ *
+ * Class prefix: rp- (rhize-plan). The --wf-* tokens live ONLY inside the
+ * wireframe iframes (see wireframe.ts); the outer document uses --rp-* tokens.
+ * ======================================================================== */
+
+:root {
+  --rp-paper: #ffffff;
+  --rp-ink: #1a1d23;
+  --rp-muted: #6b7280;
+  --rp-muted-2: #9aa3af;
+  --rp-line: #e2e5ea;
+  --rp-line-soft: #eef0f3;
+  --rp-surface: #f6f7f9;
+  --rp-surface-2: #f9fafb;
+  --rp-accent: #2563eb;
+  --rp-code-bg: #0d1117;
+  --rp-code-bar: #161b22;
+  --rp-code-fg: #e6edf3;
+  --rp-radius: 10px;
+  --rp-maxw: 760px;
+
+  /* badge palettes (bg / fg) */
+  --rp-gray-bg: #f3f4f6;     --rp-gray-fg: #374151;
+  --rp-yellow-bg: #fef9c3;   --rp-yellow-fg: #854d0e;
+  --rp-green-bg: #dcfce7;    --rp-green-fg: #166534;
+  --rp-red-bg: #fee2e2;      --rp-red-fg: #b91c1c;
+  --rp-blue-bg: #dbeafe;     --rp-blue-fg: #1e40af;
+  --rp-orange-bg: #ffedd5;   --rp-orange-fg: #9a3412;
+  --rp-purple-bg: #f3e8ff;   --rp-purple-fg: #6b21a8;
+  --rp-emerald-bg: #d1fae5;  --rp-emerald-fg: #065f46;
+  --rp-indigo-bg: #e0e7ff;   --rp-indigo-fg: #3730a3;
+
+  /* verb tints */
+  --rp-add-bg: #f0fdf4;      --rp-add-fg: #15803d;
+  --rp-edit-bg: #eff6ff;     --rp-edit-fg: #1d4ed8;
+  --rp-delete-bg: #fef2f2;   --rp-delete-fg: #b91c1c;
+
+  --rp-annotation-bg: #fefce8;
+  --rp-annotation-line: #fde68a;
+  --rp-annotation-fg: #713f12;
+  --rp-annotation-mark: #ca8a04;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --rp-paper: #0f1115;
+    --rp-ink: #e6e8ec;
+    --rp-muted: #9aa3af;
+    --rp-muted-2: #6b7280;
+    --rp-line: #2a2f3a;
+    --rp-line-soft: #20242d;
+    --rp-surface: #171a21;
+    --rp-surface-2: #14171d;
+    --rp-accent: #60a5fa;
+    --rp-code-bg: #0b0e13;
+    --rp-code-bar: #11151c;
+    --rp-code-fg: #e6edf3;
+
+    --rp-gray-bg: #2a2f3a;     --rp-gray-fg: #cbd5e1;
+    --rp-yellow-bg: #422006;   --rp-yellow-fg: #fde68a;
+    --rp-green-bg: #052e16;    --rp-green-fg: #86efac;
+    --rp-red-bg: #450a0a;      --rp-red-fg: #fca5a5;
+    --rp-blue-bg: #172554;     --rp-blue-fg: #93c5fd;
+    --rp-orange-bg: #431407;   --rp-orange-fg: #fdba74;
+    --rp-purple-bg: #3b0764;   --rp-purple-fg: #d8b4fe;
+    --rp-emerald-bg: #022c22;  --rp-emerald-fg: #6ee7b7;
+    --rp-indigo-bg: #1e1b4b;   --rp-indigo-fg: #a5b4fc;
+
+    --rp-add-bg: #052e16;      --rp-add-fg: #86efac;
+    --rp-edit-bg: #172554;     --rp-edit-fg: #93c5fd;
+    --rp-delete-bg: #450a0a;   --rp-delete-fg: #fca5a5;
+
+    --rp-annotation-bg: #1f1a0a;
+    --rp-annotation-line: #5c4813;
+    --rp-annotation-fg: #fde68a;
+    --rp-annotation-mark: #facc15;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--rp-paper);
+  color: var(--rp-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+code, pre, .rp-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.rp-strong { font-weight: 600; color: var(--rp-ink); }
+.rp-muted { color: var(--rp-muted); }
+
+/* ---- layout shell --------------------------------------------------------- */
+.rp-root {
+  max-width: var(--rp-maxw);
+  margin: 0 auto;
+  padding: 32px 24px 96px;
+}
+
+.rp-header {
+  border-bottom: 1px solid var(--rp-line);
+  padding-bottom: 16px;
+  margin-bottom: 28px;
+}
+.rp-header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rp-header-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+.rp-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.rp-header-meta-item { white-space: nowrap; }
+
+/* ---- badges --------------------------------------------------------------- */
+.rp-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  background: var(--rp-gray-bg);
+  color: var(--rp-gray-fg);
+}
+.rp-badge-gray   { background: var(--rp-gray-bg);   color: var(--rp-gray-fg); }
+.rp-badge-yellow { background: var(--rp-yellow-bg); color: var(--rp-yellow-fg); }
+.rp-badge-green  { background: var(--rp-green-bg);  color: var(--rp-green-fg); }
+.rp-badge-red    { background: var(--rp-red-bg);    color: var(--rp-red-fg); }
+.rp-badge-blue   { background: var(--rp-blue-bg);   color: var(--rp-blue-fg); }
+.rp-badge-orange { background: var(--rp-orange-bg); color: var(--rp-orange-fg); }
+.rp-badge-purple { background: var(--rp-purple-bg); color: var(--rp-purple-fg); }
+.rp-badge-emerald{ background: var(--rp-emerald-bg);color: var(--rp-emerald-fg); }
+.rp-badge-indigo { background: var(--rp-indigo-bg); color: var(--rp-indigo-fg); }
+
+.rp-method {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* ---- generic bordered panel (FileMap / DataModel / ApiEndpoint / OpenQ) ---- */
+.rp-panel {
+  margin: 24px 0;
+  border: 1px solid var(--rp-line);
+  border-radius: var(--rp-radius);
+  overflow: hidden;
+  background: var(--rp-paper);
+}
+.rp-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--rp-surface);
+  border-bottom: 1px solid var(--rp-line);
+  padding: 8px 16px;
+  font-size: 14px;
+}
+.rp-panel-body {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+/* ---- FileMap -------------------------------------------------------------- */
+.rp-filemap-body ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rp-filemap-body li {
+  padding: 7px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--rp-line-soft);
+}
+.rp-filemap-body li:last-child { border-bottom: none; }
+.rp-filemap-body code {
+  background: var(--rp-surface);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.rp-verb {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: system-ui, -apple-system, sans-serif;
+  text-transform: lowercase;
+}
+.rp-verb-add    { background: var(--rp-add-bg);    color: var(--rp-add-fg); }
+.rp-verb-edit   { background: var(--rp-edit-bg);   color: var(--rp-edit-fg); }
+.rp-verb-delete { background: var(--rp-delete-bg); color: var(--rp-delete-fg); }
+
+/* ---- ApiEndpoint ---------------------------------------------------------- */
+.rp-api-head { gap: 12px; }
+.rp-api-auth { margin-left: auto; font-size: 12px; color: var(--rp-muted); }
+
+/* ---- Diagram -------------------------------------------------------------- */
+.rp-diagram {
+  margin: 28px 0;
+  border: 1px solid var(--rp-line);
+  border-radius: var(--rp-radius);
+  background: var(--rp-surface);
+  padding: 16px;
+  overflow: hidden;
+}
+.rp-diagram-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rp-ink);
+  margin: 0 0 12px;
+}
+.rp-diagram-caption {
+  font-size: 12px;
+  color: var(--rp-muted);
+  margin: 8px 0 0;
+}
+.rp-mermaid {
+  overflow-x: auto;
+  padding: 4px 0;
+  text-align: center;
+}
+.rp-mermaid svg { max-width: 100%; height: auto; }
+
+/* ---- Decision ------------------------------------------------------------- */
+.rp-decision {
+  margin: 24px 0;
+  border-radius: var(--rp-radius);
+  border-left: 4px solid;
+  padding: 14px 20px;
+}
+.rp-decision-decided {
+  border-left-color: var(--rp-blue-fg);
+  background: var(--rp-blue-bg);
+}
+.rp-decision-open {
+  border-left-color: var(--rp-orange-fg);
+  background: var(--rp-orange-bg);
+}
+.rp-decision-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.rp-decision-label { font-weight: 700; font-size: 14px; }
+.rp-decision-title { font-weight: 600; font-size: 14px; }
+.rp-decision .rp-prose { color: var(--rp-ink); }
+
+/* ---- Canvas / Screen ------------------------------------------------------ */
+.rp-canvas { margin: 36px 0; }
+.rp-canvas-title { font-size: 17px; font-weight: 600; margin: 0 0 14px; }
+.rp-canvas-lanes {
+  display: grid;
+  border-bottom: 1px solid var(--rp-line);
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+}
+.rp-canvas-lane {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rp-muted-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+.rp-canvas-board {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  align-items: flex-start;
+}
+.rp-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 0;
+  flex: 0 0 auto;
+}
+.rp-screen-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rp-muted);
+  margin-bottom: 4px;
+}
+.rp-screen-surface { margin-left: auto; color: var(--rp-muted-2); }
+.rp-wf-frame {
+  border: 1px solid var(--rp-line);
+  border-radius: var(--rp-radius);
+  overflow: hidden;
+  background: var(--rp-surface);
+}
+
+/* ---- Wireframe device, rendered INLINE & scoped (NOT an iframe: Obsidian's CSP
+   strips styling from iframe srcdoc/blob documents). The --wf-* tokens live ONLY
+   under .rp-wf-doc. Mirrors the canonical contract in references/wireframe.md
+   (wireframe.ts WF_TOKEN_STYLE) — keep the two in sync. -------------------- */
+.rp-wf-doc {
+  --wf-paper:#f6f7f9; --wf-card:#ffffff; --wf-ink:#1a1d23; --wf-muted:#6b7280;
+  --wf-line:#e2e5ea; --wf-accent:#2563eb; --wf-accent-fg:#ffffff; --wf-accent-soft:#e8f0fe;
+  --wf-ok:#16a34a; --wf-warn:#d97706; --wf-danger:#dc2626; --wf-radius:10px;
+  background: var(--wf-paper);
+  color: var(--wf-ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  padding: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  .rp-wf-doc {
+    --wf-paper:#0f1115; --wf-card:#171a21; --wf-ink:#e6e8ec; --wf-muted:#9aa3af;
+    --wf-line:#2a2f3a; --wf-accent:#3b82f6; --wf-accent-fg:#ffffff; --wf-accent-soft:#1d2740;
+    --wf-ok:#22c55e; --wf-warn:#f59e0b; --wf-danger:#ef4444;
+  }
+}
+.rp-wf-doc h1, .rp-wf-doc h2, .rp-wf-doc h3 { margin:0 0 8px; font-weight:650; line-height:1.2; }
+.rp-wf-doc h1 { font-size:20px; } .rp-wf-doc h2 { font-size:16px; } .rp-wf-doc h3 { font-size:14px; }
+.rp-wf-doc p { margin:0 0 8px; }
+.rp-wf-doc small, .rp-wf-doc .wf-muted { color:var(--wf-muted); font-size:12px; }
+.rp-wf-doc .wf-card { background:var(--wf-card); border:1px solid var(--wf-line); border-radius:var(--wf-radius); padding:14px; }
+.rp-wf-doc .wf-row { display:flex; align-items:center; gap:10px; }
+.rp-wf-doc .wf-bar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:var(--wf-card); border-bottom:1px solid var(--wf-line); }
+.rp-wf-doc .wf-pill { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; background:var(--wf-accent-soft); color:var(--wf-accent); font-size:12px; font-weight:600; }
+.rp-wf-doc button { font:inherit; padding:7px 12px; border:1px solid var(--wf-line); border-radius:8px; background:var(--wf-card); color:var(--wf-ink); cursor:pointer; }
+.rp-wf-doc button.primary { background:var(--wf-accent); border-color:var(--wf-accent); color:var(--wf-accent-fg); }
+.rp-wf-doc input, .rp-wf-doc textarea, .rp-wf-doc select { font:inherit; padding:7px 10px; border:1px solid var(--wf-line); border-radius:8px; background:var(--wf-card); color:var(--wf-ink); width:100%; }
+.rp-wf-doc input[type="checkbox"], .rp-wf-doc input[type="radio"] { width:auto; }
+.rp-wf-doc ul { margin:0 0 8px; padding-left:18px; }
+.rp-wf-doc a { color:var(--wf-accent); text-decoration:none; }
+.rp-wf-doc svg[data-wf-icon] { width:1em; height:1em; vertical-align:-0.125em; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* ---- Annotation ----------------------------------------------------------- */
+.rp-annotation {
+  margin: 12px 0;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  color: var(--rp-annotation-fg);
+  background: var(--rp-annotation-bg);
+  border: 1px solid var(--rp-annotation-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.rp-annotation-mark { color: var(--rp-annotation-mark); margin-top: 2px; flex-shrink: 0; }
+.rp-annotation-target { margin-right: 4px; }
+.rp-annotation-place { color: var(--rp-muted); font-size: 12px; margin-right: 4px; }
+
+/* ---- Code surfaces: Diff + AnnotatedCode ---------------------------------- */
+.rp-code {
+  margin: 24px 0;
+  border: 1px solid var(--rp-line);
+  border-radius: var(--rp-radius);
+  overflow: hidden;
+}
+.rp-code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rp-code-bar);
+  padding: 8px 16px;
+}
+.rp-code-file { color: #c9d1d9; font-size: 12px; }
+.rp-code-lang { margin-left: auto; color: #8b949e; font-size: 12px; }
+.rp-code-body {
+  background: var(--rp-code-bg);
+  color: var(--rp-code-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+.rp-diff-line { white-space: pre; }
+.rp-diff-add    { background: rgba(34, 197, 94, 0.18); }
+.rp-diff-remove { background: rgba(239, 68, 68, 0.18); }
+.rp-diff-hunk   { color: #8b949e; }
+.rp-ac-line { display: flex; gap: 0; }
+.rp-ac-code { flex: 1; white-space: pre; }
+.rp-ac-note {
+  color: #d29922;
+  font-size: 12px;
+  margin-left: 16px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* A wide block may exceed the prose column. */
+.rp-wide {
+  width: min(100%, calc(var(--rp-maxw) + 220px));
+  margin-left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+}
+
+/* ---- OpenQuestions -------------------------------------------------------- */
+.rp-openq { margin: 36px 0; background: var(--rp-surface); }
+.rp-openq-head { padding: 12px 20px; }
+.rp-openq-title { font-size: 16px; }
+.rp-openq-note { font-size: 12px; margin-left: 4px; }
+.rp-openq-body { padding: 16px 20px; }
+.rp-openq-body ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rp-openq-body li {
+  border-left: 2px solid var(--rp-line);
+  padding: 2px 0 2px 12px;
+}
+.rp-openq-body strong { color: var(--rp-ink); }
+
+/* ---- prose (the markdown body + table/list-bearing component bodies) ------ */
+.rp-prose { color: var(--rp-ink); }
+.rp-body { font-size: 16px; }
+.rp-prose h1, .rp-prose h2, .rp-prose h3, .rp-prose h4 {
+  font-weight: 650;
+  line-height: 1.25;
+  margin: 1.6em 0 0.6em;
+}
+.rp-prose h1 { font-size: 1.7em; }
+.rp-prose h2 {
+  font-size: 1.35em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--rp-line-soft);
+}
+.rp-prose h3 { font-size: 1.12em; }
+.rp-prose p { margin: 0.85em 0; }
+.rp-prose a { color: var(--rp-accent); text-decoration: underline; text-underline-offset: 2px; }
+.rp-prose ul, .rp-prose ol { margin: 0.85em 0; padding-left: 1.5em; }
+.rp-prose li { margin: 0.3em 0; }
+.rp-prose blockquote {
+  margin: 1em 0;
+  padding: 0.4em 1em;
+  border-left: 3px solid var(--rp-line);
+  color: var(--rp-muted);
+}
+.rp-prose hr { border: none; border-top: 1px solid var(--rp-line); margin: 2em 0; }
+.rp-prose code {
+  background: var(--rp-surface);
+  border: 1px solid var(--rp-line-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+}
+.rp-prose pre {
+  background: var(--rp-code-bg);
+  color: var(--rp-code-fg);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.5;
+  margin: 1em 0;
+}
+.rp-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1em;
+  color: inherit;
+}
+.rp-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.4em 0;
+  font-size: 0.92em;
+}
+.rp-prose th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--rp-muted);
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--rp-line);
+}
+.rp-prose td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--rp-line-soft);
+}
+.rp-prose img { max-width: 100%; height: auto; }
+
+/* The component panel bodies hold their own padding; reset prose vertical
+   margins on first/last child so they don't double up. */
+.rp-panel-body > :first-child,
+.rp-decision .rp-prose > :first-child { margin-top: 0; }
+.rp-panel-body > :last-child,
+.rp-decision .rp-prose > :last-child { margin-bottom: 0; }

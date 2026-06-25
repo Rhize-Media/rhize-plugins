@@ -1,0 +1,11 @@
+node_modules/
+main.js
+main.js.map
+*.log
+
+# throwaway proof/scratch artifacts (never ship)
+.__rvp_proof_src.mjs
+.__rvp_*
+
+# headless render-test build output
+test/*.cjs

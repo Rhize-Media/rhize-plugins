@@ -1,0 +1,10 @@
+{
+  "id": "rhize-visual-plan",
+  "name": "Rhize Visual Plan",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Renders the Rhize plan.mdx format natively inside Obsidian, reusing the same renderer core as the CLI viewer (Mermaid diagrams, sandboxed wireframes, decision/file-map/API/data-model cards). Desktop only.",
+  "author": "Rhize Media",
+  "authorUrl": "https://rhize.media",
+  "isDesktopOnly": true
+}

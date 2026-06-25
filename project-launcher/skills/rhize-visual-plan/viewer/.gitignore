@@ -1,0 +1,13 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build artifacts
+dist/
+
+# Vite temp config compiles (mounted-FS cleanup can leave these behind)
+vite.config.ts.timestamp-*.mjs
+
+# Built single-file plan exports written next to plans / passed via -o
+# (the viewer's own source entry index.html is NOT a build output — keep it).
+/*.html

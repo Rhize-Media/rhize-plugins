@@ -178,6 +178,8 @@ Use the template at `references/prd-template.md`. Key sections:
 - Call out assumptions explicitly so the gap analysis can challenge them
 - Write for the audience: a Claude instance running `/gsd:autonomous` that needs to understand every detail
 
+See `references/plan-discipline.md` for the cross-cutting review-surface methodology: plan-as-approval-gate, lead-with-reuse, decide-the-hard-to-reverse-bets-first, a cheap adversarial self-review pass, and when to add diagrams/wireframes. For a rich, reviewable `.mdx` plan (diagrams, file maps, wireframes, data/API contracts) that renders in our Next.js viewer and the Obsidian vault, hand the PRD to the **`rhize-visual-plan`** skill.
+
 ### Save Location
 
 Save the PRD to the appropriate location:
@@ -471,3 +473,4 @@ After the project is scaffolded and handed off, offer to save a project summary 
 - Include: project overview, tech stack, key decisions, link to PRD, GSD status
 - Tag with: `#project`, `#status/active`, `#gsd`
 - This ensures the project is discoverable in future vault searches
+- For the reviewable plan artifact itself, use `rhize-visual-plan` to write `Projects/<Project>/Plans/<slug>/plan.mdx` as the second-brain source of truth
