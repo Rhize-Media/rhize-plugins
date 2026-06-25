@@ -1,7 +1,7 @@
 {
   "name": "project-launcher",
-  "version": "1.3.0",
-  "description": "End-to-end project launcher: research and context gathering, requirements interviews, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Takes a project idea from napkin sketch to autonomous execution.",
+  "version": "1.4.0",
+  "description": "End-to-end project launcher: research and context gathering, requirements interviews, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff — plus rhize-visual-plan, a Rhize-owned .mdx visual-plan review surface (diagrams, wireframes, file maps, data/API contracts) rendered in Next.js and the Obsidian vault. Takes a project idea from napkin sketch to autonomous execution.",
   "author": {
     "name": "Rhize Media"
   },
@@ -17,6 +17,11 @@
     "automation",
     "handoff",
     "research",
-    "gap-analysis"
+    "gap-analysis",
+    "visual-plan",
+    "mdx",
+    "wireframe",
+    "diagram",
+    "review-surface"
   ]
 }

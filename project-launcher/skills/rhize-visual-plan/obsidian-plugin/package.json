@@ -1,0 +1,34 @@
+{
+  "name": "rhize-visual-plan-obsidian",
+  "version": "0.1.0",
+  "description": "Obsidian shell for the Rhize plan.mdx renderer. Reuses ../viewer/src/components.tsx — one renderer core, many shells.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "3.1.0",
+    "@mdx-js/react": "3.1.0",
+    "gray-matter": "4.0.3",
+    "mermaid": "11.4.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx-frontmatter": "5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "esbuild": "0.23.1",
+    "jsdom": "^29.1.1",
+    "obsidian": "1.5.7-1",
+    "typescript": "5.5.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
