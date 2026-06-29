@@ -14,7 +14,7 @@ This command runs Phases 1-4 of the project-launcher pipeline (research through 
 
 1. **Phase 1: Research** — Search Obsidian vault, scan codebases, scrape docs, query MCPs
 2. **Phase 2: Interview** — Ask targeted questions informed by research
-3. **Phase 3: Generate PRD** — Use the `project-launcher` skill's `references/prd-template.md` structure
+3. **Phase 3: PRD + Visual Plan** — Generate the PRD (`references/prd-template.md`, the GSD machine spec), then render it into a `plan.mdx` review/approval surface via the `rhize-visual-plan` skill (the human signs off on the visual plan, not the raw PRD)
 4. **Phase 4: Gap Analysis** — Use the `grill-me` skill (if available) or follow Phase 4 question categories from SKILL.md to challenge the PRD
 
 ### Arguments
@@ -24,8 +24,9 @@ This command runs Phases 1-4 of the project-launcher pipeline (research through 
 
 ### Output
 
-- PRD v2 saved to `{project_root}/prd/{project-name}-prd-v2.md` if project dir exists
+- PRD v2 saved to `{project_root}/prd/{project-name}-prd-v2.md` if project dir exists (GSD machine spec)
 - Otherwise saved to `~/.claude/plans/{project-name}-prd-v2.md` (temporary)
+- Visual plan `plan.mdx` (the approved review surface) saved to `Projects/<Project>/Plans/<slug>/plan.mdx` in the vault
 - Ready for `/scaffold-gsd` to turn into a project directory
 
 ### Key Rules
@@ -35,4 +36,5 @@ This command runs Phases 1-4 of the project-launcher pipeline (research through 
 - Number all requirements (FR-XX.Y, NFR-XX)
 - Include MCP servers and skills map in the PRD
 - Always run gap analysis — never skip Phase 4
-- After gap analysis, incorporate all resolved questions into PRD v2
+- After gap analysis, incorporate all resolved questions into PRD v2 and refresh the visual `plan.mdx`
+- The review/approval gate is the rendered `plan.mdx` (via `rhize-visual-plan`), not the raw PRD — get `status: approved` before scaffolding

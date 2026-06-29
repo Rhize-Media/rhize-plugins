@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -49,8 +49,8 @@
     {
       "name": "project-launcher",
       "source": "./project-launcher",
-      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development — plus rhize-visual-plan, a Rhize-owned .mdx visual-plan review surface rendered in Next.js and Obsidian",
-      "version": "1.4.0",
+      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
+      "version": "1.5.0",
       "author": {
         "name": "Rhize Media"
       },

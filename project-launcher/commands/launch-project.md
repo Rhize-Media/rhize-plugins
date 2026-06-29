@@ -12,7 +12,7 @@ You are running the `project-launcher` skill's full pipeline. Follow all 6 phase
 
 1. **Research & Context Gathering** — Search Obsidian vault, scan existing codebases, scrape external docs, query MCP servers
 2. **Requirements Interview** — Ask targeted questions informed by research (use `references/interview-question-bank.md`)
-3. **PRD Generation** — Create comprehensive PRD using `references/prd-template.md`
+3. **PRD + Visual Plan** — Create the comprehensive PRD (`references/prd-template.md`, the GSD machine spec), then render it into a `plan.mdx` review/approval surface via the `rhize-visual-plan` skill. The human reviews/approves the visual plan before Phase 4.
 4. **Critical Gap Analysis** — Use the `grill-me` skill (if installed) or run `/grill-prd` to stress-test the PRD
 5. **Project Scaffolding** — Create directory structure, CLAUDE.md, .planning/ docs, install GSD v2
 6. **GSD v2 Handoff** — Verify completeness, brief user on how to start autonomous execution
@@ -30,6 +30,7 @@ The user may provide:
 - Always complete Phase 1 research BEFORE asking questions in Phase 2
 - Present interview questions in numbered batches of 5-10
 - Save PRD to `{project_root}/prd/` if project dir exists, otherwise `~/.claude/plans/` temporarily
+- The approval gate is the rendered `plan.mdx` (via `rhize-visual-plan`), not the raw PRD — get `status: approved` before scaffolding (Phase 5)
 - Always run gap analysis in Phase 4 — use `grill-me` skill if available, otherwise follow Phase 4 question categories from SKILL.md
 - Install GSD v2 via `npx get-shit-done-cc --claude --local` in Phase 5
 - Offer to save a summary note to Obsidian after Phase 6
