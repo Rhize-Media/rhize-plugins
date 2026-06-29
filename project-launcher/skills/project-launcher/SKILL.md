@@ -32,10 +32,10 @@ Phase 1: Research & Context Gathering
   ↓ (context brief)
 Phase 2: Requirements Interview
   ↓ (answered requirements)
-Phase 3: PRD Generation
-  ↓ (comprehensive PRD v1)
+Phase 3: PRD + Visual Plan (review/approval surface)
+  ↓ (PRD v1 [GSD machine spec] + plan.mdx [human review/approval gate])
 Phase 4: Critical Gap Analysis (/grill-me)
-  ↓ (PRD v2 with gaps resolved)
+  ↓ (PRD v2 with gaps resolved; plan.mdx kept in sync)
 Phase 5: Project Scaffolding
   ↓ (directory + CLAUDE.md + .planning/)
 Phase 6: GSD v2 Handoff
@@ -147,9 +147,9 @@ After the user answers, compile all decisions into the PRD — don't make them r
 
 ---
 
-## Phase 3: PRD Generation
+## Phase 3: PRD + Visual Plan (Review Surface)
 
-**Goal**: Produce a comprehensive Product Requirements Document that captures everything needed to build the system.
+**Goal**: Produce two artifacts from the research + interview: (1) a comprehensive Product Requirements Document — the **machine spec** that GSD reads — and (2) a **visual plan (`plan.mdx`)** rendered from it via the `rhize-visual-plan` skill, which is the **human review/approval surface** and the gate before any scaffolding or code. Write the PRD first, then distill it into the visual plan; keep both in sync.
 
 ### PRD Structure
 
@@ -178,14 +178,26 @@ Use the template at `references/prd-template.md`. Key sections:
 - Call out assumptions explicitly so the gap analysis can challenge them
 - Write for the audience: a Claude instance running `/gsd:autonomous` that needs to understand every detail
 
-See `references/plan-discipline.md` for the cross-cutting review-surface methodology: plan-as-approval-gate, lead-with-reuse, decide-the-hard-to-reverse-bets-first, a cheap adversarial self-review pass, and when to add diagrams/wireframes. For a rich, reviewable `.mdx` plan (diagrams, file maps, wireframes, data/API contracts) that renders in our Next.js viewer and the Obsidian vault, hand the PRD to the **`rhize-visual-plan`** skill.
+See `references/plan-discipline.md` for the cross-cutting review-surface methodology: plan-as-approval-gate, lead-with-reuse, decide-the-hard-to-reverse-bets-first, a cheap adversarial self-review pass, and when to add diagrams/wireframes.
+
+### Visual Plan — the review/approval surface (REQUIRED)
+
+Once the PRD draft exists, render it into a `plan.mdx` review artifact via the **`rhize-visual-plan`** skill. The raw PRD is the machine spec; **the visual plan is what the human actually reviews and signs off on** — diagrams, file maps, the hard-to-reverse contracts, and open questions, rendered in our own viewer and natively in Obsidian.
+
+1. Hand the PRD to `rhize-visual-plan` (or run `/visual-plan <prd-path>`). It produces `plan.mdx` using the Rhize component vocabulary: `<Diagram>` (architecture / data flow), `<DataModel>` / `<ApiEndpoint>` (the hard-to-reverse contracts), `<FileMap>` (what changes where), `<Decision>` (the bets + what they foreclose), `<Wireframe>` / `<Canvas>` (any UI), and exactly one bottom `<OpenQuestions>`.
+2. Render it — `rhize-plan serve <plan.mdx>` for live preview, or open it in Obsidian — and give the user the actual path/URL. Save it to `Projects/<Project>/Plans/<slug>/plan.mdx` in the vault (second-brain source of truth), and to `{project_root}/plans/<slug>/plan.mdx` once scaffolded.
+3. **Approval gate:** the user reviews the rendered plan, not the raw PRD. On sign-off, set the plan's frontmatter `status: approved`. Do **not** advance to scaffolding/code until the plan is approved.
+
+The PRD and the visual plan stay in sync: the PRD carries the full numbered requirements GSD consumes; the `plan.mdx` is the reviewable distillation + approval record. Keep both.
 
 ### Save Location
 
-Save the PRD to the appropriate location:
+Save the PRD (GSD machine spec) to the appropriate location:
 - If project dir exists: `{project_root}/prd/{project-name}-prd.md`
 - If not yet scaffolded: `~/.claude/plans/{project-name}-prd.md` (temporary, moves to `prd/` in Phase 5)
 - After Phase 4 gap analysis, the file becomes `{project-name}-prd-v2.md`
+
+Save the **visual plan** (the approved review surface) to `Projects/<Project>/Plans/<slug>/plan.mdx` in the vault, and to `{project_root}/plans/<slug>/plan.mdx` once scaffolded.
 
 ---
 
@@ -217,7 +229,7 @@ Use the `grill-me` skill to conduct a rigorous analysis. The grill-me process wi
 
 ### Incorporate Answers
 
-After the grill-me session, update the PRD with all resolved questions and new requirements. This produces **PRD v2** — the version that gets handed to GSD.
+After the grill-me session, update the PRD with all resolved questions and new requirements. This produces **PRD v2** — the version that gets handed to GSD. Then refresh the visual `plan.mdx` so the review surface matches PRD v2 (update the `<Decision>` and `<OpenQuestions>` blocks); re-confirm `status: approved` if the changes were material.
 
 ---
 
@@ -238,7 +250,9 @@ After the grill-me session, update the PRD with all resolved questions and new r
 │   ├── STATE.md                 # Current position tracker
 │   └── config.json              # GSD workflow config
 ├── prd/
-│   └── {project-name}-prd-v2.md # Final PRD (post gap analysis)
+│   └── {project-name}-prd-v2.md # Final PRD (post gap analysis) — GSD machine spec
+├── plans/
+│   └── {slug}/plan.mdx          # Approved visual plan — human review surface
 ├── {deliverable-dirs}/          # Project-specific (workflows/, src/, etc.)
 └── .claude/                     # GSD v2 framework (installed via npx)
     ├── settings.json
@@ -329,7 +343,8 @@ Verify all of these exist and are consistent:
 - [ ] `.planning/ROADMAP.md` has realistic phases with concrete plans
 - [ ] `.planning/STATE.md` is initialized correctly
 - [ ] `.planning/config.json` exists
-- [ ] `prd/` contains the final PRD v2
+- [ ] `prd/` contains the final PRD v2 (GSD machine spec)
+- [ ] `plans/<slug>/plan.mdx` exists and is `status: approved` (the reviewed surface)
 - [ ] `.claude/` contains GSD v2 framework (check `.claude/get-shit-done/VERSION`)
 - [ ] Git repo is initialized
 - [ ] Deliverable directories exist (even if empty with .gitkeep)
@@ -394,6 +409,7 @@ These MCP servers are commonly used across the 6 phases:
 | `obsidian-second-brain:vault-research` † | 1 | Deep research on topics |
 | `grill-me` † | 4 | Critical gap analysis of PRD |
 | `write-a-prd` † | 3 | PRD generation (can complement this skill) |
+| `rhize-visual-plan` | 3 | Render the PRD into a `plan.mdx` review/approval surface (diagrams, file maps, wireframes, data/API contracts) |
 | `seo-aeo-geo:*` † | 1, 3 | SEO skills for content projects |
 | `brand-voice:*` † | 3 | Brand voice for content projects |
 | `n8n-automation` † | 3, 5 | n8n workflow projects (user-level: `~/.claude/skills/`) |
