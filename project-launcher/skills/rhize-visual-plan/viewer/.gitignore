@@ -11,3 +11,4 @@ vite.config.ts.timestamp-*.mjs
 # Built single-file plan exports written next to plans / passed via -o
 # (the viewer's own source entry index.html is NOT a build output — keep it).
 /*.html
+!/index.html
