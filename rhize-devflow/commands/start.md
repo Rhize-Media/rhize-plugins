@@ -17,6 +17,9 @@ Initialize a new development session with full context loading.
 
 ### Step 1: Check for Context Files
 Look for and summarize:
+- `STATE.md` — project memory (Verified facts · General rules · Open failures ·
+  Lessons learned · Last session). READ THIS FIRST before changing any code;
+  the "Last session" section tells you where to resume.
 - `CURRENT_SPRINT.md` or similar context file
 - `COMPONENT_REGISTRY.md` for component inventory
 - Recent git activity

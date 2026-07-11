@@ -53,10 +53,24 @@ type(scope): description
 
 Types: feat, fix, refactor, docs, style, test, chore
 
-### Step 6: Update Context File
-- Mark completed items
-- Update "Completed This Session" section
-- Clear pending items that are done
+### Step 6: Independent Verification (verifier subagent)
+The maker never grades its own work. Delegate to the `verifier` subagent (global
+`~/.claude/agents/verifier.md`, or the copy bundled in this plugin's `agents/`):
+```
+Use the verifier subagent to check this session's changes: it must inspect the diff,
+run the relevant tests/build, and confirm STATE.md was updated.
+```
+- Verdicts: PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN
+- FAIL_WITH_FIXABLE_GAPS → fix the listed gaps, re-verify
+- FAIL_REQUIRES_HUMAN → stop and escalate; do NOT commit
+- If no verifier subagent is available, perform the same checks explicitly and say so
+
+### Step 7: Update Context File + STATE.md (compounding contract)
+- Mark completed items; update "Completed This Session" section; clear done pending items
+- If the project has a `STATE.md` (Verified facts · General rules · Open failures ·
+  Lessons learned · Last session): record at least one verified fact, open failure
+  with repro, or lesson learned. **No run is complete until the next run is better
+  prepared.** If a multi-session project lacks STATE.md, offer to create it.
 
 ## Output Format
 
@@ -89,7 +103,8 @@ Types: feat, fix, refactor, docs, style, test, chore
 - [ ] No type errors
 - [ ] Build passes
 - [ ] Code reviewed
-- [ ] Context file updated
+- [ ] Verifier subagent returned PASS
+- [ ] Context file + STATE.md updated (something persisted for the next run)
 - [ ] Commit message accurate
 
 ## Related Commands
