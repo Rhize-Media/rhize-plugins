@@ -231,11 +231,64 @@ SkillSpector (no key); skills.sh discovery needs the Vercel OIDC token.
 
 ---
 
+## CLI pending queue
+
+The `skill-forge` npm CLI (`npx skills@latest add`, wrapped in quarantine + gate) is the
+**productized** front door to this same pipeline — it already runs profile → safety scan → overlap
+analysis before a human ever sees it, then queues the result for a Claude ingest pass instead of
+deciding alone. On invocation, check for pending entries before starting any new profile/scan work:
+
+```bash
+cat ~/.skill-forge/queue.json 2>/dev/null
+```
+
+If the file exists and has entries with `"status": "pending"`, list them for the user — do **not**
+silently drain the queue. For each pending entry:
+
+1. **Reuse the CLI's gate results** — `gate.safetyVerdict`, `gate.safetyFindings`, `gate.license`,
+   and (Pro tier) `gate.overlapTop` were already computed by the CLI. Do not re-run
+   `profile_skill.py` / `skill_safety.py` / `overlap_scan.py` on the same source; that duplicates
+   work the CLI already gated on.
+2. **Decide** — apply the five-verb decision matrix using the reused gate data. If
+   `gate.suggestedVerb` is set, treat it as a prior the same way the overlap-scan heuristic is
+   treated (see `references/overlap-analysis.md`) — not a verdict.
+3. **Execute + verify + record** — Steps 4–6 of the [Workflow](#workflow) above, unchanged. The
+   entry's `quarantinePath` is the source for FORK/ABSORB extraction; once promoted,
+   `installedPath` is what `record_provenance.py --source` should reference going forward.
+4. **Close the entry** — set `status` to `"ingested"` once recorded, or `"dismissed"` if the user
+   declines. Never delete entries; the queue is the audit trail until provenance recording finishes.
+
+`/rhize-meta:forge-ingest` with no `<source>` argument drains this queue automatically.
+
+### Entry schema
+
+`~/.skill-forge/queue.json` — `{ "version": 1, "entries": [Entry] }`. One `Entry`:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `id` | string | short unique slug |
+| `source` | string | original slug/url/path the CLI installed from |
+| `sourceType` | `"skills.sh"` \| `"git"` \| `"local"` | how the CLI resolved `source` |
+| `installedPath` | string \| null | final path after promote; `null` until promoted |
+| `quarantinePath` | string | where the CLI staged the candidate for inspection |
+| `gate.license` | string \| null | from the CLI's safety scan |
+| `gate.safetyVerdict` | `"pass"` \| `"warn"` \| `"block"` | reuse — do not recompute |
+| `gate.safetyFindings` | string[] | reuse — do not recompute |
+| `gate.overlapTop` | `{skill, score}[]` | Pro tier only; empty array on Free |
+| `gate.suggestedVerb` | `"DEFER"` \| `"ABSORB"` \| `"FORK"` \| `"REJECT"` \| `"WATCH"` \| `null` | CLI's heuristic, treat as a prior |
+| `status` | `"pending"` \| `"ingested"` \| `"dismissed"` | set by this skill when the entry is closed |
+| `createdAt` | string | ISO 8601 |
+
+No file → nothing to drain, proceed as normal. A `queue.json` with zero `pending` entries isn't
+worth mentioning to the user.
+
+---
+
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `/rhize-meta:forge-ingest <source>` | Full pipeline: profile → scan → decide → execute → verify → record |
+| `/rhize-meta:forge-ingest <source>` | Full pipeline: profile → scan → decide → execute → verify → record. No `<source>` → drain the CLI pending queue |
 | `/rhize-meta:forge-scan <source>` | Overlap report only — no changes, just the recommendation |
 | `/rhize-meta:forge-watch` | Drift check across all absorbed sources |
 | `/rhize-meta:skill-find <query>` | Discover relevant skills (skills.sh) + partner audit + safety gate |
