@@ -279,16 +279,83 @@ silently drain the queue. For each pending entry:
 | `status` | `"pending"` \| `"ingested"` \| `"dismissed"` | set by this skill when the entry is closed |
 | `createdAt` | string | ISO 8601 |
 | `artifactType` | `"skill"` \| `"mcp"` (optional) | what kind of candidate this entry is for; absent means `"skill"` — pre-v0.5 entries stay valid without it |
+| `capabilities` | object (optional) | `"mcp"` entries only, skill-forge v0.6+; statically-extracted server capability profile — `{ tools: string[], resources: string[], prompts: string[], transport?: string, declaredConfidence: "high"\|"partial"\|"none" }`. Additive: absent on pre-v0.6 `"mcp"` entries and on `"skill"` entries. See [MCP servers](#mcp-servers-from-skill-forge-v06) below. |
 
 No file → nothing to drain, proceed as normal. A `queue.json` with zero `pending` entries isn't
 worth mentioning to the user.
 
 Starting with skill-forge v0.5, the CLI can also gate MCP servers (`artifactType: "mcp"`) — the
 same quarantine → profile → safety → overlap → promote pipeline, but against an mcp config file
-(`mcpServers`) instead of a skills root. Their deep-forge pass (this skill actually absorbing an
-MCP server's capability into the Rhize toolchain, not just recording provenance) arrives in a
-later version; for now, treat an `"mcp"` entry the same as a `"skill"` entry through Steps 1–4
-above.
+(`mcpServers`) instead of a skills root. skill-forge v0.6 adds the deep-forge pass for these
+entries — the server-specific five-verb workflow lives in
+[MCP servers](#mcp-servers-from-skill-forge-v06) below, and replaces Steps 1–4 above for `"mcp"`
+entries.
+
+---
+
+## MCP servers (from skill-forge v0.6)
+
+skill-forge v0.6 adds a **static capability profile** to `"mcp"` queue entries: the CLI parses the
+quarantined server's `package.json`, any shipped `.mcp.json`/manifest, and MCP SDK call patterns
+(`server.tool(...)`, `server.registerTool(...)`, `setRequestHandler(ListToolsRequestSchema, ...)`,
+`server.resource(...)`, `server.prompt(...)`) into a best-effort `capabilities` object — **never**
+by installing, importing, or running the server. This section is where that material becomes a
+decision: the same [five-verb matrix](#the-five-verb-decision-matrix) as skills, applied to a
+**server** instead of a skill package.
+
+### The five verbs, for a server
+
+| Verb | For an MCP server entry |
+|------|--------------------------|
+| **DEFER** | Keep the promoted config exactly as-is — it's already wired into the mcp config; close the entry, nothing further to do. |
+| **ABSORB** | Tighten the promoted entry's `env`/`args` (narrower scopes, pinned versions, drop unused vars), or fold it into an already-configured server that covers the same tools — don't run two servers exposing the same capability. |
+| **FORK** | Re-skin it — wrap the server behind a thin custom skill (`tier: custom`, `consumes:` edge) that injects Rhize context, per the DEFER+wrap variant in `references/decision-matrix.md`. Use when the server itself is fine but needs Rhize-specific framing to be usable. |
+| **REJECT** | Remove the server entry from the mcp config via a documented edit — record why, so it isn't silently re-queued next time the same server comes up. |
+| **WATCH** | Leave a note in the nearest Rhize skill/ledger and do **not** wire it into the live mcp config. Revisit on drift, same as a skill WATCH. |
+
+### Step 1 — Review declared capabilities statically
+
+Read the entry's `capabilities` field (`tools`, `resources`, `prompts`, optional `transport`,
+`declaredConfidence: "high" | "partial" | "none"`) — the CLI's static, execution-free scan of the
+quarantined package. **Never `npm install`, `require()`, `import()`, spawn, or otherwise run the
+server to see what it does** — that defeats the entire point of quarantining it. If
+`declaredConfidence` is `"partial"` or `"none"` (or `capabilities` is absent — pre-v0.6 `"mcp"`
+entries never have it), say so explicitly in the recommendation instead of filling the gap by
+executing the server; an incomplete static profile is a reason to lean WATCH or ask the user, not a
+reason to run code.
+
+### Step 2 — Compare against what's already configured
+
+Check the entry's overlap data (`gate.overlapTop`, Pro tier) and the tools/resources already
+exposed by servers already in the live mcp config. High overlap in declared tool names → ABSORB
+(merge) or REJECT (redundant); no meaningful overlap → DEFER or FORK depending on whether the
+server needs Rhize framing.
+
+### Step 3 — Decide (the same human gate)
+
+Present the recommendation in the same format as [Step 3](#step-3--decide-the-human-gate) above,
+adapted for a server: candidate name/version, declared capabilities + `declaredConfidence`,
+nearest configured server + overlap, recommended verb, what changes to the config (if any),
+license/provenance. Get explicit confirmation before touching the live mcp config — REJECT and
+ABSORB both mutate a file every session depends on.
+
+### Step 4 — Act on the promoted config
+
+- **DEFER / WATCH**: no config edit. WATCH also skips wiring the server in at all — do not add it
+  to the live mcp config just because it was promoted.
+- **ABSORB**: edit `env`/`args` in place, or remove the duplicate entry and note the merge target.
+  `promoteMcp.ts` already backs up the config and scrubs `env` values to empty at promote time —
+  confirm they're still empty (or placeholder-only) after your edit; never fill in real secret
+  values on the user's behalf.
+- **FORK**: leave the mcp config entry alone; write the wrapper skill separately.
+- **REJECT**: remove the entry from the mcp config, documented in the commit/edit, and record the
+  reason.
+
+### Step 5 — Record provenance
+
+Same as a skill: source, verb, target, what was kept/tightened/dropped — plus the capabilities
+summary and its `declaredConfidence`, so a future reader knows whether the decision was made on a
+partial/unknown profile.
 
 ---
 
