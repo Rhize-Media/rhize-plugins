@@ -278,9 +278,17 @@ silently drain the queue. For each pending entry:
 | `gate.suggestedVerb` | `"DEFER"` \| `"ABSORB"` \| `"FORK"` \| `"REJECT"` \| `"WATCH"` \| `null` | CLI's heuristic, treat as a prior |
 | `status` | `"pending"` \| `"ingested"` \| `"dismissed"` | set by this skill when the entry is closed |
 | `createdAt` | string | ISO 8601 |
+| `artifactType` | `"skill"` \| `"mcp"` (optional) | what kind of candidate this entry is for; absent means `"skill"` — pre-v0.5 entries stay valid without it |
 
 No file → nothing to drain, proceed as normal. A `queue.json` with zero `pending` entries isn't
 worth mentioning to the user.
+
+Starting with skill-forge v0.5, the CLI can also gate MCP servers (`artifactType: "mcp"`) — the
+same quarantine → profile → safety → overlap → promote pipeline, but against an mcp config file
+(`mcpServers`) instead of a skills root. Their deep-forge pass (this skill actually absorbing an
+MCP server's capability into the Rhize toolchain, not just recording provenance) arrives in a
+later version; for now, treat an `"mcp"` entry the same as a `"skill"` entry through Steps 1–4
+above.
 
 ---
 
