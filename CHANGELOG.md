@@ -6,8 +6,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **rhize-ops:** `delegate-to-tom` renamed to `delegate-to-teammate` and made fully config-driven — no recipient name, Jira/Slack IDs, or project mapping is hardcoded in the skill anymore. Jira and Slack are each gated by an explicit `ready`/`incomplete`/`disabled` status so the skill skips gracefully instead of guessing when an integration isn't connected. Tool references switched from installation-specific connector-UUID-prefixed MCP tool names to capability-based discovery.
+- **rhize-ops:** `skill-dashboard` now resolves its script/data paths via `${CLAUDE_PLUGIN_ROOT}` instead of an absolute local checkout path.
+- **project-launcher:** the skill-discovery/safety-gate step now calls `rhize-meta`'s public commands (`/rhize-meta:skill-find`, `/rhize-meta:skill-doctor`) instead of shelling directly into `rhize-meta`'s scripts via a computed sibling-plugin path.
+- **rhize-devflow:** `analyze_performance.js` now accepts `--root <path>` (default cwd) and scans conventional Next.js layouts (`app`/`src/app`, etc.) instead of assuming a fixed dual-repo directory structure.
+
+### Fixed
+
+- **rhize-devflow, rhize-meta, obsidian-second-brain:** removed a real client's production domain, repo names, and other real project/client names that had been used as illustrative example content across several skill docs and command examples — replaced with generic placeholders. No functional changes; these were documentation examples only.
+
 ### Added
 
+- _2026-07-16_ version bump — **obsidian-second-brain** 1.1.2 → 1.1.3 (patch); **project-launcher** 1.5.0 → 1.5.1 (patch); **rhize-devflow** 2.4.0 → 2.4.1 (patch); **rhize-meta** 1.3.0 → 1.3.1 (patch); **rhize-ops** 0.2.0 → 0.3.0 (minor); marketplace 1.11.0 → 1.12.0.
+- **rhize-ops:** `/rhize-ops:delegate-setup` — interview-driven wizard that resolves Jira/Slack identifiers via MCP where connected and writes `~/.claude/rhize-ops/delegate.config.json` (outside the repo). `references/delegate.config.schema.json` is a real Draft 2020-12 JSON Schema for that config.
 - _2026-07-12_ version bump — **rhize-meta** 1.2.1 → 1.3.0 (minor); marketplace 1.10.0 → 1.11.0.
 - _2026-06-16_ version bump — **rhize-meta** 1.1.0 → 1.1.1 (patch); marketplace 1.8.0 → 1.8.1.
 - _2026-06-15_ version bump — **project-launcher** 1.2.1 → 1.3.0 (minor); **rhize-meta** 1.0.0 → 1.1.0 (minor); marketplace 1.7.0 → 1.8.0.
