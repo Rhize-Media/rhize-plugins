@@ -14,9 +14,9 @@ title: Sanity publish webhook → Vercel ISR revalidation
 status: draft
 owner: jane@example.com
 created: 2026-06-25
-repo: your-org/example-site
+repo: org/example-site
 related:
-  - "[[example-site.com PRD]]"
+  - "[[Example Site PRD]]"
   - "[[_Clients-Wiki]]"
 tags: [plan, visual-plan, example-site, sanity, vercel, isr]
 ---

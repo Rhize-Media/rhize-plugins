@@ -69,7 +69,7 @@ Template for pattern entries in `aggregated-patterns.md` and `generalization-que
 | `{{PATTERN_NAME}}` | Descriptive name | `Test Directory Exclusion` |
 | `{{FIRST_SEEN_DATE}}` | First occurrence | `2024-12-01` |
 | `{{FIRST_PROJECT}}` | First project | `example-web-app` |
-| `{{OTHER_PROJECTS}}` | Other occurrences | `2024-12-03 (frontend-repo)` |
+| `{{OTHER_PROJECTS}}` | Other occurrences | `2024-12-03 (example-frontend)` |
 | `{{COUNT}}` | Total occurrences | `3` |
 | `{{STATUS}}` | Current status | `tracking`, `ready-for-generalization` |
 | `{{AFFECTED_SKILLS_LIST}}` | Skills involved | Bulleted list |
@@ -129,7 +129,7 @@ for CMS-specific validators rather than adding individual patterns.
 ```markdown
 ### 🟡 PATTERN-001: Test Directory Exclusion
 - **First seen:** 2024-12-01 (example-web-app)
-- **Also seen:** 2024-12-03 (frontend-repo), 2024-12-04 (client-project)
+- **Also seen:** 2024-12-03 (example-frontend), 2024-12-04 (client-project)
 - **Count:** 3
 - **Status:** ready-for-generalization
 

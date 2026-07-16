@@ -142,7 +142,7 @@ title: Example Plan
 status: draft
 owner: jane@example.com
 created: 2026-06-25
-repo: rhize-media/example
+repo: your-org/example
 related: ["[[Example PRD]]"]
 tags: [plan, visual-plan]
 ---
