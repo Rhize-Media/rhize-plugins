@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rhize-Media/rhize-plugins/rhize-ops/delegate.config.schema.json",
+  "title": "delegate-to-teammate configuration",
+  "description": "Written by /rhize-ops:delegate-setup to $HOME/.claude/rhize-ops/delegate.config.json — outside this repo, never committed. This file is the schema/documentation only; it contains no real values.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recipient", "jira", "slack", "projectMapping", "inferenceRules"],
+  "properties": {
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "email", "roleSummary"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "The recipient's full name." },
+        "email": { "type": "string", "format": "email" },
+        "jiraAccountId": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9]+:[0-9a-fA-F-]{36}$",
+          "description": "Resolved via the Jira MCP's account lookup — required when jira.status is 'ready'."
+        },
+        "slackUserId": {
+          "type": ["string", "null"],
+          "pattern": "^U[A-Z0-9]{8,}$",
+          "description": "Resolved via the Slack MCP's user search — required when slack.status is 'ready'."
+        },
+        "roleSummary": { "type": "string", "minLength": 1 },
+        "technicalContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "knowsWell": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+            "learning": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+            "writingTone": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "jira": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "defaultLabels"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ready", "incomplete", "disabled"],
+          "description": "ready = MCP connected and identifiers resolved+confirmed. incomplete = MCP absent or a required field unresolved — skip tracker-issue creation. disabled = deliberately opted out."
+        },
+        "cloudId": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+        },
+        "baseUrl": {
+          "type": ["string", "null"],
+          "format": "uri",
+          "pattern": "^https://[a-zA-Z0-9-]+\\.atlassian\\.net$"
+        },
+        "defaultLabels": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "slack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["ready", "incomplete", "disabled"],
+          "description": "ready = MCP connected and channel/user resolved+confirmed. incomplete = MCP absent or unresolved — skip chat notification. disabled = deliberately opted out."
+        },
+        "workspace": { "type": ["string", "null"], "minLength": 1 },
+        "channel": { "type": ["string", "null"], "pattern": "^#[a-z0-9_-]+$" },
+        "channelId": { "type": ["string", "null"], "pattern": "^C[A-Z0-9]{8,}$" }
+      }
+    },
+    "projectMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["client", "internal", "service"],
+      "properties": {
+        "client": { "$ref": "#/$defs/projectList" },
+        "internal": { "$ref": "#/$defs/projectList" },
+        "service": { "$ref": "#/$defs/projectList" }
+      }
+    },
+    "inferenceRules": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Ordered, most-specific-first. Last item should be a fallback like 'if ambiguous, ask the delegator to clarify'."
+    }
+  },
+  "$defs": {
+    "projectList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "name", "notes"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[A-Z][A-Z0-9]{1,9}$" },
+          "name": { "type": "string", "minLength": 1 },
+          "notes": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "jira": { "properties": { "status": { "const": "ready" } } } } },
+      "then": {
+        "properties": {
+          "jira": { "required": ["cloudId", "baseUrl"] },
+          "recipient": { "required": ["jiraAccountId"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "slack": { "properties": { "status": { "const": "ready" } } } } },
+      "then": {
+        "properties": {
+          "slack": { "required": ["workspace", "channel", "channelId"] },
+          "recipient": { "required": ["slackUserId"] }
+        }
+      }
+    }
+  ]
+}

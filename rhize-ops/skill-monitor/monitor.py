@@ -483,20 +483,24 @@ def load_cowork_origin_map() -> dict[str, str]:
 # Skill-name canonicalization
 # ---------------------------------------------------------------------------
 # Some skills surface under multiple names because different runtimes sanitize
-# the SKILL.md `name:` field differently. The clearest case: the delegate-to-tom
+# the SKILL.md `name:` field differently. The clearest case: the delegation
 # skill historically carried `name: rhize:delegate-to-tom` (a colon in a
 # standalone skill name), which the host CLI kept verbatim, the Cowork harness
 # flattened to `rhizedelegate-to-tom`, and the bundled copy re-namespaced to
-# `anthropic-skills:rhizedelegate-to-tom`. The skill now lives in the
-# `rhize-ops` plugin as a plain `delegate-to-tom` slug → canonical
-# `rhize-ops:delegate-to-tom`. This map rolls every historical variant up to
-# the canonical name so week-over-week ranking isn't fragmented. Add new
-# variant→canonical pairs here as they are discovered.
+# `anthropic-skills:rhizedelegate-to-tom`. It then moved into the `rhize-ops`
+# plugin as a plain `delegate-to-tom` slug → `rhize-ops:delegate-to-tom`, and
+# was later generalized/renamed again to `rhize-ops:delegate-to-teammate`
+# (2026-07-16, to remove a hardcoded person's name from the skill itself).
+# This map rolls every historical variant up to the current canonical name so
+# week-over-week ranking isn't fragmented. Add new variant→canonical pairs
+# here as they are discovered.
 CANONICAL_ALIASES: dict[str, str] = {
-    "rhize:delegate-to-tom": "rhize-ops:delegate-to-tom",
-    "rhizedelegate-to-tom": "rhize-ops:delegate-to-tom",
-    "anthropic-skills:rhizedelegate-to-tom": "rhize-ops:delegate-to-tom",
-    "delegate-to-tom": "rhize-ops:delegate-to-tom",
+    "rhize:delegate-to-tom": "rhize-ops:delegate-to-teammate",
+    "rhizedelegate-to-tom": "rhize-ops:delegate-to-teammate",
+    "anthropic-skills:rhizedelegate-to-tom": "rhize-ops:delegate-to-teammate",
+    "delegate-to-tom": "rhize-ops:delegate-to-teammate",
+    "rhize-ops:delegate-to-tom": "rhize-ops:delegate-to-teammate",
+    "delegate-to-teammate": "rhize-ops:delegate-to-teammate",
 }
 
 

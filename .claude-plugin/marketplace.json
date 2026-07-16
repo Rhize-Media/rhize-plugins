@@ -92,7 +92,7 @@
     {
       "name": "rhize-ops",
       "source": "./rhize-ops",
-      "description": "Rhize operations skill set — internal delegation, hand-offs, and team-workflow automation. Houses delegate-to-tom: package a session's work into a structured hand-off for [REDACTED_NAME] (Jira issue + Slack notification + Fireflies context)",
+      "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
       "version": "0.2.0",
       "author": {
         "name": "Rhize Media"

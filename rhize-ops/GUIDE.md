@@ -6,21 +6,25 @@ This guide explains what the rhize-ops plugin does and how to get the most out o
 
 rhize-ops covers two everyday ops jobs:
 
-- **Handing work off to [REDACTED_NAME]** without losing context — turning a messy session into a clear, encouraging task package he can actually execute.
+- **Handing work off to a teammate** without losing context — turning a messy session into a clear, encouraging task package they can actually execute.
 - **Watching skill health** — seeing which of your installed skills are earning their keep, so you know what to prune.
 
-It's built for Jim (and anyone else running the Rhize Media Claude setup) who regularly delegates work and wants visibility into their own tool usage.
+It's built for anyone running a Claude Code/Cowork setup who regularly delegates work and wants visibility into their own tool usage. `delegate-to-teammate` is config-driven — no recipient, workspace, or project data is hardcoded — so it works for any team once you run its setup wizard once.
+
+## Setup
+
+Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` needs no setup.
 
 ## Skills Reference
 
-### delegate-to-tom
+### delegate-to-teammate
 
-**When to use it:** Any time you want to hand work off to the recipient instead of doing it yourself — after a client call, when a task needs his marketing/ads/sales expertise, or when something's become "his thing to own" going forward. Trigger it with "delegate this to the recipient," "hand this off to the recipient," "the recipient should handle this," or just a bare "delegate"/"hand off" (the recipient is the default recipient).
+**When to use it:** Any time you want to hand work off to your configured teammate instead of doing it yourself — after a client call, when a task needs their specific expertise, or when something's become "their thing to own" going forward. Trigger it with "delegate this to [name]," "hand this off to [name]," "[name] should handle this," or just a bare "delegate"/"hand off" (your configured recipient is the default).
 
-**What it produces:** A full delegation package, not just a note. The skill gathers context from your current session, the Obsidian vault, and (optionally) a relevant Fireflies meeting transcript; asks you a few quick questions (Jira project per task, due date, priority); then creates a Jira issue per task, shares any relevant vault documents as Slack Canvases, and posts to `#[REDACTED_CHANNEL]` with a scannable main message plus a threaded reply per task — tagging the recipient so he gets notified. Each task package includes step-by-step instructions, gotchas, starter prompts he can paste straight into Claude, and validation criteria so he knows when he's done.
+**What it produces:** A full delegation package, not just a note. The skill gathers context from your current session, the Obsidian vault, and (optionally) a relevant Fireflies meeting transcript; asks you a few quick questions (tracker project per task, due date, priority); then creates a tracker issue per task, shares any relevant vault documents as Slack Canvases, and posts to your configured channel with a scannable main message plus a threaded reply per task — tagging the recipient so they get notified. Each task package includes step-by-step instructions, gotchas, starter prompts they can paste straight into Claude, and validation criteria so they know when they're done.
 
 **Example prompt:**
-> "Delegate the Acme Co. sitemap cleanup to the recipient — there's a client call transcript from Tuesday that has the details."
+> "Delegate the sitemap cleanup to Alex — there's a client call transcript from Tuesday that has the details."
 
 ### skill-dashboard
 
@@ -33,6 +37,13 @@ It's built for Jim (and anyone else running the Rhize Media Claude setup) who re
 
 ## Commands Reference
 
+### /delegate-setup
+
+**What it's for:** One-time (or occasional) setup for `delegate-to-teammate`. Interviews you for who you're delegating to and their technical context, then looks up Jira/Slack identifiers automatically wherever those MCP servers are connected — you shouldn't need to go dig up account IDs or channel IDs by hand. Writes everything to `~/.claude/rhize-ops/delegate.config.json`, outside this repo entirely, so it never leaves your machine.
+
+**Example usage:**
+> "/rhize-ops:delegate-setup" — answer the interview questions, confirm the auto-looked-up Jira/Slack IDs, and you're ready to delegate. Re-run it any time to add another recipient or fix a stale mapping.
+
 ### /bump-version
 
 **What it's for:** Keeping every plugin's version, the marketplace manifest, and the CHANGELOG in sync across the whole `rhize-plugins` repo whenever you ship a change. It figures out what changed since the last release and infers major/minor/patch from your commit messages — you just confirm the plan. It never pushes on its own.
@@ -42,7 +53,9 @@ It's built for Jim (and anyone else running the Rhize Media Claude setup) who re
 
 ## Tips & Troubleshooting
 
-**Give delegate-to-teammate a transcript when you have one.** The skill will ask if there's a relevant Fireflies meeting — saying yes gets the recipient real client context (quotes, decisions, deadlines) instead of a bare task description.
+**"Who am I delegating to?" — run setup first.** If `delegate-to-teammate` triggers but there's no `~/.claude/rhize-ops/delegate.config.json` yet, it'll ask you to run `/rhize-ops:delegate-setup` instead of guessing. This is expected on a fresh install.
+
+**Give delegate-to-teammate a transcript when you have one.** The skill will ask if there's a relevant Fireflies meeting — saying yes gets your teammate real client context (quotes, decisions, deadlines) instead of a bare task description.
 
 **Multiple tasks, multiple projects.** If you're delegating several things at once, the skill asks about the Jira project for each task individually — don't assume they all land in the same place.
 
