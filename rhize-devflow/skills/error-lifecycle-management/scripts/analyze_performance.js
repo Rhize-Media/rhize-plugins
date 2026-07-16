@@ -62,13 +62,49 @@ const Severity = {
   INFO: 'info'
 };
 
+// Same base names common/config.py's ProjectConfig.frontend_scan_dirs defaults to (minus the
+// bare 'src' entry, since withSrcVariants below already probes both 'name' and 'src/name').
+const DEFAULT_SCAN_DIRS = ['app', 'lib', 'components', 'hooks', 'providers'];
+
+// Probe both the bare name and its src/-prefixed variant — used for both the app-router
+// loading.tsx check and the general scan-directory list, instead of each maintaining its own
+// copy of this pairing.
+function withSrcVariants(names) {
+  return names.flatMap(n => [n, `src/${n}`]);
+}
+
+// Sibling Python validators in this same scripts/ directory (via common/config.py +
+// common/cli.py) already resolve scan directories from an optional .error-lifecycle.json at
+// the project root, supporting single-repo (`scan_dirs`) and monorepo (`frontend.scan_dirs` +
+// `frontend.root`) layouts. This JS script can't import that Python module, but it can and
+// should read the same config file/schema rather than inventing an unrelated one.
+function loadFrontendConfig(projectRoot) {
+  const configPath = path.join(projectRoot, '.error-lifecycle.json');
+  if (!fs.existsSync(configPath)) {
+    return { root: projectRoot, scanDirs: DEFAULT_SCAN_DIRS };
+  }
+  try {
+    const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (data.project_type === 'monorepo' && data.frontend) {
+      return {
+        root: data.frontend.root ? path.join(projectRoot, data.frontend.root) : projectRoot,
+        scanDirs: data.frontend.scan_dirs || DEFAULT_SCAN_DIRS
+      };
+    }
+    return { root: projectRoot, scanDirs: data.scan_dirs || DEFAULT_SCAN_DIRS };
+  } catch (e) {
+    console.error(`Warning: could not parse .error-lifecycle.json: ${e.message}`);
+    console.error('Falling back to defaults...');
+    return { root: projectRoot, scanDirs: DEFAULT_SCAN_DIRS };
+  }
+}
+
 class PerformanceAnalyzer {
   constructor(projectRoot) {
     this.projectRoot = projectRoot;
-    // The frontend root IS the resolved project root (via --root or cwd) — this script no
-    // longer assumes a specific dual-repo layout. If your frontend lives in a subdirectory of
-    // what you pass as --root, point --root at that subdirectory directly.
-    this.frontendRoot = projectRoot;
+    const frontendConfig = loadFrontendConfig(projectRoot);
+    this.frontendRoot = frontendConfig.root;
+    this.scanDirCandidates = withSrcVariants(frontendConfig.scanDirs);
     this.report = {
       timestamp: new Date().toISOString(),
       totalFilesScanned: 0,
@@ -229,7 +265,7 @@ class PerformanceAnalyzer {
   }
 
   checkMissingLoadingFiles() {
-    const appDir = ['src/app', 'app']
+    const appDir = withSrcVariants(['app'])
       .map(d => path.join(this.frontendRoot, d))
       .find(d => fs.existsSync(d));
     if (!appDir) return;
@@ -268,10 +304,9 @@ class PerformanceAnalyzer {
   }
 
   scanCodebase() {
-    const candidateDirs = ['app', 'src/app', 'components', 'src/components', 'lib', 'src/lib', 'hooks', 'src/hooks'];
-    const scanDirs = candidateDirs.map(d => path.join(this.frontendRoot, d)).filter(d => fs.existsSync(d));
+    const scanDirs = this.scanDirCandidates.map(d => path.join(this.frontendRoot, d)).filter(d => fs.existsSync(d));
     if (scanDirs.length === 0) {
-      console.error(`Error: none of ${candidateDirs.join(', ')} found under ${this.frontendRoot} — pass --root to point at your frontend directory`);
+      console.error(`Error: none of ${this.scanDirCandidates.join(', ')} found under ${this.frontendRoot} — pass --root, or add a .error-lifecycle.json with scan_dirs/frontend.scan_dirs`);
       process.exit(1);
     }
 
@@ -405,7 +440,9 @@ ${issue.message}
 
 // Main execution
 const projectRoot = path.resolve(rootArg || process.cwd());
-const outputDir = path.join(projectRoot, '.claude', 'analysis');
+// Matches common/cli.py's get_output_dir() convention used by the sibling Python validators
+// in this same scripts/ directory.
+const outputDir = path.join(projectRoot, 'skills', 'error-lifecycle-management', 'reports');
 
 if (!fs.existsSync(projectRoot)) {
   console.error(`Error: --root path does not exist: ${projectRoot}`);

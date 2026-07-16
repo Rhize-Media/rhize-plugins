@@ -20,7 +20,7 @@ If the config file doesn't exist when this skill triggers, tell the user and off
 **Config location:** `$HOME/.claude/rhize-ops/delegate.config.json`
 **Schema/example:** `references/delegate.config.schema.json` (committed — documents the shape without real values)
 
-Read the config once at the start of a delegation and use its values everywhere below. In this doc, `{recipient.name}` etc. means "the value at that path in the config file."
+Read the config once at the start of a delegation and use its values everywhere below. In this doc, `{recipient.name}` etc. means "the value at that path in the config file." Nothing in this file should ever need a real credential or ID hardcoded into it — if you find yourself about to hardcode one, it belongs in the config instead.
 
 ## When This Skill Triggers
 
@@ -302,7 +302,3 @@ When writing instructions, use `recipient.technicalContext` from the config to c
 - **`knowsWell`** — domains where a light touch is fine, no need to over-explain
 - **`learning`** — stacks/tools where instructions should over-explain, spelling out the "why" and exact commands, not just the "what"
 - **`writingTone`** — how much to spell out and how to frame the handoff
-
-## Configuration Reference
-
-All identifiers used by this skill (recipient identity, Jira cloud ID/base URL, Slack workspace/channel, project mapping, inference rules) live in `~/.claude/rhize-ops/delegate.config.json`, populated by `/rhize-ops:delegate-setup`. See `references/delegate.config.schema.json` for the schema. Nothing in this file should ever need a real credential or ID hardcoded into it — if you find yourself about to hardcode one, it belongs in the config instead.
