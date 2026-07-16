@@ -1,49 +1,81 @@
 # Rhize Plugins
 
-A curated collection of Claude plugins by [Rhize Media](https://rhize.media) — web development, SEO, AI, and marketing tools for Cowork and Claude Code.
+A curated collection of Claude plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, and internal operations tooling for Claude Code and Cowork.
 
-## Available Plugins
+## Quick Start
 
-| Plugin | Description |
-| --- | --- |
-| [seo-aeo-geo](./seo-aeo-geo) | Comprehensive SEO, AEO, and GEO auditing powered by DataForSEO API with Next.js + Sanity CMS best practices |
-| [obsidian-second-brain](./obsidian-second-brain) | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, Zettelkasten/PARA/MOC, semantic search |
-| [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, scaffolding, GSD v2 handoff |
-
-## Installation
-
-Add this marketplace in Cowork via **Settings > Plugins > Add Marketplace** using the repository URL:
+Add this marketplace in Cowork via **Settings > Plugins > Add Marketplace**, or in Claude Code with `/plugin marketplace add`, using the repository URL:
 
 ```
 https://github.com/Rhize-Media/rhize-plugins
 ```
 
-All plugins in this repo will become available for installation.
+All plugins below will become available for installation. Each plugin may need its own environment variables or MCP server credentials — check that plugin's `README.md` **Setup**/**Installation** section before first use.
 
-## Plugin Setup
+## Plugin Catalog
 
-Each plugin may require its own environment variables or MCP server credentials. Check the plugin's `README.md` for setup instructions.
+| Plugin | What it's for | Docs |
+| --- | --- | --- |
+| [seo-aeo-geo](./seo-aeo-geo) | SEO, AEO, and GEO auditing/optimization powered by DataForSEO, plus Next.js + Sanity SEO code review | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, semantic search | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | Development-workflow skill set — context/session engineering, production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-meta](./rhize-meta) | Skill governance — safely absorb external skills (rhize-skill-forge) and refine your own skills from usage feedback (skill-refinement) | [README](./rhize-meta/README.md) · [GUIDE](./rhize-meta/GUIDE.md) |
 
-### DataForSEO Credentials (for seo-aeo-geo)
+### Plugin-specific prerequisites
 
-Add to your `~/.zshrc`:
-
+**seo-aeo-geo** needs DataForSEO credentials. Add to your `~/.zshrc`:
 ```bash
 export DATAFORSEO_USERNAME="your_email"
 export DATAFORSEO_PASSWORD="your_api_password"
 ```
 
-### Obsidian Prerequisites (for obsidian-second-brain)
+**obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
-- **Obsidian** running with Local REST API plugin enabled
-- **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
-- **Obsidian CLI** (v1.12.4+) — enable in Obsidian Settings > General > CLI
-- **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — for semantic search
+The other plugins (project-launcher, rhize-devflow, rhize-ops, rhize-meta) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
 
-## Contributing
+## Documentation Hierarchy
 
-To add a new plugin, create a subdirectory with the standard plugin structure:
+This repo uses one convention consistently across every plugin — know it once, and every plugin's docs are predictable:
+
+| File | Audience | Contains |
+| --- | --- | --- |
+| **This README** | Anyone browsing the marketplace | Repo-wide navigation: what plugins exist, how to install, how the docs are organized |
+| **Plugin `README.md`** | Someone setting up or maintaining a plugin | Technical reference — installation, env vars, the full skill/command inventory, architecture, hooks |
+| **Plugin `GUIDE.md`** | Someone using a plugin day-to-day | Plain-language walkthrough — what problem it solves, when to reach for which skill/command, example prompts, tips, troubleshooting |
+| **`SKILL.md`** (inside `skills/*/`) | Claude, at runtime | The actual instructions a skill executes when triggered — not primary human documentation, though readable if you're curious how a skill works |
+| **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
+| **`CHANGELOG.md`** | Anyone tracking releases | What shipped, by version |
+
+**Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
+
+## Repository Tooling
+
+- **[`evals/`](./evals/README.md)** — a Python eval harness that measures trigger accuracy (does the right skill fire on the right prompt) and output quality for plugins. Coverage is currently partial: `seo-aeo-geo` and `obsidian-second-brain` have eval suites; the other four plugins don't yet (see `ROADMAP.md`).
+- **[`skills/rhize-review/SKILL.md`](./skills/rhize-review/SKILL.md)** — a standalone merge-gate review skill that lives at the repo root, outside any plugin. It isn't installed through the marketplace and isn't listed in `marketplace.json`; it's a repo-local tool that dispatches specialist reviewer subagents before a production merge.
+
+## Repository Layout
+
+```
+rhize-plugins/
+├── .claude-plugin/
+│   └── marketplace.json          # Plugin registry — source of truth for what's installable
+├── seo-aeo-geo/                   # Plugin: SEO/AEO/GEO
+├── obsidian-second-brain/         # Plugin: Obsidian vault toolkit
+├── project-launcher/              # Plugin: project research → PRD → scaffold
+├── rhize-devflow/                 # Plugin: dev workflow
+├── rhize-ops/                     # Plugin: internal ops
+├── rhize-meta/                    # Plugin: skill governance
+├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
+├── evals/                         # Trigger/quality eval harness
+├── scripts/                       # Maintainer scripts (e.g. version bump)
+├── ROADMAP.md                     # Active + planned work
+├── CHANGELOG.md                   # Released changes
+└── README.md                      # You are here
+```
+
+Each plugin follows the same internal structure:
 
 ```
 your-plugin-name/
@@ -56,8 +88,20 @@ your-plugin-name/
 ├── commands/
 │   └── your-command.md
 ├── hooks/             (optional)
-└── README.md
+├── README.md           # technical reference
+└── GUIDE.md            # user-facing walkthrough
 ```
+
+## Contributing
+
+To add a new plugin:
+
+1. Create a subdirectory with the standard plugin structure above.
+2. Write both a `README.md` (technical) and a `GUIDE.md` (user-facing) — see the [Documentation Hierarchy](#documentation-hierarchy) rule above for what goes where.
+3. Register the plugin in `.claude-plugin/marketplace.json`, keeping its `version` in sync with the plugin's own `.claude-plugin/plugin.json`.
+4. Add an entry to the Plugin Catalog table above.
+5. Add a `CHANGELOG.md` entry.
+6. Consider adding eval coverage under `evals/` (see `evals/README.md`).
 
 ## License
 

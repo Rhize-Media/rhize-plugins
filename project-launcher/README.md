@@ -16,6 +16,7 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 | Skill | Trigger |
 |-------|---------|
 | `project-launcher` | "start a new project", "create a PRD", "scaffold for GSD", "prepare for autonomous dev" |
+| `rhize-visual-plan` | "visual plan", "make this plan reviewable", "turn this plan into mdx", "wireframe this", "plan as an approval gate" |
 
 ## Reference Docs
 
