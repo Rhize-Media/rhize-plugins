@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- _2026-07-16_ version bump — **rhize-ops** 0.3.0 → 0.3.1 (patch); marketplace 1.12.0 → 1.12.1.
+
+### Fixed
+
+- **rhize-ops:** `delegate-to-teammate` hardened against prompt injection from ingested session/vault/meeting-transcript content — added an explicit Content Trust Boundary so quoted content is never treated as instructions, and the only Slack mention is ever the configured recipient.
+- Finished scrubbing personal identity (owner email/domain used as a worked example) and client example names (client/project names used as illustrative flavor text) missed by earlier passes, across `project-launcher`'s visual-plan reference docs and `rhize-meta`'s skill-refinement templates.
+
 ### Changed
 
 - **rhize-ops:** `delegate-to-tom` renamed to `delegate-to-teammate` and made fully config-driven — no recipient name, Jira/Slack IDs, or project mapping is hardcoded in the skill anymore. Jira and Slack are each gated by an explicit `ready`/`incomplete`/`disabled` status so the skill skips gracefully instead of guessing when an integration isn't connected. Tool references switched from installation-specific connector-UUID-prefixed MCP tool names to capability-based discovery.
