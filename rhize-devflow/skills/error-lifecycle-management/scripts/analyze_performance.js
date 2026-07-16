@@ -45,7 +45,12 @@ const flags = {
   md: args.includes('--md')
 };
 const rootFlagIndex = args.indexOf('--root');
-const rootArg = rootFlagIndex !== -1 ? args[rootFlagIndex + 1] : null;
+const rootFlagValue = rootFlagIndex !== -1 ? args[rootFlagIndex + 1] : undefined;
+if (rootFlagIndex !== -1 && (rootFlagValue === undefined || rootFlagValue.startsWith('--'))) {
+  console.error('Error: --root requires a path argument');
+  process.exit(1);
+}
+const rootArg = rootFlagValue || null;
 
 // Defaults
 if (!flags.json && !flags.md) {
@@ -87,7 +92,7 @@ function loadFrontendConfig(projectRoot) {
     const data = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     if (data.project_type === 'monorepo' && data.frontend) {
       return {
-        root: data.frontend.root ? path.join(projectRoot, data.frontend.root) : projectRoot,
+        root: data.frontend.root ? path.resolve(projectRoot, data.frontend.root) : projectRoot,
         scanDirs: data.frontend.scan_dirs || DEFAULT_SCAN_DIRS
       };
     }

@@ -13,11 +13,11 @@
       "required": ["name", "email", "roleSummary"],
       "properties": {
         "name": { "type": "string", "minLength": 1, "description": "The recipient's full name." },
-        "email": { "type": "string", "format": "email" },
+        "email": { "type": "string", "format": "email", "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
         "jiraAccountId": {
           "type": ["string", "null"],
-          "pattern": "^[0-9]+:[0-9a-fA-F-]{36}$",
-          "description": "Resolved via the Jira MCP's account lookup — required when jira.status is 'ready'."
+          "pattern": "^([0-9]+:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{24})$",
+          "description": "Resolved via the Jira MCP's account lookup — required when jira.status is 'ready'. Matches both the legacy 'numeric:uuid' format (Server/Data Center-migrated accounts) and the 24-char hex format (Cloud-native accounts)."
         },
         "slackUserId": {
           "type": ["string", "null"],
@@ -115,8 +115,17 @@
       "if": { "properties": { "jira": { "properties": { "status": { "const": "ready" } } } } },
       "then": {
         "properties": {
-          "jira": { "required": ["cloudId", "baseUrl"] },
-          "recipient": { "required": ["jiraAccountId"] }
+          "jira": {
+            "required": ["cloudId", "baseUrl"],
+            "properties": {
+              "cloudId": { "type": "string" },
+              "baseUrl": { "type": "string" }
+            }
+          },
+          "recipient": {
+            "required": ["jiraAccountId"],
+            "properties": { "jiraAccountId": { "type": "string" } }
+          }
         }
       }
     },
@@ -124,8 +133,18 @@
       "if": { "properties": { "slack": { "properties": { "status": { "const": "ready" } } } } },
       "then": {
         "properties": {
-          "slack": { "required": ["workspace", "channel", "channelId"] },
-          "recipient": { "required": ["slackUserId"] }
+          "slack": {
+            "required": ["workspace", "channel", "channelId"],
+            "properties": {
+              "workspace": { "type": "string" },
+              "channel": { "type": "string" },
+              "channelId": { "type": "string" }
+            }
+          },
+          "recipient": {
+            "required": ["slackUserId"],
+            "properties": { "slackUserId": { "type": "string" } }
+          }
         }
       }
     }
