@@ -375,7 +375,7 @@ Documentation: See PATTERNS.md > Data Fetching > React Query
 The anti-pattern agent should understand project-specific conventions:
 
 ```markdown
-## Project-Specific Rules (example-web-app)
+## Project-Specific Rules (myapp)
 
 ### Naming Conventions
 - API functions: `get*`, `create*`, `update*`, `delete*`

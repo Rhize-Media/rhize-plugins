@@ -153,7 +153,7 @@ python /path/to/global/skills/error-lifecycle-management/scripts/validate_error_
 - Added `--root` CLI option
 
 ### 1.0.0
-- Initial release (VBA-specific)
+- Initial release (single-client-specific)
 
 ## License
 

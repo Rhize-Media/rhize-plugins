@@ -17,7 +17,7 @@ namespace as `/rhize-meta:<command>`.
 ## Install
 
 ```
-/plugin marketplace add ~/dev-local/RHIZE/rhize-plugins
+/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
 /plugin install rhize-meta@rhize-plugins
 ```
 

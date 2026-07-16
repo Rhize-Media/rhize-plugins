@@ -100,7 +100,7 @@ python scripts/gather_context.py --skill context-engineering --json
 
 🎯 Target Skill: context-engineering
 📁 Project: example-web-app
-📍 Root: /Users/james/projects/example-web-app
+📍 Root: /path/to/example-web-app
 
 📊 Git Status: 5 changed files
 📝 Recent Commits: 10

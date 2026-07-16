@@ -59,7 +59,7 @@ Description: Exclude test directories from validation hooks
 
 Occurrences:
   • 2024-12-01: example-web-app (REF-2024-1201-003)
-  • 2024-12-03: frontend-repo (REF-2024-1203-001)
+  • 2024-12-03: example-frontend (REF-2024-1203-001)
   • 2024-12-04: client-project (REF-2024-1204-001)
 
 Files to Update:

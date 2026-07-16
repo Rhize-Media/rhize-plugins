@@ -147,11 +147,11 @@ Bases renders **one row per file** and does **NOT** flatten a frontmatter list-o
 
 ```yaml
 codebase:
-  - name: backend-repo
-    repo: https://github.com/jdeola/backend-repo
+  - name: example-web-app
+    repo: https://github.com/example-org/example-web-app
     stack: payload
     status: active
-  - name: frontend-repo
+  - name: example-frontend
     stack: nextjs
     status: active
 ```

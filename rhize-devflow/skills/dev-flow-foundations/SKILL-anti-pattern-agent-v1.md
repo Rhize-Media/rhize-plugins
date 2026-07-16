@@ -430,7 +430,7 @@ I've added a TODO comment. Remember to migrate to [replacement] before productio
 ### Project-Specific Rules
 
 ```markdown
-## VBA LMS App Specific Rules
+## MyApp Specific Rules
 
 ### Architecture Rules
 1. **API Layer Separation**

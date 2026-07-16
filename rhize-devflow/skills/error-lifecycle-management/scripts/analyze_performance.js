@@ -13,13 +13,15 @@
  * - Missing Suspense boundaries
  *
  * Usage:
- *   node analyze_performance.js [--strict] [--warn] [--json] [--md]
+ *   node analyze_performance.js [--strict] [--warn] [--json] [--md] [--root /path/to/project]
+ *
+ *   --root      Project (frontend) root directory (default: current directory)
  *
  * MCP Integration:
  *   After running this validator, correlate with production performance:
  *
  *   1. Check Sentry for performance issues:
- *      mcp__sentry__search_events(organizationSlug="backend-repo",
+ *      mcp__sentry__search_events(organizationSlug="your-org",
  *          naturalLanguageQuery="slow transactions > 3s")
  *
  *   2. Get React/Next.js performance patterns from Context7:
@@ -29,8 +31,6 @@
  *
  *   3. Test performance with Playwright:
  *      mcp__playwright__browser_navigate + performance metrics
- *
- * Slash Command: /vba:validate (frontend only)
  */
 
 const fs = require('fs');
@@ -44,6 +44,8 @@ const flags = {
   json: args.includes('--json'),
   md: args.includes('--md')
 };
+const rootFlagIndex = args.indexOf('--root');
+const rootArg = rootFlagIndex !== -1 ? args[rootFlagIndex + 1] : null;
 
 // Defaults
 if (!flags.json && !flags.md) {
@@ -63,7 +65,10 @@ const Severity = {
 class PerformanceAnalyzer {
   constructor(projectRoot) {
     this.projectRoot = projectRoot;
-    this.frontendRoot = path.join(projectRoot, 'frontend-repo', 'next-frontend');
+    // The frontend root IS the resolved project root (via --root or cwd) — this script no
+    // longer assumes a specific dual-repo layout. If your frontend lives in a subdirectory of
+    // what you pass as --root, point --root at that subdirectory directly.
+    this.frontendRoot = projectRoot;
     this.report = {
       timestamp: new Date().toISOString(),
       totalFilesScanned: 0,
@@ -224,8 +229,10 @@ class PerformanceAnalyzer {
   }
 
   checkMissingLoadingFiles() {
-    const appDir = path.join(this.frontendRoot, 'src', 'app');
-    if (!fs.existsSync(appDir)) return;
+    const appDir = ['src/app', 'app']
+      .map(d => path.join(this.frontendRoot, d))
+      .find(d => fs.existsSync(d));
+    if (!appDir) return;
 
     const checkDir = (dir, depth = 0) => {
       if (depth > 5) return; // Limit recursion
@@ -261,9 +268,10 @@ class PerformanceAnalyzer {
   }
 
   scanCodebase() {
-    const scanDirs = ['app', 'lib', 'components', 'hooks'].map(d => path.join(this.frontendRoot, d)).filter(d => fs.existsSync(d));
+    const candidateDirs = ['app', 'src/app', 'components', 'src/components', 'lib', 'src/lib', 'hooks', 'src/hooks'];
+    const scanDirs = candidateDirs.map(d => path.join(this.frontendRoot, d)).filter(d => fs.existsSync(d));
     if (scanDirs.length === 0) {
-      console.error('Error: src directory not found');
+      console.error(`Error: none of ${candidateDirs.join(', ')} found under ${this.frontendRoot} — pass --root to point at your frontend directory`);
       process.exit(1);
     }
 
@@ -396,11 +404,11 @@ ${issue.message}
 }
 
 // Main execution
-const projectRoot = process.cwd();
-const outputDir = path.join(projectRoot, 'skills', 'error-lifecycle-management', 'reports');
+const projectRoot = path.resolve(rootArg || process.cwd());
+const outputDir = path.join(projectRoot, '.claude', 'analysis');
 
-if (!fs.existsSync(path.join(projectRoot, 'frontend-repo'))) {
-  console.error('Error: Must run from example-web-app project root');
+if (!fs.existsSync(projectRoot)) {
+  console.error(`Error: --root path does not exist: ${projectRoot}`);
   process.exit(1);
 }
 

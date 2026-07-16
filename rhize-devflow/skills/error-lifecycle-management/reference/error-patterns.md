@@ -147,7 +147,12 @@ export default buildConfig({
 
 ---
 
-## VBA LMS Specific Errors
+## Client-Specific Errors (Example: Payload CMS + Next.js)
+
+The patterns below are drawn from a real Payload CMS 3.x + Next.js project with a Postgres
+backend and Authorize.net payments — genericized so the technical content stays useful without
+publishing a real client's repo names or production domain. Swap `backend-repo`/`frontend-repo`/
+`example.com` for your own project's names when adapting this section to your own stack.
 
 ### Payload CMS 3.x Errors
 
@@ -177,7 +182,7 @@ access: {
 ```bash
 cd backend-repo
 yarn generate:types
-# Then check frontend-repo/next-frontend for type imports
+# Then check frontend-repo for type imports
 ```
 
 #### Relationship Population Failures

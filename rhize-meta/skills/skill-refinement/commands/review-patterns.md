@@ -36,7 +36,7 @@ Ready for Generalization (2)
 
 🟡 PATTERN-001: Test Directory Exclusion
    Count: 3 | Skills: context-engineering, error-lifecycle
-   Projects: example-web-app, frontend-repo, client-project
+   Projects: example-web-app, example-frontend, client-project
    → Run: /apply-generalization PATTERN-001
 
 🟡 PATTERN-003: API Timeout Configuration
@@ -54,7 +54,7 @@ Currently Tracking (3)
 
 ⚪ PATTERN-004: Custom Hook Timeout
    Count: 1 | Skills: context-engineering
-   First seen: frontend-repo
+   First seen: example-frontend
 
 ⚪ PATTERN-005: Sentry Environment Tags
    Count: 1 | Skills: error-lifecycle-management
@@ -103,7 +103,7 @@ Refinement History:
   │ Date       │ Project         │ Refinement ID        │
   ├────────────┼─────────────────┼──────────────────────┤
   │ 2024-12-01 │ example-web-app     │ REF-2024-1201-003    │
-  │ 2024-12-03 │ frontend-repo       │ REF-2024-1203-001    │
+  │ 2024-12-03 │ example-frontend       │ REF-2024-1203-001    │
   │ 2024-12-04 │ client-project  │ REF-2024-1204-001    │
   └────────────┴─────────────────┴──────────────────────┘
 
@@ -186,7 +186,7 @@ By Category:
 
 Top Projects:
   example-web-app: 10 refinements
-  frontend-repo: 7 refinements
+  example-frontend: 7 refinements
   client-project: 6 refinements
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

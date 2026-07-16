@@ -26,7 +26,7 @@ mutation-fix · browser-debug · browser-help · browser-perf · browser-test
 ## Install
 
 ```
-/plugin marketplace add ~/dev-local/RHIZE/rhize-plugins
+/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
 /plugin install rhize-devflow@rhize-plugins
 ```
 

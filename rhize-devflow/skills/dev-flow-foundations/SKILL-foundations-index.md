@@ -2,7 +2,7 @@
 
 > **Status:** Foundation Drafts Ready for Iteration
 > **Created:** 2024-12-01
-> **Project:** example-web-app Development Workflow Optimization
+> **Project:** myapp Development Workflow Optimization
 
 ---
 
@@ -91,7 +91,7 @@ This document indexes the skill foundation documents created to optimize Claude 
 - Pattern categories (data fetching, state management, error handling)
 - Documentation integration triggers
 
-**Status:** Foundation ready | Needs: Pattern templates for example-web-app specifics
+**Status:** Foundation ready | Needs: Pattern templates for myapp specifics
 
 ---
 
@@ -105,14 +105,14 @@ This document indexes the skill foundation documents created to optimize Claude 
 - Framework/package version awareness
 - Severity-based intervention (error/warning/info)
 
-**Status:** Foundation ready | Needs: deprecated-triggers.ts creation, example-web-app rules
+**Status:** Foundation ready | Needs: deprecated-triggers.ts creation, myapp rules
 
 ---
 
 ## Iteration Roadmap
 
 ### Phase 1: Foundation Testing (Week 1)
-- [ ] Restructure example-web-app CLAUDE.md to router pattern
+- [ ] Restructure myapp CLAUDE.md to router pattern
 - [ ] Create DEPRECATED.md with known anti-patterns
 - [ ] Create PATTERNS.md with established patterns
 - [ ] Test manual execution of each skill workflow
@@ -132,7 +132,7 @@ This document indexes the skill foundation documents created to optimize Claude 
 ### Phase 4: Refinement (Week 4+)
 - [ ] Review skill activation accuracy
 - [ ] Adjust trigger conditions based on real usage
-- [ ] Add example-web-app specific examples to each skill
+- [ ] Add myapp specific examples to each skill
 - [ ] Document successful patterns discovered
 
 ---
@@ -253,7 +253,7 @@ Add comments directly in the skill markdown:
 
 1. **Download all files** from `/mnt/user-data/outputs/`
 2. **Add to project knowledge** for iteration
-3. **Restructure example-web-app** with router-pattern CLAUDE.md
+3. **Restructure myapp** with router-pattern CLAUDE.md
 4. **Test each workflow** in real development sessions
 5. **Iterate** based on what works
 

@@ -47,21 +47,22 @@ Phase 6: GSD v2 Handoff
 ## Skill discovery & safety
 
 When scaffolding a project (Phase 5) or preparing the GSD handoff (Phase 6), proactively suggest
-skills relevant to the project's stack and goals, and **prove each one safe before adding it**. This
-reuses the meta-skills tooling in `rhize-meta` (no duplication):
+skills relevant to the project's stack and goals, and **prove each one safe before adding it**. Do
+this through `rhize-meta`'s own public command interface — do not shell into its scripts directly
+by computing a sibling-plugin filesystem path (that assumption breaks under versioned/cached
+plugin installs where `rhize-meta` may not sit next to this plugin on disk):
 
-```bash
-# Suggest relevant skills for the project (skills.sh; needs VERCEL_OIDC_TOKEN)
-python3 ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills/rhize-skill-forge/scripts/skills_sh.py \
-  search "<project stack / goal>" --limit 10
-
-# Gate any skill before adding it (SkillSpector) — BLOCK on HIGH/CRITICAL
-python3 ~/dev-local/RHIZE/rhize-plugins/rhize-meta/skills/rhize-skill-forge/scripts/skill_safety.py \
-  <path-or-git-url> --no-llm
-```
+- Run **`/rhize-meta:skill-find "<project stack / goal>"`** — this discovers candidates via
+  skills.sh, runs the partner audit (Socket/Snyk/etc.), and runs the deep SkillSpector safety gate
+  (BLOCK on HIGH/CRITICAL) before anything is added.
+- If it reports missing setup (e.g. no `VERCEL_OIDC_TOKEN`), run **`/rhize-meta:skill-doctor`**
+  first, then retry.
+- Once a candidate clears both audits, hand it to **`/rhize-meta:forge-ingest <source>`** for the
+  DEFER / ABSORB / FORK / REJECT / WATCH decision.
 
 **Rule:** never add a skill the safety gate rates HIGH/CRITICAL (or a skills.sh partner marks
-`fail`). For setup, run `/rhize-meta:skill-doctor`; for guided discovery, `/rhize-meta:skill-find <query>`.
+`fail`) — `/rhize-meta:skill-find` already enforces this; don't bypass it by calling the
+underlying scripts yourself.
 
 ---
 

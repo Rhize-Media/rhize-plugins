@@ -411,7 +411,7 @@ mutation_dependencies:
 - [ ] Create templates/mutation-report.md
 
 ## Validation
-- [ ] Manual test: @analyze-mutations on frontend-repo
+- [ ] Manual test: @analyze-mutations on a real project repo
 - [ ] Verify file output works
 - [ ] Check score calculation
 ```

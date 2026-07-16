@@ -27,7 +27,7 @@ This skill addresses the critical problem of context window exhaustion and docum
 ```markdown
 ❌ BAD: 2000-line CLAUDE.md that loads everything
 
-# Project: VBA LMS App
+# Project: MyApp
 [500 lines of architecture]
 [300 lines of API docs]
 [400 lines of component patterns]
@@ -46,7 +46,7 @@ This skill addresses the critical problem of context window exhaustion and docum
 ```markdown
 ✅ GOOD: <200 line CLAUDE.md that routes to topic files
 
-# VBA LMS App - Claude Context Router
+# MyApp - Claude Context Router
 > Keep this file under 200 lines. Details live in linked files.
 
 ## Quick Context

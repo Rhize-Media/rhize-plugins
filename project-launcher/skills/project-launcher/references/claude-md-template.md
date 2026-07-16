@@ -22,7 +22,7 @@ Generate a project-specific CLAUDE.md using this template. Every section should 
 - {Testing strategy — e.g., "Use DataForSEO Sandbox for API testing"}
 - {Build order — e.g., "Build and test each workflow independently, then integrate"}
 - {Reference implementations — e.g., "Reference: ../existing-project/"}
-- {First tenant/user — e.g., "Rhize Media is the first tenant; Acme Co. is second"}
+- {First tenant/user — e.g., "Acme Corp is the first tenant; Beta Inc is second"}
 
 ## {Domain-Specific Design Section}
 {e.g., "Multi-Tenant Design", "CMS Architecture", "API Gateway Design"}
