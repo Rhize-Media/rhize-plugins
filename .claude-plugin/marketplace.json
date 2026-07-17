@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.12.1",
+  "version": "1.13.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -105,6 +105,26 @@
         "slack",
         "fireflies",
         "team-workflow",
+        "rhize"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "rhize-cowork",
+      "source": "./rhize-cowork",
+      "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": [
+        "cowork",
+        "project-setup",
+        "onboarding",
+        "context-files",
+        "claude-md",
+        "brand-voice",
+        "client-onboarding",
         "rhize"
       ],
       "category": "workflow"

@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-07-17_ **rhize-cowork** 0.1.0 — new plugin housing `project-kickoff`: scaffolds the four standard Cowork project context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) from a website, strategy docs, or a guided interview, with `[inferred]` / `[TBD — confirm]` no-fabrication tagging. Marketplace 1.12.1 → 1.13.0 (minor).
 - _2026-07-16_ version bump — **rhize-ops** 0.3.0 → 0.3.1 (patch); marketplace 1.12.0 → 1.12.1.
 
 ### Fixed

@@ -22,6 +22,7 @@ All plugins below will become available for installation. Each plugin may need i
 | [rhize-devflow](./rhize-devflow) | Development-workflow skill set — context/session engineering, production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
 | [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-meta](./rhize-meta) | Skill governance — safely absorb external skills (rhize-skill-forge) and refine your own skills from usage feedback (skill-refinement) | [README](./rhize-meta/README.md) · [GUIDE](./rhize-meta/GUIDE.md) |
+| [rhize-cowork](./rhize-cowork) | Cowork project context scaffolding — project-kickoff builds the standard CLAUDE.md / BUSINESS.md / PERSONALITY.md / INFO.md context files for any new project or client | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
 
 ### Plugin-specific prerequisites
 
@@ -33,7 +34,7 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
-The other plugins (project-launcher, rhize-devflow, rhize-ops, rhize-meta) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
+The other plugins (project-launcher, rhize-devflow, rhize-ops, rhize-meta, rhize-cowork) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
 
 ## Documentation Hierarchy
 
