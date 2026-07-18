@@ -280,6 +280,7 @@ silently drain the queue. For each pending entry:
 | `createdAt` | string | ISO 8601 |
 | `artifactType` | `"skill"` \| `"mcp"` (optional) | what kind of candidate this entry is for; absent means `"skill"` — pre-v0.5 entries stay valid without it |
 | `capabilities` | object (optional) | `"mcp"` entries only, skill-forge v0.6+; statically-extracted server capability profile — `{ tools: string[], resources: string[], prompts: string[], transport?: string, declaredConfidence: "high"\|"partial"\|"none" }`. Additive: absent on pre-v0.6 `"mcp"` entries and on `"skill"` entries. See [MCP servers](#mcp-servers-from-skill-forge-v06) below. |
+| `origin` | `"evolve"` (optional) | how the entry was produced when it isn't a normal `add`-sourced external install; absent means a normal entry. `"evolve"` (skill-forge v0.7): the skill was self-evolved via `skill-forge evolve` (SkillOpt-Sleep) and already re-gated by the static safety ruleset at adopt time — the decide pass reviews the evolution itself, not an external source |
 
 No file → nothing to drain, proceed as normal. A `queue.json` with zero `pending` entries isn't
 worth mentioning to the user.
@@ -289,7 +290,9 @@ same quarantine → profile → safety → overlap → promote pipeline, but aga
 (`mcpServers`) instead of a skills root. skill-forge v0.6 adds the deep-forge pass for these
 entries — the server-specific five-verb workflow lives in
 [MCP servers](#mcp-servers-from-skill-forge-v06) below, and replaces Steps 1–4 above for `"mcp"`
-entries.
+entries. skill-forge v0.7 adds `origin: "evolve"` entries: the skill is already adopted and
+re-gated when the entry lands, so treat the CLI verdict as done and focus the five-verb pass on
+whether the evolution should stand (compare against the staging `report.md` evidence if present).
 
 ---
 
