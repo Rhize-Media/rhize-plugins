@@ -48,21 +48,19 @@ Phase 6: GSD v2 Handoff
 
 When scaffolding a project (Phase 5) or preparing the GSD handoff (Phase 6), proactively suggest
 skills relevant to the project's stack and goals, and **prove each one safe before adding it**. Do
-this through `rhize-meta`'s own public command interface — do not shell into its scripts directly
-by computing a sibling-plugin filesystem path (that assumption breaks under versioned/cached
-plugin installs where `rhize-meta` may not sit next to this plugin on disk):
+this through the `@rhize/skill-forge` npm CLI's own public command interface — do not shell into
+its internals directly:
 
-- Run **`/rhize-meta:skill-find "<project stack / goal>"`** — this discovers candidates via
-  skills.sh, runs the partner audit (Socket/Snyk/etc.), and runs the deep SkillSpector safety gate
-  (BLOCK on HIGH/CRITICAL) before anything is added.
-- If it reports missing setup (e.g. no `VERCEL_OIDC_TOKEN`), run **`/rhize-meta:skill-doctor`**
-  first, then retry.
-- Once a candidate clears both audits, hand it to **`/rhize-meta:forge-ingest <source>`** for the
-  DEFER / ABSORB / FORK / REJECT / WATCH decision.
+- Run **`npx @rhize/skill-forge find "<project stack / goal>"`** — this discovers candidates via
+  skills.sh, and `--audit <id>` runs the partner audit (Socket/Snyk/etc.) before anything is added.
+- If it reports missing setup (e.g. no `VERCEL_OIDC_TOKEN`), run **`npx @rhize/skill-forge audit`**
+  (the tooling-readiness section) first, then retry.
+- Once a candidate clears the audit, hand it to **`npx @rhize/skill-forge add <source>`** for the
+  quarantine → profile → safety scan → overlap → DEFER / ABSORB / FORK / REJECT / WATCH decision.
 
 **Rule:** never add a skill the safety gate rates HIGH/CRITICAL (or a skills.sh partner marks
-`fail`) — `/rhize-meta:skill-find` already enforces this; don't bypass it by calling the
-underlying scripts yourself.
+`fail`) — `skill-forge add` already enforces this; don't bypass it by installing a candidate
+directly.
 
 ---
 

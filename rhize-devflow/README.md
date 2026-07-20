@@ -16,7 +16,8 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 | `sanity-development` | Rhize house style for Sanity schema/GROQ/TypeGen/next-sanity |
 | `dev-flow-foundations` | Dependency graphs, component registry, regression prevention |
 
-> The `skill-refinement` and `rhize-skill-forge` meta-skills moved to the **`rhize-meta`** plugin (2026-06-15).
+> The `skill-refinement` meta-skill moved to the **`rhize-meta`** plugin (2026-06-15). External-skill
+> vetting later moved on to the `@rhize/skill-forge` npm package (2026-07-20).
 
 ## Commands
 
@@ -39,8 +40,9 @@ them, so nothing untested fires automatically.
 
 ## Lineage
 
-Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `rhize-skill-forge` and
-`skill-refinement` meta-skills were promoted to the `rhize-meta` plugin (2026-06-15).
+Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `skill-refinement` meta-skill
+was promoted to the `rhize-meta` plugin (2026-06-15); external-skill vetting moved on to the
+`@rhize/skill-forge` npm package (2026-07-20).
 
 ## Compounding Persistence Layer (v2.4.0)
 

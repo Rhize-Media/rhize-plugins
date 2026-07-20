@@ -1,7 +1,8 @@
 # SKILL.patch.md
 # Patches for: project-launcher
 # Generated: 2026-06-25
-# Source: ABSORB from BuilderIO visual-plan (MIT) via rhize-skill-forge — see rhize-meta/skills/rhize-skill-forge/SOURCES.md
+# Source: ABSORB from BuilderIO visual-plan (MIT) via the @rhize/skill-forge npm CLI's ingest flow
+# — see project-launcher/skills/rhize-visual-plan/SOURCES.md
 # Refinement: FORGE-2026-0625-visual-plan
 #
 # Tracked record of the visual-plan ABSORB. The pointer edits below were also applied directly to

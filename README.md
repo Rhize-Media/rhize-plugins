@@ -21,7 +21,7 @@ All plugins below will become available for installation. Each plugin may need i
 | [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
 | [rhize-devflow](./rhize-devflow) | Development-workflow skill set — context/session engineering, production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
 | [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
-| [rhize-meta](./rhize-meta) | Skill governance — safely absorb external skills (rhize-skill-forge) and refine your own skills from usage feedback (skill-refinement) | [README](./rhize-meta/README.md) · [GUIDE](./rhize-meta/GUIDE.md) |
+| [rhize-meta](./rhize-meta) | Skill refinement — improve your own skills from usage feedback (skill-refinement). External-skill vetting moved to the `@rhize/skill-forge` npm package | [README](./rhize-meta/README.md) · [GUIDE](./rhize-meta/GUIDE.md) |
 
 ### Plugin-specific prerequisites
 

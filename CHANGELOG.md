@@ -6,6 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+
+- **rhize-meta:** the `rhize-skill-forge` skill and its five commands (`forge-ingest`, `forge-scan`, `forge-watch`, `skill-find`, `skill-doctor`) — external-skill/MCP vetting, discovery, provenance, and drift-watching. All functionality is now parity-ported to the `@rhize/skill-forge` npm package (`npx @rhize/skill-forge` — commands: `add`, `scan`, `find`, `ingest`, `watch`, `organize`, `audit`, `evolve`). `rhize-meta` keeps only `skill-refinement` and its commands (`refine-skills`, `review-patterns`, `apply-generalization`).
+
+### Changed
+
+- _2026-07-20_ version bump — **rhize-meta** 1.3.1 → 2.0.0 (major — capability removal, see Removed); marketplace 1.12.1 → 1.13.0.
+- **rhize-meta:** description/scope narrowed to skill-refinement only; README/GUIDE rewritten, `skill-refinement` SKILL.md's mention of the removed skill replaced with a pointer to the `@rhize/skill-forge` npm CLI's ingest flow. `project-launcher`'s skill-discovery/safety-gate step (SKILL.md) and the `rhize-visual-plan`/`project-launcher` provenance records (`SOURCES.md`, `SKILL.patch.md`) now point at the npm CLI instead of the removed `/rhize-meta:skill-find`/`skill-doctor`/`forge-ingest` commands. `rhize-devflow`'s README lineage notes updated to reflect the further move.
+
 ### Added
 
 - _2026-07-16_ version bump — **rhize-ops** 0.3.0 → 0.3.1 (patch); marketplace 1.12.0 → 1.12.1.

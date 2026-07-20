@@ -10,8 +10,9 @@ description: >-
   "false negative", "why didn't the skill", "improve/extend/add to skill", or when a hook or command
   misbehaves and the fix should be made durable. Generates project-scope patches (SKILL.patch.md /
   SKILL.extend.md / config overrides), logs patterns to user scope, and auto-promotes fixes that
-  recur across 2+ projects. Distinct from rhize-skill-forge (which absorbs EXTERNAL skills); this
-  refines skills you already own. Pairs with the skill-creator eval loop for verification.
+  recur across 2+ projects. Refines skills you already own — the `@rhize/skill-forge` npm CLI's
+  ingest flow can hand ABSORB extractions to this skill as tracked patches. Pairs with the
+  skill-creator eval loop for verification.
 ---
 
 # Skill Refinement System

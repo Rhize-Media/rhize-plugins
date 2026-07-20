@@ -2,7 +2,8 @@
 
 Cross-cutting planning discipline that applies to every phase of the launcher, especially **Phase 3
 (PRD Generation)** and **Phase 4 (Gap Analysis)**. Absorbed from BuilderIO's MIT-licensed `visual-plan`
-skill and re-skinned to the Rhize stack (provenance in `rhize-meta/skills/rhize-skill-forge/SOURCES.md`). For turning any plan/PRD
+skill and re-skinned to the Rhize stack (provenance in
+`project-launcher/skills/rhize-visual-plan/SOURCES.md`). For turning any plan/PRD
 into a rich, reviewable `.mdx` artifact, use the **`rhize-visual-plan`** skill.
 
 ## A plan is an approval gate, not a status update

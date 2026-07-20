@@ -1,19 +1,15 @@
 {
   "name": "rhize-meta",
-  "version": "1.3.1",
-  "description": "Rhize Media's meta-skills — skill governance for the Rhize toolchain: rhize-skill-forge (investigate & absorb external skills with provenance + the set-level organizer: capability registry, N-way overlap, dependency graph, drift boundaries) and skill-refinement (improve your own skills from usage feedback).",
+  "version": "2.0.0",
+  "description": "Rhize Media's meta-skills — skill-refinement improves your own skills from usage feedback (patches + generalization). External-skill vetting, discovery, and provenance moved to the @rhize/skill-forge npm package.",
   "author": {
     "name": "Rhize Media"
   },
   "homepage": "https://rhize.media",
   "keywords": [
     "meta-skills",
-    "skill-forge",
     "skill-refinement",
     "skill-governance",
-    "provenance",
-    "skill-organizer",
-    "capability-metadata",
     "rhize"
   ]
 }

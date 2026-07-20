@@ -7,12 +7,11 @@ namespace as `/rhize-meta:<command>`.
 
 | Skill | What it does |
 |-------|--------------|
-| `rhize-skill-forge` | Investigate & absorb *external* skills (profile → decide → verify → provenance), plus the set-level organizer (capability registry, N-way overlap, dependency graph) |
 | `skill-refinement` | Improve *your own* skills from usage feedback (patches + generalization) |
 
 ## Commands
 
-`/rhize-meta:` forge-ingest · forge-scan · forge-watch · refine-skills · apply-generalization · review-patterns · skill-find · skill-doctor
+`/rhize-meta:` refine-skills · apply-generalization · review-patterns
 
 ## Install
 
@@ -21,22 +20,16 @@ namespace as `/rhize-meta:<command>`.
 /plugin install rhize-meta@rhize-plugins
 ```
 
-## Skill discovery & safety
+## Skill vetting moved
 
-`rhize-skill-forge` can **discover** skills (skills.sh) and **prove them safe** (NVIDIA SkillSpector)
-before anything is adopted. Run `/rhize-meta:skill-doctor` to check setup.
-
-- **Safety (SkillSpector) needs no Vercel.** Install once — `github.com/NVIDIA/skillspector`
-  (Python 3.12+). Static scanning needs no API key; the optional LLM stage takes an OpenAI / Anthropic
-  / NVIDIA key. This is the core, always-available gate (BLOCK on HIGH/CRITICAL).
-- **Discovery (skills.sh) is optional** and authenticates with a **Vercel OIDC token**
-  (`VERCEL_OIDC_TOKEN`). Team setup: one empty Vercel project with OIDC Federation enabled as an
-  *auth anchor* (it deploys nothing), then `vercel link` + `vercel env pull` per developer. Clients
-  without Vercel keep the safety gate; discovery is opt-in. Rationale + the client model:
-  vault `ADR-001-skills-sh-vercel-auth`.
+Investigating and absorbing *external* skills or MCP servers — profiling, safety scanning, overlap
+analysis, provenance tracking, discovery, and drift-watching — now lives in the `@rhize/skill-forge`
+npm package: `npx @rhize/skill-forge` (commands: `add`, `scan`, `find`, `ingest`, `watch`,
+`organize`, `audit`, `evolve`). `rhize-meta` here only refines skills you already own.
 
 ## Lineage
 
-Promoted out of `rhize-devflow` (2026-06-15) so the coupled skill-governance toolchain lives in one
-plugin. `rhize-skill-forge` consumes `skill-refinement`'s patch machinery for ABSORB; provenance is
-tracked in `rhize-skill-forge/SOURCES.md`.
+Promoted out of `rhize-devflow` (2026-06-15) so the coupled skill-governance toolchain lived in one
+plugin. The external-skill-absorption half was retired from this plugin (2026-07-20) once its
+functionality was fully ported to the `@rhize/skill-forge` npm package — see "Skill vetting moved"
+above.

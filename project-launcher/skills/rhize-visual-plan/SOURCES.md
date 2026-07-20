@@ -1,6 +1,7 @@
 # rhize-visual-plan — Provenance
 
-Forked from BuilderIO's `visual-plan` skill via `rhize-skill-forge` on 2026-06-25.
+Forked from BuilderIO's `visual-plan` skill via the `@rhize/skill-forge` npm CLI's ingest flow on
+2026-06-25.
 
 - **Upstream:** https://github.com/BuilderIO/skills/tree/main/skills/visual-plan
 - **Upstream ref:** git commit `6294124fdb96fb3cf4726c78ea505e4d3a7af00e` (2026-06-24)
@@ -55,5 +56,4 @@ limited to the boilerplate patterns enumerated above.
 git ls-remote https://github.com/BuilderIO/skills.git HEAD   # compare to 6294124fdb96fb3cf4726c78ea505e4d3a7af00e
 ```
 
-Re-run `rhize-skill-forge` on the delta if upstream moved. Central audit ledger:
-`rhize-meta/skills/rhize-skill-forge/SOURCES.md`.
+Re-run `npx @rhize/skill-forge add <source> --ingest` on the delta if upstream moved.
