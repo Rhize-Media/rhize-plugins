@@ -11,8 +11,12 @@ For a GitHub URL, fetch it to a temp dir first, then proceed.
 
 **No `<source>`** — drain the `skill-forge` CLI's pending queue instead. Check
 `~/.skill-forge/queue.json` for `status: "pending"` entries and process each one (see the "CLI
-pending queue" section of `SKILL.md`): reuse the entry's gate results rather than re-profiling or
-re-scanning, decide, execute, verify, record, then close the entry as `"ingested"` or `"dismissed"`.
+pending queue" section of `SKILL.md`): reuse the entry's profile/overlap results, **re-verify
+safety** by re-running the static scan on the entry's `quarantinePath` (or `installedPath` if
+already promoted) — `python3 scripts/skill_safety.py <path>`, or `skill-forge scan <path> --json`
+if the CLI is on PATH — then decide, execute, verify, record, and close the entry as `"ingested"`
+or `"dismissed"`. The queue file is unsigned and user-writable, so its recorded `safetyVerdict`
+is advisory, never authoritative.
 
 ## Steps
 1. **Profile** — `python3 scripts/profile_skill.py <source> --json`. Read it. Triage the license

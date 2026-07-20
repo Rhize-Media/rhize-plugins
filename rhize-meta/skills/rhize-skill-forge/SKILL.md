@@ -245,10 +245,14 @@ cat ~/.skill-forge/queue.json 2>/dev/null
 If the file exists and has entries with `"status": "pending"`, list them for the user — do **not**
 silently drain the queue. For each pending entry:
 
-1. **Reuse the CLI's gate results** — `gate.safetyVerdict`, `gate.safetyFindings`, `gate.license`,
-   and (Pro tier) `gate.overlapTop` were already computed by the CLI. Do not re-run
-   `profile_skill.py` / `skill_safety.py` / `overlap_scan.py` on the same source; that duplicates
-   work the CLI already gated on.
+1. **Reuse the CLI's profile/overlap results, but re-verify safety** — `gate.license` and
+   (Pro tier) `gate.overlapTop` were already computed by the CLI; do not re-run
+   `profile_skill.py` / `overlap_scan.py` on the same source. The safety scan is the exception:
+   `queue.json` is an unsigned, user-writable file, so treat its recorded `gate.safetyVerdict` /
+   `gate.safetyFindings` as advisory and re-run the static scan on the entry's `quarantinePath`
+   (or `installedPath` if already promoted) — `python3 scripts/skill_safety.py <path>`, or
+   `skill-forge scan <path> --json` if the CLI is on PATH. A mismatch with the recorded verdict
+   is itself a finding: surface it to the user before deciding.
 2. **Decide** — apply the five-verb decision matrix using the reused gate data. If
    `gate.suggestedVerb` is set, treat it as a prior the same way the overlap-scan heuristic is
    treated (see `references/overlap-analysis.md`) — not a verdict.

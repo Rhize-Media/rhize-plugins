@@ -12,6 +12,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **rhize-meta:** `forge-ingest` queue drain now **re-verifies the safety scan** on each pending entry (`skill_safety.py` or `skill-forge scan --json` against the entry's `quarantinePath`/`installedPath`) instead of trusting `~/.skill-forge/queue.json`'s recorded verdict — the queue file is unsigned and user-writable, so its `safetyVerdict` is advisory only. Profile/overlap results are still reused. Updated in both `commands/forge-ingest.md` and the `rhize-skill-forge` SKILL.md "CLI pending queue" section.
 - **rhize-ops:** `delegate-to-teammate` hardened against prompt injection from ingested session/vault/meeting-transcript content — added an explicit Content Trust Boundary so quoted content is never treated as instructions, and the only Slack mention is ever the configured recipient.
 - Finished scrubbing personal identity (owner email/domain used as a worked example) and client example names (client/project names used as illustrative flavor text) missed by earlier passes, across `project-launcher`'s visual-plan reference docs and `rhize-meta`'s skill-refinement templates.
 
