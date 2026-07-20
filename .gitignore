@@ -28,3 +28,7 @@ scripts/*
 
 # Squirrel config
 squirrel.toml
+
+# Headroom CLAUDE.md backups + local scratch
+CLAUDE.md.headroom-bak.*
+.rndtest.b
