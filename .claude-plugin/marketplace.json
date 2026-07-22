@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "1.13.0",
+  "version": "2.0.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -105,22 +105,6 @@
         "slack",
         "fireflies",
         "team-workflow",
-        "rhize"
-      ],
-      "category": "workflow"
-    },
-    {
-      "name": "rhize-meta",
-      "source": "./rhize-meta",
-      "description": "Rhize meta-skills — skill-refinement improves your own skills from usage feedback. External-skill vetting/discovery moved to the @rhize/skill-forge npm package.",
-      "version": "2.0.0",
-      "author": {
-        "name": "Rhize Media"
-      },
-      "keywords": [
-        "meta-skills",
-        "skill-refinement",
-        "skill-governance",
         "rhize"
       ],
       "category": "workflow"

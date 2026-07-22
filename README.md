@@ -21,7 +21,6 @@ All plugins below will become available for installation. Each plugin may need i
 | [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
 | [rhize-devflow](./rhize-devflow) | Development-workflow skill set — context/session engineering, production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
 | [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
-| [rhize-meta](./rhize-meta) | Skill refinement — improve your own skills from usage feedback (skill-refinement). External-skill vetting moved to the `@rhize/skill-forge` npm package | [README](./rhize-meta/README.md) · [GUIDE](./rhize-meta/GUIDE.md) |
 
 ### Plugin-specific prerequisites
 
@@ -33,7 +32,7 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
-The other plugins (project-launcher, rhize-devflow, rhize-ops, rhize-meta) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
+The other plugins (project-launcher, rhize-devflow, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
 
 ## Documentation Hierarchy
 
@@ -68,7 +67,6 @@ rhize-plugins/
 ├── project-launcher/              # Plugin: project research → PRD → scaffold
 ├── rhize-devflow/                 # Plugin: dev workflow
 ├── rhize-ops/                     # Plugin: internal ops
-├── rhize-meta/                    # Plugin: skill governance
 ├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
 ├── evals/                         # Trigger/quality eval harness
 ├── scripts/                       # Maintainer scripts (e.g. version bump)
