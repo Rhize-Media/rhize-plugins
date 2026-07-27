@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **rhize-context-manager (new plugin, 0.1.0):** context engineering & optimization — compression, management, retrieval, and storage. Orchestrates (does not vendor) the Rhize context stack: Headroom wire compression, claude-mem global memory, OpenWolf per-repo file intel, Serena/CodeGraph semantic code navigation, RTK CLI compression, graphify knowledge graphs, and opt-in Graphiti temporal knowledge-graph memory (`graphiti-memory` skill — adoption approved, not a dependency). Ships the Rhize-authored `context-stack` routing/coexistence skill, a `/context-doctor` stack health-check command, the `graphify` skill promoted from user-level, and an 11-skill curated third-party library ingested through `@rhize/skill-forge` (safety-gated, provenance in `skills/SOURCES.md`): context-fundamentals, context-degradation, context-compression, context-optimization, memory-systems, filesystem-context, tool-design (muratcankoylan/Agent-Skills-for-Context-Engineering) and iterative-retrieval, strategic-compact, context-budget, token-budget-advisor (everything-claude-code).
+
+### Changed
+
+- **rhize-devflow (2.5.0):** the `context-engineering` skill and its four session-lifecycle commands (`/start`, `/done`, `/context-hygiene`, `/impact-map`) moved to the new `rhize-context-manager` plugin. Breaking for command invocations: `/rhize-devflow:start` → `/rhize-context-manager:start` (same for the other three). rhize-devflow keeps error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style, and dev-flow foundations.
+
 ### Removed
 
 - **rhize-meta:** the entire plugin is removed from the marketplace — `skill-refinement` (skill + its `refine-skills`, `review-patterns`, `apply-generalization` commands), which is all that remained after the `rhize-skill-forge` removal below. The capability now ships as `skill-forge refine` in the `@rhize/skill-forge` npm package (`npx @rhize/skill-forge refine`), alongside the previously-ported `add`/`scan`/`find`/`ingest`/`watch`/`organize`/`audit`/`evolve` commands. The marketplace no longer includes a skill-governance plugin.
@@ -13,7 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- _2026-07-22_ version bump — **rhize-meta** removed (was 2.0.0); marketplace 1.13.0 → 2.0.0 (major — plugin removal is breaking).
+- _2026-07-20_ version bump — **rhize-meta** removed (was 2.0.0); marketplace 1.13.0 → 2.0.0 (major — plugin removal is breaking).
 - _2026-07-20_ version bump — **rhize-meta** 1.3.1 → 2.0.0 (major — capability removal, see Removed); marketplace 1.12.1 → 1.13.0.
 - **rhize-meta:** description/scope narrowed to skill-refinement only; README/GUIDE rewritten, `skill-refinement` SKILL.md's mention of the removed skill replaced with a pointer to the `@rhize/skill-forge` npm CLI's ingest flow. `project-launcher`'s skill-discovery/safety-gate step (SKILL.md) and the `rhize-visual-plan`/`project-launcher` provenance records (`SOURCES.md`, `SKILL.patch.md`) now point at the npm CLI instead of the removed `/rhize-meta:skill-find`/`skill-doctor`/`forge-ingest` commands. `rhize-devflow`'s README lineage notes updated to reflect the further move.
 

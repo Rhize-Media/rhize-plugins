@@ -1,3 +1,7 @@
+---
+description: Mid-session context cleanup — manage context window and session health during long development sessions
+---
+
 # Context Hygiene
 
 Manage context window and session health during long development sessions.

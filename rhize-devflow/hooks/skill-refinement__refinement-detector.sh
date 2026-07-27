@@ -3,15 +3,18 @@
 # refinement-detector.sh - Detect skill refinement opportunities from user prompts
 #
 # This hook listens for keywords indicating the user wants to refine a skill.
-# When detected, it suggests running /refine-skills.
+# When detected, it suggests running `npx @rhize/skill-forge refine`.
 #
 # Installation:
 #   Add to your .claude/settings.json hooks section:
 #   {
 #     "hooks": {
-#       "user_prompt_submit": "skill-refinement/hooks/refinement-detector.sh"
+#       "user_prompt_submit": "<path-to-this-file>/refinement-detector.sh"
 #     }
 #   }
+#
+# Note: skill refinement now ships as `skill-forge refine` in the @rhize/skill-forge
+# npm package — the rhize-meta plugin is retired.
 #
 # Usage:
 #   This hook is triggered automatically on user prompt submission.
@@ -71,7 +74,7 @@ if [ -n "$MATCHED" ]; then
 It looks like you've encountered an issue with a skill.
 Would you like to capture this as a refinement?
 
-Run: /refine-skills
+Run: npx @rhize/skill-forge refine
 
 This will help:
   • Document the expected vs actual behavior

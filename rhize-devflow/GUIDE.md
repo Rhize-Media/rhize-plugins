@@ -12,7 +12,7 @@ The plugin has two kinds of components:
 
 **Skills** are reference knowledge Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output.
 
-**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:start`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
+**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:mutation-check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
 ## Quick Mental Model
 
@@ -20,7 +20,7 @@ Seven skills, but they cluster into four jobs:
 
 | Cluster | Skills | Question it answers |
 |---------|--------|----------------------|
-| **Session & context hygiene** | `context-engineering`, `dev-flow-foundations` | "Where were we, what already exists, and is this session getting too heavy?" |
+| **Session & context hygiene** | `dev-flow-foundations` (session/context engineering itself now lives in the `rhize-context-manager` plugin) | "Where were we, what already exists, and is this session getting too heavy?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
 | **Data-mutation consistency** | `data-mutation-consistency` | "Will this mutation leave the cache and the UI in sync, or will someone have to hard-refresh?" |
 | **Browser debugging** | `chrome-devtools-mcp` | "What does this actually look like/do in a real browser — network, console, performance, visuals?" |
@@ -29,19 +29,6 @@ Seven skills, but they cluster into four jobs:
 Commands are the hands-on-keyboard layer built on top of these skills — `/start` and `/done` bookend a session, `/impact-map` and `/context-hygiene` keep it clean mid-session, `/mutation-*` commands drive the data-mutation skill, and `/browser-*` commands drive the Chrome DevTools skill.
 
 ## Skills Reference
-
-### context-engineering
-
-**When it activates:** You say "start", "begin", "where were we", "restore session", "new session", "save context", "remember this", "context is getting heavy", "I'm confused/lost", or "done/finished/commit" — and proactively once a session passes roughly 25 messages.
-
-**What it knows:** The two-system model of Sessions (ephemeral working memory) vs. Memory (persistent, cross-session knowledge), what's worth extracting into memory vs. what to let go, session-boundary rules (mandatory new session on repo switch, feature completion, or >80% context usage), and the `CURRENT_SPRINT.md` / `COMPONENT_REGISTRY.md` file conventions that back the `/start`, `/done`, `/context-hygiene`, and `/impact-map` commands.
-
-**How to use it effectively:**
-- Say "let's start" at the top of a session — Claude checks `STATE.md`, `CURRENT_SPRINT.md`, and recent git activity before touching code.
-- Say "I think I'm losing the thread" mid-session — Claude assesses what's stale vs. active and offers a checkpoint instead of pushing forward blind.
-- Ask "what preferences have I already told you for this project?" — it distinguishes durable decisions (architecture calls, tooling choices) from one-off debugging noise that shouldn't be memorized.
-
-**Key insight:** The skill is opinionated about what NOT to remember — conversational filler, failed debug attempts, and superseded decisions are explicitly excluded from memory extraction, so it doesn't accumulate noise session over session.
 
 ### dev-flow-foundations
 
@@ -52,7 +39,7 @@ Commands are the hands-on-keyboard layer built on top of these skills — `/star
 **How to use it effectively:**
 - Ask "before I build this, what already touches this area?" — it reasons from the dependency-graph pattern rather than jumping straight to code.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
-- This is the reference layer, not a command surface — its patterns show up concretely inside `context-engineering` (which implements the registry and dependency-graph ideas as `/impact-map` and the duplicate-check hook) and inside `error-lifecycle-management` (which implements regression prevention as the triage workflow).
+- This is the reference layer, not a command surface — its patterns show up concretely inside the `rhize-context-manager` plugin's `context-engineering` skill (which implements the registry and dependency-graph ideas as `/rhize-context-manager:impact-map` and the duplicate-check hook) and inside `error-lifecycle-management` (which implements regression prevention as the triage workflow).
 
 ### error-lifecycle-management
 
@@ -121,47 +108,10 @@ Commands are the hands-on-keyboard layer built on top of these skills — `/star
 
 ## Commands Reference
 
-### Session & context commands
-
-#### /rhize-devflow:start
-
-**Usage:** `/rhize-devflow:start`
-
-Initializes a session with full context loading: reads `STATE.md` first (Verified facts · General rules · Open failures · Lessons learned · Last session) to know where to resume, checks `CURRENT_SPRINT.md` and `COMPONENT_REGISTRY.md` for staleness, and suggests a next action based on what it finds.
-
-**Examples:**
-- `/rhize-devflow:start` at the top of a session
-- Use again after a break of more than a few hours, or when switching focus areas
-
-#### /rhize-devflow:done
-
-**Usage:** `/rhize-devflow:done`
-
-Post-implementation validation before you commit. Gathers everything changed this session, runs a full impact analysis (what else imports the changed files), runs the build/typecheck, delegates to the independent `verifier` subagent (the maker never grades its own work — verdicts are PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN), generates a commit message, and requires persisting at least one fact/failure/lesson back to `STATE.md` before it calls the session done.
-
-**Examples:**
-- `/rhize-devflow:done` right before you commit or open a PR
-- Run it even on a "small" fix — it's the gate that keeps a `FAIL_REQUIRES_HUMAN` verdict from turning into a bad commit
-
-#### /rhize-devflow:context-hygiene
-
-**Usage:** `/rhize-devflow:context-hygiene`
-
-Assesses session health when things feel slow, confused, or circular — how many files have been touched, whether there's repeated/circular debugging — then recommends a soft reset (summarize and continue), hard reset (checkpoint and start a new conversation), or selective reload (re-read only the critical files).
-
-**Examples:**
-- `/rhize-devflow:context-hygiene` after two-plus hours in one session
-- Use it the moment Claude seems to "forget" something you already established — that's the clearest signal it's time to compress
-
-#### /rhize-devflow:impact-map
-
-**Usage:** `/rhize-devflow:impact-map`
-
-Maps dependencies before you implement anything new: checks `COMPONENT_REGISTRY.md` for something reusable, maps what will import/be imported by the new code, and produces an ordered implementation plan (types → utilities → hooks → component → integration → tests) plus a risk list.
-
-**Examples:**
-- `/rhize-devflow:impact-map` before starting any new feature or component
-- Use it specifically to avoid the two most common failure modes it targets: building a duplicate of something that already exists, and missing a file that needed to change alongside the one you touched
+> **Moved:** the session & context commands (`/rhize-devflow:start`, `/rhize-devflow:done`,
+> `/rhize-devflow:context-hygiene`, `/rhize-devflow:impact-map`) now live in the
+> `rhize-context-manager` plugin as `/rhize-context-manager:start`, `/rhize-context-manager:done`,
+> `/rhize-context-manager:context-hygiene`, and `/rhize-context-manager:impact-map`.
 
 ### Data-mutation commands
 
@@ -237,9 +187,9 @@ Quick reference card for the other three browser commands, the full MCP tool lis
 
 ## How the Skills and Commands Work Together
 
-**Session lifecycle bookends:** `context-engineering` provides the theory (Sessions vs. Memory, what to extract, when a session boundary is mandatory); `/rhize-devflow:start` and `/rhize-devflow:done` are its bookend commands. `/start` reads `STATE.md` so the session resumes with real memory instead of starting blind; `/done` closes the loop by requiring the verifier subagent's PASS verdict and a fresh `STATE.md` entry before anything gets committed — no run is complete until it leaves the next run better prepared.
+**Session lifecycle bookends now live elsewhere:** the `context-engineering` skill and its `/start`/`/done`/`/context-hygiene`/`/impact-map` bookend commands moved to the `rhize-context-manager` plugin (`/rhize-context-manager:start`, `/rhize-context-manager:done`, etc.). `dev-flow-foundations` remains here in rhize-devflow.
 
-**Foundations feed the commands:** `dev-flow-foundations` is the reference layer, not something you invoke directly — its dependency-graph and component-registry patterns are what `/rhize-devflow:impact-map` actually executes, and its regression-prevention protocol (root cause before fix) is what `error-lifecycle-management`'s triage workflow follows.
+**Foundations feed the commands:** `dev-flow-foundations` is the reference layer, not something you invoke directly — its dependency-graph and component-registry patterns are what `rhize-context-manager`'s `/rhize-context-manager:impact-map` command actually executes, and its regression-prevention protocol (root cause before fix) is what `error-lifecycle-management`'s triage workflow follows.
 
 **Instrumentation feeds triage:** `sentry-instrumentation` is how the code gets Sentry coverage in the first place (captureException, spans, structured logs); `error-lifecycle-management` is what runs once one of those instrumented errors actually fires in production, correlating it against Vercel deploys and GitHub commits.
 
@@ -251,9 +201,9 @@ Quick reference card for the other three browser commands, the full MCP tool lis
 
 ## Tips for Getting the Best Results
 
-**Run `/rhize-devflow:start` even for a "quick fix."** The whole point of `STATE.md` is that a five-minute fix six months from now shouldn't require re-discovering context that was already captured. Skipping `/start` on "small" sessions is how that discipline erodes.
+**Run `/rhize-context-manager:start` even for a "quick fix."** The whole point of `STATE.md` is that a five-minute fix six months from now shouldn't require re-discovering context that was already captured. Skipping `/start` on "small" sessions is how that discipline erodes. (This command now lives in the `rhize-context-manager` plugin.)
 
-**Don't skip `/rhize-devflow:done` because the build passed.** A green build is necessary but not sufficient — the verifier subagent exists specifically because the maker (Claude, in this session) is a bad judge of its own work. A FAIL_REQUIRES_HUMAN verdict is meant to stop a commit, not get worked around.
+**Don't skip `/rhize-context-manager:done` because the build passed.** A green build is necessary but not sufficient — the verifier subagent exists specifically because the maker (Claude, in this session) is a bad judge of its own work. A FAIL_REQUIRES_HUMAN verdict is meant to stop a commit, not get worked around. (This command now lives in the `rhize-context-manager` plugin; the bundled `agents/verifier.md` it delegates to still lives here in rhize-devflow.)
 
 **Mention the platform when it matters for mutation work.** "Check this mutation" triggers a generic pass; "check this Payload afterChange hook" or "check this React Query mutation" lets the skill apply the sub-skill-specific checks (Payload's `afterDelete` cache invalidation vs. React Query's rollback context) instead of only the generic ones.
 
@@ -275,7 +225,7 @@ Quick reference card for the other three browser commands, the full MCP tool lis
 
 **Mutation fix plan references a cache tag you don't recognize:** Check whether a query-key factory was renamed on one side (frontend) but not the other (backend `revalidateTag`) — this exact drift is what the cross-layer validation is built to catch, and it's usually the actual root cause of "I had to hard-refresh."
 
-**`/rhize-devflow:done` can't find a verifier subagent:** Confirm `agents/verifier.md` exists (either the global `~/.claude/agents/verifier.md` or the copy bundled in this plugin). If genuinely unavailable, the command falls back to performing the same checks (diff review, build, STATE.md update) explicitly and should say so rather than silently skipping verification.
+**`/rhize-context-manager:done` can't find a verifier subagent:** Confirm `agents/verifier.md` exists (either the global `~/.claude/agents/verifier.md` or the copy bundled in this plugin). If genuinely unavailable, the command falls back to performing the same checks (diff review, build, STATE.md update) explicitly and should say so rather than silently skipping verification.
 
 **Sanity schema or query changes aren't reflected in TypeScript types:** Run the typegen workflow (`sanity schema extract` then `sanity typegen generate`), and if VS Code still shows stale types, restart the TS server (Cmd+Shift+P → "TypeScript: Restart TS Server").
 

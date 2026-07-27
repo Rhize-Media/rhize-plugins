@@ -1,3 +1,7 @@
+---
+description: Session bookend — post-implementation validation, verifier pass, and STATE.md update before commit
+---
+
 # Post-Implementation Validation
 
 Complete validation after finishing a feature or bug fix.

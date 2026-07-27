@@ -1,0 +1,56 @@
+# rhize-context-manager — User Guide
+
+## What problem does this solve?
+
+Long agent sessions degrade: context fills up, the same knowledge gets injected twice by
+competing tools, and nobody remembers which memory layer a fact lives in. This plugin
+makes the context stack *legible* — one place that knows every layer, routes knowledge to
+the right one, and health-checks the whole thing.
+
+## When to reach for what
+
+- **"Which tool should hold this knowledge?" / "set up context tooling for this repo"**
+  → the `context-stack` skill answers routing questions.
+  *Example: "Where should the client's evolving pricing decisions live — claude-mem, the vault, or Graphiti?"*
+
+- **"Session start feels slow" / "I'm seeing the same context twice"**
+  → `/context-doctor` — read-only health check + overlap flags across Headroom, RTK,
+  claude-mem, OpenWolf, Serena/CodeGraph.
+  *Example: "Run /context-doctor — rhize-salesforce felt sluggish this morning."*
+
+- **"Start / where were we / save context / context is getting heavy"**
+  → the `context-engineering` skill (sessions, memory extraction, hygiene). This moved
+  here from rhize-devflow; all triggers work as before.
+
+- **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
+  remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
+
+- **"We need queryable long-term memory with relationships and time"**
+  → the `graphiti-memory` skill walks through opt-in Graphiti adoption (backend, MCP
+  wiring, usage patterns). Nothing is installed automatically.
+
+- **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
+  should I compress? how do I budget tokens across subagents?) → the curated library:
+  `context-fundamentals`, `context-degradation`, `context-compression`,
+  `context-optimization`, `memory-systems`, `filesystem-context`, `tool-design`,
+  `iterative-retrieval`, `strategic-compact`, `context-budget`, `token-budget-advisor`.
+
+## Tips
+
+- Run `/context-doctor` when adopting a new repo or after installing/removing any stack
+  tool — overlap problems appear at those boundaries.
+- The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
+  tells you when upstreams have moved.
+- Graphiti is approved for Rhize adoption but needs its backend stood up first — until
+  then `graphiti-memory` is the design reference, not a working integration.
+
+## Troubleshooting
+
+- **/graphify fires twice or behaves oddly** → you still have the old user-level skill;
+  delete `~/.claude/skills/graphify`.
+- **Doctor says a layer is "dead" that you expect alive** → check the tool's own logs
+  first (`~/.headroom/guard.log`, claude-mem dashboard `localhost:37777`, `.wolf/`
+  ledgers) before reconfiguring; the doctor is read-only and only reports.
+- **Duplicate context injection** → per the coexistence policy, prefer dropping the
+  per-repo memory layer (OpenWolf) over the global one (claude-mem) unless the repo
+  actively uses OpenWolf's correction hooks.

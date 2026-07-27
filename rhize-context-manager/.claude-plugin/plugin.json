@@ -1,0 +1,25 @@
+{
+  "name": "rhize-context-manager",
+  "version": "0.1.0",
+  "description": "Context engineering and optimization plugin — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom wire compression, claude-mem global memory, OpenWolf per-repo indexing, Serena/CodeGraph semantic code navigation, RTK CLI compression, graphify knowledge graphs, opt-in Graphiti temporal memory) and ships a curated, safety-gated skill library covering context fundamentals, degradation, compression, optimization, retrieval, budgeting, and memory systems.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "context-engineering",
+    "context-compression",
+    "context-optimization",
+    "memory",
+    "retrieval",
+    "knowledge-graph",
+    "headroom",
+    "claude-mem",
+    "serena",
+    "graphify",
+    "graphiti",
+    "openwolf",
+    "token-budget",
+    "rhize"
+  ]
+}

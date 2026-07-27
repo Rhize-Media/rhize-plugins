@@ -1,3 +1,7 @@
+---
+description: Pre-feature impact mapping — map dependencies against the component registry before implementing changes
+---
+
 # Impact Map
 
 Map dependencies before implementing new features or making changes.

@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — context-engineering, error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
+            "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
             "timeout": 5
           }
         ]

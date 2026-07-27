@@ -1,3 +1,7 @@
+---
+description: Session bookend — initialize a development session with full context loading (STATE.md, memory, session log)
+---
+
 # Session Start
 
 Initialize a new development session with full context loading.

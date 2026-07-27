@@ -14,9 +14,12 @@
 #   Add to your .claude/settings.json hooks section:
 #   {
 #     "hooks": {
-#       "session_end": "skill-refinement/hooks/session-end.sh"
+#       "session_end": "<path-to-this-file>/session-end.sh"
 #     }
 #   }
+#
+# Note: skill refinement now ships as `skill-forge refine` in the @rhize/skill-forge
+# npm package (npx @rhize/skill-forge refine) — the rhize-meta plugin is retired.
 #
 # Environment variables (set by Claude Code):
 #   SESSION_TOOL_CALLS - Number of tool calls in session
@@ -80,7 +83,7 @@ $(echo -e "$REASONS")
   • Duration: $((DURATION / 60)) minutes
 
 Any skill refinements to capture from this session?
-  → Run /refine-skills to document improvements
+  → Run: npx @rhize/skill-forge refine
   → Or say "no refinements" to skip
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

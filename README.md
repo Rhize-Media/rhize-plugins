@@ -19,7 +19,8 @@ All plugins below will become available for installation. Each plugin may need i
 | [seo-aeo-geo](./seo-aeo-geo) | SEO, AEO, and GEO auditing/optimization powered by DataForSEO, plus Next.js + Sanity SEO code review | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
 | [obsidian-second-brain](./obsidian-second-brain) | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, semantic search | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
 | [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | Development-workflow skill set — context/session engineering, production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | Development-workflow skill set — production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | Context engineering & optimization — compression, management, retrieval, storage; orchestrates Headroom/claude-mem/OpenWolf/Serena/CodeGraph/graphify (+ opt-in Graphiti), session-lifecycle commands, curated gated skill library | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
 | [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 
 ### Plugin-specific prerequisites
@@ -32,7 +33,7 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
-The other plugins (project-launcher, rhize-devflow, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out.
+The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
 
 ## Documentation Hierarchy
 
@@ -53,7 +54,7 @@ This repo uses one convention consistently across every plugin — know it once,
 
 ## Repository Tooling
 
-- **[`evals/`](./evals/README.md)** — a Python eval harness that measures trigger accuracy (does the right skill fire on the right prompt) and output quality for plugins. Coverage is currently partial: `seo-aeo-geo` and `obsidian-second-brain` have eval suites; the other four plugins don't yet (see `ROADMAP.md`).
+- **[`evals/`](./evals/README.md)** — a Python eval harness that measures trigger accuracy (does the right skill fire on the right prompt) and output quality for plugins. Coverage is currently partial: `seo-aeo-geo` and `obsidian-second-brain` have eval suites; the other plugins don't yet (see `ROADMAP.md`).
 - **[`skills/rhize-review/SKILL.md`](./skills/rhize-review/SKILL.md)** — a standalone merge-gate review skill that lives at the repo root, outside any plugin. It isn't installed through the marketplace and isn't listed in `marketplace.json`; it's a repo-local tool that dispatches specialist reviewer subagents before a production merge.
 
 ## Repository Layout
@@ -66,6 +67,7 @@ rhize-plugins/
 ├── obsidian-second-brain/         # Plugin: Obsidian vault toolkit
 ├── project-launcher/              # Plugin: project research → PRD → scaffold
 ├── rhize-devflow/                 # Plugin: dev workflow
+├── rhize-context-manager/         # Plugin: context engineering & optimization
 ├── rhize-ops/                     # Plugin: internal ops
 ├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
 ├── evals/                         # Trigger/quality eval harness

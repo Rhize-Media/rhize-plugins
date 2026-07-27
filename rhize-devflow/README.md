@@ -8,7 +8,6 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 
 | Skill | What it does |
 |-------|--------------|
-| `context-engineering` | Session/memory lifecycle, context hygiene, impact mapping |
 | `error-lifecycle-management` | Production error triage, RCA, Sentry↔Vercel deploy correlation |
 | `data-mutation-consistency` | Cache-tag ↔ query-key alignment across Next.js/Sanity/Payload/Supabase |
 | `sentry-instrumentation` | Rhize conventions for captureException, spans, structured logging |
@@ -16,13 +15,18 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 | `sanity-development` | Rhize house style for Sanity schema/GROQ/TypeGen/next-sanity |
 | `dev-flow-foundations` | Dependency graphs, component registry, regression prevention |
 
-> The `skill-refinement` meta-skill moved to the **`rhize-meta`** plugin (2026-06-15). External-skill
-> vetting later moved on to the `@rhize/skill-forge` npm package (2026-07-20).
+> The `skill-refinement` meta-skill moved to the `rhize-meta` plugin (2026-06-15), then on to the
+> `@rhize/skill-forge` npm package as `skill-forge refine` (2026-07-20); external-skill vetting made
+> the same npm-package move earlier the same day. The `rhize-meta` plugin is retired.
 
 ## Commands
 
-`/rhize-devflow:` start · done · impact-map · context-hygiene · mutation-analyze · mutation-check ·
+`/rhize-devflow:` mutation-analyze · mutation-check ·
 mutation-fix · browser-debug · browser-help · browser-perf · browser-test
+
+> **Moved:** context/session engineering (the `context-engineering` skill and its `start`, `done`,
+> `context-hygiene`, and `impact-map` commands) now lives in the
+> [`rhize-context-manager`](../rhize-context-manager/README.md) plugin.
 
 ## Install
 
@@ -41,8 +45,9 @@ them, so nothing untested fires automatically.
 ## Lineage
 
 Migrated from `~/dev-local/CLAUDE-SKILLS` (archived 2026-06). The `skill-refinement` meta-skill
-was promoted to the `rhize-meta` plugin (2026-06-15); external-skill vetting moved on to the
-`@rhize/skill-forge` npm package (2026-07-20).
+was promoted to the `rhize-meta` plugin (2026-06-15), then, along with `rhize-meta`'s external-skill
+vetting, moved on to the `@rhize/skill-forge` npm package (2026-07-20 — `skill-forge refine` /
+`npx @rhize/skill-forge`). `rhize-meta` no longer exists in this marketplace.
 
 ## Compounding Persistence Layer (v2.4.0)
 
