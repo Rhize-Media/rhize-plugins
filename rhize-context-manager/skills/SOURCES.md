@@ -89,6 +89,7 @@ One entry per external-skill ingestion decision.
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for iterative-retrieval`
 - **Notes:** gate: safety=pass, overlap nearest=context-optimization (0.131)
+- **RETIRED 2026-07-28:** removed from this plugin. `ecc@everything-claude-code` is enabled and ships this skill, so the copy was a duplicate that competed for the same invocations — content identical to upstream except frontmatter indentation. Per the marketplace curation rule, Rhize skills close gaps in proven plugins rather than re-shipping them; upstream now owns this outright.
 
 ## strategic-compact — 2026-07-20
 - **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/everything-claude-code/skills/strategic-compact
@@ -100,6 +101,7 @@ One entry per external-skill ingestion decision.
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for strategic-compact`
 - **Notes:** gate: safety=pass, overlap nearest=context-compression (0.134)
+- **RETIRED 2026-07-28:** removed from this plugin. `ecc@everything-claude-code` is enabled and ships this skill, so the copy was a duplicate that competed for the same invocations — fork had DRIFTED BEHIND upstream — ecc 2.0.0 gained a context-size primary signal with window-scaled thresholds (160k/200k, 250k/1M) and COMPACT_CONTEXT_THRESHOLD/INTERVAL; this copy still had the old tool-count-only logic. Per the marketplace curation rule, Rhize skills close gaps in proven plugins rather than re-shipping them; upstream now owns this outright.
 
 ## context-budget — 2026-07-20
 - **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/everything-claude-code/skills/context-budget
@@ -111,6 +113,7 @@ One entry per external-skill ingestion decision.
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-budget`
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.065)
+- **RETIRED 2026-07-28:** removed from this plugin. `ecc@everything-claude-code` is enabled and ships this skill, so the copy was a duplicate that competed for the same invocations — content identical to upstream except frontmatter indentation. Per the marketplace curation rule, Rhize skills close gaps in proven plugins rather than re-shipping them; upstream now owns this outright.
 
 ## token-budget-advisor — 2026-07-20
 - **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/everything-claude-code/skills/token-budget-advisor
@@ -122,3 +125,4 @@ One entry per external-skill ingestion decision.
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for token-budget-advisor`
 - **Notes:** gate: safety=pass, overlap nearest=context-engineering (0.032)
+- **RETIRED 2026-07-28:** removed from this plugin. `ecc@everything-claude-code` is enabled and ships this skill, so the copy was a duplicate that competed for the same invocations — content identical to upstream except frontmatter indentation. Per the marketplace curation rule, Rhize skills close gaps in proven plugins rather than re-shipping them; upstream now owns this outright.
