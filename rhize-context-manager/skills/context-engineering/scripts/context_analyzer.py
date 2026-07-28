@@ -42,16 +42,55 @@ class ContextRecommendation:
 class ContextAnalyzer:
     """Analyzes context usage and provides recommendations."""
     
-    # Approximate context limits by model
-    CONTEXT_LIMITS = {
-        "claude": 200_000,
+    STANDARD_WINDOW = 200_000
+    LARGE_WINDOW = 1_000_000
+
+    # Last-resort limits keyed by model FAMILY. These are guesses, not facts —
+    # see resolve_context_limit() for why a family name cannot size a window.
+    FALLBACK_LIMITS = {
+        "claude": STANDARD_WINDOW,
         "gpt4": 128_000,
         "default": 100_000
     }
-    
-    def __init__(self, model: str = "claude"):
+
+    def __init__(self, model: str = "claude", observed_tokens: int = 0):
         self.model = model
-        self.context_limit = self.CONTEXT_LIMITS.get(model, self.CONTEXT_LIMITS["default"])
+        self.context_limit = self.resolve_context_limit(model, observed_tokens)
+
+    @classmethod
+    def resolve_context_limit(cls, model: str = "claude", observed_tokens: int = 0) -> int:
+        """Resolve the usable context window, strongest signal first.
+
+        A model FAMILY name cannot size the window: claude-opus-5 is 1M while
+        older models share the same "claude" prefix. Dividing by the family
+        guess reports ~5x the true usage percent and fires false compact
+        warnings for the entire run below 200k. Order:
+          1. explicit env override -- same vars ECC's suggest-compact hook
+             reads, so the two never disagree about the same session
+          2. the `[1m]` marker some model ids carry
+          3. observed usage already past the standard window
+          4. family fallback (may be wrong; prefer 1-3)
+        """
+        for var in ("ECC_CONTEXT_WINDOW_TOKENS", "CLAUDE_CODE_AUTO_COMPACT_WINDOW"):
+            raw = (os.environ.get(var) or "").strip()
+            if raw.isdigit() and int(raw) > 0:
+                return int(raw)
+
+        if isinstance(model, str) and "[1m]" in model.lower():
+            return cls.LARGE_WINDOW
+
+        if observed_tokens > cls.STANDARD_WINDOW:
+            return cls.LARGE_WINDOW
+
+        # Match the family by substring, not exact key: real ids look like
+        # "claude-opus-5" / "gpt-4o", which an exact .get() would silently drop
+        # to the 100k default -- understating the window instead of overstating
+        # it, but just as wrong.
+        family = "".join(ch for ch in (model or "").lower() if ch.isalnum())
+        for key, limit in cls.FALLBACK_LIMITS.items():
+            if key != "default" and key in family:
+                return limit
+        return cls.FALLBACK_LIMITS["default"]
     
     def estimate_tokens(self, text: str) -> int:
         """Estimate token count (roughly 4 chars per token)."""

@@ -19,6 +19,10 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [ ] Explore `obsidian eval` for deeper plugin configuration inspection during setup
 - [ ] Investigate Obsidian URI scheme for plugin install links (obsidian://show-plugin?id=dataview)
 
+### rhize-context-manager
+- [ ] Replace the ingested `strategic-compact` skill's ECC hook (`suggest-compact.js`) with a Rhize-owned equivalent. The upstream hook sizes the context window by sniffing the model id for a `[1m]` marker; Opus 5 carries a 1M window with no marker, so the hook divides ~195k by 200k and reports **97% when the true figure is 20%** — a false compact warning on every turn below 200k. It self-corrects only above 200k (its `tokens > 200_000 → assume 1M` fallback), so the error is invisible from the message alone. `context_analyzer.py`'s `resolve_context_limit()` already implements the correct precedence and is the reference. Interim mitigation: set `ECC_CONTEXT_WINDOW_TOKENS` in `~/.claude/settings.json` — the upstream hook honors it first.
+- [ ] Decide the home for the replacement: a plugin hook, or a `@rhize/skill-forge` subcommand invoked from a thin hook (per the marketplace's move-capability-to-the-npm-CLI direction). A PreToolUse hook shelling out to `npx` on every tool call has a real latency cost worth measuring first.
+
 ### seo-aeo-geo
 - [ ] (none yet)
 

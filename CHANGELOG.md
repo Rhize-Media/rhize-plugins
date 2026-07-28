@@ -13,6 +13,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 
 - **rhize-devflow (2.5.0):** the `context-engineering` skill and its four session-lifecycle commands (`/start`, `/done`, `/context-hygiene`, `/impact-map`) moved to the new `rhize-context-manager` plugin. Breaking for command invocations: `/rhize-devflow:start` → `/rhize-context-manager:start` (same for the other three). rhize-devflow keeps error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style, and dev-flow foundations.
+### Fixed
+
+- **rhize-context-manager:** `context-engineering`'s `context_analyzer.py` no longer sizes the context window from a model-family name. `CONTEXT_LIMITS = {"claude": 200_000}` cannot express Opus 5's 1M window, so any usage percentage derived from it overstated consumption ~5x and would have fired false "approaching limit" warnings for an entire run. Replaced with `resolve_context_limit()`, which reads the strongest available signal first: the `ECC_CONTEXT_WINDOW_TOKENS` / `CLAUDE_CODE_AUTO_COMPACT_WINDOW` env override (the same vars ECC's `suggest-compact` hook honors, so the two can never disagree about one session), then a `[1m]` marker in the model id, then observed usage already past 200k, and only then the family fallback. The family lookup also became a substring match — the old exact-key `.get()` dropped real ids like `claude-opus-5` to the 100k `default`, understating the window. The limit was assigned-but-never-read, so this was a latent defect, not an active one; it is fixed ahead of anyone wiring the percentage up. **Note:** the ingested `strategic-compact` skill carries the same upstream defect in its own hook — see the open item in `ROADMAP.md`.
 
 ### Removed
 
