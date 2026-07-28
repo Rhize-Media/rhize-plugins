@@ -46,6 +46,47 @@ token-budget-advisor), memory (memory-systems, graphiti-memory), degradation
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
 | `/impact-map` | Pre-feature impact mapping against the component registry (moved from rhize-devflow) |
 
+## Hooks
+
+| Hook | Event | Purpose |
+|---|---|---|
+| `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
+
+### Why this replaces ECC's `suggest-compact`
+
+ECC's hook sizes the window by sniffing the model id for a literal `[1m]`
+marker, defaulting to 200k. Opus 5 has a 1M window and carries no marker, so it
+divided ~195k by 200k and reported **97% when the true figure was 20%** —
+verified against the client's own context readout on 2026-07-28. It self-corrects
+only above 200k (its `tokens > 200_000 → assume 1M` fallback), so it is wrong for
+the entire run below that and the error is invisible from the message alone.
+
+A marker sniff can only detect windows a model id happens to advertise. This
+hook resolves in strongest-signal-first order — env override → `[1m]` marker →
+**verified known-model table** → observed-usage evidence → 200k default — and
+the table is the part upstream structurally cannot have.
+
+**Both hooks will fire unless you disable ECC's.** Add to `~/.claude/settings.json`:
+
+```json
+"env": { "ECC_DISABLED_HOOKS": "pre:edit-write:suggest-compact" }
+```
+
+### Maintaining the known-model table
+
+`KNOWN_WINDOWS` in the hook is deliberately sparse — it holds only entries
+confirmed against a client readout or vendor docs. A wrong entry is worse than
+no entry, because it outranks the observed-usage evidence beneath it. An
+unlisted model degrades to the same heuristics ECC used, which is today's
+behaviour, not a regression.
+
+Verify any change with the built-in self-test (9 cases, including the exact
+197.3k-on-Opus-5 regression):
+
+```bash
+node hooks/context-window-monitor.js --self-test
+```
+
 ## The stack this plugin orchestrates
 
 | Tool | Layer | Install (external) |

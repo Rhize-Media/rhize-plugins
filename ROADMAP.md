@@ -20,8 +20,10 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [ ] Investigate Obsidian URI scheme for plugin install links (obsidian://show-plugin?id=dataview)
 
 ### rhize-context-manager
-- [ ] Replace the ingested `strategic-compact` skill's ECC hook (`suggest-compact.js`) with a Rhize-owned equivalent. The upstream hook sizes the context window by sniffing the model id for a `[1m]` marker; Opus 5 carries a 1M window with no marker, so the hook divides ~195k by 200k and reports **97% when the true figure is 20%** — a false compact warning on every turn below 200k. It self-corrects only above 200k (its `tokens > 200_000 → assume 1M` fallback), so the error is invisible from the message alone. `context_analyzer.py`'s `resolve_context_limit()` already implements the correct precedence and is the reference. Interim mitigation: set `ECC_CONTEXT_WINDOW_TOKENS` in `~/.claude/settings.json` — the upstream hook honors it first.
-- [ ] Decide the home for the replacement: a plugin hook, or a `@rhize/skill-forge` subcommand invoked from a thin hook (per the marketplace's move-capability-to-the-npm-CLI direction). A PreToolUse hook shelling out to `npx` on every tool call has a real latency cost worth measuring first.
+- [x] Replace ECC's `suggest-compact` hook with a Rhize-owned equivalent — `hooks/context-window-monitor.js`. Upstream sized the window by sniffing the model id for a `[1m]` marker; Opus 5 has 1M and no marker, so it reported **97% where the truth was 20%**, wrong for every turn below 200k and self-correcting only above it. Replacement resolves env → marker → verified known-model table → observed evidence → 200k. 9-case self-test, verified end-to-end against a live transcript.
+- [x] Decide the replacement's home — **plugin hook**, not a `@rhize/skill-forge` subcommand. The npm-CLI direction is right for user-invoked capability, but a `PreToolUse` hook pays an `npx` spawn on every matching tool call; a vendored node script has no such cost and versions with the marketplace.
+- [ ] Extend `KNOWN_WINDOWS` beyond `claude-opus-5` as other model windows are confirmed. Deliberately sparse — an unverified entry outranks the observed-usage evidence beneath it, so a wrong entry is worse than a missing one.
+- [ ] Consider widening the hook matcher past `Edit|Write`. Read/Bash results are the largest context consumers, but every added matcher is another node spawn; measure before broadening.
 
 ### seo-aeo-geo
 - [ ] (none yet)

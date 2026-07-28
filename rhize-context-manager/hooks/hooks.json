@@ -1,0 +1,17 @@
+{
+  "description": "rhize-context-manager — context-window monitor. Replaces ECC's `pre:edit-write:suggest-compact`, which sized the window by sniffing the model id for a `[1m]` marker and so reported 97% usage on a 1M-window Opus 5 session that was really at 20%. This hook resolves the window from a verified known-model table first. Scoped to Edit|Write for parity with the hook it replaces, keeping the node spawn off every Read/Bash call. Disable ECC's version (ECC_DISABLED_HOOKS=pre:edit-write:suggest-compact) or the two will both fire.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-window-monitor.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
