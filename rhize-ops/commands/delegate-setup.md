@@ -5,9 +5,10 @@ Interview-driven setup wizard for the `delegate-to-teammate` skill. Writes
 path and outside this repo entirely, so it survives plugin updates/reinstalls and never gets
 published if you fork or contribute back to this plugin.
 
-Run this once before first using `delegate-to-teammate`, or any time you want to update the
-recipient, refresh the project map, or fix a stale ID. This wizard supports exactly **one**
-recipient — it is not designed for delegating to multiple different people from the same config.
+Run this once before first using `delegate-to-teammate`, or any time you want to update a
+recipient, add another teammate, refresh the project map, or fix a stale ID. This wizard
+supports **multiple** recipients — each teammate gets their own key under `recipients`, and
+`defaultRecipient` picks which one is used when the delegator doesn't name a person.
 
 ## Steps
 
@@ -16,9 +17,18 @@ recipient — it is not designed for delegating to multiple different people fro
 Look for `$HOME/.claude/rhize-ops/delegate.config.json`.
 
 - If it exists, show a summary (see the safe-summary format in step 8) and ask via
-  AskUserQuestion whether the user wants to: **replace it** (start fresh), **update selected
-  fields** (e.g. just the project mapping, or just the recipient), or **cancel**.
-- If it doesn't exist, proceed with a fresh setup.
+  AskUserQuestion whether the user wants to: **add another teammate** (append a new entry to
+  `recipients`, optionally changing `defaultRecipient`), **replace it** (start fresh),
+  **update selected fields** (e.g. just the project mapping, or just one recipient), or
+  **cancel**.
+- If the existing file is in the legacy single-`recipient` shape (pre-0.4.0 — a top-level
+  `recipient` object instead of `recipients`), treat this run as a **migration**: convert it to
+  `recipients: { default: <existing recipient> }` with `defaultRecipient: "default"`, moving the
+  legacy top-level `slack.channel`/`slack.channelId` onto that recipient's own `recipient.slack`
+  object (top-level `slack` keeps only `status`/`workspace`). Do this before applying whatever
+  the user asked for in this run (add/replace/update).
+- If it doesn't exist, proceed with a fresh setup for a single recipient (becomes the first entry
+  under `recipients`, and `defaultRecipient`).
 
 ### 2. Ask who the recipient is
 
@@ -27,6 +37,10 @@ Use AskUserQuestion (free text) for:
 - **Email**
 - **Role summary** — one sentence on what they own (e.g. "handles marketing, ads, and sales, and
   is growing into technical work")
+
+When adding a teammate to an existing config, also ask for a short lowercase key to file them
+under in `recipients` (e.g. `jane-doe`), and whether they should become the new
+`defaultRecipient` or stay a named-only recipient.
 
 ### 3. Ask about their technical context
 
@@ -38,16 +52,20 @@ Ask (free text, can skip):
 
 ### 4. Look up Jira identifiers (don't make the user hunt for these manually)
 
+`jira.cloudId`, `jira.baseUrl`, and `jira.defaultLabels` are workspace-scoped — resolve them once
+per workspace, not per recipient. When adding a teammate to a config where `jira.status` is
+already `"ready"`, skip straight to step 2 below for the new recipient only.
+
 If the Atlassian MCP is connected:
 1. Call `getAccessibleAtlassianResources` to get the cloud ID and base URL — present the result
-   and confirm with the user rather than asking them to paste it blind.
-2. Call `lookupJiraAccountId` (or `atlassianUserInfo` if searching by email) to resolve the
-   recipient's Jira account ID from their email.
+   and confirm with the user rather than asking them to paste it blind. (Skip if already set.)
+2. Call `lookupJiraAccountId` (or `atlassianUserInfo` if searching by email) to resolve this
+   recipient's Jira account ID from their email, and store it on `recipients.<key>.jiraAccountId`.
 3. Call `getVisibleJiraProjects` to list every project the user can see, and ask the user to
    group them into `client` / `internal` / `service` categories (per `projectMapping` in the
    schema) with a one-line note each. This can be done a few at a time — the config can be
-   extended later by re-running this command.
-4. Ask what default labels new issues should get (default: `["delegated"]`).
+   extended later by re-running this command. (Skip if `projectMapping` is already populated.)
+4. Ask what default labels new issues should get (default: `["delegated"]`). (Skip if already set.)
 5. Mark `jira.status` as `"ready"`.
 
 If the Atlassian MCP isn't connected, or any required field couldn't be resolved/confirmed, do
@@ -57,10 +75,16 @@ issue creation will be skipped until they connect the Atlassian MCP and re-run t
 
 ### 5. Look up Slack identifiers
 
+`slack.workspace` (top-level) is workspace-scoped and resolved once. The notification **channel**
+is per-recipient (`recipients.<key>.slack.channel`/`channelId`) — every teammate can post to a
+different channel.
+
 If the Slack MCP is connected:
-1. Ask which channel delegated tasks should post to, then use `slack_search_channels` to resolve
-   its channel ID and workspace.
-2. Use `slack_search_users` to resolve the recipient's Slack member ID from their name/email.
+1. Ask which channel THIS recipient's delegated tasks should post to, then use
+   `slack_search_channels` to resolve its channel ID, and store both on
+   `recipients.<key>.slack`. Resolve the workspace name once (skip if already set).
+2. Use `slack_search_users` to resolve this recipient's Slack member ID from their name/email,
+   and store it on `recipients.<key>.slackUserId`.
 3. Mark `slack.status` as `"ready"`.
 
 If the Slack MCP isn't connected, or the channel/user couldn't be resolved, set `slack.status` to
@@ -84,18 +108,27 @@ Assemble everything into the shape defined by `rhize-ops/skills/delegate-to-team
   than writing the target file directly.
 - Set the file's permissions to `600` (user read/write only) after writing.
 
-There is exactly one `recipient` object — never structure this as an array or offer to append a
-second recipient.
+`recipients` is a map keyed by the short lowercase key from step 2 — adding a teammate means
+adding a new key to this map (and, if the user said so, updating `defaultRecipient`), never
+overwriting an existing entry unless the user chose "update" in step 1. `defaultRecipient` must
+always point at a key that exists in `recipients`.
+
+**Migration note:** if step 1 detected a legacy single-`recipient` config, this is where the
+migration actually happens — write the new shape (`recipients: { default: <old recipient> }`,
+`defaultRecipient: "default"`, top-level `slack` trimmed to `status`/`workspace`, the old
+top-level `slack.channel`/`channelId` moved onto `recipients.default.slack`) instead of the old
+shape, even if the user only asked to "add a teammate" or "update the project mapping" — every
+write of this file uses the current schema.
 
 ### 8. Confirm
 
 Do **not** echo the full file contents back into the conversation by default — some of these
 values are internal identifiers you don't need to redisplay every time. Show a **safe summary**
 instead:
-- Recipient name
+- Recipient names, with the `defaultRecipient` one marked (e.g. "Jane Doe (default), Tom Cassidy")
 - Integration status: Jira `ready`/`incomplete`, Slack `ready`/`incomplete`
 - Jira tenant hostname only (not the cloud ID or account ID)
-- Slack workspace/channel name only (not the member/channel ID)
+- Slack workspace name, and each recipient's channel name (not the member/channel IDs)
 - Number of mapped projects
 - Config file path
 

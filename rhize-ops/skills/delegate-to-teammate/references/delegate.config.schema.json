@@ -2,39 +2,22 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rhize-Media/rhize-plugins/rhize-ops/delegate.config.schema.json",
   "title": "delegate-to-teammate configuration",
-  "description": "Written by /rhize-ops:delegate-setup to $HOME/.claude/rhize-ops/delegate.config.json — outside this repo, never committed. This file is the schema/documentation only; it contains no real values.",
+  "description": "Written by /rhize-ops:delegate-setup to $HOME/.claude/rhize-ops/delegate.config.json — outside this repo, never committed. This file is the schema/documentation only; it contains no real values. Supports multiple teammates: each key under `recipients` is a delegation target, `defaultRecipient` names which one to use when the delegator doesn't name a person. Legacy single-`recipient` configs (pre-0.4.0) are treated as `recipients: { default: <that recipient> }` — see the skill's SKILL.md for the compat shim.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["recipient", "jira", "slack", "projectMapping", "inferenceRules"],
+  "required": ["defaultRecipient", "recipients", "jira", "slack", "projectMapping", "inferenceRules"],
   "properties": {
-    "recipient": {
+    "defaultRecipient": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Key into `recipients` used when the delegator doesn't name a specific teammate. Must match an existing key in `recipients`."
+    },
+    "recipients": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "email", "roleSummary"],
-      "properties": {
-        "name": { "type": "string", "minLength": 1, "description": "The recipient's full name." },
-        "email": { "type": "string", "format": "email", "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
-        "jiraAccountId": {
-          "type": ["string", "null"],
-          "pattern": "^([0-9]+:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{24})$",
-          "description": "Resolved via the Jira MCP's account lookup — required when jira.status is 'ready'. Matches both the legacy 'numeric:uuid' format (Server/Data Center-migrated accounts) and the 24-char hex format (Cloud-native accounts)."
-        },
-        "slackUserId": {
-          "type": ["string", "null"],
-          "pattern": "^U[A-Z0-9]{8,}$",
-          "description": "Resolved via the Slack MCP's user search — required when slack.status is 'ready'."
-        },
-        "roleSummary": { "type": "string", "minLength": 1 },
-        "technicalContext": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "knowsWell": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
-            "learning": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
-            "writingTone": { "type": "string", "minLength": 1 }
-          }
-        }
-      }
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/recipient" },
+      "description": "Map of recipient key -> recipient object. Keys are short lowercase identifiers (e.g. \"jane-doe\") used internally and matched against when a user names a teammate; the recipient's `name` field is matched case-insensitively against what the delegator types."
     },
     "jira": {
       "type": "object",
@@ -66,15 +49,14 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["status"],
+      "description": "Workspace-scoped Slack fields only. The notification channel is per-recipient — see `recipients.<key>.slack`.",
       "properties": {
         "status": {
           "type": "string",
           "enum": ["ready", "incomplete", "disabled"],
-          "description": "ready = MCP connected and channel/user resolved+confirmed. incomplete = MCP absent or unresolved — skip chat notification. disabled = deliberately opted out."
+          "description": "ready = MCP connected and workspace resolved+confirmed. incomplete = MCP absent or unresolved — skip chat notification. disabled = deliberately opted out."
         },
-        "workspace": { "type": ["string", "null"], "minLength": 1 },
-        "channel": { "type": ["string", "null"], "pattern": "^#[a-z0-9_-]+$" },
-        "channelId": { "type": ["string", "null"], "pattern": "^C[A-Z0-9]{8,}$" }
+        "workspace": { "type": ["string", "null"], "minLength": 1 }
       }
     },
     "projectMapping": {
@@ -95,6 +77,44 @@
     }
   },
   "$defs": {
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "email", "roleSummary"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "The recipient's full name. Matched case-insensitively when a delegator names a teammate." },
+        "email": { "type": "string", "format": "email", "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
+        "jiraAccountId": {
+          "type": ["string", "null"],
+          "pattern": "^([0-9]+:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9a-fA-F]{24})$",
+          "description": "Resolved via the Jira MCP's account lookup — required when jira.status is 'ready'. Matches both the legacy 'numeric:uuid' format (Server/Data Center-migrated accounts) and the 24-char hex format (Cloud-native accounts)."
+        },
+        "slackUserId": {
+          "type": ["string", "null"],
+          "pattern": "^U[A-Z0-9]{8,}$",
+          "description": "Resolved via the Slack MCP's user search — required when slack.status is 'ready'."
+        },
+        "roleSummary": { "type": "string", "minLength": 1 },
+        "slack": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "This recipient's own notification channel — required when the top-level slack.status is 'ready'.",
+          "properties": {
+            "channel": { "type": ["string", "null"], "pattern": "^#[a-z0-9_-]+$" },
+            "channelId": { "type": ["string", "null"], "pattern": "^C[A-Z0-9]{8,}$" }
+          }
+        },
+        "technicalContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "knowsWell": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+            "learning": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+            "writingTone": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
     "projectList": {
       "type": "array",
       "uniqueItems": true,
@@ -122,9 +142,11 @@
               "baseUrl": { "type": "string" }
             }
           },
-          "recipient": {
-            "required": ["jiraAccountId"],
-            "properties": { "jiraAccountId": { "type": "string" } }
+          "recipients": {
+            "additionalProperties": {
+              "required": ["jiraAccountId"],
+              "properties": { "jiraAccountId": { "type": "string" } }
+            }
           }
         }
       }
@@ -134,19 +156,64 @@
       "then": {
         "properties": {
           "slack": {
-            "required": ["workspace", "channel", "channelId"],
+            "required": ["workspace"],
             "properties": {
-              "workspace": { "type": "string" },
-              "channel": { "type": "string" },
-              "channelId": { "type": "string" }
+              "workspace": { "type": "string" }
             }
           },
-          "recipient": {
-            "required": ["slackUserId"],
-            "properties": { "slackUserId": { "type": "string" } }
+          "recipients": {
+            "additionalProperties": {
+              "required": ["slackUserId", "slack"],
+              "properties": {
+                "slackUserId": { "type": "string" },
+                "slack": {
+                  "required": ["channel", "channelId"],
+                  "properties": {
+                    "channel": { "type": "string" },
+                    "channelId": { "type": "string" }
+                  }
+                }
+              }
+            }
           }
         }
       }
+    }
+  ],
+  "examples": [
+    {
+      "defaultRecipient": "jane-doe",
+      "recipients": {
+        "jane-doe": {
+          "name": "Jane Doe",
+          "email": "jane@example.com",
+          "jiraAccountId": "5f8a1b2c3d4e5f6a7b8c9d0e",
+          "slackUserId": "U01EXAMPLE1",
+          "roleSummary": "Handles marketing and client site updates.",
+          "slack": { "channel": "#jane-tasks", "channelId": "C01EXAMPLE1" },
+          "technicalContext": {
+            "knowsWell": ["Marketing campaigns"],
+            "learning": ["Next.js basics"],
+            "writingTone": "Direct and encouraging — explain the why, give exact commands."
+          }
+        }
+      },
+      "jira": {
+        "status": "ready",
+        "cloudId": "00000000-0000-0000-0000-000000000000",
+        "baseUrl": "https://example.atlassian.net",
+        "defaultLabels": ["delegated-by-example"]
+      },
+      "slack": { "status": "ready", "workspace": "example-workspace" },
+      "projectMapping": {
+        "client": [{ "key": "EX1", "name": "Example Client", "notes": "Website updates" }],
+        "internal": [{ "key": "INT", "name": "Internal Tooling", "notes": "Internal dev work" }],
+        "service": [{ "key": "SVC", "name": "Service Desk", "notes": "Support requests" }]
+      },
+      "inferenceRules": [
+        "Marketing tasks -> default to the internal marketing project",
+        "If ambiguous -> ask the delegator to clarify"
+      ]
     }
   ]
 }
