@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.0.0",
-  "description": "Curated Claude plugins by Rhize Media \u2014 SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
+  "version": "2.0.1",
+  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
   },
@@ -26,8 +26,8 @@
     {
       "name": "obsidian-second-brain",
       "source": "./obsidian-second-brain",
-      "description": "Second brain toolkit for Obsidian vaults \u2014 knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
-      "version": "1.1.3",
+      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
+      "version": "1.1.4",
       "author": {
         "name": "Rhize Media"
       },
@@ -49,7 +49,7 @@
     {
       "name": "project-launcher",
       "source": "./project-launcher",
-      "description": "End-to-end project launcher \u2014 research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
+      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
       "version": "1.5.1",
       "author": {
         "name": "Rhize Media"
@@ -71,7 +71,7 @@
     {
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
-      "description": "Rhize development-workflow skill set \u2014 production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager.",
+      "description": "Rhize development-workflow skill set — production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager.",
       "version": "2.5.0",
       "author": {
         "name": "Rhize Media"
@@ -89,7 +89,7 @@
     {
       "name": "rhize-context-manager",
       "source": "./rhize-context-manager",
-      "description": "Context engineering and optimization \u2014 compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them.",
+      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them.",
       "version": "0.1.0",
       "author": {
         "name": "Rhize Media"
@@ -111,7 +111,7 @@
     {
       "name": "rhize-ops",
       "source": "./rhize-ops",
-      "description": "Operations skill set \u2014 delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
+      "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
       "version": "0.3.1",
       "author": {
         "name": "Rhize Media"

@@ -96,9 +96,9 @@ obsidian daily                              # Today's daily note
 obsidian files folder=Projects format=json  # List files in folder
 ```
 
-### qmd Semantic Search (dependency: `qmd@qmd` plugin)
+### qmd Semantic Search (optional: `qmd@qmd` plugin)
 
-qmd adds local vector embeddings and LLM re-ranking — no cloud services required. It is a **plugin dependency** — enable the `qmd@qmd` plugin alongside this plugin for full semantic search support. The `qmd@qmd` plugin registers its own MCP server (`qmd mcp`).
+qmd adds local vector embeddings and LLM re-ranking — no cloud services required. It is an **optional plugin** — enable the `qmd@qmd` plugin alongside this plugin for full semantic search support. The `qmd@qmd` plugin registers its own MCP server (`qmd mcp`). This plugin has no hard dependency on qmd and loads and works fully without it.
 
 **Setup:**
 ```bash
@@ -118,7 +118,7 @@ Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-con
 - **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
 - **Obsidian CLI** (v1.12.4+) registered and on PATH
 - **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — for semantic search
+- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
 
 ### Installation
 
