@@ -22,11 +22,21 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 ## Commands
 
 `/rhize-devflow:` mutation-analyze · mutation-check ·
-mutation-fix · browser-debug · browser-help · browser-perf · browser-test
+mutation-fix · browser-debug · browser-help · browser-perf · browser-test · devflow-setup
 
 > **Moved:** context/session engineering (the `context-engineering` skill and its `start`, `done`,
 > `context-hygiene`, and `impact-map` commands) now lives in the
 > [`rhize-context-manager`](../rhize-context-manager/README.md) plugin.
+
+### `/rhize-devflow:devflow-setup` — local-tenant-file convention
+
+Run once per client repo to establish the per-machine tenant store: creates
+`.claude/error-patterns.local.md` from a template (zero real client data), verifies the path
+is gitignored (adding the ignore if missing), and documents that any `*.local.md` file is
+machine-local tenant data — real client specifics that supplement the public, genericized
+reference files in this plugin but must never be committed or shipped. See
+`rhize-devflow/.claude/error-patterns.local.md` for a filled-in example of the convention
+(not tracked in this repo — gitignored, as the convention requires).
 
 ## Install
 

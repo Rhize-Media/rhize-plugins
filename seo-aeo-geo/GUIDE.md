@@ -47,7 +47,7 @@ The `nextjs-sanity-seo` skill and `/code-seo-review` command don't need DataForS
 **What it knows:** How to run a DataForSEO OnPage crawl (with JS rendering enabled for SPA/Next.js sites) and turn the results into a prioritized report — on-page elements (titles, meta descriptions, headings, images), technical health (Core Web Vitals, crawlability, indexation), and structured data validation, all scored and ranked Critical → High → Medium → Low.
 
 **How to use it effectively:**
-- Ask "audit rhize.media for SEO issues" — it crawls the whole domain and produces an executive summary with a 0-100 health score.
+- Ask "audit example.com for SEO issues" — it crawls the whole domain and produces an executive summary with a 0-100 health score.
 - Ask "why isn't this page ranking?" with a URL — it runs a page-level audit instead of crawling the whole site.
 - Ask "just check the technical stuff" to focus on Core Web Vitals, crawlability, and indexation without the full content review (this is also what `/technical-audit` does).
 - Mention competitors and it will benchmark your content depth and structure against theirs.
@@ -133,8 +133,8 @@ The `nextjs-sanity-seo` skill and `/code-seo-review` command don't need DataForS
 Runs the full `seo-site-audit` workflow end-to-end: crawl, on-page analysis, technical health, structured data, and AI-visibility check, then produces an executive summary with a 0-100 score and a prioritized action plan.
 
 **Examples:**
-- `/seo-audit rhize.media`
-- `/seo-audit rhize.media/blog/seo-tips "content marketing"`
+- `/seo-audit example.com`
+- `/seo-audit example.com/blog/seo-tips "content marketing"`
 
 ### /keyword-research
 
@@ -144,7 +144,7 @@ Runs the full `keyword-intelligence` workflow: expands seeds into scored keyword
 
 **Examples:**
 - `/keyword-research "project management software"`
-- `/keyword-research "project management software" rhize.media`
+- `/keyword-research "project management software" example.com`
 
 ### /serp-check
 
@@ -154,7 +154,7 @@ Pulls a live SERP snapshot for a keyword — organic results, featured snippets,
 
 **Examples:**
 - `/serp-check "best crm for small business"`
-- `/serp-check "best crm for small business" rhize.media`
+- `/serp-check "best crm for small business" example.com`
 
 ### /backlink-audit
 
@@ -163,8 +163,8 @@ Pulls a live SERP snapshot for a keyword — organic results, featured snippets,
 Analyzes a domain's backlink profile — authority distribution, anchor text health, new/lost link trends — and, with a competitor domain, runs link-gap analysis and broken-link reclamation opportunities.
 
 **Examples:**
-- `/backlink-audit rhize.media`
-- `/backlink-audit rhize.media competitor.com`
+- `/backlink-audit example.com`
+- `/backlink-audit example.com competitor.com`
 
 ### /content-optimize
 
@@ -174,7 +174,7 @@ Optimizes a single page or file for SEO and AI extraction: title, meta descripti
 
 **Examples:**
 - `/content-optimize src/app/blog/[slug]/page.tsx "email marketing"`
-- `/content-optimize https://rhize.media/services "seo consulting"`
+- `/content-optimize https://example.com/services "seo consulting"`
 
 ### /competitor-analysis
 
@@ -183,8 +183,8 @@ Optimizes a single page or file for SEO and AI extraction: title, meta descripti
 Runs a full competitive teardown across keywords, backlinks, and SERP features — domain overview comparison, keyword gap analysis (opportunities, advantages, battleground terms), backlink comparison, and SERP feature ownership — then delivers strategic recommendations.
 
 **Examples:**
-- `/competitor-analysis rhize.media competitor.com`
-- `/competitor-analysis rhize.media competitor1.com competitor2.com`
+- `/competitor-analysis example.com competitor.com`
+- `/competitor-analysis example.com competitor1.com competitor2.com`
 
 ### /ai-visibility
 
@@ -193,7 +193,7 @@ Runs a full competitive teardown across keywords, backlinks, and SERP features �
 Runs the full `aeo-geo-optimization` workflow: checks AI Overview citation rates, Google AI Mode references, LLM brand mentions across ChatGPT/Claude/Perplexity/Gemini, content AI-readiness, and AI crawler access — then produces an optimization action plan.
 
 **Examples:**
-- `/ai-visibility rhize.media`
+- `/ai-visibility example.com`
 - `/ai-visibility "Rhize Media" "workflow automation"`
 
 ### /technical-audit
@@ -203,7 +203,7 @@ Runs the full `aeo-geo-optimization` workflow: checks AI Overview citation rates
 A focused subset of the full site audit — just Core Web Vitals, crawlability, indexation, security/infrastructure, and performance bottlenecks. Use this when you don't need the full content/on-page review.
 
 **Examples:**
-- `/technical-audit rhize.media`
+- `/technical-audit example.com`
 
 ### /rank-track
 
@@ -212,8 +212,8 @@ A focused subset of the full site audit — just Core Web Vitals, crawlability, 
 Pulls 12-month historical visibility trends plus current position for specified keywords, tracks week-over-week or month-over-month changes, and benchmarks against competitor visibility trends.
 
 **Examples:**
-- `/rank-track rhize.media`
-- `/rank-track rhize.media "seo audit, keyword research, backlink analysis"`
+- `/rank-track example.com`
+- `/rank-track example.com "seo audit, keyword research, backlink analysis"`
 
 ### /code-seo-review
 
