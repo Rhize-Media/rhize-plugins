@@ -54,7 +54,9 @@ DEFAULT_VAULT_REPORT_DIR = (
     / "Documents"
     / "Obsidian Vault"
     / "Projects"
-    / "Scheduled Maintenance"
+    / "Rhize Media"
+    / "Rhize Tools"
+    / "Scheduled Agent Routines & Automations"
     / "Skill-Audit-and-Monitoring"
     / "weekly-reports"
 )

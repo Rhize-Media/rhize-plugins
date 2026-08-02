@@ -4,7 +4,8 @@ dashboard.py — Live artifact dashboard renderer for skill-monitor.
 
 Reads every JSON file from data/snapshots/, templates them into either:
   --out html      → a self-contained HTML file (default destination is in
-                    the Obsidian vault at Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/
+                    the Obsidian vault at Projects/Rhize Media/Rhize Tools/
+                    Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/
                     dashboard.html)
   --out artifact  → ready-to-paste JSX source for an `application/vnd.ant.react`
                     Claude Artifact, with snapshots and keep-list inlined as
@@ -66,7 +67,9 @@ DEFAULT_HTML_PATH = (
     / "Documents"
     / "Obsidian Vault"
     / "Projects"
-    / "Scheduled Maintenance"
+    / "Rhize Media"
+    / "Rhize Tools"
+    / "Scheduled Agent Routines & Automations"
     / "Skill-Audit-and-Monitoring"
     / "dashboard.html"
 )
