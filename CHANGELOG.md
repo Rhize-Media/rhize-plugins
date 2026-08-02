@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-02_ version bump — **rhize-devflow** 2.6.0 → 2.6.1 (patch); marketplace 2.3.2 → 2.3.3.
+- _2026-08-02_ version bump — **rhize-ops** 0.4.0 → 0.4.1 (patch); marketplace 2.3.1 → 2.3.2.
+- **rhize-ops, rhize-devflow:** `/simplify` pass over the 0.4.0/2.6.0 changes above — `delegate-setup.md`'s legacy-shape migration mapping was restated three times across two files; step 1 now points at SKILL.md's canonical version instead of re-deriving it. SKILL.md's "Resolve the Recipient" step was missing a tie-break for an ambiguous multi-recipient name match (a gap the multi-recipient feature itself introduced) — added a STOP-and-confirm step between the exactly-one-match and no-match cases. rhize-devflow's README `devflow-setup` section trimmed to a pointer at the command's own doc instead of restating it. Patch-bumped both plugins so the installed plugin cache (which is version-pinned) actually picks up these doc fixes.
 - _2026-08-02_ version bump — **seo-aeo-geo** 1.1.1 → 1.1.2 (patch); marketplace 2.3.0 → 2.3.1.
 - **seo-aeo-geo:** `GUIDE.md`'s command examples now use `example.com` instead of `rhize.media` as the illustrative domain (`/seo-audit rhize.media` → `/seo-audit example.com`, and the same swap across `/keyword-research`, `/serp-check`, `/backlink-audit`, `/content-optimize`, `/competitor-analysis`, `/ai-visibility`, `/technical-audit`, and `/rank-track` examples) — the doc examples shouldn't imply the plugin only works against Rhize's own domain.
 - _2026-08-02_ version bump — **rhize-devflow** 2.5.0 → 2.6.0 (minor); marketplace 2.2.0 → 2.3.0.
