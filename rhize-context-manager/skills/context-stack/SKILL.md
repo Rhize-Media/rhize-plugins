@@ -31,6 +31,13 @@ failure mode is running overlapping layers without noticing they compete.
 
 ## Routing rules
 
+**Config layer:** before applying the rules below, check for
+`$HOME/.claude/rhize-context-manager/stack.config.json` (schema:
+`references/stack.config.schema.json`). If it exists, treat its `layers` list as the
+authoritative inventory of what's running, where, and for which repos — it can add,
+remove, or repoint layers without a plugin update. If it's absent, fall back to the
+built-in default inventory below (the table and rules are unchanged either way).
+
 **Code understanding:** `.codegraph/` exists → CodeGraph first. Otherwise Serena for
 symbol operations in large codebases; plain Grep/Glob for small repos or one-off lookups.
 Never run Serena and CodeGraph on the same question — pick by what's indexed.

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Rhize-Media/rhize-plugins/rhize-context-manager/stack.config.schema.json",
+  "title": "rhize-context-manager stack inventory configuration",
+  "description": "Optional config read by the context-stack skill's routing logic at $HOME/.claude/rhize-context-manager/stack.config.json. When present, it is the authoritative tool-stack inventory (which layers exist, where they run, which repos they cover) instead of the skill's built-in default inventory. This file is the schema/documentation only; it contains no real values.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["layers"],
+  "properties": {
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of stack layers, most-relevant-first (the order the skill should consider them in when routing a question).",
+      "items": { "$ref": "#/$defs/layerEntry" }
+    }
+  },
+  "$defs": {
+    "layerEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "layer", "scope", "notes"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable tool name, e.g. \"Headroom\"."
+        },
+        "layer": {
+          "type": "string",
+          "enum": ["wire", "memory", "file-intel", "index", "cli"],
+          "description": "Which problem class this layer addresses: wire = API/CLI traffic compression, memory = persistent/cross-session recall, file-intel = in-session file indexing/corrections, index = symbol/code navigation, cli = terminal-output compression."
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["global", "per-repo"],
+          "description": "global = runs the same way for every repo/session. per-repo = only active where explicitly installed/configured; see `repos`."
+        },
+        "repos": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true,
+          "description": "Repo names this layer is active in. Required in practice when scope is 'per-repo' and coverage is a fixed list rather than 'every repo that opts in'."
+        },
+        "endpoints": {
+          "type": "object",
+          "additionalProperties": { "type": "string", "minLength": 1 },
+          "description": "Named endpoints/ports this layer exposes, e.g. { \"proxy\": \"127.0.0.1:8787\", \"dashboard\": \"http://localhost:37777\" }."
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What problem this layer solves and any coexistence caveats (overlap risks with other layers, etc.)."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "layers": [
+        {
+          "name": "Example Wire Proxy",
+          "layer": "wire",
+          "scope": "per-repo",
+          "repos": ["example-repo-a", "example-repo-b"],
+          "endpoints": { "proxy": "127.0.0.1:9999" },
+          "notes": "Compresses API traffic for the listed repos via a git-ignored local settings file."
+        },
+        {
+          "name": "Example Global Memory",
+          "layer": "memory",
+          "scope": "global",
+          "endpoints": { "dashboard": "http://localhost:44444" },
+          "notes": "Persistent cross-session observation memory; injects recalled context at session start."
+        }
+      ]
+    }
+  ]
+}
