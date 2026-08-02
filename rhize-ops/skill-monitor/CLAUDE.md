@@ -32,7 +32,12 @@ The thesis: skill libraries obey a power law (Anthropic data: ~300 skills instal
 - **Single-file scripts.** Don't restructure into a package.
 - **Don't change the existing CLI surface.** `python3 monitor.py --days 7`, `--days 28`, `--days 0`, `--report-dir`, `--json-out`, `--cowork-dir` must keep working — the scheduled task at `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md` depends on them.
 - **Don't reorder existing markdown report sections.** Downstream readers parse positionally. Add new sections at the bottom or as subsections.
-- **Don't push commits unless explicitly told.** Per the user's global CLAUDE.md.
+- **Don't push commits from an interactive/agent session unless explicitly told.** Per the
+  user's global CLAUDE.md. Exception: `git_sync.py`, wired into `monitor.py`'s `main()`,
+  auto-commits and pushes new snapshot files under `data/snapshots/` as part of the
+  scheduled run itself (Phase 1.2/4.1 of the config consolidation plan) — that is
+  deterministic script behavior, not an agent's git command, so it's out of scope for
+  this rule.
 
 ## How to run
 
@@ -83,10 +88,16 @@ Backfilled snapshots (parsed from old markdown reports) carry `_backfilled_from_
 
 The user's `weekly-skill-audit` scheduled task fires Monday mornings and runs:
 
-1. `python3 monitor.py --days 7` (writes the markdown report + snapshot)
+1. `python3 monitor.py --days 7` — `git_sync.pull_rebase()` runs first (self-sync so the
+   tree can't drift), then the scan writes the markdown report + snapshot, then
+   `git_sync.commit_and_push_snapshots()` commits+pushes the new snapshot file.
 2. The agent appends a "Week-over-week delta" section to the markdown
 3. `python3 dashboard.py --out html` (refreshes the vault dashboard)
 4. The agent posts a one-line summary
+
+`git_sync.py` also ships the Phase 4.1 config-sync sweep (`config_sync_sweep()`), run
+standalone (`python3 git_sync.py`) to commit+push or pull--rebase the other tracked
+config repos (`~/.claude`, `~/.agents`, `~/dev-local/RHIZE/skill-forge`).
 
 Source: `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`. That file lives outside this repo by design (it's part of the user's home-dir scheduled tasks, not this project's source).
 

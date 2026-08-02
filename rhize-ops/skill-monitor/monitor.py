@@ -38,6 +38,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable, Iterator
 
+import git_sync
+
 HOME = Path.home()
 CLAUDE_PROJECTS = HOME / ".claude" / "projects"
 COWORK_SESSIONS_ROOT = (
@@ -885,6 +887,11 @@ def main() -> int:
                     help="suppress per-file progress")
     args = ap.parse_args()
 
+    # Self-sync: the scheduled task runs from this working tree, so pull any
+    # commits made since the last run before scanning (never leaves a rebase
+    # in progress — see git_sync.py).
+    git_sync.pull_rebase()
+
     projects_root = Path(args.projects_dir).expanduser()
     cowork_root = Path(args.cowork_dir).expanduser() if args.cowork_dir else None
     report_dir = Path(args.report_dir).expanduser()
@@ -1040,6 +1047,9 @@ def main() -> int:
         report_stem += f"-{window_tag}"
     md_path = report_dir / f"{report_stem}.md"
     md_path.write_text(md)
+
+    # Self-sync: commit + push the new snapshot so the tree can't drift again.
+    git_sync.commit_and_push_snapshots()
 
     print(f"  ✓ JSON written  → {json_out}")
     print(f"  ✓ Snapshot      → {snap_path}")
