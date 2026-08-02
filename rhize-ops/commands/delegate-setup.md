@@ -22,11 +22,9 @@ Look for `$HOME/.claude/rhize-ops/delegate.config.json`.
   **update selected fields** (e.g. just the project mapping, or just one recipient), or
   **cancel**.
 - If the existing file is in the legacy single-`recipient` shape (pre-0.4.0 — a top-level
-  `recipient` object instead of `recipients`), treat this run as a **migration**: convert it to
-  `recipients: { default: <existing recipient> }` with `defaultRecipient: "default"`, moving the
-  legacy top-level `slack.channel`/`slack.channelId` onto that recipient's own `recipient.slack`
-  object (top-level `slack` keeps only `status`/`workspace`). Do this before applying whatever
-  the user asked for in this run (add/replace/update).
+  `recipient` object instead of `recipients`), treat this run as a **migration** — convert it
+  to the current shape (see the SKILL.md "Legacy config compatibility" section for the exact
+  field mapping) before applying whatever the user asked for in this run (add/replace/update).
 - If it doesn't exist, proceed with a fresh setup for a single recipient (becomes the first entry
   under `recipients`, and `defaultRecipient`).
 

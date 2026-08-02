@@ -32,8 +32,9 @@ Before Step 1, determine which configured recipient this delegation is for:
 
 1. If the user named a teammate ("delegate this to Jane", "hand this off to Jane Doe", "Jane should handle this"), match the name **case-insensitively** against each entry's `recipients[*].name` and against the `recipients` map key itself.
 2. If exactly one match is found, that's the resolved recipient for the rest of this workflow.
-3. If **no** recipient matches a **named** person, STOP — do not guess and do not silently fall back to `defaultRecipient`. Tell the user no configured teammate matches that name and that running `/rhize-ops:delegate-setup` will let them add one.
-4. If the user didn't name anyone (a bare "delegate this", "hand this off"), use `recipients[defaultRecipient]`.
+3. If **more than one** recipient matches (e.g. an ambiguous first name shared by two teammates), STOP — do not guess which one. Tell the user which candidates matched and ask them to confirm by full name or by the `recipients` key.
+4. If **no** recipient matches a **named** person, STOP — do not guess and do not silently fall back to `defaultRecipient`. Tell the user no configured teammate matches that name and that running `/rhize-ops:delegate-setup` will let them add one.
+5. If the user didn't name anyone (a bare "delegate this", "hand this off"), use `recipients[defaultRecipient]`.
 
 Everywhere below, `{recipient.x}` reads from this resolved recipient — including `{recipient.slack.channel}` / `{recipient.slack.channelId}` for the per-recipient notification channel used in Steps 7–8 (workspace-level `slack.status`/`slack.workspace` still come from the top-level `slack` object).
 

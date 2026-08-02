@@ -30,13 +30,10 @@ mutation-fix · browser-debug · browser-help · browser-perf · browser-test ·
 
 ### `/rhize-devflow:devflow-setup` — local-tenant-file convention
 
-Run once per client repo to establish the per-machine tenant store: creates
-`.claude/error-patterns.local.md` from a template (zero real client data), verifies the path
-is gitignored (adding the ignore if missing), and documents that any `*.local.md` file is
-machine-local tenant data — real client specifics that supplement the public, genericized
-reference files in this plugin but must never be committed or shipped. See
-`rhize-devflow/.claude/error-patterns.local.md` for a filled-in example of the convention
-(not tracked in this repo — gitignored, as the convention requires).
+Sets up the per-machine `.claude/*.local.md` tenant store for a client repo — see the
+command's own doc (`commands/devflow-setup.md`) for what the convention is and how the setup
+works. `rhize-devflow/.claude/error-patterns.local.md` is a filled-in example (not tracked in
+this repo — gitignored, as the convention requires).
 
 ## Install
 
