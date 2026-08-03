@@ -30,10 +30,18 @@ the right one, and health-checks the whole thing.
   wiring, usage patterns). Nothing is installed automatically.
 
 - **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
-  should I compress? how do I budget tokens across subagents?) → the curated library:
+  should I compress? where should a learning be stored?) → the curated library:
   `context-fundamentals`, `context-degradation`, `context-compression`,
   `context-optimization`, `memory-systems`, `filesystem-context`, `tool-design`,
-  `iterative-retrieval`, `strategic-compact`, `context-budget`, `token-budget-advisor`.
+  `learning-curation`. (Budgeting/retrieval/compaction live in ecc by design.)
+
+- **"Harvest what we learned" / "refine our skills from real sessions"**
+  → the refinement pipeline: `/learn-harvest` collects signals (headroom learn dry-run,
+  claude-mem observations, skill-monitor snapshots) into a queue; `/skill-refine review`
+  is your triage pass; `/skill-refine run` drains triaged entries through skill-forge
+  `evolve` — gate-passing SKILL.md edits auto-promote, anything touching scripts/hooks
+  HOLDs. The `refinement-pipeline` skill documents the trust model.
+  *Example: "Run /learn-harvest across all projects, then let's review the queue."*
 
 ## Tips
 

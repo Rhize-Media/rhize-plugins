@@ -107,12 +107,13 @@ Wired into the `scheduled-tasks` MCP (skill: `weekly-skill-audit`). Fires Monday
 
 ### Monday morning (no action required)
 
-At 08:30 the `weekly-skill-audit` scheduled task runs through six steps:
+At 08:30 the `weekly-skill-audit` scheduled task runs through nine steps:
 
 1. `monitor.py --days 7` walks every transcript on the Mac, writes the markdown report into the vault, and drops a fresh `YYYY-MM-DD-skill-usage-7d.json` into `data/snapshots/`.
 2–4. The agent diffs this week vs. last week, appends a "Week-over-week delta" section to the markdown, and on every 4th Monday additionally runs `--days 28` for the rolling-window prune view.
 5. `dashboard.py --out html` rebuilds `dashboard.html` from the accumulated snapshots — the new data point lands in the trend chart, rank-delta arrows update.
-6. A one-line summary lands in your main session.
+6–7. A one-line summary lands in your main session.
+8–9. The rhize-context-manager refinement pipeline runs: `/learn-harvest` collects headroom/claude-mem/skill-monitor signals into the refinement queue, then `/skill-refine run` drains any entries Jim has triaged through skill-forge `evolve` (gated auto-promote; report in `~/.claude/context-manager/runs/`).
 
 By the time you sit down Monday, both artifacts (markdown report + HTML dashboard) are in the vault and synced to iCloud.
 

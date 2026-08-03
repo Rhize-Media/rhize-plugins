@@ -21,6 +21,8 @@ and their own hook plugins stay externally installed and updated.
 | `context-engineering` | Session/memory/hygiene workflow (moved here from rhize-devflow v2.4.x) |
 | `graphify` | Any input → knowledge graph (promoted from user-level skill) |
 | `graphiti-memory` | Opt-in Graphiti temporal knowledge-graph memory: adoption guide + MCP wiring (NOT a dependency) |
+| `refinement-pipeline` | Gated skill-refinement loop: headroom learn / claude-mem / skill-monitor signals → human-triaged queue → skill-forge evolve with auto-promote rules |
+| `learning-curation` | Decide whether a session learning deserves persistence and where it should live |
 
 ### Curated third-party (ingested via skill-forge, safety-gated, provenance in [skills/SOURCES.md](skills/SOURCES.md))
 
@@ -28,13 +30,12 @@ From **muratcankoylan/Agent-Skills-for-Context-Engineering**: `context-fundament
 `context-degradation`, `context-compression`, `context-optimization`, `memory-systems`,
 `filesystem-context`, `tool-design`.
 
-From **everything-claude-code (ecc)**: `iterative-retrieval`, `strategic-compact`,
-`context-budget`, `token-budget-advisor`.
+Per the marketplace curation rule, context/token budgeting, iterative retrieval, and
+strategic compaction are NOT re-shipped here — `ecc@everything-claude-code` owns them.
 
-Coverage per feature goal: compression (context-compression, strategic-compact),
-retrieval (iterative-retrieval), ranking/budgeting (context-budget,
-token-budget-advisor), memory (memory-systems, graphiti-memory), degradation
-(context-degradation).
+Coverage per feature goal: compression (context-compression), retrieval/budgeting
+(ecc's skills, by design), memory (memory-systems, graphiti-memory), degradation
+(context-degradation), refinement (refinement-pipeline, learning-curation).
 
 ## Commands
 
@@ -45,6 +46,8 @@ token-budget-advisor), memory (memory-systems, graphiti-memory), degradation
 | `/done` | Session bookend — verifier PASS + `STATE.md` update before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
 | `/impact-map` | Pre-feature impact mapping against the component registry (moved from rhize-devflow) |
+| `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md |
+| `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 
 ## Hooks
 
