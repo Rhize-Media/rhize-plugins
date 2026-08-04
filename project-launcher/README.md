@@ -92,7 +92,14 @@ auto-wired through `hooks/hooks.json`, so no setup step is required to use it.
 auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `rhize-ops`
 plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
 currently empty: this plugin's one hook is already scoped to launcher artifacts, advisory-only,
-and auto-wired, so there's nothing here that needs to be opt-in rather than on-by-default.
+and auto-wired, so there's nothing here that needs to be opt-in rather than on-by-default. It
+does declare a `dependencies` array (the integrated MCP servers and external skills above)
+that the wizard's dependency check reads.
+
+**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
+`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item
+manually per the snippet in [rhize-ops/README.md § Setup manifest
+schema](../rhize-ops/README.md#setup-manifest-schema).
 
 ## Post-Phase Verification Pattern
 

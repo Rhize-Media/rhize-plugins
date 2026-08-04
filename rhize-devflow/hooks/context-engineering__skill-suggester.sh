@@ -26,8 +26,18 @@ INPUT=$(cat)
 # Extract user prompt from hook input. Claude Code's UserPromptSubmit payload
 # field is "prompt" (verified against the harness contract) -- a prior version
 # of this script looked for "user_prompt", which never appears, so PROMPT was
-# always empty and the hook was a silent no-op on every call.
-PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# always empty and the hook was a silent no-op on every call. Real JSON
+# parsing (not grep/sed) also fixes escaped-quote/newline prompts, which the
+# old "[^"]*" pattern truncated at the first \" -- reproduced 2026-08-04.
+PROMPT=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    print(data.get("prompt") or "")
+')
 
 # If no prompt found, continue normally
 if [ -z "$PROMPT" ]; then
@@ -82,10 +92,15 @@ if [ -z "$SKILL" ]; then
   exit 0
 fi
 
-# Return JSON with system message for Claude
-cat << EOF
-{
-  "continue": true,
-  "systemMessage": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💡 SKILL SUGGESTION\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDetected: ${REASON}\nSuggested: ${SKILL}\n\nBefore proceeding, consider asking the user:\n\"Would you like me to run ${SKILL} first?\"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-}
-EOF
+# additionalContext (nested in hookSpecificOutput) reaches Claude; systemMessage
+# is a user-visible-only banner. Emit both via jq so quoting is always valid JSON.
+CONTEXT_MSG="Detected: ${REASON}. Suggested: ${SKILL}. Before proceeding, consider asking the user: \"Would you like me to run ${SKILL} first?\""
+BANNER="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 SKILL SUGGESTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Detected: ${REASON}
+Suggested: ${SKILL}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+jq -n --arg ctx "$CONTEXT_MSG" --arg banner "$BANNER" \
+  '{systemMessage: $banner, hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'

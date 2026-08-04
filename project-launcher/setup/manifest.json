@@ -1,5 +1,29 @@
 {
   "schema": 1,
   "plugin": "project-launcher",
-  "items": []
+  "items": [],
+  "dependencies": [
+    {
+      "name": "Integrated MCP servers (Obsidian, Firecrawl, Context7, DataForSEO, Slack, Google Drive, Atlassian, Sentry, PostHog, Sequential Thinking, Serena, n8n-builder, n8n-executor)",
+      "kind": "mcp",
+      "purpose": "Each server enriches one specific pipeline phase — see README § Integrated MCP Servers for the full phase mapping (e.g. Firecrawl/Context7 for phase-1 research, DataForSEO for content-project keyword data, n8n-builder/n8n-executor for automation phases).",
+      "required": false,
+      "degradedBehavior": "The corresponding phase proceeds without that data source — e.g. no vault search for prior art without Obsidian, no external doc scraping without Firecrawl, no SEO keyword data without DataForSEO. The pipeline itself doesn't fail; that phase is just less informed.",
+      "replacement": {
+        "suggestion": "gather that phase's research or data manually outside Claude and paste it into the session",
+        "warning": "each of these MCP servers already exists and is maintained by its vendor (or another Rhize plugin); there's no code to reinvent here, just an integration to connect. Manual gathering has to be repeated every launch instead of automated once."
+      }
+    },
+    {
+      "name": "Integrated external skills (obsidian-second-brain:vault-search/vault-research, grill-me, write-a-prd, seo-aeo-geo:*, brand-voice:*, n8n-automation, engineering:system-design/architecture, tdd, prd-to-issues, simplify)",
+      "kind": "plugin",
+      "purpose": "Each skill is invoked at a specific pipeline phase to do that phase's specialized work — see README § Integrated Skills for the full phase mapping.",
+      "required": false,
+      "degradedBehavior": "If the plugin providing a skill isn't installed or enabled, that phase's step is skipped, or done with the launcher's own generic prompting instead of the specialist skill's tuned workflow.",
+      "replacement": {
+        "suggestion": "have Claude do that phase's work directly, without the specialist skill",
+        "warning": "these are all skills from other Rhize (or third-party) plugins that already encode a tuned workflow for their specialty. Falling back to generic prompting loses that tuning — install the plugin that ships the skill instead of trying to replicate its prompt engineering ad hoc."
+      }
+    }
+  ]
 }

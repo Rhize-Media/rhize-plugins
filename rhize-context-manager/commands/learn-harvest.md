@@ -9,6 +9,16 @@ Collect skill-refinement signals into the queue at
 skills, CLAUDE.md, or CLAUDE.local.md — signals wait in the queue until triaged
 via `/skill-refine review`.
 
+## Cadence
+
+Runs DAILY as its own scheduled task,
+`~/Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md`, on a cheap model — this is
+mechanical collection with no judgment calls, so it belongs on the cheap tier. (Moved off
+the weekly `weekly-skill-audit` routine in 2026-08, where it used to run as step 8; that
+routine now only runs the weekly drain, step 8, on the capable-model tier.) Manual
+on-demand runs of `/learn-harvest` remain fine any time — the daily schedule doesn't
+replace ad-hoc use, e.g. right before a `/skill-refine review` session.
+
 ## Queue entry schema
 
 One JSON object per line:

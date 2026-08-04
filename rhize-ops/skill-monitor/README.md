@@ -113,7 +113,8 @@ At 08:30 the `weekly-skill-audit` scheduled task runs through nine steps:
 2–4. The agent diffs this week vs. last week, appends a "Week-over-week delta" section to the markdown, and on every 4th Monday additionally runs `--days 28` for the rolling-window prune view.
 5. `dashboard.py --out html` rebuilds `dashboard.html` from the accumulated snapshots — the new data point lands in the trend chart, rank-delta arrows update.
 6–7. A one-line summary lands in your main session.
-8–9. The rhize-context-manager refinement pipeline runs: `/learn-harvest` collects headroom/claude-mem/skill-monitor signals into the refinement queue, then `/skill-refine run` drains any entries Jim has triaged through skill-forge `evolve` (gated auto-promote; report in `~/.claude/context-manager/runs/`).
+8. The rhize-context-manager refinement pipeline drains: `/skill-refine run` drains any entries Jim has triaged through skill-forge `evolve` (gated auto-promote; report in `~/.claude/context-manager/runs/`). The queue it drains is fed by a *separate, daily* `daily-learn-harvest` scheduled task (moved off this weekly routine in 2026-08), so this weekly drain works from a full week of accumulated signal instead of one day's worth.
+9. Savings scorecard + skill ROI (see below).
 
 By the time you sit down Monday, both artifacts (markdown report + HTML dashboard) are in the vault and synced to iCloud.
 
@@ -199,7 +200,7 @@ Writes alongside the scorecard in `cost-reports/YYYY-MM-DD-skill-roi-{N}d.md`.
 
 ### Cadence
 
-Both scripts run as part of the `weekly-skill-audit` scheduled task (step 10) and on demand —
+Both scripts run as part of the `weekly-skill-audit` scheduled task (step 9) and on demand —
 **not** per-session. Neither is wired to a `SessionStart` hook; don't add one.
 
 ## Roadmap

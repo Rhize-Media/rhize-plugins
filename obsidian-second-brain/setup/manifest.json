@@ -1,5 +1,51 @@
 {
   "schema": 1,
   "plugin": "obsidian-second-brain",
-  "items": []
+  "items": [],
+  "dependencies": [
+    {
+      "name": "obsidian-mcp-server",
+      "kind": "mcp",
+      "purpose": "Bundled via .mcp.json; provides read/write/search/tag/frontmatter operations against Obsidian's Local REST API. Requires Obsidian running with the Local REST API plugin enabled and an OBSIDIAN_API_KEY env var.",
+      "required": true,
+      "degradedBehavior": "Most commands (vault-research, vault-connect, vault-recall, vault-capture, vault-daily, vault-search, vault-align) can't reach the vault at all — there's no offline/file-only fallback documented for the MCP-backed operations.",
+      "replacement": {
+        "suggestion": "read and write vault files directly with raw file I/O instead of the REST API",
+        "warning": "the MCP server already handles link resolution, frontmatter, and plugin-aware writes that raw file I/O bypasses — risking broken wikilinks or corrupted frontmatter. Enabling the Local REST API plugin is far less risk than hand-rolling vault writes."
+      }
+    },
+    {
+      "name": "Obsidian CLI",
+      "kind": "cli",
+      "purpose": "The `obsidian` command (v1.12.4+), preferred over raw file I/O for terminal vault operations because it respects plugins, templates, and link resolution.",
+      "required": true,
+      "degradedBehavior": "Commands that shell out to `obsidian <verb>` fail; only the MCP-server-backed operations (where coverage overlaps) remain available.",
+      "replacement": {
+        "suggestion": "use raw file I/O against the vault directory instead of the CLI",
+        "warning": "raw file writes skip Obsidian's own plugin/template/link-resolution pipeline, risking the exact corruption the CLI exists to avoid — register the CLI instead (Settings → General → Command line interface)."
+      }
+    },
+    {
+      "name": "Defuddle",
+      "kind": "cli",
+      "purpose": "npm package (`npm install -g defuddle`) powering the `defuddle` web-clipping/article-extraction skill.",
+      "required": false,
+      "degradedBehavior": "The defuddle skill can't extract clean article content from a URL; every other vault workflow is unaffected.",
+      "replacement": {
+        "suggestion": "copy-paste article text manually instead of clipping",
+        "warning": "Defuddle already handles boilerplate stripping and content extraction across arbitrary page layouts; a manual copy-paste loses that and has to be redone per site."
+      }
+    },
+    {
+      "name": "qmd (+ qmd@qmd plugin)",
+      "kind": "plugin",
+      "purpose": "Local vector-embedding semantic search (BM25/vector/hybrid) for /vault-search, /vault-connect, and /vault-recall.",
+      "required": false,
+      "degradedBehavior": "Documented graceful fallback — all three commands automatically use MCP/CLI keyword search instead of semantic search when qmd isn't available.",
+      "replacement": {
+        "suggestion": "keep using the plugin's own MCP/CLI keyword-search fallback",
+        "warning": "this isn't a case for a custom reimplementation — the keyword-search fallback already is the intended non-qmd path. Installing qmd only upgrades to semantic search; it doesn't close a gap that needs a DIY replacement."
+      }
+    }
+  ]
 }

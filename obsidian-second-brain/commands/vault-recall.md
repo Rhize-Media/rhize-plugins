@@ -2,6 +2,7 @@
 description: Ask your vault a natural language question and get a synthesized answer
 allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
 argument-hint: <natural language question about your vault>
+model: haiku
 ---
 
 Answer a natural language question by searching the vault, reading the most relevant notes, and synthesizing an answer grounded in the user's own knowledge base. This is a "talk to your notes" interface.

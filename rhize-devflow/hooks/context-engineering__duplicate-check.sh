@@ -23,8 +23,20 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract file_path from tool input
-FILE_PATH=$(echo "$INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# Extract file_path from tool input via real JSON parsing. grep/sed extraction
+# on the raw JSON text (the previous approach) truncates at the first escaped
+# quote (\") inside a string value, silently missing real code payloads --
+# reproduced 2026-08-04. json.loads decodes escapes correctly.
+FILE_PATH=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    ti = data.get("tool_input") or {}
+    print(ti.get("file_path") or "")
+')
 
 # If no file path found, allow
 if [ -z "$FILE_PATH" ]; then

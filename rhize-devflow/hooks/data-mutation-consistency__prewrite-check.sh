@@ -18,15 +18,22 @@
 # Read tool call info from stdin (JSON format)
 TOOL_INPUT=$(cat)
 
-# Extract file path from the tool input. Uses -o + sed rather than GNU
-# grep's -P/\K (macOS ships BSD grep, which rejects -P outright -- this hook
-# was silently a no-op on macOS until fixed).
-FILE_PATH=$(echo "$TOOL_INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
-
-# If no file path found, try alternate formats
-if [ -z "$FILE_PATH" ]; then
-    FILE_PATH=$(echo "$TOOL_INPUT" | grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
-fi
+# Extract file path from the tool input via real JSON parsing. The previous
+# grep -o + sed approach truncated at the first escaped quote (\") inside a
+# string value, silently missing real payloads -- reproduced 2026-08-04
+# (payload whose "content" contained \"t\" produced no warning). json.loads
+# decodes escapes correctly and replaces both the primary "file_path" lookup
+# and the "path" fallback in one parse.
+FILE_PATH=$(printf '%s' "$TOOL_INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    ti = data.get("tool_input") or {}
+    print(ti.get("file_path") or ti.get("path") or "")
+')
 
 # Exit if no file path
 if [ -z "$FILE_PATH" ]; then
@@ -65,12 +72,20 @@ if [ "$IS_RELEVANT" = false ]; then
     exit 0
 fi
 
-# Extract content being written (if available). Same -o + sed portability
-# fix as the file-path extraction above.
-CONTENT=$(echo "$TOOL_INPUT" | grep -o '"content"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"content"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
-if [ -z "$CONTENT" ]; then
-    CONTENT=$(echo "$TOOL_INPUT" | grep -o '"new_string"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"new_string"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
-fi
+# Extract content being written (if available) via real JSON parsing. Same
+# escaped-quote fix as the file-path extraction above -- this is the exact
+# field the 2026-08-04 reproduction hit ("content" containing \"t\" produced
+# no warning under the old grep/sed extraction).
+CONTENT=$(printf '%s' "$TOOL_INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    ti = data.get("tool_input") or {}
+    print(ti.get("content") or ti.get("new_string") or "")
+')
 
 # Check for Supabase mutations
 if echo "$CONTENT" | grep -qE "supabase.*\.(insert|update|delete|upsert)"; then

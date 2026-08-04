@@ -68,6 +68,19 @@ Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in ho
       "description": "One line shown next to the tier in the picker",
       "default": false                                        // true = wizard marks it "(recommended)"; never pre-selects it
     }
+  ],
+  "dependencies": [                                           // OPTIONAL — additive, schema stays 1
+    {
+      "name": "Human-readable dependency name",
+      "kind": "plugin",                                       // "plugin" | "cli" | "mcp" | "data"
+      "purpose": "One line: what this unlocks",
+      "required": false,                                      // false = plugin degrades gracefully without it
+      "degradedBehavior": "What happens without it",
+      "replacement": {                                        // optional — only when a DIY alternative is plausible
+        "suggestion": "The custom/DIY alternative",
+        "warning": "Explicit reinventing-the-wheel caveat — replacing a maintained upstream means taking on its maintenance and forgoing its updates; recommend installing the upstream outright"
+      }
+    }
   ]
 }
 ```
@@ -75,6 +88,17 @@ Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in ho
 **Tier semantics:**
 - **T3 — advisory.** The hook injects `hookSpecificOutput.additionalContext` and never blocks the tool call.
 - **T4 — blocking.** The hook exits `2` to block the tool call, with stderr shown to the model as the reason.
+
+**Dependencies (optional):** any Rhize plugin can additionally declare a top-level `"dependencies"`
+array describing the external plugins, CLIs, MCP servers, or data files it relies on — separate
+from the opt-in hooks in `"items"`. `/rhize-setup` reads this array (see the command's own doc)
+to probe presence, print a status table, and offer install/degrade/replace choices before the
+opt-in hook menu. `"required": false` means the plugin keeps working without it (describe exactly
+how in `"degradedBehavior"`); `"required": true` means the dependent feature has no fallback path.
+`"replacement"` is optional — include it only when a plausible DIY alternative exists, and always
+pair the suggestion with a `"warning"` that names the maintenance tradeoff: replacing a maintained
+upstream means taking on its maintenance and forgoing its updates, so the warning should recommend
+installing the upstream outright rather than reinventing it.
 
 **Wiring contract the wizard relies on:**
 - Every `PreToolUse`/`PostToolUse` item's `command` must read the tool-call payload from stdin and exit `0` on a no-op smoke test (`echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/x"}}' | <command>`). Items on `SessionStart`/`Stop`/`UserPromptSubmit` are smoke-tested with empty stdin instead. The wizard refuses to wire anything that fails this check.

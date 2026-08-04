@@ -21,8 +21,20 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract the bash command from tool input
-COMMAND=$(echo "$INPUT" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"command"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# Extract the bash command from tool input via real JSON parsing. grep/sed
+# extraction on the raw JSON text truncates at the first escaped quote (\")
+# inside the command string, silently missing real commands -- reproduced
+# 2026-08-04. json.loads decodes escapes correctly.
+COMMAND=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    ti = data.get("tool_input") or {}
+    print(ti.get("command") or "")
+')
 
 # Only check git commit commands
 if [[ ! "$COMMAND" =~ "git commit" ]]; then
@@ -77,16 +89,13 @@ while IFS= read -r file; do
   fi
 done <<< "$STAGED_FILES"
 
-# If missing related files found, show warning
+# If missing related files found, surface it to Claude via additionalContext.
+# Advisory only — never blocks (exit 0). Plain stdout/stderr on exit 0 is
+# invisible to the model, so this must be hookSpecificOutput.additionalContext.
 if [ -n "$MISSING_RELATED" ]; then
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  echo "⚠️  IMPACT ANALYSIS: Related files not staged" >&2
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  echo -e "$MISSING_RELATED" >&2
-  echo "" >&2
-  echo "Review these to ensure changes are complete." >&2
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  # Warning only - don't block
+  CONTEXT_MSG=$(printf 'IMPACT ANALYSIS: related files not staged for this commit:%b\n\nReview these to ensure changes are complete.' "$MISSING_RELATED")
+  jq -n --arg msg "$CONTEXT_MSG" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $msg}}'
   exit 0
 fi
 

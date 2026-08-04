@@ -21,7 +21,14 @@ All plugins below will become available for installation. Each plugin may need i
 | [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
 | [rhize-devflow](./rhize-devflow) | Development-workflow skill set — production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
 | [rhize-context-manager](./rhize-context-manager) | Context engineering & optimization — compression, management, retrieval, storage; orchestrates Headroom/claude-mem/OpenWolf/Serena/CodeGraph/graphify (+ opt-in Graphiti), session-lifecycle commands, curated gated skill library | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) | Internal operations — session hand-offs (Jira/Slack/Fireflies) and skill-usage health monitoring | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | Internal operations — session hand-offs (Jira/Slack/Fireflies), skill-usage health monitoring, and fleet setup | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+
+**Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
+plugin's opt-in `setup/manifest.json` hooks and dependencies into a project — without it those
+manifests are documentation only, and you'd hand-edit `.claude/settings.json` yourself following
+the snippets each plugin's README shows. It also hosts the cost/ROI reporting (`savings_scorecard.py`,
+`skill_roi.py`) that the other plugins' value story leans on. Every other plugin still installs,
+loads, and works fully without rhize-ops — it just means doing setup and cost visibility by hand.
 
 ### Plugin-specific prerequisites
 
@@ -34,6 +41,35 @@ export DATAFORSEO_PASSWORD="your_api_password"
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
 The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
+
+### Dependency matrix
+
+Each plugin's `setup/manifest.json` now carries a machine-readable `"dependencies"` array (see
+[rhize-ops/README.md § Setup manifest schema](./rhize-ops/README.md#setup-manifest-schema)) that
+`/rhize-setup` probes and reports on before its opt-in hook menu. This table is the human-readable
+summary — one row per *required* or structurally central dependency; see each manifest for the
+full list including optional numerator/orchestration sources.
+
+| Plugin | External dependency | Kind | Required? | Without it |
+| --- | --- | --- | --- | --- |
+| seo-aeo-geo | DataForSEO MCP server (+ credentials) | mcp | Yes | Live-data skills/commands fail; `code-seo-review`, `content-optimize`, and the `content-seo`/`nextjs-sanity-seo` skills still work |
+| obsidian-second-brain | obsidian-mcp-server (Obsidian + Local REST API) | mcp | Yes | Most vault commands can't reach the vault |
+| obsidian-second-brain | Obsidian CLI (v1.12.4+) | cli | Yes | CLI-backed commands fail; only overlapping MCP ops still work |
+| obsidian-second-brain | Defuddle | cli | No | The web-clipping skill can't extract articles; nothing else affected |
+| obsidian-second-brain | qmd (+ `qmd@qmd` plugin) | plugin | No | Falls back to MCP/CLI keyword search (documented, automatic) |
+| rhize-devflow | Sentry MCP server | mcp | Yes | `error-lifecycle-management` can't fetch issues/events/perf data |
+| rhize-devflow | Vercel MCP server | mcp | Yes | Can't correlate an error with its causing deployment |
+| rhize-devflow | GitHub MCP server | mcp | Yes | Can't identify the causing commit/PR or auto-file a ticket |
+| rhize-devflow | Chrome DevTools MCP server | mcp | Yes | `chrome-devtools-mcp` skill can't run at all |
+| rhize-devflow | `@rhize/skill-forge` (npm) | cli | No | Opt-in refinement hooks still fire; the suggested command fails |
+| rhize-context-manager | `@rhize/skill-forge` (npm) | cli | Yes | `/skill-refine run` cannot execute |
+| rhize-context-manager | headroom (CLI) | cli | Yes | `/learn-harvest`'s headroom-learn source step fails |
+| rhize-context-manager | ecc:harness-audit | plugin | No | `/context-doctor` prints a one-line skip (documented, graceful) |
+| rhize-context-manager | claude-mem, OpenWolf, Serena, CodeGraph, Graphiti | plugin/cli/mcp | No | Each layer is marked inactive; the other layers are unaffected |
+| project-launcher | 13 integrated MCP servers (Obsidian, Firecrawl, Context7, DataForSEO, Slack, Google Drive, Atlassian, Sentry, PostHog, Sequential Thinking, Serena, n8n-builder, n8n-executor) | mcp | No | The corresponding phase proceeds without that data source |
+| project-launcher | 12 integrated external skills (obsidian-second-brain, grill-me, write-a-prd, seo-aeo-geo, brand-voice, n8n-automation, engineering, tdd, prd-to-issues, simplify) | plugin | No | That phase's step is skipped or done with generic prompting |
+| rhize-ops | ecc (cost-tracker Stop hook → `costs.jsonl`) | plugin | No | Scorecard/ROI reports lose their measured-spend denominator |
+| rhize-ops | rtk, Headroom, claude-mem, OpenWolf | cli/plugin | No | Each is one numerator source in the scorecard; missing ones show "no data" |
 
 ## Documentation Hierarchy
 

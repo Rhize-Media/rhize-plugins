@@ -96,5 +96,62 @@
       "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `npx @rhize/skill-forge refine`. Fixed 2026-08-04: previously read SESSION_TOOL_CALLS/SESSION_ERRORS/SESSION_DURATION/SESSION_FILES_TOUCHED from the environment, which Claude Code never sets (it delivers only session_id/transcript_path/cwd on stdin), so the hook never fired; now derives the same stats from the transcript file.",
       "default": false
     }
+  ],
+  "dependencies": [
+    {
+      "name": "Sentry MCP server",
+      "kind": "mcp",
+      "purpose": "Required by error-lifecycle-management (get_issues/get_issue/get_issue_events/get_performance_issues) and by sentry-instrumentation to verify conventions against real issues.",
+      "required": true,
+      "degradedBehavior": "error-lifecycle-management can't fetch issues, events, or performance data at all; sentry-instrumentation can still advise on Rhize's captureException/spans conventions from static guidance, but can't verify against live issues.",
+      "replacement": {
+        "suggestion": "read the Sentry dashboard manually and paste findings into the session",
+        "warning": "the MCP server already returns issue/event/perf data in the structured form the skill parses directly; hand-pasting dashboard screenshots loses that structure and has to be redone for every investigation — connect the Sentry MCP server instead."
+      }
+    },
+    {
+      "name": "Vercel MCP server",
+      "kind": "mcp",
+      "purpose": "Required by error-lifecycle-management (get_deployments/get_build_logs/get_functions_logs/get_environment) for Sentry↔Vercel deploy correlation.",
+      "required": true,
+      "degradedBehavior": "error-lifecycle-management can't correlate an error with the deployment that introduced it — no deployment, build-log, or env-var evidence.",
+      "replacement": {
+        "suggestion": "check the Vercel dashboard manually for the matching deployment",
+        "warning": "same tradeoff as Sentry — the MCP server already returns this in a form the skill consumes automatically; manual dashboard lookups can't be automated and have to be repeated every triage."
+      }
+    },
+    {
+      "name": "GitHub MCP server",
+      "kind": "mcp",
+      "purpose": "Required by error-lifecycle-management (get_commits/get_pull_request/create_issue/get_diff) to identify the commit/PR that likely caused an error and to file a bug ticket.",
+      "required": true,
+      "degradedBehavior": "error-lifecycle-management can't identify the causing commit/PR or auto-file a tracker issue.",
+      "replacement": {
+        "suggestion": "search git log and the GitHub UI manually, and file issues by hand",
+        "warning": "the MCP server already ties commits, PRs, and issues together programmatically; manual correlation is slower and doesn't scale to recurring triage work."
+      }
+    },
+    {
+      "name": "Chrome DevTools MCP server",
+      "kind": "mcp",
+      "purpose": "Required by the entire chrome-devtools-mcp skill — browser automation, perf traces, network/console debugging.",
+      "required": true,
+      "degradedBehavior": "The chrome-devtools-mcp skill can't run at all — there's no non-MCP fallback path documented for it.",
+      "replacement": {
+        "suggestion": "drive a browser manually or script it with Playwright directly",
+        "warning": "Chrome DevTools MCP already wraps a wait-aware Puppeteer client tuned for this workflow; a hand-rolled Playwright script duplicates that work and has to be maintained separately."
+      }
+    },
+    {
+      "name": "@rhize/skill-forge",
+      "kind": "cli",
+      "purpose": "npm CLI the skill-refinement-detector and skill-refinement-session-end opt-in hooks tell the user to run (`npx @rhize/skill-forge refine`).",
+      "required": false,
+      "degradedBehavior": "The two opt-in hooks (if wired) still fire and print their suggestion; running the suggested command just fails without the package installed.",
+      "replacement": {
+        "suggestion": "manually note the refinement idea and hand-edit the target SKILL.md later",
+        "warning": "skill-forge's refine flow provides gate and provenance tracking that ad hoc SKILL.md edits don't — installing it keeps refinements auditable instead of untracked."
+      }
+    }
   ]
 }

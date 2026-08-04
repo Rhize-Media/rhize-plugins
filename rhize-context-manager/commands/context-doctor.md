@@ -1,5 +1,6 @@
 ---
 description: Health-check the full Rhize context stack — Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK — and flag overlap, drift, or dead layers
+model: sonnet
 ---
 
 # /context-doctor
@@ -83,3 +84,12 @@ unchanged, say so in one line instead of an empty table.
 
 To act on any flag raised here (enable/disable a layer, wire a hook), use
 `/context-setup` — this command only diagnoses and persists its own run log.
+
+## Cadence
+
+Scheduled weekly via the standalone `weekly-context-doctor` routine
+(`~/Documents/Claude/Scheduled/weekly-context-doctor/SKILL.md`, Thursday mornings —
+deliberately a different day than the Monday `weekly-skill-audit` routine so the two
+weekly signals don't blur). That routine runs this command drift-only: a one-line "no
+drift" report unless the Step 3 delta actually found a change. On-demand runs of
+`/context-doctor` remain fine any time.

@@ -1,7 +1,9 @@
 ---
 name: verifier
 description: Independently verifies completed work against tests, rubrics, and the project's STATE.md before it is marked done. Use PROACTIVELY after any implementation, fix, or multi-step task — the maker must not grade its own work.
-model: haiku
+model: opus
+# Final commit gate — capable-tier model per global model-routing convention
+# (most-capable model for final gates; Sonnet 5 executes, Haiku handles mechanical work).
 tools: Read, Bash, Glob, Grep
 ---
 

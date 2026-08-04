@@ -14,8 +14,23 @@
 #   }
 # }
 
-# Read user prompt from stdin
-USER_PROMPT=$(cat)
+# Read user prompt from stdin. The payload is JSON with a "prompt" field;
+# extract it via real JSON parsing rather than keyword-matching the whole raw
+# payload (the previous approach), which risked false positives against
+# non-prompt fields (session_id, cwd, etc.) and -- had it ever needed to
+# extract a delimited field with grep/sed -- would have silently mis-detected
+# escaped-quote content the way the sibling prewrite-check.sh hook did
+# (reproduced 2026-08-04).
+RAW_INPUT=$(cat)
+USER_PROMPT=$(printf '%s' "$RAW_INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    print(data.get("prompt") or "")
+')
 
 # Mutation-related keywords
 MUTATION_KEYWORDS=(

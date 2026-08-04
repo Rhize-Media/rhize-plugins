@@ -2,6 +2,7 @@
 description: Check SERP features and rankings for keywords
 argument-hint: <keyword> [domain]
 allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
+model: haiku
 ---
 
 Analyze the SERP landscape for $ARGUMENTS using the serp-intelligence skill.

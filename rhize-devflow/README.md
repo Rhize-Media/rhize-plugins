@@ -64,7 +64,14 @@ nothing untested fires automatically on every session:
 
 Full metadata (id, exact command, description) for all ten lives in **`setup/manifest.json`**,
 read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a project can pick which guard
-hooks to wire in without hand-editing `.claude/settings.json`.
+hooks to wire in without hand-editing `.claude/settings.json`. The manifest also declares a
+`dependencies` array (Sentry/Vercel/GitHub/Chrome DevTools MCP servers, `@rhize/skill-forge`)
+that the wizard's dependency check reads.
+
+**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
+`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item
+manually per the snippet in [rhize-ops/README.md § Setup manifest
+schema](../rhize-ops/README.md#setup-manifest-schema).
 
 **Fixed 2026-08-04** (all ten scripts already read stdin correctly except these three, which
 were silently dead or non-portable):
@@ -91,7 +98,7 @@ vetting, moved on to the `@rhize/skill-forge` npm package (2026-07-20 — `skill
 
 From the "self-improving agent system" pattern — no run is complete until it leaves the next run better prepared.
 
-- **`agents/verifier.md`** — independent Haiku verifier (read-only: Read/Bash/Glob/Grep). `/done` delegates to it before any commit; verdicts PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN. The maker never grades its own work.
+- **`agents/verifier.md`** — independent verifier, pinned to the capable-tier model as the final commit gate (read-only: Read/Bash/Glob/Grep). `/done` delegates to it before any commit; verdicts PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN. The maker never grades its own work.
 - **STATE.md contract** — `/start` reads `STATE.md` (Verified facts · General rules · Open failures · Lessons learned · Last session) first; `/done` requires persisting at least one fact/failure/lesson back to it.
 - **`hooks/protect-files.sh`** — OPT-IN PreToolUse gate; see the Hooks section above and `setup/manifest.json` for matcher, tier, and wiring details.
 - **`templates/hookify/`** — warn-level hookify rules for Next.js/Sanity repos (stop-checks, sanity-schema hint, seo hint, pr-review-on-create). Copy the relevant ones into a repo's `.claude/` as `hookify.<name>.local.md`.

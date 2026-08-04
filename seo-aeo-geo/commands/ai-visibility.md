@@ -2,6 +2,7 @@
 description: Check AI/LLM visibility and AEO/GEO optimization status
 argument-hint: <domain or brand name> [keywords]
 allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
+model: haiku
 ---
 
 Audit AI visibility and AEO/GEO optimization for $ARGUMENTS using the aeo-geo-optimization skill.

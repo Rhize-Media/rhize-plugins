@@ -1,5 +1,6 @@
 ---
 description: Mid-session context cleanup — manage context window and session health during long development sessions
+model: haiku
 ---
 
 # Context Hygiene

@@ -2,6 +2,7 @@
 description: Quick-capture a note, idea, or task to your Obsidian vault
 allowed-tools: ["mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "mcp__workspace__web_fetch", "WebFetch", "WebSearch"]
 argument-hint: <content to capture>
+model: haiku
 ---
 
 Quick-capture content to the user's Obsidian vault. Use CLI commands where they provide a cleaner path — they handle daily note resolution, task creation, and template application automatically.

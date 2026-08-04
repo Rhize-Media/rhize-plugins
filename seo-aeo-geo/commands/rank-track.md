@@ -2,6 +2,7 @@
 description: Track keyword rankings and visibility trends over time
 argument-hint: <domain> [keywords comma-separated]
 allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
+model: haiku
 ---
 
 Track keyword rankings and visibility for $ARGUMENTS using the serp-intelligence skill.

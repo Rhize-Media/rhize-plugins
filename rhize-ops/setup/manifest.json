@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "plugin": "rhize-ops",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "ecc (cost-tracker Stop hook)",
+      "kind": "plugin",
+      "purpose": "Writes ~/.claude/metrics/costs.jsonl, the spend denominator savings_scorecard.py and skill_roi.py join everything else against.",
+      "required": false,
+      "degradedBehavior": "savings_scorecard.py shows only the avoided-token numerators (rtk/Headroom/claude-mem/OpenWolf) with no measured-spend denominator; skill_roi.py can't join skill invocations to session cost, so its ROI rows read 'no cost data'.",
+      "replacement": {
+        "suggestion": "hand-roll a Stop hook that appends session cost JSON lines to ~/.claude/metrics/costs.jsonl in the schema cost_metrics.py expects",
+        "warning": "You'd be reimplementing and indefinitely maintaining ecc's own cost-tracking hook and schema, and every upstream schema change would need to be re-tracked by hand. Installing ecc@everything-claude-code is simpler and stays current for free."
+      }
+    },
+    {
+      "name": "rtk",
+      "kind": "cli",
+      "purpose": "Supplies measured input/output token-savings deltas (`rtk gain --daily --format json`) for the scorecard's MEASURED tier.",
+      "required": false,
+      "degradedBehavior": "The scorecard's rtk row shows 'unavailable — no data'; the MEASURED tier still has costs.jsonl and Headroom.",
+      "replacement": {
+        "suggestion": "diff Claude Code's own transcript token counts against a naive baseline yourself",
+        "warning": "rtk already does this accounting project-wide and tracks new tool output formats as they change; a hand-rolled parser means maintaining your own diffing logic against every CLI tool's shifting output shape."
+      }
+    },
+    {
+      "name": "Headroom",
+      "kind": "cli",
+      "purpose": "Measured input-side compression savings from ~/.headroom/proxy_savings.json + savings_events.jsonl for the scorecard's MEASURED tier.",
+      "required": false,
+      "degradedBehavior": "The scorecard's Headroom row shows 'no data'; the MEASURED tier still has costs.jsonl and rtk.",
+      "replacement": {
+        "suggestion": "write your own wire-compression proxy and savings-event logger",
+        "warning": "Headroom's compression heuristics and savings accounting are actively maintained upstream; a hand-rolled proxy needs continual re-tuning and re-securing that installing/enabling Headroom avoids entirely."
+      }
+    },
+    {
+      "name": "claude-mem",
+      "kind": "plugin",
+      "purpose": "ESTIMATED-tier discovery_tokens numerator from ~/.claude-mem/claude-mem.db for the scorecard's estimated (never-summed-into-measured) tier.",
+      "required": false,
+      "degradedBehavior": "The scorecard's claude-mem row shows 'no data'; the ESTIMATED tier still has OpenWolf.",
+      "replacement": {
+        "suggestion": "build a custom cross-session memory store and self-report its token savings",
+        "warning": "claude-mem's memory layer and savings self-reporting already exist and are maintained upstream; a DIY memory layer means owning storage, retrieval, and savings-accounting code claude-mem gives you for free."
+      }
+    },
+    {
+      "name": "OpenWolf",
+      "kind": "cli",
+      "purpose": "ESTIMATED-tier per-repo token-ledger.json numerator source, read across ~/dev-local/RHIZE/* repos with a .wolf/ directory.",
+      "required": false,
+      "degradedBehavior": "The scorecard's OpenWolf row shows 'no data' for repos without a .wolf/ directory; the ESTIMATED tier still has claude-mem.",
+      "replacement": {
+        "suggestion": "hand-maintain a per-repo token-ledger file in the same schema",
+        "warning": "OpenWolf already tracks this per-repo and evolves its own ledger format; a manual ledger silently drifts the moment that schema changes upstream."
+      }
+    }
+  ]
+}

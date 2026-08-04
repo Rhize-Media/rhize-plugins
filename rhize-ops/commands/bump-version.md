@@ -1,3 +1,7 @@
+---
+model: haiku
+---
+
 # /rhize-ops:bump-version
 
 Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump_version.py`,

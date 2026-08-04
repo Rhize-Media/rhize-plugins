@@ -40,5 +40,95 @@
       "description": "Pattern-matches the submitted prompt against implementation/bugfix/refactor/completion/context-fatigue/performance keyword sets and surfaces a suggested skill to Claude via additionalContext. Advisory only — never blocks the prompt.",
       "default": false
     }
+  ],
+  "dependencies": [
+    {
+      "name": "@rhize/skill-forge",
+      "kind": "cli",
+      "purpose": "npm CLI required by /skill-refine's `run` step (`npx @rhize/skill-forge evolve <skill-dir> ...`) and by third-party skill intake (`skill-forge add`).",
+      "required": true,
+      "degradedBehavior": "There is no evolve/safety-gate mechanism without it — /skill-refine run cannot execute, and new third-party skills have no gate to pass through.",
+      "replacement": {
+        "suggestion": "hand-edit SKILL.md files and manually vet third-party skill sources",
+        "warning": "skill-forge's SkillOpt gate and safety re-gate are the actual safety mechanism behind auto-promoting a skill edit. Hand-editing without it means shipping unreviewed skill changes — install @rhize/skill-forge rather than skip the gate."
+      }
+    },
+    {
+      "name": "headroom",
+      "kind": "cli",
+      "purpose": "CLI required for /learn-harvest's Step 2 (`headroom learn --project <cwd>` dry-run), one of its three refinement-signal sources.",
+      "required": true,
+      "degradedBehavior": "That step fails outright — the command has no built-in skip for a missing headroom binary; the claude-mem and skill-monitor sources are unaffected but you'd need to run them separately.",
+      "replacement": {
+        "suggestion": "manually review transcripts for repeated corrections instead of running headroom learn",
+        "warning": "headroom's learn heuristics are maintained upstream and improve independently of this plugin; a manual transcript review is slower and won't stay current with headroom's own pattern detection."
+      }
+    },
+    {
+      "name": "ecc:harness-audit",
+      "kind": "plugin",
+      "purpose": "Optional deeper final pass /context-doctor chains into after its own layer checks.",
+      "required": false,
+      "degradedBehavior": "/context-doctor prints 'ecc:harness-audit not available — skipping' and completes with its own checks only — this is the documented, graceful path.",
+      "replacement": {
+        "suggestion": "write bespoke harness-audit checks directly into /context-doctor",
+        "warning": "ecc's harness-audit already codifies a broad, maintained audit surface; duplicating it here means maintaining a second copy of the same checks that drifts the moment ecc's audit changes."
+      }
+    },
+    {
+      "name": "claude-mem",
+      "kind": "plugin",
+      "purpose": "Global session memory the context-stack layer routes to; also /learn-harvest's Step 3 signal source (recent correction/friction observations).",
+      "required": false,
+      "degradedBehavior": "context-stack marks the layer inactive in /context-doctor; /learn-harvest's claude-mem source contributes no entries, leaving headroom-learn + skill-monitor as the only sources.",
+      "replacement": {
+        "suggestion": "build a custom cross-session memory store",
+        "warning": "claude-mem's memory and search tooling already exist and are maintained upstream; a DIY memory layer means owning storage, retrieval, and dashboard code claude-mem gives you for free."
+      }
+    },
+    {
+      "name": "OpenWolf",
+      "kind": "cli",
+      "purpose": "Per-repo file-intel layer (`.wolf/`) the context-stack routing logic coexists with; per-repo opt-in.",
+      "required": false,
+      "degradedBehavior": "context-stack marks the layer inactive for repos without a .wolf/ directory; no in-session file-intel benefit for those repos, no other effect.",
+      "replacement": {
+        "suggestion": "hand-maintain a per-repo file index",
+        "warning": "OpenWolf already tracks and updates its own per-repo index format; a manual index drifts the moment that format changes upstream."
+      }
+    },
+    {
+      "name": "Serena",
+      "kind": "mcp",
+      "purpose": "Semantic code navigation MCP server the context-stack layer routes symbol-lookup work to.",
+      "required": false,
+      "degradedBehavior": "context-stack falls back to native grep/read-based navigation for symbol operations; slower on large codebases but functional.",
+      "replacement": {
+        "suggestion": "rely on grep/Read for symbol navigation",
+        "warning": "this is the plugin's own documented fallback, not a case for a custom reimplementation — Serena's semantic index is the thing being skipped, not something to rebuild by hand."
+      }
+    },
+    {
+      "name": "CodeGraph",
+      "kind": "cli",
+      "purpose": "Code-knowledge-graph CLI + MCP (`codegraph` binary, `codegraph init` per repo) the context-stack layer routes to for indexed repos.",
+      "required": false,
+      "degradedBehavior": "context-stack falls back to grep/Read for repos without a `.codegraph/` index; no other effect.",
+      "replacement": {
+        "suggestion": "rely on grep/Read instead of an indexed knowledge graph",
+        "warning": "this is the plugin's own documented fallback — CodeGraph indexing is the user's decision to opt into per repo, not something a hand-rolled index should try to replicate."
+      }
+    },
+    {
+      "name": "Graphiti",
+      "kind": "mcp",
+      "purpose": "Opt-in temporal knowledge-graph memory, adopted via the graphiti-memory skill — explicitly NOT a dependency of anything else in this plugin.",
+      "required": false,
+      "degradedBehavior": "No effect on any other skill or command — Graphiti is additive, opt-in memory, not something the plugin routes through by default.",
+      "replacement": {
+        "suggestion": "skip temporal memory entirely, or use claude-mem's non-temporal memory instead",
+        "warning": "if you specifically need temporal/graph-shaped memory, Graphiti is already built and maintained for that; a hand-rolled temporal store is a much larger undertaking than the other replacements on this list."
+      }
+    }
   ]
 }

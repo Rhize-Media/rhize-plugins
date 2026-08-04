@@ -22,11 +22,22 @@
 
 set -e
 
-# Read the prompt from stdin
-PROMPT=""
-while IFS= read -r line; do
-    PROMPT="$PROMPT$line"
-done
+# Read the prompt from stdin. The payload is JSON with a "prompt" field;
+# extract it via real JSON parsing rather than treating the whole raw stdin
+# as the prompt text (the previous line-concatenation loop) -- avoids
+# matching keywords against non-prompt JSON fields and correctly decodes
+# escaped quotes/newlines in the prompt content (reproduced 2026-08-04 on the
+# sibling prewrite-check.sh hook, same underlying grep/sed-scraping class).
+RAW_INPUT=$(cat)
+PROMPT=$(printf '%s' "$RAW_INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    print(data.get("prompt") or "")
+')
 
 # Convert to lowercase for matching
 PROMPT_LOWER=$(echo "$PROMPT" | tr '[:upper:]' '[:lower:]')

@@ -2,6 +2,7 @@
 description: Analyze a domain's backlink profile and find opportunities
 argument-hint: <domain> [competitor domain]
 allowed-tools: Read, Bash(curl:*), WebFetch, WebSearch
+model: haiku
 ---
 
 Analyze the backlink profile for $ARGUMENTS using the backlink-intelligence skill.

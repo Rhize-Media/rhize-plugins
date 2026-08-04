@@ -2,6 +2,7 @@
 description: Search your Obsidian vault for notes, tags, or content
 allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
 argument-hint: <search query>
+model: haiku
 ---
 
 Search the user's Obsidian vault for "$ARGUMENTS". Use qmd for semantic search when available, with MCP and CLI as fallbacks and for structured queries.

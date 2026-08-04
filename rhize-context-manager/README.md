@@ -90,6 +90,14 @@ the former printed warnings to stderr on `exit 0` (never reached Claude), the la
 read the wrong input field (`user_prompt` instead of `prompt` — a permanent no-op) and
 wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.additionalContext`).
 
+`setup/manifest.json` also declares a `dependencies` array (`@rhize/skill-forge`, `headroom`,
+`ecc:harness-audit`, and the orchestrated stack tools) that the wizard's dependency check reads.
+
+**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires these opt-in items and checks
+`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item manually
+per the snippet in [rhize-ops/README.md § Setup manifest
+schema](../rhize-ops/README.md#setup-manifest-schema).
+
 ### Why this replaces ECC's `suggest-compact`
 
 ECC's hook sizes the window by sniffing the model id for a literal `[1m]`

@@ -125,7 +125,13 @@ auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `
 plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
 currently empty: every hook this plugin ships is already scoped tightly (SEO file patterns
 only, 3s timeout, advisory-only) and auto-wired, so there's nothing here that needs to be
-opt-in rather than on-by-default.
+opt-in rather than on-by-default. It does declare a `dependencies` array (the DataForSEO
+MCP server) that the wizard's dependency check reads.
+
+**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
+`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item
+manually per the snippet in [rhize-ops/README.md § Setup manifest
+schema](../rhize-ops/README.md#setup-manifest-schema).
 
 ## Architecture
 

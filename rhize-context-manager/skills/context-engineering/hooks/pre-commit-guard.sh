@@ -25,8 +25,20 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract the bash command from tool input
-COMMAND=$(echo "$INPUT" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"command"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# Extract the bash command from tool input via real JSON parsing. grep/sed
+# extraction on the raw JSON text truncates at the first escaped quote (\")
+# inside the command string, silently missing real commands -- reproduced
+# 2026-08-04. json.loads decodes escapes correctly.
+COMMAND=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    ti = data.get("tool_input") or {}
+    print(ti.get("command") or "")
+')
 
 # Only check git commit commands
 if [[ ! "$COMMAND" =~ "git commit" ]]; then

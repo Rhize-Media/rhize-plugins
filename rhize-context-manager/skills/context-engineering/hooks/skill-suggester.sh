@@ -31,8 +31,19 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract user prompt from hook input
-PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# Extract user prompt from hook input via real JSON parsing. grep/sed
+# extraction on the raw JSON text truncates at the first escaped quote (\")
+# inside the prompt string, silently missing real prompts -- reproduced
+# 2026-08-04. json.loads decodes escapes correctly.
+PROMPT=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    print(data.get("prompt") or "")
+')
 
 # If no prompt found, continue normally
 if [ -z "$PROMPT" ]; then

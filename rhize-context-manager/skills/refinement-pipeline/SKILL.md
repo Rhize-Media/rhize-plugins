@@ -24,10 +24,16 @@ skill-monitor snapshots ───┘  pending → triaged|rejected  └→ ALLOW
 - Commands: `/learn-harvest` (collect), `/skill-refine review` (triage),
   `/skill-refine run` (drain — headless-safe).
 - Scope (iteration 1): this plugin's skills + `~/.claude/skills/learned/`.
-- Schedule: piggybacked on the existing `weekly-skill-audit` routine
-  (`~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`, steps 8–9) — harvest +
-  drain run weekly after the audit; triage stays manual between runs. No separate
-  scheduled task exists for this pipeline.
+- Schedule (changed 2026-08): harvest and drain now run on separate cadences. Harvest
+  (`/learn-harvest`) runs DAILY as its own standalone scheduled task,
+  `~/Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md`, on a cheap model
+  (mechanical collection — no judgment). Drain (`/skill-refine run`) stays WEEKLY, inside
+  the existing `weekly-skill-audit` routine
+  (`~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`, step 8) on a capable model
+  — the drain/promote decision plus the audit's own judgment calls justify keeping it on
+  the smarter tier. Triage (`/skill-refine review`) stays manual between runs, on
+  whatever cadence Jim chooses. The daily harvest means the weekly drain now works from a
+  full week of accumulated queue entries instead of a single once-a-week collection pass.
 
 ## Trust model (why two gates)
 

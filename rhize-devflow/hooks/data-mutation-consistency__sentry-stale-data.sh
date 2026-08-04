@@ -22,15 +22,24 @@ set -uo pipefail
 # "prompt"), never as a positional $1 argument -- there is no shell
 # interpolation into the configured "command" string. The previous version of
 # this script read $1 (always empty for a hook Claude Code invokes directly),
-# so it exited at the first guard on every call. Extract "prompt" from stdin;
-# fall back to the raw payload text if extraction fails so the keyword grep
-# below still has something to search (same tolerant style as the sibling
-# mutation-detector.sh hook).
+# so it exited at the first guard on every call. Extract "prompt" via real
+# JSON parsing rather than grep/sed -- the old "[^"]*" pattern truncated at
+# the first escaped quote (\") inside the prompt, silently missing real
+# prompts (reproduced 2026-08-04). The old raw-payload fallback on empty
+# extraction is dropped: it risked false-positive keyword matches against
+# JSON structural text (or, on non-JSON/malformed input, against garbage),
+# which conflicts with "malformed input exits silently" -- a malformed or
+# fieldless payload now yields an empty PROMPT and exits via the guard below.
 INPUT=$(cat)
-PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
-if [ -z "$PROMPT" ]; then
-    PROMPT="$INPUT"
-fi
+PROMPT=$(printf '%s' "$INPUT" | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    print("")
+else:
+    print(data.get("prompt") or "")
+')
 
 # Skip if no prompt
 if [ -z "$PROMPT" ]; then

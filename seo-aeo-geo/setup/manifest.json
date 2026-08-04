@@ -1,5 +1,18 @@
 {
   "schema": 1,
   "plugin": "seo-aeo-geo",
-  "items": []
+  "items": [],
+  "dependencies": [
+    {
+      "name": "DataForSEO MCP server",
+      "kind": "mcp",
+      "purpose": "Bundled via .mcp.json (dataforseo-mcp-server); powers every SEO/AEO/GEO skill and command (SERP, Keywords, OnPage, Labs, Backlinks, AI Optimization, Domain Analytics, Content Analysis, Business Data). Requires DATAFORSEO_USERNAME/DATAFORSEO_PASSWORD env vars to authenticate — see README Setup.",
+      "required": true,
+      "degradedBehavior": "Every skill/command that calls a DataForSEO MCP tool fails outright with an auth or connection error — there is no local-data fallback. Still functional without it: the code-seo-review and content-optimize commands, and the content-seo and nextjs-sanity-seo skills (static code/content analysis, no live SEO data).",
+      "replacement": {
+        "suggestion": "scrape SERPs, backlinks, and keyword data yourself with ad hoc scripts",
+        "warning": "DataForSEO aggregates and normalizes multiple upstream data sources (Google, Bing, backlink crawlers) behind one maintained API. A DIY scraper needs rebuilding every time a search engine changes its markup, and you'd lose DataForSEO's data-quality and dedup work entirely — get a DataForSEO account instead."
+      }
+    }
+  ]
 }
