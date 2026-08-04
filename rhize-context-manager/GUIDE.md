@@ -15,8 +15,22 @@ the right one, and health-checks the whole thing.
 
 - **"Session start feels slow" / "I'm seeing the same context twice"**
   → `/context-doctor` — read-only health check + overlap flags across Headroom, RTK,
-  claude-mem, OpenWolf, Serena/CodeGraph.
+  claude-mem, OpenWolf, Serena/CodeGraph. Every run is saved to
+  `~/.claude/context-manager/doctor/`, so the next run shows you a delta ("Serena flag
+  cleared since last time", "RTK savings dropped to zero") instead of a cold read every
+  time. If the `ecc` plugin's `harness-audit` skill is installed, doctor chains into it
+  automatically as a final deeper pass.
   *Example: "Run /context-doctor — rhize-salesforce felt sluggish this morning."*
+
+- **"Set up context tooling for this repo" / "which layers should this repo actually run"**
+  → `/context-setup` — scans the repo to infer its type, checks which stack layers are
+  actually active (via the same probes as `/context-doctor`), proposes a tailored
+  enable/disable list with one-line reasons (e.g. "disable Serena — CodeGraph is already
+  indexed here"), and on your confirmation writes the decision to
+  `~/.claude/rhize-context-manager/stack.config.json`. It only touches that config file —
+  it won't install a tool or wire a hook for you; for hook wiring across plugins, run
+  `/rhize-setup` (rhize-ops) once that lands.
+  *Example: "Run /context-setup on this repo — I want to know if OpenWolf is worth it here."*
 
 - **"Start / where were we / save context / context is getting heavy"**
   → the `context-engineering` skill (sessions, memory extraction, hygiene). This moved
@@ -46,7 +60,12 @@ the right one, and health-checks the whole thing.
 ## Tips
 
 - Run `/context-doctor` when adopting a new repo or after installing/removing any stack
-  tool — overlap problems appear at those boundaries.
+  tool — overlap problems appear at those boundaries. Follow up with `/context-setup` to
+  act on anything it flags.
+- The four generalized hooks under `skills/context-engineering/hooks/`
+  (`session-init`, `duplicate-check`, `pre-commit-guard`, `skill-suggester`) are opt-in —
+  listed in `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
+  `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
 - Graphiti is approved for Rhize adoption but needs its backend stood up first — until

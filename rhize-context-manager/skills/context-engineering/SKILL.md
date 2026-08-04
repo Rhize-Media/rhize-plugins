@@ -119,10 +119,10 @@ Structured workflows for common development operations.
 
 | Command | Trigger Keywords | Purpose |
 |---------|------------------|---------|
-| [/start](commands/start.md) | start, begin, new session | Initialize session with context loading |
-| [/done](commands/done.md) | done, finished, commit | Post-implementation validation |
-| [/context-hygiene](commands/context-hygiene.md) | confused, slow, cleanup | Manage context window health |
-| [/impact-map](commands/impact-map.md) | implement, create new, build | Map dependencies before changes |
+| [/start](../../commands/start.md) | start, begin, new session | Initialize session with context loading |
+| [/done](../../commands/done.md) | done, finished, commit | Post-implementation validation |
+| [/context-hygiene](../../commands/context-hygiene.md) | confused, slow, cleanup | Manage context window health |
+| [/impact-map](../../commands/impact-map.md) | implement, create new, build | Map dependencies before changes |
 
 ### Command Usage
 
@@ -337,12 +337,14 @@ Prevent duplicate components:
 | [pre-commit-guard.sh](hooks/pre-commit-guard.sh) | `PreToolUse` (bash) | Warn about unstaged files |
 
 ### Commands (READ for workflow guidance)
-> **Usage:** Claude should READ these to understand workflow steps, then execute the steps described within.
+> **Usage:** These are the plugin's registered slash commands, at the top-level
+> `commands/` directory (not duplicated under this skill). Claude should READ them
+> to understand workflow steps, then execute the steps described within.
 
-- [start.md](commands/start.md) - Session initialization workflow
-- [done.md](commands/done.md) - Post-implementation checklist
-- [context-hygiene.md](commands/context-hygiene.md) - Context management steps
-- [impact-map.md](commands/impact-map.md) - Dependency mapping procedure
+- [start.md](../../commands/start.md) - Session initialization workflow
+- [done.md](../../commands/done.md) - Post-implementation checklist
+- [context-hygiene.md](../../commands/context-hygiene.md) - Context management steps
+- [impact-map.md](../../commands/impact-map.md) - Dependency mapping procedure
 
 ### Scripts
 

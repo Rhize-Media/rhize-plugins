@@ -509,7 +509,10 @@ def main():
         params = interactive_mode()
         config = generator.generate_config(**params)
     elif args.scan:
-        project_path = Path(args.scan)
+        # .resolve() first: Path(".").name == "" and would silently produce an
+        # empty project name in the generated config. An absolute path always
+        # has a real basename.
+        project_path = Path(args.scan).resolve()
         if not project_path.exists():
             print(f"Error: Path does not exist: {project_path}")
             sys.exit(1)

@@ -44,10 +44,41 @@ this repo — gitignored, as the convention requires).
 
 ## Hooks
 
-A light SessionStart banner is enabled by default. The heavier guard hooks (duplicate-check,
-prewrite mutation check, RCA enforcer, regression guard) ship bundled under `hooks/` and inside
-each skill but are **opt-in** — wire them into a project's `.claude/settings.json` when you want
-them, so nothing untested fires automatically.
+A light SessionStart banner (`hooks/hooks.json`) is enabled by default and is the only hook
+this plugin auto-wires. Ten heavier guard scripts ship bundled under `hooks/` but are
+**deliberately opt-in** — wire the ones you want into a project's `.claude/settings.json`, so
+nothing untested fires automatically on every session:
+
+| Script | Event | Matcher | Tier | Behavior |
+|--------|-------|---------|------|----------|
+| `context-engineering__duplicate-check.sh` | PreToolUse | `Write` | T4 (blocks) | Blocks creating a new file under a components/hooks/utilities path if a similarly-named entry already exists in `COMPONENT_REGISTRY.md`. |
+| `context-engineering__pre-commit-guard.sh` | PreToolUse | `Bash` | T3 | On `git commit`, warns (never blocks) if a staged component's matching hook, or a staged schema/model file's types file, isn't also staged. |
+| `context-engineering__session-init.sh` | SessionStart | — | T3 | Heavier session banner: sprint/registry freshness, active work item, uncommitted-file count. |
+| `context-engineering__skill-suggester.sh` | UserPromptSubmit | — | T3 | Suggests a skill based on prompt keywords (implement/bugfix/refactor/completion/context-fatigue/performance). |
+| `data-mutation-consistency__mutation-detector.sh` | UserPromptSubmit | — | T3 | Suggests `@analyze-mutations`/`@check-mutation` when the prompt combines a mutation/cache keyword with a bug/error keyword. |
+| `data-mutation-consistency__prewrite-check.sh` | PreToolUse | `Write\|Edit` | T3 | Warns on Supabase mutations missing error handling/revalidation, `useMutation` calls missing `onError`/`onSettled`, or Payload collections missing `afterChange`/`afterDelete`. |
+| `data-mutation-consistency__sentry-stale-data.sh` | UserPromptSubmit | — | T3 | Prints a stale-data investigation checklist on Sentry URLs or stale-data phrasing. |
+| `protect-files.sh` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit` | T4 (blocks) | Blocks edits to CI workflows/`.env*`/billing paths and leaked `NEXT_PUBLIC_*` secrets or client-side Supabase service-role keys. Local copy of the same gate the global `~/.claude/hooks/protect-files.sh` already runs for every session — wire this one in only for environments without that global hook installed. |
+| `skill-refinement__refinement-detector.sh` | UserPromptSubmit | — | T3 | Detects "skill doesn't work" / "false positive" style phrasing and suggests `npx @rhize/skill-forge refine`. |
+| `skill-refinement__session-end.sh` | Stop | — | T3 | At session end, suggests capturing a refinement if the session was substantial (tool calls, errors, duration, files touched — computed from the transcript). |
+
+Full metadata (id, exact command, description) for all ten lives in **`setup/manifest.json`**,
+read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a project can pick which guard
+hooks to wire in without hand-editing `.claude/settings.json`.
+
+**Fixed 2026-08-04** (all ten scripts already read stdin correctly except these three, which
+were silently dead or non-portable):
+- `context-engineering__skill-suggester.sh` looked for a `"user_prompt"` JSON field that Claude
+  Code never sends (the real field is `"prompt"`) — the hook never fired.
+- `data-mutation-consistency__sentry-stale-data.sh` read the prompt from a positional `$1`
+  argument; Claude Code delivers hook payloads as JSON on stdin, never as command-line args —
+  same failure mode, the hook never fired.
+- `data-mutation-consistency__prewrite-check.sh` extracted fields with GNU-only `grep -oP`,
+  which macOS's default BSD grep rejects outright — the hook never matched on macOS.
+- `skill-refinement__session-end.sh` read `SESSION_TOOL_CALLS`/`SESSION_ERRORS`/
+  `SESSION_DURATION`/`SESSION_FILES_TOUCHED` from the environment; Claude Code doesn't set
+  those (Stop hooks get only `session_id`/`transcript_path`/`cwd` on stdin) — the hook never
+  fired. It now computes the same four stats from the transcript file directly.
 
 ## Lineage
 
@@ -62,6 +93,6 @@ From the "self-improving agent system" pattern — no run is complete until it l
 
 - **`agents/verifier.md`** — independent Haiku verifier (read-only: Read/Bash/Glob/Grep). `/done` delegates to it before any commit; verdicts PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN. The maker never grades its own work.
 - **STATE.md contract** — `/start` reads `STATE.md` (Verified facts · General rules · Open failures · Lessons learned · Last session) first; `/done` requires persisting at least one fact/failure/lesson back to it.
-- **`hooks/protect-files.sh`** — OPT-IN PreToolUse gate (matcher `Edit|Write|MultiEdit|NotebookEdit`): blocks edits to `.github/workflows/*`, `.env*`, billing/payment paths, plus content gates for `NEXT_PUBLIC_*` secret-named vars and Supabase service-role references in `'use client'` files. Wire it into a project's `.claude/settings.json` like the other guard hooks.
+- **`hooks/protect-files.sh`** — OPT-IN PreToolUse gate; see the Hooks section above and `setup/manifest.json` for matcher, tier, and wiring details.
 - **`templates/hookify/`** — warn-level hookify rules for Next.js/Sanity repos (stop-checks, sanity-schema hint, seo hint, pr-review-on-create). Copy the relevant ones into a repo's `.claude/` as `hookify.<name>.local.md`.
 - **`templates/rules/openwolf.md`** — canonical OpenWolf protocol rule (previously copy-pasted per repo, had drifted). Copy into `.claude/rules/` ONLY in repos that have a `.wolf/` directory.

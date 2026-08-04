@@ -2,6 +2,11 @@
 # Pre-Commit Impact Analysis Guard (Generalized)
 # Warns if related files aren't staged with changes
 #
+# TIER: T3 (advisory) — PreToolUse, matcher "Bash". Never blocks (always exit 0).
+# CONTRACT: advisory PreToolUse hooks are invisible to Claude on plain stdout/stderr —
+# only hookSpecificOutput.additionalContext in the JSON on stdout reaches the model
+# (verified against code.claude.com/docs/en/hooks, 2026-08-04). Emit JSON, not echo.
+#
 # INSTALLATION:
 # 1. Copy to your project: .claude/hooks/pre-commit-guard.sh
 # 2. Make executable: chmod +x .claude/hooks/pre-commit-guard.sh
@@ -9,9 +14,8 @@
 #    {
 #      "hooks": {
 #        "PreToolUse": [{
-#          "type": "command",
-#          "command": ".claude/hooks/pre-commit-guard.sh",
-#          "toolNames": ["bash"]
+#          "matcher": "Bash",
+#          "hooks": [{ "type": "command", "command": ".claude/hooks/pre-commit-guard.sh" }]
 #        }]
 #      }
 #    }
@@ -77,16 +81,13 @@ while IFS= read -r file; do
   fi
 done <<< "$STAGED_FILES"
 
-# If missing related files found, show warning
+# If missing related files found, surface it to Claude via additionalContext.
+# Advisory only — never blocks (exit 0). Plain stdout/stderr on exit 0 is
+# invisible to the model, so this must be hookSpecificOutput.additionalContext.
 if [ -n "$MISSING_RELATED" ]; then
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  echo "⚠️  IMPACT ANALYSIS: Related files not staged" >&2
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  echo -e "$MISSING_RELATED" >&2
-  echo "" >&2
-  echo "Review these to ensure changes are complete." >&2
-  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
-  # Warning only - don't block
+  CONTEXT_MSG=$(printf 'IMPACT ANALYSIS: related files not staged for this commit:%b\n\nReview these to ensure changes are complete.' "$MISSING_RELATED")
+  jq -n --arg msg "$CONTEXT_MSG" \
+    '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $msg}}'
   exit 0
 fi
 

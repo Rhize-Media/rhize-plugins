@@ -41,7 +41,8 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 
 | Command | Purpose |
 |---|---|
-| `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags |
+| `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags. Persists each run to `~/.claude/context-manager/doctor/<YYYY-MM-DD-HHMM>.json`, prints a delta against the previous run, and — if the `ecc` plugin's `harness-audit` skill is available — chains into it as a final deeper pass (graceful one-line skip otherwise). |
+| `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — verifier PASS + `STATE.md` update before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
@@ -49,11 +50,45 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 
+`/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
+`commands/` — the `skills/context-engineering/commands/` copies were removed
+2026-08-04 (they had drifted behind: `commands/` had gained frontmatter, a verifier-
+subagent step in `/done`, and a `STATE.md` update step that the skill-side copies
+lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` originals.
+
 ## Hooks
 
 | Hook | Event | Purpose |
 |---|---|---|
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
+
+This one hook is auto-wired in `hooks/hooks.json` — it ships active by default.
+
+### Opt-in hooks (`setup/manifest.json`)
+
+Four generalized hooks from `skills/context-engineering/hooks/` are declared in
+`setup/manifest.json` as opt-in items (`default: false`) for `/rhize-setup` (rhize-ops)
+to wire per-repo — they are **not** in `hooks/hooks.json` and do nothing until enabled.
+They require project-specific files (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be
+useful, so auto-wiring them for every repo would be noise.
+
+| id | Event | Tier | Purpose |
+|---|---|---|---|
+| `session-init` | `SessionStart` | T3 (advisory) | Session banner: project name, sprint/registry freshness, active work item, uncommitted count |
+| `duplicate-check` | `PreToolUse` (`Write`) | T4 (blocking, exit 2) | Blocks creating a new component/hook/utility whose name closely matches an existing `COMPONENT_REGISTRY.md` entry |
+| `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
+| `skill-suggester` | `UserPromptSubmit` | T3 (advisory) | Pattern-matches the prompt and surfaces a suggested skill via `additionalContext` — never blocks |
+
+`tier` follows the shared convention: T3 = advisory (never blocks, exits 0, must use
+`hookSpecificOutput.additionalContext` to reach Claude on events where plain stdout
+isn't auto-added to context), T4 = blocking (`exit 2`, stderr becomes the reason shown
+to Claude). Verified 2026-08-04 against `code.claude.com/docs/en/hooks`: `SessionStart`
+and `UserPromptSubmit` auto-add plain stdout as context, but `PreToolUse`/`PostToolUse`
+advisory hooks do not — plain stdout/stderr on `exit 0` there is invisible to the model.
+`pre-commit-guard.sh` and `skill-suggester.sh` were fixed to this contract 2026-08-04:
+the former printed warnings to stderr on `exit 0` (never reached Claude), the latter both
+read the wrong input field (`user_prompt` instead of `prompt` — a permanent no-op) and
+wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.additionalContext`).
 
 ### Why this replaces ECC's `suggest-compact`
 
@@ -102,6 +137,18 @@ node hooks/context-window-monitor.js --self-test
 | CodeGraph | code knowledge graph | `codegraph` CLI + MCP, `codegraph init` per repo |
 | graphify | vault knowledge graphs | skill (vendored here) |
 | Graphiti | temporal KG memory | opt-in — see `graphiti-memory` skill |
+
+### Per-repo stack config
+
+`skills/context-stack/references/stack.config.schema.json` (`schemaVersion: 2`) is the
+schema for `$HOME/.claude/rhize-context-manager/stack.config.json` — read by the
+`context-stack` skill's routing logic, written by `/context-setup`. v2 added
+`repoOverrides` (per-repo enable/disable decisions with reasons) alongside the original
+`layers` catalog, so one repo's setup run never has to mutate the shared inventory other
+repos also read. `skills/context-engineering/scripts/config_generator.py --scan <path>`
+(used by `/context-setup` Step 1 to infer project type) had a bug where scanning `.`
+produced an empty project name (`Path(".").name == ""`); fixed 2026-08-04 to resolve the
+path first.
 
 ## Maintenance
 

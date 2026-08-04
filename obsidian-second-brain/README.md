@@ -61,6 +61,20 @@ Lower-level skills that auto-trigger when you're working with specific Obsidian 
 
 All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
 
+The PreToolUse and PostToolUse hooks are implemented in `hooks/scripts/vault-write-hint.py` and
+`hooks/scripts/vault-read-hint.py`. They read the tool-call payload from stdin (as Claude Code
+delivers it — `{"tool_name": ..., "tool_input": {...}}`) and emit advisory context via the
+standard `hookSpecificOutput` contract; both are auto-wired through `hooks/hooks.json`, so no
+setup step is required to use them.
+
+## Setup Manifest
+
+`setup/manifest.json` lists opt-in capabilities this plugin could offer beyond what's
+auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `rhize-ops`
+plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
+currently empty: this plugin's hooks are already scoped to the vault path, advisory-only, and
+auto-wired, so there's nothing here that needs to be opt-in rather than on-by-default.
+
 ## Connectors
 
 ### Obsidian MCP Server (bundled)
@@ -152,7 +166,12 @@ obsidian-second-brain/
 │   └── obsidian-cli/                  # + references/cli-commands.md
 ├── hooks/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
-│   └── obsidian-context.md            # Session context (knowledge-first ordering)
+│   ├── obsidian-context.md            # Session context (knowledge-first ordering)
+│   └── scripts/
+│       ├── vault-write-hint.py        # PreToolUse Write|Edit implementation
+│       └── vault-read-hint.py         # PostToolUse Read implementation
+├── setup/
+│   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
 └── README.md
 ```
 

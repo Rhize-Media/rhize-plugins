@@ -10,16 +10,27 @@
 #   "hooks": {
 #     "UserPromptSubmit": [
 #       {
-#         "command": "/path/to/hooks/sentry-stale-data.sh \"$PROMPT\"",
-#         "advisory": true
+#         "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__sentry-stale-data.sh"
 #       }
 #     ]
 #   }
 # }
 
-set -euo pipefail
+set -uo pipefail
 
-PROMPT="${1:-}"
+# Claude Code delivers UserPromptSubmit payloads as JSON on stdin (field:
+# "prompt"), never as a positional $1 argument -- there is no shell
+# interpolation into the configured "command" string. The previous version of
+# this script read $1 (always empty for a hook Claude Code invokes directly),
+# so it exited at the first guard on every call. Extract "prompt" from stdin;
+# fall back to the raw payload text if extraction fails so the keyword grep
+# below still has something to search (same tolerant style as the sibling
+# mutation-detector.sh hook).
+INPUT=$(cat)
+PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
+if [ -z "$PROMPT" ]; then
+    PROMPT="$INPUT"
+fi
 
 # Skip if no prompt
 if [ -z "$PROMPT" ]; then

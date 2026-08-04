@@ -1,6 +1,7 @@
 # Generated output
 data/*.json
 data/snapshots/
+data/scorecards/
 data/cdn-cache/
 data/*.html
 

@@ -25,6 +25,10 @@ The thesis: skill libraries obey a power law (Anthropic data: ~300 skills instal
 | `data/snapshots/YYYY-MM-DD-skill-usage-{N}d.json` | Immutable per-run history. The `{N}d` suffix encodes the `--days` window so distinct windows for the same date coexist (`-7d` weekly, `-0d` all-time, etc.). ~100 KB to ~500 KB each. *Gitignored.* The dashboard dedupes same-date snapshots by keeping the widest window. |
 | `.claude/plans/` | Implementation plans. Two so far: `skill-monitor-coverage-fixes.md` (Cowork tree integration), `live-artifact-dashboard.md` (this dashboard). |
 | `../skills/skill-dashboard/` | Promoted to the `rhize-ops:skill-dashboard` plugin skill — renders the dashboard on demand from chat. |
+| `cost_metrics.py` | Stdlib-only shared helper (imported by the two scripts below, same pattern as `git_sync.py`). Reads `~/.claude/metrics/costs.jsonl` and returns the latest cumulative row per `session_id` — never sums rows. |
+| `savings_scorecard.py` | Two-tier (Measured vs. Estimated) token/cost savings report across ecc costs.jsonl, rtk, Headroom, claude-mem, OpenWolf, and the headroom-learn digest. Writes markdown to the vault's `Skill-Audit-and-Monitoring/cost-reports/` and JSON to `data/scorecards/`. |
+| `skill_roi.py` | Joins `data/skill-usage.json` events to `costs.jsonl` for a per-skill cost/invocation table + prune-candidate flags. Writes markdown alongside the scorecard in `cost-reports/`. |
+| `data/scorecards/YYYY-MM-DD-savings-scorecard-{N}d.json` | Raw JSON snapshot from `savings_scorecard.py`, mirrors `data/snapshots/`. *Gitignored.* |
 
 ## Hard constraints
 

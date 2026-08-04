@@ -59,7 +59,7 @@ FILENAME=$(basename "$FILE_PATH")
 NAME_NO_EXT=$(echo "$FILENAME" | sed 's/\.[^.]*$//' | sed 's/\..*$//')
 
 # Convert to searchable patterns (handle kebab-case, PascalCase, camelCase)
-SEARCH_PATTERN=$(echo "$NAME_NO_EXT" | sed 's/[-_]/ /g' | sed 's/\([a-z]\)\([A-Z]\)/\1 \2/g' | tr '[:upper:]' '[:lower:]' | tr ' ' '.*')
+SEARCH_PATTERN=$(echo "$NAME_NO_EXT" | sed 's/[-_]/ /g' | sed 's/\([a-z]\)\([A-Z]\)/\1 \2/g' | tr '[:upper:]' '[:lower:]' | sed 's/  */.*/g')
 
 # Search registry for similar names
 MATCHES=$(grep -i "$SEARCH_PATTERN" "$REGISTRY" 2>/dev/null | grep -v "^#" | head -5 || echo "")

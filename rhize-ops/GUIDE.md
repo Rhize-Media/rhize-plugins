@@ -51,6 +51,24 @@ Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate
 **Example usage:**
 > "/rhize-ops:bump-version" — then confirm the proposed plan, and it applies the bump and shows you the diff to review before you commit.
 
+### /rhize-setup
+
+**What it's for:** A fleet-wide guardrail wizard. Installing a Rhize plugin never turns on any of its hooks by itself — this command finds every installed plugin's opt-in hook catalog, shows you what's already wired vs. just available in the current project, and lets you pick which ones to turn on without hand-editing `.claude/settings.json`. Every hook it offers gets smoke-tested before it's wired, so a broken hook script can't get wired silently.
+
+**Example usage:**
+> "/rhize-ops:rhize-setup" — review the per-plugin menu, pick the guardrails you want (each shows its tier — T3 advisory or T4 blocking — and a one-line description), and it writes them into your project's `.claude/settings.json` plus prints a status table for every available item, wired or not.
+
+## Cost & Savings Reports
+
+Two scripts under `skill-monitor/` give you cost visibility on top of the skill-usage data — not a skill or command you invoke directly, but part of the weekly audit (and runnable on demand).
+
+**`savings_scorecard.py`** — answers "what am I actually spending, and what's actually being saved?" It keeps two tiers strictly separate: **Measured** (real per-session spend from `costs.jsonl`, plus rtk and Headroom's own tracked savings) and **Estimated** (claude-mem, OpenWolf, and headroom-learn's self-reported heuristics) — the estimated numbers are never added into the measured total, because they're not counting the same thing.
+
+**`skill_roi.py`** — answers "which skills are actually earning their session cost?" It joins skill invocations to the session cost they happened in and flags keep-listed skills sitting at zero invocations, plus skills that are expensive but rarely used.
+
+**Example prompt:**
+> "Run the savings scorecard for the last 28 days" or "what's the cost-per-skill ROI look like this week?" — both run as part of `weekly-skill-audit`, or on demand via `python3 skill-monitor/savings_scorecard.py --days 28` / `python3 skill-monitor/skill_roi.py`.
+
 ## Tips & Troubleshooting
 
 **"Who am I delegating to?" — run setup first.** If `delegate-to-teammate` triggers but there's no `~/.claude/rhize-ops/delegate.config.json` yet, it'll ask you to run `/rhize-ops:delegate-setup` instead of guessing. This is expected on a fresh install.

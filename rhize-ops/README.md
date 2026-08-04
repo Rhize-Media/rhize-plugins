@@ -5,7 +5,9 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 ## Setup
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
-The other skill (`skill-dashboard`) and command (`/bump-version`) work with no configuration.
+The other skill (`skill-dashboard`) and commands (`/bump-version`, `/rhize-setup`) work with no
+prior configuration — `/rhize-setup` is itself a wizard, run whenever you want to review or
+change which plugin guardrail hooks are active in a project.
 
 ## Skills
 
@@ -41,6 +43,43 @@ Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump
 
 **Invoked as:** `/rhize-ops:bump-version`
 
+### `/rhize-setup`
+
+Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in hook catalog (`<plugin>/setup/manifest.json`), reads back the target project's *effective* hook state (`.claude/settings.json` + `.claude/settings.local.json`, plus `ECC_DISABLED_HOOKS`/`ECC_GATEGUARD` env toggles), presents an opt-in menu via `AskUserQuestion`, smoke-tests each selected hook before wiring it, and writes the result into the target project's tracked `.claude/settings.json`. Installing a plugin never auto-wires its hooks — this wizard (or a manual edit) is the only way a manifest item starts firing. See [Setup manifest schema](#setup-manifest-schema) below for what a plugin ships to participate.
+
+**Invoked as:** `/rhize-ops:rhize-setup`
+
+## Setup manifest schema
+
+`rhize-ops` owns this spec — any Rhize plugin that wants its guardrail hooks discoverable by `/rhize-ops:rhize-setup` ships a `setup/manifest.json` at its plugin root conforming to it. Shipping a manifest never auto-wires anything; it only makes the hook *offerable* through the wizard.
+
+```jsonc
+{
+  "schema": 1,
+  "plugin": "<plugin-directory-name>",
+  "items": [
+    {
+      "id": "kebab-id",                                       // stable, unique within the plugin
+      "title": "Human-readable name shown in the picker",
+      "tier": "T3",                                           // "T3" (advisory) | "T4" (blocking)
+      "event": "PreToolUse",                                  // PreToolUse | PostToolUse | SessionStart | Stop | UserPromptSubmit
+      "matcher": "Write|Edit",                                // omit the key entirely if N/A (e.g. SessionStart)
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/x.sh",  // resolved to the plugin's real install path at wire time
+      "description": "One line shown next to the tier in the picker",
+      "default": false                                        // true = wizard marks it "(recommended)"; never pre-selects it
+    }
+  ]
+}
+```
+
+**Tier semantics:**
+- **T3 — advisory.** The hook injects `hookSpecificOutput.additionalContext` and never blocks the tool call.
+- **T4 — blocking.** The hook exits `2` to block the tool call, with stderr shown to the model as the reason.
+
+**Wiring contract the wizard relies on:**
+- Every `PreToolUse`/`PostToolUse` item's `command` must read the tool-call payload from stdin and exit `0` on a no-op smoke test (`echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/x"}}' | <command>`). Items on `SessionStart`/`Stop`/`UserPromptSubmit` are smoke-tested with empty stdin instead. The wizard refuses to wire anything that fails this check.
+- `${CLAUDE_PLUGIN_ROOT}` in `command` is a template token — plugin authors write it literally; the wizard resolves it to the actual install path (marketplace clone or dev repo) at wire time. Don't hardcode an absolute path in a manifest.
+
 ## Data Subsystem
 
-`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. See `skill-monitor/README.md` for details.
+`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. Two companion scripts add cost visibility on top of that usage data: `savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings across ecc, rtk, Headroom, claude-mem, and OpenWolf) and `skill_roi.py` (joins skill invocations to session cost for a per-skill ROI view). See `skill-monitor/README.md` for details on all four.

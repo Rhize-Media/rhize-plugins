@@ -2,6 +2,15 @@
 # Skill Suggestion Hook (Generalized)
 # Detects development keywords and suggests appropriate skills
 #
+# TIER: T3 (advisory) — UserPromptSubmit, no matcher (event doesn't support one).
+# Never blocks (always exit 0).
+# CONTRACT: the input field is "prompt", not "user_prompt" (verified against
+# code.claude.com/docs/en/hooks-guide, 2026-08-04 — "user_prompt" was silently
+# always empty, making this hook a permanent no-op). To reach Claude the model,
+# output must nest additionalContext inside hookSpecificOutput; a top-level
+# additionalContext or a plain "systemMessage" is user-visible only and is
+# silently ignored by the model.
+#
 # INSTALLATION:
 # 1. Copy to your project: .claude/hooks/skill-suggester.sh
 # 2. Make executable: chmod +x .claude/hooks/skill-suggester.sh
@@ -9,8 +18,7 @@
 #    {
 #      "hooks": {
 #        "UserPromptSubmit": [{
-#          "type": "command",
-#          "command": ".claude/hooks/skill-suggester.sh"
+#          "hooks": [{ "type": "command", "command": ".claude/hooks/skill-suggester.sh" }]
 #        }]
 #      }
 #    }
@@ -24,7 +32,7 @@ set -e
 INPUT=$(cat)
 
 # Extract user prompt from hook input
-PROMPT=$(echo "$INPUT" | grep -o '"user_prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"user_prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
 
 # If no prompt found, continue normally
 if [ -z "$PROMPT" ]; then
@@ -79,10 +87,15 @@ if [ -z "$SKILL" ]; then
   exit 0
 fi
 
-# Return JSON with system message for Claude
-cat << EOF
-{
-  "continue": true,
-  "systemMessage": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n💡 SKILL SUGGESTION\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nDetected: ${REASON}\nSuggested: ${SKILL}\n\nBefore proceeding, consider asking the user:\n\"Would you like me to run ${SKILL} first?\"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-}
-EOF
+# additionalContext (nested in hookSpecificOutput) reaches Claude; systemMessage
+# is a user-visible-only banner. Emit both via jq so quoting is always valid JSON.
+CONTEXT_MSG="Detected: ${REASON}. Suggested: ${SKILL}. Before proceeding, consider asking the user: \"Would you like me to run ${SKILL} first?\""
+BANNER="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 SKILL SUGGESTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Detected: ${REASON}
+Suggested: ${SKILL}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+jq -n --arg ctx "$CONTEXT_MSG" --arg banner "$BANNER" \
+  '{systemMessage: $banner, hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'

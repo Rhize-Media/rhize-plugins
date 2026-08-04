@@ -2,19 +2,62 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rhize-Media/rhize-plugins/rhize-context-manager/stack.config.schema.json",
   "title": "rhize-context-manager stack inventory configuration",
-  "description": "Optional config read by the context-stack skill's routing logic at $HOME/.claude/rhize-context-manager/stack.config.json. When present, it is the authoritative tool-stack inventory (which layers exist, where they run, which repos they cover) instead of the skill's built-in default inventory. This file is the schema/documentation only; it contains no real values.",
+  "description": "Optional config read by the context-stack skill's routing logic at $HOME/.claude/rhize-context-manager/stack.config.json, and WRITTEN by /context-setup after the user confirms a proposed per-repo stack. When present, `layers` is the authoritative tool-stack inventory (which layers exist, where they run, which repos they cover) instead of the skill's built-in default inventory. schemaVersion 2 adds `repoOverrides`: per-repo enable/disable decisions with reasons, so /context-setup can record a decision for one repo (e.g. \"disable claude-mem here, OpenWolf already covers it\") without mutating the shared `layers` catalog that other repos also read. This file is the schema/documentation only; it contains no real values.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["layers"],
+  "required": ["schemaVersion", "layers"],
   "properties": {
+    "schemaVersion": {
+      "const": 2,
+      "description": "Bumped from the unversioned v1 shape (layers only) when repoOverrides was added. No real file existed under v1, so there is no migration path to preserve — v2 is the only version any writer should produce."
+    },
     "layers": {
       "type": "array",
       "minItems": 1,
       "description": "Ordered list of stack layers, most-relevant-first (the order the skill should consider them in when routing a question).",
       "items": { "$ref": "#/$defs/layerEntry" }
+    },
+    "repoOverrides": {
+      "type": "object",
+      "description": "Keyed by repo name (matches a `layers[].repos` entry / repo directory basename). Written by /context-setup. Read-side rule: for the current repo, start from `layers` (a layer applies if scope is \"global\", or scope is \"per-repo\" and the repo name is in `repos`), then apply this repo's `decisions` on top — `enabled: false` suppresses a layer for this repo even if `layers` would otherwise include it; `enabled: true` adds coverage without editing the shared `repos` list.",
+      "additionalProperties": { "$ref": "#/$defs/repoOverrideEntry" }
     }
   },
   "$defs": {
+    "repoOverrideEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["updatedAt", "decisions"],
+      "properties": {
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the /context-setup run that produced these decisions."
+        },
+        "decisions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["layer", "enabled", "reason"],
+            "properties": {
+              "layer": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Must match a `layers[].name` value."
+              },
+              "enabled": { "type": "boolean" },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "description": "One-line justification shown to the user at proposal time, e.g. \"redundant with CodeGraph, already indexed here\"."
+              }
+            }
+          }
+        }
+      }
+    },
     "layerEntry": {
       "type": "object",
       "additionalProperties": false,
@@ -56,6 +99,7 @@
   },
   "examples": [
     {
+      "schemaVersion": 2,
       "layers": [
         {
           "name": "Example Wire Proxy",
@@ -72,7 +116,19 @@
           "endpoints": { "dashboard": "http://localhost:44444" },
           "notes": "Persistent cross-session observation memory; injects recalled context at session start."
         }
-      ]
+      ],
+      "repoOverrides": {
+        "example-repo-a": {
+          "updatedAt": "2026-08-01T00:00:00Z",
+          "decisions": [
+            {
+              "layer": "Example Global Memory",
+              "enabled": false,
+              "reason": "Repo already runs a per-repo file-intel layer with correction hooks; the global memory layer duplicated its recall."
+            }
+          ]
+        }
+      }
     }
   ]
 }

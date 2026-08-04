@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "plugin": "rhize-devflow",
+  "items": [
+    {
+      "id": "duplicate-check",
+      "title": "Block duplicate component/hook/utility creation",
+      "tier": "T4",
+      "event": "PreToolUse",
+      "matcher": "Write",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__duplicate-check.sh",
+      "description": "Blocks (exit 2) creating a new file under components/|lib/hooks/|lib/utilities/|lib/actions/|src/components/|src/hooks/ when a similarly-named entry already exists in the project's COMPONENT_REGISTRY.md. No-op if the registry file doesn't exist.",
+      "default": false
+    },
+    {
+      "id": "pre-commit-guard",
+      "title": "Warn on related files missing from a commit",
+      "tier": "T3",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__pre-commit-guard.sh",
+      "description": "On `git commit` commands, warns (stderr, never blocks) when a staged component's matching hook file references it but isn't also staged, or when collection/model/schema files are staged without a corresponding types file.",
+      "default": false
+    },
+    {
+      "id": "session-init-banner",
+      "title": "Session-start sprint/registry freshness banner",
+      "tier": "T3",
+      "event": "SessionStart",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__session-init.sh",
+      "description": "Prints project name, staleness of CURRENT_SPRINT.md/COMPONENT_REGISTRY.md (warns if >24h old), the active sprint item, and an uncommitted-file count. Heavier than the plugin's default lightweight banner in hooks.json.",
+      "default": false
+    },
+    {
+      "id": "skill-suggester",
+      "title": "Suggest a skill based on prompt keywords",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__skill-suggester.sh",
+      "description": "Detects implementation/bugfix/refactor/completion/context-fatigue/performance keywords in the user's prompt and suggests a matching skill via systemMessage before Claude proceeds. Fixed 2026-08-04: was reading a nonexistent \"user_prompt\" JSON field (actual field is \"prompt\"), so it never fired.",
+      "default": false
+    },
+    {
+      "id": "mutation-detector",
+      "title": "Flag mutation/cache keywords in prompts",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
+      "description": "When the prompt combines a mutation/cache keyword (stale cache, revalidate, useMutation, afterChange, ...) with a bug/error keyword, suggests `@analyze-mutations` / `@check-mutation` before proceeding. Lets explicit @-triggers and /rhize-devflow:mutation through unconditionally.",
+      "default": false
+    },
+    {
+      "id": "prewrite-mutation-check",
+      "title": "Warn on incomplete mutation patterns before write",
+      "tier": "T3",
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__prewrite-check.sh",
+      "description": "On .ts/.tsx files under actions/api/hooks/mutations/collections/payload (or mutation-shaped filenames), warns when Supabase mutations lack error handling/revalidateTag/revalidatePath, useMutation calls lack onError/onSettled/query-key factories, or Payload CollectionConfig lacks afterChange/afterDelete. Fixed 2026-08-04: field extraction used GNU-only `grep -oP`, which macOS's default BSD grep rejects outright, so the hook silently never matched.",
+      "default": false
+    },
+    {
+      "id": "sentry-stale-data",
+      "title": "Detect Sentry/stale-data investigation prompts",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__sentry-stale-data.sh",
+      "description": "When the prompt contains a sentry.io issue URL, or investigation + data/cache/mutation keywords, or explicit stale-data phrasing, prints a data-mutation-consistency investigation checklist. Fixed 2026-08-04: previously read the prompt from a positional $1 argument Claude Code never populates (it delivers UserPromptSubmit payloads as JSON on stdin); now reads and parses stdin.",
+      "default": false
+    },
+    {
+      "id": "protect-files",
+      "title": "Block edits to CI/env/billing files and leaked secrets",
+      "tier": "T4",
+      "event": "PreToolUse",
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-files.sh",
+      "description": "Blocks (exit 2) edits to .github/workflows/*, .env*, and billing/payment paths; also content-gates NEXT_PUBLIC_* secret-named vars and Supabase service-role references written into 'use client' files. Local per-plugin copy of the same gate as the global ~/.claude/hooks/protect-files.sh (that one already runs for every session regardless of this manifest; wire this one in only if you want the gate active even in environments without the global hook installed).",
+      "default": false
+    },
+    {
+      "id": "skill-refinement-detector",
+      "title": "Detect skill-refinement opportunities in prompts",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-refinement__refinement-detector.sh",
+      "description": "Detects phrasing like \"skill doesn't work\", \"missing trigger\", \"false positive\" and suggests running `npx @rhize/skill-forge refine` to capture the gap.",
+      "default": false
+    },
+    {
+      "id": "skill-refinement-session-end",
+      "title": "Prompt for refinements after a substantial session",
+      "tier": "T3",
+      "event": "Stop",
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-refinement__session-end.sh",
+      "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `npx @rhize/skill-forge refine`. Fixed 2026-08-04: previously read SESSION_TOOL_CALLS/SESSION_ERRORS/SESSION_DURATION/SESSION_FILES_TOUCHED from the environment, which Claude Code never sets (it delivers only session_id/transcript_path/cwd on stdin), so the hook never fired; now derives the same stats from the transcript file.",
+      "default": false
+    }
+  ]
+}

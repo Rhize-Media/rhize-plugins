@@ -112,6 +112,21 @@ The plugin includes ready-to-use DataForSEO prompt templates for:
 
 All hooks are scoped to SEO file patterns — non-SEO files pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
 
+The PreToolUse and PostToolUse hooks are implemented in `hooks/scripts/seo-edit-hint.py` and
+`hooks/scripts/seo-read-hint.py`. They read the tool-call payload from stdin (as Claude Code
+delivers it — `{"tool_name": ..., "tool_input": {...}}`) and emit advisory context via the
+standard `hookSpecificOutput` contract; both are auto-wired through `hooks/hooks.json`, so no
+setup step is required to use them.
+
+## Setup Manifest
+
+`setup/manifest.json` lists opt-in capabilities this plugin could offer beyond what's
+auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `rhize-ops`
+plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
+currently empty: every hook this plugin ships is already scoped tightly (SEO file patterns
+only, 3s timeout, advisory-only) and auto-wired, so there's nothing here that needs to be
+opt-in rather than on-by-default.
+
 ## Architecture
 
 ```
@@ -129,6 +144,11 @@ seo-aeo-geo/
 │   └── nextjs-sanity-seo/            # Implementation patterns
 ├── hooks/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
-│   └── seo-context.md                 # Available commands summary + hooks reference
+│   ├── seo-context.md                 # Available commands summary + hooks reference
+│   └── scripts/
+│       ├── seo-edit-hint.py           # PreToolUse Write|Edit implementation
+│       └── seo-read-hint.py           # PostToolUse Read implementation
+├── setup/
+│   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
 └── README.md
 ```

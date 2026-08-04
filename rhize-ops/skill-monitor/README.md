@@ -152,6 +152,56 @@ Suggested cadence: do a 5-minute pass once a month after the 28-day report run. 
 - **Trend chart shows only one data point.** You only have today's snapshot, OR all snapshots are from the same date. Wait for next Monday or let history accumulate.
 - **Cowork projects show as `[Cowork: /sessions/<name>]`.** That session's metadata file isn't on disk (only ~38% of Cowork sessions have one). The data still counts; the project label is just unmapped. Nothing to fix on your side.
 
+## Cost & ROI scripts
+
+Two companion scripts sit alongside `monitor.py`/`dashboard.py` and add cost visibility on top
+of the same usage data. Both are stdlib-only, read-only against their data sources, and never
+push git commits.
+
+### `savings_scorecard.py` — two-tier savings scorecard
+
+Aggregates token/cost savings from every local agent-harness integration into two clearly
+separated tiers:
+
+- **Measured** (safe to sum, safe to compare against spend): `~/.claude/metrics/costs.jsonl`
+  (the spend denominator — latest cumulative row per `session_id`, never summed across rows),
+  `rtk gain --daily --format json`, and Headroom's `~/.headroom/proxy_savings.json` +
+  `~/.headroom/savings_events.jsonl`.
+- **Estimated** (each tool's own self-reported heuristic — never summed into a Measured total):
+  claude-mem's `discovery_tokens`, OpenWolf's per-repo `.wolf/token-ledger.json` across
+  `~/dev-local/RHIZE/*`, and a count (never a sum) of `~/.headroom/learn-digest.md` savings
+  annotations.
+
+Every source also gets a coverage line (last event timestamp + event count) so a dead
+integration reads "no data," not "no savings."
+
+```bash
+python3 savings_scorecard.py                # last 7 days (default)
+python3 savings_scorecard.py --days 28
+```
+
+Writes a markdown report to `<vault>/.../Skill-Audit-and-Monitoring/cost-reports/YYYY-MM-DD-savings-scorecard-{N}d.md` and a raw JSON snapshot to `data/scorecards/` (gitignored, mirrors `data/snapshots/`).
+
+### `skill_roi.py` — cost-per-skill ROI join
+
+Joins `data/skill-usage.json` events (which carry `session_id`) to `costs.jsonl` to produce a
+per-skill table: invocations (7d/28d), distinct sessions, total session cost, and a cost-share
+heuristic (each session's cost split evenly across the distinct skills it invoked — attribution
+context, not an exact per-skill cost, since a session's cost covers everything that happened in
+it). Cross-references `keep-list.yaml` to flag keep-listed skills with 0 invocations in the
+current data window, and skills that are expensive but rarely invoked.
+
+```bash
+python3 skill_roi.py
+```
+
+Writes alongside the scorecard in `cost-reports/YYYY-MM-DD-skill-roi-{N}d.md`.
+
+### Cadence
+
+Both scripts run as part of the `weekly-skill-audit` scheduled task (step 10) and on demand —
+**not** per-session. Neither is wired to a `SessionStart` hook; don't add one.
+
 ## Roadmap
 
 - [ ] Add slash-command detection (user messages starting with `/<cmd>` that map to skill commands)

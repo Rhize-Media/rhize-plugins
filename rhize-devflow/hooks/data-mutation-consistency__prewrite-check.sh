@@ -18,12 +18,14 @@
 # Read tool call info from stdin (JSON format)
 TOOL_INPUT=$(cat)
 
-# Extract file path from the tool input
-FILE_PATH=$(echo "$TOOL_INPUT" | grep -oP '"file_path"\s*:\s*"\K[^"]+' 2>/dev/null || echo "")
+# Extract file path from the tool input. Uses -o + sed rather than GNU
+# grep's -P/\K (macOS ships BSD grep, which rejects -P outright -- this hook
+# was silently a no-op on macOS until fixed).
+FILE_PATH=$(echo "$TOOL_INPUT" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"file_path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
 
 # If no file path found, try alternate formats
 if [ -z "$FILE_PATH" ]; then
-    FILE_PATH=$(echo "$TOOL_INPUT" | grep -oP '"path"\s*:\s*"\K[^"]+' 2>/dev/null || echo "")
+    FILE_PATH=$(echo "$TOOL_INPUT" | grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"path"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
 fi
 
 # Exit if no file path
@@ -63,10 +65,11 @@ if [ "$IS_RELEVANT" = false ]; then
     exit 0
 fi
 
-# Extract content being written (if available)
-CONTENT=$(echo "$TOOL_INPUT" | grep -oP '"content"\s*:\s*"\K[^"]+' 2>/dev/null || echo "")
+# Extract content being written (if available). Same -o + sed portability
+# fix as the file-path extraction above.
+CONTENT=$(echo "$TOOL_INPUT" | grep -o '"content"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"content"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
 if [ -z "$CONTENT" ]; then
-    CONTENT=$(echo "$TOOL_INPUT" | grep -oP '"new_string"\s*:\s*"\K[^"]+' 2>/dev/null || echo "")
+    CONTENT=$(echo "$TOOL_INPUT" | grep -o '"new_string"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/"new_string"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/')
 fi
 
 # Check for Supabase mutations

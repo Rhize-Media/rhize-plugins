@@ -33,10 +33,21 @@ failure mode is running overlapping layers without noticing they compete.
 
 **Config layer:** before applying the rules below, check for
 `$HOME/.claude/rhize-context-manager/stack.config.json` (schema:
-`references/stack.config.schema.json`). If it exists, treat its `layers` list as the
-authoritative inventory of what's running, where, and for which repos — it can add,
-remove, or repoint layers without a plugin update. If it's absent, fall back to the
-built-in default inventory below (the table and rules are unchanged either way).
+`references/stack.config.schema.json`, `schemaVersion: 2`). If it exists, treat its
+`layers` list as the authoritative inventory of what's running, where, and for which
+repos — it can add, remove, or repoint layers without a plugin update. If it's absent,
+fall back to the built-in default inventory below (the table and rules are unchanged
+either way).
+
+`/context-setup` is the writer for this file — it scans a repo, probes which layers are
+actually active, proposes a tailored stack, and on confirmation writes the decision here.
+When resolving layers for the CURRENT repo: start from `layers` (a layer applies if its
+`scope` is `global`, or `scope` is `per-repo` and the repo name appears in `repos`), then
+apply `repoOverrides[<repo name>].decisions` on top if present — `enabled: false`
+suppresses a layer for this repo even if `layers` would otherwise include it (e.g. a
+global-scope layer the user disabled here), `enabled: true` adds coverage without editing
+the shared `repos` list. `repoOverrides` entries never remove or edit a `layers` entry
+itself, so one repo's setup run can never desync another repo's inventory.
 
 **Code understanding:** `.codegraph/` exists → CodeGraph first. Otherwise Serena for
 symbol operations in large codebases; plain Grep/Glob for small repos or one-off lookups.
@@ -76,3 +87,10 @@ Run `/context-doctor` for a structured health check of the whole stack.
 - Heavy/long-lived repos: add Headroom (`.claude/settings.local.json` proxy config).
 - Large codebases needing semantic nav: `codegraph init` (preferred) or Serena.
 - Only add OpenWolf where its correction-hook value is proven — it overlaps claude-mem.
+
+Run `/context-setup` to have this reasoning applied automatically for a specific repo:
+it scans the repo, probes which layers are actually active, proposes enable/disable
+decisions with one-line reasons (including catching cases like Serena+CodeGraph both
+active), and writes the confirmed result to `stack.config.json` above. `/context-setup`
+owns stack CONFIG only — it does not wire hooks; that's `/rhize-setup` (rhize-ops), a
+separate fleet-level wizard for opt-in hooks declared in each plugin's `setup/manifest.json`.

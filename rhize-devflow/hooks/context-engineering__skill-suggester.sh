@@ -23,8 +23,11 @@ set -e
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract user prompt from hook input
-PROMPT=$(echo "$INPUT" | grep -o '"user_prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"user_prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
+# Extract user prompt from hook input. Claude Code's UserPromptSubmit payload
+# field is "prompt" (verified against the harness contract) -- a prior version
+# of this script looked for "user_prompt", which never appears, so PROMPT was
+# always empty and the hook was a silent no-op on every call.
+PROMPT=$(echo "$INPUT" | grep -o '"prompt"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/"prompt"[[:space:]]*:[[:space:]]*"\([^"]*\)"/\1/' || echo "")
 
 # If no prompt found, continue normally
 if [ -z "$PROMPT" ]; then

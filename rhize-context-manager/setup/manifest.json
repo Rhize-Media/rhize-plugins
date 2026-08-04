@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "plugin": "rhize-context-manager",
+  "items": [
+    {
+      "id": "session-init",
+      "title": "Session init banner",
+      "tier": "T3",
+      "event": "SessionStart",
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/session-init.sh",
+      "description": "Prints project name, sprint/registry file freshness (>24h stale warning), active work item, and uncommitted-change count at session start. Requires CURRENT_SPRINT.md / COMPONENT_REGISTRY.md (or configured equivalents) to say anything beyond the banner.",
+      "default": false
+    },
+    {
+      "id": "duplicate-check",
+      "title": "Block duplicate component creation",
+      "tier": "T4",
+      "event": "PreToolUse",
+      "matcher": "Write",
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/duplicate-check.sh",
+      "description": "Blocks (exit 2) creating a new file under components/|hooks/|utilities/|actions/ paths whose name closely matches an existing entry in COMPONENT_REGISTRY.md. Requires that registry file to exist; a no-op without it.",
+      "default": false
+    },
+    {
+      "id": "pre-commit-guard",
+      "title": "Warn about unstaged related files",
+      "tier": "T3",
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/pre-commit-guard.sh",
+      "description": "On `git commit` commands, checks staged .ts/.tsx files for an unstaged related hook file, or staged schema/model changes without a staged types file, and surfaces findings to Claude via additionalContext. Advisory only — never blocks the commit.",
+      "default": false
+    },
+    {
+      "id": "skill-suggester",
+      "title": "Suggest a relevant skill from the prompt",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/skill-suggester.sh",
+      "description": "Pattern-matches the submitted prompt against implementation/bugfix/refactor/completion/context-fatigue/performance keyword sets and surfaces a suggested skill to Claude via additionalContext. Advisory only — never blocks the prompt.",
+      "default": false
+    }
+  ]
+}

@@ -81,6 +81,19 @@ Hooks fail silently on error (3-5s timeout) and never block operations. The vaul
 
 **Artifact detection patterns** (path or content): `prd`, `requirements`, `research`, `context`, `gap-analysis`, `interview`, `discovery`, `roadmap`, `project.md`, `requirements.md`, plus content headings like `## PRD`, `## Requirements`, `# Product Requirements`.
 
+The PreToolUse hook is implemented in `hooks/scripts/launcher-vault-hint.py`. It reads the
+tool-call payload from stdin (as Claude Code delivers it — `{"tool_name": ..., "tool_input":
+{...}}`) and emits advisory context via the standard `hookSpecificOutput` contract; it's
+auto-wired through `hooks/hooks.json`, so no setup step is required to use it.
+
+## Setup Manifest
+
+`setup/manifest.json` lists opt-in capabilities this plugin could offer beyond what's
+auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `rhize-ops`
+plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
+currently empty: this plugin's one hook is already scoped to launcher artifacts, advisory-only,
+and auto-wired, so there's nothing here that needs to be opt-in rather than on-by-default.
+
 ## Post-Phase Verification Pattern
 
 After each GSD phase, the autonomous Claude runs:
