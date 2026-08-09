@@ -88,6 +88,13 @@ function tokenize(prompt) {
 // tag node's name once, plus edges bucketed by their `from` id, so the ranking
 // loop below only ever touches each skill's own topic-tag/stack-tag edges
 // instead of rescanning doc.edges per skill (was O(skills * edges)).
+//
+// EXTENDS TIE-BREAK: when both a base skill and one of its extenders
+// (an `extends` edge from extender -> base) qualify (2+ signals), and the
+// extender's score is >= the base's, the extender wins — it's the more
+// specific skill. Otherwise the base wins, same as ordinary score
+// comparison. This only ever affects a base/extender pair directly; it does
+// not change max-one-suggestion or the 2-signal qualifying threshold.
 function route(doc, promptTokens) {
   const skills = [];
   const tagsById = new Map(); // tagId -> { name, words }
@@ -100,17 +107,26 @@ function route(doc, promptTokens) {
   }
 
   const tagEdgesByFrom = new Map(); // skillId -> [topic-tag/stack-tag edge, ...]
+  const extendsBasesByFrom = new Map(); // extenderId -> Set(baseId)
   for (const edge of doc.edges) {
-    if (edge.type !== 'topic-tag' && edge.type !== 'stack-tag') continue;
-    let bucket = tagEdgesByFrom.get(edge.from);
-    if (!bucket) {
-      bucket = [];
-      tagEdgesByFrom.set(edge.from, bucket);
+    if (edge.type === 'topic-tag' || edge.type === 'stack-tag') {
+      let bucket = tagEdgesByFrom.get(edge.from);
+      if (!bucket) {
+        bucket = [];
+        tagEdgesByFrom.set(edge.from, bucket);
+      }
+      bucket.push(edge);
+    } else if (edge.type === 'extends') {
+      let bases = extendsBasesByFrom.get(edge.from);
+      if (!bases) {
+        bases = new Set();
+        extendsBasesByFrom.set(edge.from, bases);
+      }
+      bases.add(edge.to);
     }
-    bucket.push(edge);
   }
 
-  let best = null; // { skillId, score, signals }
+  const scored = new Map(); // skillId -> { score, signals }
 
   for (const skill of skills) {
     const signals = [];
@@ -131,12 +147,32 @@ function route(doc, promptTokens) {
     if (signals.length < 2) continue; // single weak match must not emit
 
     const score = signals.reduce((sum, s) => sum + s.weight, 0);
+    scored.set(skill.id, { score, signals });
+  }
+
+  // Drop a base from consideration whenever a qualifying extender of it
+  // scores at least as well — the extender is more specific and should win
+  // the tie instead of falling back to alphabetical skill-id order.
+  for (const [extenderId, bases] of extendsBasesByFrom) {
+    const extenderResult = scored.get(extenderId);
+    if (!extenderResult) continue;
+    for (const baseId of bases) {
+      const baseResult = scored.get(baseId);
+      if (!baseResult) continue;
+      if (extenderResult.score >= baseResult.score) {
+        scored.delete(baseId);
+      }
+    }
+  }
+
+  let best = null; // { skillId, score, signals }
+  for (const [skillId, result] of scored) {
     if (
       !best ||
-      score > best.score ||
-      (score === best.score && skill.id < best.skillId)
+      result.score > best.score ||
+      (result.score === best.score && skillId < best.skillId)
     ) {
-      best = { skillId: skill.id, score, signals };
+      best = { skillId, score: result.score, signals: result.signals };
     }
   }
 

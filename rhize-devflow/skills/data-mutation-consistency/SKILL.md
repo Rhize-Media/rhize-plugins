@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [data-consistency, workflow-patterns]
     stacks: [nextjs, sanity]
+    extends: [dev-flow-foundations]
 
 ---
 

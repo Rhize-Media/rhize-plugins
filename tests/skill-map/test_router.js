@@ -19,6 +19,7 @@ const { spawnSync } = require('child_process');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const ROUTER_PATH = path.join(REPO_ROOT, 'rhize-context-manager', 'hooks', 'skill-router.js');
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'valid-map.json');
+const EXTENDS_FIXTURE_PATH = path.join(__dirname, 'fixtures', 'valid-map-extends.json');
 
 function withTempHome(fn) {
   const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-router-test-'));
@@ -110,6 +111,29 @@ check('missing map emits nothing and exits 0', () => {
     const result = runRouter(tmpHome, 'help me get git and context tooling set up');
     assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
     assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+  });
+});
+
+// (e) Extends tie-break: a base skill and its extender both qualify with
+// equal score. Plain alphabetical tie-break would pick the base
+// ("context-fundamentals" < "context-optimization"), but the extender must
+// win because it's the more specific skill (extender score >= base score).
+check('extends tie-break: extender wins over its base on equal score', () => {
+  withTempHome((tmpHome) => {
+    writeStaticMap(tmpHome, fs.readFileSync(EXTENDS_FIXTURE_PATH, 'utf8'));
+    const result = runRouter(tmpHome, 'help me get context and git tooling set up');
+    assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+    const stdout = result.stdout.trim();
+    assert.ok(stdout.length > 0, 'expected non-empty stdout');
+    const lines = stdout.split('\n').filter(Boolean);
+    assert.strictEqual(lines.length, 1, `expected exactly one line, got ${lines.length}`);
+    const parsed = JSON.parse(lines[0]);
+    const ctx = parsed.hookSpecificOutput && parsed.hookSpecificOutput.additionalContext;
+    assert.ok(ctx, 'expected hookSpecificOutput.additionalContext');
+    assert.strictEqual(
+      ctx,
+      'Consider the rhize-context-manager:context-optimization skill (matches context, git)'
+    );
   });
 });
 

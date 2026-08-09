@@ -115,6 +115,13 @@ function readMap() {
 
 // Returns skills relevant to the detected stacks, ranked by number of
 // matched stacks (desc) then skill id (asc), capped at MAX_SKILLS.
+//
+// LAYERED DISCLOSURE: when a base skill and one or more of its extenders
+// (an `extends` edge from extender -> base) all match the detected stack,
+// the base is surfaced with a `deeper` list of the matched extenders
+// instead of listing each extender as its own line — level-1 disclosure
+// surfaces bases first. The cap (MAX_SKILLS) is applied to this compacted
+// list, so a base+extenders group counts as one line toward the cap.
 function relevantSkills(doc, detectedStacks) {
   const detectedSet = new Set(detectedStacks);
 
@@ -143,9 +150,46 @@ function relevantSkills(doc, detectedStacks) {
     bucket.add(slug);
   }
 
+  // extends adjacency: extender skill id -> Set(base skill id)
+  const extendsBases = new Map();
+  for (const edge of doc.edges) {
+    if (edge.type !== 'extends') continue;
+    if (!skillsById.has(edge.from) || !skillsById.has(edge.to)) continue;
+    let bases = extendsBases.get(edge.from);
+    if (!bases) {
+      bases = new Set();
+      extendsBases.set(edge.from, bases);
+    }
+    bases.add(edge.to);
+  }
+
+  // Fold matched extenders into their matched base(s): base gets a `deeper`
+  // list, extender is dropped as a standalone line.
+  const deeperByBase = new Map(); // baseId -> Set(extenderId)
+  const foldedExtenders = new Set();
+  for (const [extenderId, bases] of extendsBases) {
+    if (!matchesBySkill.has(extenderId)) continue;
+    for (const baseId of bases) {
+      if (!matchesBySkill.has(baseId)) continue;
+      let bucket = deeperByBase.get(baseId);
+      if (!bucket) {
+        bucket = new Set();
+        deeperByBase.set(baseId, bucket);
+      }
+      bucket.add(extenderId);
+      foldedExtenders.add(extenderId);
+    }
+  }
+
   const results = [];
   for (const [skillId, stacks] of matchesBySkill) {
-    results.push({ skillId, stacks: Array.from(stacks).sort() });
+    if (foldedExtenders.has(skillId)) continue; // rendered under its base instead
+    const deeper = deeperByBase.get(skillId);
+    results.push({
+      skillId,
+      stacks: Array.from(stacks).sort(),
+      deeper: deeper ? Array.from(deeper).sort() : null,
+    });
   }
 
   results.sort((a, b) => {
@@ -156,13 +200,23 @@ function relevantSkills(doc, detectedStacks) {
   return results.slice(0, MAX_SKILLS);
 }
 
+function shortName(skillId) {
+  const idMatch = /^skill:[^/]+\/(.+)$/.exec(skillId);
+  return idMatch ? idMatch[1] : skillId;
+}
+
 function formatBlock(matches) {
   const lines = [];
   for (const m of matches) {
     const idMatch = /^skill:([^/]+)\/(.+)$/.exec(m.skillId);
     if (!idMatch) continue;
     const [, plugin, skillName] = idMatch;
-    lines.push(`- ${plugin}:${skillName} — matches ${m.stacks.join(', ')} stack`);
+    let line = `- ${plugin}:${skillName} — matches ${m.stacks.join(', ')} stack`;
+    if (m.deeper && m.deeper.length > 0) {
+      const names = m.deeper.map(shortName).sort();
+      line += ` (+${names.length} deeper: ${names.join(', ')})`;
+    }
+    lines.push(line);
   }
   if (lines.length === 0) return null;
   return ['Rhize skills relevant to this repo:'].concat(lines).join('\n');

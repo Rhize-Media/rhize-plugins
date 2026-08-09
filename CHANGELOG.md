@@ -8,6 +8,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Skill map: `extends` + `precedes` edge types (schema 1.1).** `extends` records deliberate
+  layering — a specialized skill deepening a base skill's domain (directional, specialized→base;
+  not duplication, not a runtime dependency) — parsed from a new `metadata.rhize.extends`
+  frontmatter field and capped at chain depth 2 (a BuildError past that, and on any cycle).
+  `precedes` records real ordered-workflow sequencing, hand-declared in
+  `catalog/skill-relations.json`. Also adds an optional node `origin: "rhize" | "third-party"`
+  property (nodes without it are implicitly `"rhize"`) for a later lane to populate in the local
+  overlay only.
+  - Tagged: `rhize-context-manager`'s `context-compression`/`context-degradation`/
+    `context-optimization` each extend `context-fundamentals`; `rhize-devflow`'s
+    `error-lifecycle-management`/`data-mutation-consistency`/`sentry-instrumentation` each extend
+    `dev-flow-foundations`; `obsidian-second-brain`'s `obsidian-bases`/`json-canvas` each extend
+    `obsidian-markdown`.
+  - `catalog/skill-relations.json` gained `precedes` edges for `project-launcher`'s command
+    pipeline: `write-prd` → `grill-prd` → `scaffold-gsd`.
+  - Consumers: `session-disclosure.js` compacts a matched base and its matched extenders into one
+    line (`- plugin:base — matches ... (+N deeper: name, name)`) instead of a line per extender.
+    `skill-router.js` breaks a base/extender scoring tie in the extender's favor (the more specific
+    skill) whenever the extender's score is at least the base's — max-one-suggestion and the
+    2-signal threshold are unchanged.
+- _2026-08-09_ version bump — **obsidian-second-brain** 1.3.0 → 1.3.1 (patch); marketplace 2.23.1 → 2.23.2.
+- _2026-08-09_ version bump — **rhize-devflow** 2.10.0 → 2.10.1 (patch); marketplace 2.23.0 → 2.23.1.
+- _2026-08-09_ version bump — **rhize-context-manager** 0.8.0 → 0.9.0 (minor); marketplace 2.22.0 → 2.23.0.
 - **Skill-map phases 3–5 release (all six plugins bumped, 2026-08-09).**
   - *Phase 3a — local overlay (rhize-ops 0.7.0).* `skill-monitor/monitor.py` now aggregates
     session-level skill co-occurrence (counts only — no prompt text, no project paths) into

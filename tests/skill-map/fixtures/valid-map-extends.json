@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-09T00:00:00Z",
+  "nodes": [
+    { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },
+    {
+      "id": "skill:rhize-context-manager/context-fundamentals",
+      "kind": "skill",
+      "name": "context-fundamentals",
+      "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md",
+      "description": "Context engineering fundamentals.",
+      "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
+    },
+    {
+      "id": "skill:rhize-context-manager/context-optimization",
+      "kind": "skill",
+      "name": "context-optimization",
+      "path": "rhize-context-manager/skills/context-optimization/SKILL.md",
+      "description": "Context optimization techniques.",
+      "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2"
+    },
+    { "id": "tag:topic/context", "kind": "tag", "name": "context" },
+    { "id": "tag:stack/git", "kind": "tag", "name": "git" }
+  ],
+  "edges": [
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/context-optimization",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "to": "tag:topic/context",
+      "type": "topic-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "to": "tag:stack/git",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "to": "tag:topic/context",
+      "type": "topic-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "to": "tag:stack/git",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends",
+      "source": "frontmatter"
+    }
+  ]
+}

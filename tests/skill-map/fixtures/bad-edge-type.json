@@ -15,7 +15,7 @@
     {
       "from": "plugin:rhize-context-manager",
       "to": "skill:rhize-context-manager/graphify",
-      "type": "extends",
+      "type": "bogus-edge-type",
       "source": "marketplace"
     }
   ]

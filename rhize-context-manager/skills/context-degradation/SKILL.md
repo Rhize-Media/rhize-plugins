@@ -5,6 +5,7 @@ metadata:
   rhize:
     topics: [context-degradation, context-engineering]
     stacks: []
+    extends: [context-fundamentals]
 
 ---
 

@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [observability, workflow-patterns]
     stacks: [sentry, vercel, nextjs]
+    extends: [dev-flow-foundations]
 
 ---
 

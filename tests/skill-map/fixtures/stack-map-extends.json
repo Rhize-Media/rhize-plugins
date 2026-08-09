@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-09T00:00:00Z",
+  "nodes": [
+    { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },
+    {
+      "id": "skill:rhize-context-manager/context-fundamentals",
+      "kind": "skill",
+      "name": "context-fundamentals",
+      "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md",
+      "description": "Context engineering fundamentals.",
+      "contentHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"
+    },
+    {
+      "id": "skill:rhize-context-manager/context-compression",
+      "kind": "skill",
+      "name": "context-compression",
+      "path": "rhize-context-manager/skills/context-compression/SKILL.md",
+      "description": "Context compression strategies.",
+      "contentHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb2"
+    },
+    { "id": "tag:stack/nextjs", "kind": "tag", "name": "nextjs" }
+  ],
+  "edges": [
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/context-compression",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends",
+      "source": "frontmatter"
+    }
+  ]
+}

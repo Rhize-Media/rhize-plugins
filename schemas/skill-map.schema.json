@@ -57,6 +57,11 @@
           "type": "string",
           "description": "sha256 hex digest of the node's source content (e.g. SKILL.md) — the drift-detection anchor. Required for skill nodes.",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Where this node originates from. Optional — a node without this property is implicitly \"rhize\". Third-party nodes are populated only in the machine-local overlay (skill-map.local.json / skill-map.resolved.json), never in the committed static artifact.",
+          "enum": ["rhize", "third-party"]
         }
       },
       "allOf": [
@@ -79,6 +84,7 @@
     },
     "edgeType": {
       "type": "string",
+      "description": "Edge relationship type. `extends`: A deliberately deepens/specializes B's domain — directional, specialized-to-base, an intended layering relationship. This is NOT duplication (see overlaps-with) and NOT a runtime dependency (see depends-on); chains are capped at depth 2 by the compiler. `precedes`: A comes before B in a real ordered workflow (e.g. a command pipeline).",
       "enum": [
         "contains",
         "topic-tag",
@@ -88,7 +94,9 @@
         "overlaps-with",
         "depends-on",
         "replaces",
-        "usage-cooccurs"
+        "usage-cooccurs",
+        "extends",
+        "precedes"
       ]
     },
     "driftCheck": {

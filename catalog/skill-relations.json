@@ -26,6 +26,18 @@
       "to": "external:skill-forge",
       "type": "depends-on",
       "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/write-prd",
+      "to": "command:project-launcher/grill-prd",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/grill-prd",
+      "to": "command:project-launcher/scaffold-gsd",
+      "type": "precedes",
+      "source": "relations-catalog"
     }
   ]
 }

@@ -27,6 +27,7 @@ const DISCLOSURE_PATH = path.join(
   'session-disclosure.js'
 );
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'stack-map.json');
+const EXTENDS_FIXTURE_PATH = path.join(__dirname, 'fixtures', 'stack-map-extends.json');
 
 function withTempDir(prefix, fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -117,6 +118,43 @@ check('corrupt map emits nothing and exits 0', () => {
       const result = runDisclosure(tmpHome, tmpCwd);
       assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
       assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+    });
+  });
+});
+
+// (d) A base skill and a matching extender (extends edge) must be compacted
+// into one line for the base, with the extender appended as "(+N deeper:
+// name)" instead of appearing as its own line.
+check('base + matched extender compact into one "+N deeper" line', () => {
+  withTempDir('disclosure-home-', (tmpHome) => {
+    withTempDir('disclosure-cwd-', (tmpCwd) => {
+      writeStaticMap(tmpHome, fs.readFileSync(EXTENDS_FIXTURE_PATH, 'utf8'));
+      fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
+
+      const result = runDisclosure(tmpHome, tmpCwd);
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      const stdout = result.stdout.trim();
+      assert.ok(stdout.length > 0, 'expected non-empty stdout');
+      const lines = stdout.split('\n').filter(Boolean);
+      assert.strictEqual(lines.length, 1, `expected exactly one JSON line, got ${lines.length}`);
+      const parsed = JSON.parse(lines[0]);
+      const ctx = parsed.hookSpecificOutput && parsed.hookSpecificOutput.additionalContext;
+      assert.ok(ctx, 'expected hookSpecificOutput.additionalContext');
+      const blockLines = ctx.split('\n');
+      assert.strictEqual(
+        blockLines.length,
+        2,
+        `expected header + exactly one compacted skill line, got: ${ctx}`
+      );
+      assert.strictEqual(
+        blockLines[1],
+        '- rhize-context-manager:context-fundamentals — matches nextjs stack (+1 deeper: context-compression)',
+        `expected compact base+deeper line, got: ${blockLines[1]}`
+      );
+      assert.ok(
+        !ctx.includes('context-compression —'),
+        `extender must not appear as its own line, got: ${ctx}`
+      );
     });
   });
 });

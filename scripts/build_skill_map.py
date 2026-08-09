@@ -47,7 +47,13 @@ Inputs and what they produce
       `metadata.rhize.{topics,stacks}` frontmatter (source: frontmatter).
       Every slug must exist in `catalog/tags.json`'s closed vocabulary
       (a BuildError otherwise); the tag node's description is set from
-      that entry's gloss.
+      that entry's gloss. Also reads `metadata.rhize.extends` — a list of
+      targets, each a bare skill name (same plugin) or "plugin/skill-name"
+      (cross-plugin) — and emits `extends` edges (source: frontmatter) once
+      every plugin's skills have been loaded. An unresolved target is a
+      BuildError naming the file and the target; chains deeper than 2 hops
+      or containing a cycle are also BuildErrors (see
+      `resolve_extends_edges()` / `check_extends_chains()`).
 
 3. Each plugin's `commands/*.md`
    -> one `command` node per file (description from frontmatter if present).
@@ -238,7 +244,13 @@ def load_tags() -> dict[str, dict[str, str]]:
     return tags
 
 
-def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path, tags: dict) -> None:
+def load_skills(
+    graph: Graph,
+    plugin_name: str,
+    plugin_dir: Path,
+    tags: dict,
+    extends_decls: list[dict],
+) -> None:
     skills_dir = plugin_dir / "skills"
     if not skills_dir.is_dir():
         return
@@ -309,6 +321,77 @@ def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path, tags: dict) ->
                     "source": "frontmatter",
                 }
             )
+
+        extends_targets = rhize_meta.get("extends") or []
+        if extends_targets:
+            extends_decls.append(
+                {
+                    "skill_id": node_id,
+                    "plugin": plugin_name,
+                    "targets": [str(t) for t in extends_targets],
+                    "rel_path": rel_path,
+                }
+            )
+
+
+def resolve_extends_edges(graph: Graph, extends_decls: list[dict]) -> None:
+    """Resolve `metadata.rhize.extends` declarations into `extends` edges.
+
+    Each target is either a bare skill name (resolved against the declaring
+    skill's own plugin) or "plugin/skill-name" (cross-plugin). An unresolved
+    target is a BuildError naming the declaring file and the target. Must run
+    after every plugin's skills have been loaded, so cross-plugin targets are
+    already present in the graph.
+    """
+    for decl in extends_decls:
+        for target in decl["targets"]:
+            if "/" in target:
+                target_plugin, target_skill = target.split("/", 1)
+            else:
+                target_plugin, target_skill = decl["plugin"], target
+            target_id = f"skill:{target_plugin}/{target_skill}"
+            if target_id not in graph.nodes:
+                raise BuildError(
+                    f"{decl['rel_path']}: extends target {target!r} does not "
+                    f"resolve to a known skill (looked for {target_id!r})"
+                )
+            graph.add_edge(
+                {
+                    "from": decl["skill_id"],
+                    "to": target_id,
+                    "type": "extends",
+                    "source": "frontmatter",
+                }
+            )
+
+
+def check_extends_chains(graph: Graph) -> None:
+    """Enforce the extends-chain rules: depth capped at 2, no cycles.
+
+    Depth is measured in edges from the starting skill: A -> B -> C is depth
+    2 (allowed); A -> B -> C -> D is depth 3 (a BuildError). Reusing a node
+    already on the current path is a cycle (also a BuildError).
+    """
+    adjacency: dict[str, list[str]] = collections.defaultdict(list)
+    for edge in graph.edges:
+        if edge["type"] == "extends":
+            adjacency[edge["from"]].append(edge["to"])
+
+    def walk(node: str, path: list[str]) -> None:
+        if node in path:
+            chain = " -> ".join(path + [node])
+            raise BuildError(f"extends cycle detected: {chain}")
+        if len(path) > 2:
+            chain = " -> ".join(path + [node])
+            raise BuildError(
+                "extends chains capped at 2 — deep trees recreate rigid "
+                f"taxonomy (chain: {chain})"
+            )
+        for target in sorted(adjacency.get(node, [])):
+            walk(target, path + [node])
+
+    for start in sorted(adjacency.keys()):
+        walk(start, [])
 
 
 def load_commands(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
@@ -535,12 +618,17 @@ def build() -> dict:
     graph = Graph()
     tags = load_tags()
     plugins = load_marketplace(graph)
+    extends_decls: list[dict] = []
     for plugin in plugins:
-        load_skills(graph, plugin["name"], plugin["dir"], tags)
+        load_skills(graph, plugin["name"], plugin["dir"], tags, extends_decls)
         load_commands(graph, plugin["name"], plugin["dir"])
         load_hooks_json(graph, plugin["name"], plugin["dir"])
         load_manifest_hooks(graph, plugin["name"], plugin["dir"])
         load_sources_md(graph, plugin["name"], plugin["dir"])
+    # Resolved after every plugin's skills are loaded so cross-plugin
+    # "plugin/skill-name" targets are already present in the graph.
+    resolve_extends_edges(graph, extends_decls)
+    check_extends_chains(graph)
     load_catalog(graph)
     return graph.to_document()
 

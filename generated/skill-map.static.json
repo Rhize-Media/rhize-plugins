@@ -1,6 +1,18 @@
 {
   "edges": [
     {
+      "from": "command:project-launcher/grill-prd",
+      "source": "relations-catalog",
+      "to": "command:project-launcher/scaffold-gsd",
+      "type": "precedes"
+    },
+    {
+      "from": "command:project-launcher/write-prd",
+      "source": "relations-catalog",
+      "to": "command:project-launcher/grill-prd",
+      "type": "precedes"
+    },
+    {
       "from": "hook:rhize-context-manager/context-window-monitor",
       "source": "relations-catalog",
       "to": "external:ecc-suggest-compact",
@@ -621,6 +633,12 @@
     {
       "from": "skill:obsidian-second-brain/json-canvas",
       "source": "frontmatter",
+      "to": "skill:obsidian-second-brain/obsidian-markdown",
+      "type": "extends"
+    },
+    {
+      "from": "skill:obsidian-second-brain/json-canvas",
+      "source": "frontmatter",
       "to": "tag:stack/obsidian",
       "type": "stack-tag"
     },
@@ -635,6 +653,12 @@
       "source": "frontmatter",
       "to": "tag:topic/visualization",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-bases",
+      "source": "frontmatter",
+      "to": "skill:obsidian-second-brain/obsidian-markdown",
+      "type": "extends"
     },
     {
       "from": "skill:obsidian-second-brain/obsidian-bases",
@@ -812,6 +836,12 @@
     {
       "from": "skill:rhize-context-manager/context-compression",
       "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "source": "frontmatter",
       "to": "tag:topic/context-compression",
       "type": "topic-tag"
     },
@@ -831,6 +861,12 @@
       "source": "sources-md",
       "to": "external:context-engineering-marketplace",
       "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-degradation",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-degradation",
@@ -895,6 +931,12 @@
       "source": "sources-md",
       "to": "external:context-engineering-marketplace",
       "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-optimization",
@@ -1088,6 +1130,12 @@
     {
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
       "to": "tag:stack/nextjs",
       "type": "stack-tag"
     },
@@ -1120,6 +1168,12 @@
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-devflow/error-lifecycle-management",
@@ -1174,6 +1228,12 @@
       "source": "frontmatter",
       "to": "tag:topic/content-authoring",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-devflow/sentry-instrumentation",
@@ -1925,7 +1985,7 @@
       "path": "obsidian-second-brain/skills/defuddle/SKILL.md"
     },
     {
-      "contentHash": "b3ac193bc78db86cc5f8e8d17eda0f12fa6bf585094582b2dc01df66b0de341c",
+      "contentHash": "1b213bae1c64cfcb9e63c678dd01319472488109c577744f7646e6f5c299877e",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0 with nodes, edges, groups, and visual connections. Use this skill when someone asks about creating or editing Obsidian canvases, building visual knowledge maps, node diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas files. Also triggers on \"JSON Canvas\", \"canvas file\", \"visual board\", \"Obsidian whiteboard\", or requests to create visual note connections.",
       "id": "skill:obsidian-second-brain/json-canvas",
       "kind": "skill",
@@ -1933,7 +1993,7 @@
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
     },
     {
-      "contentHash": "c580a1ebb0f422a2a97257054ae17c5761085d4257be4441b6ef1edd787ccda2",
+      "contentHash": "44e4c6e099153a9f79b36c645c152dddc4567c855ad9a294d60e1ff3bc3fdac8",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. Create and edit Obsidian Base files (.base) for database-like views, filters, formulas, and data summaries within your vault. Use this skill whenever someone asks about Obsidian Bases, creating database views, filtering notes by properties, building task trackers, reading lists, project dashboards, or any structured data view in Obsidian. Also triggers on \".base files\", \"Obsidian database\", \"note database\", \"vault database\", or questions about filters, formulas, and summaries in the context of Obsidian.",
       "id": "skill:obsidian-second-brain/obsidian-bases",
       "kind": "skill",
@@ -2005,7 +2065,7 @@
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md"
     },
     {
-      "contentHash": "ab17b73f59b8619432213b71fbd648904ff881b35a66d74a2e0763711be06123",
+      "contentHash": "9de885deef334253d4f2927d2341d64145c8b7d52edd74f53a1f18f7d1d4d220",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
@@ -2013,7 +2073,7 @@
       "path": "rhize-context-manager/skills/context-compression/SKILL.md"
     },
     {
-      "contentHash": "6ecf2fe07c51ea54df5b7af10c30c98e8d3207ae3a42c7078ccadf8cf74ee378",
+      "contentHash": "b1318638f8106efa097e56e7ac7cc4835f8fe614d45dd63a773eff8028f2e1dd",
       "description": "This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, context confusion, attention-pattern issues, and agent performance degradation caused by accumulated or conflicting context.",
       "id": "skill:rhize-context-manager/context-degradation",
       "kind": "skill",
@@ -2037,7 +2097,7 @@
       "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md"
     },
     {
-      "contentHash": "8005848a5b32cc8559ba3fede33754d26a30bab5283cb83e8a84d1bbe33600de",
+      "contentHash": "83bb3053e5b9f175672550e91838d1fbf9ba94b42569c134c69246b402d7f754",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "id": "skill:rhize-context-manager/context-optimization",
       "kind": "skill",
@@ -2117,7 +2177,7 @@
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
     },
     {
-      "contentHash": "315457b6cd69f7bae642f8528e558d4d67d7a8c457bba439aaf9f5612699ae9a",
+      "contentHash": "14ef8d5bb62b8e642ad6fa3e56213db2b5f267b9b4af6a28d568e63b4e8198f9",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check, and mutation-fix.",
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
@@ -2133,7 +2193,7 @@
       "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md"
     },
     {
-      "contentHash": "8a5c88335c027f6f8b47c9aa897909c8b308ef7b244aed87efe2e90b4e29498b",
+      "contentHash": "a42e34c87f1c9289d4a310163a77204d9188df01a2821c013fe6be75352459a0",
       "description": "End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use whenever the user mentions an \"error\", \"bug\", \"crash\", \"exception\", \"stack trace\", \"500/404\", \"timeout\", \"failed deployment\", \"production issue/incident\", \"memory leak\", \"bundle size\", or something is \"slow\" or \"broken\" — and when correlating an error spike to a recent deploy or commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident protocol); complements the official engineering:* and sentry:* skills.",
       "id": "skill:rhize-devflow/error-lifecycle-management",
       "kind": "skill",
@@ -2149,7 +2209,7 @@
       "path": "rhize-devflow/skills/sanity-development/SKILL.md"
     },
     {
-      "contentHash": "3af264ec73552a21daca07dc408152a2988e9ec63ea03890ae9d347e3d60cb3d",
+      "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",
       "description": "Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (startSpan), and structured logging (logger.fmt). Use when the user wants to \"add Sentry\", \"capture exception\", \"add tracing/spans\", \"instrument\" an API call or user interaction, or \"set up structured logging\" in app code. This is the write-the-code companion to error-lifecycle-management (which handles triage/RCA); for full per-framework SDK setup defer to the official sentry:* developer-kit skills and keep this for Rhize house patterns.",
       "id": "skill:rhize-devflow/sentry-instrumentation",
       "kind": "skill",

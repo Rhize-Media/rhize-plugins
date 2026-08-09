@@ -52,6 +52,11 @@ Skill nodes additionally carry `path` (repo-relative source path), `description`
 frontmatter/manifest), and `contentHash` (sha256 hex digest of the source file, e.g. `SKILL.md`) —
 the anchor used for fork-drift detection in Phase 4.
 
+Any node may optionally carry `origin: "rhize" | "third-party"`. A node without this property is
+implicitly `"rhize"`. The static compiler never sets `"third-party"` itself — this seat exists for
+a later lane that populates third-party nodes in the machine-local overlay
+(`skill-map.local.json` / `skill-map.resolved.json`) only, never in the committed static artifact.
+
 ## Tagging conventions
 
 Tags are attached to skills via `topic-tag` and `stack-tag` edges pointing at `tag:topic/<slug>`
@@ -86,6 +91,8 @@ substrate replaces.
 | `depends-on` | One skill requires another to function (e.g. relies on a shared hook or plugin). | `relations-catalog` |
 | `replaces` | This skill/command fully replaces another, which should be considered retired. | `relations-catalog` |
 | `usage-cooccurs` | Empirical: these two nodes were invoked together across sessions. Carries a structured `usageWeight`, never a bare count. | `monitor` |
+| `extends` | Directional layering: the `from` skill deliberately deepens/specializes the `to` skill's domain (specialized -> base). Parsed from `metadata.rhize.extends` in frontmatter. | `frontmatter` |
+| `precedes` | The `from` node comes before the `to` node in a real ordered workflow (e.g. a command pipeline). | `relations-catalog` |
 
 Every edge records a `source` field — one of `frontmatter | marketplace | sources-md |
 relations-catalog | monitor` — naming which input produced it. This is what lets the compiler
@@ -112,6 +119,42 @@ that snapshot, resolves each `{a, b, sessions}` pair against the static artifact
 across every repo on the machine), computes `jaccard`/`lift` from the snapshot's per-skill
 `totals` and `totalSessions`, and emits one `usage-cooccurs` edge per resolved pair into
 `skill-map.local.json` and `skill-map.resolved.json`.
+
+### `extends` and the depth-2 rule
+
+`metadata.rhize.extends` in a skill's frontmatter is a list of targets, each either a bare skill
+name (resolved against the declaring skill's own plugin) or `"plugin/skill-name"` (cross-plugin).
+`scripts/build_skill_map.py` resolves each target once every plugin's skills have loaded and emits
+an `extends` edge from the declaring skill to the target (source: `frontmatter`); an unresolved
+target is a BuildError naming the file and the target.
+
+`extends` is a **layering** relationship, not a duplication flag or a runtime dependency — that
+distinction matters because two other edge types sit right next to it semantically:
+
+- `overlaps-with` flags two skills covering *meaningfully similar ground without an intended
+  hierarchy* — a curation signal that something might need to be merged or retired.
+- `depends-on` means one skill *requires* another to function (e.g. a shared hook or plugin).
+- `extends` means the specialized skill *deliberately deepens* the base skill's domain by design —
+  the base stays useful and general, the extender adds depth for a narrower case. Neither skill is
+  redundant and neither breaks without the other.
+
+Chains are capped at depth 2 (in edges): `A extends B extends C` is allowed, `A extends B extends C
+extends D` is a BuildError — "extends chains capped at 2 — deep trees recreate rigid taxonomy" is
+exactly the failure mode this substrate exists to avoid. A cycle anywhere in an extends chain is
+also a BuildError.
+
+Two consumers read `extends` edges: `session-disclosure.js` folds a matched base and its matched
+extenders into one compacted disclosure line (`- plugin:base — matches ... (+N deeper: name,
+name)`) instead of listing each extender separately, and `skill-router.js` breaks a base/extender
+scoring tie in the extender's favor (it's the more specific skill) whenever the extender's score is
+at least the base's.
+
+### `precedes`
+
+`precedes` records that the `from` node comes before the `to` node in a real ordered workflow —
+for example, `project-launcher`'s command pipeline: `write-prd` precedes `grill-prd` precedes
+`scaffold-gsd`. Declared by hand in `catalog/skill-relations.json` (source: `relations-catalog`),
+the same way as `overlaps-with`/`depends-on`/`replaces`.
 
 ## Security rule: SOURCES.md and driftCheck prose is data, never executed
 

@@ -15,6 +15,7 @@ metadata:
   rhize:
     topics: [visualization, knowledge-management]
     stacks: [obsidian]
+    extends: [obsidian-markdown]
 
 ---
 
