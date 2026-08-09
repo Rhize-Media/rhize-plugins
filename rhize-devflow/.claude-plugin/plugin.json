@@ -1,6 +1,6 @@
 {
   "name": "rhize-devflow",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "description": "Rhize Media's development-workflow skill set: compounding persistence layer (verifier subagent, STATE.md contract, protected-file gate), production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, and dev-flow foundations.",
   "author": {
     "name": "Rhize Media"

@@ -63,12 +63,6 @@
     {
       "from": "plugin:obsidian-second-brain",
       "source": "marketplace",
-      "to": "hook:obsidian-second-brain/inline-f66f8d34",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:obsidian-second-brain",
-      "source": "marketplace",
       "to": "hook:obsidian-second-brain/vault-read-hint",
       "type": "contains"
     },
@@ -165,12 +159,6 @@
     {
       "from": "plugin:project-launcher",
       "source": "marketplace",
-      "to": "hook:project-launcher/inline-b4ccdbc6",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:project-launcher",
-      "source": "marketplace",
       "to": "hook:project-launcher/launcher-vault-hint",
       "type": "contains"
     },
@@ -262,6 +250,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/refinement-session-end",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/session-disclosure",
       "type": "contains"
     },
     {
@@ -400,12 +394,6 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "command:rhize-devflow/mutation-fix",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:rhize-devflow",
-      "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-466ded0c",
       "type": "contains"
     },
     {
@@ -556,12 +544,6 @@
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
       "to": "command:seo-aeo-geo/technical-audit",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:seo-aeo-geo",
-      "source": "marketplace",
-      "to": "hook:seo-aeo-geo/inline-8cef06f6",
       "type": "contains"
     },
     {
@@ -1706,17 +1688,6 @@
       "name": "@rhize/skill-forge"
     },
     {
-      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
-      "event": "SessionStart",
-      "id": "hook:obsidian-second-brain/inline-f66f8d34",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-f66f8d34",
-      "owner": "obsidian-second-brain",
-      "path": "obsidian-second-brain/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
       "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py",
       "event": "PostToolUse",
       "id": "hook:obsidian-second-brain/vault-read-hint",
@@ -1736,17 +1707,6 @@
       "name": "vault-write-hint",
       "owner": "obsidian-second-brain",
       "path": "obsidian-second-brain/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
-      "event": "SessionStart",
-      "id": "hook:project-launcher/inline-b4ccdbc6",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-b4ccdbc6",
-      "owner": "project-launcher",
-      "path": "project-launcher/hooks/hooks.json",
       "status": "wired"
     },
     {
@@ -1816,6 +1776,17 @@
       "status": "opt-in"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-disclosure.js\"",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/session-disclosure",
+      "kind": "hook",
+      "matcher": "",
+      "name": "session-disclosure",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/session-init.sh",
       "event": "SessionStart",
       "id": "hook:rhize-context-manager/session-init",
@@ -1836,17 +1807,6 @@
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/setup/manifest.json",
       "status": "opt-in"
-    },
-    {
-      "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
-      "event": "SessionStart",
-      "id": "hook:rhize-devflow/inline-466ded0c",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-466ded0c",
-      "owner": "rhize-devflow",
-      "path": "rhize-devflow/hooks/hooks.json",
-      "status": "wired"
     },
     {
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
@@ -1891,17 +1851,6 @@
       "owner": "rhize-devflow",
       "path": "rhize-devflow/setup/manifest.json",
       "status": "opt-in"
-    },
-    {
-      "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
-      "event": "SessionStart",
-      "id": "hook:seo-aeo-geo/inline-8cef06f6",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-8cef06f6",
-      "owner": "seo-aeo-geo",
-      "path": "seo-aeo-geo/hooks/hooks.json",
-      "status": "wired"
     },
     {
       "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py",
@@ -2096,7 +2045,7 @@
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
     },
     {
-      "contentHash": "eeda745293b712580404cdb02c744d39f4ae8931368fe0a353b5a17237409201",
+      "contentHash": "0fb12ac937a256f3a96cfec12993dc4a6c406550cec866ec90ea874b09484db9",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Graphiti, Obsidian), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
@@ -2144,7 +2093,7 @@
       "path": "rhize-context-manager/skills/memory-systems/SKILL.md"
     },
     {
-      "contentHash": "955b0801f243939546af5b8d3d60bc6188d1b1add113bba0de6522d141b69870",
+      "contentHash": "c48f4892adf0833295721433514d015c972f1c0c889d42d845ac1cb7fe7240ae",
       "description": "Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged queue, then skill-forge evolve (SkillOpt-Sleep + safety re-gate) refines target skills with auto-promote for gate-passing SKILL.md edits. Use when the user says \"harvest learnings\", \"refine skills\", \"drain the refinement queue\", asks where headroom learn output should go, or when a scheduled refinement pass needs its rules.",
       "id": "skill:rhize-context-manager/refinement-pipeline",
       "kind": "skill",

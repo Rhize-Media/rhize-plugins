@@ -179,7 +179,6 @@ obsidian-second-brain/
 │   └── obsidian-cli/                  # + references/cli-commands.md
 ├── hooks/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
-│   ├── obsidian-context.md            # Session context (knowledge-first ordering)
 │   └── scripts/
 │       ├── vault-write-hint.py        # PreToolUse Write|Edit implementation
 │       └── vault-read-hint.py         # PostToolUse Read implementation

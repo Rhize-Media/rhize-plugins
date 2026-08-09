@@ -156,7 +156,6 @@ seo-aeo-geo/
 │   └── nextjs-sanity-seo/            # Implementation patterns
 ├── hooks/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
-│   ├── seo-context.md                 # Available commands summary + hooks reference
 │   └── scripts/
 │       ├── seo-edit-hint.py           # PreToolUse Write|Edit implementation
 │       └── seo-read-hint.py           # PostToolUse Read implementation

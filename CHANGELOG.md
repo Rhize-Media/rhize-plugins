@@ -8,6 +8,34 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Skill-map phases 3–5 release (all six plugins bumped, 2026-08-09).**
+  - *Phase 3a — local overlay (rhize-ops 0.7.0).* `skill-monitor/monitor.py` now aggregates
+    session-level skill co-occurrence (counts only — no prompt text, no project paths) into
+    `data/skill-cooccurrence.json`; new `scripts/build_local_skill_map.py` joins that snapshot,
+    the enabled-plugin set, and the stack config into `~/.claude/context-manager/skill-map.{local,resolved}.json`,
+    degrading to the static map when any input is absent.
+  - *Phase 3b — stack-aware disclosure (rhize-context-manager 0.8.0; seo-aeo-geo 1.3.0,
+    obsidian-second-brain 1.3.0, project-launcher 1.7.0, rhize-devflow 2.10.0).* New auto-wired
+    `session-disclosure.js` SessionStart hook fingerprints the repo's stack and surfaces up to 8
+    map-relevant skills — silent when no stack is detected. The four per-plugin unconditional
+    SessionStart banners were removed (hint hooks preserved); the now-orphaned
+    `{seo,obsidian,launcher}-context.md` banner files were deleted in this release. `/start` and
+    `context-stack` now name the skill map as their routing substrate.
+  - *Phase 4b — governance wiring.* weekly-skill-audit gained step 0 (map rebuild +
+    `--check-stale` gate — audit commits the fix then stops on staleness — and skill-forge drift
+    checks over `fork-of` edges); `/learn-harvest` gained a `routing-miss` signal (skills used but
+    structurally unroutable) feeding the refinement queue with map/tag-targeted fixes.
+  - *Phase 5 — generated docs + vault.* `scripts/render_skill_map_docs.py` manages
+    `<!-- SKILL-MAP -->` sections in all plugin READMEs, the root Plugin Catalog, and
+    `generated/SKILL-CATALOG.md` (idempotent; refuses on missing markers);
+    `scripts/publish_skill_map_vault.py` publishes 39 per-skill notes plus `Skill Map.base` and
+    `Skill Map.canvas` to the Obsidian vault (path resolved locally, never committed).
+- _2026-08-09_ version bump — **rhize-ops** 0.6.0 → 0.7.0 (minor); marketplace 2.21.0 → 2.22.0.
+- _2026-08-09_ version bump — **project-launcher** 1.6.0 → 1.7.0 (minor); marketplace 2.20.0 → 2.21.0.
+- _2026-08-09_ version bump — **obsidian-second-brain** 1.2.0 → 1.3.0 (minor); marketplace 2.19.0 → 2.20.0.
+- _2026-08-09_ version bump — **seo-aeo-geo** 1.2.0 → 1.3.0 (minor); marketplace 2.18.0 → 2.19.0.
+- _2026-08-09_ version bump — **rhize-devflow** 2.9.0 → 2.10.0 (minor); marketplace 2.17.0 → 2.18.0.
+- _2026-08-09_ version bump — **rhize-context-manager** 0.7.0 → 0.8.0 (minor); marketplace 2.16.0 → 2.17.0.
 - _2026-08-09_ version bump — **rhize-context-manager** 0.6.0 → 0.7.0 (minor); marketplace 2.15.0 → 2.16.0.
 - **Phase 2 (items 2-3), map-driven skill router (rhize-context-manager).** `hooks/skill-router.js`
   (Node, no deps) replaces the keyword-grep `skill-suggester.sh` on `UserPromptSubmit`: it reads
@@ -25,7 +53,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `rhize-context-manager/{README,GUIDE}.md`, `skills/context-engineering/SKILL.md`,
   `docs/skill-map.md`, `generated/README.md`. New test: `tests/skill-map/test_router.js`
   (matched/unmatched/corrupt-map/missing-map cases, isolated via a temp `HOME`).
-- **Phase 2.1 hook-ownership cleanup (rhize-devflow 2.9.0 / rhize-context-manager 0.6.0).** The plan premise ("6 hooks left behind by the 2.5.0 migration, all move to `rhize-context-manager/hooks/`") only held for 2 of 6 — verified before executing: `context-engineering__duplicate-check.sh`, `pre-commit-guard.sh`, `session-init.sh`, and `skill-suggester.sh` already had live, fully-wired counterparts at `rhize-context-manager/skills/context-engineering/hooks/*.sh` (declared in that plugin's `setup/manifest.json`, documented in its README/GUIDE/SKILL.md) — two byte-identical, two strictly newer there. Relocating the devflow copies would have created a third, unwired duplicate of each, which the marketplace's own Curation Rule exists to prevent. Retired (`git rm`) rather than relocated; rhize-devflow's README/GUIDE/hooks.json now redirect to the context-manager copies instead of documenting a file that no longer lives there. The other two, `skill-refinement__refinement-detector.sh` and `skill-refinement__session-end.sh`, were genuine orphans with no counterpart anywhere — moved+renamed to `rhize-context-manager/hooks/refinement-pipeline__{refinement-detector,session-end}.sh` (matching the `refinement-pipeline` skill that now owns the design), documented as opt-in (not wired) in that plugin's README/GUIDE/hooks.json. Both hooks' suggestion text updated from a bare `npx @rhize/skill-forge refine` to `/rhize-context-manager:learn-harvest` → `/skill-refine review`, matching the gated queue/re-gate trust model the `refinement-pipeline` skill actually documents; `session-end.sh`'s stale in-file comment pointing at `rhize-devflow/setup/manifest.json` was corrected. Known gap left for a follow-up (out of this task's file scope): the two moved hooks aren't yet declared in `rhize-context-manager/setup/manifest.json`, and `rhize-devflow/setup/manifest.json` still lists all 6 original entries with now-dead `command` paths — both files need a manifest-only pass.
+- **Phase 2.1 hook-ownership cleanup (rhize-devflow 2.9.0 / rhize-context-manager 0.6.0).** The plan premise ("6 hooks left behind by the 2.5.0 migration, all move to `rhize-context-manager/hooks/`") only held for 2 of 6 — verified before executing: `context-engineering__duplicate-check.sh`, `pre-commit-guard.sh`, `session-init.sh`, and `skill-suggester.sh` already had live, fully-wired counterparts at `rhize-context-manager/skills/context-engineering/hooks/*.sh` (declared in that plugin's `setup/manifest.json`, documented in its README/GUIDE/SKILL.md) — two byte-identical, two strictly newer there. Relocating the devflow copies would have created a third, unwired duplicate of each, which the marketplace's own Curation Rule exists to prevent. Retired (`git rm`) rather than relocated; rhize-devflow's README/GUIDE/hooks.json now redirect to the context-manager copies instead of documenting a file that no longer lives there. The other two, `skill-refinement__refinement-detector.sh` and `skill-refinement__session-end.sh`, were genuine orphans with no counterpart anywhere — moved+renamed to `rhize-context-manager/hooks/refinement-pipeline__{refinement-detector,session-end}.sh` (matching the `refinement-pipeline` skill that now owns the design), documented as opt-in (not wired) in that plugin's README/GUIDE/hooks.json. Both hooks' suggestion text updated from a bare `npx @rhize/skill-forge refine` to `/rhize-context-manager:learn-harvest` → `/skill-refine review`, matching the gated queue/re-gate trust model the `refinement-pipeline` skill actually documents; `session-end.sh`'s stale in-file comment pointing at `rhize-devflow/setup/manifest.json` was corrected. The manifest gap this originally left open was closed in the same release: `rhize-devflow/setup/manifest.json` dropped the 6 dead entries (10 → 4 items, plus the orphaned `@rhize/skill-forge` dependency block), and `rhize-context-manager/setup/manifest.json` gained opt-in entries for the two arrived hooks (4 → 6 items), so `/rhize-setup` offers exactly the hooks that exist.
 - _2026-08-09_ version bump — **rhize-context-manager** 0.5.0 → 0.6.0 (minor); marketplace 2.14.0 → 2.15.0.
 - _2026-08-09_ version bump — **rhize-devflow** 2.8.0 → 2.9.0 (minor); marketplace 2.13.0 → 2.14.0.
 - _2026-08-04_ version bump — **rhize-ops** 0.5.0 → 0.6.0 (minor); marketplace 2.12.0 → 2.13.0.
