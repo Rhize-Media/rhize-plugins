@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Skill map: third-party plugin/skill inventory in the local overlay (origin-aware resolved
+  map).** `scripts/build_local_skill_map.py` now scans every plugin installed on the machine and
+  enabled (via the merge of `~/.claude/settings.json`'s `enabledPlugins` map with this repo's
+  `.claude/settings.local.json` override) whose marketplace is not this repo's own — e.g. `ecc`,
+  `sanity`, `humanizer` — and emits `origin: "third-party"` `plugin`/`skill`/`command` nodes plus
+  `contains` edges into `skill-map.local.json` and `skill-map.resolved.json` only. Lets Rhize
+  plugins be checked for overlap/complementarity against what's actually installed alongside them,
+  not just against each other. Id convention: `plugin:<marketplace>/<name>`,
+  `skill:<marketplace>/<plugin>/<skill-dir>`, `command:<marketplace>/<plugin>/<command-stem>` —
+  collision-proof against this repo's own bare `plugin:<name>` ids. Descriptions are truncated to
+  ~200 chars; a plugin whose cached install path is missing, or a source file that can't be read,
+  is skipped and counted (never a build failure) in `local.json`'s `thirdParty.summary`. The
+  committed `generated/skill-map.static.json` is untouched — this inventory is local-overlay/
+  resolved only, since the installed set is machine-specific. See "Third-party ecosystem
+  inventory" in `docs/skill-map.md`.
+
 - **Skill map: `extends` + `precedes` edge types (schema 1.1).** `extends` records deliberate
   layering — a specialized skill deepening a base skill's domain (directional, specialized→base;
   not duplication, not a runtime dependency) — parsed from a new `metadata.rhize.extends`

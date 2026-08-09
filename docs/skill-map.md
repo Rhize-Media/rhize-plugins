@@ -26,8 +26,8 @@ policy" above exists to prevent, made into a hard gate instead of a documentatio
 | `generated/skill-map.static.json` | committed | Deterministic repo facts — this repo's plugins, skills, commands, hooks, and their `contains`/`fork-of`/relations-catalog edges. Produced by `scripts/build_skill_map.py`; never hand-edited. |
 | `catalog/skill-relations.json` | committed | Hand-declared, non-derivable edges (`overlaps-with`, `depends-on`, `replaces`) — the **one** curated input to the static compiler. Validated against the schema like any other artifact. |
 | `~/.claude/context-manager/skill-map.static.json` | machine-local | Byte-identical copy of the committed static artifact, installed by `python3 scripts/build_skill_map.py --install`. Exists because an *installed* plugin (as opposed to a checkout of this repo) cannot see `generated/` — this is the fallback the router hook reads when no resolved map is present yet. |
-| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, and `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot. Produced by `scripts/build_local_skill_map.py`. |
-| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs` edges (nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, or the co-occurrence snapshot) degrades that piece gracefully — with all three absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
+| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot, and a **third-party ecosystem inventory** (`origin: "third-party"` plugin/skill/command nodes + `contains` edges for every installed+enabled non-rhize plugin — see "Third-party ecosystem inventory" below). Produced by `scripts/build_local_skill_map.py`. |
+| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs` edges + third-party nodes/edges (static nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, the co-occurrence snapshot, or the installed-plugins/settings data behind the third-party inventory) degrades that piece gracefully — with all absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
 
 **Generation-only policy:** files under `generated/` (and the two machine-local files above) are
 build output. If a fact is wrong, fix the source it was derived from (frontmatter, marketplace.json,
@@ -53,9 +53,10 @@ frontmatter/manifest), and `contentHash` (sha256 hex digest of the source file, 
 the anchor used for fork-drift detection in Phase 4.
 
 Any node may optionally carry `origin: "rhize" | "third-party"`. A node without this property is
-implicitly `"rhize"`. The static compiler never sets `"third-party"` itself — this seat exists for
-a later lane that populates third-party nodes in the machine-local overlay
-(`skill-map.local.json` / `skill-map.resolved.json`) only, never in the committed static artifact.
+implicitly `"rhize"`. The static compiler never sets `"third-party"` itself — that value is set
+only by `scripts/build_local_skill_map.py`'s third-party ecosystem inventory (see below), which
+writes exclusively into the machine-local overlay (`skill-map.local.json` /
+`skill-map.resolved.json`), never into the committed static artifact.
 
 ## Tagging conventions
 
@@ -119,6 +120,58 @@ that snapshot, resolves each `{a, b, sessions}` pair against the static artifact
 across every repo on the machine), computes `jaccard`/`lift` from the snapshot's per-skill
 `totals` and `totalSessions`, and emits one `usage-cooccurs` edge per resolved pair into
 `skill-map.local.json` and `skill-map.resolved.json`.
+
+### Third-party ecosystem inventory
+
+The local overlay also inventories every plugin **installed and enabled on this machine whose
+marketplace is not this repo's own** — the goal is to let Rhize plugins be evaluated for overlap
+and complementarity against what's actually running alongside them (e.g. `ecc`, `sanity`,
+`humanizer`), not just against each other. This is machine-specific by nature (the installed set
+differs per developer machine), so it lives in the local overlay / resolved map only, exactly like
+`origin: "third-party"` above requires.
+
+**Inputs:** `~/.claude/plugins/installed_plugins.json` (which plugins are installed, and where
+their cached source lives — `installPath`) joined against the merge of `~/.claude/settings.json`'s
+`enabledPlugins` map with this repo's own `.claude/settings.local.json` override (local wins on
+conflict — the same precedence Claude Code itself applies when resolving whether a plugin is
+active). A plugin whose marketplace equals this repo's own marketplace name is skipped — it's
+already a static node under its own convention below.
+
+**What's included, per qualifying plugin:**
+- One `plugin` node (`description` from the plugin's `.claude-plugin/plugin.json`, if present).
+- One `skill` node per `skills/*/SKILL.md` under its cached install path (`description` from
+  frontmatter, `contentHash` of the raw file — same fields the static compiler computes for a
+  rhize skill, minus `topic-tag`/`stack-tag` edges: third-party skills don't carry
+  `metadata.rhize.*` frontmatter, so there's nothing to tag).
+- One `command` node per `commands/*.md` (cheap to include alongside the skill scan).
+- `contains` edges from the plugin to each child node, attributed `source: "marketplace"` — the
+  schema's `provenanceSource` enum has no third-party-specific value, and extending the schema is
+  out of scope for this inventory; `marketplace` is the closest semantic match (the relationship
+  is discovered by reading a plugin's on-disk layout, the same way a rhize plugin's `contains`
+  edges are).
+
+**Id convention** (collision-proof against this repo's own ids, which never have a marketplace
+segment): `plugin:<marketplace>/<name>`, `skill:<marketplace>/<plugin>/<skill-dir>`,
+`command:<marketplace>/<plugin>/<command-stem>` — e.g. `plugin:everything-claude-code/ecc`,
+`skill:everything-claude-code/ecc/frontend-design-direction`.
+
+**Truncation:** every third-party `description` is truncated to ~200 characters
+(`DESCRIPTION_TRUNCATE_LIMIT` in `scripts/build_local_skill_map.py`). Some installed plugins ship
+hundreds of skills (`ecc` alone is 280+) — routing/overlap analysis needs the gist of what a
+third-party skill does, not its full trigger text, and the full text would bloat the overlay
+roughly linearly with the ecosystem's size for no analytical benefit.
+
+**Paths are home-relative, not repo-relative:** a third-party skill's `path` looks like
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/<name>/SKILL.md` — these files
+live outside this repo entirely, so "repo-relative" doesn't apply; home-relative keeps the path
+short and portable across machines that share the same `~/.claude/plugins/cache` layout.
+
+**Graceful degradation, never a build failure:** a missing/unreadable `installed_plugins.json`
+degrades to zero third-party nodes (same contract as the enabled-plugin-set input above). A
+plugin whose `installPath` doesn't exist on disk, or a `SKILL.md`/command file that can't be read,
+is skipped and counted — `local.json`'s `thirdParty.summary` reports `skippedPlugins` and
+`skippedEntries`, and `sourceNotes.thirdParty` records which enabled-plugins sources were read (or
+degraded).
 
 ### `extends` and the depth-2 rule
 
