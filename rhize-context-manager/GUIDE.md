@@ -66,6 +66,11 @@ the right one, and health-checks the whole thing.
   (`session-init`, `duplicate-check`, `pre-commit-guard`, `skill-suggester`) are opt-in —
   listed in `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
+- Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
+  `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
+  detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
+  Neither is in `setup/manifest.json` yet, so wire them by hand in `.claude/settings.json`
+  if you want them — see README.md's Hooks section for the exact snippet.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
 - Graphiti is approved for Rhize adoption but needs its backend stood up first — until

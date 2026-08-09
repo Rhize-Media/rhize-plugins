@@ -98,6 +98,43 @@ wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.addi
 per the snippet in [rhize-ops/README.md § Setup manifest
 schema](../rhize-ops/README.md#setup-manifest-schema).
 
+### Refinement-pipeline hooks (bundled, opt-in, not yet in `setup/manifest.json`)
+
+Two more hooks arrived in `hooks/` on 2026-08-09, moved here from `rhize-devflow` (they
+predate this plugin and were stranded there by the 2.5.0 command migration). Like the four
+above they are **not** wired in `hooks/hooks.json` and require manual `.claude/settings.json`
+wiring — they aren't in `setup/manifest.json` yet either, so `/rhize-setup` won't offer them
+until that's added in a follow-up.
+
+| Script | Event | Tier | Purpose |
+|---|---|---|---|
+| `refinement-pipeline__refinement-detector.sh` | `UserPromptSubmit` | T3 (advisory) | Detects "skill doesn't work" / "false positive" / "missing trigger" style phrasing and suggests `/rhize-context-manager:learn-harvest` → `/skill-refine review` |
+| `refinement-pipeline__session-end.sh` | `Stop` | T3 (advisory) | At session end, if the session was substantial (>20 tool calls, any error, >60min, or >10 files touched — computed from the transcript JSONL), suggests capturing a refinement via the same two commands |
+
+To enable one, add it to your project's `.claude/settings.json`, e.g.:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__refinement-detector.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Both suggest the same next step — `/rhize-context-manager:learn-harvest` to queue the signal,
+then `/skill-refine review` to triage it — rather than a bare `npx @rhize/skill-forge refine`,
+which would skip the human-gate/machine-gate trust model the `refinement-pipeline` skill
+documents.
+
 ### Why this replaces ECC's `suggest-compact`
 
 ECC's hook sizes the window by sniffing the model id for a literal `[1m]`

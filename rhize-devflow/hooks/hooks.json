@@ -1,5 +1,5 @@
 {
-  "description": "rhize-devflow — lightweight SessionStart banner. Heavier guard hooks (duplicate-check, prewrite mutation check, rca-enforcer, regression-guard) ship bundled under this directory and inside each skill but are OPT-IN: wire them into your project's .claude/settings.json when you want them, so nothing untested fires automatically on every session.",
+  "description": "rhize-devflow — lightweight SessionStart banner. Heavier guard hooks (prewrite mutation check, rca-enforcer, regression-guard, protect-files) ship bundled under this directory and inside each skill but are OPT-IN: wire them into your project's .claude/settings.json when you want them, so nothing untested fires automatically on every session. The context-engineering hooks (session-init, duplicate-check, pre-commit-guard, skill-suggester) and the skill-refinement hooks moved to the rhize-context-manager plugin (2026-08-09) — see that plugin's hooks/ and README.md.",
   "hooks": {
     "SessionStart": [
       {

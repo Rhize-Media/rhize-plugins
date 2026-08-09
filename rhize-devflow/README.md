@@ -45,27 +45,31 @@ this repo — gitignored, as the convention requires).
 ## Hooks
 
 A light SessionStart banner (`hooks/hooks.json`) is enabled by default and is the only hook
-this plugin auto-wires. Ten heavier guard scripts ship bundled under `hooks/` but are
+this plugin auto-wires. Four heavier guard scripts ship bundled under `hooks/` but are
 **deliberately opt-in** — wire the ones you want into a project's `.claude/settings.json`, so
 nothing untested fires automatically on every session:
 
 | Script | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
-| `context-engineering__duplicate-check.sh` | PreToolUse | `Write` | T4 (blocks) | Blocks creating a new file under a components/hooks/utilities path if a similarly-named entry already exists in `COMPONENT_REGISTRY.md`. |
-| `context-engineering__pre-commit-guard.sh` | PreToolUse | `Bash` | T3 | On `git commit`, warns (never blocks) if a staged component's matching hook, or a staged schema/model file's types file, isn't also staged. |
-| `context-engineering__session-init.sh` | SessionStart | — | T3 | Heavier session banner: sprint/registry freshness, active work item, uncommitted-file count. |
-| `context-engineering__skill-suggester.sh` | UserPromptSubmit | — | T3 | Suggests a skill based on prompt keywords (implement/bugfix/refactor/completion/context-fatigue/performance). |
 | `data-mutation-consistency__mutation-detector.sh` | UserPromptSubmit | — | T3 | Suggests `@analyze-mutations`/`@check-mutation` when the prompt combines a mutation/cache keyword with a bug/error keyword. |
 | `data-mutation-consistency__prewrite-check.sh` | PreToolUse | `Write\|Edit` | T3 | Warns on Supabase mutations missing error handling/revalidation, `useMutation` calls missing `onError`/`onSettled`, or Payload collections missing `afterChange`/`afterDelete`. |
 | `data-mutation-consistency__sentry-stale-data.sh` | UserPromptSubmit | — | T3 | Prints a stale-data investigation checklist on Sentry URLs or stale-data phrasing. |
 | `protect-files.sh` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit` | T4 (blocks) | Blocks edits to CI workflows/`.env*`/billing paths and leaked `NEXT_PUBLIC_*` secrets or client-side Supabase service-role keys. Local copy of the same gate the global `~/.claude/hooks/protect-files.sh` already runs for every session — wire this one in only for environments without that global hook installed. |
-| `skill-refinement__refinement-detector.sh` | UserPromptSubmit | — | T3 | Detects "skill doesn't work" / "false positive" style phrasing and suggests `npx @rhize/skill-forge refine`. |
-| `skill-refinement__session-end.sh` | Stop | — | T3 | At session end, suggests capturing a refinement if the session was substantial (tool calls, errors, duration, files touched — computed from the transcript). |
 
-Full metadata (id, exact command, description) for all ten lives in **`setup/manifest.json`**,
-read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a project can pick which guard
-hooks to wire in without hand-editing `.claude/settings.json`. The manifest also declares a
-`dependencies` array (Sentry/Vercel/GitHub/Chrome DevTools MCP servers, `@rhize/skill-forge`)
+> **Moved (2026-08-09):** the `context-engineering__*` hooks (`duplicate-check`,
+> `pre-commit-guard`, `session-init`, `skill-suggester`) had already been superseded by
+> identical/newer copies living in
+> [`rhize-context-manager/skills/context-engineering/hooks/`](../rhize-context-manager/README.md#hooks)
+> since the 2.5.0 command migration — the copies here were stale duplicates and have been
+> removed rather than relocated a second time. The `skill-refinement__*` hooks
+> (`refinement-detector`, `session-end`) were genuinely still stranded here and have moved to
+> [`rhize-context-manager/hooks/`](../rhize-context-manager/README.md#hooks), renamed
+> `refinement-pipeline__*` to match the skill that now owns them.
+
+Full metadata (id, exact command, description) for the four hooks above lives in
+**`setup/manifest.json`**, read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a
+project can pick which guard hooks to wire in without hand-editing `.claude/settings.json`. The
+manifest also declares a `dependencies` array (Sentry/Vercel/GitHub/Chrome DevTools MCP servers)
 that the wizard's dependency check reads.
 
 **Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
@@ -73,19 +77,13 @@ that the wizard's dependency check reads.
 manually per the snippet in [rhize-ops/README.md § Setup manifest
 schema](../rhize-ops/README.md#setup-manifest-schema).
 
-**Fixed 2026-08-04** (all ten scripts already read stdin correctly except these three, which
-were silently dead or non-portable):
-- `context-engineering__skill-suggester.sh` looked for a `"user_prompt"` JSON field that Claude
-  Code never sends (the real field is `"prompt"`) — the hook never fired.
+**Fixed 2026-08-04** (all remaining scripts already read stdin correctly except these two,
+which were silently dead or non-portable):
 - `data-mutation-consistency__sentry-stale-data.sh` read the prompt from a positional `$1`
   argument; Claude Code delivers hook payloads as JSON on stdin, never as command-line args —
   same failure mode, the hook never fired.
 - `data-mutation-consistency__prewrite-check.sh` extracted fields with GNU-only `grep -oP`,
   which macOS's default BSD grep rejects outright — the hook never matched on macOS.
-- `skill-refinement__session-end.sh` read `SESSION_TOOL_CALLS`/`SESSION_ERRORS`/
-  `SESSION_DURATION`/`SESSION_FILES_TOUCHED` from the environment; Claude Code doesn't set
-  those (Stop hooks get only `session_id`/`transcript_path`/`cwd` on stdin) — the hook never
-  fired. It now computes the same four stats from the transcript file directly.
 
 ## Lineage
 

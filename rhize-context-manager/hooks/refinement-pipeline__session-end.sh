@@ -21,12 +21,15 @@
 #   - > 10 distinct files touched (Write/Edit/MultiEdit file_path args)
 #
 # Installation:
-#   Wire into .claude/settings.json as a Stop hook (see
-#   rhize-devflow/setup/manifest.json for the exact entry).
+#   Wire into .claude/settings.json as a Stop hook (see this plugin's
+#   README.md Hooks section for the exact command path/entry — this file
+#   moved here from rhize-devflow/hooks/ on 2026-08-09).
 #
-# Note: skill refinement now ships as `skill-forge refine` in the
-# @rhize/skill-forge npm package (npx @rhize/skill-forge refine) -- the
-# rhize-meta plugin is retired.
+# Note (updated 2026-08-09): skill refinement is now the gated pipeline in the
+# `refinement-pipeline` skill (this plugin) — signals go through
+# `/rhize-context-manager:learn-harvest` (collect) and `/skill-refine`
+# (triage/run), which drives `@rhize/skill-forge evolve` under a safety re-gate.
+# A bare `npx @rhize/skill-forge refine` skips that queue and re-gate.
 #
 # Always exits 0 -- advisory only, never blocks Stop.
 
@@ -136,7 +139,7 @@ def main():
     print("  • Duration: %d minutes" % (duration_sec // 60))
     print()
     print("Any skill refinements to capture from this session?")
-    print("  → Run: npx @rhize/skill-forge refine")
+    print("  → Run: /rhize-context-manager:learn-harvest, then /skill-refine review")
     print("  → Or say \"no refinements\" to skip")
     print()
     print(bar)

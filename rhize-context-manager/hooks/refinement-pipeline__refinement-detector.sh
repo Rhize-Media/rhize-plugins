@@ -3,18 +3,22 @@
 # refinement-detector.sh - Detect skill refinement opportunities from user prompts
 #
 # This hook listens for keywords indicating the user wants to refine a skill.
-# When detected, it suggests running `npx @rhize/skill-forge refine`.
+# When detected, it suggests running `/rhize-context-manager:learn-harvest` to
+# queue the signal for triage.
 #
 # Installation:
 #   Add to your .claude/settings.json hooks section:
 #   {
 #     "hooks": {
-#       "user_prompt_submit": "<path-to-this-file>/refinement-detector.sh"
+#       "user_prompt_submit": "<path-to-this-file>/refinement-pipeline__refinement-detector.sh"
 #     }
 #   }
 #
-# Note: skill refinement now ships as `skill-forge refine` in the @rhize/skill-forge
-# npm package — the rhize-meta plugin is retired.
+# Note (updated 2026-08-09): skill refinement is now the gated pipeline in the
+# `refinement-pipeline` skill (this plugin) — signals go through
+# `/rhize-context-manager:learn-harvest` (collect) and `/skill-refine`
+# (triage/run), which drives `@rhize/skill-forge evolve` under a safety re-gate.
+# A bare `npx @rhize/skill-forge refine` skips that queue and re-gate.
 #
 # Usage:
 #   This hook is triggered automatically on user prompt submission.
@@ -85,12 +89,13 @@ if [ -n "$MATCHED" ]; then
 It looks like you've encountered an issue with a skill.
 Would you like to capture this as a refinement?
 
-Run: npx @rhize/skill-forge refine
+Run: /rhize-context-manager:learn-harvest
+Then triage it: /skill-refine review
 
 This will help:
+  • Queue the signal for human triage before any skill is touched
   • Document the expected vs actual behavior
-  • Create a project-specific override
-  • Track the pattern for potential generalization
+  • Track the pattern toward a gated skill-forge evolve pass
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 EOF
