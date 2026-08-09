@@ -15,6 +15,11 @@ description: >
   plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous
   pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the
   artifact into the Obsidian vault as the second-brain source of truth.
+metadata:
+  rhize:
+    topics: [visualization, project-planning]
+    stacks: [obsidian]
+
 ---
 
 # Rhize Visual Plan

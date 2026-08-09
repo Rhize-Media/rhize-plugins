@@ -12,6 +12,11 @@ description: >-
   frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model
   what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for
   exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.
+metadata:
+  rhize:
+    topics: [cms-development, content-authoring]
+    stacks: [sanity, nextjs]
+
 ---
 
 # Sanity Development Skill v2.0.0

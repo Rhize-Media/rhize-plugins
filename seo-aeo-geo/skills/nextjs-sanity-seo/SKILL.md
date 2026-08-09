@@ -15,6 +15,11 @@ description: >
   or any request involving implementing or fixing SEO in a Next.js + Sanity project.
   Also triggers on "audit my codebase for SEO issues", "SEO code review", or "implement SEO best practices in code".
   Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.
+metadata:
+  rhize:
+    topics: [cms-development, content-optimization, seo-audit]
+    stacks: [nextjs, sanity, seo]
+
 ---
 
 # Next.js + Sanity SEO Implementation

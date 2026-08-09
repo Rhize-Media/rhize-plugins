@@ -12,6 +12,11 @@ description: >
   callouts, managing YAML frontmatter/properties, or any Obsidian markdown syntax
   question. Also triggers on mentions of Obsidian note formatting, block references,
   nested tags, or Obsidian-specific markdown extensions.
+metadata:
+  rhize:
+    topics: [content-authoring, knowledge-management]
+    stacks: [obsidian]
+
 ---
 
 # Obsidian Flavored Markdown

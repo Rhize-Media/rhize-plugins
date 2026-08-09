@@ -13,6 +13,11 @@ description: >-
   messages and needs hygiene, or before implementing a feature when impact-mapping and the
   component registry should be checked first. Based on Google's Context Engineering guide,
   enhanced with practical automation hooks and slash commands.
+metadata:
+  rhize:
+    topics: [context-engineering, workflow-patterns, project-planning]
+    stacks: []
+
 ---
 
 # Context Engineering Skill

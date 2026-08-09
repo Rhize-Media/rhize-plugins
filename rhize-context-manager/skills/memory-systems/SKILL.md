@@ -1,6 +1,11 @@
 ---
 name: memory-systems
 description: "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization."
+metadata:
+  rhize:
+    topics: [memory-systems, knowledge-graph]
+    stacks: []
+
 ---
 
 # Memory System Design

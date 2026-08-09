@@ -15,6 +15,11 @@ description: >
   "brand visibility in AI", "LLM brand monitoring", "AI mentions tracking", or any request about
   making content discoverable and citable by AI systems and generative search engines.
   Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.
+metadata:
+  rhize:
+    topics: [ai-visibility, seo-audit]
+    stacks: [seo]
+
 ---
 
 # AEO & GEO Optimization

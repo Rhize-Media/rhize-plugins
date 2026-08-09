@@ -14,6 +14,11 @@ description: >
   context of Obsidian. Also triggers on "evergreen notes", "literature notes",
   "fleeting notes", "permanent notes", "note-taking system", "knowledge graph",
   "linking my thinking", or "connect my notes".
+metadata:
+  rhize:
+    topics: [knowledge-management, workflow-patterns]
+    stacks: [obsidian]
+
 ---
 
 # Second Brain — Knowledge Management Methodology

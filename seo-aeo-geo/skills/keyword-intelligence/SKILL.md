@@ -15,6 +15,11 @@ description: >
   Also triggers on "decision-stage keywords", "commercial intent keywords", "informational keywords",
   "compare keywords", "keyword trends", or "seasonal keywords".
   Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.
+metadata:
+  rhize:
+    topics: [keyword-research, content-optimization]
+    stacks: [seo]
+
 ---
 
 # Keyword Intelligence

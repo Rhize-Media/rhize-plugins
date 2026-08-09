@@ -12,6 +12,11 @@ description: >
   quality, or understanding how qmd works. Also triggers on "semantic search",
   "vector search", "qmd", "embed vault", "vault indexing", "search my notes by meaning",
   "find similar notes", or "natural language vault search".
+metadata:
+  rhize:
+    topics: [search, knowledge-management]
+    stacks: [obsidian]
+
 ---
 
 # qmd Semantic Search

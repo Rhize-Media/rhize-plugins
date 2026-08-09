@@ -14,6 +14,11 @@ description: >
   or improving a website's inbound link profile. Also triggers on "disavow links", "unnatural links",
   "link outreach targets", or "content that attracts links".
   Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.
+metadata:
+  rhize:
+    topics: [backlink-analysis, seo-audit]
+    stacks: [seo]
+
 ---
 
 # Backlink Intelligence

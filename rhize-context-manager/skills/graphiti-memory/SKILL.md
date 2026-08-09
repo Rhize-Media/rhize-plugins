@@ -7,6 +7,11 @@ description: >-
   setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem,
   graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this
   plugin documents the wiring but does not install or require it.
+metadata:
+  rhize:
+    topics: [knowledge-graph, memory-systems]
+    stacks: []
+
 ---
 
 # Graphiti — Temporal Knowledge-Graph Memory (opt-in)

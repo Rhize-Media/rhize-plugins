@@ -14,6 +14,11 @@ description: >
   "improve my vault", "vault maintenance", "align my vault", "reorganize my vault",
   or "my vault is messy". Use this proactively when you notice vault organization
   issues during other vault operations.
+metadata:
+  rhize:
+    topics: [knowledge-management, observability]
+    stacks: [obsidian]
+
 ---
 
 # Vault Alignment — Health Assessment & Ongoing Improvement

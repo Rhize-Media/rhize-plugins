@@ -13,6 +13,11 @@ description: >
   notes programmatically, develop Obsidian plugins/themes with CLI tooling, or integrate
   Obsidian with AI agents via the CLI. Also use when someone mentions "obsidian" combined
   with terminal, command line, shell, script, automation, cron, or developer tools.
+metadata:
+  rhize:
+    topics: [automation, content-authoring]
+    stacks: [obsidian]
+
 ---
 
 # Obsidian CLI

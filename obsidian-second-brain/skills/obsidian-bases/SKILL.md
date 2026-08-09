@@ -12,6 +12,11 @@ description: >
   view in Obsidian. Also triggers on ".base files", "Obsidian database", "note
   database", "vault database", or questions about filters, formulas, and summaries
   in the context of Obsidian.
+metadata:
+  rhize:
+    topics: [knowledge-management, content-authoring]
+    stacks: [obsidian]
+
 ---
 
 # Obsidian Bases

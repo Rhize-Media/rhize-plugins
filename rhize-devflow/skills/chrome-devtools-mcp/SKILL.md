@@ -12,6 +12,11 @@ description: >-
   including Core Web Vitals traces, network waterfalls, and visual checks on Next.js/Sanity/Payload
   preview URLs. Pairs with gsd-browser-harness; prefer this for DevTools-protocol performance and
   network introspection.
+metadata:
+  rhize:
+    topics: [automation, observability]
+    stacks: [testing, nextjs]
+
 ---
 
 # Chrome DevTools MCP Server Skill

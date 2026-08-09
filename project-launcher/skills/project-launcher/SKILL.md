@@ -17,6 +17,11 @@ description: >
   or prepare a CLAUDE.md and .planning directory for a new codebase.
   Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology
   with integrated MCP server orchestration and GSD v2 framework knowledge.
+metadata:
+  rhize:
+    topics: [project-planning, workflow-patterns, automation]
+    stacks: []
+
 ---
 
 # Project Launcher

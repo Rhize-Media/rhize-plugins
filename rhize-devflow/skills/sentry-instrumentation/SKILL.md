@@ -12,6 +12,11 @@ description: >-
   per-framework SDK setup defer to the official sentry:* developer-kit skills and keep this for
   Rhize house patterns.
 version: 1.0.0
+metadata:
+  rhize:
+    topics: [observability, workflow-patterns]
+    stacks: [sentry, nextjs]
+
 ---
 
 ## Overview

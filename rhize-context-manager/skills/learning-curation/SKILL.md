@@ -1,6 +1,11 @@
 ---
 name: learning-curation
 description: "This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it so it actually fires: always-loaded config, a reference skill, a hook, or nowhere. Covers drop tests, redundancy and contradiction resolution, the retrieval-cue placement test, and rule phrasing that survives contact with a future session. Route memory *architecture* (vector stores, knowledge graphs, temporal validity) to memory-systems, context-consumption audits to context-budget, and session handoff summaries to context-compression."
+metadata:
+  rhize:
+    topics: [learning-curation, context-engineering]
+    stacks: []
+
 ---
 
 # Learning Curation: Save What Fires, Where It Fires

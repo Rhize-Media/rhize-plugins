@@ -5,6 +5,11 @@ domain: meta
 maturity: stable
 description: Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in ${CLAUDE_PLUGIN_ROOT}/skill-monitor/data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says "show the skill dashboard", "render the audit dashboard", "skill usage dashboard", "/skill-dashboard", or asks to visualize skill-monitor data.
 allowed-tools: Bash mcp__chrome-devtools__new_page
+metadata:
+  rhize:
+    topics: [observability, visualization]
+    stacks: []
+
 ---
 
 # skill-dashboard

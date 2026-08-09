@@ -12,6 +12,11 @@ description: >
   "indexation issues", or any request involving diagnosing or improving a website's search engine optimization.
   Also triggers when the user shares a URL and asks about its SEO performance or ranking potential.
   Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.
+metadata:
+  rhize:
+    topics: [seo-audit, observability]
+    stacks: [seo]
+
 ---
 
 # SEO Site Audit

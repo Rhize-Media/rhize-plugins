@@ -12,6 +12,11 @@ description: >-
   "dependency mapping", "component registry", "why did this break again", or wants to set up
   durable development guardrails. Reference layer that informs context-engineering and
   error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.
+metadata:
+  rhize:
+    topics: [workflow-patterns, project-planning]
+    stacks: []
+
 ---
 
 # Dev Flow Foundations

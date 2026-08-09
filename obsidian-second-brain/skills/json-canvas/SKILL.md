@@ -11,6 +11,11 @@ description: >
   diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas
   files. Also triggers on "JSON Canvas", "canvas file", "visual board", "Obsidian
   whiteboard", or requests to create visual note connections.
+metadata:
+  rhize:
+    topics: [visualization, knowledge-management]
+    stacks: [obsidian]
+
 ---
 
 # JSON Canvas (Obsidian Canvas Files)

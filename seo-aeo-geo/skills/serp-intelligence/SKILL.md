@@ -15,6 +15,11 @@ description: >
   about monitoring or analyzing search engine results page positions and features.
   Also triggers on "AI Overview results", "Google AI Mode references", "SGE", or "search generative experience".
   Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.
+metadata:
+  rhize:
+    topics: [rank-tracking, seo-audit]
+    stacks: [seo]
+
 ---
 
 # SERP Intelligence

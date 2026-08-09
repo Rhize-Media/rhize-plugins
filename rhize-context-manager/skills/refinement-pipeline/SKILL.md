@@ -7,6 +7,11 @@ description: >-
   auto-promote for gate-passing SKILL.md edits. Use when the user says "harvest
   learnings", "refine skills", "drain the refinement queue", asks where headroom
   learn output should go, or when a scheduled refinement pass needs its rules.
+metadata:
+  rhize:
+    topics: [learning-curation, workflow-patterns]
+    stacks: [refinement]
+
 ---
 
 # Refinement Pipeline — Signals → Queue → Gated Evolve

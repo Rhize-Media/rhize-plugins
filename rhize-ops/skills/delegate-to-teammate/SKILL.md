@@ -5,6 +5,11 @@ domain: ops
 maturity: stable
 description: |
   Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying via Slack. ALWAYS use this skill when the user says "delegate this to [name]", "hand this off to [name]", "assign this to [name]", "[name] should handle this", "send this to [name]", "create a task for [name]", or any variation of asking someone to take over a task. Also trigger on a bare "delegate", "hand off", or "assign" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json (run `/rhize-ops:delegate-setup` first if no config exists). This skill handles the full delegation pipeline: context gathering, optional meeting-transcript enrichment, task formatting, Jira issue creation, and Slack notification with a mention — gracefully skipping the Jira and/or Slack steps if those integrations aren't marked ready in the config.
+metadata:
+  rhize:
+    topics: [automation, workflow-patterns]
+    stacks: []
+
 ---
 
 # Delegate to Teammate

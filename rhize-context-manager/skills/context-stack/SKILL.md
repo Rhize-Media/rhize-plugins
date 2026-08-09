@@ -8,6 +8,11 @@ description: >-
   new repo and choosing which context tooling it should run. Triggers: "which memory
   tool", "context is duplicated", "session start is slow", "set up context tooling",
   "where should this knowledge live".
+metadata:
+  rhize:
+    topics: [context-engineering, workflow-patterns]
+    stacks: [context]
+
 ---
 
 # Context Stack — Routing & Coexistence

@@ -12,6 +12,11 @@ description: >-
   commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident
   protocol); complements the official engineering:* and sentry:* skills.
 version: 2.0.0
+metadata:
+  rhize:
+    topics: [observability, workflow-patterns]
+    stacks: [sentry, vercel, nextjs]
+
 ---
 
 ## Overview

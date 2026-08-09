@@ -13,6 +13,11 @@ description: >
   "what properties should a X note have", or "create a note for my meeting/book/project/review".
   Also triggers on "note template", "note archetype", "weekly review template", "daily template",
   or any request to scaffold a structured note.
+metadata:
+  rhize:
+    topics: [content-authoring, knowledge-management]
+    stacks: [obsidian]
+
 ---
 
 # Vault Templates — Note Archetypes for Obsidian

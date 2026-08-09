@@ -12,6 +12,11 @@ description: >-
   Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical),
   runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check,
   and mutation-fix.
+metadata:
+  rhize:
+    topics: [data-consistency, workflow-patterns]
+    stacks: [nextjs, sanity]
+
 ---
 
 # Data Mutation Consistency Skill

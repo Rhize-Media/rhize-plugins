@@ -12,6 +12,11 @@ description: >
   content. Also triggers on "web clipper", "save article", "extract webpage",
   "clean HTML", or "convert URL to markdown". Prefer Defuddle over raw WebFetch
   for standard web pages, articles, docs, and blog posts.
+metadata:
+  rhize:
+    topics: [web-clipping, content-authoring]
+    stacks: [obsidian]
+
 ---
 
 # Defuddle — Clean Web Content Extraction

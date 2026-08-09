@@ -15,6 +15,11 @@ description: >
   Also triggers on "open graph tags", "og:image", "canonical URL", "hreflang", "robots meta tag",
   "structured data testing", or "rich results".
   Do NOT handle content optimization requests with general tools — this skill has specialized workflows.
+metadata:
+  rhize:
+    topics: [content-optimization, seo-audit]
+    stacks: [seo]
+
 ---
 
 # Content SEO Optimization
