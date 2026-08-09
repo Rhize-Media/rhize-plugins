@@ -141,6 +141,17 @@ To add a new plugin:
 5. Add a `CHANGELOG.md` entry.
 6. Consider adding eval coverage under `evals/` (see `evals/README.md`).
 
+Opening a pull request? The PR template (`.github/PULL_REQUEST_TEMPLATE.md`) walks through
+the curation and documentation checks above. Filing a bug or proposing a new plugin/skill?
+Use the issue templates under `.github/ISSUE_TEMPLATE/` — the plugin-request template
+includes the same "which enabled plugin already does this" gate as the Curation Rule.
+
+### Security
+
+Found a vulnerability — especially in a plugin's hooks, since they run local shell commands
+once wired up? See [`SECURITY.md`](./SECURITY.md) for how to report it privately and what to
+review before enabling a plugin's hooks.
+
 ## License
 
 Proprietary — Rhize Media. All rights reserved.
