@@ -9,6 +9,10 @@ aggregates by skill / week / direct-vs-indirect / project / entrypoint,
 and writes:
   - JSON raw + aggregated data (for downstream analysis)
   - Markdown report into the Obsidian vault weekly-reports folder
+  - Session-level skill co-occurrence snapshot (data/skill-cooccurrence.json)
+    — counts only (no prompt text, no project paths, no per-event
+    timestamps); consumed by scripts/build_local_skill_map.py to build the
+    skill-map's usage-cooccurs edges (skill-map-graph-substrate plan, Phase 3)
 
 The signal being measured:
   A skill invocation is any `tool_use` block where `name == "Skill"` and
@@ -65,6 +69,12 @@ DEFAULT_VAULT_REPORT_DIR = (
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_JSON_OUT = SCRIPT_DIR / "data" / "skill-usage.json"
 SNAPSHOTS_DIR = SCRIPT_DIR / "data" / "snapshots"
+
+# Skill-map Phase 3 (local overlay) consumer: scripts/build_local_skill_map.py
+# reads this snapshot to derive `usage-cooccurs` edges. Counts only — no
+# prompt text, no project paths, no per-event timestamps (see
+# build_cooccurrence()'s docstring for the privacy contract).
+DEFAULT_COOCCURRENCE_OUT = SCRIPT_DIR / "data" / "skill-cooccurrence.json"
 
 # The canonical weekly cadence. Reports for this window keep the plain
 # `YYYY-MM-DD-skill-usage.md` filename; all other windows are suffixed with
@@ -646,6 +656,72 @@ def build_report(
     }
 
 
+def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dict:
+    """Aggregate session-level skill co-occurrence for the skill-map local
+    overlay (skill-map-graph-substrate plan, Phase 3).
+
+    A skill "co-occurs" with another when both were invoked (Skill tool_use
+    or slash command, main or subagent — same channel reconciliation the
+    rest of this module already does) within the same session_id. Verified
+    empirically (2026-08-09) that subagent transcripts share their parent's
+    session_id, so this genuinely captures cross-invocation co-occurrence,
+    not just same-transcript co-occurrence.
+
+    PRIVACY CONTRACT — this function's output must never carry:
+      - prompt text
+      - project paths / cwd
+      - per-event timestamps (only the coarse `windowDays` label survives)
+    Only skill names and integer counts leave this function. `session_id`
+    (an opaque UUID, carrying no path/prompt information) is used solely as
+    an internal grouping key and is discarded before returning.
+
+    Returns {windowDays, totalSessions, pairs, totals} — see
+    scripts/build_local_skill_map.py for how this snapshot is consumed.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=since_days) if since_days else None
+
+    sessions: dict[str, set[str]] = defaultdict(set)
+    for e in events:
+        ts = e.get("timestamp")
+        if cutoff is not None and ts:
+            try:
+                dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                if dt < cutoff:
+                    continue
+            except ValueError:
+                pass
+        sid = e.get("session_id")
+        skill = canonical_skill(e["skill"]) if e.get("skill") else None
+        if not sid or not skill:
+            continue
+        sessions[sid].add(skill)
+
+    totals: Counter = Counter()
+    pair_counts: Counter = Counter()
+    for skills in sessions.values():
+        ordered = sorted(skills)
+        for s in ordered:
+            totals[s] += 1
+        for i in range(len(ordered)):
+            for j in range(i + 1, len(ordered)):
+                pair_counts[(ordered[i], ordered[j])] += 1
+
+    pairs = [
+        {"a": a, "b": b, "sessions": n}
+        for (a, b), n in sorted(
+            pair_counts.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1])
+        )
+    ]
+
+    return {
+        "windowDays": since_days or 0,
+        "totalSessions": len(sessions),
+        "pairs": pairs,
+        "totals": dict(sorted(totals.items())),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Rendering
 # ---------------------------------------------------------------------------
@@ -881,6 +957,10 @@ def main() -> int:
                     help="where to write the markdown report (default: Obsidian vault)")
     ap.add_argument("--json-out", default=str(DEFAULT_JSON_OUT),
                     help=f"default: {DEFAULT_JSON_OUT}")
+    ap.add_argument("--cooccurrence-out", default=str(DEFAULT_COOCCURRENCE_OUT),
+                    help=("skill-map local-overlay input: session-level skill "
+                          "co-occurrence counts (no prompt text/paths/timestamps). "
+                          f"default: {DEFAULT_COOCCURRENCE_OUT}"))
     ap.add_argument("--days", type=int, default=7,
                     help="window in days (0 or negative = all-time; default 7)")
     ap.add_argument("--quiet", action="store_true",
@@ -1013,6 +1093,11 @@ def main() -> int:
     )
     md = render_markdown(report, files_scanned=files_scanned)
 
+    cooccurrence = build_cooccurrence(all_events, since_days=since)
+    cooccurrence_out = Path(args.cooccurrence_out).expanduser()
+    cooccurrence_out.parent.mkdir(parents=True, exist_ok=True)
+    cooccurrence_out.write_text(json.dumps(cooccurrence, indent=2, sort_keys=True) + "\n")
+
     json_out.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(
         {"events": all_events, "report": report},
@@ -1054,6 +1139,10 @@ def main() -> int:
     print(f"  ✓ JSON written  → {json_out}")
     print(f"  ✓ Snapshot      → {snap_path}")
     print(f"  ✓ Markdown report → {md_path}")
+    print(
+        f"  ✓ Co-occurrence  → {cooccurrence_out} "
+        f"({len(cooccurrence['pairs'])} pairs, {cooccurrence['totalSessions']} sessions)"
+    )
     print(
         f"\nSummary: {files_scanned} files scanned, "
         f"{len(all_events)} events, "

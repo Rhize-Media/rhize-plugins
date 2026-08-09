@@ -34,6 +34,15 @@ Aggregates:
   (e.g. `YYYY-MM-DD-skill-usage-28d.md`, `-0d` for all-time), mirroring the snapshot
   naming so a same-day `--days 28` run can't overwrite the weekly report.
 - Writes raw JSON to `~/dev-local/RHIZE/rhize-plugins/rhize-ops/skill-monitor/data/skill-usage.json` (rolling latest, overwritten each run) and an immutable per-run snapshot to `~/dev-local/RHIZE/rhize-plugins/rhize-ops/skill-monitor/data/snapshots/YYYY-MM-DD-skill-usage-{N}d.json` (used by the live dashboard). The `-{N}d` suffix encodes the `--days` window so an ad-hoc `--days 0` run doesn't overwrite the canonical `--days 7` weekly snapshot.
+- Writes a session-level skill co-occurrence snapshot to `data/skill-cooccurrence.json` (rolling
+  latest, overwritten each run, gitignored) — **counts only**: no prompt text, no project paths,
+  no per-event timestamps beyond the run's `windowDays` label. Shape:
+  `{windowDays, totalSessions, pairs: [{a, b, sessions}], totals: {"<plugin>:<skill>": sessions}}`,
+  where `a`/`b`/keys are the raw Skill-tool invocation name and `sessions` counts how many
+  distinct sessions invoked both (or, for `totals`, that one) skill. Consumed by
+  `scripts/build_local_skill_map.py` in the repo root to derive the skill map's `usage-cooccurs`
+  edges (skill-map-graph-substrate plan, Phase 3) — see `docs/skill-map.md`. Override the path
+  with `--cooccurrence-out`.
 
 ## Usage
 

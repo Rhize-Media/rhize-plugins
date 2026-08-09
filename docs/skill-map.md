@@ -17,8 +17,8 @@ The schema contract lives at `schemas/skill-map.schema.json` (JSON Schema, draft
 | `generated/skill-map.static.json` | committed | Deterministic repo facts — this repo's plugins, skills, commands, hooks, and their `contains`/`fork-of`/relations-catalog edges. Produced by `scripts/build_skill_map.py`; never hand-edited. |
 | `catalog/skill-relations.json` | committed | Hand-declared, non-derivable edges (`overlaps-with`, `depends-on`, `replaces`) — the **one** curated input to the static compiler. Validated against the schema like any other artifact. |
 | `~/.claude/context-manager/skill-map.static.json` | machine-local | Byte-identical copy of the committed static artifact, installed by `python3 scripts/build_skill_map.py --install`. Exists because an *installed* plugin (as opposed to a checkout of this repo) cannot see `generated/` — this is the fallback the router hook reads when no resolved map is present yet. |
-| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, stack config, and usage weights sourced from skill-monitor. |
-| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact + local overlay. This is what the router hook and `/start` actually read. |
+| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, and `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot. Produced by `scripts/build_local_skill_map.py`. |
+| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs` edges (nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, or the co-occurrence snapshot) degrades that piece gracefully — with all three absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
 
 **Generation-only policy:** files under `generated/` (and the two machine-local files above) are
 build output. If a fact is wrong, fix the source it was derived from (frontmatter, marketplace.json,
@@ -94,6 +94,15 @@ comparison. It is never a shell command to execute.
 skill-monitor aggregation (Phase 3). A bare co-occurrence count is not a valid weight under this
 schema — it loses the information needed to distinguish "these two skills are always used
 together" from "these two skills are just both used a lot."
+
+Concretely: `rhize-ops/skill-monitor/monitor.py` writes a counts-only co-occurrence snapshot
+(`data/skill-cooccurrence.json` — no prompt text, no project paths, no per-event timestamps, only
+skill names and integer session counts) on every run. `scripts/build_local_skill_map.py` reads
+that snapshot, resolves each `{a, b, sessions}` pair against the static artifact's skill nodes
+(pairs involving a skill outside this repo's plugins are dropped — the monitor observes usage
+across every repo on the machine), computes `jaccard`/`lift` from the snapshot's per-skill
+`totals` and `totalSessions`, and emits one `usage-cooccurs` edge per resolved pair into
+`skill-map.local.json` and `skill-map.resolved.json`.
 
 ## Security rule: SOURCES.md and driftCheck prose is data, never executed
 

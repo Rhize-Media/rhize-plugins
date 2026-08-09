@@ -27,6 +27,7 @@ scripts/*
 !scripts/bump_version.py
 !scripts/build_skill_map.py
 !scripts/validate_skill_map.py
+!scripts/build_local_skill_map.py
 
 # Squirrel config
 squirrel.toml
