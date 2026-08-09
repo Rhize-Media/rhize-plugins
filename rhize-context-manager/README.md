@@ -68,7 +68,7 @@ This one hook is auto-wired in `hooks/hooks.json` — it ships active by default
 
 Six hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
 `/rhize-setup` (rhize-ops) to wire per-repo — none of the six are in `hooks/hooks.json`
-and none do anything until enabled. Four generalized hooks live under
+and none do anything until enabled. Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
 every repo would be noise:
@@ -78,7 +78,17 @@ every repo would be noise:
 | `session-init` | `SessionStart` | T3 (advisory) | Session banner: project name, sprint/registry freshness, active work item, uncommitted count |
 | `duplicate-check` | `PreToolUse` (`Write`) | T4 (blocking, exit 2) | Blocks creating a new component/hook/utility whose name closely matches an existing `COMPONENT_REGISTRY.md` entry |
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
-| `skill-suggester` | `UserPromptSubmit` | T3 (advisory) | Pattern-matches the prompt and surfaces a suggested skill via `additionalContext` — never blocks |
+| `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
+
+`skill-router` (`hooks/skill-router.js`, plugin root — not under
+`skills/context-engineering/hooks/` like the other three) replaced the keyword-grep
+`skill-suggester.sh` on 2026-08-09 (Phase 2 of `.claude/plans/skill-map-graph-substrate.md`):
+it reads the compiled skill-map artifact (`~/.claude/context-manager/skill-map.resolved.json`,
+falling back to `skill-map.static.json` — installed via `scripts/build_skill_map.py
+--install`) instead of a fixed keyword list, so newly tagged skills route automatically.
+It requires 2+ distinct matching signals (topic/stack tag or skill-name word match) to
+fire at all, and fails silently — exit 0, no output — if the map is missing or corrupt.
+See `docs/skill-map.md` for the artifact/tagging conventions it depends on.
 
 `tier` follows the shared convention: T3 = advisory (never blocks, exits 0, must use
 `hookSpecificOutput.additionalContext` to reach Claude on events where plain stdout

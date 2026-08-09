@@ -32,12 +32,12 @@
       "default": false
     },
     {
-      "id": "skill-suggester",
-      "title": "Suggest a relevant skill from the prompt",
+      "id": "skill-router",
+      "title": "Suggest a relevant skill from the prompt (map-driven)",
       "tier": "T3",
       "event": "UserPromptSubmit",
-      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/skill-suggester.sh",
-      "description": "Pattern-matches the submitted prompt against implementation/bugfix/refactor/completion/context-fatigue/performance keyword sets and surfaces a suggested skill to Claude via additionalContext. Advisory only — never blocks the prompt.",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js\"",
+      "description": "Reads the compiled skill-map artifact (~/.claude/context-manager/skill-map.resolved.json, falling back to skill-map.static.json), ranks topic/stack tag and skill-name matches against the submitted prompt, and surfaces at most one suggested skill to Claude via additionalContext. Requires 2+ distinct matching signals to fire; fails silently (exit 0, no output) if the map is missing or corrupt. Replaces the keyword-grep skill-suggester.sh (retired 2026-08-09) — see CHANGELOG.md.",
       "default": false
     },
     {

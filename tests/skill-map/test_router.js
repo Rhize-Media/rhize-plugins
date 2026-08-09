@@ -1,0 +1,122 @@
+#!/usr/bin/env node
+'use strict';
+
+// test_router.js — exercises rhize-context-manager/hooks/skill-router.js
+// (Phase 2 of .claude/plans/skill-map-graph-substrate.md) end-to-end via
+// spawnSync, so it validates exactly what the hook harness invokes: stdin
+// in, stdout/exit code out.
+//
+// Every case runs with HOME pointed at a temp directory — never the real
+// ~/.claude — so the router's map resolution (~/.claude/context-manager/
+// skill-map.{resolved,static}.json) reads only the fixture this test wrote.
+
+const assert = require('assert');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const ROUTER_PATH = path.join(REPO_ROOT, 'rhize-context-manager', 'hooks', 'skill-router.js');
+const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'valid-map.json');
+
+function withTempHome(fn) {
+  const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), 'skill-router-test-'));
+  try {
+    return fn(tmpHome);
+  } finally {
+    fs.rmSync(tmpHome, { recursive: true, force: true });
+  }
+}
+
+function writeStaticMap(tmpHome, contents) {
+  const dir = path.join(tmpHome, '.claude', 'context-manager');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'skill-map.static.json'), contents);
+}
+
+function runRouter(tmpHome, prompt) {
+  const result = spawnSync(process.execPath, [ROUTER_PATH], {
+    input: JSON.stringify({ prompt }),
+    env: { ...process.env, HOME: tmpHome },
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  return result;
+}
+
+let failures = 0;
+
+function check(name, fn) {
+  try {
+    fn();
+    console.log(`PASS ${name}`);
+  } catch (err) {
+    failures += 1;
+    console.error(`FAIL ${name}`);
+    console.error(err && err.stack ? err.stack : err);
+  }
+}
+
+// (a) A prompt matching a tagged skill on 2+ signals must emit exactly one
+// suggestion. The fixture tags skill:rhize-context-manager/graphify with
+// tag:topic/context and tag:stack/git — a prompt containing both words as
+// whole tokens should fire.
+check('matched prompt emits exactly one suggestion', () => {
+  withTempHome((tmpHome) => {
+    writeStaticMap(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+    const result = runRouter(tmpHome, 'help me get git and context tooling set up');
+    assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+    const stdout = result.stdout.trim();
+    assert.ok(stdout.length > 0, 'expected non-empty stdout');
+    const lines = stdout.split('\n').filter(Boolean);
+    assert.strictEqual(lines.length, 1, `expected exactly one line, got ${lines.length}`);
+    const parsed = JSON.parse(lines[0]);
+    const ctx = parsed.hookSpecificOutput && parsed.hookSpecificOutput.additionalContext;
+    assert.ok(ctx, 'expected hookSpecificOutput.additionalContext');
+    assert.strictEqual(
+      ctx,
+      'Consider the rhize-context-manager:graphify skill (matches context, git)'
+    );
+  });
+});
+
+// (b) A prompt with no qualifying match (or only a single weak signal) must
+// exit 0 with empty output.
+check('unmatched prompt emits nothing and exits 0', () => {
+  withTempHome((tmpHome) => {
+    writeStaticMap(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+    const result = runRouter(tmpHome, 'what is the weather like today');
+    assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+    assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+  });
+});
+
+// (c) A corrupt map at both resolution paths must fail silently: exit 0, no
+// output, no exception surfaced.
+check('corrupt map emits nothing and exits 0', () => {
+  withTempHome((tmpHome) => {
+    writeStaticMap(tmpHome, '{ this is not valid JSON ');
+    const result = runRouter(tmpHome, 'help me get git and context tooling set up');
+    assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+    assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+  });
+});
+
+// (d) No map installed at all (missing/unreadable at both paths) must also
+// fail silently.
+check('missing map emits nothing and exits 0', () => {
+  withTempHome((tmpHome) => {
+    const result = runRouter(tmpHome, 'help me get git and context tooling set up');
+    assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+    assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+  });
+});
+
+if (failures > 0) {
+  console.error(`\n${failures} test(s) failed.`);
+  process.exit(1);
+} else {
+  console.log('\nAll router tests passed.');
+  process.exit(0);
+}

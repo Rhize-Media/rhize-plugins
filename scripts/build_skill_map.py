@@ -7,6 +7,14 @@ and emits a single artifact conforming to schemas/skill-map.schema.json.
 Semantic overlap detection is explicitly OUT of scope here — that stays with
 skill-forge's organize/audit pipeline for a later phase.
 
+Usage:
+  python3 scripts/build_skill_map.py            # write generated/skill-map.static.json
+  python3 scripts/build_skill_map.py --install  # also copy the artifact to
+                                                 # ~/.claude/context-manager/skill-map.static.json
+                                                 # (Phase 2: installed plugins, e.g. the
+                                                 # skill-router.js hook, can't see this repo's
+                                                 # generated/ dir and read from there instead)
+
 Determinism contract: two runs against an unchanged working tree MUST produce
 byte-identical output. To hold that contract:
   - no `generatedAt` timestamp is written to the artifact
@@ -523,7 +531,23 @@ def dump(document: dict) -> str:
     return json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+# `--install` copies the just-built artifact to this machine-local location.
+# An installed plugin (as opposed to a checkout of this repo) cannot see
+# `generated/` at all, so consumers that run from the installed plugin path
+# (e.g. rhize-context-manager/hooks/skill-router.js) resolve the map through
+# here instead. This is purely a copy step: it never changes what gets
+# written to the default, deterministic OUTPUT_PATH above.
+INSTALL_PATH = Path.home() / ".claude" / "context-manager" / "skill-map.static.json"
+
+
+def install_copy(document: dict) -> Path:
+    INSTALL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    INSTALL_PATH.write_text(dump(document))
+    return INSTALL_PATH
+
+
 def main() -> int:
+    install = "--install" in sys.argv[1:]
     try:
         document = build()
     except BuildError as exc:
@@ -540,6 +564,9 @@ def main() -> int:
     print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)}")
     print(f"Nodes by kind: {json.dumps(node_kinds, sort_keys=True)}")
     print(f"Edges by type: {json.dumps(edge_types, sort_keys=True)}")
+    if install:
+        install_path = install_copy(document)
+        print(f"Installed copy to {install_path}")
     return 0
 
 

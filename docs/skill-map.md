@@ -16,6 +16,7 @@ The schema contract lives at `schemas/skill-map.schema.json` (JSON Schema, draft
 | `schemas/skill-map.schema.json` | committed | Node/edge contract, `schemaVersion`. |
 | `generated/skill-map.static.json` | committed | Deterministic repo facts — this repo's plugins, skills, commands, hooks, and their `contains`/`fork-of`/relations-catalog edges. Produced by `scripts/build_skill_map.py`; never hand-edited. |
 | `catalog/skill-relations.json` | committed | Hand-declared, non-derivable edges (`overlaps-with`, `depends-on`, `replaces`) — the **one** curated input to the static compiler. Validated against the schema like any other artifact. |
+| `~/.claude/context-manager/skill-map.static.json` | machine-local | Byte-identical copy of the committed static artifact, installed by `python3 scripts/build_skill_map.py --install`. Exists because an *installed* plugin (as opposed to a checkout of this repo) cannot see `generated/` — this is the fallback the router hook reads when no resolved map is present yet. |
 | `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, stack config, and usage weights sourced from skill-monitor. |
 | `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact + local overlay. This is what the router hook and `/start` actually read. |
 

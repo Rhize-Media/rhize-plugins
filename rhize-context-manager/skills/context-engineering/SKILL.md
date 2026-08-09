@@ -35,6 +35,9 @@ Copy hooks to your project's `.claude/hooks/` directory:
 mkdir -p .claude/hooks
 cp /path/to/context-engineering/hooks/*.sh .claude/hooks/
 chmod +x .claude/hooks/*.sh
+# skill-router.js lives at the plugin root (../../hooks/skill-router.js), not
+# in this skill's hooks/ directory — copy it separately:
+cp /path/to/rhize-context-manager/hooks/skill-router.js .claude/hooks/
 ```
 
 ### 2. Configure Hooks
@@ -62,7 +65,7 @@ Add to `.claude/settings.json`:
     ],
     "UserPromptSubmit": [{
       "type": "command",
-      "command": ".claude/hooks/skill-suggester.sh"
+      "command": "node .claude/hooks/skill-router.js"
     }]
   }
 }
@@ -110,7 +113,7 @@ touch COMPONENT_REGISTRY.md
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                    AUTOMATION LAYER                       │   │
 │  ├──────────────────────────────────────────────────────────┤   │
-│  │ Hooks: session-init | duplicate-check | skill-suggester  │   │
+│  │ Hooks: session-init | duplicate-check | skill-router     │   │
 │  │ Commands: /start | /done | /context-hygiene | /impact-map│   │
 │  └──────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
@@ -131,7 +134,7 @@ Structured workflows for common development operations.
 
 ### Command Usage
 
-Commands can be invoked explicitly or detected automatically via the skill-suggester hook.
+Commands can be invoked explicitly or detected automatically via the skill-router hook.
 
 ---
 
@@ -143,7 +146,7 @@ Automated triggers that run at specific points in the Claude Code lifecycle.
 |------|---------------|---------|
 | [session-init.sh](hooks/session-init.sh) | SessionStart | Load context, check freshness, show status |
 | [duplicate-check.sh](hooks/duplicate-check.sh) | PreToolUse (write) | Block duplicate component creation |
-| [skill-suggester.sh](hooks/skill-suggester.sh) | UserPromptSubmit | Suggest relevant skills based on keywords |
+| [skill-router.js](../../hooks/skill-router.js) | UserPromptSubmit | Suggest a relevant skill by ranking the prompt against the compiled skill-map's topic/stack tags and skill names |
 | [pre-commit-guard.sh](hooks/pre-commit-guard.sh) | PreToolUse (bash) | Warn about unstaged related files |
 
 ### Hook Configuration
@@ -159,10 +162,11 @@ CONTEXT_REGISTRY_FILE="COMPONENT_REGISTRY.md"
 DUPLICATE_CHECK_PATTERNS="components/|hooks/|utilities/"
 COMPONENT_REGISTRY_FILE="COMPONENT_REGISTRY.md"
 
-# skill-suggester.sh
-SKILL_IMPLEMENTATION="/skill:impact-map"
-SKILL_BUGFIX="/skill:debug"
-SKILL_COMPLETION="/skill:done"
+# skill-router.js has no environment-variable overrides — it ranks
+# candidates from the compiled skill-map artifact rather than a fixed
+# keyword/env-var table. To change what it suggests, retag the relevant
+# skill's SKILL.md frontmatter (metadata.rhize.topics/stacks) and rebuild
+# the map (scripts/build_skill_map.py --install).
 ```
 
 ---
@@ -338,7 +342,7 @@ Prevent duplicate components:
 |------|---------------|---------|
 | [session-init.sh](hooks/session-init.sh) | `SessionStart` | Load context, show status |
 | [duplicate-check.sh](hooks/duplicate-check.sh) | `PreToolUse` (write) | Block duplicate components |
-| [skill-suggester.sh](hooks/skill-suggester.sh) | `UserPromptSubmit` | Suggest relevant skills |
+| [skill-router.js](../../hooks/skill-router.js) | `UserPromptSubmit` | Suggest a relevant skill (map-driven) |
 | [pre-commit-guard.sh](hooks/pre-commit-guard.sh) | `PreToolUse` (bash) | Warn about unstaged files |
 
 ### Commands (READ for workflow guidance)
@@ -390,7 +394,7 @@ Prevent duplicate components:
 │  ─────────────────       ──────────────────     ─────           │
 │  • session-init          • /start               • CURRENT_      │
 │  • duplicate-check       • /done                    SPRINT.md   │
-│  • skill-suggester       • /context-hygiene     • COMPONENT_    │
+│  • skill-router          • /context-hygiene     • COMPONENT_    │
 │  • pre-commit-guard      • /impact-map              REGISTRY.md │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘

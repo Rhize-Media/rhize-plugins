@@ -273,7 +273,7 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
-      "to": "hook:rhize-context-manager/skill-suggester",
+      "to": "hook:rhize-context-manager/skill-router",
       "type": "contains"
     },
     {
@@ -1827,12 +1827,12 @@
       "status": "opt-in"
     },
     {
-      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/skill-suggester.sh",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js\"",
       "event": "UserPromptSubmit",
-      "id": "hook:rhize-context-manager/skill-suggester",
+      "id": "hook:rhize-context-manager/skill-router",
       "kind": "hook",
       "matcher": "",
-      "name": "skill-suggester",
+      "name": "skill-router",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/setup/manifest.json",
       "status": "opt-in"
@@ -2072,7 +2072,7 @@
       "path": "rhize-context-manager/skills/context-degradation/SKILL.md"
     },
     {
-      "contentHash": "3a565eb739bb590a3d781eba6684543834866b528adb6bd440de5229378712d5",
+      "contentHash": "30ca6c44fdf76094e1066283e59356b1add1a78d7c1e3f83f77c280d9cda51a4",
       "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
       "id": "skill:rhize-context-manager/context-engineering",
       "kind": "skill",

@@ -62,15 +62,22 @@ the right one, and health-checks the whole thing.
 - Run `/context-doctor` when adopting a new repo or after installing/removing any stack
   tool — overlap problems appear at those boundaries. Follow up with `/context-setup` to
   act on anything it flags.
-- The four generalized hooks under `skills/context-engineering/hooks/`
-  (`session-init`, `duplicate-check`, `pre-commit-guard`, `skill-suggester`) are opt-in —
-  listed in `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
+- The three generalized hooks under `skills/context-engineering/hooks/`
+  (`session-init`, `duplicate-check`, `pre-commit-guard`) are opt-in — listed in
+  `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
+- `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`)
+  replaced the keyword-grep `skill-suggester` hook 2026-08-09 — it ranks the prompt
+  against the compiled skill-map's topic/stack tags instead of a fixed keyword list, so
+  a newly tagged skill routes without a hook edit. It needs `scripts/build_skill_map.py
+  --install` to have run at least once (installs the artifact to
+  `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
+  nothing.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
   Both are now also in `setup/manifest.json` (ids `refinement-detector` /
-  `refinement-session-end`), so `/rhize-setup` can wire them the same as the four above —
+  `refinement-session-end`), so `/rhize-setup` can wire them the same as the others —
   see README.md's Hooks section for the manual `.claude/settings.json` snippet if you're
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
