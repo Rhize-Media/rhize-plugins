@@ -34,15 +34,17 @@ SERP, Keywords Data, OnPage, DataForSEO Labs, Backlinks, AI Optimization, Domain
 
 ## Skills
 
-| Skill | Triggers On |
-|-------|-------------|
-| **seo-site-audit** | SEO audits, site health checks, crawl analysis |
-| **keyword-intelligence** | Keyword research, gap analysis, clustering |
-| **content-seo** | On-page optimization, meta tags, structured data, E-E-A-T |
-| **aeo-geo-optimization** | AI Overviews, LLM visibility, generative search |
-| **backlink-intelligence** | Backlink analysis, link gaps, anchor text audit |
-| **serp-intelligence** | SERP features, rank tracking, visibility trends |
-| **nextjs-sanity-seo** | Next.js metadata, Sanity schemas, codebase SEO review |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `aeo-geo-optimization` | ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. | ai-visibility, seo, seo-audit |
+| `backlink-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. | backlink-analysis, seo, seo-audit |
+| `content-seo` | ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. | content-optimization, seo, seo-audit |
+| `keyword-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. | content-optimization, keyword-research, seo |
+| `nextjs-sanity-seo` | ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
+| `seo-site-audit` | ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. | observability, seo, seo-audit |
+| `serp-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. | rank-tracking, seo, seo-audit |
+<!-- SKILL-MAP:END -->
 
 ## What's Included
 

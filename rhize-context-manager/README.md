@@ -15,14 +15,16 @@ and their own hook plugins stay externally installed and updated.
 
 ### Rhize-authored (orchestration layer)
 
-| Skill | Purpose |
-|---|---|
-| `context-stack` | Routing + coexistence brain for the whole stack; encodes the Headroom / claude-mem / OpenWolf overlap watch policy |
-| `context-engineering` | Session/memory/hygiene workflow (moved here from rhize-devflow v2.4.x) |
-| `graphify` | Any input → knowledge graph (promoted from user-level skill) |
-| `graphiti-memory` | Opt-in Graphiti temporal knowledge-graph memory: adoption guide + MCP wiring (NOT a dependency) |
-| `refinement-pipeline` | Gated skill-refinement loop: headroom learn / claude-mem / skill-monitor signals → human-triaged queue → skill-forge evolve with auto-promote rules |
-| `learning-curation` | Decide whether a session learning deserves persistence and where it should live |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
+| `context-stack` | Routing and coexistence brain for the Rhize context stack. | context, context-engineering, workflow-patterns |
+| `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, search |
+| `graphiti-memory` | Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. | knowledge-graph, memory-systems |
+| `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
+| `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | learning-curation, refinement, workflow-patterns |
+<!-- SKILL-MAP:END -->
 
 ### Curated third-party (ingested via skill-forge, safety-gated, provenance in [skills/SOURCES.md](skills/SOURCES.md))
 

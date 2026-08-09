@@ -6,14 +6,16 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 
 ## Skills
 
-| Skill | What it does |
-|-------|--------------|
-| `error-lifecycle-management` | Production error triage, RCA, Sentry↔Vercel deploy correlation |
-| `data-mutation-consistency` | Cache-tag ↔ query-key alignment across Next.js/Sanity/Payload/Supabase |
-| `sentry-instrumentation` | Rhize conventions for captureException, spans, structured logging |
-| `chrome-devtools-mcp` | Browser automation, perf traces, network/console debugging |
-| `sanity-development` | Rhize house style for Sanity schema/GROQ/TypeGen/next-sanity |
-| `dev-flow-foundations` | Dependency graphs, component registry, regression prevention |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `chrome-devtools-mcp` | Browser automation, debugging, and performance analysis via the official Google Chrome DevTools MCP server (Puppeteer-backed, wait-aware). | automation, nextjs, observability, testing |
+| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, workflow-patterns |
+| `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — dependency-graph impact mapping, component/function registry to prevent dup… | project-planning, workflow-patterns |
+| `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
+| `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity |
+| `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
+<!-- SKILL-MAP:END -->
 
 > The `skill-refinement` meta-skill moved to the `rhize-meta` plugin (2026-06-15), then on to the
 > `@rhize/skill-forge` npm package as `skill-forge refine` (2026-07-20); external-skill vetting made

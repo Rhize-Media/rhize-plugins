@@ -11,6 +11,13 @@ change which plugin guardrail hooks are active in a project.
 
 ## Skills
 
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying v… | automation, workflow-patterns |
+| `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
+<!-- SKILL-MAP:END -->
+
 ### `delegate-to-teammate`
 
 Turns the work from the current session into a clearly structured hand-off package for a configured teammate. Handles the full delegation pipeline: context gathering, Fireflies transcript analysis, task formatting, tracker issue creation, and Slack notification with an @mention.

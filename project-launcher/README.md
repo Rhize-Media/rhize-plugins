@@ -13,10 +13,12 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 
 ## Skills
 
-| Skill | Trigger |
-|-------|---------|
-| `project-launcher` | "start a new project", "create a PRD", "scaffold for GSD", "prepare for autonomous dev" |
-| `rhize-visual-plan` | "visual plan", "make this plan reviewable", "turn this plan into mdx", "wireframe this", "plan as an approval gate" |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `project-launcher` | ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a proje… | automation, project-planning, workflow-patterns |
+| `rhize-visual-plan` | ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — a… | obsidian, project-planning, visualization |
+<!-- SKILL-MAP:END -->
 
 ## Reference Docs
 

@@ -8,13 +8,15 @@ The core of this plugin. These skills and commands turn your vault into an activ
 
 ### Skills — Second Brain
 
-| Skill | Purpose |
-|-------|---------|
-| **second-brain** | Zettelkasten, PARA, MOCs, progressive summarization, atomic notes — the methodology behind effective knowledge management |
-| **vault-templates** | Note archetypes — meeting notes, book reviews, project briefs, weekly reviews, literature notes |
-| **vault-alignment** | Vault health assessment, drift detection, structural improvement strategies |
-| **qmd-search** | Semantic vector search setup and configuration (BM25, vector, hybrid modes) |
-| **defuddle** | Web clipping and article extraction — bring external knowledge into your vault |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `defuddle` | ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. | content-authoring, obsidian, web-clipping |
+| `qmd-search` | ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. | knowledge-management, obsidian, search |
+| `second-brain` | ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. | knowledge-management, obsidian, workflow-patterns |
+| `vault-alignment` | ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. | knowledge-management, observability, obsidian |
+| `vault-templates` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. | content-authoring, knowledge-management, obsidian |
+<!-- SKILL-MAP:END -->
 
 ### Commands — Research & Connect
 
