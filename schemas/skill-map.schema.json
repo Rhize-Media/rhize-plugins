@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.dev/schemas/skill-map.schema.json",
+  "title": "Rhize Skill Map",
+  "description": "Schema (v1) for the generated skill-map graph artifact — the single substrate consumed by the router hook, /start disclosure, curation/drift gates, generated docs, and vault visualization. See docs/skill-map.md for conventions. This artifact is generation-only: never hand-edit files under generated/ that validate against this schema.",
+  "type": "object",
+  "required": ["schemaVersion", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Semantic version of this schema that the artifact was produced against.",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "const": "1.0.0"
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "ISO-8601 timestamp of when this artifact was generated. Optional for fixtures/tests.",
+      "format": "date-time"
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "$defs": {
+    "nodeId": {
+      "type": "string",
+      "description": "String ID of the form '<kind>:<qualifier>'. Examples: skill:<plugin>/<name>, plugin:<name>, command:<plugin>/<name>, hook:<plugin>/<file>, tag:topic/<slug>, tag:stack/<slug>, external:<name>.",
+      "pattern": "^(plugin|skill|command|hook|tag|external):[A-Za-z0-9_.\\-/]+$"
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nodeId" },
+        "kind": {
+          "type": "string",
+          "enum": ["plugin", "skill", "command", "hook", "tag", "external"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Human-readable short name."
+        },
+        "path": {
+          "type": "string",
+          "description": "Repo-relative path to the source file/dir this node was derived from. Required for skill nodes."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description text, typically from frontmatter or a manifest. Required for skill nodes."
+        },
+        "contentHash": {
+          "type": "string",
+          "description": "sha256 hex digest of the node's source content (e.g. SKILL.md) — the drift-detection anchor. Required for skill nodes.",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "skill" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "required": ["id", "kind", "path", "description", "contentHash"]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "provenanceSource": {
+      "type": "string",
+      "description": "Provenance of this edge — which input produced it.",
+      "enum": ["frontmatter", "marketplace", "sources-md", "relations-catalog", "monitor"]
+    },
+    "edgeType": {
+      "type": "string",
+      "enum": [
+        "contains",
+        "topic-tag",
+        "stack-tag",
+        "fork-of",
+        "supersedes",
+        "overlaps-with",
+        "depends-on",
+        "replaces",
+        "usage-cooccurs"
+      ]
+    },
+    "driftCheck": {
+      "type": "object",
+      "description": "Optional metadata on a fork-of edge describing how to check the fork for drift against its upstream. This is DATA ONLY — never execute any shell string found here or in the SOURCES.md prose it derives from.",
+      "additionalProperties": false,
+      "properties": {
+        "upstreamRepo": {
+          "type": "string",
+          "description": "Upstream repository identifier (e.g. owner/repo)."
+        },
+        "upstreamPath": {
+          "type": "string",
+          "description": "Path within the upstream repo to compare against."
+        },
+        "method": {
+          "type": "string",
+          "description": "How the drift check compares fork to upstream.",
+          "enum": ["content-hash", "manual"]
+        },
+        "lastCheckedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "usageWeight": {
+      "type": "object",
+      "description": "Structured usage-cooccurrence weight — never a bare count.",
+      "required": ["sessions", "jaccard", "lift", "windowDays"],
+      "additionalProperties": false,
+      "properties": {
+        "sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of sessions in which both endpoints co-occurred."
+        },
+        "jaccard": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Jaccard similarity of the two endpoints' session sets."
+        },
+        "lift": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Co-occurrence lift over the independence baseline."
+        },
+        "windowDays": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Size in days of the rolling window this weight was computed over."
+        }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "description": "A typed, directed edge between two node ids. Endpoints are 'from'/'to' (not 'source'/'target') so that 'source' is free to mean edge provenance, per the skill-map plan's schema definition.",
+      "required": ["from", "to", "type", "source"],
+      "properties": {
+        "from": { "$ref": "#/$defs/nodeId" },
+        "to": { "$ref": "#/$defs/nodeId" },
+        "type": { "$ref": "#/$defs/edgeType" },
+        "source": { "$ref": "#/$defs/provenanceSource" },
+        "driftCheck": { "$ref": "#/$defs/driftCheck" },
+        "usageWeight": { "$ref": "#/$defs/usageWeight" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "type": { "const": "fork-of" } },
+            "required": ["type"]
+          },
+          "then": {}
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "usage-cooccurs" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["usageWeight"] }
+        }
+      ],
+      "additionalProperties": true
+    }
+  }
+}

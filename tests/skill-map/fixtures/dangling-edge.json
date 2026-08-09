@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "nodes": [
+    { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },
+    {
+      "id": "skill:rhize-context-manager/graphify",
+      "kind": "skill",
+      "name": "graphify",
+      "path": "rhize-context-manager/skills/graphify/SKILL.md",
+      "description": "Any input to knowledge graph.",
+      "contentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd"
+    }
+  ],
+  "edges": [
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/graphify",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "to": "skill:rhize-context-manager/does-not-exist",
+      "type": "overlaps-with",
+      "source": "relations-catalog"
+    }
+  ]
+}

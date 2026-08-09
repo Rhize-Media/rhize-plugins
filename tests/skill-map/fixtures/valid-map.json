@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-09T00:00:00Z",
+  "nodes": [
+    { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },
+    {
+      "id": "skill:rhize-context-manager/graphify",
+      "kind": "skill",
+      "name": "graphify",
+      "path": "rhize-context-manager/skills/graphify/SKILL.md",
+      "description": "Any input to knowledge graph.",
+      "contentHash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcd"
+    },
+    { "id": "command:rhize-context-manager/start", "kind": "command", "name": "start" },
+    { "id": "hook:rhize-context-manager/skill-router.js", "kind": "hook", "name": "skill-router" },
+    { "id": "tag:topic/context", "kind": "tag", "name": "context" },
+    { "id": "tag:stack/git", "kind": "tag", "name": "git" },
+    { "id": "external:everything-claude-code", "kind": "external", "name": "everything-claude-code" }
+  ],
+  "edges": [
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "skill:rhize-context-manager/graphify",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "command:rhize-context-manager/start",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "to": "hook:rhize-context-manager/skill-router.js",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "to": "tag:topic/context",
+      "type": "topic-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "to": "tag:stack/git",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "to": "external:everything-claude-code",
+      "type": "fork-of",
+      "source": "sources-md",
+      "driftCheck": {
+        "upstreamRepo": "everything-claude-code/everything-claude-code",
+        "upstreamPath": "skills/graphify/SKILL.md",
+        "method": "content-hash",
+        "lastCheckedAt": "2026-08-09T00:00:00Z"
+      }
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "to": "command:rhize-context-manager/start",
+      "type": "usage-cooccurs",
+      "source": "monitor",
+      "usageWeight": {
+        "sessions": 12,
+        "jaccard": 0.4,
+        "lift": 2.1,
+        "windowDays": 30
+      }
+    }
+  ]
+}
