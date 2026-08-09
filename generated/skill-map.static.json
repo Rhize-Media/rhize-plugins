@@ -13,6 +13,78 @@
       "type": "precedes"
     },
     {
+      "from": "external:ecc-build-error-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-build-error-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/type-error",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-cpp-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-dart-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-django-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-go-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-java-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-kotlin-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-react-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-rust-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-swift-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:humanizer-humanizer",
+      "source": "relations-catalog",
+      "to": "tag:topic/content-authoring",
+      "type": "augments"
+    },
+    {
       "from": "hook:rhize-context-manager/context-window-monitor",
       "source": "relations-catalog",
       "to": "external:ecc-suggest-compact",
@@ -1012,6 +1084,12 @@
     {
       "from": "skill:rhize-context-manager/graphiti-memory",
       "source": "frontmatter",
+      "to": "mcp:graphiti",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
+      "source": "frontmatter",
       "to": "tag:topic/knowledge-graph",
       "type": "topic-tag"
     },
@@ -1286,6 +1364,12 @@
     {
       "from": "skill:seo-aeo-geo/aeo-geo-optimization",
       "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "source": "frontmatter",
       "to": "tag:stack/seo",
       "type": "stack-tag"
     },
@@ -1300,6 +1384,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/backlink-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/backlink-intelligence",
@@ -1328,6 +1418,12 @@
     {
       "from": "skill:seo-aeo-geo/content-seo",
       "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "augments"
+    },
+    {
+      "from": "skill:seo-aeo-geo/content-seo",
+      "source": "frontmatter",
       "to": "tag:topic/content-optimization",
       "type": "topic-tag"
     },
@@ -1336,6 +1432,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/keyword-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/keyword-intelligence",
@@ -1394,6 +1496,12 @@
     {
       "from": "skill:seo-aeo-geo/seo-site-audit",
       "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:seo-aeo-geo/seo-site-audit",
+      "source": "frontmatter",
       "to": "tag:stack/seo",
       "type": "stack-tag"
     },
@@ -1408,6 +1516,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/serp-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/serp-intelligence",
@@ -1736,10 +1850,76 @@
       "name": "context-engineering-marketplace"
     },
     {
+      "description": "everything-claude-code general build/TypeScript error resolution agent.",
+      "id": "external:ecc-build-error-resolver",
+      "kind": "external",
+      "name": "ecc:build-error-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes C++/CMake build and linker failures.",
+      "id": "external:ecc-cpp-build-resolver",
+      "kind": "external",
+      "name": "ecc:cpp-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Dart/Flutter build/analysis failures.",
+      "id": "external:ecc-dart-build-resolver",
+      "kind": "external",
+      "name": "ecc:dart-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Django/Python build and migration failures.",
+      "id": "external:ecc-django-build-resolver",
+      "kind": "external",
+      "name": "ecc:django-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Go build/vet failures.",
+      "id": "external:ecc-go-build-resolver",
+      "kind": "external",
+      "name": "ecc:go-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Java/Maven/Gradle build failures.",
+      "id": "external:ecc-java-build-resolver",
+      "kind": "external",
+      "name": "ecc:java-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Kotlin/Gradle build failures.",
+      "id": "external:ecc-kotlin-build-resolver",
+      "kind": "external",
+      "name": "ecc:kotlin-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
+      "id": "external:ecc-react-build-resolver",
+      "kind": "external",
+      "name": "ecc:react-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes cargo build/borrow-checker failures.",
+      "id": "external:ecc-rust-build-resolver",
+      "kind": "external",
+      "name": "ecc:rust-build-resolver (agent)"
+    },
+    {
       "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker.",
       "id": "external:ecc-suggest-compact",
       "kind": "external",
       "name": "ecc pre:edit-write:suggest-compact hook"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Swift/Xcode build failures.",
+      "id": "external:ecc-swift-build-resolver",
+      "kind": "external",
+      "name": "ecc:swift-build-resolver (agent)"
+    },
+    {
+      "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally.",
+      "id": "external:humanizer-humanizer",
+      "kind": "external",
+      "name": "humanizer (humanizer plugin)"
     },
     {
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on.",
@@ -1933,6 +2113,16 @@
       "owner": "seo-aeo-geo",
       "path": "seo-aeo-geo/hooks/hooks.json",
       "status": "wired"
+    },
+    {
+      "id": "mcp:dataforseo",
+      "kind": "mcp-server",
+      "name": "dataforseo"
+    },
+    {
+      "id": "mcp:graphiti",
+      "kind": "mcp-server",
+      "name": "graphiti"
     },
     {
       "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
@@ -2129,7 +2319,7 @@
       "path": "rhize-context-manager/skills/graphify/SKILL.md"
     },
     {
-      "contentHash": "3e2ba47e8de73d090633232a233395dd39736dc7c1caa8505ef9c5434fb571d1",
+      "contentHash": "848f0974f5b0d5c33678c1ed18485b2f92e46387370e6f9d961b5c47f53f9a29",
       "description": "Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. Use when the user wants queryable long-term agent memory with entities, relationships, and time-awareness (beyond claude-mem's observation stream), when setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem, graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this plugin documents the wiring but does not install or require it.",
       "id": "skill:rhize-context-manager/graphiti-memory",
       "kind": "skill",
@@ -2233,7 +2423,7 @@
       "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
     },
     {
-      "contentHash": "bd9d5a862833073ea8fe0a511e2d8bd3cc34ced2d2ace8778d505c8b1b5db00c",
+      "contentHash": "ff4cdfdc84d6ce821a6b50f887742f958094482d3fc08b78e5043d3f5357e5cc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/aeo-geo-optimization",
       "kind": "skill",
@@ -2241,7 +2431,7 @@
       "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md"
     },
     {
-      "contentHash": "b1bedba2a7ccf0e0c14c79a95c0ddff2750dc2e25d3c6fe70d515c7c8873255e",
+      "contentHash": "49f903718ab2c788b19a60c9517a0c85b123bbc00a94557876bda13801d1841c",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/backlink-intelligence",
       "kind": "skill",
@@ -2249,7 +2439,7 @@
       "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md"
     },
     {
-      "contentHash": "85c12f7fa0a24db826bdff231814b15da3c00c9db2c4f9199c709cc0ab36872b",
+      "contentHash": "d556438bf9f864a79e05cb9f711c51b7e403a5742ff7291d33e82574fbdd6a83",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
       "id": "skill:seo-aeo-geo/content-seo",
       "kind": "skill",
@@ -2257,7 +2447,7 @@
       "path": "seo-aeo-geo/skills/content-seo/SKILL.md"
     },
     {
-      "contentHash": "54ff370b1e388c1b2af684aac391487f4f70721833073880fa2e7d19fd9253cf",
+      "contentHash": "b8ef7e46de4e9fa43ea099c8ebf0651803f974c58df16af738e6280b46be86f6",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data and Labs APIs. Triggers on: \"find keywords\", \"keyword research\", \"keyword analysis\", \"keyword gap analysis\", \"keyword clustering\", \"find search terms\", \"what keywords should I target\", \"competitor keyword analysis\", \"keyword difficulty check\", \"search volume data\", \"long-tail keywords\", \"question keywords\", \"People Also Ask keywords\", \"keyword opportunities\", \"content gap analysis\", \"what are people searching for\", \"keyword cannibalization check\", \"keyword mapping\", or any request involving discovering, analyzing, or prioritizing keywords for SEO or content strategy. Also triggers on \"decision-stage keywords\", \"commercial intent keywords\", \"informational keywords\", \"compare keywords\", \"keyword trends\", or \"seasonal keywords\". Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/keyword-intelligence",
       "kind": "skill",
@@ -2273,7 +2463,7 @@
       "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md"
     },
     {
-      "contentHash": "41dff8b0f59ea24149ee8d4ada0104be518204435ab618ed60a8c9d99d31d2a7",
+      "contentHash": "3452c6a4add62acebc6744a8a1b7d93dfc53587790e282c0a6a27919f515a302",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on: \"audit a website for SEO\", \"run an SEO audit\", \"check SEO health\", \"find SEO issues\", \"crawl my site for problems\", \"what's wrong with my SEO\", \"technical SEO check\", \"on-page SEO analysis\", \"check my meta tags\", \"find broken links\", \"check my Core Web Vitals\", \"page speed analysis\", \"crawlability check\", \"indexation issues\", or any request involving diagnosing or improving a website's search engine optimization. Also triggers when the user shares a URL and asks about its SEO performance or ranking potential. Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/seo-site-audit",
       "kind": "skill",
@@ -2281,12 +2471,22 @@
       "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md"
     },
     {
-      "contentHash": "74db85b179a0778b6198609e7a685f55c2264b44ca75e9fe76a3ed4c9bb5a2fa",
+      "contentHash": "4561f390dc2b5f13c72f0a1e6013ef956c2ca6a5bb5217d7c8708130f2dedba1",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/serp-intelligence",
       "kind": "skill",
       "name": "serp-intelligence",
       "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md"
+    },
+    {
+      "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",
+      "id": "tag:condition/build-failure",
+      "kind": "tag"
+    },
+    {
+      "description": "A static type check failed (tsc, mypy, or equivalent)",
+      "id": "tag:condition/type-error",
+      "kind": "tag"
     },
     {
       "description": "The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...)",
@@ -2493,5 +2693,5 @@
       "name": "workflow-patterns"
     }
   ],
-  "schemaVersion": "1.0.0"
+  "schemaVersion": "1.1.0"
 }

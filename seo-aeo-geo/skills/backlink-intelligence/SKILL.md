@@ -18,6 +18,7 @@ metadata:
   rhize:
     topics: [backlink-analysis, seo-audit]
     stacks: [seo]
+    dependsOn: ["mcp:dataforseo"]
 
 ---
 

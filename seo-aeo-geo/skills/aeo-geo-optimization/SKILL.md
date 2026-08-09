@@ -19,6 +19,7 @@ metadata:
   rhize:
     topics: [ai-visibility, seo-audit]
     stacks: [seo]
+    dependsOn: ["mcp:dataforseo"]
 
 ---
 

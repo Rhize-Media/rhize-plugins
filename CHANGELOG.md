@@ -8,6 +8,55 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Skill map: relationships v2 core — `follows`/`augments`/`remediates` edges, condition tags,
+  `mcp-server` nodes, materialized indexes, query CLI (schema 1.1.0).** Implements the CORE layer
+  of `docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` (router/disclosure
+  hook refactor and the two new PostToolUse suggester hooks are a follow-up lane).
+  - Schema: new edge types `follows` (directional, requires `followWeight: {sessions,
+    windowDays}`), `augments` (skill → topic tag), `remediates` (skill → condition tag); new tag
+    kind `condition` (closed at 5: `build-failure`, `type-error`, `test-failure`, `lint-failure`,
+    `merge-conflict`, each with failure-detection `patterns` in `catalog/tags.json`); new node
+    kind `mcp-server` (id form `mcp:<name>`). `schemaVersion` bumped `1.0.0` → `1.1.0`.
+  - Compiler (`scripts/build_skill_map.py`): parses `metadata.rhize.augments`,
+    `metadata.rhize.remediates`, and `metadata.rhize.dependsOn` (accepting `mcp:<name>` targets,
+    which mint an `mcp-server` node, alongside ordinary skill targets using `extends`'s
+    resolution) — each with the same BuildError-on-unknown-slug/unresolved-target discipline as
+    `extends`. `catalog/skill-relations.json` continues to carry third-party-owned edges,
+    including from `external:` nodes representing third-party capabilities that aren't proper
+    skill nodes (e.g. `everything-claude-code` build-resolver *agents*, which have no skill-map
+    node kind).
+  - Materialized indexes: the build now also emits `generated/skill-map.indexes.json`
+    (`router`/`disclosure`/`remediation`/`succession` sections), mirroring
+    `skill-router.js`/`session-disclosure.js`'s exact matching semantics so a future hook refactor
+    to read this file is a pure data swap. Covered by `validate_skill_map.py --check-stale`.
+    `scripts/build_local_skill_map.py` emits a resolved layer
+    (`~/.claude/context-manager/skill-map.indexes.resolved.json`) merging mined `follows` edges
+    into `succession`.
+  - `follows` mining: `rhize-ops/skill-monitor/monitor.py`'s co-occurrence pass now also emits
+    ordered, time-adjacent skill pairs (`orderedPairs`, ≥2 distinct sessions) into its snapshot;
+    `build_local_skill_map.py` turns them into local-overlay-only `follows` edges (source:
+    `monitor`).
+  - Query CLI: `catalog/queries.json` (declarative walk specs) + `scripts/query_skill_map.py`
+    (one Python walker), seeded with 7 named queries (`what-extends`, `what-augments`,
+    `what-remediates`, `what-follows`, `overlap-candidates`, `unroutable-skills`,
+    `mcp-dependents`); runnable against the static or resolved map (`--resolved`).
+  - Seed data: `seo-aeo-geo/content-seo` augments `content-authoring`; 5 `seo-aeo-geo` skills
+    (`aeo-geo-optimization`, `backlink-intelligence`, `keyword-intelligence`, `seo-site-audit`,
+    `serp-intelligence`) declare `dependsOn: ["mcp:dataforseo"]` (verified against their SKILL.md
+    bodies); `rhize-context-manager/graphiti-memory` declares `dependsOn: ["mcp:graphiti"]`;
+    third-party `humanizer` augments `content-authoring` and the `ecc` build-resolver family
+    remediates `build-failure`/`type-error`, both via `external:` catalog nodes. Skipped (with
+    reason, per the design doc's "verify wording against the skill before tagging"):
+    `rhize-devflow/error-lifecycle-management` → `test-failure` — its SKILL.md scope is
+    build/deployment/runtime errors; no test-failure vocabulary found in the file.
+  - Tests: `tests/skill-map/test_v2_relationships.py` — condition pattern matching against
+    fixture failing/passing output, augments/remediates/dependsOn parsing incl. BuildError cases,
+    index emission/determinism/staleness, and all 7 query CLI seed queries.
+
+- _2026-08-09_ version bump — **rhize-context-manager** 0.9.0 → 0.9.1 (patch); marketplace 2.24.2 → 2.24.3.
+- _2026-08-09_ version bump — **rhize-devflow** 2.10.1 → 2.10.2 (patch); marketplace 2.24.1 → 2.24.2.
+- _2026-08-09_ version bump — **seo-aeo-geo** 1.3.0 → 1.3.1 (patch); marketplace 2.24.0 → 2.24.1.
+- _2026-08-09_ version bump — **rhize-ops** 0.7.0 → 0.8.0 (minor); marketplace 2.23.2 → 2.24.0.
 - **Skill map: third-party plugin/skill inventory in the local overlay (origin-aware resolved
   map).** `scripts/build_local_skill_map.py` now scans every plugin installed on the machine and
   enabled (via the merge of `~/.claude/settings.json`'s `enabledPlugins` map with this repo's

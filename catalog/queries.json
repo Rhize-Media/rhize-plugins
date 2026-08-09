@@ -1,0 +1,55 @@
+{
+  "_comment": "Declarative walk specs for scripts/query_skill_map.py — the two-tier query layer's second tier (materialized generated/skill-map.indexes.json covers hot paths; these seven named queries cover everything else). Cypher-shaped without Cypher: start set -> edge steps -> output, so a spec ports mechanically if the map ever moves to a real graph DB. One Python walker interprets this file; hooks never use it (see docs/skill-map.md's query layer section).",
+  "queries": {
+    "what-extends": {
+      "description": "Given a skill id, what it extends (deepens) and what extends it.",
+      "arg": "skillId",
+      "normalizeArg": "skillId",
+      "steps": [
+        { "edge": "extends", "direction": "out", "as": "extends" },
+        { "edge": "extends", "direction": "in", "as": "extendedBy" }
+      ]
+    },
+    "what-augments": {
+      "description": "Given a skill id, the topic tags it augments; given a tag:topic/<slug> id, the skills that augment it.",
+      "arg": "nodeId",
+      "steps": [
+        { "edge": "augments", "direction": "out", "as": "augmentsTags" },
+        { "edge": "augments", "direction": "in", "as": "augmentedBy" }
+      ]
+    },
+    "what-remediates": {
+      "description": "Given a condition slug (or a full tag:condition/<slug> id), the skills declaring a remediates edge to it.",
+      "arg": "conditionId",
+      "normalizeArg": "tagConditionId",
+      "steps": [
+        { "edge": "remediates", "direction": "in", "as": "skills" }
+      ]
+    },
+    "what-follows": {
+      "description": "Given a skill id, mined follows relationships: what tends to be invoked after it, and what it tends to follow. Only populated against the resolved map (--resolved) — follows edges are local-overlay only.",
+      "arg": "skillId",
+      "normalizeArg": "skillId",
+      "steps": [
+        { "edge": "follows", "direction": "out", "as": "followedBy" },
+        { "edge": "follows", "direction": "in", "as": "follows" }
+      ]
+    },
+    "overlap-candidates": {
+      "description": "Every overlaps-with edge in the map — curation flags for skills covering meaningfully similar ground.",
+      "listEdges": "overlaps-with"
+    },
+    "unroutable-skills": {
+      "description": "Skills with no topic-tag and no stack-tag edges — invisible to skill-router.js and session-disclosure.js.",
+      "kind": "unroutable"
+    },
+    "mcp-dependents": {
+      "description": "Given an mcp server name (or a full mcp:<name> id), the skills declaring a depends-on edge to it.",
+      "arg": "mcpId",
+      "normalizeArg": "mcpId",
+      "steps": [
+        { "edge": "depends-on", "direction": "in", "as": "skills" }
+      ]
+    }
+  }
+}

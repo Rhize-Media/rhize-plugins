@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "generatedAt": "2026-08-09T00:00:00Z",
   "nodes": [
     { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },

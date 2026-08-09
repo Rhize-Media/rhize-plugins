@@ -656,9 +656,18 @@ def build_report(
     }
 
 
+#  minimum distinct sessions an ordered (A then B) adjacency must appear in
+# before it's considered a real "follows" signal rather than noise — same
+# threshold the skill-map-relationships-v2 design pins for the `follows`
+# edge (skill-map-relationships-v2 design doc, decision 1).
+MIN_FOLLOWS_SESSIONS = 2
+
+
 def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dict:
     """Aggregate session-level skill co-occurrence for the skill-map local
-    overlay (skill-map-graph-substrate plan, Phase 3).
+    overlay (skill-map-graph-substrate plan, Phase 3), plus ordered
+    time-adjacent pairs for the `follows` edge (skill-map-relationships-v2
+    design, decision 1).
 
     A skill "co-occurs" with another when both were invoked (Skill tool_use
     or slash command, main or subagent — same channel reconciliation the
@@ -666,6 +675,13 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
     empirically (2026-08-09) that subagent transcripts share their parent's
     session_id, so this genuinely captures cross-invocation co-occurrence,
     not just same-transcript co-occurrence.
+
+    "Follows" mining: within each session, skill invocations are sorted by
+    timestamp and walked in order; each time-adjacent (A, B) pair of
+    DISTINCT skills (immediate neighbors only, not every later skill) is
+    recorded once per session. A pair is only emitted in `orderedPairs` once
+    it has occurred in at least MIN_FOLLOWS_SESSIONS distinct sessions —
+    below that it's noise, not a real "commonly invoked after" signal.
 
     PRIVACY CONTRACT — this function's output must never carry:
       - prompt text
@@ -675,13 +691,14 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
     (an opaque UUID, carrying no path/prompt information) is used solely as
     an internal grouping key and is discarded before returning.
 
-    Returns {windowDays, totalSessions, pairs, totals} — see
+    Returns {windowDays, totalSessions, pairs, totals, orderedPairs} — see
     scripts/build_local_skill_map.py for how this snapshot is consumed.
     """
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days) if since_days else None
 
     sessions: dict[str, set[str]] = defaultdict(set)
+    session_seq: dict[str, list[tuple[str, str]]] = defaultdict(list)  # sid -> [(ts, skill), ...]
     for e in events:
         ts = e.get("timestamp")
         if cutoff is not None and ts:
@@ -696,6 +713,7 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
         if not sid or not skill:
             continue
         sessions[sid].add(skill)
+        session_seq[sid].append((ts or "", skill))
 
     totals: Counter = Counter()
     pair_counts: Counter = Counter()
@@ -714,11 +732,32 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
         )
     ]
 
+    follows_session_counts: Counter = Counter()  # (a, b) ordered -> distinct session count
+    for seq in session_seq.values():
+        seq_sorted = sorted(seq, key=lambda t: t[0])
+        seen_this_session: set[tuple[str, str]] = set()
+        prev_skill = None
+        for _ts, skill in seq_sorted:
+            if prev_skill is not None and skill != prev_skill:
+                seen_this_session.add((prev_skill, skill))
+            prev_skill = skill
+        for pair in seen_this_session:
+            follows_session_counts[pair] += 1
+
+    ordered_pairs = [
+        {"a": a, "b": b, "sessions": n}
+        for (a, b), n in sorted(
+            follows_session_counts.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1])
+        )
+        if n >= MIN_FOLLOWS_SESSIONS
+    ]
+
     return {
         "windowDays": since_days or 0,
         "totalSessions": len(sessions),
         "pairs": pairs,
         "totals": dict(sorted(totals.items())),
+        "orderedPairs": ordered_pairs,
     }
 
 
@@ -1141,7 +1180,9 @@ def main() -> int:
     print(f"  ✓ Markdown report → {md_path}")
     print(
         f"  ✓ Co-occurrence  → {cooccurrence_out} "
-        f"({len(cooccurrence['pairs'])} pairs, {cooccurrence['totalSessions']} sessions)"
+        f"({len(cooccurrence['pairs'])} pairs, "
+        f"{len(cooccurrence['orderedPairs'])} follows-candidates, "
+        f"{cooccurrence['totalSessions']} sessions)"
     )
     print(
         f"\nSummary: {files_scanned} files scanned, "

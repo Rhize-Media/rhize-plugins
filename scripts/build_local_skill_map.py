@@ -117,6 +117,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 DEFAULT_STATIC_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
+DEFAULT_STATIC_INDEXES_PATH = REPO_ROOT / "generated" / "skill-map.indexes.json"
 DEFAULT_COOCCURRENCE_PATH = (
     REPO_ROOT / "rhize-ops" / "skill-monitor" / "data" / "skill-cooccurrence.json"
 )
@@ -288,6 +289,56 @@ def build_usage_edges(
         "windowDays": window_days,
         "totalSessions": total_sessions,
         "pairsConsidered": len(pairs),
+        "edgesResolved": len(edges),
+    }
+    return edges, summary, f"read from {cooccurrence_path}"
+
+
+def build_follows_edges(
+    cooccurrence_path: Path,
+    static_skill_ids: set[str],
+) -> tuple[list[dict], dict | None, str]:
+    """Return (edges, summary, note) for mined `follows` edges (skill-map
+    relationships v2, decision 1). Reads the same skill-cooccurrence.json
+    snapshot as build_usage_edges(), but its `orderedPairs` key (directional,
+    already thresholded at >=2 distinct sessions by monitor.py). Unlike
+    usage-cooccurs, `follows` is directional — `from`/`to` are NOT sorted,
+    they preserve the mined A-then-B order. Local-overlay only: never
+    written into the committed static artifact."""
+    data, err = _load_json(cooccurrence_path)
+    if err:
+        return [], None, f"degraded: {err} — no follows edges added"
+
+    window_days = data.get("windowDays") or 0
+    ordered_pairs = data.get("orderedPairs") or []
+
+    edges: list[dict] = []
+    for pair in ordered_pairs:
+        a_name, b_name = pair.get("a"), pair.get("b")
+        sessions_ab = pair.get("sessions") or 0
+        if not a_name or not b_name or sessions_ab <= 0:
+            continue
+        a_id = _skill_id_from_monitor_name(a_name)
+        b_id = _skill_id_from_monitor_name(b_name)
+        if a_id not in static_skill_ids or b_id not in static_skill_ids:
+            continue
+        edges.append(
+            {
+                "from": a_id,
+                "to": b_id,
+                "type": "follows",
+                "source": "monitor",
+                "followWeight": {
+                    "sessions": sessions_ab,
+                    "windowDays": window_days if window_days > 0 else ALL_TIME_WINDOW_SENTINEL,
+                },
+            }
+        )
+
+    edges.sort(key=lambda e: (e["from"], e["to"]))
+    summary = {
+        "windowDays": window_days,
+        "pairsConsidered": len(ordered_pairs),
         "edgesResolved": len(edges),
     }
     return edges, summary, f"read from {cooccurrence_path}"
@@ -517,6 +568,9 @@ def build(
     usage_edges, cooc_summary, cooc_note = build_usage_edges(
         cooccurrence_path, static_skill_ids
     )
+    follows_edges, follows_summary, follows_note = build_follows_edges(
+        cooccurrence_path, static_skill_ids
+    )
 
     installed_plugins_data, _ = _load_json(installed_plugins_path)
     third_party_nodes, third_party_edges, third_party_summary, third_party_note = (
@@ -536,6 +590,8 @@ def build(
         "stack": stack_fingerprint,
         "usageCooccursEdges": usage_edges,
         "cooccurrenceSummary": cooc_summary,
+        "followsEdges": follows_edges,
+        "followsSummary": follows_summary,
         "thirdParty": {
             "nodes": third_party_nodes,
             "edges": third_party_edges,
@@ -545,6 +601,7 @@ def build(
             "enabledPlugins": enabled_note,
             "stack": stack_note,
             "cooccurrence": cooc_note,
+            "follows": follows_note,
             "thirdParty": third_party_note,
         },
     }
@@ -552,10 +609,40 @@ def build(
     resolved_doc = {
         "schemaVersion": static_doc["schemaVersion"],
         "nodes": static_doc["nodes"] + third_party_nodes,
-        "edges": static_doc["edges"] + usage_edges + third_party_edges,
+        "edges": static_doc["edges"] + usage_edges + follows_edges + third_party_edges,
     }
 
     return local_doc, resolved_doc
+
+
+def build_resolved_indexes(static_indexes: dict, follows_edges: list[dict]) -> dict:
+    """Merge mined `follows` edges into the succession section of the static
+    indexes artifact, producing the resolved indexes layer consumed at
+    ~/.claude/context-manager/skill-map.indexes.resolved.json. Every other
+    section (router, disclosure, remediation) is copied through unchanged —
+    third-party skills carry no topic-tag/stack-tag/remediates edges (see
+    docs/skill-map.md's third-party ecosystem inventory note), so there is
+    nothing for those sections to merge in from the local overlay."""
+    succession = {
+        node_id: {"precedes": list(entry.get("precedes", [])), "follows": list(entry.get("follows", []))}
+        for node_id, entry in (static_indexes.get("succession") or {}).items()
+    }
+    for edge in follows_edges:
+        from_id, to_id = edge["from"], edge["to"]
+        succession.setdefault(from_id, {"precedes": [], "follows": []})
+        succession.setdefault(to_id, {"precedes": [], "follows": []})
+        succession[to_id]["follows"].append(from_id)
+    for entry in succession.values():
+        entry["precedes"] = sorted(set(entry["precedes"]))
+        entry["follows"] = sorted(set(entry["follows"]))
+
+    return {
+        "schemaVersion": static_indexes.get("schemaVersion"),
+        "router": static_indexes.get("router", {}),
+        "disclosure": static_indexes.get("disclosure", {}),
+        "remediation": static_indexes.get("remediation", {}),
+        "succession": succession,
+    }
 
 
 def dump(document: dict) -> str:
@@ -565,6 +652,10 @@ def dump(document: dict) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--static", default=str(DEFAULT_STATIC_PATH))
+    ap.add_argument("--static-indexes", default=str(DEFAULT_STATIC_INDEXES_PATH),
+                     help="default: generated/skill-map.indexes.json — merged with mined "
+                          "follows edges into skill-map.indexes.resolved.json. Missing file "
+                          "degrades to no resolved-indexes output (never a build failure).")
     ap.add_argument("--installed-plugins", default=None,
                      help="default: ~/.claude/plugins/installed_plugins.json")
     ap.add_argument("--stack-config", default=None,
@@ -615,6 +706,7 @@ def main() -> int:
     print(f"Wrote {resolved_path}")
     print(f"Enabled plugins: {local_doc['enabledPlugins']}")
     print(f"Usage-cooccurs edges: {len(local_doc['usageCooccursEdges'])}")
+    print(f"Follows edges: {len(local_doc['followsEdges'])}")
     tp = local_doc["thirdParty"]["summary"]
     print(
         f"Third-party inventory: {tp['plugins']} plugins, {tp['skills']} skills, "
@@ -623,6 +715,16 @@ def main() -> int:
     )
     for key, note in local_doc["sourceNotes"].items():
         print(f"  [{key}] {note}")
+
+    static_indexes_path = Path(args.static_indexes)
+    static_indexes_data, indexes_err = _load_json(static_indexes_path)
+    if indexes_err:
+        print(f"  [indexes] degraded: {indexes_err} — no resolved indexes written")
+    else:
+        resolved_indexes = build_resolved_indexes(static_indexes_data, local_doc["followsEdges"])
+        resolved_indexes_path = out_dir / "skill-map.indexes.resolved.json"
+        resolved_indexes_path.write_text(dump(resolved_indexes))
+        print(f"Wrote {resolved_indexes_path}")
     return 0
 
 

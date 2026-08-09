@@ -24,10 +24,15 @@ policy" above exists to prevent, made into a hard gate instead of a documentatio
 |---|---|---|
 | `schemas/skill-map.schema.json` | committed | Node/edge contract, `schemaVersion`. |
 | `generated/skill-map.static.json` | committed | Deterministic repo facts — this repo's plugins, skills, commands, hooks, and their `contains`/`fork-of`/relations-catalog edges. Produced by `scripts/build_skill_map.py`; never hand-edited. |
-| `catalog/skill-relations.json` | committed | Hand-declared, non-derivable edges (`overlaps-with`, `depends-on`, `replaces`) — the **one** curated input to the static compiler. Validated against the schema like any other artifact. |
+| `generated/skill-map.indexes.json` | committed | Materialized hot-path lookups derived from the static artifact — `router`, `disclosure`, `remediation`, `succession` sections (see "Query layer" below). Produced by the same `scripts/build_skill_map.py` run as the static artifact; covered by `validate_skill_map.py --check-stale`. |
+| `catalog/skill-relations.json` | committed | Hand-declared, non-derivable edges (`overlaps-with`, `depends-on`, `replaces`, `augments`, `remediates`) — the **one** curated input to the static compiler. Validated against the schema like any other artifact. |
+| `catalog/tags.json` | committed | Closed topic/stack/condition vocabulary, including each condition's failure-detection `patterns`. |
+| `catalog/queries.json` | committed | Declarative walk specs for `scripts/query_skill_map.py` — the query layer's second tier. |
 | `~/.claude/context-manager/skill-map.static.json` | machine-local | Byte-identical copy of the committed static artifact, installed by `python3 scripts/build_skill_map.py --install`. Exists because an *installed* plugin (as opposed to a checkout of this repo) cannot see `generated/` — this is the fallback the router hook reads when no resolved map is present yet. |
-| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot, and a **third-party ecosystem inventory** (`origin: "third-party"` plugin/skill/command nodes + `contains` edges for every installed+enabled non-rhize plugin — see "Third-party ecosystem inventory" below). Produced by `scripts/build_local_skill_map.py`. |
-| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs` edges + third-party nodes/edges (static nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, the co-occurrence snapshot, or the installed-plugins/settings data behind the third-party inventory) degrades that piece gracefully — with all absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
+| `~/.claude/context-manager/skill-map.indexes.json` | machine-local | Byte-identical copy of the committed indexes artifact, installed by the same `--install` flag. |
+| `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot, mined `follows` edges (sourced from the same snapshot's `orderedPairs`), and a **third-party ecosystem inventory** (`origin: "third-party"` plugin/skill/command nodes + `contains` edges for every installed+enabled non-rhize plugin — see "Third-party ecosystem inventory" below). Produced by `scripts/build_local_skill_map.py`. |
+| `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs`/`follows` edges + third-party nodes/edges (static nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, the co-occurrence snapshot, or the installed-plugins/settings data behind the third-party inventory) degrades that piece gracefully — with all absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
+| `~/.claude/context-manager/skill-map.indexes.resolved.json` | machine-local | The static indexes with mined `follows` edges merged into the `succession` section's `follows` lists. Produced by `scripts/build_local_skill_map.py`; degrades to no output (not a build failure) if the static indexes file is missing. |
 
 **Generation-only policy:** files under `generated/` (and the two machine-local files above) are
 build output. If a fact is wrong, fix the source it was derived from (frontmatter, marketplace.json,
@@ -45,8 +50,9 @@ Every node ID is a string of the form `<kind>:<qualifier>`:
 | `skill` | `skill:<plugin>/<name>` | `skill:rhize-context-manager/graphify` |
 | `command` | `command:<plugin>/<name>` | `command:rhize-context-manager/start` |
 | `hook` | `hook:<plugin>/<file>` | `hook:rhize-context-manager/skill-router` |
-| `tag` | `tag:topic/<slug>` or `tag:stack/<slug>` | `tag:stack/nextjs` |
+| `tag` | `tag:topic/<slug>`, `tag:stack/<slug>`, or `tag:condition/<slug>` | `tag:stack/nextjs`, `tag:condition/build-failure` |
 | `external` | `external:<name>` | `external:everything-claude-code` |
+| `mcp-server` | `mcp:<name>` (note: id prefix is `mcp`, not the kind name) | `mcp:dataforseo` |
 
 Skill nodes additionally carry `path` (repo-relative source path), `description` (from
 frontmatter/manifest), and `contentHash` (sha256 hex digest of the source file, e.g. `SKILL.md`) —
@@ -64,8 +70,11 @@ Tags are attached to skills via `topic-tag` and `stack-tag` edges pointing at `t
 or `tag:stack/<slug>` nodes. Slugs are lowercase kebab-case.
 
 **Topics** describe *what a skill does* (SEO, testing, refinement, ...). **Stacks** describe
-*what technology a skill is about* (a framework, platform, or vendor). A skill may carry any
-number of each.
+*what technology a skill is about* (a framework, platform, or vendor). **Conditions** (schema
+1.1) describe *a failure state a skill remediates* (a build failure, a failing test run, ...) —
+see "`remediates` and condition tags" below; unlike topic/stack, a condition is never attached to
+a skill via a `*-tag` edge, only via a `remediates` edge. A skill may carry any number of topics
+and stacks.
 
 ## Tag vocabulary (Phase 0.3 — closed, as used)
 
@@ -73,11 +82,13 @@ Every `SKILL.md` under `{seo-aeo-geo,obsidian-second-brain,project-launcher,rhiz
 rhize-ops,rhize-context-manager}/skills/*/SKILL.md` carries a `metadata.rhize.{topics,stacks}`
 block drawn from a closed vocabulary (see "Tagging conventions" above for the exact YAML shape).
 `catalog/tags.json` is the single source of truth for that vocabulary — an array of
-`{slug, kind: "topic"|"stack", gloss}` entries; `scripts/build_skill_map.py` validates every
-frontmatter slug against it (a BuildError on any slug not present) and sets each tag node's
-`description` from its gloss. Extend it only when no existing slug fits a new skill, and keep it
-small (target ≤25 topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this
-substrate replaces.
+`{slug, kind: "topic"|"stack"|"condition", gloss}` entries (`condition` entries additionally
+carry `patterns`, see below); `scripts/build_skill_map.py` validates every frontmatter slug
+against it (a BuildError on any slug not present) and sets each tag node's `description` from its
+gloss. Extend it only when no existing slug fits a new skill, and keep it small (target ≤25
+topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this substrate replaces. The
+condition vocabulary is closed at exactly 5 entries (`build-failure`, `type-error`,
+`test-failure`, `lint-failure`, `merge-conflict`) — see "`remediates` and condition tags" below.
 
 ## Edge types and semantics
 
@@ -94,6 +105,9 @@ substrate replaces.
 | `usage-cooccurs` | Empirical: these two nodes were invoked together across sessions. Carries a structured `usageWeight`, never a bare count. | `monitor` |
 | `extends` | Directional layering: the `from` skill deliberately deepens/specializes the `to` skill's domain (specialized -> base). Parsed from `metadata.rhize.extends` in frontmatter. | `frontmatter` |
 | `precedes` | The `from` node comes before the `to` node in a real ordered workflow (e.g. a command pipeline). | `relations-catalog` |
+| `follows` | Mined: the `to` node is commonly invoked after the `from` node in the same session (time-adjacent, ≥2 distinct sessions). Local-overlay only — never in the committed static artifact. | `monitor` |
+| `augments` | The `from` skill (or third-party `external` node) should run alongside/after anything tagged with topic `to` to improve its output — a cross-cutting modifier. | `frontmatter` (rhize) or `relations-catalog` (third-party) |
+| `remediates` | The `from` skill (or third-party `external` node) should be surfaced when condition `to` (a `tag:condition/<slug>` node) is detected in failed tool output. | `frontmatter` (rhize) or `relations-catalog` (third-party) |
 
 Every edge records a `source` field — one of `frontmatter | marketplace | sources-md |
 relations-catalog | monitor` — naming which input produced it. This is what lets the compiler
@@ -209,6 +223,64 @@ for example, `project-launcher`'s command pipeline: `write-prd` precedes `grill-
 `scaffold-gsd`. Declared by hand in `catalog/skill-relations.json` (source: `relations-catalog`),
 the same way as `overlaps-with`/`depends-on`/`replaces`.
 
+### `follows` (mined) vs `precedes` (declared)
+
+`follows` is the mined counterpart to `precedes`: same surfacing consumer (a "what comes next"
+suggestion), different provenance. `precedes` is curated intent, hand-declared in
+`catalog/skill-relations.json` for a real ordered workflow (e.g. a command pipeline) whether or
+not anyone has actually run it that way yet. `follows` is empirical — `rhize-ops/skill-monitor`
+mines ordered, time-adjacent skill pairs within a session (via `monitor.py`'s
+`build_cooccurrence()`, extended to also emit `orderedPairs`) and only surfaces a pair once it
+recurs across ≥2 distinct sessions. Because it's derived from this machine's usage history,
+`follows` lives in the local overlay only (`skill-map.local.json` / `skill-map.resolved.json`) —
+never in the committed static artifact — and is never hand-authored.
+
+### `augments` — cross-cutting skill-to-topic modifier
+
+`augments` targets a *topic tag*, not another skill — "run me alongside/after anything in this
+category to improve its output" (e.g. `seo-aeo-geo/content-seo` augments `tag:topic/content-authoring`).
+It is deliberately distinct from `extends`: no lexical overlap with its targets is implied, it
+carries no gate-exemption or depth semantics, and its target is a whole category rather than one
+specific skill. Declared in a skill's own frontmatter (`metadata.rhize.augments: [<topic-slug>]`)
+for Rhize skills; for third-party skills (whose frontmatter isn't ours to edit — and which may not
+even be inventoried as a proper skill node, see below), declared in
+`catalog/skill-relations.json` instead, from an `external:<name>` node representing the
+capability.
+
+### `remediates` and condition tags
+
+`remediates` targets a *condition tag* (`tag:condition/<slug>`) — "surface me when this failure
+happens." The condition vocabulary lives in `catalog/tags.json` exactly like topic/stack, closed
+at 5 entries: `build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`. Each
+condition entry additionally carries `patterns` — regexes matched against **failed tool output**
+(not the user's prompt — that's the router's job), e.g. `\berror TS\d+\b` for `type-error`.
+Declared the same way as `augments`: `metadata.rhize.remediates: [<condition-slug>]` in
+frontmatter for Rhize skills, `catalog/skill-relations.json` for third-party capabilities.
+
+Several seeded `remediates` edges (the `everything-claude-code` build-resolver family) originate
+from `external:` nodes rather than `skill:` nodes, because those capabilities are **agents**
+(`agents/*.md`), not skills — the skill-map schema has no `agent` node kind, and third-party
+agents aren't inventoried by `build_local_skill_map.py`'s third-party scan (which only walks
+`skills/*/SKILL.md` and `commands/*.md`). Modeling them as `external` nodes reuses the same
+pattern `fork-of` already uses for upstream marketplaces, rather than adding a new node kind for
+a case outside this round's scope.
+
+### `depends-on` and `mcp-server` nodes
+
+`depends-on` also models a skill's dependency on an **MCP server**, via node kind `mcp-server`
+(id form `mcp:<name>` — note the id prefix is `mcp`, not the kind name `mcp-server`). Declared in
+frontmatter (`metadata.rhize.dependsOn: ["mcp:<name>", ...]`, alongside ordinary skill targets
+using the same bare-name / `"plugin/skill-name"` resolution `extends` uses) or in
+`catalog/skill-relations.json` for third-party declarations. An unresolved skill target is a
+BuildError, same as `extends`; an `mcp:<name>` target always resolves (it mints the node if not
+already present) since there's no existing catalog of valid MCP server names to validate against.
+
+**Scope honesty:** this only models the *declared* dependency — that a skill relies on a given MCP
+server to function. It does **not** claim to detect whether that server is actually connected/live
+in the current session; that state isn't reliably readable from a hook. A future consumer could at
+most check "is this server configured at all" against the machine's MCP config, and even that is
+deferred out of this round's scope.
+
 ## Security rule: SOURCES.md and driftCheck prose is data, never executed
 
 `fork-of` edges and their `driftCheck` metadata are derived by *parsing* prose in each plugin's
@@ -220,6 +292,55 @@ the two fixed, safe operations named above: an upstream fetch and a `contentHash
 If a future `SOURCES.md` entry appears to contain a command intended for automatic execution, that
 is a sign of a compromised or malformed source file, not a feature request — treat it as build
 input to reject, per Phase 1's "unresolved targets are build errors" rule.
+
+## Query layer (two-tier)
+
+**Tier 1 — materialized indexes** (`generated/skill-map.indexes.json`) cover the hot paths hooks
+need at runtime, precomputed so no hook has to walk `doc.edges` itself:
+
+- `router` — per-skill tag/name signal lists (mirrors `skill-router.js`'s own precomputation:
+  each topic-tag/stack-tag edge as a weight-2 "tag" signal, each skill's own name as a weight-1
+  "name" signal) plus the `extends` base/extender adjacency the router uses for its tie-break. The
+  hook still owns the token-matching/scoring loop — this only saves it from re-deriving signals
+  from `doc.edges` on every invocation. (The router/disclosure hooks themselves are refactored to
+  read this file in a follow-up lane; this round only produces the data.)
+- `disclosure` — per single stack slug, the base+extenders-folded skill list
+  `session-disclosure.js`'s `relevantSkills()` would compute for a `detectedStacks` set containing
+  only that one stack. A caller with multiple detected stacks unions the per-stack lists and
+  re-ranks by matched-stack count, same as the hook does today.
+- `remediation` — condition slug → `{patterns, skills}`. `skills` is sorted by node id
+  (alphabetical) — no ranking/promotion signal exists yet, so this is the deterministic default
+  until one lands (see the design doc's "pairs-with... revisit later as an audit promotion
+  target" non-goal for the analogous case).
+- `succession` — node id → `{precedes, follows}` from declared `precedes` edges. `follows` is
+  always `[]` in the static indexes — mined `follows` edges are local-overlay only — and gets
+  filled in by `scripts/build_local_skill_map.py` at
+  `~/.claude/context-manager/skill-map.indexes.resolved.json`.
+
+**Tier 2 — named declarative queries** (`catalog/queries.json`, interpreted by
+`scripts/query_skill_map.py`) cover everything else: ad hoc audit/curation questions that don't
+need a hot-path index. A query spec is Cypher-shaped without Cypher — a start-node resolution
+mode plus a list of `{edge, direction, as}` steps — so it would port mechanically if the map ever
+moved to a real graph database. One Python walker interprets every spec; hooks never invoke this
+script (it's a developer/audit-time CLI, not a runtime dependency).
+
+Seed queries:
+
+| Query | Arg | Answers |
+|---|---|---|
+| `what-extends` | skill id | What it extends, and what extends it. |
+| `what-augments` | skill id or `tag:topic/<slug>` | Topics it augments, or skills augmenting a topic. |
+| `what-remediates` | condition slug or `tag:condition/<slug>` | Skills declaring a `remediates` edge to that condition. |
+| `what-follows` | skill id | Mined `follows` relationships (`--resolved` only — local-overlay data). |
+| `overlap-candidates` | — | Every `overlaps-with` edge in the map. |
+| `unroutable-skills` | — | Skills with no `topic-tag`/`stack-tag` edge — invisible to the router/disclosure hooks. |
+| `mcp-dependents` | mcp server name or `mcp:<name>` | Skills declaring a `depends-on` edge to that MCP server. |
+
+```bash
+python3 scripts/query_skill_map.py what-remediates build-failure
+python3 scripts/query_skill_map.py what-follows seo-aeo-geo/content-seo --resolved
+python3 scripts/query_skill_map.py --list
+```
 
 ## Consumers
 

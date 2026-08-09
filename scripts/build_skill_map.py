@@ -107,7 +107,8 @@ MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 CATALOG_PATH = REPO_ROOT / "catalog" / "skill-relations.json"
 TAGS_PATH = REPO_ROOT / "catalog" / "tags.json"
 OUTPUT_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
-SCHEMA_VERSION = "1.0.0"
+INDEXES_OUTPUT_PATH = REPO_ROOT / "generated" / "skill-map.indexes.json"
+SCHEMA_VERSION = "1.1.0"
 
 try:
     import yaml
@@ -236,12 +237,33 @@ def contains_edge(plugin_name: str, child_id: str) -> dict:
 
 
 def load_tags() -> dict[str, dict[str, str]]:
-    """Load catalog/tags.json — the closed topic/stack vocabulary — into
-    {"topic": {slug: gloss}, "stack": {slug: gloss}}."""
-    tags: dict[str, dict[str, str]] = {"topic": {}, "stack": {}}
+    """Load catalog/tags.json — the closed topic/stack/condition vocabulary —
+    into {"topic": {slug: gloss}, "stack": {slug: gloss}, "condition": {slug: gloss}}.
+
+    Condition entries additionally carry `patterns` (regexes matched against
+    FAILED tool output); collected separately into `condition_patterns`
+    ({slug: [pattern, ...]}) rather than folded into the gloss maps above, so
+    callers that only need "is this slug known" (the topic/stack shape) don't
+    have to special-case the extra field.
+    """
+    tags: dict[str, dict[str, str]] = {"topic": {}, "stack": {}, "condition": {}}
+    condition_patterns: dict[str, list[str]] = {}
     for entry in json.loads(TAGS_PATH.read_text()):
         tags[entry["kind"]][entry["slug"]] = entry["gloss"]
+        if entry["kind"] == "condition":
+            condition_patterns[entry["slug"]] = list(entry.get("patterns") or [])
+    tags["_condition_patterns"] = condition_patterns  # type: ignore[assignment]
     return tags
+
+
+def load_condition_patterns() -> dict[str, list[str]]:
+    """Standalone accessor for the condition->patterns map, for callers (the
+    indexes builder) that don't otherwise need load_tags()'s full return."""
+    patterns: dict[str, list[str]] = {}
+    for entry in json.loads(TAGS_PATH.read_text()):
+        if entry["kind"] == "condition":
+            patterns[entry["slug"]] = list(entry.get("patterns") or [])
+    return patterns
 
 
 def load_skills(
@@ -250,6 +272,9 @@ def load_skills(
     plugin_dir: Path,
     tags: dict,
     extends_decls: list[dict],
+    augments_decls: list[dict],
+    remediates_decls: list[dict],
+    depends_on_decls: list[dict],
 ) -> None:
     skills_dir = plugin_dir / "skills"
     if not skills_dir.is_dir():
@@ -333,6 +358,36 @@ def load_skills(
                 }
             )
 
+        for topic in rhize_meta.get("augments") or []:
+            slug = slugify(str(topic))
+            gloss = tags["topic"].get(slug)
+            if gloss is None:
+                raise BuildError(
+                    f"{rel_path}: augments target {topic!r} (slug {slug!r}) is not in "
+                    "catalog/tags.json's closed topic vocabulary"
+                )
+            augments_decls.append({"skill_id": node_id, "slug": slug, "gloss": gloss})
+
+        for condition in rhize_meta.get("remediates") or []:
+            slug = slugify(str(condition))
+            gloss = tags["condition"].get(slug)
+            if gloss is None:
+                raise BuildError(
+                    f"{rel_path}: remediates target {condition!r} (slug {slug!r}) is not in "
+                    "catalog/tags.json's closed condition vocabulary"
+                )
+            remediates_decls.append({"skill_id": node_id, "slug": slug, "gloss": gloss})
+
+        for target in rhize_meta.get("dependsOn") or []:
+            depends_on_decls.append(
+                {
+                    "skill_id": node_id,
+                    "plugin": plugin_name,
+                    "target": str(target),
+                    "rel_path": rel_path,
+                }
+            )
+
 
 def resolve_extends_edges(graph: Graph, extends_decls: list[dict]) -> None:
     """Resolve `metadata.rhize.extends` declarations into `extends` edges.
@@ -392,6 +447,88 @@ def check_extends_chains(graph: Graph) -> None:
 
     for start in sorted(adjacency.keys()):
         walk(start, [])
+
+
+def resolve_augments_edges(graph: Graph, augments_decls: list[dict]) -> None:
+    """Resolve `metadata.rhize.augments` declarations into `augments` edges
+    (skill -> tag:topic/<slug>). Slug validity against catalog/tags.json is
+    already checked in load_skills(); this only mints the tag node (if not
+    already present from a topic-tag edge) and the edge itself."""
+    for decl in augments_decls:
+        tag_id = f"tag:topic/{decl['slug']}"
+        graph.add_node({"id": tag_id, "kind": "tag", "description": decl["gloss"]})
+        graph.add_edge(
+            {
+                "from": decl["skill_id"],
+                "to": tag_id,
+                "type": "augments",
+                "source": "frontmatter",
+            }
+        )
+
+
+def resolve_remediates_edges(graph: Graph, remediates_decls: list[dict]) -> None:
+    """Resolve `metadata.rhize.remediates` declarations into `remediates`
+    edges (skill -> tag:condition/<slug>). Slug validity is already checked
+    in load_skills()."""
+    for decl in remediates_decls:
+        tag_id = f"tag:condition/{decl['slug']}"
+        graph.add_node({"id": tag_id, "kind": "tag", "description": decl["gloss"]})
+        graph.add_edge(
+            {
+                "from": decl["skill_id"],
+                "to": tag_id,
+                "type": "remediates",
+                "source": "frontmatter",
+            }
+        )
+
+
+_MCP_TARGET_RE = re.compile(r"^mcp:(.+)$")
+
+
+def resolve_depends_on_edges(graph: Graph, depends_on_decls: list[dict]) -> None:
+    """Resolve `metadata.rhize.dependsOn` declarations into `depends-on`
+    edges. Each target is either `mcp:<name>` (mints an `mcp-server` node if
+    not already present) or a skill target using the same bare-name /
+    "plugin/skill-name" resolution as `extends`. An unresolved skill target
+    is a BuildError naming the declaring file and the target. Must run after
+    every plugin's skills have been loaded, so cross-plugin targets are
+    already present in the graph."""
+    for decl in depends_on_decls:
+        target = decl["target"]
+        mcp_match = _MCP_TARGET_RE.match(target)
+        if mcp_match:
+            mcp_id = f"mcp:{mcp_match.group(1)}"
+            graph.add_node({"id": mcp_id, "kind": "mcp-server", "name": mcp_match.group(1)})
+            graph.add_edge(
+                {
+                    "from": decl["skill_id"],
+                    "to": mcp_id,
+                    "type": "depends-on",
+                    "source": "frontmatter",
+                }
+            )
+            continue
+
+        if "/" in target:
+            target_plugin, target_skill = target.split("/", 1)
+        else:
+            target_plugin, target_skill = decl["plugin"], target
+        target_id = f"skill:{target_plugin}/{target_skill}"
+        if target_id not in graph.nodes:
+            raise BuildError(
+                f"{decl['rel_path']}: dependsOn target {target!r} does not "
+                f"resolve to a known skill or mcp:<name> (looked for {target_id!r})"
+            )
+        graph.add_edge(
+            {
+                "from": decl["skill_id"],
+                "to": target_id,
+                "type": "depends-on",
+                "source": "frontmatter",
+            }
+        )
 
 
 def load_commands(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
@@ -619,8 +756,14 @@ def build() -> dict:
     tags = load_tags()
     plugins = load_marketplace(graph)
     extends_decls: list[dict] = []
+    augments_decls: list[dict] = []
+    remediates_decls: list[dict] = []
+    depends_on_decls: list[dict] = []
     for plugin in plugins:
-        load_skills(graph, plugin["name"], plugin["dir"], tags, extends_decls)
+        load_skills(
+            graph, plugin["name"], plugin["dir"], tags,
+            extends_decls, augments_decls, remediates_decls, depends_on_decls,
+        )
         load_commands(graph, plugin["name"], plugin["dir"])
         load_hooks_json(graph, plugin["name"], plugin["dir"])
         load_manifest_hooks(graph, plugin["name"], plugin["dir"])
@@ -629,16 +772,180 @@ def build() -> dict:
     # "plugin/skill-name" targets are already present in the graph.
     resolve_extends_edges(graph, extends_decls)
     check_extends_chains(graph)
+    resolve_augments_edges(graph, augments_decls)
+    resolve_remediates_edges(graph, remediates_decls)
+    resolve_depends_on_edges(graph, depends_on_decls)
     load_catalog(graph)
     return graph.to_document()
+
+
+# ---------------------------------------------------------------------------
+# Materialized indexes (generated/skill-map.indexes.json)
+# ---------------------------------------------------------------------------
+# Precomputes the flat lookups the router/disclosure/remediation/succession
+# hooks need, mirroring the exact matching semantics those hooks already
+# implement (rhize-context-manager/hooks/skill-router.js and
+# session-disclosure.js as of schema 1.1) so a future refactor of those hooks
+# to read this file instead of walking edges directly is a pure data swap.
+#
+#   router:      per-skill tag/name signal lists (skill-router.js's
+#                tagEdgesByFrom + name-word signal) plus the extends
+#                base/extender adjacency it uses for its tie-break. The hook
+#                still owns the token-matching/scoring loop; this only saves
+#                it from re-deriving signals from doc.edges every call.
+#   disclosure:  per single stack slug, the folded base+extenders list
+#                session-disclosure.js's relevantSkills() would compute for
+#                a detectedStacks set containing only that one stack. A
+#                caller with multiple detected stacks unions the per-stack
+#                lists and re-sorts by matched-stack count, same as today.
+#   remediation: condition slug -> {patterns, skills} — skills declared via
+#                `remediates` edges, sorted by skill id (no declared ranking
+#                signal exists yet; alphabetical is the deterministic
+#                default until a promotion/ranking mechanism lands).
+#   succession:  node id -> {precedes, follows} from declared `precedes`
+#                edges. `follows` is always [] here — mined follows edges are
+#                local-overlay-only (see build_local_skill_map.py) and are
+#                merged in at ~/.claude/context-manager/skill-map.indexes.resolved.json.
+def _skill_nodes(document: dict) -> dict[str, dict]:
+    return {n["id"]: n for n in document["nodes"] if n["kind"] == "skill"}
+
+
+def _tag_nodes(document: dict) -> dict[str, dict]:
+    return {n["id"]: n for n in document["nodes"] if n["kind"] == "tag"}
+
+
+def build_router_index(document: dict) -> dict:
+    skills = _skill_nodes(document)
+    tags = _tag_nodes(document)
+    signals: dict[str, list[dict]] = {}
+    extends_bases: dict[str, list[str]] = {}
+
+    for edge in document["edges"]:
+        if edge["type"] in ("topic-tag", "stack-tag") and edge["from"] in skills:
+            tag = tags.get(edge["to"])
+            if not tag:
+                continue
+            signals.setdefault(edge["from"], []).append(
+                {"kind": "tag", "weight": 2, "label": str(tag.get("name") or tag["id"])}
+            )
+        elif edge["type"] == "extends" and edge["from"] in skills and edge["to"] in skills:
+            extends_bases.setdefault(edge["from"], []).append(edge["to"])
+
+    for skill_id, skill in skills.items():
+        signals.setdefault(skill_id, []).append(
+            {"kind": "name", "weight": 1, "label": skill["name"]}
+        )
+        signals[skill_id].sort(key=lambda s: (s["kind"], s["label"]))
+
+    for bases in extends_bases.values():
+        bases.sort()
+
+    return {"signals": signals, "extendsBases": extends_bases}
+
+
+def build_disclosure_index(document: dict) -> dict:
+    skills = _skill_nodes(document)
+    tags = _tag_nodes(document)
+
+    matches_by_stack: dict[str, dict[str, set]] = {}  # stackSlug -> skillId -> set() (placeholder)
+    stack_matches: dict[str, set[str]] = {}  # stackSlug -> set(skillId)
+    for edge in document["edges"]:
+        if edge["type"] != "stack-tag" or edge["from"] not in skills:
+            continue
+        tag = tags.get(edge["to"])
+        if not tag:
+            continue
+        m = re.match(r"^tag:stack/(.+)$", tag["id"])
+        if not m:
+            continue
+        stack_matches.setdefault(m.group(1), set()).add(edge["from"])
+
+    extends_bases: dict[str, set[str]] = {}
+    for edge in document["edges"]:
+        if edge["type"] == "extends" and edge["from"] in skills and edge["to"] in skills:
+            extends_bases.setdefault(edge["from"], set()).add(edge["to"])
+
+    disclosure: dict[str, list[dict]] = {}
+    for stack_slug, matched in stack_matches.items():
+        deeper_by_base: dict[str, set[str]] = {}
+        folded = set()
+        for extender_id, bases in extends_bases.items():
+            if extender_id not in matched:
+                continue
+            for base_id in bases:
+                if base_id not in matched:
+                    continue
+                deeper_by_base.setdefault(base_id, set()).add(extender_id)
+                folded.add(extender_id)
+        entries = []
+        for skill_id in sorted(matched):
+            if skill_id in folded:
+                continue
+            deeper = sorted(deeper_by_base.get(skill_id, ()))
+            entries.append({"skillId": skill_id, "deeper": deeper})
+        disclosure[stack_slug] = entries
+
+    return disclosure
+
+
+def build_remediation_index(document: dict, condition_patterns: dict[str, list[str]]) -> dict:
+    # Deliberately NOT restricted to kind=="skill": remediates edges may
+    # originate from an `external` node representing a third-party
+    # capability that isn't inventoried as a proper skill node (e.g. an ecc
+    # build-resolver agent — see catalog/skill-relations.json). The
+    # remediation surface cares about "what to suggest", not the node kind.
+    remediation: dict[str, dict] = {
+        slug: {"patterns": list(patterns), "skills": []}
+        for slug, patterns in condition_patterns.items()
+    }
+    for edge in document["edges"]:
+        if edge["type"] != "remediates":
+            continue
+        m = re.match(r"^tag:condition/(.+)$", edge["to"])
+        if not m:
+            continue
+        slug = m.group(1)
+        remediation.setdefault(slug, {"patterns": [], "skills": []})
+        remediation[slug]["skills"].append(edge["from"])
+    for entry in remediation.values():
+        entry["skills"] = sorted(set(entry["skills"]))
+    return remediation
+
+
+def build_succession_index(document: dict) -> dict:
+    node_ids = {n["id"] for n in document["nodes"]}
+    succession: dict[str, dict] = {}
+    for edge in document["edges"]:
+        if edge["type"] != "precedes":
+            continue
+        if edge["from"] not in node_ids or edge["to"] not in node_ids:
+            continue
+        succession.setdefault(edge["from"], {"precedes": [], "follows": []})
+        succession[edge["from"]]["precedes"].append(edge["to"])
+        succession.setdefault(edge["to"], {"precedes": [], "follows": []})
+    for entry in succession.values():
+        entry["precedes"] = sorted(set(entry["precedes"]))
+        entry["follows"] = sorted(set(entry["follows"]))
+    return succession
+
+
+def build_indexes(document: dict, condition_patterns: dict[str, list[str]]) -> dict:
+    return {
+        "schemaVersion": SCHEMA_VERSION,
+        "router": build_router_index(document),
+        "disclosure": build_disclosure_index(document),
+        "remediation": build_remediation_index(document, condition_patterns),
+        "succession": build_succession_index(document),
+    }
 
 
 def dump(document: dict) -> str:
     return json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
-# --install copies the built artifact here for installed (non-checkout) plugin consumers; see docs/skill-map.md.
+# --install copies the built artifacts here for installed (non-checkout) plugin consumers; see docs/skill-map.md.
 INSTALL_PATH = Path.home() / ".claude" / "context-manager" / "skill-map.static.json"
+INSTALL_INDEXES_PATH = Path.home() / ".claude" / "context-manager" / "skill-map.indexes.json"
 
 
 def main() -> int:
@@ -647,6 +954,9 @@ def main() -> int:
     out_path = OUTPUT_PATH
     if "--out" in args:
         out_path = Path(args[args.index("--out") + 1])
+    indexes_out_path = INDEXES_OUTPUT_PATH
+    if "--indexes-out" in args:
+        indexes_out_path = Path(args[args.index("--indexes-out") + 1])
     try:
         document = build()
     except BuildError as exc:
@@ -655,15 +965,24 @@ def main() -> int:
     text = dump(document)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(text)
+
+    indexes = build_indexes(document, load_condition_patterns())
+    indexes_text = dump(indexes)
+    indexes_out_path.parent.mkdir(parents=True, exist_ok=True)
+    indexes_out_path.write_text(indexes_text)
+
     node_kinds = collections.Counter(n["kind"] for n in document["nodes"])
     edge_types = collections.Counter(e["type"] for e in document["edges"])
     print(f"Wrote {out_path}")
+    print(f"Wrote {indexes_out_path}")
     print(f"Nodes by kind: {json.dumps(node_kinds, sort_keys=True)}")
     print(f"Edges by type: {json.dumps(edge_types, sort_keys=True)}")
     if install:
         INSTALL_PATH.parent.mkdir(parents=True, exist_ok=True)
         INSTALL_PATH.write_text(text)
+        INSTALL_INDEXES_PATH.write_text(indexes_text)
         print(f"Installed copy to {INSTALL_PATH}")
+        print(f"Installed copy to {INSTALL_INDEXES_PATH}")
     return 0
 
 

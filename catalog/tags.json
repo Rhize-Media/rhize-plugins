@@ -32,5 +32,63 @@
   { "slug": "context", "kind": "stack", "gloss": "The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...)" },
   { "slug": "refinement", "kind": "stack", "gloss": "The skill-forge refinement pipeline" },
   { "slug": "sentry", "kind": "stack", "gloss": "Sentry error tracking/instrumentation" },
-  { "slug": "vercel", "kind": "stack", "gloss": "Vercel deployment platform" }
+  { "slug": "vercel", "kind": "stack", "gloss": "Vercel deployment platform" },
+  {
+    "slug": "build-failure",
+    "kind": "condition",
+    "gloss": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",
+    "patterns": [
+      "(?i)\\bbuild failed\\b",
+      "(?i)\\bfailed to compile\\b",
+      "(?i)\\bcompilation failed\\b",
+      "(?i)\\bmodule not found\\b",
+      "(?i)\\bwebpack\\b.*\\berror\\b"
+    ]
+  },
+  {
+    "slug": "type-error",
+    "kind": "condition",
+    "gloss": "A static type check failed (tsc, mypy, or equivalent)",
+    "patterns": [
+      "\\berror TS\\d+\\b",
+      "(?i)\\btype error\\b",
+      "(?i)\\bcannot find name '",
+      "(?i)\\bis not assignable to type\\b",
+      "\\bmypy\\b.*\\berror\\b"
+    ]
+  },
+  {
+    "slug": "test-failure",
+    "kind": "condition",
+    "gloss": "A test run reported one or more failing tests",
+    "patterns": [
+      "(?i)\\b\\d+ (failing|failed)\\b",
+      "(?i)^\\s*FAIL\\b",
+      "\\bAssertionError\\b",
+      "(?i)\\btests? failed\\b",
+      "(?i)\\bexpect\\(received\\)\\b"
+    ]
+  },
+  {
+    "slug": "lint-failure",
+    "kind": "condition",
+    "gloss": "A lint/format check reported violations (ESLint, Prettier, Ruff, or equivalent)",
+    "patterns": [
+      "(?i)\\b\\d+ problems? \\(\\d+ errors?",
+      "(?i)\\beslint\\b.*\\berror\\b",
+      "(?i)code style issues found",
+      "(?i)\\bruff\\b.*\\berror\\b"
+    ]
+  },
+  {
+    "slug": "merge-conflict",
+    "kind": "condition",
+    "gloss": "A git merge/rebase/cherry-pick hit a conflict",
+    "patterns": [
+      "(?i)\\bCONFLICT \\(.*\\):",
+      "(?i)\\bautomatic merge failed\\b",
+      "^<<<<<<< ",
+      "(?i)\\bfix conflicts and then commit\\b"
+    ]
+  }
 ]
