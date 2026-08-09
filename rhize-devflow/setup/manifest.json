@@ -3,44 +3,6 @@
   "plugin": "rhize-devflow",
   "items": [
     {
-      "id": "duplicate-check",
-      "title": "Block duplicate component/hook/utility creation",
-      "tier": "T4",
-      "event": "PreToolUse",
-      "matcher": "Write",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__duplicate-check.sh",
-      "description": "Blocks (exit 2) creating a new file under components/|lib/hooks/|lib/utilities/|lib/actions/|src/components/|src/hooks/ when a similarly-named entry already exists in the project's COMPONENT_REGISTRY.md. No-op if the registry file doesn't exist.",
-      "default": false
-    },
-    {
-      "id": "pre-commit-guard",
-      "title": "Warn on related files missing from a commit",
-      "tier": "T3",
-      "event": "PreToolUse",
-      "matcher": "Bash",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__pre-commit-guard.sh",
-      "description": "On `git commit` commands, warns (stderr, never blocks) when a staged component's matching hook file references it but isn't also staged, or when collection/model/schema files are staged without a corresponding types file.",
-      "default": false
-    },
-    {
-      "id": "session-init-banner",
-      "title": "Session-start sprint/registry freshness banner",
-      "tier": "T3",
-      "event": "SessionStart",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__session-init.sh",
-      "description": "Prints project name, staleness of CURRENT_SPRINT.md/COMPONENT_REGISTRY.md (warns if >24h old), the active sprint item, and an uncommitted-file count. Heavier than the plugin's default lightweight banner in hooks.json.",
-      "default": false
-    },
-    {
-      "id": "skill-suggester",
-      "title": "Suggest a skill based on prompt keywords",
-      "tier": "T3",
-      "event": "UserPromptSubmit",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-engineering__skill-suggester.sh",
-      "description": "Detects implementation/bugfix/refactor/completion/context-fatigue/performance keywords in the user's prompt and suggests a matching skill via systemMessage before Claude proceeds. Fixed 2026-08-04: was reading a nonexistent \"user_prompt\" JSON field (actual field is \"prompt\"), so it never fired.",
-      "default": false
-    },
-    {
       "id": "mutation-detector",
       "title": "Flag mutation/cache keywords in prompts",
       "tier": "T3",
@@ -76,24 +38,6 @@
       "matcher": "Edit|Write|MultiEdit|NotebookEdit",
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-files.sh",
       "description": "Blocks (exit 2) edits to .github/workflows/*, .env*, and billing/payment paths; also content-gates NEXT_PUBLIC_* secret-named vars and Supabase service-role references written into 'use client' files. Local per-plugin copy of the same gate as the global ~/.claude/hooks/protect-files.sh (that one already runs for every session regardless of this manifest; wire this one in only if you want the gate active even in environments without the global hook installed).",
-      "default": false
-    },
-    {
-      "id": "skill-refinement-detector",
-      "title": "Detect skill-refinement opportunities in prompts",
-      "tier": "T3",
-      "event": "UserPromptSubmit",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-refinement__refinement-detector.sh",
-      "description": "Detects phrasing like \"skill doesn't work\", \"missing trigger\", \"false positive\" and suggests running `npx @rhize/skill-forge refine` to capture the gap.",
-      "default": false
-    },
-    {
-      "id": "skill-refinement-session-end",
-      "title": "Prompt for refinements after a substantial session",
-      "tier": "T3",
-      "event": "Stop",
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/skill-refinement__session-end.sh",
-      "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `npx @rhize/skill-forge refine`. Fixed 2026-08-04: previously read SESSION_TOOL_CALLS/SESSION_ERRORS/SESSION_DURATION/SESSION_FILES_TOUCHED from the environment, which Claude Code never sets (it delivers only session_id/transcript_path/cwd on stdin), so the hook never fired; now derives the same stats from the transcript file.",
       "default": false
     }
   ],
@@ -140,17 +84,6 @@
       "replacement": {
         "suggestion": "drive a browser manually or script it with Playwright directly",
         "warning": "Chrome DevTools MCP already wraps a wait-aware Puppeteer client tuned for this workflow; a hand-rolled Playwright script duplicates that work and has to be maintained separately."
-      }
-    },
-    {
-      "name": "@rhize/skill-forge",
-      "kind": "cli",
-      "purpose": "npm CLI the skill-refinement-detector and skill-refinement-session-end opt-in hooks tell the user to run (`npx @rhize/skill-forge refine`).",
-      "required": false,
-      "degradedBehavior": "The two opt-in hooks (if wired) still fire and print their suggestion; running the suggested command just fails without the package installed.",
-      "replacement": {
-        "suggestion": "manually note the refinement idea and hand-edit the target SKILL.md later",
-        "warning": "skill-forge's refine flow provides gate and provenance tracking that ad hoc SKILL.md edits don't — installing it keeps refinements auditable instead of untracked."
       }
     }
   ]

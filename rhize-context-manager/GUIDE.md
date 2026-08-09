@@ -69,8 +69,10 @@ the right one, and health-checks the whole thing.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
-  Neither is in `setup/manifest.json` yet, so wire them by hand in `.claude/settings.json`
-  if you want them — see README.md's Hooks section for the exact snippet.
+  Both are now also in `setup/manifest.json` (ids `refinement-detector` /
+  `refinement-session-end`), so `/rhize-setup` can wire them the same as the four above —
+  see README.md's Hooks section for the manual `.claude/settings.json` snippet if you're
+  wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
 - Graphiti is approved for Rhize adoption but needs its backend stood up first — until

@@ -66,11 +66,12 @@ This one hook is auto-wired in `hooks/hooks.json` — it ships active by default
 
 ### Opt-in hooks (`setup/manifest.json`)
 
-Four generalized hooks from `skills/context-engineering/hooks/` are declared in
-`setup/manifest.json` as opt-in items (`default: false`) for `/rhize-setup` (rhize-ops)
-to wire per-repo — they are **not** in `hooks/hooks.json` and do nothing until enabled.
-They require project-specific files (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be
-useful, so auto-wiring them for every repo would be noise.
+Six hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
+`/rhize-setup` (rhize-ops) to wire per-repo — none of the six are in `hooks/hooks.json`
+and none do anything until enabled. Four generalized hooks live under
+`skills/context-engineering/hooks/` and require project-specific files
+(`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
+every repo would be noise:
 
 | id | Event | Tier | Purpose |
 |---|---|---|---|
@@ -98,13 +99,14 @@ wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.addi
 per the snippet in [rhize-ops/README.md § Setup manifest
 schema](../rhize-ops/README.md#setup-manifest-schema).
 
-### Refinement-pipeline hooks (bundled, opt-in, not yet in `setup/manifest.json`)
+### Refinement-pipeline hooks (also in `setup/manifest.json`)
 
-Two more hooks arrived in `hooks/` on 2026-08-09, moved here from `rhize-devflow` (they
-predate this plugin and were stranded there by the 2.5.0 command migration). Like the four
-above they are **not** wired in `hooks/hooks.json` and require manual `.claude/settings.json`
-wiring — they aren't in `setup/manifest.json` yet either, so `/rhize-setup` won't offer them
-until that's added in a follow-up.
+The other two of the six live under `hooks/` directly. They arrived on 2026-08-09, moved
+here from `rhize-devflow` (they predate this plugin and were stranded there by the 2.5.0
+command migration). Like the four above they are **not** wired in `hooks/hooks.json`, but
+`/rhize-setup` can now offer them per-repo the same way (ids `refinement-detector` and
+`refinement-session-end`) — no manual `.claude/settings.json` edit required unless you're
+wiring without `rhize-ops`.
 
 | Script | Event | Tier | Purpose |
 |---|---|---|---|
