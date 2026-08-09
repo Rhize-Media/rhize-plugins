@@ -61,8 +61,15 @@ lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` orig
 | Hook | Event | Purpose |
 |---|---|---|
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
+| `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 
-This one hook is auto-wired in `hooks/hooks.json` — it ships active by default.
+Both hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
+`session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
+obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
+`.claude/plans/skill-map-graph-substrate.md`. Like `skill-router.js`, it resolves
+`~/.claude/context-manager/skill-map.resolved.json`, falling back to
+`skill-map.static.json`, and fails silently (exit 0, no output) on any missing or corrupt
+map. See `docs/skill-map.md` for the artifact/tagging conventions it depends on.
 
 ### Opt-in hooks (`setup/manifest.json`)
 

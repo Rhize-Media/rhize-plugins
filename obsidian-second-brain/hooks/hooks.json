@@ -1,18 +1,6 @@
 {
-  "description": "Obsidian Second Brain - vault-aware context hooks",
+  "description": "Obsidian Second Brain - vault-aware context hooks. The unconditional SessionStart banner moved to rhize-context-manager/hooks/session-disclosure.js (2026-08-09, Phase 3 banner consolidation) — it surfaces this plugin's skills only when a `.obsidian/` vault is detected, instead of on every session. PreToolUse/PostToolUse hint hooks are unchanged.",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",

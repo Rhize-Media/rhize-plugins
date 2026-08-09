@@ -1,17 +1,4 @@
 {
-  "description": "rhize-devflow — lightweight SessionStart banner. Heavier guard hooks (prewrite mutation check, rca-enforcer, regression-guard, protect-files) ship bundled under this directory and inside each skill but are OPT-IN: wire them into your project's .claude/settings.json when you want them, so nothing untested fires automatically on every session. The context-engineering and skill-refinement hooks moved to rhize-context-manager — see CHANGELOG 2026-08-09.",
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
-            "timeout": 5
-          }
-        ]
-      }
-    ]
-  }
+  "description": "rhize-devflow — this plugin auto-wires no hooks. The conditional SessionStart banner (dev-file signals -> command menu) moved to rhize-context-manager/hooks/session-disclosure.js (2026-08-09, Phase 3 banner consolidation) — stack detection there covers the same signal via the skill map's stack tags. Heavier guard hooks (prewrite mutation check, rca-enforcer, regression-guard, protect-files) ship bundled under this directory and inside each skill but remain OPT-IN: wire them into your project's .claude/settings.json when you want them. The context-engineering and skill-refinement hooks moved to rhize-context-manager — see CHANGELOG 2026-08-09.",
+  "hooks": {}
 }

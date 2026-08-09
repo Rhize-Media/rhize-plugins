@@ -4,8 +4,8 @@ The skill map is the **generated** graph substrate for skill routing, curation, 
 across this repo's plugins. It replaces the flat, hand-restated skill inventory (marketplace.json
 + per-plugin READMEs + root catalog + GUIDE tables) with one machine-produced artifact. See
 `.claude/plans/skill-map-graph-substrate.md` for the full rationale and phased rollout; this doc
-only records the conventions that downstream consumers (router hook, `/start`, curation gates,
-generated docs, vault visualization) rely on.
+only records the conventions that downstream consumers (router hook, session-disclosure hook,
+`/start`, curation gates, generated docs, vault visualization) rely on.
 
 The schema contract lives at `schemas/skill-map.schema.json` (JSON Schema, draft 2020-12).
 

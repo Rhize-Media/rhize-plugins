@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-09T00:00:00Z",
+  "nodes": [
+    { "id": "plugin:rhize-devflow", "kind": "plugin", "name": "rhize-devflow" },
+    {
+      "id": "skill:rhize-devflow:sanity-development",
+      "kind": "skill",
+      "name": "sanity-development",
+      "path": "rhize-devflow/skills/sanity-development/SKILL.md",
+      "description": "Sanity Studio development patterns.",
+      "contentHash": "1111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "kind": "skill",
+      "name": "nextjs-sanity-seo",
+      "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
+      "description": "Next.js + Sanity SEO review.",
+      "contentHash": "2222222222222222222222222222222222222222222222222222222222222"
+    },
+    { "id": "tag:stack/nextjs", "kind": "tag", "name": "nextjs" },
+    { "id": "tag:stack/sanity", "kind": "tag", "name": "sanity" }
+  ],
+  "edges": [
+    {
+      "from": "plugin:rhize-devflow",
+      "to": "skill:rhize-devflow:sanity-development",
+      "type": "contains",
+      "source": "marketplace"
+    },
+    {
+      "from": "skill:rhize-devflow:sanity-development",
+      "to": "tag:stack/sanity",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "to": "tag:stack/sanity",
+      "type": "stack-tag",
+      "source": "frontmatter"
+    }
+  ]
+}

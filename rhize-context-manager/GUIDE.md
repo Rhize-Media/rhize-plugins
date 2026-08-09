@@ -73,6 +73,13 @@ the right one, and health-checks the whole thing.
   --install` to have run at least once (installs the artifact to
   `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
   nothing.
+- `session-disclosure` (`hooks/session-disclosure.js`, auto-wired — not opt-in) replaced
+  the four per-plugin SessionStart banners on 2026-08-09: seo-aeo-geo,
+  obsidian-second-brain, project-launcher, and rhize-devflow no longer print anything on
+  session start. Instead, this one hook fingerprints the repo (a `next.config.*`,
+  `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up to 8 skills
+  tagged for that stack — silent in repos with none of those markers, same map
+  dependency as `skill-router`.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).

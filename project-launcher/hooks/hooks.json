@@ -1,18 +1,6 @@
 {
-  "description": "Project Launcher - artifact-aware context hooks",
+  "description": "Project Launcher - artifact-aware context hooks. The unconditional SessionStart banner moved to rhize-context-manager/hooks/session-disclosure.js (2026-08-09, Phase 3 banner consolidation) — a single stack-aware disclosure surface replaces this plugin's per-session command menu. The PreToolUse vault hint hook is unchanged.",
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
-            "timeout": 5
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",

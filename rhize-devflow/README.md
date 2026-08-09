@@ -44,10 +44,10 @@ this repo — gitignored, as the convention requires).
 
 ## Hooks
 
-A light SessionStart banner (`hooks/hooks.json`) is enabled by default and is the only hook
-this plugin auto-wires. Four heavier guard scripts ship bundled under `hooks/` but are
-**deliberately opt-in** — wire the ones you want into a project's `.claude/settings.json`, so
-nothing untested fires automatically on every session:
+This plugin auto-wires no hooks (`hooks/hooks.json` is `{"hooks": {}}`). Four heavier guard
+scripts ship bundled under `hooks/` but are **deliberately opt-in** — wire the ones you want
+into a project's `.claude/settings.json`, so nothing untested fires automatically on every
+session:
 
 | Script | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
@@ -55,6 +55,12 @@ nothing untested fires automatically on every session:
 | `data-mutation-consistency__prewrite-check.sh` | PreToolUse | `Write\|Edit` | T3 | Warns on Supabase mutations missing error handling/revalidation, `useMutation` calls missing `onError`/`onSettled`, or Payload collections missing `afterChange`/`afterDelete`. |
 | `data-mutation-consistency__sentry-stale-data.sh` | UserPromptSubmit | — | T3 | Prints a stale-data investigation checklist on Sentry URLs or stale-data phrasing. |
 | `protect-files.sh` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit` | T4 (blocks) | Blocks edits to CI workflows/`.env*`/billing paths and leaked `NEXT_PUBLIC_*` secrets or client-side Supabase service-role keys. Local copy of the same gate the global `~/.claude/hooks/protect-files.sh` already runs for every session — wire this one in only for environments without that global hook installed. |
+
+> **SessionStart banner removed (2026-08-09):** the conditional dev-file-detection banner
+> that used to live here moved to
+> [`rhize-context-manager`'s `session-disclosure.js`](../rhize-context-manager/README.md#hooks)
+> — Phase 3 of the skill-map plan (`docs/skill-map.md`). It fingerprints the repo against the
+> compiled skill map's stack tags instead of this plugin's fixed dev-file signal list.
 
 > **Moved (2026-08-09):** the `context-engineering__*` hooks (`duplicate-check`,
 > `pre-commit-guard`, `session-init`, `skill-suggester`) had already been superseded by

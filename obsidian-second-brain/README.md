@@ -55,9 +55,13 @@ Lower-level skills that auto-trigger when you're working with specific Obsidian 
 
 | Hook | Matcher | Behavior |
 |------|---------|----------|
-| **SessionStart** | All sessions | Loads knowledge workflow commands, skills, connectors, and vault path into context |
 | **PreToolUse** | `Write\|Edit` on vault `.md` files | Enforces second-brain practices: `[[wikilinks]]` (not markdown links), callout syntax (`> [!type]`), frontmatter preservation, `#tags`, `tags:` array in frontmatter, and parent MOC linking |
 | **PostToolUse** | `Read` on vault `.md` files | Suggests following `[[wikilinks]]`, searching tags, `/vault-connect` for related notes, and `/vault-align` for orphan detection and health checks |
+
+> **SessionStart banner removed (2026-08-09):** the unconditional command-menu banner moved
+> to [`rhize-context-manager`'s `session-disclosure.js`](../rhize-context-manager/README.md#hooks)
+> — Phase 3 of the skill-map plan (`docs/skill-map.md`). It surfaces this plugin's skills only
+> when a `.obsidian/` vault is detected in the repo, instead of on every session.
 
 All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
 
