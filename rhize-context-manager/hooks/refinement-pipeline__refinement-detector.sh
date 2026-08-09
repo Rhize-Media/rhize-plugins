@@ -70,10 +70,11 @@ REFINEMENT_KEYWORDS=(
     "unexpected behavior"
 )
 
-# Check for keyword matches
+# Check for keyword matches (pure-bash substring match — no forked
+# echo/grep per keyword, ~40 forks/prompt eliminated)
 MATCHED=""
 for keyword in "${REFINEMENT_KEYWORDS[@]}"; do
-    if echo "$PROMPT_LOWER" | grep -qF "$keyword"; then
+    if [[ "$PROMPT_LOWER" == *"$keyword"* ]]; then
         MATCHED="$keyword"
         break
     fi

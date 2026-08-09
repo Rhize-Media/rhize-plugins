@@ -14,6 +14,10 @@ Usage:
                                                  # (Phase 2: installed plugins, e.g. the
                                                  # skill-router.js hook, can't see this repo's
                                                  # generated/ dir and read from there instead)
+  python3 scripts/build_skill_map.py --out <path>  # write to <path> instead of the default
+                                                    # OUTPUT_PATH (used by --check-stale to
+                                                    # rebuild into a temp file without touching
+                                                    # the committed artifact)
 
 Determinism contract: two runs against an unchanged working tree MUST produce
 byte-identical output. To hold that contract:
@@ -41,6 +45,9 @@ Inputs and what they produce
       `topic-tag` / `stack-tag` edges from that skill to `tag:topic/<slug>`
       and `tag:stack/<slug>` nodes, read from the file's
       `metadata.rhize.{topics,stacks}` frontmatter (source: frontmatter).
+      Every slug must exist in `catalog/tags.json`'s closed vocabulary
+      (a BuildError otherwise); the tag node's description is set from
+      that entry's gloss.
 
 3. Each plugin's `commands/*.md`
    -> one `command` node per file (description from frontmatter if present).
@@ -82,6 +89,7 @@ Node id scheme (must match schemas/skill-map.schema.json's nodeId pattern):
 """
 from __future__ import annotations
 
+import collections
 import hashlib
 import json
 import re
@@ -91,7 +99,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 CATALOG_PATH = REPO_ROOT / "catalog" / "skill-relations.json"
-SOURCES_MD_PATH = REPO_ROOT / "rhize-context-manager" / "skills" / "SOURCES.md"
+TAGS_PATH = REPO_ROOT / "catalog" / "tags.json"
 OUTPUT_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
 SCHEMA_VERSION = "1.0.0"
 
@@ -103,10 +111,6 @@ except ImportError:  # pragma: no cover - environment-dependent
 
 class BuildError(Exception):
     """Raised for conditions the plan requires to be a hard build failure."""
-
-
-def sha256_of_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def split_frontmatter(text: str) -> tuple[dict, str]:
@@ -149,22 +153,20 @@ class Graph:
 
     def add_node(self, node: dict) -> None:
         node_id = node["id"]
-        if node_id in self.nodes:
-            existing = self.nodes[node_id]
-            if existing != node:
-                # Merge: keep richer of the two (non-destructive union),
-                # but flag a real conflict on differing values for the same key.
-                merged = dict(existing)
-                for k, v in node.items():
-                    if k in merged and merged[k] != v:
-                        raise BuildError(
-                            f"conflicting node definitions for {node_id!r}: "
-                            f"{k}={merged[k]!r} vs {v!r}"
-                        )
-                    merged[k] = v
-                self.nodes[node_id] = merged
+        if node_id not in self.nodes:
+            self.nodes[node_id] = node
             return
-        self.nodes[node_id] = node
+        # Merge: keep richer of the two (non-destructive union), but flag a
+        # real conflict on differing values for the same key. This loop is a
+        # no-op when the two definitions are already identical.
+        existing = self.nodes[node_id]
+        for k, v in node.items():
+            if k in existing and existing[k] != v:
+                raise BuildError(
+                    f"conflicting node definitions for {node_id!r}: "
+                    f"{k}={existing[k]!r} vs {v!r}"
+                )
+            existing[k] = v
 
     def add_edge(self, edge: dict) -> None:
         self.edges.append(edge)
@@ -227,7 +229,16 @@ def contains_edge(plugin_name: str, child_id: str) -> dict:
     }
 
 
-def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
+def load_tags() -> dict[str, dict[str, str]]:
+    """Load catalog/tags.json — the closed topic/stack vocabulary — into
+    {"topic": {slug: gloss}, "stack": {slug: gloss}}."""
+    tags: dict[str, dict[str, str]] = {"topic": {}, "stack": {}}
+    for entry in json.loads(TAGS_PATH.read_text()):
+        tags[entry["kind"]][entry["slug"]] = entry["gloss"]
+    return tags
+
+
+def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path, tags: dict) -> None:
     skills_dir = plugin_dir / "skills"
     if not skills_dir.is_dir():
         return
@@ -236,7 +247,9 @@ def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
         if not skill_md.is_file():
             continue  # e.g. seo-aeo-geo/skills/shared/ has no SKILL.md
         skill_name = skill_dir.name
-        text = skill_md.read_text()
+        raw = skill_md.read_bytes()
+        content_hash = hashlib.sha256(raw).hexdigest()
+        text = raw.decode("utf-8")
         frontmatter, _ = split_frontmatter(text)
         description = frontmatter.get("description", "")
         if isinstance(description, str):
@@ -252,7 +265,7 @@ def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 "name": skill_name,
                 "path": rel_path,
                 "description": description,
-                "contentHash": sha256_of_file(skill_md),
+                "contentHash": content_hash,
             }
         )
         graph.add_edge(contains_edge(plugin_name, node_id))
@@ -261,8 +274,15 @@ def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
         topics = rhize_meta.get("topics") or []
         stacks = rhize_meta.get("stacks") or []
         for topic in topics:
-            tag_id = f"tag:topic/{slugify(str(topic))}"
-            graph.add_node({"id": tag_id, "kind": "tag", "name": str(topic)})
+            slug = slugify(str(topic))
+            gloss = tags["topic"].get(slug)
+            if gloss is None:
+                raise BuildError(
+                    f"{rel_path}: topic tag {topic!r} (slug {slug!r}) is not in "
+                    "catalog/tags.json's closed vocabulary"
+                )
+            tag_id = f"tag:topic/{slug}"
+            graph.add_node({"id": tag_id, "kind": "tag", "name": str(topic), "description": gloss})
             graph.add_edge(
                 {
                     "from": node_id,
@@ -272,8 +292,15 @@ def load_skills(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 }
             )
         for stack in stacks:
-            tag_id = f"tag:stack/{slugify(str(stack))}"
-            graph.add_node({"id": tag_id, "kind": "tag", "name": str(stack)})
+            slug = slugify(str(stack))
+            gloss = tags["stack"].get(slug)
+            if gloss is None:
+                raise BuildError(
+                    f"{rel_path}: stack tag {stack!r} (slug {slug!r}) is not in "
+                    "catalog/tags.json's closed vocabulary"
+                )
+            tag_id = f"tag:stack/{slug}"
+            graph.add_node({"id": tag_id, "kind": "tag", "name": str(stack), "description": gloss})
             graph.add_edge(
                 {
                     "from": node_id,
@@ -330,11 +357,11 @@ def load_hooks_json(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
     hooks_by_event = data.get("hooks", {})
     for event in sorted(hooks_by_event.keys()):
         groups = hooks_by_event[event]
-        for g_idx, group in enumerate(groups):
+        for group in groups:
             matcher = group.get("matcher", "")
-            for h_idx, hook_entry in enumerate(group.get("hooks", [])):
+            for hook_entry in group.get("hooks", []):
                 command = hook_entry.get("command", "")
-                fallback = f"{event.lower()}-{g_idx}-{h_idx}"
+                fallback = f"inline-{hashlib.sha256(command.encode()).hexdigest()[:8]}"
                 slug = hook_slug(command, fallback)
                 node_id = f"hook:{plugin_name}/{slug}"
                 graph.add_node(
@@ -359,7 +386,13 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
         return
     data = json.loads(manifest_path.read_text())
     for item in data.get("items", []):
-        if item.get("event") not in _MANIFEST_HOOK_EVENTS:
+        # setup/manifest.json items are hooks in every plugin observed in
+        # this repo (schema 1: {id, title, tier, event, matcher?, command,
+        # description, default}). Restrict to items that look like a hook
+        # (have an "event" field) so this stays correct if a future manifest
+        # schema adds non-hook item kinds; the schema is where event
+        # vocabulary would be policed, not this loader.
+        if not item.get("event"):
             continue
         item_id = item["id"]
         node_id = f"hook:{plugin_name}/{item_id}"
@@ -377,22 +410,6 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
             }
         )
         graph.add_edge(contains_edge(plugin_name, node_id))
-
-
-# setup/manifest.json items are hooks in every plugin observed in this repo
-# (schema 1: {id, title, tier, event, matcher?, command, description,
-# default}). Restrict to items that look like a hook (have an "event" field)
-# so this stays correct if a future manifest schema adds non-hook item kinds.
-_MANIFEST_HOOK_EVENTS = {
-    "SessionStart",
-    "PreToolUse",
-    "PostToolUse",
-    "UserPromptSubmit",
-    "Stop",
-    "SubagentStop",
-    "Notification",
-    "PreCompact",
-}
 
 
 # ---------------------------------------------------------------------------
@@ -428,12 +445,10 @@ _MANIFEST_HOOK_EVENTS = {
 # Nothing read from this file is ever passed to a shell, eval, or exec.
 _HEADING_RE = re.compile(r"^##\s+(.+?)\s+—\s+(.+)$")
 _BULLET_RE = re.compile(r"^-\s+\*\*([^:*]+):\*\*\s*(.*)$")
-_SOURCE_PATH_RE = re.compile(r"/marketplaces/([^/]+)/skills/(.+)$")
+_SOURCE_PATH_RE = re.compile(r"/marketplaces/([^/]+)/(?:.+/)?skills/(.+)$")
 
 
 def parse_sources_md(path: Path) -> list[dict]:
-    if not path.is_file():
-        raise BuildError(f"SOURCES.md not found at expected path: {path}")
     lines = path.read_text().splitlines()
     entries: list[dict] = []
     current: dict | None = None
@@ -458,10 +473,12 @@ def parse_sources_md(path: Path) -> list[dict]:
     return entries
 
 
-def load_sources_md(graph: Graph) -> None:
-    entries = parse_sources_md(SOURCES_MD_PATH)
-    plugin_name = "rhize-context-manager"
-    plugin_skills_dir = REPO_ROOT / plugin_name / "skills"
+def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
+    plugin_skills_dir = plugin_dir / "skills"
+    sources_path = plugin_skills_dir / "SOURCES.md"
+    if not sources_path.is_file():
+        return  # plugin has no fork-tracking file — nothing to do
+    entries = parse_sources_md(sources_path)
     for entry in entries:
         skill_name = entry["skill_name"]
         if entry["retired"]:
@@ -516,13 +533,14 @@ def load_catalog(graph: Graph) -> None:
 
 def build() -> dict:
     graph = Graph()
+    tags = load_tags()
     plugins = load_marketplace(graph)
     for plugin in plugins:
-        load_skills(graph, plugin["name"], plugin["dir"])
+        load_skills(graph, plugin["name"], plugin["dir"], tags)
         load_commands(graph, plugin["name"], plugin["dir"])
         load_hooks_json(graph, plugin["name"], plugin["dir"])
         load_manifest_hooks(graph, plugin["name"], plugin["dir"])
-    load_sources_md(graph)
+        load_sources_md(graph, plugin["name"], plugin["dir"])
     load_catalog(graph)
     return graph.to_document()
 
@@ -531,42 +549,33 @@ def dump(document: dict) -> str:
     return json.dumps(document, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
-# `--install` copies the just-built artifact to this machine-local location.
-# An installed plugin (as opposed to a checkout of this repo) cannot see
-# `generated/` at all, so consumers that run from the installed plugin path
-# (e.g. rhize-context-manager/hooks/skill-router.js) resolve the map through
-# here instead. This is purely a copy step: it never changes what gets
-# written to the default, deterministic OUTPUT_PATH above.
+# --install copies the built artifact here for installed (non-checkout) plugin consumers; see docs/skill-map.md.
 INSTALL_PATH = Path.home() / ".claude" / "context-manager" / "skill-map.static.json"
 
 
-def install_copy(document: dict) -> Path:
-    INSTALL_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INSTALL_PATH.write_text(dump(document))
-    return INSTALL_PATH
-
-
 def main() -> int:
-    install = "--install" in sys.argv[1:]
+    args = sys.argv[1:]
+    install = "--install" in args
+    out_path = OUTPUT_PATH
+    if "--out" in args:
+        out_path = Path(args[args.index("--out") + 1])
     try:
         document = build()
     except BuildError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(dump(document))
-    node_kinds: dict[str, int] = {}
-    for node in document["nodes"]:
-        node_kinds[node["kind"]] = node_kinds.get(node["kind"], 0) + 1
-    edge_types: dict[str, int] = {}
-    for edge in document["edges"]:
-        edge_types[edge["type"]] = edge_types.get(edge["type"], 0) + 1
-    print(f"Wrote {OUTPUT_PATH.relative_to(REPO_ROOT)}")
+    text = dump(document)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(text)
+    node_kinds = collections.Counter(n["kind"] for n in document["nodes"])
+    edge_types = collections.Counter(e["type"] for e in document["edges"])
+    print(f"Wrote {out_path}")
     print(f"Nodes by kind: {json.dumps(node_kinds, sort_keys=True)}")
     print(f"Edges by type: {json.dumps(edge_types, sort_keys=True)}")
     if install:
-        install_path = install_copy(document)
-        print(f"Installed copy to {install_path}")
+        INSTALL_PATH.parent.mkdir(parents=True, exist_ok=True)
+        INSTALL_PATH.write_text(text)
+        print(f"Installed copy to {INSTALL_PATH}")
     return 0
 
 

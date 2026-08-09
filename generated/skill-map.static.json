@@ -63,7 +63,7 @@
     {
       "from": "plugin:obsidian-second-brain",
       "source": "marketplace",
-      "to": "hook:obsidian-second-brain/sessionstart-0-0",
+      "to": "hook:obsidian-second-brain/inline-f66f8d34",
       "type": "contains"
     },
     {
@@ -165,13 +165,13 @@
     {
       "from": "plugin:project-launcher",
       "source": "marketplace",
-      "to": "hook:project-launcher/launcher-vault-hint",
+      "to": "hook:project-launcher/inline-b4ccdbc6",
       "type": "contains"
     },
     {
       "from": "plugin:project-launcher",
       "source": "marketplace",
-      "to": "hook:project-launcher/sessionstart-0-0",
+      "to": "hook:project-launcher/launcher-vault-hint",
       "type": "contains"
     },
     {
@@ -405,6 +405,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-466ded0c",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/mutation-detector",
       "type": "contains"
     },
@@ -424,12 +430,6 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "hook:rhize-devflow/sentry-stale-data",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:rhize-devflow",
-      "source": "marketplace",
-      "to": "hook:rhize-devflow/sessionstart-0-0",
       "type": "contains"
     },
     {
@@ -561,6 +561,12 @@
     {
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
+      "to": "hook:seo-aeo-geo/inline-8cef06f6",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
       "to": "hook:seo-aeo-geo/seo-edit-hint",
       "type": "contains"
     },
@@ -568,12 +574,6 @@
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
       "to": "hook:seo-aeo-geo/seo-read-hint",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:seo-aeo-geo",
-      "source": "marketplace",
-      "to": "hook:seo-aeo-geo/sessionstart-0-0",
       "type": "contains"
     },
     {
@@ -1708,10 +1708,10 @@
     {
       "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
       "event": "SessionStart",
-      "id": "hook:obsidian-second-brain/sessionstart-0-0",
+      "id": "hook:obsidian-second-brain/inline-f66f8d34",
       "kind": "hook",
       "matcher": "",
-      "name": "sessionstart-0-0",
+      "name": "inline-f66f8d34",
       "owner": "obsidian-second-brain",
       "path": "obsidian-second-brain/hooks/hooks.json",
       "status": "wired"
@@ -1739,23 +1739,23 @@
       "status": "wired"
     },
     {
+      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
+      "event": "SessionStart",
+      "id": "hook:project-launcher/inline-b4ccdbc6",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-b4ccdbc6",
+      "owner": "project-launcher",
+      "path": "project-launcher/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py",
       "event": "PreToolUse",
       "id": "hook:project-launcher/launcher-vault-hint",
       "kind": "hook",
       "matcher": "Write|Edit",
       "name": "launcher-vault-hint",
-      "owner": "project-launcher",
-      "path": "project-launcher/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
-      "event": "SessionStart",
-      "id": "hook:project-launcher/sessionstart-0-0",
-      "kind": "hook",
-      "matcher": "",
-      "name": "sessionstart-0-0",
       "owner": "project-launcher",
       "path": "project-launcher/hooks/hooks.json",
       "status": "wired"
@@ -1838,6 +1838,17 @@
       "status": "opt-in"
     },
     {
+      "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
+      "event": "SessionStart",
+      "id": "hook:rhize-devflow/inline-466ded0c",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-466ded0c",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-devflow/mutation-detector",
@@ -1882,14 +1893,14 @@
       "status": "opt-in"
     },
     {
-      "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
+      "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
       "event": "SessionStart",
-      "id": "hook:rhize-devflow/sessionstart-0-0",
+      "id": "hook:seo-aeo-geo/inline-8cef06f6",
       "kind": "hook",
       "matcher": "",
-      "name": "sessionstart-0-0",
-      "owner": "rhize-devflow",
-      "path": "rhize-devflow/hooks/hooks.json",
+      "name": "inline-8cef06f6",
+      "owner": "seo-aeo-geo",
+      "path": "seo-aeo-geo/hooks/hooks.json",
       "status": "wired"
     },
     {
@@ -1910,17 +1921,6 @@
       "kind": "hook",
       "matcher": "Read",
       "name": "seo-read-hint",
-      "owner": "seo-aeo-geo",
-      "path": "seo-aeo-geo/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
-      "event": "SessionStart",
-      "id": "hook:seo-aeo-geo/sessionstart-0-0",
-      "kind": "hook",
-      "matcher": "",
-      "name": "sessionstart-0-0",
       "owner": "seo-aeo-geo",
       "path": "seo-aeo-geo/hooks/hooks.json",
       "status": "wired"
@@ -2280,171 +2280,205 @@
       "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md"
     },
     {
+      "description": "The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...)",
       "id": "tag:stack/context",
       "kind": "tag",
       "name": "context"
     },
     {
+      "description": "Next.js codebases",
       "id": "tag:stack/nextjs",
       "kind": "tag",
       "name": "nextjs"
     },
     {
+      "description": "Obsidian vault/app-specific skills",
       "id": "tag:stack/obsidian",
       "kind": "tag",
       "name": "obsidian"
     },
     {
+      "description": "The skill-forge refinement pipeline",
       "id": "tag:stack/refinement",
       "kind": "tag",
       "name": "refinement"
     },
     {
+      "description": "Sanity Studio/CMS",
       "id": "tag:stack/sanity",
       "kind": "tag",
       "name": "sanity"
     },
     {
+      "description": "Sentry error tracking/instrumentation",
       "id": "tag:stack/sentry",
       "kind": "tag",
       "name": "sentry"
     },
     {
+      "description": "SEO/AEO/GEO domain tooling (DataForSEO-powered)",
       "id": "tag:stack/seo",
       "kind": "tag",
       "name": "seo"
     },
     {
+      "description": "Browser/E2E testing tooling",
       "id": "tag:stack/testing",
       "kind": "tag",
       "name": "testing"
     },
     {
+      "description": "Vercel deployment platform",
       "id": "tag:stack/vercel",
       "kind": "tag",
       "name": "vercel"
     },
     {
+      "description": "AI/answer-engine optimization and LLM citation visibility",
       "id": "tag:topic/ai-visibility",
       "kind": "tag",
       "name": "ai-visibility"
     },
     {
+      "description": "CLI/browser/task automation and delegation",
       "id": "tag:topic/automation",
       "kind": "tag",
       "name": "automation"
     },
     {
+      "description": "Link profile and link-building analysis",
       "id": "tag:topic/backlink-analysis",
       "kind": "tag",
       "name": "backlink-analysis"
     },
     {
+      "description": "CMS schema and content-modeling development",
       "id": "tag:topic/cms-development",
       "kind": "tag",
       "name": "cms-development"
     },
     {
+      "description": "Writing/formatting notes, docs, and templates",
       "id": "tag:topic/content-authoring",
       "kind": "tag",
       "name": "content-authoring"
     },
     {
+      "description": "On-page content and structured-data optimization",
       "id": "tag:topic/content-optimization",
       "kind": "tag",
       "name": "content-optimization"
     },
     {
+      "description": "Summarizing and compacting agent context",
       "id": "tag:topic/context-compression",
       "kind": "tag",
       "name": "context-compression"
     },
     {
+      "description": "Diagnosing context failure modes (lost-in-middle, poisoning, clash)",
       "id": "tag:topic/context-degradation",
       "kind": "tag",
       "name": "context-degradation"
     },
     {
+      "description": "Session/context lifecycle management",
       "id": "tag:topic/context-engineering",
       "kind": "tag",
       "name": "context-engineering"
     },
     {
+      "description": "Improving context/token efficiency",
       "id": "tag:topic/context-optimization",
       "kind": "tag",
       "name": "context-optimization"
     },
     {
+      "description": "Keeping cached/mutated data in sync",
       "id": "tag:topic/data-consistency",
       "kind": "tag",
       "name": "data-consistency"
     },
     {
+      "description": "Keyword discovery and opportunity scoring",
       "id": "tag:topic/keyword-research",
       "kind": "tag",
       "name": "keyword-research"
     },
     {
+      "description": "Graph-structured knowledge representation",
       "id": "tag:topic/knowledge-graph",
       "kind": "tag",
       "name": "knowledge-graph"
     },
     {
+      "description": "Organizing PKM vaults, note structure, database-like views",
       "id": "tag:topic/knowledge-management",
       "kind": "tag",
       "name": "knowledge-management"
     },
     {
+      "description": "Deciding what session learnings become durable rules",
       "id": "tag:topic/learning-curation",
       "kind": "tag",
       "name": "learning-curation"
     },
     {
+      "description": "Persistent cross-session agent memory",
       "id": "tag:topic/memory-systems",
       "kind": "tag",
       "name": "memory-systems"
     },
     {
+      "description": "Error triage, instrumentation, monitoring, dashboards",
       "id": "tag:topic/observability",
       "kind": "tag",
       "name": "observability"
     },
     {
+      "description": "Scaffolding and planning new projects or features",
       "id": "tag:topic/project-planning",
       "kind": "tag",
       "name": "project-planning"
     },
     {
+      "description": "SERP position and ranking monitoring",
       "id": "tag:topic/rank-tracking",
       "kind": "tag",
       "name": "rank-tracking"
     },
     {
+      "description": "Semantic search and knowledge retrieval",
       "id": "tag:topic/search",
       "kind": "tag",
       "name": "search"
     },
     {
+      "description": "Site health and technical SEO auditing",
       "id": "tag:topic/seo-audit",
       "kind": "tag",
       "name": "seo-audit"
     },
     {
+      "description": "Designing agent tool interfaces and schemas",
       "id": "tag:topic/tool-design",
       "kind": "tag",
       "name": "tool-design"
     },
     {
+      "description": "Diagrams, canvases, dashboards, visual plans",
       "id": "tag:topic/visualization",
       "kind": "tag",
       "name": "visualization"
     },
     {
+      "description": "Extracting clean readable content from web pages",
       "id": "tag:topic/web-clipping",
       "kind": "tag",
       "name": "web-clipping"
     },
     {
+      "description": "Dev-flow guardrails and process patterns",
       "id": "tag:topic/workflow-patterns",
       "kind": "tag",
       "name": "workflow-patterns"

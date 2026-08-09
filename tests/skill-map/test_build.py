@@ -18,25 +18,19 @@ other skill-map tests are plain scripts) so it runs with a bare
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _util import load_module  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_skill_map.py"
 VALIDATE_SCRIPT = REPO_ROOT / "scripts" / "validate_skill_map.py"
 ARTIFACT_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
-
-
-def _load_module(path: Path, name: str):
-    spec = importlib.util.spec_from_file_location(name, path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
 
 
 def run_build() -> None:
@@ -60,16 +54,14 @@ def test_determinism() -> None:
     print("PASS test_determinism")
 
 
-def test_generated_artifact_valid() -> None:
-    validate_mod = _load_module(VALIDATE_SCRIPT, "validate_skill_map")
-    doc = json.loads(ARTIFACT_PATH.read_text())
+def test_generated_artifact_valid(doc: dict) -> None:
+    validate_mod = load_module(VALIDATE_SCRIPT, "validate_skill_map")
     if not validate_mod.validate_document(doc, "generated/skill-map.static.json"):
         raise AssertionError("generated artifact failed schema/referential validation")
     print("PASS test_generated_artifact_valid")
 
 
-def test_every_plugin_and_skill_appears_once() -> None:
-    doc = json.loads(ARTIFACT_PATH.read_text())
+def test_every_plugin_and_skill_appears_once(doc: dict) -> None:
     node_ids = [n["id"] for n in doc["nodes"]]
     if len(node_ids) != len(set(node_ids)):
         dupes = {i for i in node_ids if node_ids.count(i) > 1}
@@ -109,15 +101,17 @@ def test_every_plugin_and_skill_appears_once() -> None:
 
 
 def main() -> int:
-    tests = [
-        test_determinism,
-        test_generated_artifact_valid,
-        test_every_plugin_and_skill_appears_once,
-    ]
     failures = 0
-    for test in tests:
+    try:
+        test_determinism()
+    except AssertionError as exc:
+        print(f"FAIL {test_determinism.__name__}: {exc}")
+        failures += 1
+
+    doc = json.loads(ARTIFACT_PATH.read_text())
+    for test in (test_generated_artifact_valid, test_every_plugin_and_skill_appears_once):
         try:
-            test()
+            test(doc)
         except AssertionError as exc:
             print(f"FAIL {test.__name__}: {exc}")
             failures += 1

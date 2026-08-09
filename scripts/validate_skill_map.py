@@ -31,20 +31,18 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = REPO_ROOT / "schemas" / "skill-map.schema.json"
 DEFAULT_ARTIFACT = REPO_ROOT / "generated" / "skill-map.static.json"
+BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_skill_map.py"
 
-NODE_KINDS = {"plugin", "skill", "command", "hook", "tag", "external"}
-EDGE_TYPES = {
-    "contains",
-    "topic-tag",
-    "stack-tag",
-    "fork-of",
-    "supersedes",
-    "overlaps-with",
-    "depends-on",
-    "replaces",
-    "usage-cooccurs",
-}
-EDGE_SOURCES = {"frontmatter", "marketplace", "sources-md", "relations-catalog", "monitor"}
+
+def enums_from_schema(schema: dict) -> tuple[set, set, set]:
+    """Derive (NODE_KINDS, EDGE_TYPES, EDGE_SOURCES) from the schema itself,
+    so the stdlib fallback can never drift from schemas/skill-map.schema.json.
+    """
+    defs = schema.get("$defs", {})
+    node_kinds = set(defs.get("node", {}).get("properties", {}).get("kind", {}).get("enum", []))
+    edge_types = set(defs.get("edgeType", {}).get("enum", []))
+    edge_sources = set(defs.get("provenanceSource", {}).get("enum", []))
+    return node_kinds, edge_types, edge_sources
 
 
 def try_import_jsonschema():
@@ -64,7 +62,8 @@ def schema_valid_via_jsonschema(jsonschema_mod, schema, doc):
     return True, None
 
 
-def schema_valid_via_stdlib_fallback(doc):
+def schema_valid_via_stdlib_fallback(doc, schema):
+    node_kinds, edge_types, edge_sources = enums_from_schema(schema)
     errors = []
 
     if doc.get("schemaVersion") != "1.0.0":
@@ -82,7 +81,7 @@ def schema_valid_via_stdlib_fallback(doc):
         if node["id"] in seen_ids:
             errors.append(f"nodes[{i}]: duplicate node id '{node['id']}'")
         seen_ids.add(node["id"])
-        if node["kind"] not in NODE_KINDS:
+        if node["kind"] not in node_kinds:
             errors.append(f"nodes[{i}]: invalid kind '{node['kind']}'")
         if node["kind"] == "skill":
             for field in ("path", "description", "contentHash"):
@@ -97,9 +96,9 @@ def schema_valid_via_stdlib_fallback(doc):
         for field in ("from", "to", "type", "source"):
             if field not in edge:
                 errors.append(f"edges[{i}]: missing required '{field}'")
-        if edge.get("type") is not None and edge["type"] not in EDGE_TYPES:
+        if edge.get("type") is not None and edge["type"] not in edge_types:
             errors.append(f"edges[{i}]: invalid type '{edge['type']}'")
-        if edge.get("source") is not None and edge["source"] not in EDGE_SOURCES:
+        if edge.get("source") is not None and edge["source"] not in edge_sources:
             errors.append(f"edges[{i}]: invalid source '{edge['source']}'")
         if edge.get("type") == "usage-cooccurs" and "usageWeight" not in edge:
             errors.append(f"edges[{i}]: usage-cooccurs edge missing required 'usageWeight'")
@@ -128,7 +127,7 @@ def validate_document(doc, label: str) -> bool:
     if jsonschema_mod is not None:
         schema_ok, schema_err = schema_valid_via_jsonschema(jsonschema_mod, schema, doc)
     else:
-        schema_ok, schema_err = schema_valid_via_stdlib_fallback(doc)
+        schema_ok, schema_err = schema_valid_via_stdlib_fallback(doc, schema)
 
     if not schema_ok:
         print(f"FAIL {label}: schema invalid: {schema_err}")
@@ -151,7 +150,7 @@ def check_stale() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp) / "skill-map.static.json"
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "scripts" / "build_skill_map.py")],
+            [sys.executable, str(BUILD_SCRIPT), "--out", str(tmp_path)],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -161,11 +160,7 @@ def check_stale() -> int:
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             return 1
-        # build_skill_map.py always writes to generated/skill-map.static.json;
-        # copy that fresh output aside before comparing so we never mutate the
-        # committed file mid-check even if paths coincide.
-        fresh = DEFAULT_ARTIFACT.read_bytes()
-        tmp_path.write_bytes(fresh)
+        fresh = tmp_path.read_bytes()
     if fresh != committed:
         print(
             "FAIL --check-stale: rebuilt artifact differs from committed "

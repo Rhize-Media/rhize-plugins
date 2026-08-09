@@ -46,7 +46,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__refinement-detector.sh",
-      "description": "Detects phrasing like \"skill doesn't work\", \"missing trigger\", \"false positive\" and suggests running `/rhize-context-manager:learn-harvest` (then `/skill-refine review`) to queue the signal for triage. Moved here from rhize-devflow 2026-08-09.",
+      "description": "Detects phrasing like \"skill doesn't work\", \"missing trigger\", \"false positive\" and suggests running `/rhize-context-manager:learn-harvest` (then `/skill-refine review`) to queue the signal for triage. Moved from rhize-devflow — see CHANGELOG 2026-08-09.",
       "default": false
     },
     {
@@ -55,7 +55,7 @@
       "tier": "T3",
       "event": "Stop",
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__session-end.sh",
-      "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `/rhize-context-manager:learn-harvest` (then `/skill-refine review`). Moved here from rhize-devflow 2026-08-09.",
+      "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `/rhize-context-manager:learn-harvest` (then `/skill-refine review`). Moved from rhize-devflow — see CHANGELOG 2026-08-09.",
       "default": false
     }
   ],

@@ -35,7 +35,7 @@ Every node ID is a string of the form `<kind>:<qualifier>`:
 | `plugin` | `plugin:<name>` | `plugin:rhize-context-manager` |
 | `skill` | `skill:<plugin>/<name>` | `skill:rhize-context-manager/graphify` |
 | `command` | `command:<plugin>/<name>` | `command:rhize-context-manager/start` |
-| `hook` | `hook:<plugin>/<file>` | `hook:rhize-context-manager/skill-router.js` |
+| `hook` | `hook:<plugin>/<file>` | `hook:rhize-context-manager/skill-router` |
 | `tag` | `tag:topic/<slug>` or `tag:stack/<slug>` | `tag:stack/nextjs` |
 | `external` | `external:<name>` | `external:everything-claude-code` |
 
@@ -56,58 +56,13 @@ number of each.
 
 Every `SKILL.md` under `{seo-aeo-geo,obsidian-second-brain,project-launcher,rhize-devflow,
 rhize-ops,rhize-context-manager}/skills/*/SKILL.md` carries a `metadata.rhize.{topics,stacks}`
-block drawn from this vocabulary (see "Tagging conventions" above for the exact YAML shape).
-The lists below are the **complete, closed set actually in use** — extend only when no existing
-slug fits a new skill, and keep both lists small (target ≤25 topics, ≤10 stacks) so the tag
-space doesn't reproduce the flat list this substrate replaces.
-
-### Topics (25)
-
-| Slug | Gloss |
-|---|---|
-| `knowledge-management` | Organizing PKM vaults, note structure, database-like views |
-| `content-authoring` | Writing/formatting notes, docs, and templates |
-| `web-clipping` | Extracting clean readable content from web pages |
-| `visualization` | Diagrams, canvases, dashboards, visual plans |
-| `automation` | CLI/browser/task automation and delegation |
-| `search` | Semantic search and knowledge retrieval |
-| `project-planning` | Scaffolding and planning new projects or features |
-| `context-engineering` | Session/context lifecycle management |
-| `context-compression` | Summarizing and compacting agent context |
-| `context-degradation` | Diagnosing context failure modes (lost-in-middle, poisoning, clash) |
-| `context-optimization` | Improving context/token efficiency |
-| `memory-systems` | Persistent cross-session agent memory |
-| `knowledge-graph` | Graph-structured knowledge representation |
-| `learning-curation` | Deciding what session learnings become durable rules |
-| `tool-design` | Designing agent tool interfaces and schemas |
-| `data-consistency` | Keeping cached/mutated data in sync |
-| `workflow-patterns` | Dev-flow guardrails and process patterns |
-| `observability` | Error triage, instrumentation, monitoring, dashboards |
-| `cms-development` | CMS schema and content-modeling development |
-| `seo-audit` | Site health and technical SEO auditing |
-| `keyword-research` | Keyword discovery and opportunity scoring |
-| `backlink-analysis` | Link profile and link-building analysis |
-| `content-optimization` | On-page content and structured-data optimization |
-| `rank-tracking` | SERP position and ranking monitoring |
-| `ai-visibility` | AI/answer-engine optimization and LLM citation visibility |
-
-### Stacks (9)
-
-| Slug | Gloss |
-|---|---|
-| `obsidian` | Obsidian vault/app-specific skills |
-| `nextjs` | Next.js codebases |
-| `sanity` | Sanity Studio/CMS |
-| `seo` | SEO/AEO/GEO domain tooling (DataForSEO-powered) |
-| `testing` | Browser/E2E testing tooling |
-| `context` | The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...) |
-| `refinement` | The skill-forge refinement pipeline |
-| `sentry` | Sentry error tracking/instrumentation |
-| `vercel` | Vercel deployment platform |
-
-`salesforce`, `n8n`, and `git` from the original starter list were not genuinely bound to any
-skill in this tagging pass and are dropped from the closed set above; re-add them only when a
-skill's content actually requires them.
+block drawn from a closed vocabulary (see "Tagging conventions" above for the exact YAML shape).
+`catalog/tags.json` is the single source of truth for that vocabulary — an array of
+`{slug, kind: "topic"|"stack", gloss}` entries; `scripts/build_skill_map.py` validates every
+frontmatter slug against it (a BuildError on any slug not present) and sets each tag node's
+`description` from its gloss. Extend it only when no existing slug fits a new skill, and keep it
+small (target ≤25 topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this
+substrate replaces.
 
 ## Edge types and semantics
 

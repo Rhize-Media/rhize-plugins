@@ -10,7 +10,6 @@
     "schemaVersion": {
       "type": "string",
       "description": "Semantic version of this schema that the artifact was produced against.",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
       "const": "1.0.0"
     },
     "generatedAt": {
@@ -158,13 +157,6 @@
         "usageWeight": { "$ref": "#/$defs/usageWeight" }
       },
       "allOf": [
-        {
-          "if": {
-            "properties": { "type": { "const": "fork-of" } },
-            "required": ["type"]
-          },
-          "then": {}
-        },
         {
           "if": {
             "properties": { "type": { "const": "usage-cooccurs" } },

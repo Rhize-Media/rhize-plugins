@@ -83,23 +83,43 @@ function tokenize(prompt) {
 }
 
 // Returns the single best-matching skill, or null if none qualifies.
+//
+// Single pass over doc.nodes to collect skill nodes and pre-tokenize every
+// tag node's name once, plus edges bucketed by their `from` id, so the ranking
+// loop below only ever touches each skill's own topic-tag/stack-tag edges
+// instead of rescanning doc.edges per skill (was O(skills * edges)).
 function route(doc, promptTokens) {
-  const nodesById = new Map(doc.nodes.map((node) => [node.id, node]));
-  const skills = doc.nodes.filter((node) => node.kind === 'skill');
+  const skills = [];
+  const tagsById = new Map(); // tagId -> { name, words }
+  for (const node of doc.nodes) {
+    if (node.kind === 'skill') {
+      skills.push(node);
+    } else if (node.kind === 'tag') {
+      tagsById.set(node.id, { name: node.name, words: wordsOf(node.name) });
+    }
+  }
+
+  const tagEdgesByFrom = new Map(); // skillId -> [topic-tag/stack-tag edge, ...]
+  for (const edge of doc.edges) {
+    if (edge.type !== 'topic-tag' && edge.type !== 'stack-tag') continue;
+    let bucket = tagEdgesByFrom.get(edge.from);
+    if (!bucket) {
+      bucket = [];
+      tagEdgesByFrom.set(edge.from, bucket);
+    }
+    bucket.push(edge);
+  }
 
   let best = null; // { skillId, score, signals }
 
   for (const skill of skills) {
     const signals = [];
 
-    for (const edge of doc.edges) {
-      if (edge.from !== skill.id) continue;
-      if (edge.type !== 'topic-tag' && edge.type !== 'stack-tag') continue;
-      const tagNode = nodesById.get(edge.to);
-      if (!tagNode) continue;
-      const words = wordsOf(tagNode.name);
-      if (words.length > 0 && words.every((w) => promptTokens.has(w))) {
-        signals.push({ weight: 2, label: String(tagNode.name) });
+    for (const edge of tagEdgesByFrom.get(skill.id) || []) {
+      const tag = tagsById.get(edge.to);
+      if (!tag) continue;
+      if (tag.words.length > 0 && tag.words.every((w) => promptTokens.has(w))) {
+        signals.push({ weight: 2, label: String(tag.name) });
       }
     }
 
@@ -123,71 +143,46 @@ function route(doc, promptTokens) {
   return best;
 }
 
-function main() {
-  let raw;
-  try {
-    raw = fs.readFileSync(0, 'utf8');
-  } catch (_err) {
-    process.exit(0);
-    return;
-  }
-
-  let prompt = '';
-  try {
-    const data = JSON.parse(raw);
-    prompt = typeof data.prompt === 'string' ? data.prompt : '';
-  } catch (_err) {
-    process.exit(0);
-    return;
-  }
-
-  if (!prompt) {
-    process.exit(0);
-    return;
-  }
+// Reads stdin, ranks the prompt against the map, and returns the suggestion
+// message, or null if nothing qualifies. Throws on any unreadable/corrupt
+// input; main()'s try/catch turns that into the same silent no-op.
+function computeMessage() {
+  const raw = fs.readFileSync(0, 'utf8');
+  const data = JSON.parse(raw);
+  const prompt = typeof data.prompt === 'string' ? data.prompt : '';
+  if (!prompt) return null;
 
   const doc = readMap();
-  if (!doc) {
-    process.exit(0);
-    return;
-  }
+  if (!doc) return null;
 
-  let match = null;
-  try {
-    match = route(doc, tokenize(prompt));
-  } catch (_err) {
-    process.exit(0);
-    return;
-  }
-
-  if (!match) {
-    process.exit(0);
-    return;
-  }
+  const match = route(doc, tokenize(prompt));
+  if (!match) return null;
 
   const idMatch = /^skill:([^/]+)\/(.+)$/.exec(match.skillId);
-  if (!idMatch) {
-    process.exit(0);
-    return;
-  }
+  if (!idMatch) return null;
   const [, plugin, skillName] = idMatch;
   const why = match.signals.map((s) => s.label).join(', ');
-  const message = `Consider the ${plugin}:${skillName} skill (matches ${why})`;
+  return `Consider the ${plugin}:${skillName} skill (matches ${why})`;
+}
 
+function main() {
   try {
-    process.stdout.write(
-      JSON.stringify({
-        hookSpecificOutput: {
-          hookEventName: 'UserPromptSubmit',
-          additionalContext: message,
-        },
-      }) + '\n'
-    );
+    const message = computeMessage();
+    if (message) {
+      process.stdout.write(
+        JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: 'UserPromptSubmit',
+            additionalContext: message,
+          },
+        }) + '\n'
+      );
+    }
   } catch (_err) {
+    // fail-silent contract: never surface an error to the user or Claude
+  } finally {
     process.exit(0);
-    return;
   }
-  process.exit(0);
 }
 
 main();
