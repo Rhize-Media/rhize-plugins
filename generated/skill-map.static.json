@@ -1,0 +1,2454 @@
+{
+  "edges": [
+    {
+      "from": "hook:rhize-context-manager/context-window-monitor",
+      "source": "relations-catalog",
+      "to": "external:ecc-suggest-compact",
+      "type": "replaces"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-align",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-capture",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-connect",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-daily",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-recall",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-research",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-review",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-search",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "hook:obsidian-second-brain/sessionstart-0-0",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "hook:obsidian-second-brain/vault-read-hint",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "hook:obsidian-second-brain/vault-write-hint",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/defuddle",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/json-canvas",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/obsidian-bases",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/obsidian-cli",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/obsidian-markdown",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/qmd-search",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/second-brain",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/vault-alignment",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/vault-templates",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "command:project-launcher/grill-prd",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "command:project-launcher/launch-project",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "command:project-launcher/scaffold-gsd",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "command:project-launcher/visual-plan",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "command:project-launcher/write-prd",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "hook:project-launcher/launcher-vault-hint",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "hook:project-launcher/sessionstart-0-0",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:project-launcher",
+      "source": "marketplace",
+      "to": "skill:project-launcher/rhize-visual-plan",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/context-doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/context-hygiene",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/context-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/done",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/impact-map",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/learn-harvest",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/skill-refine",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/start",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/context-window-monitor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/duplicate-check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/pre-commit-guard",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/refinement-detector",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/refinement-session-end",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/session-init",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/skill-suggester",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-compression",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-degradation",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-engineering",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-optimization",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-stack",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/filesystem-context",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/graphify",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/graphiti-memory",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/learning-curation",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/memory-systems",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/refinement-pipeline",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/tool-design",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/browser-debug",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/browser-help",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/browser-perf",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/browser-test",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/devflow-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/mutation-analyze",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/mutation-check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/mutation-fix",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/mutation-detector",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/prewrite-mutation-check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/protect-files",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/sentry-stale-data",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/sessionstart-0-0",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/chrome-devtools-mcp",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/data-mutation-consistency",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/error-lifecycle-management",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/sanity-development",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/sentry-instrumentation",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "command:rhize-ops/bump-version",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "command:rhize-ops/delegate-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "command:rhize-ops/rhize-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "skill:rhize-ops/delegate-to-teammate",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "skill:rhize-ops/skill-dashboard",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/ai-visibility",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/backlink-audit",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/code-seo-review",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/competitor-analysis",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/content-optimize",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/keyword-research",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/rank-track",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/seo-audit",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/serp-check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "command:seo-aeo-geo/technical-audit",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "hook:seo-aeo-geo/seo-edit-hint",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "hook:seo-aeo-geo/seo-read-hint",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "hook:seo-aeo-geo/sessionstart-0-0",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/backlink-intelligence",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/content-seo",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/keyword-intelligence",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/seo-site-audit",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:seo-aeo-geo",
+      "source": "marketplace",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "contains"
+    },
+    {
+      "from": "skill:obsidian-second-brain/defuddle",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/defuddle",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/defuddle",
+      "source": "frontmatter",
+      "to": "tag:topic/web-clipping",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/json-canvas",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/json-canvas",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/json-canvas",
+      "source": "frontmatter",
+      "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-bases",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-bases",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-bases",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-cli",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-cli",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-cli",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-markdown",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-markdown",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-markdown",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/qmd-search",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/qmd-search",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/qmd-search",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/second-brain",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/second-brain",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/second-brain",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-alignment",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-alignment",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-alignment",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-templates",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-templates",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-templates",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "context-compression",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/context-compression",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "source": "frontmatter",
+      "to": "tag:topic/context-compression",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "context-degradation",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/context-degradation",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-degradation",
+      "source": "frontmatter",
+      "to": "tag:topic/context-degradation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-degradation",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-engineering",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-engineering",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-engineering",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "context-fundamentals",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-fundamentals",
+      "source": "frontmatter",
+      "to": "tag:topic/context-optimization",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "context-optimization",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/context-optimization",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/context-optimization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-stack",
+      "source": "frontmatter",
+      "to": "tag:stack/context",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-stack",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-stack",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "filesystem-context",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/filesystem-context",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/filesystem-context",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/filesystem-context",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-graph",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-graph",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/learning-curation",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/learning-curation",
+      "source": "frontmatter",
+      "to": "tag:topic/learning-curation",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "memory-systems",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/memory-systems",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-systems",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-graph",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-systems",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/refinement-pipeline",
+      "source": "relations-catalog",
+      "to": "external:skill-forge",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-context-manager/refinement-pipeline",
+      "source": "frontmatter",
+      "to": "tag:stack/refinement",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/refinement-pipeline",
+      "source": "frontmatter",
+      "to": "tag:topic/learning-curation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/refinement-pipeline",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "driftCheck": {
+        "method": "manual",
+        "upstreamPath": "tool-design",
+        "upstreamRepo": "context-engineering-marketplace"
+      },
+      "from": "skill:rhize-context-manager/tool-design",
+      "source": "sources-md",
+      "to": "external:context-engineering-marketplace",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/tool-design",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/tool-design",
+      "source": "frontmatter",
+      "to": "tag:topic/tool-design",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/sanity",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:topic/data-consistency",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/dev-flow-foundations",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/dev-flow-foundations",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "tag:stack/vercel",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "source": "frontmatter",
+      "to": "tag:stack/sanity",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "source": "frontmatter",
+      "to": "tag:topic/cms-development",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/skill-dashboard",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/skill-dashboard",
+      "source": "frontmatter",
+      "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/ai-visibility",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/backlink-intelligence",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/backlink-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/backlink-analysis",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/backlink-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/content-seo",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/content-seo",
+      "source": "frontmatter",
+      "to": "tag:topic/content-optimization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/content-seo",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/keyword-intelligence",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/keyword-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/content-optimization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/keyword-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/keyword-research",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:stack/sanity",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:topic/cms-development",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:topic/content-optimization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/seo-site-audit",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/seo-site-audit",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/seo-site-audit",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/serp-intelligence",
+      "source": "frontmatter",
+      "to": "tag:stack/seo",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/serp-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/rank-tracking",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/serp-intelligence",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    }
+  ],
+  "nodes": [
+    {
+      "description": "Vault health monitor — check alignment, analyze specific areas, fix issues, bulk migrate, audit plugins",
+      "id": "command:obsidian-second-brain/vault-align",
+      "kind": "command",
+      "name": "vault-align",
+      "path": "obsidian-second-brain/commands/vault-align.md"
+    },
+    {
+      "description": "Quick-capture a note, idea, or task to your Obsidian vault",
+      "id": "command:obsidian-second-brain/vault-capture",
+      "kind": "command",
+      "name": "vault-capture",
+      "path": "obsidian-second-brain/commands/vault-capture.md"
+    },
+    {
+      "description": "Find and build missing connections between related vault notes",
+      "id": "command:obsidian-second-brain/vault-connect",
+      "kind": "command",
+      "name": "vault-connect",
+      "path": "obsidian-second-brain/commands/vault-connect.md"
+    },
+    {
+      "description": "Read, summarize, or add to today's daily note",
+      "id": "command:obsidian-second-brain/vault-daily",
+      "kind": "command",
+      "name": "vault-daily",
+      "path": "obsidian-second-brain/commands/vault-daily.md"
+    },
+    {
+      "description": "Ask your vault a natural language question and get a synthesized answer",
+      "id": "command:obsidian-second-brain/vault-recall",
+      "kind": "command",
+      "name": "vault-recall",
+      "path": "obsidian-second-brain/commands/vault-recall.md"
+    },
+    {
+      "description": "Research a topic or URL — clip, summarize, and connect to your vault",
+      "id": "command:obsidian-second-brain/vault-research",
+      "kind": "command",
+      "name": "vault-research",
+      "path": "obsidian-second-brain/commands/vault-research.md"
+    },
+    {
+      "description": "Periodic review — summarize captures, surface themes, plan ahead",
+      "id": "command:obsidian-second-brain/vault-review",
+      "kind": "command",
+      "name": "vault-review",
+      "path": "obsidian-second-brain/commands/vault-review.md"
+    },
+    {
+      "description": "Search your Obsidian vault for notes, tags, or content",
+      "id": "command:obsidian-second-brain/vault-search",
+      "kind": "command",
+      "name": "vault-search",
+      "path": "obsidian-second-brain/commands/vault-search.md"
+    },
+    {
+      "description": "Interactive setup wizard — build a personalized vault system with folders, templates, dashboards, and recommended plugins",
+      "id": "command:obsidian-second-brain/vault-setup",
+      "kind": "command",
+      "name": "vault-setup",
+      "path": "obsidian-second-brain/commands/vault-setup.md"
+    },
+    {
+      "description": "Critically analyze a PRD for architectural and technical gaps",
+      "id": "command:project-launcher/grill-prd",
+      "kind": "command",
+      "name": "grill-prd",
+      "path": "project-launcher/commands/grill-prd.md"
+    },
+    {
+      "description": "Full project launcher — research, PRD, gap analysis, scaffold, GSD v2 handoff",
+      "id": "command:project-launcher/launch-project",
+      "kind": "command",
+      "name": "launch-project",
+      "path": "project-launcher/commands/launch-project.md"
+    },
+    {
+      "description": "Scaffold a project directory and prepare for GSD v2 autonomous handoff",
+      "id": "command:project-launcher/scaffold-gsd",
+      "kind": "command",
+      "name": "scaffold-gsd",
+      "path": "project-launcher/commands/scaffold-gsd.md"
+    },
+    {
+      "description": "Turn a plan or PRD into a rich, reviewable .mdx visual plan — diagrams, wireframes, file maps, data/API contracts — rendered in Next.js and the Obsidian vault",
+      "id": "command:project-launcher/visual-plan",
+      "kind": "command",
+      "name": "visual-plan",
+      "path": "project-launcher/commands/visual-plan.md"
+    },
+    {
+      "description": "Generate a PRD through research, interviews, and critical gap analysis",
+      "id": "command:project-launcher/write-prd",
+      "kind": "command",
+      "name": "write-prd",
+      "path": "project-launcher/commands/write-prd.md"
+    },
+    {
+      "description": "Health-check the full Rhize context stack — Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK — and flag overlap, drift, or dead layers",
+      "id": "command:rhize-context-manager/context-doctor",
+      "kind": "command",
+      "name": "context-doctor",
+      "path": "rhize-context-manager/commands/context-doctor.md"
+    },
+    {
+      "description": "Mid-session context cleanup — manage context window and session health during long development sessions",
+      "id": "command:rhize-context-manager/context-hygiene",
+      "kind": "command",
+      "name": "context-hygiene",
+      "path": "rhize-context-manager/commands/context-hygiene.md"
+    },
+    {
+      "description": "Repo-level setup wizard — scan the repo, probe the active context stack, propose a tailored per-repo config, and write it on confirmation",
+      "id": "command:rhize-context-manager/context-setup",
+      "kind": "command",
+      "name": "context-setup",
+      "path": "rhize-context-manager/commands/context-setup.md"
+    },
+    {
+      "description": "Session bookend — post-implementation validation, verifier pass, and STATE.md update before commit",
+      "id": "command:rhize-context-manager/done",
+      "kind": "command",
+      "name": "done",
+      "path": "rhize-context-manager/commands/done.md"
+    },
+    {
+      "description": "Pre-feature impact mapping — map dependencies against the component registry before implementing changes",
+      "id": "command:rhize-context-manager/impact-map",
+      "kind": "command",
+      "name": "impact-map",
+      "path": "rhize-context-manager/commands/impact-map.md"
+    },
+    {
+      "description": "Harvest refinement signals (headroom learn, claude-mem observations, skill-monitor deltas) into the pending-refinement queue for human triage — writes the queue only, never skills or CLAUDE.md",
+      "id": "command:rhize-context-manager/learn-harvest",
+      "kind": "command",
+      "name": "learn-harvest",
+      "path": "rhize-context-manager/commands/learn-harvest.md"
+    },
+    {
+      "description": "Operate the gated skill-refinement pipeline — `review` triages queued signals to target skills; `run` evolves each targeted skill via skill-forge (SkillOpt + safety re-gate) with auto-promote for gate-passing SKILL.md edits",
+      "id": "command:rhize-context-manager/skill-refine",
+      "kind": "command",
+      "name": "skill-refine",
+      "path": "rhize-context-manager/commands/skill-refine.md"
+    },
+    {
+      "description": "Session bookend — initialize a development session with full context loading (STATE.md, memory, session log)",
+      "id": "command:rhize-context-manager/start",
+      "kind": "command",
+      "name": "start",
+      "path": "rhize-context-manager/commands/start.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/browser-debug",
+      "kind": "command",
+      "name": "browser-debug",
+      "path": "rhize-devflow/commands/browser-debug.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/browser-help",
+      "kind": "command",
+      "name": "browser-help",
+      "path": "rhize-devflow/commands/browser-help.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/browser-perf",
+      "kind": "command",
+      "name": "browser-perf",
+      "path": "rhize-devflow/commands/browser-perf.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/browser-test",
+      "kind": "command",
+      "name": "browser-test",
+      "path": "rhize-devflow/commands/browser-test.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/devflow-setup",
+      "kind": "command",
+      "name": "devflow-setup",
+      "path": "rhize-devflow/commands/devflow-setup.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/mutation-analyze",
+      "kind": "command",
+      "name": "mutation-analyze",
+      "path": "rhize-devflow/commands/mutation-analyze.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/mutation-check",
+      "kind": "command",
+      "name": "mutation-check",
+      "path": "rhize-devflow/commands/mutation-check.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-devflow/mutation-fix",
+      "kind": "command",
+      "name": "mutation-fix",
+      "path": "rhize-devflow/commands/mutation-fix.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-ops/bump-version",
+      "kind": "command",
+      "name": "bump-version",
+      "path": "rhize-ops/commands/bump-version.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-ops/delegate-setup",
+      "kind": "command",
+      "name": "delegate-setup",
+      "path": "rhize-ops/commands/delegate-setup.md"
+    },
+    {
+      "description": "",
+      "id": "command:rhize-ops/rhize-setup",
+      "kind": "command",
+      "name": "rhize-setup",
+      "path": "rhize-ops/commands/rhize-setup.md"
+    },
+    {
+      "description": "Check AI/LLM visibility and AEO/GEO optimization status",
+      "id": "command:seo-aeo-geo/ai-visibility",
+      "kind": "command",
+      "name": "ai-visibility",
+      "path": "seo-aeo-geo/commands/ai-visibility.md"
+    },
+    {
+      "description": "Analyze a domain's backlink profile and find opportunities",
+      "id": "command:seo-aeo-geo/backlink-audit",
+      "kind": "command",
+      "name": "backlink-audit",
+      "path": "seo-aeo-geo/commands/backlink-audit.md"
+    },
+    {
+      "description": "Review a Next.js/Sanity codebase for SEO implementation issues",
+      "id": "command:seo-aeo-geo/code-seo-review",
+      "kind": "command",
+      "name": "code-seo-review",
+      "path": "seo-aeo-geo/commands/code-seo-review.md"
+    },
+    {
+      "description": "Compare SEO performance against competitors",
+      "id": "command:seo-aeo-geo/competitor-analysis",
+      "kind": "command",
+      "name": "competitor-analysis",
+      "path": "seo-aeo-geo/commands/competitor-analysis.md"
+    },
+    {
+      "description": "Optimize a page's content for SEO, AEO, and structured data",
+      "id": "command:seo-aeo-geo/content-optimize",
+      "kind": "command",
+      "name": "content-optimize",
+      "path": "seo-aeo-geo/commands/content-optimize.md"
+    },
+    {
+      "description": "Research and analyze keywords for SEO targeting",
+      "id": "command:seo-aeo-geo/keyword-research",
+      "kind": "command",
+      "name": "keyword-research",
+      "path": "seo-aeo-geo/commands/keyword-research.md"
+    },
+    {
+      "description": "Track keyword rankings and visibility trends over time",
+      "id": "command:seo-aeo-geo/rank-track",
+      "kind": "command",
+      "name": "rank-track",
+      "path": "seo-aeo-geo/commands/rank-track.md"
+    },
+    {
+      "description": "Run a comprehensive SEO audit on a website or page",
+      "id": "command:seo-aeo-geo/seo-audit",
+      "kind": "command",
+      "name": "seo-audit",
+      "path": "seo-aeo-geo/commands/seo-audit.md"
+    },
+    {
+      "description": "Check SERP features and rankings for keywords",
+      "id": "command:seo-aeo-geo/serp-check",
+      "kind": "command",
+      "name": "serp-check",
+      "path": "seo-aeo-geo/commands/serp-check.md"
+    },
+    {
+      "description": "Run a technical SEO audit (Core Web Vitals, crawlability, indexation)",
+      "id": "command:seo-aeo-geo/technical-audit",
+      "kind": "command",
+      "name": "technical-audit",
+      "path": "seo-aeo-geo/commands/technical-audit.md"
+    },
+    {
+      "id": "external:context-engineering-marketplace",
+      "kind": "external",
+      "name": "context-engineering-marketplace"
+    },
+    {
+      "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker.",
+      "id": "external:ecc-suggest-compact",
+      "kind": "external",
+      "name": "ecc pre:edit-write:suggest-compact hook"
+    },
+    {
+      "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on.",
+      "id": "external:skill-forge",
+      "kind": "external",
+      "name": "@rhize/skill-forge"
+    },
+    {
+      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
+      "event": "SessionStart",
+      "id": "hook:obsidian-second-brain/sessionstart-0-0",
+      "kind": "hook",
+      "matcher": "",
+      "name": "sessionstart-0-0",
+      "owner": "obsidian-second-brain",
+      "path": "obsidian-second-brain/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py",
+      "event": "PostToolUse",
+      "id": "hook:obsidian-second-brain/vault-read-hint",
+      "kind": "hook",
+      "matcher": "Read",
+      "name": "vault-read-hint",
+      "owner": "obsidian-second-brain",
+      "path": "obsidian-second-brain/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-write-hint.py",
+      "event": "PreToolUse",
+      "id": "hook:obsidian-second-brain/vault-write-hint",
+      "kind": "hook",
+      "matcher": "Write|Edit",
+      "name": "vault-write-hint",
+      "owner": "obsidian-second-brain",
+      "path": "obsidian-second-brain/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py",
+      "event": "PreToolUse",
+      "id": "hook:project-launcher/launcher-vault-hint",
+      "kind": "hook",
+      "matcher": "Write|Edit",
+      "name": "launcher-vault-hint",
+      "owner": "project-launcher",
+      "path": "project-launcher/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
+      "event": "SessionStart",
+      "id": "hook:project-launcher/sessionstart-0-0",
+      "kind": "hook",
+      "matcher": "",
+      "name": "sessionstart-0-0",
+      "owner": "project-launcher",
+      "path": "project-launcher/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-window-monitor.js\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/context-window-monitor",
+      "kind": "hook",
+      "matcher": "Edit|Write",
+      "name": "context-window-monitor",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/duplicate-check.sh",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/duplicate-check",
+      "kind": "hook",
+      "matcher": "Write",
+      "name": "duplicate-check",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/pre-commit-guard.sh",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/pre-commit-guard",
+      "kind": "hook",
+      "matcher": "Bash",
+      "name": "pre-commit-guard",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__refinement-detector.sh",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/refinement-detector",
+      "kind": "hook",
+      "matcher": "",
+      "name": "refinement-detector",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__session-end.sh",
+      "event": "Stop",
+      "id": "hook:rhize-context-manager/refinement-session-end",
+      "kind": "hook",
+      "matcher": "",
+      "name": "refinement-session-end",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/session-init.sh",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/session-init",
+      "kind": "hook",
+      "matcher": "",
+      "name": "session-init",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/skill-suggester.sh",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/skill-suggester",
+      "kind": "hook",
+      "matcher": "",
+      "name": "skill-suggester",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-devflow/mutation-detector",
+      "kind": "hook",
+      "matcher": "",
+      "name": "mutation-detector",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__prewrite-check.sh",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/prewrite-mutation-check",
+      "kind": "hook",
+      "matcher": "Write|Edit",
+      "name": "prewrite-mutation-check",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-files.sh",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/protect-files",
+      "kind": "hook",
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+      "name": "protect-files",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__sentry-stale-data.sh",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-devflow/sentry-stale-data",
+      "kind": "hook",
+      "matcher": "",
+      "name": "sentry-stale-data",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
+      "event": "SessionStart",
+      "id": "hook:rhize-devflow/sessionstart-0-0",
+      "kind": "hook",
+      "matcher": "",
+      "name": "sessionstart-0-0",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py",
+      "event": "PreToolUse",
+      "id": "hook:seo-aeo-geo/seo-edit-hint",
+      "kind": "hook",
+      "matcher": "Write|Edit",
+      "name": "seo-edit-hint",
+      "owner": "seo-aeo-geo",
+      "path": "seo-aeo-geo/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-read-hint.py",
+      "event": "PostToolUse",
+      "id": "hook:seo-aeo-geo/seo-read-hint",
+      "kind": "hook",
+      "matcher": "Read",
+      "name": "seo-read-hint",
+      "owner": "seo-aeo-geo",
+      "path": "seo-aeo-geo/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
+      "event": "SessionStart",
+      "id": "hook:seo-aeo-geo/sessionstart-0-0",
+      "kind": "hook",
+      "matcher": "",
+      "name": "sessionstart-0-0",
+      "owner": "seo-aeo-geo",
+      "path": "seo-aeo-geo/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
+      "id": "plugin:obsidian-second-brain",
+      "kind": "plugin",
+      "name": "obsidian-second-brain",
+      "path": "obsidian-second-brain"
+    },
+    {
+      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
+      "id": "plugin:project-launcher",
+      "kind": "plugin",
+      "name": "project-launcher",
+      "path": "project-launcher"
+    },
+    {
+      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them.",
+      "id": "plugin:rhize-context-manager",
+      "kind": "plugin",
+      "name": "rhize-context-manager",
+      "path": "rhize-context-manager"
+    },
+    {
+      "description": "Rhize development-workflow skill set — production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager.",
+      "id": "plugin:rhize-devflow",
+      "kind": "plugin",
+      "name": "rhize-devflow",
+      "path": "rhize-devflow"
+    },
+    {
+      "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
+      "id": "plugin:rhize-ops",
+      "kind": "plugin",
+      "name": "rhize-ops",
+      "path": "rhize-ops"
+    },
+    {
+      "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
+      "id": "plugin:seo-aeo-geo",
+      "kind": "plugin",
+      "name": "seo-aeo-geo",
+      "path": "seo-aeo-geo"
+    },
+    {
+      "contentHash": "c0eb07a5cef04b021ebef59bbb4945913e7f7411d6a3c8faf13c744e11d3f0fa",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. Extract clean, readable markdown from web pages using the Defuddle CLI tool, stripping navigation, ads, and clutter. Use this skill when someone wants to save web content to their Obsidian vault, clip articles, extract clean text from URLs, convert web pages to markdown, or reduce token usage when processing web content. Also triggers on \"web clipper\", \"save article\", \"extract webpage\", \"clean HTML\", or \"convert URL to markdown\". Prefer Defuddle over raw WebFetch for standard web pages, articles, docs, and blog posts.",
+      "id": "skill:obsidian-second-brain/defuddle",
+      "kind": "skill",
+      "name": "defuddle",
+      "path": "obsidian-second-brain/skills/defuddle/SKILL.md"
+    },
+    {
+      "contentHash": "b3ac193bc78db86cc5f8e8d17eda0f12fa6bf585094582b2dc01df66b0de341c",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0 with nodes, edges, groups, and visual connections. Use this skill when someone asks about creating or editing Obsidian canvases, building visual knowledge maps, node diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas files. Also triggers on \"JSON Canvas\", \"canvas file\", \"visual board\", \"Obsidian whiteboard\", or requests to create visual note connections.",
+      "id": "skill:obsidian-second-brain/json-canvas",
+      "kind": "skill",
+      "name": "json-canvas",
+      "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
+    },
+    {
+      "contentHash": "c580a1ebb0f422a2a97257054ae17c5761085d4257be4441b6ef1edd787ccda2",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. Create and edit Obsidian Base files (.base) for database-like views, filters, formulas, and data summaries within your vault. Use this skill whenever someone asks about Obsidian Bases, creating database views, filtering notes by properties, building task trackers, reading lists, project dashboards, or any structured data view in Obsidian. Also triggers on \".base files\", \"Obsidian database\", \"note database\", \"vault database\", or questions about filters, formulas, and summaries in the context of Obsidian.",
+      "id": "skill:obsidian-second-brain/obsidian-bases",
+      "kind": "skill",
+      "name": "obsidian-bases",
+      "path": "obsidian-second-brain/skills/obsidian-bases/SKILL.md"
+    },
+    {
+      "contentHash": "630a08d5cb76630c16de5af6bc419c0d69c896544b584b19f9a3f22f6a861485",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian CLI or terminal automation request. Execute Obsidian vault operations via the official command-line interface (v1.12.4+). Covers reading, creating, searching, and managing notes, tasks, properties, tags, links, daily notes, sync, publish, and plugin/theme development workflows. Use this skill whenever someone asks about Obsidian CLI commands, wants to automate vault operations from the terminal, build shell scripts for Obsidian, manage daily notes programmatically, develop Obsidian plugins/themes with CLI tooling, or integrate Obsidian with AI agents via the CLI. Also use when someone mentions \"obsidian\" combined with terminal, command line, shell, script, automation, cron, or developer tools.",
+      "id": "skill:obsidian-second-brain/obsidian-cli",
+      "kind": "skill",
+      "name": "obsidian-cli",
+      "path": "obsidian-second-brain/skills/obsidian-cli/SKILL.md"
+    },
+    {
+      "contentHash": "645eb0339982c5e7bdd25232f9351781d6d10eaf382d9fcf66945912be5ac937",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian markdown syntax or formatting request. Create and edit Obsidian-flavored Markdown files (.md) with wikilinks, embeds, callouts, properties, block references, comments, and other Obsidian-specific syntax. Use this skill whenever someone asks about writing notes in Obsidian, formatting Obsidian markdown, using wikilinks or internal links, embedding files, creating callouts, managing YAML frontmatter/properties, or any Obsidian markdown syntax question. Also triggers on mentions of Obsidian note formatting, block references, nested tags, or Obsidian-specific markdown extensions.",
+      "id": "skill:obsidian-second-brain/obsidian-markdown",
+      "kind": "skill",
+      "name": "obsidian-markdown",
+      "path": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md"
+    },
+    {
+      "contentHash": "564f1f7b296177b1bf5e257cd4b7f52c2ceb94972079f449d8c8d0b1bfef7221",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text, vector semantic search, and LLM re-ranking. Use this skill when someone asks about setting up qmd, configuring vault indexing, choosing between search modes (BM25 vs vector vs hybrid), connecting qmd's MCP server to Claude, troubleshooting search quality, or understanding how qmd works. Also triggers on \"semantic search\", \"vector search\", \"qmd\", \"embed vault\", \"vault indexing\", \"search my notes by meaning\", \"find similar notes\", or \"natural language vault search\".",
+      "id": "skill:obsidian-second-brain/qmd-search",
+      "kind": "skill",
+      "name": "qmd-search",
+      "path": "obsidian-second-brain/skills/qmd-search/SKILL.md"
+    },
+    {
+      "contentHash": "f69fff1a46042fbcce95d71e5656a8eac17027d99b0d13ee421008c93737282d",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. Personal knowledge management methodology for Obsidian vaults — Zettelkasten, PARA, Maps of Content (MOCs), progressive summarization, and atomic notes. Use this skill whenever someone asks about organizing their vault as a second brain, building a knowledge system, creating MOCs or maps of content, linking notes together strategically, applying Zettelkasten or PARA methods, structuring a PKM workflow, deciding where a note should live, or asking \"how should I organize this?\" in the context of Obsidian. Also triggers on \"evergreen notes\", \"literature notes\", \"fleeting notes\", \"permanent notes\", \"note-taking system\", \"knowledge graph\", \"linking my thinking\", or \"connect my notes\".",
+      "id": "skill:obsidian-second-brain/second-brain",
+      "kind": "skill",
+      "name": "second-brain",
+      "path": "obsidian-second-brain/skills/second-brain/SKILL.md"
+    },
+    {
+      "contentHash": "7b509cd00d8be8fb34076409556820fd923ab3c9fff2534a2022c6e7b26ad4c4",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. Vault health assessment and ongoing alignment with second-brain best practices. Use this skill when someone asks about improving their vault organization, wants to know if their vault follows best practices, asks \"how healthy is my vault\", mentions vault drift or inconsistency, wants to audit their knowledge system, or asks about maintaining their second brain over time. Also triggers on \"vault health\", \"organization check\", \"vault audit\", \"clean up my vault\", \"improve my vault\", \"vault maintenance\", \"align my vault\", \"reorganize my vault\", or \"my vault is messy\". Use this proactively when you notice vault organization issues during other vault operations.",
+      "id": "skill:obsidian-second-brain/vault-alignment",
+      "kind": "skill",
+      "name": "vault-alignment",
+      "path": "obsidian-second-brain/skills/vault-alignment/SKILL.md"
+    },
+    {
+      "contentHash": "6214fbc1a34b893e1d9b16ae5dee7f0189b47b18456a668d8ed49876cbd2a31b",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. Library of proven note templates and archetypes for Obsidian vaults — meeting notes, book reviews, project briefs, weekly reviews, literature notes, permanent notes, and more. Use this skill when someone asks to create a specific type of note (e.g., \"meeting note\", \"book review\", \"project brief\"), wants a template for a recurring note type, asks about frontmatter conventions for different note types, or says things like \"set up a template for\", \"what properties should a X note have\", or \"create a note for my meeting/book/project/review\". Also triggers on \"note template\", \"note archetype\", \"weekly review template\", \"daily template\", or any request to scaffold a structured note.",
+      "id": "skill:obsidian-second-brain/vault-templates",
+      "kind": "skill",
+      "name": "vault-templates",
+      "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
+    },
+    {
+      "contentHash": "8337ed6cb520b879ce7d5e92de616b6f96b405652feee8a589ba2e2471cbc262",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
+      "id": "skill:project-launcher/project-launcher",
+      "kind": "skill",
+      "name": "project-launcher",
+      "path": "project-launcher/skills/project-launcher/SKILL.md"
+    },
+    {
+      "contentHash": "28e6f49edad3895b9675606fef60e7e75c322a2c407efbfedba9dd2a5fcebf2b",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
+      "id": "skill:project-launcher/rhize-visual-plan",
+      "kind": "skill",
+      "name": "rhize-visual-plan",
+      "path": "project-launcher/skills/rhize-visual-plan/SKILL.md"
+    },
+    {
+      "contentHash": "ab17b73f59b8619432213b71fbd648904ff881b35a66d74a2e0763711be06123",
+      "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
+      "id": "skill:rhize-context-manager/context-compression",
+      "kind": "skill",
+      "name": "context-compression",
+      "path": "rhize-context-manager/skills/context-compression/SKILL.md"
+    },
+    {
+      "contentHash": "6ecf2fe07c51ea54df5b7af10c30c98e8d3207ae3a42c7078ccadf8cf74ee378",
+      "description": "This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, context confusion, attention-pattern issues, and agent performance degradation caused by accumulated or conflicting context.",
+      "id": "skill:rhize-context-manager/context-degradation",
+      "kind": "skill",
+      "name": "context-degradation",
+      "path": "rhize-context-manager/skills/context-degradation/SKILL.md"
+    },
+    {
+      "contentHash": "3a565eb739bb590a3d781eba6684543834866b528adb6bd440de5229378712d5",
+      "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
+      "id": "skill:rhize-context-manager/context-engineering",
+      "kind": "skill",
+      "name": "context-engineering",
+      "path": "rhize-context-manager/skills/context-engineering/SKILL.md"
+    },
+    {
+      "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
+      "description": "This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a context window, how attention mechanics work, the U-shaped attention curve, why context quality matters more than quantity, and the mental models needed to interpret every other context-engineering decision. Use this for conceptual explanation, onboarding, and background reading. Route operational work to the specialized skills: debugging attention failures goes to context-degradation, token-efficiency work goes to context-optimization, conversation summarization goes to context-compression, and project-shape decisions go to project-development.",
+      "id": "skill:rhize-context-manager/context-fundamentals",
+      "kind": "skill",
+      "name": "context-fundamentals",
+      "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md"
+    },
+    {
+      "contentHash": "8005848a5b32cc8559ba3fede33754d26a30bab5283cb83e8a84d1bbe33600de",
+      "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
+      "id": "skill:rhize-context-manager/context-optimization",
+      "kind": "skill",
+      "name": "context-optimization",
+      "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
+    },
+    {
+      "contentHash": "eeda745293b712580404cdb02c744d39f4ae8931368fe0a353b5a17237409201",
+      "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Graphiti, Obsidian), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
+      "id": "skill:rhize-context-manager/context-stack",
+      "kind": "skill",
+      "name": "context-stack",
+      "path": "rhize-context-manager/skills/context-stack/SKILL.md"
+    },
+    {
+      "contentHash": "5acd70b0aab1bc078f27af8c0d663d8070a14b98d7d3011526029d41d0207713",
+      "description": "This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, cross-agent handoff files, filesystem memory, or cleanup policies for context stored outside the prompt.",
+      "id": "skill:rhize-context-manager/filesystem-context",
+      "kind": "skill",
+      "name": "filesystem-context",
+      "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
+    },
+    {
+      "contentHash": "9c522dad0f1a883bcf0c8441bf206517d55b4e22c68acc4a94542a93d4eeb49d",
+      "description": "Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, where the question should be treated as a graphify query first. Turns any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools.",
+      "id": "skill:rhize-context-manager/graphify",
+      "kind": "skill",
+      "name": "graphify",
+      "path": "rhize-context-manager/skills/graphify/SKILL.md"
+    },
+    {
+      "contentHash": "3e2ba47e8de73d090633232a233395dd39736dc7c1caa8505ef9c5434fb571d1",
+      "description": "Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. Use when the user wants queryable long-term agent memory with entities, relationships, and time-awareness (beyond claude-mem's observation stream), when setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem, graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this plugin documents the wiring but does not install or require it.",
+      "id": "skill:rhize-context-manager/graphiti-memory",
+      "kind": "skill",
+      "name": "graphiti-memory",
+      "path": "rhize-context-manager/skills/graphiti-memory/SKILL.md"
+    },
+    {
+      "contentHash": "be8884372f0d2a0d920cc796f250efdab840d1059de7e4d424135dc70d1b26c7",
+      "description": "This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it so it actually fires: always-loaded config, a reference skill, a hook, or nowhere. Covers drop tests, redundancy and contradiction resolution, the retrieval-cue placement test, and rule phrasing that survives contact with a future session. Route memory *architecture* (vector stores, knowledge graphs, temporal validity) to memory-systems, context-consumption audits to context-budget, and session handoff summaries to context-compression.",
+      "id": "skill:rhize-context-manager/learning-curation",
+      "kind": "skill",
+      "name": "learning-curation",
+      "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
+    },
+    {
+      "contentHash": "e05050d3e4314939fc62558992e85abc2d90b8921343a2083634a04653807a89",
+      "description": "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization.",
+      "id": "skill:rhize-context-manager/memory-systems",
+      "kind": "skill",
+      "name": "memory-systems",
+      "path": "rhize-context-manager/skills/memory-systems/SKILL.md"
+    },
+    {
+      "contentHash": "955b0801f243939546af5b8d3d60bc6188d1b1add113bba0de6522d141b69870",
+      "description": "Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged queue, then skill-forge evolve (SkillOpt-Sleep + safety re-gate) refines target skills with auto-promote for gate-passing SKILL.md edits. Use when the user says \"harvest learnings\", \"refine skills\", \"drain the refinement queue\", asks where headroom learn output should go, or when a scheduled refinement pass needs its rules.",
+      "id": "skill:rhize-context-manager/refinement-pipeline",
+      "kind": "skill",
+      "name": "refinement-pipeline",
+      "path": "rhize-context-manager/skills/refinement-pipeline/SKILL.md"
+    },
+    {
+      "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
+      "description": "This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, designing tool schemas and response formats, naming conventions, actionable error recovery messages, MCP server design, tool-set consolidation, and deciding when to add or remove an individual tool. Use this when the unit of work is a single tool or a set of tools. Route project-shape, pipeline architecture, and task-model-fit decisions to project-development; route deciding whether to introduce sub-agents to multi-agent-patterns.",
+      "id": "skill:rhize-context-manager/tool-design",
+      "kind": "skill",
+      "name": "tool-design",
+      "path": "rhize-context-manager/skills/tool-design/SKILL.md"
+    },
+    {
+      "contentHash": "a20655541f64b00060c3ca39629e0608415aad6c247624168422ee7f734734af",
+      "description": "Browser automation, debugging, and performance analysis via the official Google Chrome DevTools MCP server (Puppeteer-backed, wait-aware). Use when the user wants to \"test in browser\", \"check performance\", \"debug network\", \"take a screenshot\", \"fill a form\", inspect \"console errors\", \"inspect the page\", \"automate the browser\", diagnose \"CORS issues\", or run a \"lighthouse audit\" — including Core Web Vitals traces, network waterfalls, and visual checks on Next.js/Sanity/Payload preview URLs. Pairs with gsd-browser-harness; prefer this for DevTools-protocol performance and network introspection.",
+      "id": "skill:rhize-devflow/chrome-devtools-mcp",
+      "kind": "skill",
+      "name": "chrome-devtools-mcp",
+      "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
+    },
+    {
+      "contentHash": "315457b6cd69f7bae642f8528e558d4d67d7a8c457bba439aaf9f5612699ae9a",
+      "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check, and mutation-fix.",
+      "id": "skill:rhize-devflow/data-mutation-consistency",
+      "kind": "skill",
+      "name": "data-mutation-consistency",
+      "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
+    },
+    {
+      "contentHash": "6a7a1b17e7650312741a77a2908d9d5a5ee2061f740bf04028114b55c03c36f5",
+      "description": "Foundational workflow patterns for large-codebase development — dependency-graph impact mapping, component/function registry to prevent duplication, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"component registry\", \"why did this break again\", or wants to set up durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
+      "id": "skill:rhize-devflow/dev-flow-foundations",
+      "kind": "skill",
+      "name": "dev-flow-foundations",
+      "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md"
+    },
+    {
+      "contentHash": "8a5c88335c027f6f8b47c9aa897909c8b308ef7b244aed87efe2e90b4e29498b",
+      "description": "End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use whenever the user mentions an \"error\", \"bug\", \"crash\", \"exception\", \"stack trace\", \"500/404\", \"timeout\", \"failed deployment\", \"production issue/incident\", \"memory leak\", \"bundle size\", or something is \"slow\" or \"broken\" — and when correlating an error spike to a recent deploy or commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident protocol); complements the official engineering:* and sentry:* skills.",
+      "id": "skill:rhize-devflow/error-lifecycle-management",
+      "kind": "skill",
+      "name": "error-lifecycle-management",
+      "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md"
+    },
+    {
+      "contentHash": "b2a47cdfed5f4482b2baa5e4be6a92e4de7db6bc3ce843dbfab55ac9f2697bd9",
+      "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
+      "id": "skill:rhize-devflow/sanity-development",
+      "kind": "skill",
+      "name": "sanity-development",
+      "path": "rhize-devflow/skills/sanity-development/SKILL.md"
+    },
+    {
+      "contentHash": "3af264ec73552a21daca07dc408152a2988e9ec63ea03890ae9d347e3d60cb3d",
+      "description": "Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (startSpan), and structured logging (logger.fmt). Use when the user wants to \"add Sentry\", \"capture exception\", \"add tracing/spans\", \"instrument\" an API call or user interaction, or \"set up structured logging\" in app code. This is the write-the-code companion to error-lifecycle-management (which handles triage/RCA); for full per-framework SDK setup defer to the official sentry:* developer-kit skills and keep this for Rhize house patterns.",
+      "id": "skill:rhize-devflow/sentry-instrumentation",
+      "kind": "skill",
+      "name": "sentry-instrumentation",
+      "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md"
+    },
+    {
+      "contentHash": "2166a2b8abcf33e8987cce32a22dd2865514c7682c9613440ce53f008c33fa94",
+      "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"[name] should handle this\", \"send this to [name]\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json (run `/rhize-ops:delegate-setup` first if no config exists). This skill handles the full delegation pipeline: context gathering, optional meeting-transcript enrichment, task formatting, Jira issue creation, and Slack notification with a mention — gracefully skipping the Jira and/or Slack steps if those integrations aren't marked ready in the config.",
+      "id": "skill:rhize-ops/delegate-to-teammate",
+      "kind": "skill",
+      "name": "delegate-to-teammate",
+      "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
+    },
+    {
+      "contentHash": "5df2589a7ea106ded41f75a8e003a36cb93606734ff485f3d512641ee58da06e",
+      "description": "Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in ${CLAUDE_PLUGIN_ROOT}/skill-monitor/data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says \"show the skill dashboard\", \"render the audit dashboard\", \"skill usage dashboard\", \"/skill-dashboard\", or asks to visualize skill-monitor data.",
+      "id": "skill:rhize-ops/skill-dashboard",
+      "kind": "skill",
+      "name": "skill-dashboard",
+      "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
+    },
+    {
+      "contentHash": "bd9d5a862833073ea8fe0a511e2d8bd3cc34ced2d2ace8778d505c8b1b5db00c",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "id": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "kind": "skill",
+      "name": "aeo-geo-optimization",
+      "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md"
+    },
+    {
+      "contentHash": "b1bedba2a7ccf0e0c14c79a95c0ddff2750dc2e25d3c6fe70d515c7c8873255e",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "id": "skill:seo-aeo-geo/backlink-intelligence",
+      "kind": "skill",
+      "name": "backlink-intelligence",
+      "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md"
+    },
+    {
+      "contentHash": "85c12f7fa0a24db826bdff231814b15da3c00c9db2c4f9199c709cc0ab36872b",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
+      "id": "skill:seo-aeo-geo/content-seo",
+      "kind": "skill",
+      "name": "content-seo",
+      "path": "seo-aeo-geo/skills/content-seo/SKILL.md"
+    },
+    {
+      "contentHash": "54ff370b1e388c1b2af684aac391487f4f70721833073880fa2e7d19fd9253cf",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data and Labs APIs. Triggers on: \"find keywords\", \"keyword research\", \"keyword analysis\", \"keyword gap analysis\", \"keyword clustering\", \"find search terms\", \"what keywords should I target\", \"competitor keyword analysis\", \"keyword difficulty check\", \"search volume data\", \"long-tail keywords\", \"question keywords\", \"People Also Ask keywords\", \"keyword opportunities\", \"content gap analysis\", \"what are people searching for\", \"keyword cannibalization check\", \"keyword mapping\", or any request involving discovering, analyzing, or prioritizing keywords for SEO or content strategy. Also triggers on \"decision-stage keywords\", \"commercial intent keywords\", \"informational keywords\", \"compare keywords\", \"keyword trends\", or \"seasonal keywords\". Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.",
+      "id": "skill:seo-aeo-geo/keyword-intelligence",
+      "kind": "skill",
+      "name": "keyword-intelligence",
+      "path": "seo-aeo-geo/skills/keyword-intelligence/SKILL.md"
+    },
+    {
+      "contentHash": "87cb6cd5a516ad0a784a93091017f0b3f0afbad5c48b846e6ef19a2c69e90997",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. SEO implementation patterns for Next.js and Sanity CMS codebases. Triggers on: \"Next.js SEO\", \"Sanity SEO\", \"Next.js metadata\", \"generateMetadata\", \"Sanity schema for SEO\", \"structured data in Next.js\", \"JSON-LD in Next.js\", \"sitemap.ts\", \"robots.ts\", \"next/image SEO\", \"Sanity GROQ for SEO\", \"Open Graph in Next.js\", \"hreflang in Next.js\", \"canonical URLs in Next.js\", \"SEO component\", \"Sanity SEO fields\", \"portable text SEO\", \"image alt text from Sanity\", \"dynamic metadata from CMS\", \"CMS-driven SEO\", \"headless CMS SEO\", \"Next.js sitemap generation\", \"Sanity redirect management\", \"SEO audit of Next.js codebase\", \"fix SEO in my Next.js app\", or any request involving implementing or fixing SEO in a Next.js + Sanity project. Also triggers on \"audit my codebase for SEO issues\", \"SEO code review\", or \"implement SEO best practices in code\". Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.",
+      "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "kind": "skill",
+      "name": "nextjs-sanity-seo",
+      "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md"
+    },
+    {
+      "contentHash": "41dff8b0f59ea24149ee8d4ada0104be518204435ab618ed60a8c9d99d31d2a7",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on: \"audit a website for SEO\", \"run an SEO audit\", \"check SEO health\", \"find SEO issues\", \"crawl my site for problems\", \"what's wrong with my SEO\", \"technical SEO check\", \"on-page SEO analysis\", \"check my meta tags\", \"find broken links\", \"check my Core Web Vitals\", \"page speed analysis\", \"crawlability check\", \"indexation issues\", or any request involving diagnosing or improving a website's search engine optimization. Also triggers when the user shares a URL and asks about its SEO performance or ranking potential. Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "id": "skill:seo-aeo-geo/seo-site-audit",
+      "kind": "skill",
+      "name": "seo-site-audit",
+      "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md"
+    },
+    {
+      "contentHash": "74db85b179a0778b6198609e7a685f55c2264b44ca75e9fe76a3ed4c9bb5a2fa",
+      "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "id": "skill:seo-aeo-geo/serp-intelligence",
+      "kind": "skill",
+      "name": "serp-intelligence",
+      "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md"
+    },
+    {
+      "id": "tag:stack/context",
+      "kind": "tag",
+      "name": "context"
+    },
+    {
+      "id": "tag:stack/nextjs",
+      "kind": "tag",
+      "name": "nextjs"
+    },
+    {
+      "id": "tag:stack/obsidian",
+      "kind": "tag",
+      "name": "obsidian"
+    },
+    {
+      "id": "tag:stack/refinement",
+      "kind": "tag",
+      "name": "refinement"
+    },
+    {
+      "id": "tag:stack/sanity",
+      "kind": "tag",
+      "name": "sanity"
+    },
+    {
+      "id": "tag:stack/sentry",
+      "kind": "tag",
+      "name": "sentry"
+    },
+    {
+      "id": "tag:stack/seo",
+      "kind": "tag",
+      "name": "seo"
+    },
+    {
+      "id": "tag:stack/testing",
+      "kind": "tag",
+      "name": "testing"
+    },
+    {
+      "id": "tag:stack/vercel",
+      "kind": "tag",
+      "name": "vercel"
+    },
+    {
+      "id": "tag:topic/ai-visibility",
+      "kind": "tag",
+      "name": "ai-visibility"
+    },
+    {
+      "id": "tag:topic/automation",
+      "kind": "tag",
+      "name": "automation"
+    },
+    {
+      "id": "tag:topic/backlink-analysis",
+      "kind": "tag",
+      "name": "backlink-analysis"
+    },
+    {
+      "id": "tag:topic/cms-development",
+      "kind": "tag",
+      "name": "cms-development"
+    },
+    {
+      "id": "tag:topic/content-authoring",
+      "kind": "tag",
+      "name": "content-authoring"
+    },
+    {
+      "id": "tag:topic/content-optimization",
+      "kind": "tag",
+      "name": "content-optimization"
+    },
+    {
+      "id": "tag:topic/context-compression",
+      "kind": "tag",
+      "name": "context-compression"
+    },
+    {
+      "id": "tag:topic/context-degradation",
+      "kind": "tag",
+      "name": "context-degradation"
+    },
+    {
+      "id": "tag:topic/context-engineering",
+      "kind": "tag",
+      "name": "context-engineering"
+    },
+    {
+      "id": "tag:topic/context-optimization",
+      "kind": "tag",
+      "name": "context-optimization"
+    },
+    {
+      "id": "tag:topic/data-consistency",
+      "kind": "tag",
+      "name": "data-consistency"
+    },
+    {
+      "id": "tag:topic/keyword-research",
+      "kind": "tag",
+      "name": "keyword-research"
+    },
+    {
+      "id": "tag:topic/knowledge-graph",
+      "kind": "tag",
+      "name": "knowledge-graph"
+    },
+    {
+      "id": "tag:topic/knowledge-management",
+      "kind": "tag",
+      "name": "knowledge-management"
+    },
+    {
+      "id": "tag:topic/learning-curation",
+      "kind": "tag",
+      "name": "learning-curation"
+    },
+    {
+      "id": "tag:topic/memory-systems",
+      "kind": "tag",
+      "name": "memory-systems"
+    },
+    {
+      "id": "tag:topic/observability",
+      "kind": "tag",
+      "name": "observability"
+    },
+    {
+      "id": "tag:topic/project-planning",
+      "kind": "tag",
+      "name": "project-planning"
+    },
+    {
+      "id": "tag:topic/rank-tracking",
+      "kind": "tag",
+      "name": "rank-tracking"
+    },
+    {
+      "id": "tag:topic/search",
+      "kind": "tag",
+      "name": "search"
+    },
+    {
+      "id": "tag:topic/seo-audit",
+      "kind": "tag",
+      "name": "seo-audit"
+    },
+    {
+      "id": "tag:topic/tool-design",
+      "kind": "tag",
+      "name": "tool-design"
+    },
+    {
+      "id": "tag:topic/visualization",
+      "kind": "tag",
+      "name": "visualization"
+    },
+    {
+      "id": "tag:topic/web-clipping",
+      "kind": "tag",
+      "name": "web-clipping"
+    },
+    {
+      "id": "tag:topic/workflow-patterns",
+      "kind": "tag",
+      "name": "workflow-patterns"
+    }
+  ],
+  "schemaVersion": "1.0.0"
+}

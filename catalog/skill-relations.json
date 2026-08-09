@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "nodes": [
+    {
+      "id": "external:ecc-suggest-compact",
+      "kind": "external",
+      "name": "ecc pre:edit-write:suggest-compact hook",
+      "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker."
+    },
+    {
+      "id": "external:skill-forge",
+      "kind": "external",
+      "name": "@rhize/skill-forge",
+      "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on."
+    }
+  ],
+  "edges": [
+    {
+      "from": "hook:rhize-context-manager/context-window-monitor",
+      "to": "external:ecc-suggest-compact",
+      "type": "replaces",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-context-manager/refinement-pipeline",
+      "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    }
+  ]
+}

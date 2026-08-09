@@ -25,6 +25,8 @@ evals/results/
 # Local scripts (not part of plugin distribution) — exceptions below
 scripts/*
 !scripts/bump_version.py
+!scripts/build_skill_map.py
+!scripts/validate_skill_map.py
 
 # Squirrel config
 squirrel.toml
