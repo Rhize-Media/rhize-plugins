@@ -5,9 +5,18 @@ across this repo's plugins. It replaces the flat, hand-restated skill inventory 
 + per-plugin READMEs + root catalog + GUIDE tables) with one machine-produced artifact. See
 `.claude/plans/skill-map-graph-substrate.md` for the full rationale and phased rollout; this doc
 only records the conventions that downstream consumers (router hook, session-disclosure hook,
-`/start`, curation gates, generated docs, vault visualization) rely on.
+`/start`, curation gates, generated docs, vault visualization, the `weekly-skill-audit` scheduled
+task) rely on.
 
 The schema contract lives at `schemas/skill-map.schema.json` (JSON Schema, draft 2020-12).
+
+**Audit-stops-on-stale rule:** `weekly-skill-audit` (Phase 4) rebuilds the static and local maps
+and runs `scripts/validate_skill_map.py --check-stale` as its first step, before anything else in
+that run. If `--check-stale` fails — the committed `generated/skill-map.static.json` no longer
+matches what the sources compile to — the audit commits the freshly rebuilt artifact (this repo is
+auto-push) and stops for that run rather than continuing with drift checks or refinement-queue
+writes against a map it just proved was wrong. This is the same failure mode the "generation-only
+policy" above exists to prevent, made into a hard gate instead of a documentation note.
 
 ## Artifacts
 

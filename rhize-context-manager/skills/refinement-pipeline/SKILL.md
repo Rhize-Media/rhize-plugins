@@ -66,6 +66,29 @@ restricted to SKILL.md/reference-markdown edits; anything touching `scripts/`,
    `skill-forge watch` (SOURCES.md ledger) — evolution does not detach them
    from upstream tracking.
 
+## Skill-map signal sources (drift, routing-miss)
+
+Two additional signal sources feed the same queue, alongside headroom-learn/claude-mem/
+skill-monitor (see `/learn-harvest`'s "Queue entry schema" for the `signal_type` field these
+add):
+
+- **`source: skill-map-drift`, `signal_type: "drift"`** — written by `weekly-skill-audit`'s
+  step 0 from `npx @rhize/skill-forge watch --skill-map <path> --json`, one entry per
+  `fork-of` edge reported `drifted` or `unreachable`.
+- **`source: skill-monitor`, `signal_type: "routing-miss"`** — written by `/learn-harvest`,
+  flagging skills with real usage but zero `topic-tag`/`stack-tag` edges in the skill map
+  (so `skill-router.js` can never surface them). Only this map/tag-deficiency form is
+  computed today; true suggested-but-ignored tracking needs a future router suggestion log.
+
+**Map and tag fixes are valid refinement outcomes.** Both signal types above are, by
+construction, never about the skill's body — the fix is to `catalog/skill-relations.json`,
+`catalog/tags.json`, a skill's `metadata.rhize.{topics,stacks}` frontmatter, or (for drift)
+the `SOURCES.md` fork-of record. Triage (`/skill-refine review`) should route these to
+whichever of those files is the actual target, not to `skill-forge evolve <skill-dir>` —
+`evolve` operates on skill body/reference content and is the wrong tool for a tagging or
+relations-catalog fix. `target_skill` on these entries still names the affected skill (for
+grouping and reporting); it does not mean the skill's own files get edited.
+
 ## Relationship to neighbors
 
 - `learning-curation` decides IF a learning deserves persistence and WHERE

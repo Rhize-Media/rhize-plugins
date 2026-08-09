@@ -24,10 +24,15 @@ replace ad-hoc use, e.g. right before a `/skill-refine review` session.
 One JSON object per line:
 
 ```json
-{"id": "<sha1-12 of source+pattern>", "ts": "<ISO8601>", "source": "headroom-learn|claude-mem|skill-monitor",
+{"id": "<sha1-12 of source+pattern>", "ts": "<ISO8601>", "source": "headroom-learn|claude-mem|skill-monitor|skill-map-drift",
  "repo": "<project path or 'global'>", "pattern": "<the finding, verbatim or tightly summarized>",
- "est_savings": "<tokens/session if stated, else null>", "target_skill": null, "status": "pending"}
+ "est_savings": "<tokens/session if stated, else null>", "target_skill": null, "status": "pending",
+ "signal_type": "<optional: 'routing-miss'|'drift' — omit for the original skill-body-refinement signals>"}
 ```
+
+`signal_type` is optional and new (added alongside the skill-map substrate's routing-miss and
+drift signals below); its absence means "skill body/description" is the implied refinement
+target, matching every pre-existing entry.
 
 `id` is the dedupe key. Statuses: `pending → triaged | rejected → consumed`.
 
@@ -48,7 +53,41 @@ One JSON object per line:
    `rhize-ops/skill-monitor/data/snapshots/` (this repo). Queue skills that are
    heavily used but error-prone, or in the prune-candidate list
    (`source: skill-monitor`, pattern = the observation).
-5. Skip any entry whose `id` already exists in the queue regardless of status.
-6. Append new entries; report a summary table: source | new | duplicates
+5. **Routing-miss (measurable today: map/tag deficiency only — do not overclaim)**.
+   - Read the resolved skill map (`~/.claude/context-manager/skill-map.resolved.json`,
+     falling back to `skill-map.static.json` — same resolution order `skill-router.js` uses)
+     and the newest skill-monitor snapshot's usage totals
+     (`rhize-ops/skill-monitor/data/skill-cooccurrence.json`'s `totals`, or the latest
+     `data/snapshots/*.json`).
+   - For every skill with a nonzero usage total (it HAS been invoked in sessions), check
+     whether the map has at least one `topic-tag` or `stack-tag` edge from that skill's
+     node. `skill-router.js` requires ≥2 signals to ever emit a suggestion, and a tag match
+     is the only way to get there without an exact name match — a skill with zero tag edges
+     is structurally unroutable regardless of how much real usage it has. Flag each such
+     skill as a routing-miss.
+   - **What is NOT computed here, and must not be claimed as computed**: true
+     "suggested-but-ignored" (the router surfaced a skill in a session but a different one
+     was used instead). `skill-router.js` emits its suggestion transiently as
+     `additionalContext` per prompt and persists nothing, and no prompt text is retained
+     anywhere in this pipeline by design (see skill-monitor's co-occurrence snapshot —
+     counts only). Computing that signal needs future instrumentation: a small append-only
+     suggestion log on the router (e.g. `{ts, sessionIdHash, suggestedSkillId}`, no prompt
+     text) diffed against skill-monitor's per-session invocation record. Until that log
+     exists, only the map/tag-deficiency check above runs.
+   - Queue one entry per flagged skill: `source: skill-monitor`, `signal_type: "routing-miss"`,
+     `target_skill` set to the skill, and `pattern` stating the skill is used but has 0
+     topic/stack tag edges. The proposed fix is always to the **map or the skill's
+     frontmatter tags/description** (`catalog/tags.json` vocabulary, the skill's
+     `metadata.rhize.{topics,stacks}` block, or `catalog/skill-relations.json`) — never a
+     rewrite of the skill's body. Example:
+
+```json
+{"id": "<sha1-12>", "ts": "<ISO8601>", "source": "skill-monitor", "repo": "rhize-plugins",
+ "pattern": "routing-miss: skill:rhize-ops/skill-dashboard has usage in the last snapshot but 0 topic-tag/stack-tag edges — unroutable by skill-router.js",
+ "est_savings": null, "target_skill": "rhize-ops/skill-dashboard", "status": "pending",
+ "signal_type": "routing-miss"}
+```
+6. Skip any entry whose `id` already exists in the queue regardless of status.
+7. Append new entries; report a summary table: source | new | duplicates
    skipped, plus current queue counts by status. Remind: next step is
    `/skill-refine review`.
