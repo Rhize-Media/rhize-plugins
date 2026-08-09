@@ -16,7 +16,32 @@
 // missing/unreadable/corrupt map or stdin — mirrors skill-router.js's IO
 // discipline exactly.
 //
-// MAP RESOLUTION: same resolved-then-static fallback as skill-router.js:
+// INDEX RESOLUTION (relationships v2, section 7 of the design doc): the
+// primary data source is now the materialized `disclosure` index, precomputed
+// per single stack slug by build_skill_map.py so this hook never walks
+// doc.edges itself. Preference order, all under ~/.claude/context-manager/:
+//   1. skill-map.indexes.resolved.json (static + local-overlay merge)
+//   2. skill-map.indexes.json          (installed by `build_skill_map.py --install`)
+// Neither present/parseable/missing a `disclosure` section -> FALL BACK to
+// the original map-scanning path below (readMap/relevantSkills), so an older
+// install without an indexes file yet still works.
+//
+// KNOWN LIMITATION of the index path vs. the map-scan fallback: the
+// `disclosure` index's extends-folding (base absorbs a matched extender into
+// its `deeper` list) is computed PER STACK SLUG in isolation
+// (build_disclosure_index), whereas the map-scan path folds across the
+// UNION of all detected stacks. When multiple stacks are detected on the
+// same repo AND a base/extender pair matches different stacks from each
+// other (base matches stack A only, extender matches stack B only), the
+// index path will list them as two separate lines while the map-scan
+// fallback would fold them into one. This is a pre-existing property of the
+// committed index contract (see docs/skill-map.md's Tier 1 note), not
+// something this refactor changes; no shipped fixture/test exercises this
+// cross-stack case, and it is rare enough (two stack markers present AND an
+// extends edge that straddles them) to accept rather than redesign the
+// index format for.
+//
+// MAP RESOLUTION (fallback only): same resolved-then-static as skill-router.js:
 //   1. ~/.claude/context-manager/skill-map.resolved.json (static + local overlay)
 //   2. ~/.claude/context-manager/skill-map.static.json   (installed static artifact)
 // Neither present or parseable -> exit 0, no output.
@@ -111,6 +136,90 @@ function readMap() {
     }
   }
   return null;
+}
+
+function readIndexes() {
+  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const candidates = [
+    path.join(dir, 'skill-map.indexes.resolved.json'),
+    path.join(dir, 'skill-map.indexes.json'),
+  ];
+  for (const candidate of candidates) {
+    let text;
+    try {
+      text = fs.readFileSync(candidate, 'utf8');
+    } catch (_err) {
+      continue; // missing or unreadable — try the next candidate
+    }
+    try {
+      const doc = JSON.parse(text);
+      if (doc && doc.disclosure && typeof doc.disclosure === 'object') {
+        return doc.disclosure;
+      }
+    } catch (_err) {
+      // corrupt JSON at this path — try the next candidate
+    }
+  }
+  return null;
+}
+
+// Index-backed equivalent of relevantSkills() below, sourced from the
+// disclosure index's per-stack-slug precomputed lists
+// (build_skill_map.py's build_disclosure_index()) instead of walking
+// doc.nodes/doc.edges. See the KNOWN LIMITATION note above the file header
+// for the one behavioral edge case (cross-stack extends folding) this does
+// not reproduce from the map-scan path.
+function relevantSkillsFromIndex(disclosureIndex, detectedStacks) {
+  const stacksBySkill = new Map(); // skillId -> Set(stackSlug)
+  const deeperBySkill = new Map(); // skillId -> Set(extenderId), unioned across stacks
+
+  for (const stack of detectedStacks) {
+    const entries = disclosureIndex[stack];
+    if (!Array.isArray(entries)) continue;
+    for (const entry of entries) {
+      const skillId = entry && entry.skillId;
+      if (!skillId) continue;
+      let stacks = stacksBySkill.get(skillId);
+      if (!stacks) {
+        stacks = new Set();
+        stacksBySkill.set(skillId, stacks);
+      }
+      stacks.add(stack);
+      if (Array.isArray(entry.deeper) && entry.deeper.length > 0) {
+        let deeper = deeperBySkill.get(skillId);
+        if (!deeper) {
+          deeper = new Set();
+          deeperBySkill.set(skillId, deeper);
+        }
+        entry.deeper.forEach((id) => deeper.add(id));
+      }
+    }
+  }
+
+  // An extender folded under a base for ANY stack must not also appear as
+  // its own standalone line.
+  const folded = new Set();
+  for (const deeper of deeperBySkill.values()) {
+    for (const id of deeper) folded.add(id);
+  }
+
+  const results = [];
+  for (const [skillId, stacks] of stacksBySkill) {
+    if (folded.has(skillId)) continue;
+    const deeper = deeperBySkill.get(skillId);
+    results.push({
+      skillId,
+      stacks: Array.from(stacks).sort(),
+      deeper: deeper ? Array.from(deeper).sort() : null,
+    });
+  }
+
+  results.sort((a, b) => {
+    if (b.stacks.length !== a.stacks.length) return b.stacks.length - a.stacks.length;
+    return a.skillId < b.skillId ? -1 : a.skillId > b.skillId ? 1 : 0;
+  });
+
+  return results.slice(0, MAX_SKILLS);
 }
 
 // Returns skills relevant to the detected stacks, ranked by number of
@@ -244,11 +353,14 @@ function computeMessage() {
   const stacks = detectStacks(cwd);
   if (stacks.length === 0) return null; // silence > generic banner
 
+  const disclosureIndex = readIndexes();
+  if (disclosureIndex) {
+    return formatBlock(relevantSkillsFromIndex(disclosureIndex, stacks));
+  }
+
   const doc = readMap();
   if (!doc) return null;
-
-  const matches = relevantSkills(doc, stacks);
-  return formatBlock(matches);
+  return formatBlock(relevantSkills(doc, stacks));
 }
 
 function main() {

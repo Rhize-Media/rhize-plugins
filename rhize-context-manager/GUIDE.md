@@ -80,6 +80,15 @@ the right one, and health-checks the whole thing.
   `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up to 8 skills
   tagged for that stack — silent in repos with none of those markers, same map
   dependency as `skill-router`.
+- `remediation-suggester` and `next-step-suggester` (`hooks/remediation-suggester.js`,
+  `hooks/next-step-suggester.js`, both auto-wired — not opt-in) landed 2026-08-09 as the
+  runtime layer for relationships v2. After a failing `Bash` command, the first hook
+  matches the output against the skill map's `remediates`/`condition` data and suggests a
+  fix (e.g. "the ecc:build-error-resolver agent remediates build-failure"). After any
+  `Skill` invocation, the second hook suggests the usual next step from that skill's
+  `precedes` (or, absent one, a mined `follows`) edge — e.g. after `write-prd`, "the usual
+  next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at
+  least once, same as `skill-router`; with no artifact present they fail silently.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).

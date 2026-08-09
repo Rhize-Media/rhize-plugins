@@ -64,14 +64,22 @@ lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` orig
 |---|---|---|
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
+| `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
+| `next-step-suggester.js` | `PostToolUse` (`Skill`) | After a skill invocation, looks up the invoked skill's succession entry and suggests exactly one next step — the declared `precedes` successor, or the mined `follows` successor if no `precedes` exists. Silent when there's no successor. |
 
-Both hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
+All four hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
 `session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
 obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
-`.claude/plans/skill-map-graph-substrate.md`. Like `skill-router.js`, it resolves
-`~/.claude/context-manager/skill-map.resolved.json`, falling back to
-`skill-map.static.json`, and fails silently (exit 0, no output) on any missing or corrupt
-map. See `docs/skill-map.md` for the artifact/tagging conventions it depends on.
+`.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
+`next-step-suggester.js` were added 2026-08-09 as the runtime consumers for relationships v2
+(`docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` section 7) — the
+first runtime consumer of `precedes`, and the first consumer of the `remediates`/`condition`
+data. All four resolve the compiled skill-map artifact the same way: the materialized indexes
+first (`~/.claude/context-manager/skill-map.indexes.resolved.json`, falling back to
+`skill-map.indexes.json`), and — for `skill-router.js`/`session-disclosure.js` only — a further
+fallback to the older `skill-map.resolved.json`/`skill-map.static.json` map-scan path when no
+indexes file exists at all. All four fail silently (exit 0, no output) on any missing or corrupt
+input. See `docs/skill-map.md` for the artifact/tagging conventions they depend on.
 
 ### Opt-in hooks (`setup/manifest.json`)
 

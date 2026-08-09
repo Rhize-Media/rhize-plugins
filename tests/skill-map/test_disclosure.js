@@ -3,15 +3,21 @@
 
 // test_disclosure.js — exercises
 // rhize-context-manager/hooks/session-disclosure.js (Phase 3 of
-// .claude/plans/skill-map-graph-substrate.md) end-to-end via spawnSync, so it
-// validates exactly what the hook harness invokes: stdin in, stdout/exit
-// code out.
+// .claude/plans/skill-map-graph-substrate.md, refactored in relationships v2
+// — see the design doc's section 7 — to read the materialized `disclosure`
+// index first) end-to-end via spawnSync, so it validates exactly what the
+// hook harness invokes: stdin in, stdout/exit code out.
 //
 // Every case runs with HOME pointed at a temp directory — never the real
-// ~/.claude — so the hook's map resolution (~/.claude/context-manager/
-// skill-map.{resolved,static}.json) reads only the fixture this test wrote,
-// and with the spawned process's cwd pointed at a temp directory standing in
-// for the repo being fingerprinted.
+// ~/.claude — so the hook's resolution (~/.claude/context-manager/
+// skill-map.indexes.{resolved,}.json, then skill-map.{resolved,static}.json)
+// reads only the fixture this test wrote, and with the spawned process's cwd
+// pointed at a temp directory standing in for the repo being fingerprinted.
+//
+// The primary cases below write only an indexes fixture, exercising
+// relevantSkillsFromIndex() exclusively. The dedicated "fallback" case at the
+// bottom writes only a static MAP fixture (no indexes file at all) to prove
+// the original map-scanning relevantSkills() path still works unaided.
 
 const assert = require('assert');
 const fs = require('fs');
@@ -27,7 +33,12 @@ const DISCLOSURE_PATH = path.join(
   'session-disclosure.js'
 );
 const FIXTURE_PATH = path.join(__dirname, 'fixtures', 'stack-map.json');
-const EXTENDS_FIXTURE_PATH = path.join(__dirname, 'fixtures', 'stack-map-extends.json');
+const INDEX_FIXTURE_PATH = path.join(__dirname, 'fixtures', 'indexes-stack-map.json');
+const INDEX_EXTENDS_FIXTURE_PATH = path.join(
+  __dirname,
+  'fixtures',
+  'indexes-stack-map-extends.json'
+);
 
 function withTempDir(prefix, fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -42,6 +53,12 @@ function writeStaticMap(tmpHome, contents) {
   const dir = path.join(tmpHome, '.claude', 'context-manager');
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'skill-map.static.json'), contents);
+}
+
+function writeIndexes(tmpHome, contents) {
+  const dir = path.join(tmpHome, '.claude', 'context-manager');
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'skill-map.indexes.json'), contents);
 }
 
 function runDisclosure(tmpHome, tmpCwd) {
@@ -68,12 +85,13 @@ function check(name, fn) {
   }
 }
 
-// (a) A repo with a next.config.mjs must emit a block naming a nextjs-stack
-// skill.
-check('next.config.mjs emits block naming a nextjs-stack skill', () => {
+// (a) [index path] A repo with a next.config.mjs must emit a block naming a
+// nextjs-stack skill. Only an indexes fixture is written (no static map at
+// all), so this exercises relevantSkillsFromIndex() exclusively.
+check('[index] next.config.mjs emits block naming a nextjs-stack skill', () => {
   withTempDir('disclosure-home-', (tmpHome) => {
     withTempDir('disclosure-cwd-', (tmpCwd) => {
-      writeStaticMap(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+      writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
       fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
 
       const result = runDisclosure(tmpHome, tmpCwd);
@@ -93,12 +111,13 @@ check('next.config.mjs emits block naming a nextjs-stack skill', () => {
   });
 });
 
-// (b) An empty repo (no stack markers) must emit nothing and exit 0, even
-// though the map exists and is valid — silence > generic banner.
-check('empty dir emits nothing and exits 0', () => {
+// (b) [index path] An empty repo (no stack markers) must emit nothing and
+// exit 0, even though the indexes exist and are valid — silence > generic
+// banner. Stack detection happens before the index is even read.
+check('[index] empty dir emits nothing and exits 0', () => {
   withTempDir('disclosure-home-', (tmpHome) => {
     withTempDir('disclosure-cwd-', (tmpCwd) => {
-      writeStaticMap(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+      writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
 
       const result = runDisclosure(tmpHome, tmpCwd);
       assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
@@ -107,12 +126,15 @@ check('empty dir emits nothing and exits 0', () => {
   });
 });
 
-// (c) A corrupt map must fail silently even when a stack marker IS present —
-// the corruption in the map must never surface as an error.
-check('corrupt map emits nothing and exits 0', () => {
+// (c) A corrupt indexes file (and no static map available at all) must fall
+// back to readMap()/relevantSkills(), find nothing, and fail silently — the
+// corruption must never surface as an error even with a stack marker present.
+check('corrupt indexes file falls back and emits nothing (exit 0)', () => {
   withTempDir('disclosure-home-', (tmpHome) => {
     withTempDir('disclosure-cwd-', (tmpCwd) => {
-      writeStaticMap(tmpHome, '{ this is not valid JSON ');
+      const dir = path.join(tmpHome, '.claude', 'context-manager');
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, 'skill-map.indexes.json'), '{ this is not valid JSON ');
       fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
 
       const result = runDisclosure(tmpHome, tmpCwd);
@@ -122,13 +144,14 @@ check('corrupt map emits nothing and exits 0', () => {
   });
 });
 
-// (d) A base skill and a matching extender (extends edge) must be compacted
-// into one line for the base, with the extender appended as "(+N deeper:
-// name)" instead of appearing as its own line.
-check('base + matched extender compact into one "+N deeper" line', () => {
+// (d) [index path] A base skill and a matching extender (extends edge,
+// folded per-stack by build_disclosure_index) must be compacted into one
+// line for the base, with the extender appended as "(+N deeper: name)"
+// instead of appearing as its own line.
+check('[index] base + matched extender compact into one "+N deeper" line', () => {
   withTempDir('disclosure-home-', (tmpHome) => {
     withTempDir('disclosure-cwd-', (tmpCwd) => {
-      writeStaticMap(tmpHome, fs.readFileSync(EXTENDS_FIXTURE_PATH, 'utf8'));
+      writeIndexes(tmpHome, fs.readFileSync(INDEX_EXTENDS_FIXTURE_PATH, 'utf8'));
       fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
 
       const result = runDisclosure(tmpHome, tmpCwd);
@@ -154,6 +177,32 @@ check('base + matched extender compact into one "+N deeper" line', () => {
       assert.ok(
         !ctx.includes('context-compression —'),
         `extender must not appear as its own line, got: ${ctx}`
+      );
+    });
+  });
+});
+
+// (e) [fallback path, explicit] With NO indexes file present at all (only
+// the legacy static map), the original map-scanning relevantSkills() path
+// must reproduce the exact same result as case (a) above.
+check('[fallback] no indexes file: map-scan path still matches', () => {
+  withTempDir('disclosure-home-', (tmpHome) => {
+    withTempDir('disclosure-cwd-', (tmpCwd) => {
+      writeStaticMap(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+      fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
+
+      const result = runDisclosure(tmpHome, tmpCwd);
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      const stdout = result.stdout.trim();
+      assert.ok(stdout.length > 0, 'expected non-empty stdout');
+      const lines = stdout.split('\n').filter(Boolean);
+      assert.strictEqual(lines.length, 1, `expected exactly one JSON line, got ${lines.length}`);
+      const parsed = JSON.parse(lines[0]);
+      const ctx = parsed.hookSpecificOutput && parsed.hookSpecificOutput.additionalContext;
+      assert.ok(ctx, 'expected hookSpecificOutput.additionalContext');
+      assert.ok(
+        ctx.includes('seo-aeo-geo:nextjs-sanity-seo'),
+        `expected block to name the nextjs-tagged skill, got: ${ctx}`
       );
     });
   });

@@ -8,6 +8,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-09_ version bump — **rhize-context-manager** 0.9.1 → 0.10.0 (minor); marketplace 2.24.3 → 2.25.0.
+- **Skill map: relationships v2 consumer layer — remediation + next-step suggester hooks, router/
+  disclosure hooks read materialized indexes.** Completes the follow-up lane named in the CORE
+  entry below (design doc section 7).
+  - New `rhize-context-manager/hooks/remediation-suggester.js` (PostToolUse, matcher `Bash`):
+    on a failing Bash command, matches `stdout`+`stderr` against the `remediation` index's
+    condition patterns and suggests the top-listed remediator for the first matching condition.
+    Patterns in `catalog/tags.json` are authored as Python `re` (they use the `(?i)` inline
+    case-insensitivity flag, which JS `RegExp` has no equivalent for and throws "Invalid group"
+    on) — the hook strips a leading `(?i)` into the JS `i` flag before compiling. An `external:`
+    remediator id (a third-party capability with no proper skill-map node, e.g. an `ecc`
+    build-resolver *agent*) is phrased as an agent suggestion, not a skill invocation.
+  - New `rhize-context-manager/hooks/next-step-suggester.js` (PostToolUse, matcher `Skill`):
+    after a skill invocation, looks up the invoked skill in the `succession` index and suggests
+    its declared `precedes` successor, falling back to a mined `follows` successor — `precedes`'s
+    first runtime consumer.
+  - Both auto-wired in `hooks/hooks.json` (like `session-disclosure.js`, not opt-in via
+    `setup/manifest.json`). Warm timing for all four hooks in this directory measured <100ms,
+    within the <150ms budget.
+  - `skill-router.js`/`session-disclosure.js` refactored to read the materialized `router`/
+    `disclosure` index sections first (`routeFromIndex()`/`relevantSkillsFromIndex()`), falling
+    back to the original map-scanning path (`route()`/`relevantSkills()`) only when no indexes
+    file is present/parseable, so an older install degrades gracefully. Behavior is unchanged on
+    the existing test suite; one known gap on the index-only path is documented in
+    `docs/skill-map.md`'s Tier 1 note (disclosure's extends-folding is computed per stack slug,
+    not across the union of all detected stacks — a cross-stack base/extender pair won't fold on
+    the index path the way the map-scan fallback would; not exercised by any shipped fixture).
+  - `scripts/build_skill_map.py --install`/`scripts/build_local_skill_map.py` already covered the
+    indexes files (confirmed, no build-script change needed this round).
+  - Tests: `tests/skill-map/test_remediation.js`, `tests/skill-map/test_next_step.js` (new); wired
+    fixture-index files for `test_router.js`/`test_disclosure.js` so the index path is what's
+    exercised by default, plus one explicit `[fallback]`-labeled map-scan test each.
 - **Skill map: relationships v2 core — `follows`/`augments`/`remediates` edges, condition tags,
   `mcp-server` nodes, materialized indexes, query CLI (schema 1.1.0).** Implements the CORE layer
   of `docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` (router/disclosure

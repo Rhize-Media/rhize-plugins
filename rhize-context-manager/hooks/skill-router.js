@@ -20,9 +20,20 @@
 // hookSpecificOutput.additionalContext to reach Claude; a top-level field or
 // systemMessage alone would not.
 //
-// MAP RESOLUTION: an installed plugin cannot see this repo's `generated/`
-// directory, so resolution always goes through the machine-local
-// ~/.claude/context-manager/ install location, in preference order:
+// INDEX RESOLUTION (relationships v2, section 7 of the design doc): the
+// primary data source is now the materialized `router` index, precomputed
+// by build_skill_map.py/build_local_skill_map.py so this hook never walks
+// doc.edges itself. Preference order, all under
+// ~/.claude/context-manager/:
+//   1. skill-map.indexes.resolved.json (static + local-overlay follows merge)
+//   2. skill-map.indexes.json          (installed by `build_skill_map.py --install`)
+// Neither present/parseable/missing a `router` section -> FALL BACK to the
+// original map-scanning path below (readMap/route), so an older install that
+// only shipped skill-map.{resolved,static}.json (no indexes file yet)
+// degrades gracefully instead of going silent. Behavior is identical either
+// way — the index only saves re-deriving signals from doc.edges per call.
+//
+// MAP RESOLUTION (fallback only):
 //   1. skill-map.resolved.json (static + local overlay, once Phase 3 lands)
 //   2. skill-map.static.json   (installed by `build_skill_map.py --install`)
 // Neither present or parseable -> exit 0, no output.
@@ -71,6 +82,31 @@ function readMap() {
   return null;
 }
 
+function readIndexes() {
+  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const candidates = [
+    path.join(dir, 'skill-map.indexes.resolved.json'),
+    path.join(dir, 'skill-map.indexes.json'),
+  ];
+  for (const candidate of candidates) {
+    let text;
+    try {
+      text = fs.readFileSync(candidate, 'utf8');
+    } catch (_err) {
+      continue; // missing or unreadable — try the next candidate
+    }
+    try {
+      const doc = JSON.parse(text);
+      if (doc && doc.router && typeof doc.router === 'object') {
+        return doc.router;
+      }
+    } catch (_err) {
+      // corrupt JSON at this path — try the next candidate
+    }
+  }
+  return null;
+}
+
 function wordsOf(value) {
   return String(value || '')
     .toLowerCase()
@@ -80,6 +116,57 @@ function wordsOf(value) {
 
 function tokenize(prompt) {
   return new Set(wordsOf(prompt));
+}
+
+// Index-backed equivalent of route() below: identical scoring/tie-break
+// rules, sourced from the router index's precomputed per-skill signal lists
+// (build_skill_map.py's build_router_index()) instead of walking
+// doc.nodes/doc.edges. See route()'s docstring for the shared semantics.
+function routeFromIndex(routerIndex, promptTokens) {
+  const signalsBySkill = routerIndex.signals || {};
+  const extendsBases = routerIndex.extendsBases || {};
+
+  const scored = new Map(); // skillId -> { score, signals }
+
+  for (const [skillId, signals] of Object.entries(signalsBySkill)) {
+    const matched = [];
+    for (const sig of signals) {
+      const words = wordsOf(sig.label);
+      if (words.length > 0 && words.every((w) => promptTokens.has(w))) {
+        matched.push(sig);
+      }
+    }
+    if (matched.length < 2) continue; // single weak match must not emit
+    const score = matched.reduce((sum, s) => sum + s.weight, 0);
+    scored.set(skillId, { score, signals: matched });
+  }
+
+  // Same extends tie-break as route(): a qualifying extender scoring >= its
+  // base drops the base from consideration.
+  for (const [extenderId, bases] of Object.entries(extendsBases)) {
+    const extenderResult = scored.get(extenderId);
+    if (!extenderResult) continue;
+    for (const baseId of bases) {
+      const baseResult = scored.get(baseId);
+      if (!baseResult) continue;
+      if (extenderResult.score >= baseResult.score) {
+        scored.delete(baseId);
+      }
+    }
+  }
+
+  let best = null; // { skillId, score, signals }
+  for (const [skillId, result] of scored) {
+    if (
+      !best ||
+      result.score > best.score ||
+      (result.score === best.score && skillId < best.skillId)
+    ) {
+      best = { skillId, score: result.score, signals: result.signals };
+    }
+  }
+
+  return best;
 }
 
 // Returns the single best-matching skill, or null if none qualifies.
@@ -179,26 +266,38 @@ function route(doc, promptTokens) {
   return best;
 }
 
+function formatMatch(match) {
+  if (!match) return null;
+  const idMatch = /^skill:([^/]+)\/(.+)$/.exec(match.skillId);
+  if (!idMatch) return null;
+  const [, plugin, skillName] = idMatch;
+  const why = match.signals.map((s) => s.label).join(', ');
+  return `Consider the ${plugin}:${skillName} skill (matches ${why})`;
+}
+
 // Reads stdin, ranks the prompt against the map, and returns the suggestion
 // message, or null if nothing qualifies. Throws on any unreadable/corrupt
 // input; main()'s try/catch turns that into the same silent no-op.
+//
+// Tries the materialized router index first (routeFromIndex); only when no
+// indexes file is present/parseable does this fall back to the original
+// map-scanning path (readMap/route) — see the INDEX RESOLUTION note above.
 function computeMessage() {
   const raw = fs.readFileSync(0, 'utf8');
   const data = JSON.parse(raw);
   const prompt = typeof data.prompt === 'string' ? data.prompt : '';
   if (!prompt) return null;
 
+  const promptTokens = tokenize(prompt);
+
+  const routerIndex = readIndexes();
+  if (routerIndex) {
+    return formatMatch(routeFromIndex(routerIndex, promptTokens));
+  }
+
   const doc = readMap();
   if (!doc) return null;
-
-  const match = route(doc, tokenize(prompt));
-  if (!match) return null;
-
-  const idMatch = /^skill:([^/]+)\/(.+)$/.exec(match.skillId);
-  if (!idMatch) return null;
-  const [, plugin, skillName] = idMatch;
-  const why = match.signals.map((s) => s.label).join(', ');
-  return `Consider the ${plugin}:${skillName} skill (matches ${why})`;
+  return formatMatch(route(doc, promptTokens));
 }
 
 function main() {

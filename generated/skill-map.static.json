@@ -321,6 +321,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/next-step-suggester",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/pre-commit-guard",
       "type": "contains"
     },
@@ -334,6 +340,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/refinement-session-end",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/remediation-suggester",
       "type": "contains"
     },
     {
@@ -1983,6 +1995,17 @@
       "status": "opt-in"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/next-step-suggester.js\"",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/next-step-suggester",
+      "kind": "hook",
+      "matcher": "Skill",
+      "name": "next-step-suggester",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/pre-commit-guard.sh",
       "event": "PreToolUse",
       "id": "hook:rhize-context-manager/pre-commit-guard",
@@ -2014,6 +2037,17 @@
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/setup/manifest.json",
       "status": "opt-in"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/remediation-suggester.js\"",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/remediation-suggester",
+      "kind": "hook",
+      "matcher": "Bash",
+      "name": "remediation-suggester",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
     },
     {
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-disclosure.js\"",

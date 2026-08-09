@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "1.1.0",
+  "router": {
+    "signals": {},
+    "extendsBases": {}
+  },
+  "disclosure": {},
+  "remediation": {},
+  "succession": {
+    "skill:rhize-context-manager/context-fundamentals": {
+      "precedes": [],
+      "follows": ["skill:rhize-context-manager/context-optimization"]
+    }
+  }
+}

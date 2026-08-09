@@ -300,22 +300,37 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
 
 - `router` — per-skill tag/name signal lists (mirrors `skill-router.js`'s own precomputation:
   each topic-tag/stack-tag edge as a weight-2 "tag" signal, each skill's own name as a weight-1
-  "name" signal) plus the `extends` base/extender adjacency the router uses for its tie-break. The
-  hook still owns the token-matching/scoring loop — this only saves it from re-deriving signals
-  from `doc.edges` on every invocation. (The router/disclosure hooks themselves are refactored to
-  read this file in a follow-up lane; this round only produces the data.)
+  "name" signal) plus the `extends` base/extender adjacency the router uses for its tie-break.
+  `skill-router.js` reads this file first (`routeFromIndex()`) and only falls back to walking
+  `doc.edges` directly (`route()`) when no indexes file is present/parseable — an older install
+  that hasn't rebuilt its indexes file yet still works, just without the precomputation.
 - `disclosure` — per single stack slug, the base+extenders-folded skill list
   `session-disclosure.js`'s `relevantSkills()` would compute for a `detectedStacks` set containing
-  only that one stack. A caller with multiple detected stacks unions the per-stack lists and
-  re-ranks by matched-stack count, same as the hook does today.
+  only that one stack. `session-disclosure.js` reads this file first (`relevantSkillsFromIndex()`),
+  unioning the per-stack lists and re-ranking by matched-stack count for multi-stack repos, same as
+  the map-scan fallback (`relevantSkills()`) it degrades to when no indexes file exists — with one
+  known gap: extends-folding is computed *per stack slug* in the index, so a base/extender pair
+  that each match a *different* detected stack won't fold on the index path the way the fallback's
+  union-based fold would. Rare (needs two stack markers plus a cross-stack extends edge) and not
+  exercised by any shipped fixture; accepted rather than redesigning the index format for it.
 - `remediation` — condition slug → `{patterns, skills}`. `skills` is sorted by node id
   (alphabetical) — no ranking/promotion signal exists yet, so this is the deterministic default
   until one lands (see the design doc's "pairs-with... revisit later as an audit promotion
-  target" non-goal for the analogous case).
+  target" non-goal for the analogous case). Consumed by `remediation-suggester.js` (PostToolUse,
+  matcher `Bash`): on a failing Bash command, the patterns are matched against `stdout`+`stderr`
+  (compiled via a Python-`re`-to-JS-`RegExp` shim that strips a leading `(?i)` inline flag into
+  the JS `i` flag — the catalog's patterns are authored as Python regexes) and the first-listed
+  remediator for the first matching condition is suggested. An `external:` id (a third-party
+  capability with no proper skill-map node, e.g. an `ecc` build-resolver *agent*) is phrased as an
+  agent suggestion rather than a skill invocation.
 - `succession` — node id → `{precedes, follows}` from declared `precedes` edges. `follows` is
   always `[]` in the static indexes — mined `follows` edges are local-overlay only — and gets
   filled in by `scripts/build_local_skill_map.py` at
-  `~/.claude/context-manager/skill-map.indexes.resolved.json`.
+  `~/.claude/context-manager/skill-map.indexes.resolved.json`. Consumed by
+  `next-step-suggester.js` (PostToolUse, matcher `Skill`): after a skill invocation, looks up the
+  invoked skill's node id, prefers the first declared `precedes` successor, falls back to the
+  first mined `follows` successor, and suggests exactly one — this is `precedes`'s first runtime
+  consumer.
 
 **Tier 2 — named declarative queries** (`catalog/queries.json`, interpreted by
 `scripts/query_skill_map.py`) cover everything else: ad hoc audit/curation questions that don't
@@ -350,8 +365,10 @@ consumer's data source needs to change:
 
 | Consumer | Reads | Purpose |
 |---|---|---|
-| `rhize-context-manager/hooks/skill-router.js` | `skill-map.resolved.json` (falls back to the installed static copy) | Per-prompt skill-routing suggestion (Phase 3). |
-| `rhize-context-manager/hooks/session-disclosure.js` | `skill-map.resolved.json` | Stack-fingerprinted SessionStart skill disclosure (Phase 3), replacing the per-plugin banners named in the "Moved"/"removed" notes in `rhize-devflow`'s and `obsidian-second-brain`'s READMEs. |
+| `rhize-context-manager/hooks/skill-router.js` | `skill-map.indexes.{resolved,}.json` (the `router` section); falls back to `skill-map.{resolved,static}.json` if no indexes file exists | Per-prompt skill-routing suggestion (Phase 3). |
+| `rhize-context-manager/hooks/session-disclosure.js` | `skill-map.indexes.{resolved,}.json` (the `disclosure` section); falls back to `skill-map.{resolved,static}.json` if no indexes file exists | Stack-fingerprinted SessionStart skill disclosure (Phase 3), replacing the per-plugin banners named in the "Moved"/"removed" notes in `rhize-devflow`'s and `obsidian-second-brain`'s READMEs. |
+| `rhize-context-manager/hooks/remediation-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `remediation` section) | PostToolUse (matcher `Bash`) — on a failing Bash command, suggests the top remediating skill/agent for the matched condition (relationships v2, design doc section 7). |
+| `rhize-context-manager/hooks/next-step-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `succession` section) | PostToolUse (matcher `Skill`) — after a skill invocation, suggests the declared `precedes` (or mined `follows`) successor (relationships v2, design doc section 7). |
 | `/start` (rhize-context-manager) | `skill-map.resolved.json` | Session-context skill surfacing. |
 | `weekly-skill-audit` (scheduled task, rhize-ops) | Rebuilds `skill-map.static.json` + `skill-map.local.json`, runs `validate_skill_map.py --check-stale` | Staleness gate + drift checks + refinement-queue writes (Phase 4/4b). |
 | `scripts/render_skill_map_docs.py` (Phase 5) | `generated/skill-map.static.json`, `.claude-plugin/marketplace.json` | Managed doc sections — see below. |
