@@ -21,6 +21,7 @@
 // indexes file yet.
 
 const assert = require('assert');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -61,6 +62,18 @@ function runRouter(tmpHome, prompt) {
   const result = spawnSync(process.execPath, [ROUTER_PATH], {
     input: JSON.stringify({ prompt }),
     env: { ...process.env, HOME: tmpHome },
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  return result;
+}
+
+// Variant that also sets session_id (for suggestion-log assertions) and
+// accepts extra env vars, notably RHIZE_SUGGESTION_LOG.
+function runRouterFull(tmpHome, prompt, sessionId, extraEnv) {
+  const result = spawnSync(process.execPath, [ROUTER_PATH], {
+    input: JSON.stringify({ prompt, session_id: sessionId }),
+    env: { ...process.env, HOME: tmpHome, ...extraEnv },
     encoding: 'utf8',
     timeout: 5000,
   });
@@ -184,6 +197,145 @@ check('[fallback] no indexes file: map-scan path still matches', () => {
       'Consider the rhize-context-manager:graphify skill (matches context, git)'
     );
   });
+});
+
+// --- suggestion-log assertions (RHIZE_SUGGESTION_LOG override) ---
+
+const MATCHED_PROMPT = 'help me get git and context tooling set up';
+const UNMATCHED_PROMPT = 'what is the weather like today';
+
+// (g) A firing suggestion must append exactly one log line matching the
+// pinned schema — and must never leak the raw prompt text.
+check('[logging] suggestion fires: log line matches pinned schema', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'router-log-'));
+    const logPath = path.join(logDir, 'suggestion-log.jsonl');
+    try {
+      const result = runRouterFull(tmpHome, MATCHED_PROMPT, 'sess-router-1', {
+        RHIZE_SUGGESTION_LOG: logPath,
+      });
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      assert.ok(fs.existsSync(logPath), 'expected log file to be created');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+      assert.strictEqual(lines.length, 1, `expected exactly one log line, got ${lines.length}`);
+      const entry = JSON.parse(lines[0]);
+      assert.ok(typeof entry.ts === 'string' && !Number.isNaN(Date.parse(entry.ts)), 'ts must be ISO8601');
+      assert.strictEqual(entry.session_id, 'sess-router-1');
+      assert.strictEqual(entry.hook, 'router');
+      assert.strictEqual(entry.suggested, 'skill:rhize-context-manager/graphify');
+      const expectedHash = crypto
+        .createHash('sha256')
+        .update(MATCHED_PROMPT)
+        .digest('hex')
+        .slice(0, 16);
+      assert.strictEqual(entry.context_hash, expectedHash);
+      assert.ok(
+        !JSON.stringify(entry).includes('git and context'),
+        'raw prompt text must never be logged'
+      );
+    } finally {
+      fs.rmSync(logDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// (h) A log write failure (unwritable path — parent is a file, not a
+// directory) must never affect the hook's stdout or exit code.
+check('[logging] log write failure does not affect hook output or exit code', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+    const blockerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'router-log-blocker-'));
+    const blockerFile = path.join(blockerDir, 'not-a-dir');
+    fs.writeFileSync(blockerFile, 'x');
+    const logPath = path.join(blockerFile, 'suggestion-log.jsonl'); // parent is a file
+    try {
+      const result = runRouterFull(tmpHome, MATCHED_PROMPT, 'sess-router-2', {
+        RHIZE_SUGGESTION_LOG: logPath,
+      });
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      const stdout = result.stdout.trim();
+      assert.ok(stdout.length > 0, 'expected non-empty stdout despite log failure');
+      const parsed = JSON.parse(stdout.split('\n')[0]);
+      assert.strictEqual(
+        parsed.hookSpecificOutput.additionalContext,
+        'Consider the rhize-context-manager:graphify skill (matches context, git)'
+      );
+      assert.ok(!fs.existsSync(logPath), 'log file must not have been created');
+    } finally {
+      fs.rmSync(blockerDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// (i) Statistical: an unmatched prompt logs a `{"suggested": null}` line at a
+// sampled ~1-in-20 rate, so silence precision has a denominator. Run enough
+// iterations that a true 5% sample rate makes zero hits implausible
+// (P(0 hits in 150 draws) ≈ 0.0005%) while keeping runtime reasonable.
+check('[logging] unmatched prompts sample suggested:null lines at ~1-in-20', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'router-log-sample-'));
+    const logPath = path.join(logDir, 'suggestion-log.jsonl');
+    try {
+      const iterations = 150;
+      for (let i = 0; i < iterations; i += 1) {
+        const result = runRouterFull(tmpHome, UNMATCHED_PROMPT, `sess-sample-${i}`, {
+          RHIZE_SUGGESTION_LOG: logPath,
+        });
+        assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+        assert.strictEqual(result.stdout.trim(), '', 'unmatched prompt must never emit stdout');
+      }
+      const lines = fs.existsSync(logPath)
+        ? fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean)
+        : [];
+      assert.ok(lines.length > 0, 'expected at least one sampled suggested:null line');
+      assert.ok(
+        lines.length < iterations,
+        'sampling must not log every no-suggestion invocation'
+      );
+      for (const line of lines) {
+        const entry = JSON.parse(line);
+        assert.strictEqual(entry.hook, 'router');
+        assert.strictEqual(entry.suggested, null);
+        assert.ok(typeof entry.context_hash === 'string' && entry.context_hash.length === 16);
+      }
+    } finally {
+      fs.rmSync(logDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// (j) Latency: appendFileSync of one suggestion line must stay well within
+// the hooks' ~50ms budget. Measured in-process (not via spawnSync, whose
+// per-call Node startup cost would dwarf the write itself and defeat the
+// point of isolating appendFileSync's contribution).
+check('[logging] appendFileSync of one line stays well within the 50ms hook budget', () => {
+  const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'router-log-timing-'));
+  const logPath = path.join(logDir, 'suggestion-log.jsonl');
+  try {
+    const entry =
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        session_id: 'sess-timing',
+        hook: 'router',
+        suggested: 'skill:rhize-context-manager/graphify',
+        context_hash: 'a'.repeat(16),
+      }) + '\n';
+    const iterations = 200;
+    const start = process.hrtime.bigint();
+    for (let i = 0; i < iterations; i += 1) {
+      fs.appendFileSync(logPath, entry);
+    }
+    const elapsedMs = Number(process.hrtime.bigint() - start) / 1e6;
+    const perCallMs = elapsedMs / iterations;
+    assert.ok(
+      perCallMs < 5,
+      `expected appendFileSync to average well under the 50ms hook budget, got ${perCallMs}ms/call`
+    );
+  } finally {
+    fs.rmSync(logDir, { recursive: true, force: true });
+  }
 });
 
 if (failures > 0) {

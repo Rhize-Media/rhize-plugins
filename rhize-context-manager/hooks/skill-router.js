@@ -51,12 +51,47 @@
 // BUDGET: <150ms warm. No network, no child processes; the map is read
 // synchronously once per invocation.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Suggestion logging (append-only, local-machine JSONL; see
+// scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
+// text, file paths, or tool output — only ids/hashes, matching
+// skill-monitor's privacy precedent. Fully fail-silent: a logging failure
+// must never affect the suggestion path or exit code.
+// RHIZE_SUGGESTION_LOG overrides the path for testability.
+function resolveContextManagerDir() {
+  if (typeof process.env.RHIZE_CONTEXT_MANAGER_DIR === 'string' && process.env.RHIZE_CONTEXT_MANAGER_DIR) {
+    return process.env.RHIZE_CONTEXT_MANAGER_DIR;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager');
+}
+
+function resolveLogPath() {
+  if (typeof process.env.RHIZE_SUGGESTION_LOG === 'string' && process.env.RHIZE_SUGGESTION_LOG) {
+    return process.env.RHIZE_SUGGESTION_LOG;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager', 'suggestion-log.jsonl');
+}
+
+function contextHash(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 16);
+}
+
+function logSuggestion(entry) {
+  try {
+    const logPath = resolveLogPath();
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n');
+  } catch (_err) {
+    // fail-silent: logging must never affect the suggestion path or exit code
+  }
+}
+
 function readMap() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.resolved.json'),
     path.join(dir, 'skill-map.static.json'),
@@ -83,7 +118,7 @@ function readMap() {
 }
 
 function readIndexes() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.indexes.resolved.json'),
     path.join(dir, 'skill-map.indexes.json'),
@@ -282,36 +317,64 @@ function formatMatch(match) {
 // Tries the materialized router index first (routeFromIndex); only when no
 // indexes file is present/parseable does this fall back to the original
 // map-scanning path (readMap/route) — see the INDEX RESOLUTION note above.
+// Returns null (nothing to do), or an object describing the outcome for
+// main() to emit and log: { message, sessionId, suggested, contextHash } when
+// a suggestion fires, or { message: null, sessionId, sampled, contextHash }
+// when the prompt qualified for consideration but nothing matched (sampled is
+// true 1-in-20 times, so silence precision has a denominator — see
+// scripts/suggestion_log_report.py).
 function computeMessage() {
   const raw = fs.readFileSync(0, 'utf8');
   const data = JSON.parse(raw);
   const prompt = typeof data.prompt === 'string' ? data.prompt : '';
+  const sessionId = typeof data.session_id === 'string' ? data.session_id : null;
   if (!prompt) return null;
 
   const promptTokens = tokenize(prompt);
+  const ctxHash = contextHash(prompt);
 
   const routerIndex = readIndexes();
-  if (routerIndex) {
-    return formatMatch(routeFromIndex(routerIndex, promptTokens));
-  }
+  const match = routerIndex
+    ? routeFromIndex(routerIndex, promptTokens)
+    : (() => {
+        const doc = readMap();
+        return doc ? route(doc, promptTokens) : null;
+      })();
 
-  const doc = readMap();
-  if (!doc) return null;
-  return formatMatch(route(doc, promptTokens));
+  const message = formatMatch(match);
+  if (message) {
+    return { message, sessionId, suggested: match.skillId, contextHash: ctxHash };
+  }
+  return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash };
 }
 
 function main() {
   try {
-    const message = computeMessage();
-    if (message) {
+    const result = computeMessage();
+    if (result && result.message) {
       process.stdout.write(
         JSON.stringify({
           hookSpecificOutput: {
             hookEventName: 'UserPromptSubmit',
-            additionalContext: message,
+            additionalContext: result.message,
           },
         }) + '\n'
       );
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'router',
+        suggested: result.suggested,
+        context_hash: result.contextHash,
+      });
+    } else if (result && result.sampled) {
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'router',
+        suggested: null,
+        context_hash: result.contextHash,
+      });
     }
   } catch (_err) {
     // fail-silent contract: never surface an error to the user or Claude

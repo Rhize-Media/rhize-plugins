@@ -19,6 +19,11 @@ __pycache__/
 # Eval results (regenerated on each run)
 evals/results/
 
+# Skill-map eval mined datasets (machine-local, contain raw user prompt text —
+# see docs/superpowers/specs/2026-08-10-skill-graph-evals-design.md's "Privacy
+# precedent": miners/runners are committed, mined data never is)
+evals/skill-map/data/
+
 # Claude Code local config
 .claude/
 
@@ -33,6 +38,7 @@ scripts/*
 !scripts/baseline_upstreams.py
 !scripts/sources_md.py
 !scripts/query_skill_map.py
+!scripts/suggestion_log_report.py
 !scripts/viewer/
 
 # Squirrel config

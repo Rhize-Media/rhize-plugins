@@ -92,6 +92,11 @@ the right one, and health-checks the whole thing.
   `precedes` (or, absent one, a mined `follows`) edge — e.g. after `write-prd`, "the usual
   next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at
   least once, same as `skill-router`; with no artifact present they fail silently.
+- All four map hooks log each fired suggestion (2026-08-10) to
+  `~/.claude/context-manager/suggestion-log.jsonl` — ids and hashes only, never prompt
+  text — so "was this suggestion actually followed?" is finally measurable. Run
+  `python3 scripts/suggestion_log_report.py` (repo root) for per-hook acceptance/ignore
+  rates; the skill-graph eval suite (`evals/skill-map/`) builds on the same log.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).

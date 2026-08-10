@@ -20,6 +20,7 @@
 // the original map-scanning relevantSkills() path still works unaided.
 
 const assert = require('assert');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -66,6 +67,19 @@ function runDisclosure(tmpHome, tmpCwd) {
     input: JSON.stringify({ cwd: tmpCwd }),
     cwd: tmpCwd,
     env: { ...process.env, HOME: tmpHome },
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  return result;
+}
+
+// Variant that also sets session_id (for suggestion-log assertions) and
+// accepts extra env vars, notably RHIZE_SUGGESTION_LOG.
+function runDisclosureFull(tmpHome, tmpCwd, sessionId, extraEnv) {
+  const result = spawnSync(process.execPath, [DISCLOSURE_PATH], {
+    input: JSON.stringify({ cwd: tmpCwd, session_id: sessionId }),
+    cwd: tmpCwd,
+    env: { ...process.env, HOME: tmpHome, ...extraEnv },
     encoding: 'utf8',
     timeout: 5000,
   });
@@ -204,6 +218,80 @@ check('[fallback] no indexes file: map-scan path still matches', () => {
         ctx.includes('seo-aeo-geo:nextjs-sanity-seo'),
         `expected block to name the nextjs-tagged skill, got: ${ctx}`
       );
+    });
+  });
+});
+
+// --- suggestion-log assertions (RHIZE_SUGGESTION_LOG override) ---
+
+// (f) A firing disclosure block must append exactly one log line matching
+// the pinned schema, with `suggested` as an array (disclosure's multi-skill
+// surface) and context_hash covering the repo fingerprint (cwd), never a raw
+// file path or prompt text.
+check('[logging] disclosure fires: log line matches pinned schema', () => {
+  withTempDir('disclosure-home-', (tmpHome) => {
+    withTempDir('disclosure-cwd-', (tmpCwd) => {
+      writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+      fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
+      const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'disclosure-log-'));
+      const logPath = path.join(logDir, 'suggestion-log.jsonl');
+      try {
+        const result = runDisclosureFull(tmpHome, tmpCwd, 'sess-disclosure-1', {
+          RHIZE_SUGGESTION_LOG: logPath,
+        });
+        assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+        assert.ok(fs.existsSync(logPath), 'expected log file to be created');
+        const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+        assert.strictEqual(lines.length, 1, `expected exactly one log line, got ${lines.length}`);
+        const entry = JSON.parse(lines[0]);
+        assert.ok(typeof entry.ts === 'string' && !Number.isNaN(Date.parse(entry.ts)), 'ts must be ISO8601');
+        assert.strictEqual(entry.session_id, 'sess-disclosure-1');
+        assert.strictEqual(entry.hook, 'disclosure');
+        assert.ok(Array.isArray(entry.suggested), 'disclosure suggested must be an array');
+        assert.ok(
+          entry.suggested.includes('skill:seo-aeo-geo/nextjs-sanity-seo'),
+          `expected suggested to include the nextjs-tagged skill id, got: ${JSON.stringify(entry.suggested)}`
+        );
+        const expectedHash = crypto.createHash('sha256').update(tmpCwd).digest('hex').slice(0, 16);
+        assert.strictEqual(entry.context_hash, expectedHash);
+        assert.ok(
+          !JSON.stringify(entry).includes(tmpCwd),
+          'raw repo path must never be logged, only its hash'
+        );
+      } finally {
+        fs.rmSync(logDir, { recursive: true, force: true });
+      }
+    });
+  });
+});
+
+// (g) A log write failure (unwritable path — parent is a file, not a
+// directory) must never affect the hook's stdout or exit code.
+check('[logging] log write failure does not affect hook output or exit code', () => {
+  withTempDir('disclosure-home-', (tmpHome) => {
+    withTempDir('disclosure-cwd-', (tmpCwd) => {
+      writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+      fs.writeFileSync(path.join(tmpCwd, 'next.config.mjs'), 'export default {};\n');
+      const blockerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'disclosure-log-blocker-'));
+      const blockerFile = path.join(blockerDir, 'not-a-dir');
+      fs.writeFileSync(blockerFile, 'x');
+      const logPath = path.join(blockerFile, 'suggestion-log.jsonl'); // parent is a file
+      try {
+        const result = runDisclosureFull(tmpHome, tmpCwd, 'sess-disclosure-2', {
+          RHIZE_SUGGESTION_LOG: logPath,
+        });
+        assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+        const stdout = result.stdout.trim();
+        assert.ok(stdout.length > 0, 'expected non-empty stdout despite log failure');
+        const parsed = JSON.parse(stdout.split('\n')[0]);
+        assert.ok(
+          parsed.hookSpecificOutput.additionalContext.includes('seo-aeo-geo:nextjs-sanity-seo'),
+          'hook output must be unaffected by log write failure'
+        );
+        assert.ok(!fs.existsSync(logPath), 'log file must not have been created');
+      } finally {
+        fs.rmSync(blockerDir, { recursive: true, force: true });
+      }
     });
   });
 });

@@ -45,12 +45,47 @@
 //
 // BUDGET: <150ms warm. No network, no child processes.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Suggestion logging (append-only, local-machine JSONL; see
+// scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
+// text, file paths, or tool output — only ids/hashes, matching
+// skill-monitor's privacy precedent. Fully fail-silent: a logging failure
+// must never affect the suggestion path or exit code.
+// RHIZE_SUGGESTION_LOG overrides the path for testability.
+function resolveContextManagerDir() {
+  if (typeof process.env.RHIZE_CONTEXT_MANAGER_DIR === 'string' && process.env.RHIZE_CONTEXT_MANAGER_DIR) {
+    return process.env.RHIZE_CONTEXT_MANAGER_DIR;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager');
+}
+
+function resolveLogPath() {
+  if (typeof process.env.RHIZE_SUGGESTION_LOG === 'string' && process.env.RHIZE_SUGGESTION_LOG) {
+    return process.env.RHIZE_SUGGESTION_LOG;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager', 'suggestion-log.jsonl');
+}
+
+function contextHash(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 16);
+}
+
+function logSuggestion(entry) {
+  try {
+    const logPath = resolveLogPath();
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n');
+  } catch (_err) {
+    // fail-silent: logging must never affect the suggestion path or exit code
+  }
+}
+
 function readIndexes() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.indexes.resolved.json'),
     path.join(dir, 'skill-map.indexes.json'),
@@ -144,9 +179,14 @@ function isExplicitSuccess(toolResponse) {
   return false;
 }
 
+// Returns null (nothing to do, or no suggestion — not logged per the
+// no-suggestion-invocations-are-not-logged rule), or { message, sessionId,
+// suggested, contextHash } for main() to emit and log. contextHash covers the
+// matched stdout+stderr snippet, never the raw text itself.
 function computeMessage() {
   const raw = fs.readFileSync(0, 'utf8');
   const data = JSON.parse(raw);
+  const sessionId = typeof data.session_id === 'string' ? data.session_id : null;
 
   const toolName = typeof data.tool_name === 'string' ? data.tool_name : '';
   if (toolName && toolName !== 'Bash') return null; // defensive; matcher already scopes this
@@ -170,21 +210,29 @@ function computeMessage() {
   const described = describeRemediator(match.remediatorId);
   if (!described) return null;
 
-  return `Build failed — the ${described.label} remediates ${match.conditionSlug}`;
+  const message = `Build failed — the ${described.label} remediates ${match.conditionSlug}`;
+  return { message, sessionId, suggested: match.remediatorId, contextHash: contextHash(text) };
 }
 
 function main() {
   try {
-    const message = computeMessage();
-    if (message) {
+    const result = computeMessage();
+    if (result && result.message) {
       process.stdout.write(
         JSON.stringify({
           hookSpecificOutput: {
             hookEventName: 'PostToolUse',
-            additionalContext: message,
+            additionalContext: result.message,
           },
         }) + '\n'
       );
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'remediation',
+        suggested: result.suggested,
+        context_hash: result.contextHash,
+      });
     }
   } catch (_err) {
     // fail-silent contract: never surface an error to the user or Claude

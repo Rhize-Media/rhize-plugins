@@ -12,6 +12,7 @@
 // skill-map.indexes.{resolved,}.json) reads only the fixture this test wrote.
 
 const assert = require('assert');
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -50,6 +51,24 @@ function runHook(tmpHome, { stdout = '', stderr = '' } = {}) {
   const result = spawnSync(process.execPath, [HOOK_PATH], {
     input: JSON.stringify(payload),
     env: { ...process.env, HOME: tmpHome },
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  return result;
+}
+
+// Variant that also sets session_id (for suggestion-log assertions) and
+// accepts extra env vars, notably RHIZE_SUGGESTION_LOG.
+function runHookFull(tmpHome, { stdout = '', stderr = '', sessionId, extraEnv } = {}) {
+  const payload = {
+    tool_name: 'Bash',
+    tool_input: { command: 'npm run build' },
+    tool_response: { stdout, stderr, interrupted: false },
+    session_id: sessionId,
+  };
+  const result = spawnSync(process.execPath, [HOOK_PATH], {
+    input: JSON.stringify(payload),
+    env: { ...process.env, HOME: tmpHome, ...extraEnv },
     encoding: 'utf8',
     timeout: 5000,
   });
@@ -117,6 +136,79 @@ check('missing index emits nothing and exits 0', () => {
     const result = runHook(tmpHome, { stderr: 'Error: build failed\n' });
     assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
     assert.strictEqual(result.stdout.trim(), '', 'expected empty stdout');
+  });
+});
+
+// --- suggestion-log assertions (RHIZE_SUGGESTION_LOG override) ---
+
+const FAILING_STDERR = 'Error: build failed\n';
+
+// (e) A firing remediation must append exactly one log line matching the
+// pinned schema. context_hash covers the matched stdout+stderr text, never
+// the raw tool output itself.
+check('[logging] remediation fires: log line matches pinned schema', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+    const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remediation-log-'));
+    const logPath = path.join(logDir, 'suggestion-log.jsonl');
+    try {
+      const result = runHookFull(tmpHome, {
+        stderr: FAILING_STDERR,
+        sessionId: 'sess-remediation-1',
+        extraEnv: { RHIZE_SUGGESTION_LOG: logPath },
+      });
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      assert.ok(fs.existsSync(logPath), 'expected log file to be created');
+      const lines = fs.readFileSync(logPath, 'utf8').trim().split('\n').filter(Boolean);
+      assert.strictEqual(lines.length, 1, `expected exactly one log line, got ${lines.length}`);
+      const entry = JSON.parse(lines[0]);
+      assert.ok(typeof entry.ts === 'string' && !Number.isNaN(Date.parse(entry.ts)), 'ts must be ISO8601');
+      assert.strictEqual(entry.session_id, 'sess-remediation-1');
+      assert.strictEqual(entry.hook, 'remediation');
+      assert.strictEqual(entry.suggested, 'external:ecc-build-error-resolver');
+      const expectedHash = crypto
+        .createHash('sha256')
+        .update(`\n${FAILING_STDERR}`)
+        .digest('hex')
+        .slice(0, 16);
+      assert.strictEqual(entry.context_hash, expectedHash);
+      assert.ok(
+        !JSON.stringify(entry).includes('build failed'),
+        'raw tool output must never be logged'
+      );
+    } finally {
+      fs.rmSync(logDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// (f) A log write failure (unwritable path — parent is a file, not a
+// directory) must never affect the hook's stdout or exit code.
+check('[logging] log write failure does not affect hook output or exit code', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(FIXTURE_PATH, 'utf8'));
+    const blockerDir = fs.mkdtempSync(path.join(os.tmpdir(), 'remediation-log-blocker-'));
+    const blockerFile = path.join(blockerDir, 'not-a-dir');
+    fs.writeFileSync(blockerFile, 'x');
+    const logPath = path.join(blockerFile, 'suggestion-log.jsonl'); // parent is a file
+    try {
+      const result = runHookFull(tmpHome, {
+        stderr: FAILING_STDERR,
+        sessionId: 'sess-remediation-2',
+        extraEnv: { RHIZE_SUGGESTION_LOG: logPath },
+      });
+      assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+      const stdout = result.stdout.trim();
+      assert.ok(stdout.length > 0, 'expected non-empty stdout despite log failure');
+      const parsed = JSON.parse(stdout.split('\n')[0]);
+      assert.strictEqual(
+        parsed.hookSpecificOutput.additionalContext,
+        'Build failed — the ecc:build-error-resolver agent remediates build-failure'
+      );
+      assert.ok(!fs.existsSync(logPath), 'log file must not have been created');
+    } finally {
+      fs.rmSync(blockerDir, { recursive: true, force: true });
+    }
   });
 });
 

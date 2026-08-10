@@ -58,9 +58,44 @@
 // ranked by number of matched stacks (desc) then skill id (asc) for
 // determinism. Nothing is emitted if no skill resolves for a detected stack.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
+// Suggestion logging (append-only, local-machine JSONL; see
+// scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
+// text, file paths, or tool output — only ids/hashes, matching
+// skill-monitor's privacy precedent. Fully fail-silent: a logging failure
+// must never affect the suggestion path or exit code.
+// RHIZE_SUGGESTION_LOG overrides the path for testability.
+function resolveContextManagerDir() {
+  if (typeof process.env.RHIZE_CONTEXT_MANAGER_DIR === 'string' && process.env.RHIZE_CONTEXT_MANAGER_DIR) {
+    return process.env.RHIZE_CONTEXT_MANAGER_DIR;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager');
+}
+
+function resolveLogPath() {
+  if (typeof process.env.RHIZE_SUGGESTION_LOG === 'string' && process.env.RHIZE_SUGGESTION_LOG) {
+    return process.env.RHIZE_SUGGESTION_LOG;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager', 'suggestion-log.jsonl');
+}
+
+function contextHash(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 16);
+}
+
+function logSuggestion(entry) {
+  try {
+    const logPath = resolveLogPath();
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n');
+  } catch (_err) {
+    // fail-silent: logging must never affect the suggestion path or exit code
+  }
+}
 
 const STACK_MARKERS = [
   {
@@ -112,7 +147,7 @@ function detectStacks(cwd) {
 }
 
 function readMap() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.resolved.json'),
     path.join(dir, 'skill-map.static.json'),
@@ -139,7 +174,7 @@ function readMap() {
 }
 
 function readIndexes() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.indexes.resolved.json'),
     path.join(dir, 'skill-map.indexes.json'),
@@ -331,50 +366,70 @@ function formatBlock(matches) {
   return ['Rhize skills relevant to this repo:'].concat(lines).join('\n');
 }
 
-function resolveCwd() {
+function resolveStdinData() {
   let raw = '';
   try {
     raw = fs.readFileSync(0, 'utf8');
   } catch (_err) {
-    // no stdin available — fall back to process.cwd()
+    // no stdin available — return null, callers fall back to defaults
   }
   try {
-    const data = JSON.parse(raw);
-    if (data && typeof data.cwd === 'string' && data.cwd) return data.cwd;
+    return JSON.parse(raw);
   } catch (_err) {
-    // no/invalid stdin JSON — fall back to process.cwd()
+    return null; // no/invalid stdin JSON
   }
-  return process.cwd();
 }
 
+// Returns null (nothing to do), or { message, sessionId, suggested,
+// contextHash } for main() to emit and log. suggested is an array of skill
+// ids (disclosure surfaces multiple skills at once). contextHash covers the
+// repo fingerprint (the resolved cwd), never raw prompt text or file paths.
 function computeMessage() {
-  const cwd = resolveCwd();
+  const data = resolveStdinData();
+  const cwd = data && typeof data.cwd === 'string' && data.cwd ? data.cwd : process.cwd();
+  const sessionId = data && typeof data.session_id === 'string' ? data.session_id : null;
 
   const stacks = detectStacks(cwd);
   if (stacks.length === 0) return null; // silence > generic banner
 
   const disclosureIndex = readIndexes();
-  if (disclosureIndex) {
-    return formatBlock(relevantSkillsFromIndex(disclosureIndex, stacks));
-  }
+  const matches = disclosureIndex
+    ? relevantSkillsFromIndex(disclosureIndex, stacks)
+    : (() => {
+        const doc = readMap();
+        return doc ? relevantSkills(doc, stacks) : [];
+      })();
 
-  const doc = readMap();
-  if (!doc) return null;
-  return formatBlock(relevantSkills(doc, stacks));
+  const message = formatBlock(matches);
+  if (!message) return null;
+
+  return {
+    message,
+    sessionId,
+    suggested: matches.map((m) => m.skillId),
+    contextHash: contextHash(cwd),
+  };
 }
 
 function main() {
   try {
-    const message = computeMessage();
-    if (message) {
+    const result = computeMessage();
+    if (result && result.message) {
       process.stdout.write(
         JSON.stringify({
           hookSpecificOutput: {
             hookEventName: 'SessionStart',
-            additionalContext: message,
+            additionalContext: result.message,
           },
         }) + '\n'
       );
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'disclosure',
+        suggested: result.suggested,
+        context_hash: result.contextHash,
+      });
     }
   } catch (_err) {
     // fail-silent contract: never surface an error to the user or Claude

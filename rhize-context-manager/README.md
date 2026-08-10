@@ -81,6 +81,16 @@ fallback to the older `skill-map.resolved.json`/`skill-map.static.json` map-scan
 indexes file exists at all. All four fail silently (exit 0, no output) on any missing or corrupt
 input. See `docs/skill-map.md` for the artifact/tagging conventions they depend on.
 
+All four hooks also write a **suggestion log** — one JSON line per fired suggestion, appended
+fail-silent to `~/.claude/context-manager/suggestion-log.jsonl`:
+`{"ts", "session_id", "hook", "suggested", "context_hash"}`. No prompt text, paths, or tool
+output is ever logged — ids and truncated sha256 hashes only, matching skill-monitor's privacy
+precedent. `skill-router.js` additionally logs a 1-in-20 sample of no-suggestion prompts
+(`"suggested": null`) so silence precision has a denominator. `scripts/suggestion_log_report.py`
+(repo root) joins the log against skill-monitor usage data to report per-hook acceptance and
+ignore rates. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file path)
+and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
+
 ### Opt-in hooks (`setup/manifest.json`)
 
 Six hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
