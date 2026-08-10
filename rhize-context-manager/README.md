@@ -199,6 +199,43 @@ Verify any change with the built-in self-test (9 cases, including the exact
 node hooks/context-window-monitor.js --self-test
 ```
 
+## Skill-map frontmatter conventions
+
+Every Rhize-authored skill in `skills/*/SKILL.md` declares its skill-map identity under a
+`metadata.rhize` block in frontmatter, e.g.:
+
+```yaml
+metadata:
+  rhize:
+    topics: [context-compression, context-engineering]
+    stacks: []
+    extends: [context-fundamentals]
+```
+
+| Field | Meaning |
+|---|---|
+| `topics` | Topic tags — what the skill is about; drives `skill-router.js`/`session-disclosure.js` topic-tag matching. |
+| `stacks` | Stack tags — which detected project stack (nextjs, sanity, vercel, obsidian, …) the skill is relevant to; drives `session-disclosure.js`'s stack fingerprint match. |
+| `extends` | Names an existing skill this one deliberately deepens/specializes (chains capped at depth 2 by the compiler). Also the declaration `skill-forge`'s `--skill-map` overlap gate checks for its exemption. |
+| `augments` | Names a topic (not a skill) this skill should run alongside/after — a cross-cutting modifier, distinct from `extends`. |
+| `remediates` | Names a `tag:condition/<slug>` this skill fixes when detected in failed tool output — feeds `remediation-suggester.js`. |
+| `dependsOn` | Runtime dependencies, e.g. `["mcp:graphiti"]` — mints an `mcp-server` node in the compiled map. |
+
+`docs/skill-map.md` (repo root) is the authoritative schema/tagging reference; this table
+is the quick-lookup version for anyone editing a `SKILL.md` here.
+
+## Querying the compiled map
+
+`python3 scripts/query_skill_map.py --list` (run from the `rhize-plugins` repo root)
+prints the named, declarative queries available over `catalog/queries.json` — the
+second tier of the two-tier query layer (the first tier is the materialized
+`generated/skill-map.indexes.json` the hooks above read directly). Use it instead of
+hand-writing a traversal when you need something the hooks don't already answer, e.g.
+`python3 scripts/query_skill_map.py what-follows context-engineering --resolved` (the
+`--resolved` flag reads the installed, third-party-merged
+`~/.claude/context-manager/skill-map.resolved.json` instead of the repo-local static
+artifact — required for anything touching `follows` edges or third-party nodes).
+
 ## The stack this plugin orchestrates
 
 | Tool | Layer | Install (external) |

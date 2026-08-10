@@ -44,6 +44,15 @@ duplicating a skill. Check for it whenever adding to `enabledPlugins`.
 refuse, or require an explicit override, when a candidate skill's name or capability
 already exists in an enabled plugin.*
 
+**Update (2026-08-10):** this enforcement has shipped. `skill-forge add`/`scan --skill-map
+<path>` ranks a candidate against every skill in this repo's compiled skill map
+(`generated/skill-map.static.json`) and escalates a near-duplicate to a blocking safety
+finding instead of a silent promote — see `docs/skill-map.md` and skill-forge's own
+CLAUDE.md for the mechanics. A deliberate specialization declares
+`metadata.rhize.extends` in its SKILL.md frontmatter to get an exemption from that
+specific match, rather than being blocked outright — so this rule's "author a genuinely
+additive skill next to it" escape hatch is now machine-checked, not just written down.
+
 See the `learning-curation` skill in `rhize-context-manager` for the general procedure.
 
 ## Skill Usage (IMPORTANT)
