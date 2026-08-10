@@ -32,6 +32,8 @@ scripts/*
 !scripts/publish_skill_map_vault.py
 !scripts/baseline_upstreams.py
 !scripts/sources_md.py
+!scripts/query_skill_map.py
+!scripts/viewer/
 
 # Squirrel config
 squirrel.toml

@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-10_ **Skill-map viewer tooling committed** (`scripts/viewer/`): the interactive
+  force-directed skill-graph viewer's template (`viewer-template.html`) and build script
+  (`build_viewer.py`) moved into the repo from an ephemeral session scratchpad so the published
+  viewer artifact can be regenerated. Builds from the machine-local resolved map when present
+  (includes the third-party ecosystem overlay), falling back to the committed static map.
+  Default view renders cross-plugin "bridge tags" (tags spanning ≥2 plugins) even with the full
+  topic/stack tag layers toggled off. See the Consumers table in `docs/skill-map.md`.
+- _2026-08-10_ **`scripts/query_skill_map.py` actually committed.** The two-tier query layer's
+  CLI (shipped conceptually in the relationships-v2 change and referenced 5 times by
+  `docs/skill-map.md`) had never been tracked — `.gitignore`'s `scripts/*` allowlist silently
+  excluded it, the same trap that would have swallowed `scripts/viewer/`. Both are now
+  allowlisted; a fresh clone regains the query CLI.
+
 - _2026-08-10_ version bump — **obsidian-second-brain** 1.3.1 → 1.3.2 (patch); marketplace 2.25.4 → 2.25.5.
 - _2026-08-10_ version bump — **rhize-devflow** 2.10.2 → 2.10.3 (patch); marketplace 2.25.3 → 2.25.4.
 - _2026-08-10_ version bump — **project-launcher** 1.7.0 → 1.7.1 (patch); marketplace 2.25.2 → 2.25.3.

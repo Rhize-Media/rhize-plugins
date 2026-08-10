@@ -1,0 +1,401 @@
+<title>Rhize Skill Map</title>
+<style>
+  :root {
+    --bg: #100012; --panel: #1a0321; --panel-2: #24082e;
+    --fg: #ffffff; --muted: #b3a1c4; --faint: #5e4a70;
+    --purple: #9333ea; --purple-lt: #c084fc; --pink: #ff3366; --orange: #ff6b00;
+    --line: rgba(147, 51, 234, 0.25);
+    --sans: -apple-system, "Helvetica Neue", Segoe UI, sans-serif;
+    --mono: "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); overflow: hidden; }
+  #stage { position: fixed; inset: 0; cursor: grab; }
+  #stage.dragging { cursor: grabbing; }
+
+  header {
+    position: fixed; top: 0; left: 0; right: 0; padding: 14px 20px;
+    display: flex; align-items: baseline; gap: 14px; pointer-events: none; z-index: 5;
+    background: linear-gradient(rgba(16,0,18,.92), rgba(16,0,18,0));
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: .01em; }
+  header .stats { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  header .hint { margin-left: auto; font-size: 11px; color: var(--faint); }
+
+  .panel {
+    position: fixed; z-index: 6; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+  }
+  #controls { left: 16px; top: 58px; width: 228px; padding: 14px; max-height: calc(100vh - 90px); overflow-y: auto; }
+  #controls h2 { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+  #controls h2:first-of-type { margin-top: 10px; }
+  #search { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; color: var(--fg); font: 12px var(--mono); padding: 7px 9px; outline: none; }
+  #search:focus { border-color: var(--purple); }
+  label.row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; cursor: pointer; color: var(--fg); }
+  label.row .count { margin-left: auto; font: 10px var(--mono); color: var(--faint); }
+  .chip { width: 14px; height: 3px; border-radius: 2px; flex: none; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  input[type="checkbox"] { accent-color: var(--purple); margin: 0; }
+  .legend-note { font-size: 10.5px; color: var(--faint); line-height: 1.45; margin-top: 10px; }
+
+  #inspector { right: 16px; top: 58px; width: 292px; padding: 16px; max-height: calc(100vh - 90px); overflow-y: auto; display: none; }
+  #inspector.open { display: block; }
+  #inspector .kind { display: inline-block; font: 10px var(--mono); text-transform: uppercase; letter-spacing: .1em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); margin-bottom: 8px; }
+  #inspector h3 { margin: 0 0 2px; font-size: 15px; word-break: break-word; }
+  #inspector .plugin-of { font: 11px var(--mono); color: var(--purple-lt); margin-bottom: 10px; }
+  #inspector p.desc { font-size: 12px; line-height: 1.55; color: var(--muted); margin: 0 0 12px; }
+  #inspector h4 { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 12px 0 5px; }
+  #inspector ul { list-style: none; margin: 0; padding: 0; }
+  #inspector li { font: 11px var(--mono); padding: 3px 0; color: var(--fg); cursor: pointer; display: flex; gap: 7px; align-items: center; }
+  #inspector li:hover { color: var(--purple-lt); }
+  #inspector li .etype { color: var(--faint); flex: none; }
+  #inspector .close { position: absolute; top: 10px; right: 12px; background: none; border: none; color: var(--faint); font-size: 16px; cursor: pointer; padding: 2px 6px; }
+  #inspector .close:hover { color: var(--fg); }
+  #inspector .close:focus-visible, #search:focus-visible, label.row:focus-within { outline: 2px solid var(--purple); outline-offset: 2px; }
+
+  #tooltip { position: fixed; pointer-events: none; z-index: 8; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 9px; font: 11px var(--mono); display: none; max-width: 260px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header>
+  <h1>Rhize Skill Map</h1>
+  <span class="stats" id="stats"></span>
+  <span class="hint">drag nodes · scroll to zoom · drag background to pan · click a node to inspect</span>
+</header>
+
+<canvas id="stage"></canvas>
+<div id="tooltip"></div>
+
+<div class="panel" id="controls">
+  <input id="search" type="search" placeholder="find a skill…" aria-label="Search nodes" />
+  <h2>Relationships</h2>
+  <div id="edge-toggles"></div>
+  <h2>Structure</h2>
+  <div id="edge-toggles-structural"></div>
+  <h2>Plugins</h2>
+  <div id="plugin-toggles"></div>
+  <h2>Ecosystem</h2>
+  <div id="ecosystem-toggle"></div>
+  <h2>Node kinds</h2>
+  <div id="kind-legend"></div>
+  <div class="legend-note">Tag edges are off by default so the relationship story reads first. Third-party plugins (hollow gray) are off by default — turn them on to see the whole installed ecosystem the overlap gate now checks against. Data: <span style="font-family:var(--mono)">skill-map.resolved.json</span>, rebuilt by the weekly audit.</div>
+</div>
+
+<div class="panel" id="inspector">
+  <button class="close" aria-label="Close inspector">×</button>
+  <span class="kind" id="ins-kind"></span>
+  <h3 id="ins-name"></h3>
+  <div class="plugin-of" id="ins-plugin"></div>
+  <p class="desc" id="ins-desc"></p>
+  <div id="ins-edges"></div>
+</div>
+
+<script>
+const DATA = /*__SKILL_MAP_DATA__*/;
+
+const KIND = {
+  plugin:   { color: "#9333ea", r: 15, fill: true,  label: "plugin" },
+  skill:    { color: "#c084fc", r: 7,  fill: true,  label: "skill" },
+  command:  { color: "#7332e0", r: 4,  fill: true,  label: "command" },
+  hook:     { color: "#ff6b00", r: 5,  fill: true,  label: "hook" },
+  tag:      { color: "#6b5580", r: 5,  fill: false, label: "tag" },
+  external: { color: "#ff3366", r: 8,  fill: false, label: "external upstream" },
+  "mcp-server": { color: "#ff6b00", r: 7, fill: false, label: "mcp server" },
+};
+const EDGE = {
+  "fork-of":        { color: "#ff3366", w: 1.6, dash: [],     on: true,  rel: true },
+  "supersedes":     { color: "#ff3366", w: 1.4, dash: [6,4],  on: true,  rel: true },
+  "overlaps-with":  { color: "#ff3366", w: 1.4, dash: [2,4],  on: true,  rel: true },
+  "replaces":       { color: "#ff6b00", w: 1.6, dash: [],     on: true,  rel: true },
+  "depends-on":     { color: "#ff6b00", w: 1.4, dash: [6,4],  on: true,  rel: true },
+  "usage-cooccurs": { color: "#c084fc", w: 2.0, dash: [],     on: true,  rel: true },
+  "extends":        { color: "#9333ea", w: 1.6, dash: [8,3],  on: true,  rel: true },
+  "precedes":       { color: "#b3a1c4", w: 1.2, dash: [1,3],  on: true,  rel: true },
+  "follows":        { color: "#c084fc", w: 1.4, dash: [4,3],  on: true,  rel: true },
+  "augments":       { color: "#ff6b00", w: 1.3, dash: [2,2],  on: true,  rel: true },
+  "remediates":     { color: "#ff3366", w: 1.3, dash: [4,2],  on: true,  rel: true },
+  "contains":       { color: "rgba(255,255,255,0.10)", w: 1,   dash: [], on: true,  rel: false },
+  "topic-tag":      { color: "rgba(147,51,234,0.28)", w: 1,   dash: [2,3], on: false, rel: false },
+  "stack-tag":      { color: "rgba(192,132,252,0.30)", w: 1,  dash: [2,3], on: false, rel: false },
+};
+
+const nodes = DATA.nodes.map(n => ({ ...n,
+  x: (Math.random() - 0.5) * 900, y: (Math.random() - 0.5) * 700, vx: 0, vy: 0, fixed: false }));
+const byId = new Map(nodes.map(n => [n.id, n]));
+const edges = DATA.edges.filter(e => byId.has(e.from) && byId.has(e.to));
+const edgeCounts = {}; edges.forEach(e => edgeCounts[e.type] = (edgeCounts[e.type] || 0) + 1);
+const plugins = [...new Set(nodes.filter(n => n.kind === "plugin" && n.origin !== "third-party").map(n => n.name))].sort();
+const pluginOn = Object.fromEntries(plugins.map(p => [p, true]));
+const edgeOn = Object.fromEntries(Object.keys(EDGE).map(t => [t, EDGE[t].on]));
+let searchTerm = "", selected = null, hovered = null, showThirdParty = false;
+const tpPlugins = nodes.filter(n => n.kind === "plugin" && n.origin === "third-party").length;
+const tpSkills = nodes.filter(n => n.kind === "skill" && n.origin === "third-party").length;
+
+function pluginOf(n) {
+  if (n.plugin) return n.plugin;
+  if (n.kind === "plugin") return n.name || n.id.slice(n.id.indexOf(":") + 1);
+  // ids look like "skill:<plugin>/<name>", "hook:<plugin>/<slug>", etc.
+  const body = n.id.slice(n.id.indexOf(":") + 1), slash = body.indexOf("/");
+  return slash > 0 ? body.slice(0, slash) : null;
+}
+function nodeVisible(n) {
+  if (n.origin === "third-party") return showThirdParty;
+  const p = pluginOf(n);
+  if (p && p in pluginOn && !pluginOn[p]) return false;
+  if (n.kind === "tag") {
+    if (edgeOn["topic-tag"] || edgeOn["stack-tag"]) return true;
+    if (showBridgeTags && bridgeTags.has(n.id)) return true;
+    return (edgeOn["augments"] || edgeOn["remediates"]) && relTagTargets.has(n.id);
+  }
+  return true;
+}
+const relTagTargets = new Set(
+  edges.filter(e => e.type === "augments" || e.type === "remediates").map(e => e.to));
+// Bridge tags: tags whose first-party carriers span >=2 plugins. These are the
+// cross-plugin connective tissue; hiding them makes the plugins read as islands.
+let showBridgeTags = true;
+const bridgeTags = (() => {
+  const carriers = new Map();
+  for (const e of edges) {
+    if (e.type !== "topic-tag" && e.type !== "stack-tag") continue;
+    const src = byId.get(e.from);
+    if (!src || src.origin === "third-party") continue;
+    const p = pluginOf(src);
+    if (!p) continue;
+    if (!carriers.has(e.to)) carriers.set(e.to, new Set());
+    carriers.get(e.to).add(p);
+  }
+  return new Set([...carriers].filter(([, ps]) => ps.size >= 2).map(([t]) => t));
+})();
+function edgeVisible(e) {
+  if ((e.type === "topic-tag" || e.type === "stack-tag") && !edgeOn[e.type]) {
+    // Bridge-tag edges stay visible even with the full tag layers off.
+    return showBridgeTags && bridgeTags.has(e.to) &&
+      nodeVisible(byId.get(e.from)) && nodeVisible(byId.get(e.to));
+  }
+  return edgeOn[e.type] && nodeVisible(byId.get(e.from)) && nodeVisible(byId.get(e.to));
+}
+
+// ---- controls ----
+function toggleRow(parent, chipStyle, name, count, checked, onchange) {
+  const l = document.createElement("label"); l.className = "row";
+  const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = checked;
+  cb.addEventListener("change", () => onchange(cb.checked));
+  const chip = document.createElement("span"); Object.assign(chip.style, chipStyle);
+  const t = document.createElement("span"); t.textContent = name;
+  const c = document.createElement("span"); c.className = "count"; c.textContent = count;
+  l.append(cb, chip, t, c); parent.append(l);
+}
+const relBox = document.getElementById("edge-toggles"), structBox = document.getElementById("edge-toggles-structural");
+for (const [t, s] of Object.entries(EDGE)) {
+  toggleRow(s.rel ? relBox : structBox,
+    { width: "14px", height: "3px", borderRadius: "2px", background: s.color, flex: "none" },
+    t, edgeCounts[t] || 0, edgeOn[t], v => { edgeOn[t] = v; kick(); });
+}
+toggleRow(structBox,
+  { width: "14px", height: "3px", borderRadius: "2px", background: "rgba(192,132,252,0.65)", flex: "none" },
+  "bridge tags (cross-plugin)", bridgeTags.size, showBridgeTags, v => { showBridgeTags = v; kick(); });
+const plugBox = document.getElementById("plugin-toggles");
+for (const p of plugins) {
+  const n = nodes.filter(x => pluginOf(x) === p).length;
+  toggleRow(plugBox, { width: "9px", height: "9px", borderRadius: "50%", background: "#9333ea", flex: "none" },
+    p, n, true, v => { pluginOn[p] = v; kick(); });
+}
+toggleRow(document.getElementById("ecosystem-toggle"),
+  { width: "9px", height: "9px", borderRadius: "50%", background: "transparent", border: "1.5px solid #6b5580", flex: "none" },
+  "third-party plugins", `${tpPlugins}p · ${tpSkills}s`, false, v => { showThirdParty = v; kick(); });
+const kindBox = document.getElementById("kind-legend");
+for (const [k, s] of Object.entries(KIND)) {
+  const l = document.createElement("label"); l.className = "row"; l.style.cursor = "default";
+  const d = document.createElement("span"); d.className = "dot";
+  d.style.background = s.fill ? s.color : "transparent"; d.style.border = "1.5px solid " + s.color;
+  const t = document.createElement("span"); t.textContent = s.label;
+  const c = document.createElement("span"); c.className = "count";
+  c.textContent = nodes.filter(n => n.kind === k).length;
+  l.append(d, t, c); kindBox.append(l);
+}
+document.getElementById("stats").textContent = `${nodes.length} nodes · ${edges.length} edges`;
+document.getElementById("search").addEventListener("input", e => { searchTerm = e.target.value.trim().toLowerCase(); kick(); });
+
+// ---- inspector ----
+const ins = document.getElementById("inspector");
+ins.querySelector(".close").addEventListener("click", () => { selected = null; ins.classList.remove("open"); kick(); });
+function openInspector(n) {
+  selected = n; ins.classList.add("open");
+  document.getElementById("ins-kind").textContent = KIND[n.kind].label;
+  document.getElementById("ins-kind").style.color = KIND[n.kind].color;
+  document.getElementById("ins-name").textContent = n.name || n.id;
+  document.getElementById("ins-plugin").textContent = n.plugin ? "in " + n.plugin : "";
+  document.getElementById("ins-desc").textContent = n.description || "";
+  const box = document.getElementById("ins-edges"); box.innerHTML = "";
+  const groups = {};
+  for (const e of edges) {
+    if (e.from === n.id) (groups[e.type] = groups[e.type] || []).push({ other: byId.get(e.to), dir: "→" });
+    else if (e.to === n.id) (groups[e.type] = groups[e.type] || []).push({ other: byId.get(e.from), dir: "←" });
+  }
+  for (const [t, items] of Object.entries(groups)) {
+    const h = document.createElement("h4"); h.textContent = t; box.append(h);
+    const ul = document.createElement("ul");
+    for (const it of items) {
+      const li = document.createElement("li");
+      const et = document.createElement("span"); et.className = "etype"; et.textContent = it.dir;
+      const nm = document.createElement("span"); nm.textContent = it.other.name || it.other.id;
+      li.append(et, nm);
+      li.addEventListener("click", () => { openInspector(it.other); centerOn(it.other); });
+      ul.append(li);
+    }
+    box.append(ul);
+  }
+  kick();
+}
+
+// ---- simulation ----
+let alpha = 1;
+function kick() { alpha = Math.max(alpha, 0.5); }
+function step() {
+  if (alpha < 0.003) return;
+  alpha *= 0.985;
+  const vis = nodes.filter(nodeVisible);
+  for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) {
+    const a = vis[i], b = vis[j];
+    let dx = b.x - a.x, dy = b.y - a.y, d2 = dx * dx + dy * dy || 1;
+    if (d2 > 250000) continue;
+    const f = 2600 / d2 * alpha, d = Math.sqrt(d2);
+    dx /= d; dy /= d;
+    a.vx -= dx * f; a.vy -= dy * f; b.vx += dx * f; b.vy += dy * f;
+  }
+  for (const e of edges) {
+    if (!edgeVisible(e)) continue;
+    const a = byId.get(e.from), b = byId.get(e.to);
+    const rest = e.type === "contains" ? 95 : 150;
+    let dx = b.x - a.x, dy = b.y - a.y;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1, f = (d - rest) * 0.04 * alpha;
+    dx /= d; dy /= d;
+    a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
+  }
+  for (const n of vis) {
+    n.vx -= n.x * 0.0015 * alpha; n.vy -= n.y * 0.0015 * alpha;
+    const sp = Math.hypot(n.vx, n.vy);
+    if (sp > 40) { n.vx *= 40 / sp; n.vy *= 40 / sp; }
+    if (!n.fixed) { n.x += n.vx; n.y += n.vy; }
+    n.vx *= 0.85; n.vy *= 0.85;
+  }
+}
+
+// ---- rendering ----
+const canvas = document.getElementById("stage"), ctx = canvas.getContext("2d");
+let W, H, dpr, cam = { x: 0, y: 0, z: 1 };
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = innerWidth; H = innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + "px"; canvas.style.height = H + "px";
+}
+addEventListener("resize", () => { resize(); kick(); }); resize();
+function toScreen(n) { return [(n.x - cam.x) * cam.z + W / 2, (n.y - cam.y) * cam.z + H / 2]; }
+function centerOn(n) { cam.x = n.x; cam.y = n.y; kick(); }
+
+function neighborIds(id) {
+  const s = new Set([id]);
+  for (const e of edges) if (edgeVisible(e)) { if (e.from === id) s.add(e.to); if (e.to === id) s.add(e.from); }
+  return s;
+}
+function draw() {
+  step();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const focus = selected || hovered;
+  const hood = focus ? neighborIds(focus.id) : null;
+  const match = n => searchTerm && (n.name || "").toLowerCase().includes(searchTerm);
+
+  for (const e of edges) {
+    if (!edgeVisible(e)) continue;
+    const a = byId.get(e.from), b = byId.get(e.to), s = EDGE[e.type];
+    const [ax, ay] = toScreen(a), [bx, by] = toScreen(b);
+    const inFocus = hood && (hood.has(a.id) && hood.has(b.id)) && (a.id === focus.id || b.id === focus.id);
+    ctx.globalAlpha = hood ? (inFocus ? 1 : 0.12) : 1;
+    ctx.strokeStyle = s.color; ctx.lineWidth = s.w * (inFocus ? 1.5 : 1);
+    ctx.setLineDash(s.dash);
+    ctx.beginPath(); ctx.moveTo(ax, ay);
+    const mx = (ax + bx) / 2 + (ay - by) * 0.12, my = (ay + by) / 2 + (bx - ax) * 0.12;
+    ctx.quadraticCurveTo(mx, my, bx, by); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  for (const n of nodes) {
+    if (!nodeVisible(n)) continue;
+    const k = KIND[n.kind], [x, y] = toScreen(n);
+    const tp = n.origin === "third-party";
+    const dim = (hood && !hood.has(n.id)) || (searchTerm && !match(n));
+    ctx.globalAlpha = dim ? 0.18 : (tp ? 0.55 : 1);
+    const r = k.r * (tp ? 0.7 : 1) * (n === focus ? 1.35 : 1) * Math.min(cam.z, 1.6);
+    if ((n === focus || match(n)) && !dim) {
+      ctx.shadowColor = k.color; ctx.shadowBlur = 18;
+    }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
+    if (tp) { ctx.strokeStyle = "#6b5580"; ctx.lineWidth = 1.2; ctx.fillStyle = "#241535"; ctx.fill(); ctx.stroke(); }
+    else if (k.fill) { ctx.fillStyle = k.color; ctx.fill(); }
+    else { ctx.strokeStyle = k.color; ctx.lineWidth = 1.6; ctx.fillStyle = "#100012"; ctx.fill(); ctx.stroke(); }
+    ctx.shadowBlur = 0;
+    const showLabel = n.kind === "plugin" || cam.z > 1.15 || n === focus || (searchTerm && match(n));
+    if (showLabel) {
+      ctx.font = (n.kind === "plugin" ? "600 12px " : "10px ") + "Menlo, monospace";
+      ctx.fillStyle = dim ? "rgba(179,161,196,0.4)" : (n.kind === "plugin" ? "#ffffff" : "#b3a1c4");
+      ctx.textAlign = "center"; ctx.fillText(n.name || n.id, x, y + r + 12);
+    }
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(draw);
+}
+
+// ---- interaction ----
+let dragNode = null, panning = false, px = 0, py = 0;
+function pick(mx, my) {
+  let best = null, bd = 14;
+  for (const n of nodes) {
+    if (!nodeVisible(n)) continue;
+    const [x, y] = toScreen(n), d = Math.hypot(mx - x, my - y);
+    if (d < bd + KIND[n.kind].r) { best = n; bd = d; }
+  }
+  return best;
+}
+const tip = document.getElementById("tooltip");
+canvas.addEventListener("pointerdown", e => {
+  const n = pick(e.clientX, e.clientY);
+  if (n) { dragNode = n; n.fixed = true; }
+  else { panning = true; canvas.classList.add("dragging"); }
+  px = e.clientX; py = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove", e => {
+  const dx = e.clientX - px, dy = e.clientY - py;
+  if (dragNode) { dragNode.x += dx / cam.z; dragNode.y += dy / cam.z; kick(); }
+  else if (panning) { cam.x -= dx / cam.z; cam.y -= dy / cam.z; }
+  else {
+    hovered = pick(e.clientX, e.clientY);
+    canvas.style.cursor = hovered ? "pointer" : "grab";
+    if (hovered && hovered !== selected) {
+      tip.style.display = "block"; tip.style.left = (e.clientX + 14) + "px"; tip.style.top = (e.clientY + 10) + "px";
+      tip.textContent = (hovered.name || hovered.id) + (hovered.plugin ? "  ·  " + hovered.plugin : "");
+    } else tip.style.display = "none";
+  }
+  px = e.clientX; py = e.clientY;
+});
+canvas.addEventListener("pointerup", e => {
+  if (dragNode && Math.hypot(e.clientX - px, e.clientY - py) < 3) { /* click resolved below */ }
+  if (dragNode) { dragNode.fixed = false; }
+  dragNode = null; panning = false; canvas.classList.remove("dragging");
+});
+canvas.addEventListener("click", e => {
+  const n = pick(e.clientX, e.clientY);
+  if (n) openInspector(n);
+});
+canvas.addEventListener("wheel", e => {
+  e.preventDefault();
+  const f = Math.exp(-e.deltaY * 0.0016);
+  cam.z = Math.min(4, Math.max(0.25, cam.z * f));
+}, { passive: false });
+
+kick(); draw();
+</script>

@@ -460,6 +460,7 @@ consumer's data source needs to change:
 | `scripts/render_skill_map_docs.py` (Phase 5) | `generated/skill-map.static.json`, `.claude-plugin/marketplace.json` | Managed doc sections — see below. |
 | `scripts/publish_skill_map_vault.py` (Phase 5) | `generated/skill-map.static.json` | Vault Bases/Canvas artifacts — see below. |
 | Ingest/curation gates (skill-forge, `learning-curation`) | `generated/skill-map.static.json` | Overlap/duplication checks before adding a new skill. |
+| `scripts/viewer/build_viewer.py` | `skill-map.resolved.json` (falls back to `generated/skill-map.static.json`) | Interactive force-directed HTML viewer (`build_viewer.py [output.html]`, defaults to `skill-graph-viewer.html` in the cwd). Injects a slimmed map into `scripts/viewer/viewer-template.html` at the `/*__SKILL_MAP_DATA__*/` marker. The default view shows "bridge tags" — tags whose carriers span ≥2 plugins — so cross-plugin structure is visible without the full tag layers. Published as a Claude artifact for browsing. |
 
 ## Generated docs
 
