@@ -15,7 +15,7 @@ description: >-
 metadata:
   rhize:
     topics: [cms-development, content-authoring]
-    stacks: [sanity, nextjs]
+    stacks: [sanity, nextjs, sentry]
 
 ---
 

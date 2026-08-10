@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [observability, workflow-patterns]
     stacks: [sentry, vercel, nextjs]
+    dependsOn: ["mcp:sentry", "mcp:vercel", "mcp:github"]
     extends: [dev-flow-foundations]
 
 ---

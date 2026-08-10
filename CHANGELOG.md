@@ -6,7 +6,42 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- _2026-08-10_ version bump — **obsidian-second-brain** 1.3.1 → 1.3.2 (patch); marketplace 2.25.4 → 2.25.5.
+- _2026-08-10_ version bump — **rhize-devflow** 2.10.2 → 2.10.3 (patch); marketplace 2.25.3 → 2.25.4.
+- _2026-08-10_ version bump — **project-launcher** 1.7.0 → 1.7.1 (patch); marketplace 2.25.2 → 2.25.3.
+- _2026-08-10_ version bump — **rhize-ops** 0.8.0 → 0.8.1 (patch); marketplace 2.25.1 → 2.25.2.
+- _2026-08-10_ version bump — **rhize-context-manager** 0.10.0 → 0.10.1 (patch); marketplace 2.25.0 → 2.25.1.
+
 ### Fixed
+
+- _2026-08-10_ **Skill-map connectivity audit: under-declared tags/dependencies corrected.**
+  A prior audit verified 12 skills' `SKILL.md` frontmatter against their actual behavior and
+  found gaps between what a skill does and what its `metadata.rhize` tags/dependencies claim:
+  - **Missing `stacks: [obsidian]`**: `graphify` (ships `graphify export obsidian`),
+    `context-stack` (the vault is a named layer of the stack it routes), `delegate-to-teammate`
+    and `project-launcher` (both drive the Obsidian MCP). `context-stack`'s bogus `[context]`
+    self-reference and `refinement-pipeline`'s bogus `[refinement]` self-reference are removed —
+    a skill about a stack isn't itself a member of that stack. The now-unused `context` and
+    `refinement` stack tag slugs are removed from `catalog/tags.json`.
+  - **Missing `stacks` for platform coverage**: `rhize-visual-plan` gains `nextjs` (ships a
+    Next.js viewer app); `data-mutation-consistency` gains `sentry`+`vercel` and
+    `sanity-development` gains `sentry` (both instrument Sentry / are Vercel-scoped).
+  - **Missing `dependsOn`**: `delegate-to-teammate` now declares all four MCPs it drives
+    (`mcp:obsidian-mcp-server`, `mcp:slack`, `mcp:atlassian`, `mcp:fireflies`);
+    `skill-dashboard` declares `mcp:chrome-devtools`; `project-launcher` declares
+    `mcp:obsidian-mcp-server`; `data-mutation-consistency` declares `mcp:sentry`+`mcp:zen`;
+    `error-lifecycle-management` declares `mcp:sentry`+`mcp:vercel`+`mcp:github`;
+    `chrome-devtools-mcp` declares `mcp:chrome-devtools`; `qmd-search` declares `mcp:qmd`.
+  - **Missing `depends-on` edges** in `catalog/skill-relations.json`: `project-launcher` →
+    `external:skill-forge` (runs `npx @rhize/skill-forge find/audit/add`) and
+    `command:rhize-context-manager/skill-refine` → `external:skill-forge` (runs
+    `npx @rhize/skill-forge evolve`).
+  Rebuilt `generated/skill-map.static.json` + `.indexes.json` and re-rendered the managed
+  README/`SKILL-CATALOG.md` sections from the corrected map; verified deterministic (identical
+  output on a second build) and that all 12 declared MCP servers now resolve as
+  `mcp-server` nodes.
 
 - _2026-08-10_ **`/learn-harvest`: stop the collector producing false "source unavailable"
   no-ops.** The 2026-08-10 daily harvest returned 0 entries and marked 2 of 3 sources

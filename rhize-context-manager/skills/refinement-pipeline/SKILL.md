@@ -10,7 +10,7 @@ description: >-
 metadata:
   rhize:
     topics: [learning-curation, workflow-patterns]
-    stacks: [refinement]
+    stacks: []
 
 ---
 

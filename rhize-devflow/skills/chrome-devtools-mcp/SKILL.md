@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [automation, observability]
     stacks: [testing, nextjs]
+    dependsOn: ["mcp:chrome-devtools"]
 
 ---
 

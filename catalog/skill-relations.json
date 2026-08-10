@@ -186,6 +186,18 @@
       "to": "tag:condition/type-error",
       "type": "remediates",
       "source": "relations-catalog"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/skill-refine",
+      "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
     }
   ]
 }

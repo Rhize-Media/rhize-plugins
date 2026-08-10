@@ -29,8 +29,6 @@
   { "slug": "sanity", "kind": "stack", "gloss": "Sanity Studio/CMS" },
   { "slug": "seo", "kind": "stack", "gloss": "SEO/AEO/GEO domain tooling (DataForSEO-powered)" },
   { "slug": "testing", "kind": "stack", "gloss": "Browser/E2E testing tooling" },
-  { "slug": "context", "kind": "stack", "gloss": "The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...)" },
-  { "slug": "refinement", "kind": "stack", "gloss": "The skill-forge refinement pipeline" },
   { "slug": "sentry", "kind": "stack", "gloss": "Sentry error tracking/instrumentation" },
   { "slug": "vercel", "kind": "stack", "gloss": "Vercel deployment platform" },
   {

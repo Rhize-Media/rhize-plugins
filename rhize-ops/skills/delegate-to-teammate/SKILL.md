@@ -8,7 +8,8 @@ description: |
 metadata:
   rhize:
     topics: [automation, workflow-patterns]
-    stacks: []
+    stacks: [obsidian]
+    dependsOn: ["mcp:obsidian-mcp-server", "mcp:slack", "mcp:atlassian", "mcp:fireflies"]
 
 ---
 

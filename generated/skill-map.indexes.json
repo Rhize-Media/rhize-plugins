@@ -1,12 +1,10 @@
 {
   "disclosure": {
-    "context": [
+    "nextjs": [
       {
         "deeper": [],
-        "skillId": "skill:rhize-context-manager/context-stack"
-      }
-    ],
-    "nextjs": [
+        "skillId": "skill:project-launcher/rhize-visual-plan"
+      },
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/chrome-devtools-mcp"
@@ -66,13 +64,23 @@
       },
       {
         "deeper": [],
-        "skillId": "skill:project-launcher/rhize-visual-plan"
-      }
-    ],
-    "refinement": [
+        "skillId": "skill:project-launcher/project-launcher"
+      },
       {
         "deeper": [],
-        "skillId": "skill:rhize-context-manager/refinement-pipeline"
+        "skillId": "skill:project-launcher/rhize-visual-plan"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-context-manager/context-stack"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-context-manager/graphify"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-ops/delegate-to-teammate"
       }
     ],
     "sanity": [
@@ -92,7 +100,15 @@
     "sentry": [
       {
         "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
+      {
+        "deeper": [],
         "skillId": "skill:rhize-devflow/error-lifecycle-management"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sanity-development"
       },
       {
         "deeper": [],
@@ -136,6 +152,10 @@
       }
     ],
     "vercel": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/error-lifecycle-management"
@@ -444,6 +464,11 @@
         },
         {
           "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
@@ -458,6 +483,11 @@
           "kind": "name",
           "label": "rhize-visual-plan",
           "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
         },
         {
           "kind": "tag",
@@ -573,12 +603,12 @@
         },
         {
           "kind": "tag",
-          "label": "context",
+          "label": "context-engineering",
           "weight": 2
         },
         {
           "kind": "tag",
-          "label": "context-engineering",
+          "label": "obsidian",
           "weight": 2
         },
         {
@@ -618,6 +648,11 @@
         {
           "kind": "tag",
           "label": "memory-systems",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
           "weight": 2
         },
         {
@@ -690,11 +725,6 @@
         },
         {
           "kind": "tag",
-          "label": "refinement",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
         }
@@ -762,6 +792,16 @@
         {
           "kind": "tag",
           "label": "sanity",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "vercel",
           "weight": 2
         },
         {
@@ -844,6 +884,11 @@
           "kind": "tag",
           "label": "sanity",
           "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
         }
       ],
       "skill:rhize-devflow/sentry-instrumentation": [
@@ -882,6 +927,11 @@
         {
           "kind": "tag",
           "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
           "weight": 2
         },
         {

@@ -1,6 +1,6 @@
 {
   "name": "rhize-ops",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Operations skill set for delegation, hand-offs, and team workflow automation. Houses delegate-to-teammate (package a session's work into a structured hand-off for a configured teammate — tracker issue + Slack notification + Fireflies context). Recipient identity, tracker IDs, and project mapping are set up via /rhize-ops:delegate-setup and stored in a local config outside the repo, not hardcoded.",
   "author": {
     "name": "Rhize Media"

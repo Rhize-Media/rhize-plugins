@@ -20,7 +20,8 @@ description: >
 metadata:
   rhize:
     topics: [project-planning, workflow-patterns, automation]
-    stacks: []
+    stacks: [obsidian]
+    dependsOn: ["mcp:obsidian-mcp-server"]
 
 ---
 
