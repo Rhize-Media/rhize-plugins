@@ -51,7 +51,7 @@ Every node ID is a string of the form `<kind>:<qualifier>`:
 | `command` | `command:<plugin>/<name>` | `command:rhize-context-manager/start` |
 | `hook` | `hook:<plugin>/<file>` | `hook:rhize-context-manager/skill-router` |
 | `tag` | `tag:topic/<slug>`, `tag:stack/<slug>`, or `tag:condition/<slug>` | `tag:stack/nextjs`, `tag:condition/build-failure` |
-| `external` | `external:<name>` | `external:everything-claude-code` |
+| `external` | `external:<name>` (a bare marketplace/agent id) or `external:<marketplace-name>/<upstream-skill-path>` (a per-skill fork-of upstream, see below) | `external:everything-claude-code`, `external:context-engineering-marketplace/context-fundamentals` |
 | `mcp-server` | `mcp:<name>` (note: id prefix is `mcp`, not the kind name) | `mcp:dataforseo` |
 
 Skill nodes additionally carry `path` (repo-relative source path), `description` (from
@@ -117,7 +117,19 @@ relations-catalog | monitor` — naming which input produced it. This is what le
 
 A `fork-of` edge may carry a `driftCheck` object (`upstreamRepo`, `upstreamPath`, `method`,
 `lastCheckedAt`). This is **fixed, safe metadata only** — an upstream fetch and a `contentHash`
-comparison. It is never a shell command to execute.
+comparison. It is never a shell command to execute — the object exists for display, not
+resolution.
+
+Each `fork-of` edge points at its own **per-skill** `external` node (id
+`external:<marketplace-name>/<upstream-skill-path>`), not a single node shared by every fork of
+the same marketplace. Actual drift resolution is done by skill-forge's drift checker, which reads
+`node.url ?? node.path` on the `to` node — a single marketplace-level node with no `path`/`url`
+can only ever report `upstream-unreachable`, no matter how many forks point at it, because there
+is no single file it could resolve to. The per-skill node's `path` is `SOURCES.md`'s recorded
+`Source` value with `/SKILL.md` appended, stored `~`-prefixed for portability; if that upstream
+copy is genuinely gone from the machine (e.g. the marketplace was since uninstalled), the check
+still correctly reports `upstream-unreachable` — that is honest reporting, not the bug this
+per-skill-node shape fixes.
 
 ### `usage-cooccurs` weights
 

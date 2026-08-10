@@ -70,12 +70,19 @@ Inputs and what they produce
 5. `rhize-context-manager/skills/SOURCES.md` (the plan names
    `rhize-context-manager/SOURCES.md`; the file actually lives one level
    deeper, at `skills/SOURCES.md` — read from the real path)
-   -> `fork-of` edges from the corresponding skill node to an `external`
-      node representing the upstream marketplace, for every entry that is
-      NOT marked RETIRED. See `parse_sources_md()` for the exact grammar.
-      An entry whose skill directory no longer exists (and which isn't
-      marked RETIRED) is a build ERROR, not a silent skip — see
-      `PARSE GRAMMAR` below and `parse_sources_md()`.
+   -> `fork-of` edges from the corresponding skill node to a PER-SKILL
+      `external` node (one node per upstream skill, not one shared node per
+      marketplace — a single node can't carry a resolvable `path` for 7
+      different upstream files), for every entry that is NOT marked RETIRED.
+      Each external node's `path` is the entry's recorded `Source` value
+      with `/SKILL.md` appended and the home directory rewritten to `~` for
+      machine portability — this is what lets skill-forge's drift checker
+      (`node.path` ?? `node.url`) actually read and hash the upstream file
+      instead of reporting every fork-of edge `upstream-unreachable`. See
+      `parse_sources_md()` for the exact grammar. An entry whose skill
+      directory no longer exists (and which isn't marked RETIRED) is a build
+      ERROR, not a silent skip — see `PARSE GRAMMAR` below and
+      `parse_sources_md()`.
       NEVER execute anything read from this file: it is parsed with plain
       string/regex operations only, never passed to a shell.
 
@@ -91,7 +98,7 @@ Node id scheme (must match schemas/skill-map.schema.json's nodeId pattern):
   hook:<plugin>/<slug>              (slug = script basename stem, or a
                                       positional fallback for inline commands)
   tag:topic/<slug>  tag:stack/<slug>
-  external:<name>
+  external:<marketplace-name>/<upstream-skill-path>
 """
 from __future__ import annotations
 
@@ -657,9 +664,18 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
 # that entry retired — its skill is expected to no longer exist under
 # rhize-context-manager/skills/, and no fork-of edge is emitted for it.
 # A non-retired entry's "Source" value is expected to contain
-# ".../marketplaces/<marketplace-name>/skills/<upstream-path>"; the
-# marketplace name becomes an `external:<marketplace-name>` node and the
-# fork-of edge's driftCheck.upstreamPath is the parsed <upstream-path>.
+# ".../marketplaces/<marketplace-name>/skills/<upstream-path>"; this mints a
+# PER-SKILL `external:<marketplace-name>/<upstream-path>` node — not a single
+# node shared by the whole marketplace — because the drift checker resolves
+# an upstream file from the node's own `path`, and one node-level path can't
+# serve every fork's distinct upstream file. The node's `path` is the raw
+# "Source" value with "/SKILL.md" appended and the caller's home directory
+# rewritten to "~" (portable across machines); the fork-of edge's
+# driftCheck.upstreamPath is still the parsed <upstream-path>. If the
+# "Source" value is missing or unparseable, this is a BuildError (existing
+# behavior) rather than silently emitting a path-less node — a genuinely
+# unreachable upstream (e.g. the marketplace was since uninstalled) is
+# still recorded, just with a `path` that legitimately fails to resolve.
 #
 # SECURITY: this parser performs ONLY string splitting and regex matching.
 # Nothing read from this file is ever passed to a shell, eval, or exec.
@@ -717,12 +733,17 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 f"upstream marketplace/skill path out of Source={source_value!r}"
             )
         marketplace_name, upstream_path = match.group(1), match.group(2)
-        external_id = f"external:{marketplace_name}"
+        external_id = f"external:{marketplace_name}/{upstream_path}"
+        upstream_skill_md = f"{source_value.rstrip('/')}/SKILL.md"
+        home = str(Path.home())
+        if upstream_skill_md.startswith(home):
+            upstream_skill_md = "~" + upstream_skill_md[len(home):]
         graph.add_node(
             {
                 "id": external_id,
                 "kind": "external",
-                "name": marketplace_name,
+                "name": skill_name,
+                "path": upstream_skill_md,
             }
         )
         skill_node_id = f"skill:{plugin_name}/{skill_name}"
@@ -735,7 +756,7 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 "driftCheck": {
                     "upstreamRepo": marketplace_name,
                     "upstreamPath": upstream_path,
-                    "method": "manual",
+                    "method": "content-hash",
                 },
             }
         )

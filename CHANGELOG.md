@@ -218,6 +218,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **skill-map:** `fork-of` edges no longer share one marketplace-level `external` node with no
+  `path`/`url` — every one of `rhize-context-manager`'s 7 non-retired `SOURCES.md` entries
+  (context-fundamentals, context-degradation, context-compression, context-optimization,
+  memory-systems, filesystem-context, tool-design) reported `upstream-unreachable` from
+  `@rhize/skill-forge watch`, because its drift checker resolves the upstream file from
+  `node.url ?? node.path`, and a single node representing the whole marketplace can't carry a
+  resolvable path for 7 distinct upstream files. `scripts/build_skill_map.py`'s `load_sources_md()`
+  now mints one `external:<marketplace-name>/<upstream-skill-path>` node **per fork**, each
+  carrying `path` = the ledger's recorded `Source` value with `/SKILL.md` appended and the home
+  directory rewritten to `~` for portability. No schema change was needed (`path` was already a
+  generic node property, and the `external:<name>` id pattern already allows `/`). Verified against
+  a synthetic fixture that the drift checker now genuinely resolves and hashes an upstream file
+  (`in-sync` when content matches); on this machine all 7 real edges still report
+  `upstream-unreachable` because the `context-engineering-marketplace` plugin has since been
+  uninstalled locally — that is now correct, honest reporting of a missing upstream copy, not the
+  structural bug this fixes.
 - **obsidian-second-brain (1.1.4):** removed the hard `"dependencies": ["qmd@qmd"]` declaration from `plugin.json` — it made the plugin refuse to load ("Dependency qmd@qmd is not installed") on any machine without the `qmd` binary, even though qmd is optional everywhere else in the plugin: the README and every affected command already document graceful fallback to keyword/MCP search when qmd isn't present. The plugin.json schema (`schemas/plugin.schema.json` in `everything-claude-code`) has no optional-dependency field, so there was no declarative alternative — the field is simply removed. README's "qmd Semantic Search" section reworded from "dependency" to "optional" to match.
 
 ### Removed
