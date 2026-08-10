@@ -6,6 +6,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- _2026-08-10_ **`/learn-harvest`: stop the collector producing false "source unavailable"
+  no-ops.** The 2026-08-10 daily harvest returned 0 entries and marked 2 of 3 sources
+  unavailable; both verdicts were wrong, and the corrected run collected 9 entries (queue
+  69 → 78). Because "all sources unavailable" and "no new signals" both render as an empty
+  table, the failure was invisible while starving the weekly `/skill-refine run` drain.
+  Three fixes in `rhize-context-manager/commands/learn-harvest.md`:
+  - **Step 2 instructed an unrunnable command.** It said to run `headroom learn --project
+    <cwd>` and "add `--all` when invoked with the `all` argument" — but those flags are
+    mutually exclusive (exit 2), and `--all` means all ~17 discovered *projects*, not the
+    command's three *sources*. The collector followed the spec verbatim, turning a
+    seconds-long run into ~13 minutes. Step 2 is now explicit that `all` scopes sources
+    only, and that headroom takes neither `--all` nor `--apply`.
+  - **Step 2 now requires `timeout: 600000`** on the headroom Bash call — `headroom learn`
+    runs an LLM over conversation history and exceeds the tool's 120s *default*, which is
+    not a limit. A timeout alone is never grounds to report headroom unavailable.
+  - **Step 3 now preloads the deferred claude-mem tools via `ToolSearch`.** Calling one
+    directly fails with `InputValidationError`, which reads like an auth error — the
+    search server is not auth-gated. Already disproven on 2026-08-09 (claude-mem
+    observation #45554); it recurred because nothing in the procedure recorded it.
+  - Step 2 also tees headroom stdout to `~/.claude/context-manager/harvest-logs/`;
+    `headroom learn` writes nothing to disk itself, so the 2026-08-10 run's output died
+    with its shell and the LLM spend was unrecoverable.
+  - New **Source-availability rule**: prove a source dead before recording it so
+    (`headroom learn --help` exits 0 in <1s), distinguish "the probe failed" from "my call
+    failed", and report a 2+-unavailable run loudly rather than as a clean empty table.
+  The scheduled routine at `~/Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md`
+  (not in this repo) carries the same directives, and now requires them to be copied
+  verbatim into its Haiku collector's spawn prompt — every 2026-08-10 failure happened
+  inside that subagent, which never reads the routine file.
+
 ### Added
 
 - _2026-08-10_ **Skill map: remote upstream URLs in `SOURCES.md` — machine-independent drift

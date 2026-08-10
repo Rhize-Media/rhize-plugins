@@ -40,15 +40,43 @@ target, matching every pre-existing entry.
 
 1. `mkdir -p ~/.claude/context-manager` and load existing queue ids for dedupe.
 2. **Headroom** (dry-run is the default — do NOT pass `--apply`):
-   - Run `headroom learn --project <cwd>` (add `--all` when invoked with the
-     `all` argument). Capture stdout.
+   - Run `headroom learn --project <cwd>`. **Never pass `--all`.** The `all`
+     argument to *this command* means "all three sources below" — it is not
+     headroom's `--all`, which analyses every discovered project (~17) and turns a
+     seconds-long run into ~13 minutes. The two flags are also mutually exclusive:
+     `headroom learn --project <path> --all` exits 2 with `--all and --project are
+     mutually exclusive`, so the old wording here was unrunnable as written and
+     broke two daily-harvest runs (2026-08-10).
+   - `headroom learn` runs an LLM over conversation history and routinely exceeds
+     the Bash tool's **120s default** timeout. Pass `timeout: 600000` explicitly.
+     That 120s is a default, not a limit — and a timeout is **never on its own**
+     grounds to report headroom unavailable (see Source-availability rule).
+   - Tee stdout to `~/.claude/context-manager/harvest-logs/<YYYY-MM-DD>-headroom.txt`
+     (`mkdir -p` the directory first). `headroom learn` writes nothing to disk on
+     its own — `~/.headroom/learn-captures/` and `learn.log` are written by a
+     separate weekly sweep wrapper — so an uncaptured run's output dies with the
+     shell and its LLM spend is unrecoverable.
    - Parse each recommendation/pattern block into one queue entry
      (`source: headroom-learn`). Keep headroom's savings estimates in
      `est_savings` when present.
 3. **claude-mem**: search recent observations (last 7 days) for
    correction/friction shaped entries — bugfix loops, repeated retries, user
-   corrections of agent behavior. Use the mem-search tooling; take at most the
-   top 10, one queue entry each (`source: claude-mem`).
+   corrections of agent behavior. Take at most the top 10, one queue entry each
+   (`source: claude-mem`).
+   - **Load the tools first.** They are deferred, so calling one directly fails
+     with `InputValidationError` — which reads like an auth error and has twice
+     been misreported as "non-interactive session; MCP authentication not
+     supported". Run this ToolSearch query before the first call:
+
+     ```
+     select:mcp__plugin_claude-mem_mcp-search__search,mcp__plugin_claude-mem_mcp-search__timeline,mcp__plugin_claude-mem_mcp-search__get_observations
+     ```
+
+   - The claude-mem search server is **not auth-gated**, and this was already
+     disproven once — observation #45554, "claude-mem MCP Auth Succeeded in
+     Scheduled Non-Interactive Run" (2026-08-09), recorded a clean scheduled run.
+     It recurred on 2026-08-10 anyway, because nothing in the procedure recorded
+     it. An `InputValidationError` means *tools not loaded*, never *auth failed*.
 4. **skill-monitor**: read the newest snapshot in
    `rhize-ops/skill-monitor/data/snapshots/` (this repo). Queue skills that are
    heavily used but error-prone, or in the prune-candidate list
@@ -91,3 +119,30 @@ target, matching every pre-existing entry.
 7. Append new entries; report a summary table: source | new | duplicates
    skipped, plus current queue counts by status. Remind: next step is
    `/skill-refine review`.
+
+## Source-availability rule
+
+A dead source never blocks the others — but "unavailable" is a claim about the
+world, and a wrong one silently starves the queue. **Never record a source
+unavailable on the strength of a single failed call.** Prove it first:
+
+- **headroom** — run `headroom learn --help`. It exits 0 in well under a second.
+  Exit 0 means headroom is alive and the earlier failure was the call, not the
+  tool. A slow or timed-out `headroom learn` is expected behaviour, not death; if
+  it still exceeds `timeout: 600000`, suspect an accidental `--all` (that is the
+  conflation's signature) rather than an unreachable binary.
+- **claude-mem** — an `InputValidationError` means the deferred tools were not
+  loaded. Run the ToolSearch query in step 3 and retry once before judging.
+- **skill-monitor** — "no snapshot newer than the last harvest" is a *skip*, not
+  an unavailability; on a daily cadence that is the normal case.
+
+Report the probe's result alongside any unavailability claim, and state the
+distinction explicitly: *"I found the wall"* (probe failed) versus *"I didn't find
+a door"* (my call failed). Only the former is unavailability.
+
+**A run reporting 2+ sources unavailable must say so loudly** — lead the output
+with it, never bury it under a clean-looking empty table. "All sources
+unavailable" and "no new signals" both render as zero new entries, so an
+unflagged empty harvest is indistinguishable from a total failure. A zero-entry
+run with every source verified live is a legitimate result; a zero-entry run with
+unprobed sources is a failed run and must be reported as one.
