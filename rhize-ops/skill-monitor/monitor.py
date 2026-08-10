@@ -1065,36 +1065,49 @@ def main() -> int:
 
     # Defensive dedup on (uuid, session_id).
     #
-    # Two distinct dedup cases exist:
-    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
-    #       transcripts (especially `acompact-*` context-compaction agents)
-    #       re-embed parent main events so the subagent has continuity. The
-    #       same (uuid, session_id) appears in both the main jsonl and a
-    #       subagent jsonl. Dropping the subagent copy is correct, and we
-    #       silence this case because it would otherwise warn on every run.
-    #   (b) two main events or two subagent events sharing a key — UNEXPECTED.
-    #       Would indicate an actual ingestion bug (host/Cowork uuid collision,
-    #       audit-file double-walk, etc.). We warn loudly for this case so it
-    #       doesn't go unnoticed.
-    # Two distinct dedup cases exist:
-    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
-    #       transcripts (especially `acompact-*` context-compaction agents)
-    #       re-embed parent main events so the subagent has continuity. The
-    #       same (uuid, session_id) appears in both the main jsonl and a
-    #       subagent jsonl. Dropping the subagent copy is correct.
-    #   (b) acompact-* subagents replaying each other — also EXPECTED. When
-    #       the main jsonl has been rotated/deleted, multiple compaction
-    #       snapshots for one session can each independently preserve the
-    #       same parent event. All compaction copies are dropped except one.
-    #   (c) anything else (e.g. two main events sharing a key, host/Cowork
-    #       uuid collision, audit-file double-walk) — UNEXPECTED. We warn so
-    #       it can't go unnoticed.
+    # Three dedup cases are known and EXPECTED (all harness replay, not an
+    # ingestion bug):
+    #   (a) main + subagent overlap within one session. Subagent transcripts
+    #       (especially `acompact-*` context-compaction agents) re-embed
+    #       parent main events so the subagent has continuity. The same
+    #       (uuid, session_id) appears in both the main jsonl and a subagent
+    #       jsonl. Dropping the subagent copy is correct.
+    #   (b) acompact-* subagents replaying each other. When the main jsonl
+    #       has been rotated/deleted, multiple compaction snapshots for one
+    #       session can each independently preserve the same parent event.
+    #       All compaction copies are dropped except one.
+    #   (c) main + main replay from the Claude Desktop (Cowork) app. Verified
+    #       2026-08-09: for `entrypoint == "claude-desktop"`, an assistant
+    #       turn recorded early in a session's main jsonl can reappear later
+    #       in the SAME file, byte-identical on uuid/requestId/parentUuid/
+    #       timestamp/message content, differing only in `cwd` (resolved
+    #       against whatever root the desktop app has active at replay time)
+    #       and sometimes gaining a `slug` field once the session is
+    #       auto-named. This is the desktop app re-serializing session state
+    #       into the transcript, not a reader double-counting a file — 22/22
+    #       inspected instances on 2026-08-09 shared this exact shape. Kept
+    #       as its own category (rather than folded into "any main+main is
+    #       fine") so a same-source_type duplicate from the CLI, which has no
+    #       known replay mechanism, still trips the loud warning below.
+    #
+    # Anything else (e.g. two host-CLI main events sharing a key, a
+    # host/Cowork uuid collision, an audit-file double-walk) is UNEXPECTED
+    # and warned on loudly so it can't go unnoticed.
     def _is_compaction(ev: dict) -> bool:
         return (ev.get("agent_id") or "").startswith("acompact-")
+
+    def _is_desktop_main_replay(prior: dict, ev: dict) -> bool:
+        return (
+            prior.get("source_type") == "main"
+            and ev.get("source_type") == "main"
+            and prior.get("entrypoint") == "claude-desktop"
+            and ev.get("entrypoint") == "claude-desktop"
+        )
 
     seen: dict = {}  # key -> first event seen (for category check)
     deduped: list[dict] = []
     unexpected_dups = 0
+    desktop_replay_dups = 0
     for ev in all_events:
         uuid = ev.get("uuid")
         if uuid is None:
@@ -1105,16 +1118,24 @@ def main() -> int:
             prior = seen[key]
             this_src = ev.get("source_type")
             prior_src = prior.get("source_type")
-            expected = (
-                {prior_src, this_src} == {"main", "subagent"}
-                or (prior_src == "subagent" and this_src == "subagent"
-                    and (_is_compaction(prior) or _is_compaction(ev)))
-            )
-            if not expected:
+            if {prior_src, this_src} == {"main", "subagent"} or (
+                prior_src == "subagent" and this_src == "subagent"
+                and (_is_compaction(prior) or _is_compaction(ev))
+            ):
+                pass  # (a)/(b) — expected, silent
+            elif _is_desktop_main_replay(prior, ev):
+                desktop_replay_dups += 1  # (c) — expected, informational
+            else:
                 unexpected_dups += 1
             continue
         seen[key] = ev
         deduped.append(ev)
+    if desktop_replay_dups:
+        print(
+            f"  · collapsed {desktop_replay_dups} duplicate events from Claude "
+            f"Desktop session-transcript replay (expected; see dedup comment "
+            f"in monitor.py)",
+        )
     if unexpected_dups:
         print(
             f"  ! warning: dropped {unexpected_dups} unexpected duplicate events "

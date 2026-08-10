@@ -218,6 +218,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **rhize-ops (skill-monitor):** `monitor.py`'s defensive `(uuid, session_id)` dedup no longer
+  flags Claude Desktop's own session-transcript replay as an "investigate"-worthy anomaly.
+  Root-caused 2026-08-09: for `entrypoint: claude-desktop` sessions, an assistant turn recorded
+  early in a session's main `.jsonl` can reappear later in the *same file* — identical on
+  uuid/requestId/parentUuid/timestamp/content, differing only in `cwd` (re-resolved against
+  whichever root is active at replay time) and sometimes gaining a `slug` field once the session
+  is auto-named — because the desktop app re-serializes session state into the transcript. All 22
+  duplicates in a `--days 7` run were confirmed to share this exact shape. Added a third expected
+  category (`_is_desktop_main_replay`) alongside the existing main+subagent and
+  acompact+acompact cases; a run that hits it now prints an informational
+  `· collapsed N duplicate events from Claude Desktop session-transcript replay` line instead of
+  `! warning: ... — investigate`. Host-CLI main+main duplicates (no known replay mechanism) still
+  trip the loud warning. No change to what gets deduped or to reconciled event counts — only to
+  classification and messaging. Documented in `rhize-ops/skill-monitor/README.md`'s new
+  "Duplicate-event dedup" subsection.
 - **skill-map:** `fork-of` edges no longer share one marketplace-level `external` node with no
   `path`/`url` — every one of `rhize-context-manager`'s 7 non-retired `SOURCES.md` entries
   (context-fundamentals, context-degradation, context-compression, context-optimization,
