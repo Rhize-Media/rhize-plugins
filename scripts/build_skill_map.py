@@ -79,19 +79,20 @@ Inputs and what they produce
       machine portability — this is what lets skill-forge's drift checker
       (`node.path` ?? `node.url`) actually read and hash the upstream file
       instead of reporting every fork-of edge `upstream-unreachable`. See
-      `parse_sources_md()` for the exact grammar. An entry whose skill
-      directory no longer exists (and which isn't marked RETIRED) is a build
-      ERROR, not a silent skip — see `PARSE GRAMMAR` below and
-      `parse_sources_md()`.
+      `scripts/sources_md.py`'s `parse_sources_md()` for the exact grammar.
+      An entry whose skill directory no longer exists (and which isn't
+      marked RETIRED) is a build ERROR, not a silent skip.
       NEVER execute anything read from this file: it is parsed with plain
-      string/regex operations only, never passed to a shell.
+      string/regex operations only, never passed to a shell. The parse
+      grammar itself lives in `scripts/sources_md.py` (single owner, shared
+      with `scripts/baseline_upstreams.py`) — see that module's docstring.
       An entry's optional `- **Upstream baseline:** sha256:<hex> (recorded
       YYYY-MM-DD)` field (written by `scripts/baseline_upstreams.py`, never by
       this compiler) becomes `baselineHash` on the per-skill external node.
       The corresponding skill node also gains `contentHashNormalized` —
       sha256 of its SKILL.md with the Rhize-injected `metadata.rhize`
-      frontmatter textually stripped (`strip_rhize_metadata_block()`) — so a
-      consumer (skill-forge's `watch`) can compute the three-way
+      frontmatter textually stripped (`sources_md.strip_rhize_metadata_block()`)
+      — so a consumer (skill-forge's `watch`) can compute the three-way
       in-sync/local-only/upstream-moved/diverged verdict from data this
       compiler already emits, per
       docs/superpowers/specs/2026-08-10-three-way-drift-design.md.
@@ -118,7 +119,19 @@ import json
 import re
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+from sources_md import (  # noqa: E402
+    _BASELINE_HASH_RE,
+    _SOURCE_PATH_RE,
+    _URL_SCHEME_RE,
+    SourcesMdError,
+    parse_sources_md,
+    parse_url_source,
+    strip_rhize_metadata_block,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
@@ -165,97 +178,6 @@ def split_frontmatter(text: str) -> tuple[dict, str]:
         except yaml.YAMLError:
             return {}, body
     return {}, body
-
-
-def strip_rhize_metadata_block(raw: bytes) -> bytes:
-    """Textually remove the Rhize-injected `metadata.rhize` frontmatter subtree.
-
-    This is the ONE normalization implementation named by
-    docs/superpowers/specs/2026-08-10-three-way-drift-design.md ("the 5-line
-    tagging exclusion"): skill-forge compares hashes it is handed and never
-    re-implements this stripping itself (the duplicated-validator lesson).
-
-    Precise rule: within the '---'-delimited frontmatter block, find a
-    top-level (zero-indent) `metadata:` line.
-      - If `rhize` is metadata's ONLY immediate child key, remove the
-        `metadata:` line and all of its indented children.
-      - Otherwise, remove only the `rhize:` line and its own indented
-        children (metadata's other children are untouched).
-    Operates on raw text lines only — no YAML parsing, so formatting/comment
-    changes elsewhere in the frontmatter are never silently absorbed. Returns
-    `raw` unchanged if there is no frontmatter block, no top-level `metadata:`
-    key, or no `rhize` child under it (nothing to strip).
-    """
-    try:
-        text = raw.decode("utf-8")
-    except UnicodeDecodeError:
-        return raw
-    lines = text.split("\n")
-    if not lines or lines[0].strip() != "---":
-        return raw
-    close_idx = None
-    for i in range(1, len(lines)):
-        if lines[i].strip() == "---":
-            close_idx = i
-            break
-    if close_idx is None:
-        return raw
-    fm_lines = lines[1:close_idx]
-
-    def indent_of(s: str) -> int:
-        return len(s) - len(s.lstrip(" "))
-
-    meta_idx = None
-    for i, line in enumerate(fm_lines):
-        if re.match(r"^metadata:\s*$", line):
-            meta_idx = i
-            break
-    if meta_idx is None:
-        return raw
-
-    end_idx = len(fm_lines)
-    for j in range(meta_idx + 1, len(fm_lines)):
-        line = fm_lines[j]
-        if line.strip() == "":
-            continue
-        if indent_of(line) == 0:
-            end_idx = j
-            break
-    children = fm_lines[meta_idx + 1 : end_idx]
-
-    non_blank_children = [(idx, line) for idx, line in enumerate(children) if line.strip() != ""]
-    if not non_blank_children:
-        return raw
-    min_indent = min(indent_of(line) for _, line in non_blank_children)
-    immediate_keys = []
-    for idx, line in non_blank_children:
-        if indent_of(line) == min_indent:
-            m = re.match(r"^\s*([A-Za-z0-9_-]+):", line)
-            if m:
-                immediate_keys.append((idx, m.group(1)))
-    rhize_entries = [(idx, k) for idx, k in immediate_keys if k == "rhize"]
-    if not rhize_entries:
-        return raw
-
-    if len(immediate_keys) == 1:
-        new_fm_lines = fm_lines[:meta_idx] + fm_lines[end_idx:]
-    else:
-        rhize_local_idx = rhize_entries[0][0]
-        rhize_indent = indent_of(children[rhize_local_idx])
-        subtree_end = len(children)
-        for k in range(rhize_local_idx + 1, len(children)):
-            line = children[k]
-            if line.strip() == "":
-                continue
-            if indent_of(line) <= rhize_indent:
-                subtree_end = k
-                break
-        abs_start = meta_idx + 1 + rhize_local_idx
-        abs_end = meta_idx + 1 + subtree_end
-        new_fm_lines = fm_lines[:abs_start] + fm_lines[abs_end:]
-
-    new_lines = [lines[0]] + new_fm_lines + lines[close_idx:]
-    return "\n".join(new_lines).encode("utf-8")
 
 
 def slugify(value: str) -> str:
@@ -384,16 +306,21 @@ def load_skills(
     augments_decls: list[dict],
     remediates_decls: list[dict],
     depends_on_decls: list[dict],
-) -> None:
+) -> dict[str, bytes]:
+    """Returns {skill_name: raw SKILL.md bytes} for this plugin, so callers
+    that also need those bytes (load_sources_md's normalized-hash step)
+    don't re-read the file from disk."""
+    skill_bytes: dict[str, bytes] = {}
     skills_dir = plugin_dir / "skills"
     if not skills_dir.is_dir():
-        return
+        return skill_bytes
     for skill_dir in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
         skill_md = skill_dir / "SKILL.md"
         if not skill_md.is_file():
             continue  # e.g. seo-aeo-geo/skills/shared/ has no SKILL.md
         skill_name = skill_dir.name
         raw = skill_md.read_bytes()
+        skill_bytes[skill_name] = raw
         content_hash = hashlib.sha256(raw).hexdigest()
         text = raw.decode("utf-8")
         frontmatter, _ = split_frontmatter(text)
@@ -496,6 +423,7 @@ def load_skills(
                     "rel_path": rel_path,
                 }
             )
+    return skill_bytes
 
 
 def resolve_extends_edges(graph: Graph, extends_decls: list[dict]) -> None:
@@ -744,117 +672,32 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
 # ---------------------------------------------------------------------------
 # SOURCES.md parse grammar
 # ---------------------------------------------------------------------------
-# The file is a flat sequence of entries, most-recent-appended-last. Each
-# entry is:
-#
-#   ## <skill-name> — <date>
-#   - **Source:** <absolute path, typically .../marketplaces/<name>/skills/<rest>>
-#   - **Upstream ref:** <value>
-#   - **License:** <value>
-#   - **Verb:** <value>              (FORK | DEFER | ADAPT | ... — free text)
-#   - **Target:** <value>
-#   - **Took:** <value>
-#   - **Verified:** <value>
-#   - **Drift check:** <value>
-#   - **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)  (OPTIONAL —
-#     written/updated by scripts/baseline_upstreams.py, never by this
-#     compiler; the reviewed-upstream-state anchor for the three-way drift
-#     verdict, see docs/superpowers/specs/2026-08-10-three-way-drift-design.md)
-#   - **Notes:** <value>
-#   - **RETIRED <date>:** <text>     (OPTIONAL — only present if retired)
-#
-# Parsing rule: split the file on lines starting with "## ", each block's
-# first line (after stripping "## ") up to " — " is the skill-name; the rest
-# of the block is scanned line-by-line for "- **<Field>:** <value>" bullets.
-# A block containing a bullet whose field name starts with "RETIRED" marks
-# that entry retired — its skill is expected to no longer exist under
-# rhize-context-manager/skills/, and no fork-of edge is emitted for it.
-# A non-retired entry's "Source" value is expected to contain either:
-#   (a) a local path: ".../marketplaces/<marketplace-name>/skills/<upstream-path>"
-#   (b) an http(s) URL to the upstream SKILL.md, e.g.
-#       "https://raw.githubusercontent.com/<owner>/<repo>/<branch>/skills/<upstream-path>/SKILL.md"
-# Either form mints a PER-SKILL `external:<marketplace-name>/<upstream-path>`
-# node — not a single node shared by the whole marketplace — because the
-# drift checker resolves an upstream file from the node's own `path`/`url`,
-# and one node-level location can't serve every fork's distinct upstream
-# file. For form (a) the node carries `path`: the raw "Source" value with
-# "/SKILL.md" appended and the caller's home directory rewritten to "~"
-# (portable across machines). For form (b) the node carries `url` instead of
-# `path` (skill-forge's drift checker — src/gate/skillMapDrift.ts — reads
-# `node.url ?? node.path` and fetches over HTTPS when the value looks like a
-# URL): the raw "Source" value verbatim, since it already points at the file.
-# Either way the fork-of edge's driftCheck.upstreamPath is the parsed
-# <upstream-path>. If the "Source" value is neither a recognizable local
-# marketplace path nor an http(s) URL, this is a BuildError (existing
-# behavior) rather than silently emitting a location-less node — a genuinely
-# unreachable upstream (e.g. the marketplace was since uninstalled, or a URL
-# that 404s) is still recorded, just with a `path`/`url` that legitimately
-# fails to resolve at drift-check time.
-#
-# SECURITY: this parser performs ONLY string splitting, regex matching, and
-# URL parsing (urllib.parse, no network I/O). Nothing read from this file is
-# ever passed to a shell, eval, or exec, and no request is made here.
-_HEADING_RE = re.compile(r"^##\s+(.+?)\s+—\s+(.+)$")
-_BULLET_RE = re.compile(r"^-\s+\*\*([^:*]+):\*\*\s*(.*)$")
-_SOURCE_PATH_RE = re.compile(r"/marketplaces/([^/]+)/(?:.+/)?skills/(.+)$")
-_URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
-_BASELINE_HASH_RE = re.compile(r"^sha256:([a-f0-9]{64})\b")
+# The parse grammar (heading/bullet regexes, `parse_sources_md()`,
+# `parse_url_source()`) lives in `scripts/sources_md.py` — the single owner
+# shared with `scripts/baseline_upstreams.py`. See that module's docstring
+# for the full grammar description and the SECURITY note (string/regex
+# parsing only, no shell/eval/exec, no network I/O).
 
 
-def _parse_url_source(source_value: str) -> tuple[str, str]:
-    """Derives (marketplace_name, upstream_path) from an http(s) Source URL.
-
-    For a raw.githubusercontent.com URL — the shape produced when repointing
-    a marketplace-cache fork upstream to its real remote — marketplace_name is
-    "<owner>/<repo>" and upstream_path is the skill's path segment (mirroring
-    the <upstream-path> a local marketplace path would yield, e.g.
-    "context-fundamentals" from ".../skills/context-fundamentals/SKILL.md").
-    Any other https(s) host falls back to using the URL's netloc as
-    marketplace_name and its full path as upstream_path — still deterministic,
-    just without the GitHub-specific trimming.
-    """
-    parsed = urlparse(source_value)
-    parts = [p for p in parsed.path.split("/") if p]
-    if parsed.netloc == "raw.githubusercontent.com" and len(parts) >= 3:
-        owner, repo = parts[0], parts[1]
-        rest = "/".join(parts[3:])  # drop owner, repo, branch
-        skills_match = re.search(r"(?:^|/)skills/(.+?)(?:/SKILL\.md)?$", rest)
-        upstream_path = skills_match.group(1) if skills_match else rest
-        return f"{owner}/{repo}", upstream_path
-    return parsed.netloc, parsed.path.lstrip("/")
-
-
-def parse_sources_md(path: Path) -> list[dict]:
-    lines = path.read_text().splitlines()
-    entries: list[dict] = []
-    current: dict | None = None
-    for line in lines:
-        heading = _HEADING_RE.match(line)
-        if heading:
-            if current is not None:
-                entries.append(current)
-            current = {"skill_name": heading.group(1).strip(), "fields": {}, "retired": False}
-            continue
-        if current is None:
-            continue
-        bullet = _BULLET_RE.match(line.strip())
-        if bullet:
-            field, value = bullet.group(1).strip(), bullet.group(2).strip()
-            if field.upper().startswith("RETIRED"):
-                current["retired"] = True
-            else:
-                current["fields"][field] = value
-    if current is not None:
-        entries.append(current)
-    return entries
-
-
-def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
+def load_sources_md(
+    graph: Graph,
+    plugin_name: str,
+    plugin_dir: Path,
+    skill_bytes: dict[str, bytes] | None = None,
+) -> None:
+    """`skill_bytes` (from load_skills()'s return value) lets the normalized-
+    hash step below reuse bytes already read for this plugin's skills instead
+    of re-reading SKILL.md from disk. Optional and falls back to a direct
+    read — callers (e.g. tests) may invoke this without going through
+    load_skills() first."""
     plugin_skills_dir = plugin_dir / "skills"
     sources_path = plugin_skills_dir / "SOURCES.md"
     if not sources_path.is_file():
         return  # plugin has no fork-tracking file — nothing to do
-    entries = parse_sources_md(sources_path)
+    try:
+        entries = parse_sources_md(sources_path)
+    except SourcesMdError as exc:
+        raise BuildError(str(exc)) from exc
     for entry in entries:
         skill_name = entry["skill_name"]
         if entry["retired"]:
@@ -868,7 +711,7 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
         source_value = entry["fields"].get("Source", "")
         is_url = bool(_URL_SCHEME_RE.match(source_value))
         if is_url:
-            marketplace_name, upstream_path = _parse_url_source(source_value)
+            marketplace_name, upstream_path = parse_url_source(source_value)
             external_node = {
                 "id": f"external:{marketplace_name}/{upstream_path}",
                 "kind": "external",
@@ -913,7 +756,10 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 },
             }
         )
-        normalized = strip_rhize_metadata_block((skill_dir / "SKILL.md").read_bytes())
+        raw = (skill_bytes or {}).get(skill_name)
+        if raw is None:
+            raw = (skill_dir / "SKILL.md").read_bytes()
+        normalized = strip_rhize_metadata_block(raw)
         graph.add_node(
             {
                 "id": skill_node_id,
@@ -941,14 +787,14 @@ def build() -> dict:
     remediates_decls: list[dict] = []
     depends_on_decls: list[dict] = []
     for plugin in plugins:
-        load_skills(
+        skill_bytes = load_skills(
             graph, plugin["name"], plugin["dir"], tags,
             extends_decls, augments_decls, remediates_decls, depends_on_decls,
         )
         load_commands(graph, plugin["name"], plugin["dir"])
         load_hooks_json(graph, plugin["name"], plugin["dir"])
         load_manifest_hooks(graph, plugin["name"], plugin["dir"])
-        load_sources_md(graph, plugin["name"], plugin["dir"])
+        load_sources_md(graph, plugin["name"], plugin["dir"], skill_bytes)
     # Resolved after every plugin's skills are loaded so cross-plugin
     # "plugin/skill-name" targets are already present in the graph.
     resolve_extends_edges(graph, extends_decls)

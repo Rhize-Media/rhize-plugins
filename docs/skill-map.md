@@ -162,8 +162,7 @@ is `scripts/baseline_upstreams.py`'s job, run only when a human deliberately re-
 compiler stays offline and deterministic; see "Generation-only policy" above).
 
 - **SOURCES.md field:** `- **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)`, added
-  alongside the existing per-entry bullets (see `parse_sources_md()`'s grammar comment in
-  `scripts/build_skill_map.py`).
+  alongside the existing per-entry bullets (see `scripts/sources_md.py`'s grammar docstring).
 - **`scripts/baseline_upstreams.py`** fetches each non-retired entry's http(s) `Source`, hashes the
   body, and writes/updates that bullet. It is **idempotent**: if the freshly fetched hash already
   matches the recorded one, the file is left untouched (no date bump). Non-URL (local marketplace
@@ -177,15 +176,13 @@ compiler stays offline and deterministic; see "Generation-only policy" above).
 
 **Normalization** removes exactly the tagging noise described above, nothing else: the corresponding
 skill node's `contentHashNormalized` is sha256 of its SKILL.md with the Rhize-injected
-`metadata.rhize` frontmatter subtree textually removed. Precise rule (implemented once, in
-`scripts/build_skill_map.py`'s `strip_rhize_metadata_block()` — skill-forge compares hashes it is
-handed and never re-implements this stripping, the duplicated-validator lesson from
-`SOURCES.md`'s `strategic-compact` entry): the top-level `metadata:` line and all of its indented
-children are removed IFF `rhize` is metadata's only immediate child key; otherwise only the
-`rhize:` line and its own indented children are removed, leaving `metadata:`'s other keys intact.
-This is line-based text surgery, not YAML re-serialization, so it never silently absorbs unrelated
-frontmatter formatting changes. `contentHashNormalized` is emitted only on skill nodes that are the
-`from` side of a `fork-of` edge — a skill with no upstream has nothing to normalize against.
+`metadata.rhize` frontmatter subtree textually removed. The precise rule is implemented once, in
+`scripts/sources_md.py`'s `strip_rhize_metadata_block()` — the canonical, single implementation
+(skill-forge compares hashes it is handed and never re-implements this stripping, the
+duplicated-validator lesson from `SOURCES.md`'s `strategic-compact` entry); see that function's
+docstring for the exact line-surgery rule. `contentHashNormalized` is emitted only on skill nodes
+that are the `from` side of a `fork-of` edge — a skill with no upstream has nothing to normalize
+against.
 
 **The four-state verdict** (computed by skill-forge's `watch`, not this repo's compiler — this repo
 only supplies the two hash inputs) replaces the old single `drifted` status:
