@@ -55,7 +55,10 @@ the right one, and health-checks the whole thing.
   is your triage pass; `/skill-refine run` drains triaged entries through skill-forge
   `evolve` — gate-passing SKILL.md edits auto-promote, anything touching scripts/hooks
   HOLDs. The `refinement-pipeline` skill documents the trust model.
-  *Example: "Run /learn-harvest across all projects, then let's review the queue."*
+  *Example: "Run /learn-harvest across all sources, then let's review the queue."*
+  (The `all` argument means all three **sources** above. Headroom stays scoped to the
+  current project — it is never passed `--all`, which would sweep every discovered
+  project and take minutes instead of seconds.)
 
 ## Tips
 
