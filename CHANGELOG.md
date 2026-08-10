@@ -8,6 +8,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-10_ version bump — **rhize-context-manager** 0.10.1 → 0.11.0 (minor); marketplace 2.25.5 → 2.26.0.
+- _2026-08-10_ **Suggestion log — routing suggestions are now measurable.** All four skill-map
+  hooks (`skill-router`, `session-disclosure`, `remediation-suggester`, `next-step-suggester`)
+  append one JSON line per fired suggestion to `~/.claude/context-manager/suggestion-log.jsonl`
+  (`ts`/`session_id`/`hook`/`suggested`/`context_hash` — ids and truncated hashes only, never
+  prompt text; fail-silent, sub-millisecond). The router also samples 1-in-20 no-suggestion
+  prompts so silence precision has a denominator. New `scripts/suggestion_log_report.py` joins
+  the log against skill-monitor usage for per-hook acceptance/ignore rates. Env overrides for
+  tests/evals: `RHIZE_SUGGESTION_LOG`, `RHIZE_CONTEXT_MANAGER_DIR` (hooks' map/indexes dir).
+- _2026-08-10_ **Skill-graph eval suite** (`evals/skill-map/`, per
+  `docs/superpowers/specs/2026-08-10-skill-graph-evals-design.md`): golden-set miner
+  (contamination-guarded to pre-router sessions; mined data gitignored — contains user prompt
+  text), routing-accuracy eval with the retired grep suggester vendored as baseline (first run:
+  router 57.1% top-1 / 76.2% silence precision vs baseline 0.0% / 20.2%), disclosure
+  cost/benefit eval (~490 bytes per matching repo vs 5,187-byte banner baseline, silence
+  honored), remediation-pattern precision eval with failure-corpus miner, and a weekly-audit
+  metrics line (`~/.claude/context-manager/audit-metrics.jsonl`). Curation-gate regression
+  fixtures (the four retired ECC forks + graphify must always be flagged) live in
+  `@rhize/skill-forge` 0.13.0, which also fixes a real gate bug this work surfaced: `--skill-map`
+  read a `type` field no real artifact sets (`kind`) and silently matched nothing.
+- _2026-08-10_ **tests/skill-map hardening**: `conftest.py` supplies the previously missing `doc`
+  fixture (two artifact-validity tests were silently ERRORing since introduction), and
+  `test_stale_gate.py` exercises the weekly audit's step-0 negative branch — seed real drift in
+  a scratch clone, assert `--check-stale` FAILs, rebuild, assert PASS, assert the diff confines
+  to `generated/*` + the seed, commit. The docstring maps each audit-prose sentence to its
+  assertion and names the two honestly untestable residues.
 - _2026-08-10_ **Skill-map viewer tooling committed** (`scripts/viewer/`): the interactive
   force-directed skill-graph viewer's template (`viewer-template.html`) and build script
   (`build_viewer.py`) moved into the repo from an ephemeral session scratchpad so the published
