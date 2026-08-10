@@ -8,6 +8,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-10_ **Skill map: remote upstream URLs in `SOURCES.md` — machine-independent drift
+  checks.** `rhize-context-manager/skills/SOURCES.md`'s 7 `context-engineering-marketplace` forks
+  (context-fundamentals, context-degradation, context-compression, context-optimization,
+  memory-systems, filesystem-context, tool-design) had `Source` entries pointing at that
+  marketplace's local plugin-cache path — resolvable only on a machine that still has it
+  installed, so every fork-of drift check reported `upstream-unreachable` everywhere else.
+  Identified the real upstream (`muratcankoylan/Agent-Skills-for-Context-Engineering` on GitHub,
+  via the plugin's ingestion commit) and repointed all 7 `Source` fields to verified
+  `raw.githubusercontent.com` URLs (each checked with `curl` for HTTP 200 + real SKILL.md
+  frontmatter before being recorded). `scripts/build_skill_map.py`'s `SOURCES.md` ingestion now
+  detects an `http(s)` `Source` and emits `url` (instead of `path`) on the per-skill `external`
+  node — skill-forge's drift checker already reads `node.url ?? node.path`, so no other code
+  needed to change. Local-path `Source` entries (the 4 retired `everything-claude-code` forks)
+  are unaffected. `npx @rhize/skill-forge watch` now resolves all 7 forks over HTTPS and reports
+  genuine `drifted`/`in-sync` verdicts instead of `upstream-unreachable`.
 - _2026-08-09_ version bump — **rhize-context-manager** 0.9.1 → 0.10.0 (minor); marketplace 2.24.3 → 2.25.0.
 - **Skill map: relationships v2 consumer layer — remediation + next-step suggester hooks, router/
   disclosure hooks read materialized indexes.** Completes the follow-up lane named in the CORE

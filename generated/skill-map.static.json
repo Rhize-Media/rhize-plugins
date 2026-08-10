@@ -910,11 +910,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "context-compression",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-compression",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/context-compression",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-compression",
       "type": "fork-of"
     },
     {
@@ -939,11 +939,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "context-degradation",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-degradation",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/context-degradation",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-degradation",
       "type": "fork-of"
     },
     {
@@ -986,11 +986,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "context-fundamentals",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-fundamentals",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/context-fundamentals",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-fundamentals",
       "type": "fork-of"
     },
     {
@@ -1009,11 +1009,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "context-optimization",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-optimization",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/context-optimization",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-optimization",
       "type": "fork-of"
     },
     {
@@ -1056,11 +1056,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "filesystem-context",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/filesystem-context",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/filesystem-context",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/filesystem-context",
       "type": "fork-of"
     },
     {
@@ -1127,11 +1127,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "memory-systems",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/memory-systems",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/memory-systems",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/memory-systems",
       "type": "fork-of"
     },
     {
@@ -1174,11 +1174,11 @@
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "tool-design",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/tool-design",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace/tool-design",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/tool-design",
       "type": "fork-of"
     },
     {
@@ -1857,48 +1857,6 @@
       "path": "seo-aeo-geo/commands/technical-audit.md"
     },
     {
-      "id": "external:context-engineering-marketplace/context-compression",
-      "kind": "external",
-      "name": "context-compression",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-compression/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/context-degradation",
-      "kind": "external",
-      "name": "context-degradation",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-degradation/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/context-fundamentals",
-      "kind": "external",
-      "name": "context-fundamentals",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-fundamentals/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/context-optimization",
-      "kind": "external",
-      "name": "context-optimization",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-optimization/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/filesystem-context",
-      "kind": "external",
-      "name": "filesystem-context",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/filesystem-context/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/memory-systems",
-      "kind": "external",
-      "name": "memory-systems",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/memory-systems/SKILL.md"
-    },
-    {
-      "id": "external:context-engineering-marketplace/tool-design",
-      "kind": "external",
-      "name": "tool-design",
-      "path": "~/.claude/plugins/marketplaces/context-engineering-marketplace/skills/tool-design/SKILL.md"
-    },
-    {
       "description": "everything-claude-code general build/TypeScript error resolution agent.",
       "id": "external:ecc-build-error-resolver",
       "kind": "external",
@@ -1969,6 +1927,48 @@
       "id": "external:humanizer-humanizer",
       "kind": "external",
       "name": "humanizer (humanizer plugin)"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-compression",
+      "kind": "external",
+      "name": "context-compression",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-compression/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-degradation",
+      "kind": "external",
+      "name": "context-degradation",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-degradation/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-fundamentals",
+      "kind": "external",
+      "name": "context-fundamentals",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-fundamentals/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-optimization",
+      "kind": "external",
+      "name": "context-optimization",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-optimization/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/filesystem-context",
+      "kind": "external",
+      "name": "filesystem-context",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/filesystem-context/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/memory-systems",
+      "kind": "external",
+      "name": "memory-systems",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/memory-systems/SKILL.md"
+    },
+    {
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/tool-design",
+      "kind": "external",
+      "name": "tool-design",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
     },
     {
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on.",

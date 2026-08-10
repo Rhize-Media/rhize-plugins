@@ -108,6 +108,7 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
@@ -663,25 +664,58 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
 # A block containing a bullet whose field name starts with "RETIRED" marks
 # that entry retired — its skill is expected to no longer exist under
 # rhize-context-manager/skills/, and no fork-of edge is emitted for it.
-# A non-retired entry's "Source" value is expected to contain
-# ".../marketplaces/<marketplace-name>/skills/<upstream-path>"; this mints a
-# PER-SKILL `external:<marketplace-name>/<upstream-path>` node — not a single
-# node shared by the whole marketplace — because the drift checker resolves
-# an upstream file from the node's own `path`, and one node-level path can't
-# serve every fork's distinct upstream file. The node's `path` is the raw
-# "Source" value with "/SKILL.md" appended and the caller's home directory
-# rewritten to "~" (portable across machines); the fork-of edge's
-# driftCheck.upstreamPath is still the parsed <upstream-path>. If the
-# "Source" value is missing or unparseable, this is a BuildError (existing
-# behavior) rather than silently emitting a path-less node — a genuinely
-# unreachable upstream (e.g. the marketplace was since uninstalled) is
-# still recorded, just with a `path` that legitimately fails to resolve.
+# A non-retired entry's "Source" value is expected to contain either:
+#   (a) a local path: ".../marketplaces/<marketplace-name>/skills/<upstream-path>"
+#   (b) an http(s) URL to the upstream SKILL.md, e.g.
+#       "https://raw.githubusercontent.com/<owner>/<repo>/<branch>/skills/<upstream-path>/SKILL.md"
+# Either form mints a PER-SKILL `external:<marketplace-name>/<upstream-path>`
+# node — not a single node shared by the whole marketplace — because the
+# drift checker resolves an upstream file from the node's own `path`/`url`,
+# and one node-level location can't serve every fork's distinct upstream
+# file. For form (a) the node carries `path`: the raw "Source" value with
+# "/SKILL.md" appended and the caller's home directory rewritten to "~"
+# (portable across machines). For form (b) the node carries `url` instead of
+# `path` (skill-forge's drift checker — src/gate/skillMapDrift.ts — reads
+# `node.url ?? node.path` and fetches over HTTPS when the value looks like a
+# URL): the raw "Source" value verbatim, since it already points at the file.
+# Either way the fork-of edge's driftCheck.upstreamPath is the parsed
+# <upstream-path>. If the "Source" value is neither a recognizable local
+# marketplace path nor an http(s) URL, this is a BuildError (existing
+# behavior) rather than silently emitting a location-less node — a genuinely
+# unreachable upstream (e.g. the marketplace was since uninstalled, or a URL
+# that 404s) is still recorded, just with a `path`/`url` that legitimately
+# fails to resolve at drift-check time.
 #
-# SECURITY: this parser performs ONLY string splitting and regex matching.
-# Nothing read from this file is ever passed to a shell, eval, or exec.
+# SECURITY: this parser performs ONLY string splitting, regex matching, and
+# URL parsing (urllib.parse, no network I/O). Nothing read from this file is
+# ever passed to a shell, eval, or exec, and no request is made here.
 _HEADING_RE = re.compile(r"^##\s+(.+?)\s+—\s+(.+)$")
 _BULLET_RE = re.compile(r"^-\s+\*\*([^:*]+):\*\*\s*(.*)$")
 _SOURCE_PATH_RE = re.compile(r"/marketplaces/([^/]+)/(?:.+/)?skills/(.+)$")
+_URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
+
+
+def _parse_url_source(source_value: str) -> tuple[str, str]:
+    """Derives (marketplace_name, upstream_path) from an http(s) Source URL.
+
+    For a raw.githubusercontent.com URL — the shape produced when repointing
+    a marketplace-cache fork upstream to its real remote — marketplace_name is
+    "<owner>/<repo>" and upstream_path is the skill's path segment (mirroring
+    the <upstream-path> a local marketplace path would yield, e.g.
+    "context-fundamentals" from ".../skills/context-fundamentals/SKILL.md").
+    Any other https(s) host falls back to using the URL's netloc as
+    marketplace_name and its full path as upstream_path — still deterministic,
+    just without the GitHub-specific trimming.
+    """
+    parsed = urlparse(source_value)
+    parts = [p for p in parsed.path.split("/") if p]
+    if parsed.netloc == "raw.githubusercontent.com" and len(parts) >= 3:
+        owner, repo = parts[0], parts[1]
+        rest = "/".join(parts[3:])  # drop owner, repo, branch
+        skills_match = re.search(r"(?:^|/)skills/(.+?)(?:/SKILL\.md)?$", rest)
+        upstream_path = skills_match.group(1) if skills_match else rest
+        return f"{owner}/{repo}", upstream_path
+    return parsed.netloc, parsed.path.lstrip("/")
 
 
 def parse_sources_md(path: Path) -> list[dict]:
@@ -726,26 +760,35 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 f"no SKILL.md exists at {skill_dir} — unresolvable reference"
             )
         source_value = entry["fields"].get("Source", "")
-        match = _SOURCE_PATH_RE.search(source_value)
-        if not match:
-            raise BuildError(
-                f"SOURCES.md entry {skill_name!r}: could not parse an "
-                f"upstream marketplace/skill path out of Source={source_value!r}"
-            )
-        marketplace_name, upstream_path = match.group(1), match.group(2)
-        external_id = f"external:{marketplace_name}/{upstream_path}"
-        upstream_skill_md = f"{source_value.rstrip('/')}/SKILL.md"
-        home = str(Path.home())
-        if upstream_skill_md.startswith(home):
-            upstream_skill_md = "~" + upstream_skill_md[len(home):]
-        graph.add_node(
-            {
-                "id": external_id,
+        is_url = bool(_URL_SCHEME_RE.match(source_value))
+        if is_url:
+            marketplace_name, upstream_path = _parse_url_source(source_value)
+            external_node = {
+                "id": f"external:{marketplace_name}/{upstream_path}",
+                "kind": "external",
+                "name": skill_name,
+                "url": source_value,
+            }
+        else:
+            match = _SOURCE_PATH_RE.search(source_value)
+            if not match:
+                raise BuildError(
+                    f"SOURCES.md entry {skill_name!r}: could not parse an "
+                    f"upstream marketplace/skill path or URL out of Source={source_value!r}"
+                )
+            marketplace_name, upstream_path = match.group(1), match.group(2)
+            upstream_skill_md = f"{source_value.rstrip('/')}/SKILL.md"
+            home = str(Path.home())
+            if upstream_skill_md.startswith(home):
+                upstream_skill_md = "~" + upstream_skill_md[len(home):]
+            external_node = {
+                "id": f"external:{marketplace_name}/{upstream_path}",
                 "kind": "external",
                 "name": skill_name,
                 "path": upstream_skill_md,
             }
-        )
+        external_id = external_node["id"]
+        graph.add_node(external_node)
         skill_node_id = f"skill:{plugin_name}/{skill_name}"
         graph.add_edge(
             {

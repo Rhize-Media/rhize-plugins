@@ -2,8 +2,10 @@
 
 One entry per external-skill ingestion decision.
 
+**Upstreams repointed remote 2026-08-10:** the local marketplace-cache paths below (context-engineering-marketplace, since uninstalled) were replaced with raw.githubusercontent.com URLs against the identified upstream, `muratcankoylan/Agent-Skills-for-Context-Engineering` (default branch `main`), so drift checking works from any machine rather than only one with that marketplace still installed. Each URL was verified with `curl` (HTTP 200 + real SKILL.md frontmatter) before being recorded.
+
 ## context-fundamentals — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-fundamentals
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-fundamentals/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -14,7 +16,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=context-engineering (0.052)
 
 ## context-degradation — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-degradation
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-degradation/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -25,7 +27,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.124)
 
 ## context-compression — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-compression
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-compression/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -36,7 +38,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.136)
 
 ## context-optimization — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/context-optimization
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-optimization/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -47,7 +49,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.078)
 
 ## memory-systems — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/memory-systems
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/memory-systems/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -58,7 +60,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=context-compression (0.115)
 
 ## filesystem-context — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/filesystem-context
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/filesystem-context/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER
@@ -69,7 +71,7 @@ One entry per external-skill ingestion decision.
 - **Notes:** gate: safety=pass, overlap nearest=memory-systems (0.198)
 
 ## tool-design — 2026-07-20
-- **Source:** /Users/jamesdeola/.claude/plugins/marketplaces/context-engineering-marketplace/skills/tool-design
+- **Source:** https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md
 - **Upstream ref:** n/a
 - **License:** NONE STATED
 - **Verb:** DEFER

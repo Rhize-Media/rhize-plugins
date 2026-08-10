@@ -131,6 +131,21 @@ copy is genuinely gone from the machine (e.g. the marketplace was since uninstal
 still correctly reports `upstream-unreachable` — that is honest reporting, not the bug this
 per-skill-node shape fixes.
 
+**Local paths are machine-dependent by construction** — a `Source` pointing at
+`~/.claude/plugins/marketplaces/<name>/skills/<path>` only resolves on the machine that still has
+that marketplace installed; uninstall it anywhere else and every fork-of edge for it reports
+`upstream-unreachable`, which is a false negative for drift, not a real one. Where the real
+upstream repo is known, `SOURCES.md`'s `Source` should instead record an `http(s)` URL to the raw
+file (e.g. `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/skills/<path>/SKILL.md`).
+The compiler detects this by scheme and emits `url` on the per-skill `external` node instead of
+`path`; the drift checker's `node.url ?? node.path` lookup already prefers `url`, so no other code
+needed to change. `rhize-context-manager/skills/SOURCES.md`'s 7 `muratcankoylan/Agent-Skills-for-Context-Engineering`
+forks (context-fundamentals, context-degradation, context-compression, context-optimization,
+memory-systems, filesystem-context, tool-design) were repointed this way on 2026-08-10 — each URL
+was verified with `curl` (HTTP 200 + real SKILL.md frontmatter) before being recorded, and the
+resulting `fork-of` edges now resolve from any machine, not only the one that once had
+`context-engineering-marketplace` installed.
+
 ### `usage-cooccurs` weights
 
 `usageWeight` is always the structured shape `{sessions, jaccard, lift, windowDays}`, sourced from
