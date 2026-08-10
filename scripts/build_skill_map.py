@@ -85,6 +85,16 @@ Inputs and what they produce
       `parse_sources_md()`.
       NEVER execute anything read from this file: it is parsed with plain
       string/regex operations only, never passed to a shell.
+      An entry's optional `- **Upstream baseline:** sha256:<hex> (recorded
+      YYYY-MM-DD)` field (written by `scripts/baseline_upstreams.py`, never by
+      this compiler) becomes `baselineHash` on the per-skill external node.
+      The corresponding skill node also gains `contentHashNormalized` —
+      sha256 of its SKILL.md with the Rhize-injected `metadata.rhize`
+      frontmatter textually stripped (`strip_rhize_metadata_block()`) — so a
+      consumer (skill-forge's `watch`) can compute the three-way
+      in-sync/local-only/upstream-moved/diverged verdict from data this
+      compiler already emits, per
+      docs/superpowers/specs/2026-08-10-three-way-drift-design.md.
 
 6. `catalog/skill-relations.json`
    -> hand-declared nodes/edges (overlaps-with / depends-on / replaces),
@@ -155,6 +165,97 @@ def split_frontmatter(text: str) -> tuple[dict, str]:
         except yaml.YAMLError:
             return {}, body
     return {}, body
+
+
+def strip_rhize_metadata_block(raw: bytes) -> bytes:
+    """Textually remove the Rhize-injected `metadata.rhize` frontmatter subtree.
+
+    This is the ONE normalization implementation named by
+    docs/superpowers/specs/2026-08-10-three-way-drift-design.md ("the 5-line
+    tagging exclusion"): skill-forge compares hashes it is handed and never
+    re-implements this stripping itself (the duplicated-validator lesson).
+
+    Precise rule: within the '---'-delimited frontmatter block, find a
+    top-level (zero-indent) `metadata:` line.
+      - If `rhize` is metadata's ONLY immediate child key, remove the
+        `metadata:` line and all of its indented children.
+      - Otherwise, remove only the `rhize:` line and its own indented
+        children (metadata's other children are untouched).
+    Operates on raw text lines only — no YAML parsing, so formatting/comment
+    changes elsewhere in the frontmatter are never silently absorbed. Returns
+    `raw` unchanged if there is no frontmatter block, no top-level `metadata:`
+    key, or no `rhize` child under it (nothing to strip).
+    """
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "---":
+        return raw
+    close_idx = None
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            close_idx = i
+            break
+    if close_idx is None:
+        return raw
+    fm_lines = lines[1:close_idx]
+
+    def indent_of(s: str) -> int:
+        return len(s) - len(s.lstrip(" "))
+
+    meta_idx = None
+    for i, line in enumerate(fm_lines):
+        if re.match(r"^metadata:\s*$", line):
+            meta_idx = i
+            break
+    if meta_idx is None:
+        return raw
+
+    end_idx = len(fm_lines)
+    for j in range(meta_idx + 1, len(fm_lines)):
+        line = fm_lines[j]
+        if line.strip() == "":
+            continue
+        if indent_of(line) == 0:
+            end_idx = j
+            break
+    children = fm_lines[meta_idx + 1 : end_idx]
+
+    non_blank_children = [(idx, line) for idx, line in enumerate(children) if line.strip() != ""]
+    if not non_blank_children:
+        return raw
+    min_indent = min(indent_of(line) for _, line in non_blank_children)
+    immediate_keys = []
+    for idx, line in non_blank_children:
+        if indent_of(line) == min_indent:
+            m = re.match(r"^\s*([A-Za-z0-9_-]+):", line)
+            if m:
+                immediate_keys.append((idx, m.group(1)))
+    rhize_entries = [(idx, k) for idx, k in immediate_keys if k == "rhize"]
+    if not rhize_entries:
+        return raw
+
+    if len(immediate_keys) == 1:
+        new_fm_lines = fm_lines[:meta_idx] + fm_lines[end_idx:]
+    else:
+        rhize_local_idx = rhize_entries[0][0]
+        rhize_indent = indent_of(children[rhize_local_idx])
+        subtree_end = len(children)
+        for k in range(rhize_local_idx + 1, len(children)):
+            line = children[k]
+            if line.strip() == "":
+                continue
+            if indent_of(line) <= rhize_indent:
+                subtree_end = k
+                break
+        abs_start = meta_idx + 1 + rhize_local_idx
+        abs_end = meta_idx + 1 + subtree_end
+        new_fm_lines = fm_lines[:abs_start] + fm_lines[abs_end:]
+
+    new_lines = [lines[0]] + new_fm_lines + lines[close_idx:]
+    return "\n".join(new_lines).encode("utf-8")
 
 
 def slugify(value: str) -> str:
@@ -655,6 +756,10 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
 #   - **Took:** <value>
 #   - **Verified:** <value>
 #   - **Drift check:** <value>
+#   - **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)  (OPTIONAL —
+#     written/updated by scripts/baseline_upstreams.py, never by this
+#     compiler; the reviewed-upstream-state anchor for the three-way drift
+#     verdict, see docs/superpowers/specs/2026-08-10-three-way-drift-design.md)
 #   - **Notes:** <value>
 #   - **RETIRED <date>:** <text>     (OPTIONAL — only present if retired)
 #
@@ -693,6 +798,7 @@ _HEADING_RE = re.compile(r"^##\s+(.+?)\s+—\s+(.+)$")
 _BULLET_RE = re.compile(r"^-\s+\*\*([^:*]+):\*\*\s*(.*)$")
 _SOURCE_PATH_RE = re.compile(r"/marketplaces/([^/]+)/(?:.+/)?skills/(.+)$")
 _URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
+_BASELINE_HASH_RE = re.compile(r"^sha256:([a-f0-9]{64})\b")
 
 
 def _parse_url_source(source_value: str) -> tuple[str, str]:
@@ -787,6 +893,10 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                 "name": skill_name,
                 "path": upstream_skill_md,
             }
+        baseline_value = entry["fields"].get("Upstream baseline", "")
+        baseline_match = _BASELINE_HASH_RE.match(baseline_value)
+        if baseline_match:
+            external_node["baselineHash"] = baseline_match.group(1)
         external_id = external_node["id"]
         graph.add_node(external_node)
         skill_node_id = f"skill:{plugin_name}/{skill_name}"
@@ -801,6 +911,13 @@ def load_sources_md(graph: Graph, plugin_name: str, plugin_dir: Path) -> None:
                     "upstreamPath": upstream_path,
                     "method": "content-hash",
                 },
+            }
+        )
+        normalized = strip_rhize_metadata_block((skill_dir / "SKILL.md").read_bytes())
+        graph.add_node(
+            {
+                "id": skill_node_id,
+                "contentHashNormalized": hashlib.sha256(normalized).hexdigest(),
             }
         )
 

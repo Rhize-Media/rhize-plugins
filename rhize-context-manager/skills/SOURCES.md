@@ -13,6 +13,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-fundamentals`
+- **Upstream baseline:** sha256:03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6 (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-engineering (0.052)
 
 ## context-degradation — 2026-07-20
@@ -24,6 +25,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-degradation`
+- **Upstream baseline:** sha256:4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928 (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.124)
 
 ## context-compression — 2026-07-20
@@ -35,6 +37,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-compression`
+- **Upstream baseline:** sha256:c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2 (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.136)
 
 ## context-optimization — 2026-07-20
@@ -46,6 +49,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for context-optimization`
+- **Upstream baseline:** sha256:8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706 (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.078)
 
 ## memory-systems — 2026-07-20
@@ -57,6 +61,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for memory-systems`
+- **Upstream baseline:** sha256:9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-compression (0.115)
 
 ## filesystem-context — 2026-07-20
@@ -68,6 +73,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for filesystem-context`
+- **Upstream baseline:** sha256:bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94 (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=memory-systems (0.198)
 
 ## tool-design — 2026-07-20
@@ -79,6 +85,7 @@ One entry per external-skill ingestion decision.
 - **Took:** installed as-is (1 skill dir)
 - **Verified:** n/a
 - **Drift check:** `# define how to detect upstream change for tool-design`
+- **Upstream baseline:** sha256:14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b (recorded 2026-08-10)
 - **Notes:** gate: safety=pass, overlap nearest=context-fundamentals (0.069)
 
 ## iterative-retrieval — 2026-07-20

@@ -59,6 +59,16 @@
           "description": "sha256 hex digest of the node's source content (e.g. SKILL.md) — the drift-detection anchor. Required for skill nodes.",
           "pattern": "^[a-f0-9]{64}$"
         },
+        "contentHashNormalized": {
+          "type": "string",
+          "description": "sha256 hex digest of a `fork-of` skill node's SKILL.md with the Rhize-injected `metadata.rhize` frontmatter subtree textually removed (see scripts/build_skill_map.py's strip_rhize_metadata_block()). Present only on skill nodes that are the `from` side of a `fork-of` edge — the local half of the three-way drift verdict (see docs/skill-map.md).",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baselineHash": {
+          "type": "string",
+          "description": "sha256 hex digest of the upstream file as of the last human review (ingestion or re-baseline via scripts/baseline_upstreams.py), copied from SOURCES.md's '- **Upstream baseline:**' bullet. Present only on `external` nodes that have been baselined — the reviewed-state anchor for the three-way drift verdict (see docs/skill-map.md).",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "origin": {
           "type": "string",
           "description": "Where this node originates from. Optional — a node without this property is implicitly \"rhize\". Third-party nodes are populated only in the machine-local overlay (skill-map.local.json / skill-map.resolved.json), never in the committed static artifact.",

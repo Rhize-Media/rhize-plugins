@@ -40,6 +40,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-10_ **Skill map: three-way drift — baseline hashes + normalized local hash, so a
+  fork's own tagging never reads as drift.** The two-way compare (local-now vs upstream-now) had a
+  permanent false positive: Rhize's `metadata.rhize` frontmatter makes every one of the 7 forks'
+  raw `contentHash` differ from upstream forever, with zero real divergence. Design:
+  `docs/superpowers/specs/2026-08-10-three-way-drift-design.md`.
+  - New `scripts/baseline_upstreams.py`: fetches each SOURCES.md entry's http(s) `Source`, hashes
+    it, and writes/updates a `- **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)` bullet —
+    the deliberate "I reviewed upstream, accept its state" action. Idempotent (unchanged upstream →
+    no diff, not even a date bump); `--skill <name>` scopes to one entry; non-URL `Source` entries
+    are skipped with a report.
+  - `scripts/build_skill_map.py` gains `strip_rhize_metadata_block()` — the ONE normalization
+    implementation (textual removal of the `metadata.rhize` frontmatter subtree; removes the whole
+    `metadata:` block iff `rhize` is its only key, else just the `rhize:` subtree). The compiler
+    copies `SOURCES.md`'s baseline onto the per-skill `external` node as `baselineHash` (never onto
+    the display-only `fork-of` edge `driftCheck`), and emits `contentHashNormalized` on every
+    `fork-of` skill node. skill-forge compares the hashes it's handed and never re-implements the
+    stripping (the duplicated-validator lesson from the retired `strategic-compact` fork).
+  - `schemas/skill-map.schema.json`: documented the two new optional node fields
+    (`baselineHash` on `external` nodes, `contentHashNormalized` on `skill` nodes), both sha256-hex
+    patterned like `contentHash`.
+  - Ran `baseline_upstreams.py` for real against all 7 `muratcankoylan/Agent-Skills-for-Context-Engineering`
+    forks and committed the recorded hashes; rebuilt+installed the artifact and indexes.
+  - New `tests/skill-map/test_baseline_upstreams.py`: normalization unit cases (block present,
+    rhize-among-other-keys, no metadata key, no frontmatter), baseline idempotency + selective
+    skip + skill-filter tests (fake fetcher, no network dependency), and a compiler test proving
+    `baselineHash`/`contentHashNormalized` are emitted only where SOURCES.md actually supplies
+    them — never unconditionally.
+  - `docs/skill-map.md`: new "Three-way drift" section documenting the baseline field, the
+    normalization rule, the four-state verdict matrix (`in-sync`/`local-only`/`upstream-moved`/
+    `diverged`, computed by skill-forge's `watch`), and the re-baseline workflow.
+  - `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md` (outside this repo): step 0 now
+    queues only the actionable verdicts (`upstream-moved`/`diverged`/`unreachable`, plus legacy
+    `drifted` for un-baselined edges) into the refinement queue; `in-sync`/`local-only` are counted
+    in the report line only, never queued; added the re-baseline instruction.
 - _2026-08-10_ **Skill map: remote upstream URLs in `SOURCES.md` — machine-independent drift
   checks.** `rhize-context-manager/skills/SOURCES.md`'s 7 `context-engineering-marketplace` forks
   (context-fundamentals, context-degradation, context-compression, context-optimization,

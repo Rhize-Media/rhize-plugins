@@ -56,7 +56,8 @@ Every node ID is a string of the form `<kind>:<qualifier>`:
 
 Skill nodes additionally carry `path` (repo-relative source path), `description` (from
 frontmatter/manifest), and `contentHash` (sha256 hex digest of the source file, e.g. `SKILL.md`) —
-the anchor used for fork-drift detection in Phase 4.
+the anchor used for fork-drift detection in Phase 4. A skill node that is the `from` side of a
+`fork-of` edge also carries `contentHashNormalized` — see "Three-way drift" below.
 
 Any node may optionally carry `origin: "rhize" | "third-party"`. A node without this property is
 implicitly `"rhize"`. The static compiler never sets `"third-party"` itself — that value is set
@@ -145,6 +146,67 @@ memory-systems, filesystem-context, tool-design) were repointed this way on 2026
 was verified with `curl` (HTTP 200 + real SKILL.md frontmatter) before being recorded, and the
 resulting `fork-of` edges now resolve from any machine, not only the one that once had
 `context-engineering-marketplace` installed.
+
+### Three-way drift: baseline, normalization, and the four-state verdict
+
+The two-way compare (local-now vs upstream-now) has a permanent false positive: Rhize injects a
+`metadata.rhize` frontmatter block into every fork, so a fork's raw `contentHash` differs from
+upstream's forever, even with zero real divergence. Reconciling deliberate local improvements with
+unreviewed upstream movement needs a third input — what upstream looked like as of the last human
+review — and a way to compare local content that ignores Rhize's own tagging. Full design:
+`docs/superpowers/specs/2026-08-10-three-way-drift-design.md`.
+
+**Baseline** = the upstream content hash as of the last human review (ingestion or re-baseline).
+It is curated DATA, recorded in SOURCES.md, and is **never fetched by the compiler** — fetching it
+is `scripts/baseline_upstreams.py`'s job, run only when a human deliberately re-baselines (the
+compiler stays offline and deterministic; see "Generation-only policy" above).
+
+- **SOURCES.md field:** `- **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)`, added
+  alongside the existing per-entry bullets (see `parse_sources_md()`'s grammar comment in
+  `scripts/build_skill_map.py`).
+- **`scripts/baseline_upstreams.py`** fetches each non-retired entry's http(s) `Source`, hashes the
+  body, and writes/updates that bullet. It is **idempotent**: if the freshly fetched hash already
+  matches the recorded one, the file is left untouched (no date bump). Non-URL (local marketplace
+  path) `Source` values are skipped with a report line — this baseline can only apply to sources it
+  can actually fetch. `--skill <name>` limits a run to one entry.
+- **The compiler** (`scripts/build_skill_map.py`) copies the parsed baseline hash onto the per-skill
+  `external` node as `baselineHash` — **not** into the `fork-of` edge's `driftCheck` object, which
+  stays display-only metadata per skill-forge's guard test. Node data (`path`/`url`/`baselineHash`)
+  is the sanctioned read surface for anything that needs to actually resolve or compare against the
+  upstream file.
+
+**Normalization** removes exactly the tagging noise described above, nothing else: the corresponding
+skill node's `contentHashNormalized` is sha256 of its SKILL.md with the Rhize-injected
+`metadata.rhize` frontmatter subtree textually removed. Precise rule (implemented once, in
+`scripts/build_skill_map.py`'s `strip_rhize_metadata_block()` — skill-forge compares hashes it is
+handed and never re-implements this stripping, the duplicated-validator lesson from
+`SOURCES.md`'s `strategic-compact` entry): the top-level `metadata:` line and all of its indented
+children are removed IFF `rhize` is metadata's only immediate child key; otherwise only the
+`rhize:` line and its own indented children are removed, leaving `metadata:`'s other keys intact.
+This is line-based text surgery, not YAML re-serialization, so it never silently absorbs unrelated
+frontmatter formatting changes. `contentHashNormalized` is emitted only on skill nodes that are the
+`from` side of a `fork-of` edge — a skill with no upstream has nothing to normalize against.
+
+**The four-state verdict** (computed by skill-forge's `watch`, not this repo's compiler — this repo
+only supplies the two hash inputs) replaces the old single `drifted` status:
+
+| localNormalized vs baseline | upstreamNow vs baseline | status | actionable |
+|---|---|---|---|
+| == | == | `in-sync` | no |
+| != | == | `local-only` | no (ours, deliberate, already in git) |
+| == | != | `upstream-moved` | yes |
+| != | != | `diverged` | yes |
+
+`upstream-unreachable` and `local-missing` are unchanged from the two-way check. If either input is
+missing — no `baselineHash` on the external node, or no `contentHashNormalized` on the skill node —
+skill-forge falls back to today's plain two-way compare (`drifted`/`in-sync`) so older maps built
+before this feature keep working.
+
+**Re-baseline workflow:** after reviewing and deliberately accepting an upstream change (i.e. you
+looked at the diff and decided the new upstream state is now the comparison point), run
+`python3 scripts/baseline_upstreams.py` (optionally `--skill <name>` for just one fork), review the
+`SOURCES.md` diff, and commit it. That commit is the record of the review — there is no other audit
+trail for "someone looked at this and accepted it."
 
 ### `usage-cooccurs` weights
 
@@ -397,7 +459,7 @@ consumer's data source needs to change:
 | `rhize-context-manager/hooks/remediation-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `remediation` section) | PostToolUse (matcher `Bash`) — on a failing Bash command, suggests the top remediating skill/agent for the matched condition (relationships v2, design doc section 7). |
 | `rhize-context-manager/hooks/next-step-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `succession` section) | PostToolUse (matcher `Skill`) — after a skill invocation, suggests the declared `precedes` (or mined `follows`) successor (relationships v2, design doc section 7). |
 | `/start` (rhize-context-manager) | `skill-map.resolved.json` | Session-context skill surfacing. |
-| `weekly-skill-audit` (scheduled task, rhize-ops) | Rebuilds `skill-map.static.json` + `skill-map.local.json`, runs `validate_skill_map.py --check-stale` | Staleness gate + drift checks + refinement-queue writes (Phase 4/4b). |
+| `weekly-skill-audit` (scheduled task, rhize-ops) | Rebuilds `skill-map.static.json` + `skill-map.local.json`, runs `validate_skill_map.py --check-stale`, runs `npx @rhize/skill-forge watch` | Staleness gate + four-state drift verdicts (`in-sync`/`local-only`/`upstream-moved`/`diverged`/`unreachable`) + refinement-queue writes for the actionable ones (Phase 4/4b; see "Three-way drift" above). |
 | `scripts/render_skill_map_docs.py` (Phase 5) | `generated/skill-map.static.json`, `.claude-plugin/marketplace.json` | Managed doc sections — see below. |
 | `scripts/publish_skill_map_vault.py` (Phase 5) | `generated/skill-map.static.json` | Vault Bases/Canvas artifacts — see below. |
 | Ingest/curation gates (skill-forge, `learning-curation`) | `generated/skill-map.static.json` | Overlap/duplication checks before adding a new skill. |

@@ -1929,42 +1929,49 @@
       "name": "humanizer (humanizer plugin)"
     },
     {
+      "baselineHash": "c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-compression",
       "kind": "external",
       "name": "context-compression",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-compression/SKILL.md"
     },
     {
+      "baselineHash": "4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-degradation",
       "kind": "external",
       "name": "context-degradation",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-degradation/SKILL.md"
     },
     {
+      "baselineHash": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-fundamentals",
       "kind": "external",
       "name": "context-fundamentals",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-fundamentals/SKILL.md"
     },
     {
+      "baselineHash": "8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-optimization",
       "kind": "external",
       "name": "context-optimization",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-optimization/SKILL.md"
     },
     {
+      "baselineHash": "bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/filesystem-context",
       "kind": "external",
       "name": "filesystem-context",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/filesystem-context/SKILL.md"
     },
     {
+      "baselineHash": "9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/memory-systems",
       "kind": "external",
       "name": "memory-systems",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/memory-systems/SKILL.md"
     },
     {
+      "baselineHash": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
       "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/tool-design",
       "kind": "external",
       "name": "tool-design",
@@ -2327,6 +2334,7 @@
     },
     {
       "contentHash": "9de885deef334253d4f2927d2341d64145c8b7d52edd74f53a1f18f7d1d4d220",
+      "contentHashNormalized": "c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
@@ -2335,6 +2343,7 @@
     },
     {
       "contentHash": "b1318638f8106efa097e56e7ac7cc4835f8fe614d45dd63a773eff8028f2e1dd",
+      "contentHashNormalized": "4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928",
       "description": "This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, context confusion, attention-pattern issues, and agent performance degradation caused by accumulated or conflicting context.",
       "id": "skill:rhize-context-manager/context-degradation",
       "kind": "skill",
@@ -2351,6 +2360,7 @@
     },
     {
       "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
+      "contentHashNormalized": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
       "description": "This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a context window, how attention mechanics work, the U-shaped attention curve, why context quality matters more than quantity, and the mental models needed to interpret every other context-engineering decision. Use this for conceptual explanation, onboarding, and background reading. Route operational work to the specialized skills: debugging attention failures goes to context-degradation, token-efficiency work goes to context-optimization, conversation summarization goes to context-compression, and project-shape decisions go to project-development.",
       "id": "skill:rhize-context-manager/context-fundamentals",
       "kind": "skill",
@@ -2359,6 +2369,7 @@
     },
     {
       "contentHash": "83bb3053e5b9f175672550e91838d1fbf9ba94b42569c134c69246b402d7f754",
+      "contentHashNormalized": "8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "id": "skill:rhize-context-manager/context-optimization",
       "kind": "skill",
@@ -2375,6 +2386,7 @@
     },
     {
       "contentHash": "5acd70b0aab1bc078f27af8c0d663d8070a14b98d7d3011526029d41d0207713",
+      "contentHashNormalized": "bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94",
       "description": "This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, cross-agent handoff files, filesystem memory, or cleanup policies for context stored outside the prompt.",
       "id": "skill:rhize-context-manager/filesystem-context",
       "kind": "skill",
@@ -2407,6 +2419,7 @@
     },
     {
       "contentHash": "e05050d3e4314939fc62558992e85abc2d90b8921343a2083634a04653807a89",
+      "contentHashNormalized": "9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f",
       "description": "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization.",
       "id": "skill:rhize-context-manager/memory-systems",
       "kind": "skill",
@@ -2423,6 +2436,7 @@
     },
     {
       "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
+      "contentHashNormalized": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
       "description": "This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, designing tool schemas and response formats, naming conventions, actionable error recovery messages, MCP server design, tool-set consolidation, and deciding when to add or remove an individual tool. Use this when the unit of work is a single tool or a set of tools. Route project-shape, pipeline architecture, and task-model-fit decisions to project-development; route deciding whether to introduce sub-agents to multi-agent-patterns.",
       "id": "skill:rhize-context-manager/tool-design",
       "kind": "skill",

@@ -30,6 +30,7 @@ scripts/*
 !scripts/build_local_skill_map.py
 !scripts/render_skill_map_docs.py
 !scripts/publish_skill_map_vault.py
+!scripts/baseline_upstreams.py
 
 # Squirrel config
 squirrel.toml
