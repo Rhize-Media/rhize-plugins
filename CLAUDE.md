@@ -109,7 +109,11 @@ A skill/command/plugin change that ships without its README and GUIDE updated is
 ## Headroom Learned Patterns (consolidated)
 *Five auto-generated sections (2026-06-16 → 2026-07-27) deduped into one on 2026-08-03.
 New `headroom learn` output now flows into the refinement queue
-(`/rhize-context-manager:learn-harvest`), not this file.*
+(`/rhize-context-manager:learn-harvest`), not this file — the scheduled routine is barred
+from editing CLAUDE.md. Exception, 2026-08-12: Jim directed nine queue entries carrying
+repo-environment facts (no legal skill target) to be folded in here by hand; they were
+deduped to the five facts below and marked `consumed`. The bar on the unattended routine
+is unchanged.*
 
 ### Fact-Forcing Gate (ECC GateGuard)
 - Prefix the FIRST Bash command of each user request/chapter with an inline FACTS echo:
@@ -135,6 +139,11 @@ New `headroom learn` output now flows into the refinement queue
   `/Users/jamesdeola/dev-local/RHIZE/skill-forge`; spend at most one Bash call on discovery.
 - Scratchpad worktree: set `SCRATCH=<path>` once per session and reuse; never re-expand the
   full `/private/tmp/claude-501/...` path per command.
+- The installed plugin cache `~/.claude/plugins/marketplaces/rhize-plugins` is a git clone that
+  pins BEHIND this repo. When it goes stale, `rhize-context-manager:*` skills report
+  "Unknown skill" and **scheduled tasks fail silently**. Refresh with
+  `claude plugin marketplace update rhize-plugins` then `claude plugin update`. (Diagnosed
+  2026-08-05; `ai-stack-version-drift` now auto-updates marketplaces + plugins twice weekly.)
 
 ### Git workflow
 - Stale `.git/index.lock` mid-session: `rm -f .git/index.lock` (verify no live git process
@@ -145,15 +154,31 @@ New `headroom learn` output now flows into the refinement queue
 - `.github/workflows/ci.yml` and `release.yml` are PROTECTED (protect-files.sh hook) — do
   not Edit; leave a note for Jim instead.
 - Before removing a scratch worktree, check it still exists.
+- `.gitignore` here uses an **ALLOWLIST** for `scripts/` — a newly created `scripts/*.py` is
+  invisible to `git status` until you add a `!scripts/<name>.py` exception. When a file you
+  just wrote doesn't show up, run `git check-ignore -v <path>` before assuming the write failed.
 
 ### Edit/Read discipline
 - Read a file before its first Edit in a session (`File has not been read yet` otherwise);
   on `String to replace not found`, re-Read before retrying.
 - Large frequently-re-read files (e.g. skill-forge `test/e2e.test.ts`, big SKILL.md files):
   read ONCE, note key facts, refer to notes — some were re-read 6–13× per session.
+- Hot files measured since that list was written — read ONCE, then `grep -n` for edit sites:
+  - skill-map pipeline: `scripts/build_skill_map.py` (~25–30KB, hit 16× in one session),
+    `scripts/build_local_skill_map.py` (~28KB), `scripts/validate_skill_map.py`,
+    `docs/skill-map.md` (~13–21KB), `catalog/{tags,skill-relations,queries}.json`,
+    `rhize-ops/skill-monitor/monitor.py` (~48–55KB).
+  - skill-forge: `src/commands/gatePipeline.ts`, `src/gate/{skillMapDrift,skillMap,mapOverlap}.ts`,
+    `test/{agents,skillMapDrift}.test.ts`. There is no root `CHANGELOG.md` — version history
+    lives in `README.md` + `docs/BUILD-REPORT.md`.
 
 ### Environment quirks
 - rtk `find` shim lacks `-not`/`-exec`/compound predicates — use `/usr/bin/find` or `\find`.
+- System `python3` (3.14) has **no `jsonschema`** — `import jsonschema` fails every time and
+  burned a round-trip in 5+ sessions. The skill-map validators are written to run without it,
+  so just run `scripts/validate_skill_map.py` / `tests/skill-map/validate_fixtures.py` — do not
+  probe the import first. `yaml` (PyYAML 6.0.3) IS available. If genuinely needed:
+  `python3 -m pip install --quiet --user jsonschema`.
 - vitest: output is captured by rtk tee; read the newest file in
   `~/Library/Application Support/rtk/tee/` instead of re-running. `--reporter=basic` is
   invalid (use `--reporter=verbose` or omit).
