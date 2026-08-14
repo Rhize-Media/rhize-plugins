@@ -159,6 +159,61 @@ export function assertTask(value) {
   return value;
 }
 
+const OPERATION_KINDS = Object.freeze(['reminder_upsert', 'reminder_complete', 'reminder_delete', 'calendar_upsert', 'calendar_delete', 'jira_assign', 'jira_transition', 'jira_comment', 'jira_create', 'provisional_link', 'urgent_displacement', 'scope_expand']);
+const OPERATION_SYSTEMS = Object.freeze({
+  reminder_upsert: 'reminders', reminder_complete: 'reminders', reminder_delete: 'reminders',
+  calendar_upsert: 'calendar', calendar_delete: 'calendar',
+  jira_assign: 'jira', jira_transition: 'jira', jira_comment: 'jira', jira_create: 'jira',
+  provisional_link: 'local', urgent_displacement: 'local', scope_expand: 'local',
+});
+const RETRY_STATES = Object.freeze(['pending', 'safe_retry', 'reconciliation_required', 'applied', 'failed']);
+
+function operationPayload(kind, value) {
+  const path = 'operation.payload';
+  switch (kind) {
+    case 'reminder_upsert':
+      object(value, path, ['listId', 'title', 'dueAt', 'notes', 'externalId']);
+      string(value.listId, `${path}.listId`); string(value.title, `${path}.title`); nullable(value.dueAt, `${path}.dueAt`, isoDateTime); string(value.notes, `${path}.notes`, {min: 0}); string(value.externalId, `${path}.externalId`);
+      break;
+    case 'reminder_complete':
+      object(value, path, ['completedAt']); isoDateTime(value.completedAt, `${path}.completedAt`);
+      break;
+    case 'reminder_delete': object(value, path, []); break;
+    case 'calendar_upsert':
+      object(value, path, ['calendarId', 'title', 'start', 'end', 'description', 'externalId']);
+      string(value.calendarId, `${path}.calendarId`); string(value.title, `${path}.title`); isoDateTime(value.start, `${path}.start`); isoDateTime(value.end, `${path}.end`); if (Date.parse(value.start) >= Date.parse(value.end)) fail(path, 'start must precede end'); string(value.description, `${path}.description`, {min: 0}); string(value.externalId, `${path}.externalId`);
+      break;
+    case 'calendar_delete': object(value, path, []); break;
+    case 'jira_assign': object(value, path, ['accountId']); string(value.accountId, `${path}.accountId`); break;
+    case 'jira_transition': object(value, path, ['transitionId', 'comment']); string(value.transitionId, `${path}.transitionId`); nullable(value.comment, `${path}.comment`, (item, itemPath) => string(item, itemPath, {min: 0})); break;
+    case 'jira_comment': object(value, path, ['body']); string(value.body, `${path}.body`); break;
+    case 'jira_create':
+      object(value, path, ['projectKey', 'issueType', 'title', 'description', 'dueDate', 'priority']);
+      string(value.projectKey, `${path}.projectKey`); string(value.issueType, `${path}.issueType`); string(value.title, `${path}.title`); string(value.description, `${path}.description`, {min: 0}); nullable(value.dueDate, `${path}.dueDate`, realDate); enumeration(value.priority, `${path}.priority`, PRIORITIES);
+      break;
+    case 'provisional_link':
+      object(value, path, ['delegationId', 'jiraKey', 'jiraUrl']); string(value.delegationId, `${path}.delegationId`, {pattern: UUID_V4}); string(value.jiraKey, `${path}.jiraKey`, {pattern: JIRA_KEY}); assertHttpsUrl(value.jiraUrl, `${path}.jiraUrl`);
+      break;
+    case 'urgent_displacement':
+      object(value, path, ['displacedBlockIds', 'replacementTaskId']); strings(value.displacedBlockIds, `${path}.displacedBlockIds`, {min: 1, unique: true}); string(value.replacementTaskId, `${path}.replacementTaskId`);
+      break;
+    case 'scope_expand':
+      object(value, path, ['connector', 'resourceIds']); enumeration(value.connector, `${path}.connector`, ['jira', 'calendar', 'reminders', 'slack']); strings(value.resourceIds, `${path}.resourceIds`, {min: 1, unique: true});
+      break;
+    default: fail('operation.kind', 'is not supported');
+  }
+  return value;
+}
+
+export function assertOperation(value) {
+  const required = ['schemaVersion', 'id', 'planRevision', 'kind', 'targetSystem', 'targetId', 'payload', 'idempotencyKey', 'approval', 'preconditionRevision', 'retryState', 'createdAt'];
+  object(value, 'operation', required);
+  integer(value.schemaVersion, 'operation.schemaVersion', 1, 1); string(value.id, 'operation.id'); integer(value.planRevision, 'operation.planRevision', 1); enumeration(value.kind, 'operation.kind', OPERATION_KINDS); enumeration(value.targetSystem, 'operation.targetSystem', ['jira', 'calendar', 'reminders', 'local']);
+  if (value.targetSystem !== OPERATION_SYSTEMS[value.kind]) fail('operation.targetSystem', `must be ${OPERATION_SYSTEMS[value.kind]} for ${value.kind}`);
+  string(value.targetId, 'operation.targetId'); operationPayload(value.kind, value.payload); string(value.idempotencyKey, 'operation.idempotencyKey', {pattern: /^[0-9a-f]{64}$/}); enumeration(value.approval, 'operation.approval', APPROVAL); nullable(value.preconditionRevision, 'operation.preconditionRevision', string); enumeration(value.retryState, 'operation.retryState', RETRY_STATES); isoDateTime(value.createdAt, 'operation.createdAt');
+  return value;
+}
+
 function stableJson(value, ancestors = new WeakSet()) {
   if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'number') { if (!Number.isFinite(value)) fail('payload', 'must contain only finite JSON values'); return JSON.stringify(value); }
