@@ -310,16 +310,23 @@ This is what the recipient sees first in the channel. Keep it clean and scannabl
 
 Format the main message:
 
+For each task row, choose exactly one Jira status fragment based on what actually happened:
+
+- Confirmed Jira issue: `:ticket: <[Tracker URL]|[ISSUE-KEY]>`
+- Jira skipped, failed, or unresolved: `:ticket: needs_jira`
+
+Never invent a tracker URL or issue key to fill the root summary.
+
 ```
 :clipboard: *New Tasks for <@{recipient.slackUserId}>*
 Delegated · [date]
 
 *1. [Task 1 Title]*
-[priority emoji] [Priority] · :ticket: <[Tracker URL]|[ISSUE-KEY]> · :calendar: Due [date] · `[PROJECT-KEY]`
+[priority emoji] [Priority] · [Jira status fragment] · :calendar: Due [date] · `[PROJECT-KEY]`
 > [1-2 sentence summary of what the recipient needs to do]
 
 *2. [Task 2 Title]* (if multiple)
-[priority emoji] [Priority] · :ticket: <[Tracker URL]|[ISSUE-KEY]> · :calendar: Due [date] · `[PROJECT-KEY]`
+[priority emoji] [Priority] · [Jira status fragment] · :calendar: Due [date] · `[PROJECT-KEY]`
 > [1-2 sentence summary]
 
 :page_facing_up: *Shared Documents:* (if Slack Canvases were created in Step 7)

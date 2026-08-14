@@ -52,15 +52,19 @@ Rules:
 3. `Due` is a real calendar date in `YYYY-MM-DD` form.
 4. `Priority` is exactly one lowercase value: `urgent`, `high`, `normal`, or `low`.
 5. `Jira` is `needs_jira`, an uppercase Jira key such as `RHIZE-42`, or a safe HTTPS URL.
-6. Human-readable details may follow. A line shaped like another anchored contract field is not
-   allowed in the detail body.
+6. Human-readable details may follow. The stable labels `*Task:*`, `*Due:*`, `*Priority:*`, and
+   `*Jira:*` may occur only once each in the exact top envelope. Quoted, prefixed, repeated, or
+   embedded label-like text anywhere else invalidates the reply.
 7. The reply contains exactly one marker, as its final nonblank line:
 
 ```text
 rhize-delegation:v1:<lowercase-uuidv4>
 ```
 
-Trailing blank lines are harmless. Any nonblank text after the marker invalidates the message.
+Trailing blank lines are harmless. Any line containing `rhize-delegation:v1:` invalidates the
+message unless it is the single exact valid marker and the final nonblank line. That includes a
+quoted marker, malformed UUID marker, duplicate marker-like line, or marker-like prose. Any
+nonblank text after the marker also invalidates the message.
 The shared multi-task root message is ignored and must contain neither the four fields nor a
 `rhize-delegation:v1:` marker.
 
@@ -123,9 +127,9 @@ more text
 *Jira:* javascript:alert(1)
 ```
 
-A duplicate `rhize-delegation:v1:` line, a marker in quoted content, repeated fields, a
-multiline title, a nonexistent date, a wrong workspace/channel/sender, and a marked root summary
-are also invalid.
+A duplicate or malformed `rhize-delegation:v1:` line, a marker in quoted content, quoted or
+embedded stable field labels, repeated fields, a multiline title, a nonexistent date, a wrong
+workspace/channel/sender, and a marked root summary are also invalid.
 
 ## Retries, idempotency, and merging
 

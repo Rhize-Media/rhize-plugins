@@ -2,6 +2,8 @@ import {JIRA_KEY, PRIORITIES, UUID_V4, assertHttpsUrl, realDate} from '../domain
 
 const MARKER = /^rhize-delegation:v1:([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/;
 const FIELD = /^\*(Task|Due|Priority|Jira):\* (.+)$/;
+const FIELD_LABEL = /\*(?:Task|Due|Priority|Jira):\*/;
+const MARKER_PREFIX = 'rhize-delegation:v1:';
 
 function fail(message) { throw new TypeError(`delegation: ${message}`); }
 function plainObject(value) { return value !== null && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype; }
@@ -20,10 +22,10 @@ export function parseDelegation(source, allowlist) {
   const lines = source.text.split('\n');
   while (lines.length > 0 && lines.at(-1).trim() === '') lines.pop();
   const markerIndex = lines.length - 1;
+  const markerLikeIndexes = lines.flatMap((line, index) => line.includes(MARKER_PREFIX) ? [index] : []);
+  if (markerLikeIndexes.length !== 1 || markerLikeIndexes[0] !== markerIndex) fail('requires one unquoted final marker-like line');
   const marker = MARKER.exec(lines[markerIndex] ?? '');
   if (!marker) fail('requires one final lowercase UUIDv4 marker');
-  const markers = lines.filter(line => MARKER.test(line));
-  if (markers.length !== 1) fail('requires exactly one marker');
   if (lines.length < 5) fail('requires four top fields and a marker');
 
   const expected = ['Task', 'Due', 'Priority', 'Jira'];
@@ -31,9 +33,10 @@ export function parseDelegation(source, allowlist) {
   for (let index = 0; index < expected.length; index += 1) {
     const field = FIELD.exec(lines[index]);
     if (!field || field[1] !== expected[index]) fail('requires Task, Due, Priority, and Jira fields in order at the top');
+    if ((lines[index].match(/\*(?:Task|Due|Priority|Jira):\*/g) ?? []).length !== 1) fail('top fields must contain one exact stable label');
     fields[field[1]] = field[2];
   }
-  for (const line of lines.slice(4, markerIndex)) if (FIELD.test(line)) fail('contains extra anchored fields');
+  for (const line of lines.slice(4, markerIndex)) if (FIELD_LABEL.test(line)) fail('contains quoted or extra stable fields');
   if (fields.Task.trim() !== fields.Task || fields.Task.length === 0) fail('Task must be a nonempty single-line title');
   try { realDate(fields.Due, 'Due'); } catch { fail('Due must be a real ISO date'); }
   if (!PRIORITIES.includes(fields.Priority)) fail('Priority is invalid');

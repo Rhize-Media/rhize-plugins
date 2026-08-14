@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-import re
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -16,16 +17,7 @@ REFERENCE = (
 )
 README = REPO_ROOT / "rhize-ops/README.md"
 GUIDE = REPO_ROOT / "rhize-ops/GUIDE.md"
-
-UUID_V4 = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-)
-FOOTER = re.compile(
-    r"^rhize-delegation:v1:"
-    r"([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$"
-)
-FIELD = re.compile(r"^\*(Task|Due|Priority|Jira):\* (.+)$")
-PRIORITIES = {"urgent", "high", "normal", "low"}
+PARSER = REPO_ROOT / "rhize-tasks/service/src/connectors/delegation-parser.mjs"
 
 READY_FIXTURE = """*Task:* Audit paid search
 *Due:* 2026-08-17
@@ -46,43 +38,31 @@ Rich human detail.
 rhize-delegation:v1:9e6f4516-4a70-4d4b-9227-3dd74f2c9be2"""
 
 
-def parse_fixture(text: str) -> dict[str, str]:
-    lines = text.splitlines()
-    while lines and not lines[-1].strip():
-        lines.pop()
-    if len(lines) < 5:
-        raise ValueError("missing fields or footer")
-
-    expected = ["Task", "Due", "Priority", "Jira"]
-    fields: dict[str, str] = {}
-    for index, name in enumerate(expected):
-        match = FIELD.fullmatch(lines[index])
-        if not match or match.group(1) != name:
-            raise ValueError("fields must be anchored and ordered")
-        fields[name] = match.group(2)
-
-    extra_fields = [line for line in lines[4:-1] if FIELD.fullmatch(line)]
-    if extra_fields:
-        raise ValueError("duplicate fields")
-    markers = [match for line in lines if (match := FOOTER.fullmatch(line))]
-    if len(markers) != 1 or not FOOTER.fullmatch(lines[-1]):
-        raise ValueError("footer must occur once as the final nonblank line")
-    if "\n" in fields["Task"] or not fields["Task"].strip():
-        raise ValueError("invalid task")
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", fields["Due"]):
-        raise ValueError("invalid due date")
-    if fields["Priority"] not in PRIORITIES:
-        raise ValueError("invalid priority")
-    if not (
-        fields["Jira"] == "needs_jira"
-        or re.fullmatch(r"[A-Z][A-Z0-9]+-\d+", fields["Jira"])
-        or fields["Jira"].startswith("https://")
-    ):
-        raise ValueError("invalid Jira value")
-    if not UUID_V4.fullmatch(markers[0].group(1)):
-        raise ValueError("invalid UUID")
-    fields["delegation_id"] = markers[0].group(1)
-    return fields
+def parse_with_consumer(fixtures: list[str]) -> list[dict[str, object]]:
+    """Send producer fixtures through the real Rhize Tasks consumer parser."""
+    harness = f"""
+import {{parseDelegation}} from {json.dumps(PARSER.as_uri())};
+let input = '';
+for await (const chunk of process.stdin) input += chunk;
+const allowlist = {{workspaceId: 'T1', channelId: 'C1', senderIds: ['B1']}};
+const results = JSON.parse(input).map((text) => {{
+  try {{
+    return {{ok: true, value: parseDelegation({{workspaceId: 'T1', channelId: 'C1', senderId: 'B1', text}}, allowlist)}};
+  }} catch (error) {{
+    return {{ok: false, error: String(error?.message ?? error)}};
+  }}
+}});
+process.stdout.write(JSON.stringify(results));
+"""
+    completed = subprocess.run(
+        ["node", "--input-type=module", "--eval", harness],
+        input=json.dumps(fixtures),
+        text=True,
+        capture_output=True,
+        cwd=REPO_ROOT,
+        check=True,
+    )
+    return json.loads(completed.stdout)
 
 
 def fenced_block_after(text: str, heading: str) -> str:
@@ -94,18 +74,24 @@ def fenced_block_after(text: str, heading: str) -> str:
 
 
 def test_contract_fixtures_cover_ready_and_needs_jira() -> None:
-    assert parse_fixture(READY_FIXTURE)["Jira"] == "RHIZE-42"
-    assert parse_fixture(NEEDS_JIRA_FIXTURE)["Jira"] == "needs_jira"
+    ready, needs_jira = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE])
+    assert ready["ok"] is True
+    assert ready["value"]["jira"] == {"kind": "key", "value": "RHIZE-42"}
+    assert needs_jira["ok"] is True
+    assert needs_jira["value"]["jira"] == {"kind": "needs_jira", "value": None}
 
 
 def test_batch_fixtures_use_distinct_per_task_ids() -> None:
-    ready_id = parse_fixture(READY_FIXTURE)["delegation_id"]
-    needs_jira_id = parse_fixture(NEEDS_JIRA_FIXTURE)["delegation_id"]
+    ready, needs_jira = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE])
+    ready_id = ready["value"]["delegationId"]
+    needs_jira_id = needs_jira["value"]["delegationId"]
     assert ready_id != needs_jira_id
 
 
 def test_jira_and_slack_fixtures_reuse_the_same_task_id() -> None:
-    delegation_id = parse_fixture(READY_FIXTURE)["delegation_id"]
+    parsed = parse_with_consumer([READY_FIXTURE])[0]
+    assert parsed["ok"] is True
+    delegation_id = parsed["value"]["delegationId"]
     jira_description = (
         "# Task: Audit paid search\n\n"
         "Review the campaign structure.\n\n"
@@ -116,7 +102,7 @@ def test_jira_and_slack_fixtures_reuse_the_same_task_id() -> None:
     assert READY_FIXTURE.count(f"rhize-delegation:v1:{delegation_id}") == 1
 
 
-def test_contract_fixtures_reject_invalid_variants() -> None:
+def test_producer_fixtures_round_trip_through_real_consumer() -> None:
     invalid = [
         READY_FIXTURE.replace("*Task:*", "Intro\n*Task:*", 1),
         READY_FIXTURE.replace("*Priority:* high", "*Priority:* critical"),
@@ -125,13 +111,17 @@ def test_contract_fixtures_reject_invalid_variants() -> None:
         READY_FIXTURE.replace("550e8400-e29b-41d4-a716", "550e8400-e29b-11d4-a716"),
         READY_FIXTURE + "\ntrailing text",
         READY_FIXTURE + "\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        READY_FIXTURE.replace(
+            "Rich human detail.",
+            "> rhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        ),
+        READY_FIXTURE.replace("Rich human detail.", "rhize-delegation:v1:not-a-uuid"),
+        READY_FIXTURE.replace("Rich human detail.", "> *Jira:* RHIZE-999"),
+        READY_FIXTURE.replace("Rich human detail.", "context *Due:* 2026-08-18"),
     ]
-    for value in invalid:
-        try:
-            parse_fixture(value)
-        except ValueError:
-            continue
-        raise AssertionError(f"invalid fixture was accepted: {value!r}")
+    results = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE, *invalid])
+    assert [result["ok"] for result in results[:2]] == [True, True]
+    assert not any(result["ok"] for result in results[2:])
 
 
 def test_each_task_gets_one_stable_id_before_side_effects() -> None:
@@ -171,6 +161,9 @@ def test_jira_description_and_slack_ready_template_share_one_id() -> None:
 def test_root_is_unmarked_and_priority_mapping_is_closed() -> None:
     skill = SKILL.read_text()
     assert "Never add contract fields or a delegation marker to the shared multi-task root message" in skill
+    assert "choose exactly one Jira status fragment" in skill
+    assert ":ticket: needs_jira" in skill
+    assert "Never invent a tracker URL or issue key" in skill
     for mapping in (
         "Urgent/Highest → `urgent`",
         "High → `high`",
@@ -209,7 +202,7 @@ def main() -> int:
         test_contract_fixtures_cover_ready_and_needs_jira,
         test_batch_fixtures_use_distinct_per_task_ids,
         test_jira_and_slack_fixtures_reuse_the_same_task_id,
-        test_contract_fixtures_reject_invalid_variants,
+        test_producer_fixtures_round_trip_through_real_consumer,
         test_each_task_gets_one_stable_id_before_side_effects,
         test_skill_has_parser_stable_ready_and_needs_jira_templates,
         test_jira_description_and_slack_ready_template_share_one_id,
