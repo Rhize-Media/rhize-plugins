@@ -112,8 +112,10 @@ New `headroom learn` output now flows into the refinement queue
 (`/rhize-context-manager:learn-harvest`), not this file — the scheduled routine is barred
 from editing CLAUDE.md. Exception, 2026-08-12: Jim directed nine queue entries carrying
 repo-environment facts (no legal skill target) to be folded in here by hand; they were
-deduped to the five facts below and marked `consumed`. The bar on the unattended routine
-is unchanged.*
+deduped to the five facts below and marked `consumed`. Exception, 2026-08-14: a
+human-invoked `/skill-refine review` folded in three more such facts (python3-vs-python,
+the large-`.jsonl` Read limit, and SOURCES.md normalization) and marked them `consumed`.
+The bar on the unattended routine is unchanged.*
 
 ### Fact-Forcing Gate (ECC GateGuard)
 - Prefix the FIRST Bash command of each user request/chapter with an inline FACTS echo:
@@ -139,6 +141,9 @@ is unchanged.*
   `/Users/jamesdeola/dev-local/RHIZE/skill-forge`; spend at most one Bash call on discovery.
 - Scratchpad worktree: set `SCRATCH=<path>` once per session and reuse; never re-expand the
   full `/private/tmp/claude-501/...` path per command.
+- External upstream references are tracked centrally in
+  `rhize-context-manager/skills/SOURCES.md` and normalized by `scripts/sources_md.py` to
+  canonical remote raw URLs — add a source there rather than inline in a SKILL.md.
 - The installed plugin cache `~/.claude/plugins/marketplaces/rhize-plugins` is a git clone that
   pins BEHIND this repo. When it goes stale, `rhize-context-manager:*` skills report
   "Unknown skill" and **scheduled tasks fail silently**. Refresh with
@@ -174,6 +179,11 @@ is unchanged.*
 
 ### Environment quirks
 - rtk `find` shim lacks `-not`/`-exec`/compound predicates — use `/usr/bin/find` or `\find`.
+- Always invoke `python3`, never bare `python` — `python` is not on PATH and exits 127
+  (`command not found`), which reads like a script error but is not.
+- Never `Read` a large `.jsonl` (observer/analysis logs, session transcripts) directly —
+  they exceed the 256KB / 25,000-token tool limit and the call fails outright. Process them
+  in Bash with `python3` or `jq` in a single pass and emit only what you need.
 - System `python3` (3.14) has **no `jsonschema`** — `import jsonschema` fails every time and
   burned a round-trip in 5+ sessions. The skill-map validators are written to run without it,
   so just run `scripts/validate_skill_map.py` / `tests/skill-map/validate_fixtures.py` — do not
