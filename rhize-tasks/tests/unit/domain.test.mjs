@@ -29,7 +29,7 @@ const task = {
   projectKey: 'RHIZE', issueType: 'Task', assigneeAccountId: 'tom-1', priority: 'high',
   dueDate: '2026-08-17', status: 'Open', terminal: false, blocked: false, dependencyRisk: 1,
   remainingMinutes: 60, explicitEstimateMinutes: null, competencies: ['marketing'], manualLock: false,
-  carryoverCount: 0, sourceRevision: '42', jiraKey: 'RHIZE-42',
+  carryoverCount: 0, createdAt: '2026-08-01T09:00:00.000Z', reserved: false, sourceRevision: '42', jiraKey: 'RHIZE-42',
   estimate: {minutes: 60, source: 'jira_remaining', confidence: 'high', rationale: 'Jira estimate', confirmedAt: '2026-08-14T12:00:00.000Z', requiresApproval: false},
 };
 
@@ -45,6 +45,8 @@ test('rejects unknown properties, invalid enums, impossible dates, unsafe URLs, 
   assert.throws(() => validateProfile({...profile, workingIntervals: [{dayOfWeek: 1, start: '17:00', end: '09:00'}]}), TypeError);
   assert.throws(() => validateProfile({...profile, schemaVersion: 2}), TypeError);
   assert.throws(() => assertTask({...task, dueDate: '2026-02-30'}), TypeError);
+  assert.throws(() => assertTask((({createdAt, ...rest}) => rest)(task)), TypeError);
+  assert.throws(() => assertTask({...task, reserved: 'false'}), TypeError);
   assert.throws(() => assertTask({...task, remainingMinutes: -1}), TypeError);
   assert.throws(() => assertTask({...task, jiraUrl: 'javascript:alert(1)'}), TypeError);
 });
