@@ -1,5 +1,21 @@
 import {connectorError, normalizeError, unsupported} from './http.mjs';
 
+const datePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+const dateTimePattern = /^(\d{4})-(\d{2})-(\d{2})T([01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9](?:\.\d{1,9})?)?(?:Z|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])$/;
+
+function validDate(value) {
+  const match = datePattern.exec(value);
+  if (!match) return false;
+  const [, year, month, day] = match;
+  const date = new Date(0);
+  date.setUTCFullYear(Number(year), Number(month) - 1, Number(day));
+  return date.getUTCFullYear() === Number(year) && date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day);
+}
+
+function validDateTime(value) {
+  return dateTimePattern.test(value) && validDate(value.slice(0, 10)) && !Number.isNaN(Date.parse(value));
+}
+
 export function createGoogleCalendarConnector({readCalendarIds, focusCalendarId, credentials, transport, now = () => new Date(), redactOutsideTitles = true} = {}) {
   if (!Array.isArray(readCalendarIds) || !focusCalendarId || !credentials?.get || typeof transport !== 'function') throw new TypeError('invalid Google Calendar connector configuration');
   const readable = new Set(readCalendarIds);
@@ -7,7 +23,7 @@ export function createGoogleCalendarConnector({readCalendarIds, focusCalendarId,
   function bodyOf(response) { if (!object(response?.body)) throw connectorError('malformed_response'); return response.body; }
   function eventIdentity(event) { if (!object(event) || typeof event.id !== 'string' || !event.id || typeof event.etag !== 'string' || !event.etag) throw connectorError('malformed_response'); return event; }
   function eventResult(response) { return eventIdentity(bodyOf(response)); }
-  function eventTime(event, key) { const value = event[key]; if (!object(value)) throw connectorError('malformed_response'); const timestamp = value.dateTime ?? value.date; if (typeof timestamp !== 'string' || !timestamp || Number.isNaN(Date.parse(timestamp))) throw connectorError('malformed_response'); return timestamp; }
+  function eventTime(event, key) { const value = event[key]; if (!object(value)) throw connectorError('malformed_response'); const dateTime = value.dateTime; const date = value.date; if (dateTime !== undefined && date !== undefined) throw connectorError('malformed_response'); if (typeof dateTime === 'string' && validDateTime(dateTime)) return dateTime; if (typeof date === 'string' && validDate(date)) return date; throw connectorError('malformed_response'); }
   async function normalized(action, {afterWrite = false} = {}) { try { return await action(); } catch (error) { throw normalizeError(error, {afterWrite}); } }
   async function token() { try { const [client_id, client_secret, refresh_token] = await Promise.all(['client-id', 'client-secret', 'refresh-token'].map(account => credentials.get('media.rhize.tasks.google', account))); const response = await transport({url: 'https://oauth2.googleapis.com/token', method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({client_id, client_secret, refresh_token, grant_type: 'refresh_token'}).toString()}); if (!response || response.status < 200 || response.status >= 300 || !response.body || typeof response.body.access_token !== 'string') throw connectorError('authorization', {status: response?.status}); return response.body.access_token; } catch (error) { throw normalizeError(error); } }
   async function request(path, options = {}) { try { const access = await token(); const response = await transport({url: `https://www.googleapis.com/calendar/v3${path}`, method: options.method ?? 'GET', headers: {authorization: `Bearer ${access}`, ...(options.body ? {'content-type': 'application/json'} : {})}, body: options.body ? JSON.stringify(options.body) : undefined}); if (!response || response.status < 200 || response.status >= 300) throw connectorError(response?.status === 401 || response?.status === 403 ? 'authorization' : 'http', {status: response?.status, retryable: response?.status >= 500 || response?.status === 429}); return response; } catch (error) { throw normalizeError(error, {afterWrite: options.method && options.method !== 'GET'}); } }
