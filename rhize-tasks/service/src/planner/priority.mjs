@@ -16,6 +16,10 @@ export function compareCodePoint(left, right) {
   return a.length - b.length;
 }
 
+export function canonicalContextKey(competencies) {
+  return competencies.map(name => name.toLowerCase()).sort(compareCodePoint).join('|') || '~';
+}
+
 function compareValue(left, right) { return typeof left === 'number' ? right - left : compareCodePoint(left, right); }
 
 export function rankTasks(tasks, profile, now) {
@@ -23,7 +27,7 @@ export function rankTasks(tasks, profile, now) {
     const classification = classifyTask(task, profile);
     const lane = classification?.lane ?? task.lane;
     const estimate = estimateTask(task, [], profile);
-    const contextKey = task.competencies.map(name => name.toLowerCase()).sort(compareCodePoint).join('|') || '~';
+    const contextKey = canonicalContextKey(task.competencies);
     const competency = taskCompetencyFit(task, profile);
     const age = ageDays(task.createdAt, now);
     return {

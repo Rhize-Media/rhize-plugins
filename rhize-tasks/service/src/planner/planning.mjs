@@ -2,7 +2,7 @@ import {isoDateTime, realDate} from '../domain.mjs';
 import {classifyTask} from './eligibility.mjs';
 import {estimateTask} from './estimates.mjs';
 import {assertProtectedIntervals, materializeWorkingIntervals, subtractIntervals, totalMinutes, withMeetingBuffers} from './intervals.mjs';
-import {rankTasks} from './priority.mjs';
+import {canonicalContextKey, rankTasks} from './priority.mjs';
 
 const MINUTE = 60000;
 const availableMinutes = window => Math.floor((Date.parse(window.end) - Date.parse(window.start)) / MINUTE);
@@ -28,7 +28,7 @@ function trimBefore(windows, cutoff) {
 }
 
 function block(task, planRevision, sessionIndex, start, minutes) {
-  return {id: `${planRevision}:${task.id}:${sessionIndex}`, taskId: task.id, start, end: new Date(Date.parse(start) + minutes * MINUTE).toISOString(), minutes, sessionIndex, contextKey: task.competencies.map(name => name.toLowerCase()).sort().join('|') || '~', locked: false};
+  return {id: `${planRevision}:${task.id}:${sessionIndex}`, taskId: task.id, start, end: new Date(Date.parse(start) + minutes * MINUTE).toISOString(), minutes, sessionIndex, contextKey: canonicalContextKey(task.competencies), locked: false};
 }
 
 function feasiblePart(remaining, window, profile) {

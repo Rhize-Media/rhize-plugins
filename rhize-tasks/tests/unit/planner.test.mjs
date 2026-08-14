@@ -120,6 +120,13 @@ test('uses code-point ordering without ambient locale comparison', () => {
   } finally { String.prototype.localeCompare = original; }
 });
 
+test('shares canonical non-BMP context ordering between ranking and blocks', () => {
+  const plan = planDay({tasks: [task({competencies: ['😀', '\uE000'], remainingMinutes: 60})], protectedIntervals: [], profile, planningDate, now, planRevision: 9});
+  const rankedContext = plan.ranked[0].factors.find(factor => factor.name === 'context').value;
+  assert.equal(rankedContext, '\uE000|😀');
+  assert.ok(plan.blocks.every(block => block.contextKey === rankedContext));
+});
+
 test('does not schedule blocked, locked, provisional, reserved, or opportunities', () => {
   const tasks = [task({id: 'blocked', blocked: true}), task({id: 'locked', manualLock: true}), task({id: 'provisional', lane: 'provisional'}), task({id: 'reserved', assigneeAccountId: null, reserved: true}), task({id: 'opp', assigneeAccountId: null, priority: 'urgent'})];
   const plan = planDay({tasks, protectedIntervals: [], profile, planningDate, now, planRevision: 2});
