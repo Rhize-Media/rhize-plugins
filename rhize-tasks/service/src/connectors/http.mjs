@@ -32,11 +32,11 @@ export function createHttpTransport({fetch: fetchImpl = globalThis.fetch, timeou
         text = new TextDecoder().decode(Buffer.concat(chunks));
       } else { text = await response.text(); if (Buffer.byteLength(text) > maxBytes) throw connectorError('response_too_large', {status: response.status}); }
       const contentType = response.headers?.get?.('content-type') ?? '';
+      if (!response.ok) throw connectorError(response.status === 401 || response.status === 403 ? 'authorization' : response.status === 429 ? 'rate_limited' : 'http', {retryable: response.status >= 500 || response.status === 429, status: response.status});
       let parsed = text;
       if (expectJson && !/application\/json/i.test(contentType)) throw connectorError('invalid_content_type', {status: response.status});
       if (expectJson && !text) parsed = null;
       else if (expectJson) { try { parsed = JSON.parse(text); } catch { throw connectorError('invalid_json', {status: response.status}); } }
-      if (!response.ok) throw connectorError(response.status === 401 || response.status === 403 ? 'authorization' : 'http', {retryable: response.status >= 500 || response.status === 429, status: response.status});
       return {status: response.status, headers: response.headers, body: parsed};
     } catch (error) { throw normalizeError(error, {afterWrite: method !== 'GET' && method !== 'HEAD'}); }
     finally { clearTimeout(timer); signal?.removeEventListener?.('abort', abort); }
