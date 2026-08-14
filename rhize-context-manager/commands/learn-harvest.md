@@ -116,9 +116,39 @@ target, matching every pre-existing entry.
  "signal_type": "routing-miss"}
 ```
 6. Skip any entry whose `id` already exists in the queue regardless of status.
-7. Append new entries; report a summary table: source | new | duplicates
-   skipped, plus current queue counts by status. Remind: next step is
-   `/skill-refine review`.
+7. **Content noise filter — run it, do not eyeball it.** `id` is
+   `sha1-12(source + pattern)`, so *any rephrasing of a known fact produces a new
+   id and walks straight past step 6*. Headroom rephrases constantly: on
+   2026-08-14, 3 of 5 headroom entries restated facts folded into CLAUDE.md on
+   2026-08-12, and the two largest `est_savings` claims (235k, 45k) were the two
+   most duplicative. That is ~30% of a day's yield spent re-litigating settled
+   facts. Write the surviving candidates from step 6 to a JSONL file, then:
+
+   ```bash
+   python3 scripts/harvest_noise_filter.py \
+     --candidates <candidates.jsonl> \
+     --reference CLAUDE.md --reference ~/.claude/CLAUDE.md \
+     --keep-out <kept.jsonl> \
+     | tee ~/.claude/context-manager/harvest-logs/$(date +%F)-filter.txt
+   ```
+
+   It scores each candidate by how much of its normalized content is already
+   covered by existing queue patterns (any status) or CLAUDE.md blocks, and sorts
+   into three outcomes:
+   - **suppressed** (coverage ≥ 0.75) — drop; it is a restatement.
+   - **flagged** (0.45 ≤ coverage < 0.75) — **keep**, with a `filter_note`. These
+     are usually composite entries (`Topic — Fact1. Fact2. Fact3.`) whose facts are
+     each known but which retain novel detail. Suppressing at this score also kills
+     genuine signals, so the human decides at `/skill-refine review`.
+   - **thin** (< 6 content tokens) — drop; a bare heading is not an actionable signal.
+
+   Append only what lands in `--keep-out`. **Tee the report** — a suppressed run and
+   a run that never happened both produce few new entries, and the filter report is
+   the only thing that tells them apart. Never suppress an entry that the report does
+   not list, and never drop a *flagged* one.
+8. Append new entries; report a summary table: source | new | duplicates
+   skipped | suppressed by filter | flagged, plus current queue counts by status.
+   Remind: next step is `/skill-refine review`.
 
 ## Source-availability rule
 

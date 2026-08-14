@@ -8,6 +8,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-14_ version bump — **rhize-context-manager** 0.11.0 → 0.12.0 (minor); marketplace 2.26.0 → 2.27.0.
+- _2026-08-14_ **Harvest noise filter — the queue stops collecting the same lesson twice.**
+  New `scripts/harvest_noise_filter.py`, wired as step 7 of `/learn-harvest`. Queue ids are
+  `sha1-12(source + pattern)`, so any rewording of a known fact produced a new id and evaded
+  id-dedupe; measured on 2026-08-14, 3 of 5 headroom entries restated facts folded into
+  CLAUDE.md two days earlier, and the two largest `est_savings` claims (235k, 45k) were the
+  two most duplicative — ~30% of a day's yield. The filter scores candidates by greedy
+  set-cover against existing queue patterns (any status) and CLAUDE.md blocks, then
+  suppresses (≥0.75), flags-but-keeps (≥0.45), or drops as thin (<6 content tokens).
+  Thresholds are calibrated against that day's 44 human-labeled dispositions, where real
+  signals topped out at 0.70 and fully-covered restatements started at 0.80; `--self-audit`
+  reproduces it. Composite entries (`Topic — Fact1. Fact2. Fact3.`) land at 0.46–0.56 and are
+  deliberately flagged rather than suppressed — no threshold separates them from genuine
+  signals, so the filter declines to guess. Every decision is teed to
+  `harvest-logs/<date>-filter.txt`, so a filtered run stays distinguishable from a collector
+  that never ran. Stdlib only, deterministic, no network.
+- _2026-08-14_ **`/skill-refine review` gains two measured triage facts** — `est_savings` is
+  anti-correlated with entry quality (never rank or threshold on it), and `evolve` requires a
+  skill *directory*, so bare `~/.claude/skills/learned/*.md` targets can only receive the
+  step-3 text fold-in. Triage now also surfaces any `filter_note` set by the harvest filter.
 - _2026-08-10_ version bump — **rhize-context-manager** 0.10.1 → 0.11.0 (minor); marketplace 2.25.5 → 2.26.0.
 - _2026-08-10_ **Suggestion log — routing suggestions are now measurable.** All four skill-map
   hooks (`skill-router`, `session-disclosure`, `remediation-suggester`, `next-step-suggester`)

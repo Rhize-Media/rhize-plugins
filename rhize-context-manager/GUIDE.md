@@ -60,6 +60,17 @@ the right one, and health-checks the whole thing.
   current project — it is never passed `--all`, which would sweep every discovered
   project and take minutes instead of seconds.)
 
+  **Why the queue doesn't fill up with the same lesson twice.** Entries are de-duped by a
+  hash of their text, so a fact reworded slightly used to sail through as "new" — on
+  2026-08-14, 3 of 5 headroom findings were restatements of things already written into
+  CLAUDE.md. `/learn-harvest` now runs a content filter before it appends: anything whose
+  substance is already in CLAUDE.md or in an existing queue entry gets dropped, and
+  anything that *looks* like a repackaging of known facts is kept but tagged so you see it
+  at triage. Every decision it makes is written to
+  `~/.claude/context-manager/harvest-logs/<date>-filter.txt`, so a quiet harvest is never
+  ambiguous — you can always read back exactly what was dropped and why.
+  *Example: "Why was today's harvest only two entries?" → open that day's filter report.*
+
 ## Tips
 
 - Run `/context-doctor` when adopting a new repo or after installing/removing any stack

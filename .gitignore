@@ -39,6 +39,7 @@ scripts/*
 !scripts/sources_md.py
 !scripts/query_skill_map.py
 !scripts/suggestion_log_report.py
+!scripts/harvest_noise_filter.py
 !scripts/viewer/
 
 # Squirrel config

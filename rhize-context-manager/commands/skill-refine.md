@@ -12,13 +12,29 @@ show queue counts by status and suggest the next subcommand.
 ## `review` — human triage (interactive)
 
 1. Load all `pending` entries. Present them one at a time (or grouped by
-   source) with: pattern, source, repo, est_savings.
+   source) with: pattern, source, repo, est_savings. Surface any `filter_note`
+   (set by `/learn-harvest`'s noise filter) — it marks a probable composite of
+   already-documented facts and is usually a reject.
 2. For each, the user decides: assign a `target_skill` (path under
    `rhize-context-manager/skills/` or `~/.claude/skills/learned/`) → status
    `triaged`; or reject → status `rejected`. Suggest a target skill per entry,
    but the USER decides — never auto-triage.
 3. Rewrite the queue file with updated statuses. Summarize: N triaged toward M
    skills, K rejected.
+
+**Two facts that make triage suggestions better, both measured:**
+
+- **`est_savings` is anti-correlated with entry quality** and type-chaotic (ints,
+  strings, and free text like `'~100,000 tokens/session'` in one field). On
+  2026-08-12 the three largest savings claims were content-free CLAUDE.md section
+  headings; on 2026-08-14 the two largest (235k, 45k) were the two most duplicative
+  entries in the batch. **Never rank or threshold dispositions on it.**
+- **`evolve` needs a skill *directory*.** `rhize-context-manager/skills/*` are
+  directories with a `SKILL.md` and are valid targets. Most `~/.claude/skills/learned/*`
+  entries are bare `.md` files — they can still receive the step-3 "known failure
+  modes" text fold-in under `run`, but `evolve` cannot operate on them. Prefer
+  directory-shaped targets for anything meant to reach the drain, and verify the
+  target has a `SKILL.md` before assigning it.
 
 ## `run` — gated refinement pass (safe to run headless)
 
