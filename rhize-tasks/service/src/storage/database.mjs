@@ -37,6 +37,16 @@ function encodeJson(value, path) {
   return JSON.stringify(value);
 }
 
+export function canonicalJson(value, path = 'value') {
+  assertJson(value, path);
+  const serialize = item => {
+    if (item === null || typeof item !== 'object') return JSON.stringify(item);
+    if (Array.isArray(item)) return `[${item.map(serialize).join(',')}]`;
+    return `{${Object.keys(item).sort().map(key => `${JSON.stringify(key)}:${serialize(item[key])}`).join(',')}}`;
+  };
+  return serialize(value);
+}
+
 function decodeJson(value, table, column) {
   try { return JSON.parse(value); } catch (error) {
     throw new SyntaxError(`invalid JSON in ${table}.${column}: ${error.message}`);
@@ -91,26 +101,32 @@ export function transaction(db, fn) {
   }
 }
 
-export function openDatabase(path = defaultDatabasePath(), {Database = DatabaseSync} = {}) {
+export function openDatabase(path = defaultDatabasePath(), {Database = DatabaseSync, beforeMigrations} = {}) {
   if (typeof path !== 'string' || path.length === 0) throw new TypeError('database path must be a nonempty string');
   mkdirSync(dirname(path), {recursive: true});
   const db = new Database(path);
-  db.exec('pragma foreign_keys = on');
-  db.exec('create table if not exists schema_migrations (version integer primary key, applied_at text not null)');
-  const newest = db.prepare('select max(version) as version from schema_migrations').get().version;
-  const supported = migrations.at(-1).version;
-  if (newest !== null && newest > supported) {
-    db.close();
-    throw new RangeError(`database has newer schema migration ${newest}; this build supports ${supported}`);
-  }
-  for (const migration of migrations) {
-    if (db.prepare('select 1 from schema_migrations where version = ?').get(migration.version)) continue;
+  try {
+    db.exec('pragma foreign_keys = on');
     transaction(db, () => {
-      db.exec(migration.sql);
-      db.prepare('insert into schema_migrations (version, applied_at) values (?, ?)').run(migration.version, now());
+      db.exec('create table if not exists schema_migrations (version integer primary key, applied_at text not null)');
+      if (beforeMigrations !== undefined) {
+        if (typeof beforeMigrations !== 'function') throw new TypeError('beforeMigrations must be a function');
+        beforeMigrations();
+      }
+      const newest = db.prepare('select max(version) as version from schema_migrations').get().version;
+      const supported = migrations.at(-1).version;
+      if (newest !== null && newest > supported) throw new RangeError(`database has newer schema migration ${newest}; this build supports ${supported}`);
+      for (const migration of migrations) {
+        if (db.prepare('select 1 from schema_migrations where version = ?').get(migration.version)) continue;
+        db.exec(migration.sql);
+        db.prepare('insert into schema_migrations (version, applied_at) values (?, ?)').run(migration.version, now());
+      }
     });
+    return publicDatabase(db);
+  } catch (error) {
+    db.close();
+    throw error;
   }
-  return publicDatabase(db);
 }
 
 function appendAudit(db, entry) {
@@ -197,51 +213,116 @@ export function planRepository(db) {
 }
 
 export function operationRepository(db) {
-  const read = row => {
+  const operationColumns = 'id, approval, retry_state, attempt_count, data_json, result_json';
+  const immutable = operation => ({schemaVersion: operation.schemaVersion, id: operation.id, planRevision: operation.planRevision, kind: operation.kind, targetSystem: operation.targetSystem, targetId: operation.targetId, payload: operation.payload, idempotencyKey: operation.idempotencyKey, preconditionRevision: operation.preconditionRevision, createdAt: operation.createdAt});
+  const record = row => {
     if (!row) return null;
     const operation = assertOperation(decodeJson(row.data_json, 'operations', 'data_json'));
-    if (row.result_json !== null) decodeJson(row.result_json, 'operations', 'result_json');
-    return {...operation, retryState: row.retry_state};
+    if (operation.approval !== row.approval || operation.retryState !== row.retry_state) throw new Error(`operation ${operation.id} has unsynchronized approval or retry state`);
+    return {operation, attemptCount: row.attempt_count, result: row.result_json === null ? null : decodeJson(row.result_json, 'operations', 'result_json')};
+  };
+  const getRecord = id => record(db.prepare(`select ${operationColumns} from operations where id = ?`).get(id));
+  const assertSameImmutable = (persisted, candidate) => {
+    if (canonicalJson(immutable(persisted), 'persisted operation') !== canonicalJson(immutable(candidate), 'candidate operation')) throw new Error(`operation ${candidate.id} immutable fields do not match persisted operation`);
+  };
+  const updateRecord = (id, operation, attemptCount, result) => {
+    assertOperation(operation);
+    if (db.prepare('update operations set approval = ?, retry_state = ?, attempt_count = ?, data_json = ?, result_json = ?, updated_at = ? where id = ?').run(operation.approval, operation.retryState, attemptCount, encodeJson(operation, 'operation'), result === null ? null : encodeJson(result, 'operation result'), now(), id).changes !== 1) throw new Error(`operation ${id} does not exist`);
   };
   const writeState = (id, state, result = null, event = 'operation_state_changed') => {
     if (!['pending', 'safe_retry', 'reconciliation_required', 'applied', 'failed'].includes(state)) throw new TypeError(`invalid operation state ${state}`);
+    let updated;
     transaction(db, () => {
-      if (db.prepare('update operations set retry_state = ?, result_json = ?, updated_at = ? where id = ?').run(state, result === null ? null : encodeJson(result, 'operation result'), now(), id).changes !== 1) throw new Error(`operation ${id} does not exist`);
+      const current = getRecord(id);
+      if (!current) throw new Error(`operation ${id} does not exist`);
+      updated = {...current.operation, retryState: state};
+      updateRecord(id, updated, current.attemptCount, result);
       appendAudit(db, {event, entityType: 'operation', entityId: id, data: {state, result}});
     });
+    return updated;
+  };
+  const lockTarget = (targetId, reason) => {
+    const row = db.prepare('select data_json from tasks where id = ?').get(targetId);
+    if (!row) return null;
+    const task = assertTask(decodeJson(row.data_json, 'tasks', 'data_json'));
+    const locked = {...task, manualLock: true};
+    db.prepare('update tasks set data_json = ?, manual_lock = 1, updated_at = ? where id = ?').run(encodeJson(locked, 'task'), now(), targetId);
+    appendAudit(db, {event: 'task_manual_locked', entityType: 'task', entityId: targetId, data: {reason}});
+    return locked;
   };
   return {
     save(operation) {
       assertOperation(operation);
       const copy = clone(operation, 'operation');
+      let saved;
       transaction(db, () => {
-        const existing = db.prepare('select data_json from operations where id = ?').get(copy.id);
-        const serialized = encodeJson(copy, 'operation');
+        const existing = getRecord(copy.id);
         if (existing) {
-          if (existing.data_json !== serialized) throw new Error(`operation ${copy.id} already exists with different data`);
+          assertSameImmutable(existing.operation, copy);
+          saved = existing.operation;
           return;
         }
-        db.prepare('insert into operations (id, plan_revision, idempotency_key, approval, retry_state, data_json, result_json, updated_at) values (?, ?, ?, ?, ?, ?, null, ?)').run(copy.id, copy.planRevision, copy.idempotencyKey, copy.approval, 'pending', serialized, now());
-        db.prepare('insert into approvals (operation_id, approval, updated_at) values (?, ?, ?)').run(copy.id, copy.approval, now());
+        db.prepare('insert into operations (id, plan_revision, idempotency_key, approval, retry_state, attempt_count, data_json, result_json, updated_at) values (?, ?, ?, ?, ?, 0, ?, null, ?)').run(copy.id, copy.planRevision, copy.idempotencyKey, copy.approval, copy.retryState, encodeJson(copy, 'operation'), now());
+        db.prepare('insert into approvals (operation_id, approval, actor, created_at) values (?, ?, null, ?)').run(copy.id, copy.approval, now());
         appendAudit(db, {event: 'operation_saved', entityType: 'operation', entityId: copy.id, data: {planRevision: copy.planRevision, approval: copy.approval}});
+        saved = copy;
       });
-      return this.get(copy.id);
+      return saved;
     },
-    get(id) { return read(db.prepare('select data_json, retry_state, result_json from operations where id = ?').get(id)); },
-    listForPlan(revision) { return db.prepare('select data_json, retry_state, result_json from operations where plan_revision = ? order by id').all(revision).map(read); },
+    get(id) { return getRecord(id)?.operation ?? null; },
+    listForPlan(revision) { return db.prepare(`select ${operationColumns} from operations where plan_revision = ? order by id`).all(revision).map(row => record(row).operation); },
     wasApplied(idempotencyKey) { return Boolean(db.prepare("select 1 from operations where idempotency_key = ? and retry_state = 'applied'").get(idempotencyKey)); },
-    markState(id, state, result = null) { writeState(id, state, result); return this.get(id); },
+    execution(id) {
+      const current = getRecord(id);
+      return current === null ? null : {operation: clone(current.operation, 'operation'), attemptCount: current.attemptCount, result: current.result === null ? null : clone(current.result, 'operation result')};
+    },
+    beginAttempt(id) {
+      let updated;
+      transaction(db, () => {
+        const current = getRecord(id);
+        if (!current) throw new Error(`operation ${id} does not exist`);
+        if (current.attemptCount >= 2) throw new Error(`operation ${id} has exhausted its retry budget`);
+        updated = {operation: current.operation, attemptCount: current.attemptCount + 1, result: current.result};
+        updateRecord(id, current.operation, updated.attemptCount, current.result);
+        appendAudit(db, {event: 'operation_attempted', entityType: 'operation', entityId: id, data: {attempt: updated.attemptCount}});
+      });
+      return {operation: clone(updated.operation, 'operation'), attemptCount: updated.attemptCount, result: updated.result === null ? null : clone(updated.result, 'operation result')};
+    },
+    markState(id, state, result = null) { return writeState(id, state, result); },
+    setApproval(id, nextApproval, actor) {
+      if (!['approved', 'rejected'].includes(nextApproval) || typeof actor !== 'string' || actor.length === 0) throw new TypeError('approval transition requires approved or rejected state and a nonempty actor');
+      let updated;
+      transaction(db, () => {
+        const current = getRecord(id);
+        if (!current) throw new Error(`operation ${id} does not exist`);
+        const beforeApply = current.operation.retryState === 'pending' && current.attemptCount === 0;
+        const allowed = beforeApply && ((current.operation.approval === 'required') || (current.operation.approval === 'approved' && nextApproval === 'rejected'));
+        if (!allowed) throw new Error(`approval transition from ${current.operation.approval} to ${nextApproval} is not allowed`);
+        updated = {...current.operation, approval: nextApproval};
+        updateRecord(id, updated, current.attemptCount, current.result);
+        db.prepare('insert into approvals (operation_id, approval, actor, created_at) values (?, ?, ?, ?)').run(id, nextApproval, actor, now());
+        appendAudit(db, {event: 'operation_approval_changed', entityType: 'operation', entityId: id, data: {from: current.operation.approval, to: nextApproval, actor}});
+      });
+      return updated;
+    },
     appendAudit(entry) { transaction(db, () => appendAudit(db, entry)); },
     lockTarget(targetId, reason) {
-      const row = db.prepare('select data_json from tasks where id = ?').get(targetId);
-      if (!row) return null;
-      const task = assertTask(decodeJson(row.data_json, 'tasks', 'data_json'));
-      const locked = {...task, manualLock: true};
-      transaction(db, () => {
-        db.prepare('update tasks set data_json = ?, manual_lock = 1, updated_at = ? where id = ?').run(encodeJson(locked, 'task'), now(), targetId);
-        appendAudit(db, {event: 'task_manual_locked', entityType: 'task', entityId: targetId, data: {reason}});
-      });
+      let locked;
+      transaction(db, () => { locked = lockTarget(targetId, reason); });
       return locked;
+    },
+    reconcileDrift({operationId, targetId, expectedRevision, observedRevision}) {
+      let updated;
+      transaction(db, () => {
+        const current = getRecord(operationId);
+        if (!current) throw new Error(`operation ${operationId} does not exist`);
+        updated = {...current.operation, retryState: 'reconciliation_required'};
+        const result = {reason: 'revision_drift', expectedRevision, observedRevision};
+        updateRecord(operationId, updated, current.attemptCount, result);
+        lockTarget(targetId, 'external_revision_drift');
+        appendAudit(db, {event: 'external_revision_drift', entityType: 'operation', entityId: operationId, data: {targetId, expectedRevision, observedRevision}});
+      });
+      return updated;
     },
   };
 }

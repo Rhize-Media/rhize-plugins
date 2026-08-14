@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
 
-import {openDatabase, planRepository, taskRepository} from '../../service/src/storage/database.mjs';
+import {openDatabase, operationRepository, planRepository, taskRepository} from '../../service/src/storage/database.mjs';
+import {operationKey} from '../../service/src/domain.mjs';
 
 const task = {
   schemaVersion: 1, id: 'task-1', sourceType: 'jira', lane: 'owned', title: 'Persist state',
@@ -31,6 +33,33 @@ test('reopening applies each migration once and rejects newer databases', async 
   });
 });
 
+test('migration locking rechecks the ledger under one write lock', async () => {
+  await withDatabase(file => {
+    let contested = false;
+    const first = openDatabase(file, {beforeMigrations() {
+      assert.throws(() => openDatabase(file), /locked|busy/i);
+      contested = true;
+    }});
+    first.close();
+    const second = openDatabase(file);
+    assert.equal(contested, true);
+    assert.deepEqual(second.prepare('select version from schema_migrations').all(), [{version: 1}]);
+    second.close();
+  });
+});
+
+test('database constructor injection is used for hermetic tests', async () => {
+  await withDatabase(file => {
+    let constructions = 0;
+    class InjectedDatabase extends DatabaseSync {
+      constructor(path) { super(path); constructions += 1; }
+    }
+    const db = openDatabase(file, {Database: InjectedDatabase});
+    assert.equal(constructions, 1);
+    db.close();
+  });
+});
+
 test('repositories round-trip validated objects, protect source mappings, and audit each write', async () => {
   await withDatabase(file => {
     const db = openDatabase(file);
@@ -45,6 +74,21 @@ test('repositories round-trip validated objects, protect source mappings, and au
     assert.equal(db.prepare('select count(*) as count from audit_log').get().count, 2);
     db.prepare("insert into preferences (key, value_json, updated_at) values ('broken', '{', '2026-08-14T09:00:00Z')").run();
     assert.throws(() => tasks.preference('broken'), /invalid JSON/);
+    db.close();
+  });
+});
+
+test('operation state round-trips exactly and approval transitions are authoritative', async () => {
+  await withDatabase(file => {
+    const db = openDatabase(file);
+    planRepository(db).save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-14', generatedAt: '2026-08-14T09:00:00Z', status: 'preview', blocks: []});
+    const payload = {listId: 'tasks', title: 'Persist state', dueAt: null, notes: '', externalId: 'reminder-1'};
+    const operation = {schemaVersion: 1, id: 'operation-1', planRevision: 1, kind: 'reminder_upsert', targetSystem: 'reminders', targetId: 'task-1', payload, idempotencyKey: operationKey(1, 'reminder_upsert', 'task-1', payload), approval: 'required', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'};
+    const operations = operationRepository(db);
+    assert.deepEqual(operations.save(operation), operation);
+    assert.deepEqual(operations.setApproval(operation.id, 'approved', 'test-user'), {...operation, approval: 'approved'});
+    assert.throws(() => operations.setApproval(operation.id, 'required', 'test-user'), TypeError);
+    assert.equal(db.prepare('select count(*) as count from approvals where operation_id = ?').get(operation.id).count, 2);
     db.close();
   });
 });
