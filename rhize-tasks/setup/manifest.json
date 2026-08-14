@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "plugin": "rhize-tasks",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "Node.js 22+",
+      "kind": "runtime",
+      "purpose": "Runs the local-first Rhize Tasks planning service and its validation commands.",
+      "required": true,
+      "degradedBehavior": "Rhize Tasks cannot start, validate, or run its local planning routines.",
+      "replacement": {
+        "suggestion": "Install a supported Node.js 22 or newer runtime.",
+        "warning": "Older Node versions do not provide the supported runtime floor for this plugin."
+      }
+    },
+    {
+      "name": "macOS 14+",
+      "kind": "platform",
+      "purpose": "Provides Keychain and EventKit support for local credentials and Apple Reminders.",
+      "required": true,
+      "degradedBehavior": "Rhize Tasks cannot provide its supported local Keychain and Apple Reminders integration.",
+      "replacement": {
+        "suggestion": "Use a Mac running macOS 14 or newer.",
+        "warning": "The plugin has no supported replacement for the macOS Keychain and EventKit integration."
+      }
+    }
+  ]
+}

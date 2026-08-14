@@ -5,9 +5,9 @@ model: haiku
 # /rhize-ops:bump-version
 
 Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump_version.py`,
-which auto-discovers plugins (any `*/.claude-plugin/plugin.json`) and keeps each plugin's version,
-the marketplace manifest's per-plugin entry + top-level version, and the CHANGELOG in sync. It
-**never pushes**.
+which auto-discovers plugins (any `*/.claude-plugin/plugin.json`) and keeps each plugin's Claude
+manifest, optional Codex manifest, marketplace per-plugin entry + top-level version, and the
+CHANGELOG in sync. It **never pushes**.
 
 ## Usage
 
