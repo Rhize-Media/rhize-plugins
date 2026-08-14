@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProfileV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "identity", "jira", "calendar", "reminders", "workingIntervals", "breaks", "capacity", "planning", "routines", "approval", "privacy"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "identity": {"$ref": "#/$defs/identity"},
+    "jira": {"$ref": "#/$defs/jira"},
+    "calendar": {"$ref": "#/$defs/calendar"},
+    "reminders": {"$ref": "#/$defs/reminders"},
+    "workingIntervals": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/interval"}},
+    "breaks": {"type": "array", "items": {"$ref": "#/$defs/interval"}},
+    "capacity": {"type": "object", "additionalProperties": false, "required": ["bufferPercent", "maxDailyMinutes"], "properties": {"bufferPercent": {"type": "number", "minimum": 0, "maximum": 80}, "maxDailyMinutes": {"type": "integer", "minimum": 1, "maximum": 1440}}},
+    "planning": {"type": "object", "additionalProperties": false, "required": ["focusBlockMinutes", "minimumBlockMinutes", "allowSplitting", "meetingBufferMinutes", "freezeWindowMinutes"], "properties": {"focusBlockMinutes": {"type": "integer", "minimum": 15, "maximum": 240}, "minimumBlockMinutes": {"type": "integer", "minimum": 15, "maximum": 120}, "allowSplitting": {"type": "boolean"}, "meetingBufferMinutes": {"type": "integer", "minimum": 0, "maximum": 120}, "freezeWindowMinutes": {"type": "integer", "minimum": 0, "maximum": 240}}},
+    "routines": {"type": "object", "additionalProperties": false, "required": ["replanningMode", "reconciliationMode", "morningTime", "middayTime", "eveningTime"], "properties": {"replanningMode": {"enum": ["bounded", "stable", "continuous"]}, "reconciliationMode": {"enum": ["prompted", "automatic", "local_only"]}, "morningTime": {"$ref": "#/$defs/time"}, "middayTime": {"$ref": "#/$defs/time"}, "eveningTime": {"$ref": "#/$defs/time"}}},
+    "approval": {"type": "object", "additionalProperties": false, "required": ["setupComplete", "firstPlanApproved", "automationPaused"], "properties": {"setupComplete": {"type": "boolean"}, "firstPlanApproved": {"type": "boolean"}, "automationPaused": {"type": "boolean"}}},
+    "privacy": {"type": "object", "additionalProperties": false, "required": ["showOutsideTitles"], "properties": {"showOutsideTitles": {"type": "boolean"}}}
+  },
+  "$defs": {
+    "nonempty": {"type": "string", "minLength": 1},
+    "time": {"type": "string", "pattern": "^(?:[01][0-9]|2[0-3]):[0-5][0-9]$"},
+    "httpsUrl": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "identifierArray": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/nonempty"}},
+    "interval": {"type": "object", "additionalProperties": false, "required": ["dayOfWeek", "start", "end"], "properties": {"dayOfWeek": {"type": "integer", "minimum": 1, "maximum": 7}, "start": {"$ref": "#/$defs/time"}, "end": {"$ref": "#/$defs/time"}}},
+    "identity": {"type": "object", "additionalProperties": false, "required": ["name", "timezone", "locale"], "properties": {"name": {"$ref": "#/$defs/nonempty"}, "timezone": {"$ref": "#/$defs/nonempty"}, "locale": {"$ref": "#/$defs/nonempty"}}},
+    "jira": {"type": "object", "additionalProperties": false, "required": ["accountId", "baseUrl", "projects", "issueTypes", "excludedIssueTypes", "projectImportance", "opportunityUrgencyThreshold", "maxDailySuggestions", "competencies"], "properties": {"accountId": {"$ref": "#/$defs/nonempty"}, "baseUrl": {"$ref": "#/$defs/httpsUrl"}, "projects": {"$ref": "#/$defs/identifierArray"}, "issueTypes": {"$ref": "#/$defs/identifierArray"}, "excludedIssueTypes": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/nonempty"}}, "projectImportance": {"type": "object", "additionalProperties": false, "patternProperties": {"^.+$": {"type": "integer", "minimum": 1, "maximum": 5}}}, "opportunityUrgencyThreshold": {"enum": ["urgent", "high", "normal", "low"]}, "maxDailySuggestions": {"type": "integer", "minimum": 0, "maximum": 20}, "competencies": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "confidence", "excluded"], "properties": {"name": {"$ref": "#/$defs/nonempty"}, "confidence": {"type": "number", "minimum": 0, "maximum": 1}, "excluded": {"type": "boolean"}}}}}},
+    "calendar": {"type": "object", "additionalProperties": false, "required": ["readCalendarIds", "focusCalendarId", "focusCalendarName", "redactOutsideTitles"], "properties": {"readCalendarIds": {"$ref": "#/$defs/identifierArray"}, "focusCalendarId": {"$ref": "#/$defs/nonempty"}, "focusCalendarName": {"const": "Rhize Focus"}, "redactOutsideTitles": {"type": "boolean"}}},
+    "reminders": {"type": "object", "additionalProperties": false, "required": ["awarenessLists", "tasksListId", "tasksListName"], "properties": {"awarenessLists": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["id", "protectedDurationMinutes", "showTitles"], "properties": {"id": {"$ref": "#/$defs/nonempty"}, "protectedDurationMinutes": {"type": "integer", "minimum": 0, "maximum": 480}, "showTitles": {"type": "boolean"}}}}, "tasksListId": {"$ref": "#/$defs/nonempty"}, "tasksListName": {"const": "Rhize Tasks"}}}
+  }
+}
