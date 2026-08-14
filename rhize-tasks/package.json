@@ -8,7 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "install:local": "node installer/install.mjs",
     "test": "node --test",
+    "uninstall:local": "node installer/uninstall.mjs",
     "validate": "node --input-type=module --eval \"for (const path of ['package.json', 'setup/manifest.json']) JSON.parse(await (await import('node:fs/promises')).readFile(path, 'utf8'))\""
   }
 }
