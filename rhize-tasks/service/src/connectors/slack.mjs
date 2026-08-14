@@ -1,0 +1,9 @@
+import {parseDelegation} from './delegation-parser.mjs';
+import {normalizeError, unsupported} from './http.mjs';
+
+export function createSlackConnector({workspaceId, channelId, senderIds, credentials, transport} = {}) {
+  if (!workspaceId || !channelId || !Array.isArray(senderIds) || !credentials?.get || typeof transport !== 'function') throw new TypeError('invalid Slack connector configuration');
+  async function request(method, params = {}) { const token = await credentials.get('media.rhize.tasks.slack', 'bot-token'); try { return await transport({url: `https://slack.com/api/${method}?${new URLSearchParams(params)}`, method: 'GET', headers: {authorization: `Bearer ${token}`}}); } catch (error) { throw normalizeError(error); } }
+  async function history() { const all = []; let cursor = ''; do { const body = (await request('conversations.history', {channel: channelId, cursor, limit: '100'})).body; all.push(...(body.messages ?? [])); cursor = body.response_metadata?.next_cursor ?? ''; } while (cursor); return all; }
+  return { async health() { const body = (await request('auth.test')).body; if (body.team_id !== workspaceId) throw normalizeError({kind: 'authorization'}); return {ok: true}; }, async discover() { return {workspaceId, channelId, senderIds: [...senderIds]}; }, async readSnapshot() { const seen = new Set(); const values = []; for (const parent of await history()) { if (!parent.thread_ts) continue; const replies = (await request('conversations.replies', {channel: channelId, ts: parent.ts, limit: '100'})).body.messages ?? []; for (const reply of replies.slice(1)) { const senderId = reply.bot_id ?? reply.app_id ?? reply.user; try { const item = parseDelegation({workspaceId, channelId, senderId, text: reply.text}, {workspaceId, channelId, senderIds}); if (!seen.has(item.ingestionKey)) { seen.add(item.ingestionKey); values.push(item); } } catch {} } } return values; }, applyOperation: unsupported, findByExternalId: unsupported };
+}
