@@ -1,11 +1,11 @@
-import {access, chmod, copyFile, cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile} from 'node:fs/promises';
+import {access, chmod, copyFile, cp, lstat, mkdir, open, readFile, readdir, rename, rm} from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
 import {createServer} from 'node:net';
-import {homedir} from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {bootoutIfLoaded} from './launchctl.mjs';
+import {bootoutIfLoaded, getLaunchAgentState} from './launchctl.mjs';
+import {exactInstallPaths, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
 
 const installerDir = path.dirname(fileURLToPath(import.meta.url));
@@ -13,29 +13,7 @@ const pluginRoot = path.dirname(installerDir);
 const label = 'media.rhize.tasks';
 const runtimeEntries = ['package.json', 'service', 'schemas', 'setup', 'installer', 'dashboard', 'skills', 'commands'];
 
-export function defaultInstallPaths(home = homedir()) {
-  const supportDir = path.join(home, 'Library', 'Application Support', 'Rhize Tasks');
-  return {
-    supportDir,
-    runtimeDir: path.join(supportDir, 'runtime'),
-    launchAgentPath: path.join(home, 'Library', 'LaunchAgents', `${label}.plist`),
-    logDir: path.join(supportDir, 'logs'),
-    installationManifestPath: path.join(supportDir, 'installation.json'),
-  };
-}
-
-function assertInstallPaths(paths) {
-  for (const key of ['supportDir', 'runtimeDir', 'launchAgentPath', 'logDir', 'installationManifestPath']) {
-    if (typeof paths?.[key] !== 'string' || paths[key].length === 0) throw new Error(`invalid_install_path_${key}`);
-  }
-  const support = path.resolve(paths.supportDir);
-  const runtime = path.resolve(paths.runtimeDir);
-  const logs = path.resolve(paths.logDir);
-  if (path.basename(support) !== 'Rhize Tasks') throw new Error('unsafe_support_directory');
-  if (runtime !== path.join(support, 'runtime') || logs !== path.join(support, 'logs')) throw new Error('unsafe_install_subdirectory');
-  if (path.resolve(paths.installationManifestPath) !== path.join(support, 'installation.json')) throw new Error('unsafe_installation_manifest');
-  if (path.basename(paths.launchAgentPath) !== `${label}.plist`) throw new Error('unsafe_launch_agent_path');
-}
+export const defaultInstallPaths = exactInstallPaths;
 
 function executableCheck(file, accessImpl = access) {
   return accessImpl(file, fsConstants.X_OK);
@@ -137,7 +115,7 @@ async function hardenTree(root, executableNames = new Set()) {
   await chmod(root, executableNames.has(path.basename(root)) ? 0o700 : 0o600);
 }
 
-async function atomicReplaceDirectory(stagePath, targetPath) {
+async function placeRuntimeCandidate(stagePath, targetPath) {
   const backupPath = `${targetPath}.previous-${process.pid}`;
   let hadTarget = false;
   try {
@@ -154,27 +132,85 @@ async function atomicReplaceDirectory(stagePath, targetPath) {
     if (hadTarget) await rename(backupPath, targetPath);
     throw error;
   }
-  await rm(backupPath, {recursive: true, force: true});
+  return {backupPath, hadTarget, targetPath};
 }
 
-async function writeAtomicJson(target, value) {
+async function rollbackRuntimeCandidate(transaction) {
+  await rm(transaction.targetPath, {recursive: true, force: true});
+  if (transaction.hadTarget) await rename(transaction.backupPath, transaction.targetPath);
+}
+
+async function finalizeRuntimeCandidate(transaction) {
+  await rm(transaction.backupPath, {recursive: true, force: true});
+}
+
+export async function atomicWriteFile(target, value, mode = 0o600) {
   const temporary = `${target}.installing-${process.pid}`;
-  await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {encoding: 'utf8', mode: 0o600});
-  await chmod(temporary, 0o600);
-  await rename(temporary, target);
+  let handle;
+  try {
+    handle = await open(temporary, 'wx', mode);
+    await handle.writeFile(value);
+    await handle.sync();
+    await handle.close();
+    handle = undefined;
+    await chmod(temporary, mode);
+    await rename(temporary, target);
+    const directory = await open(path.dirname(target), 'r');
+    try {
+      await directory.sync();
+    } finally {
+      await directory.close();
+    }
+  } catch (error) {
+    await handle?.close().catch(() => {});
+    await rm(temporary, {force: true});
+    throw error;
+  }
+}
+
+async function snapshotFile(target) {
+  try {
+    const metadata = await lstat(target);
+    if (metadata.isSymbolicLink()) throw new Error(`symlink_install_path:${target}`);
+    if (!metadata.isFile()) throw new Error(`non_file_install_path:${target}`);
+    return {exists: true, bytes: await readFile(target), mode: metadata.mode & 0o777};
+  } catch (error) {
+    if (error.code === 'ENOENT') return {exists: false};
+    throw error;
+  }
+}
+
+async function restoreFile(target, snapshot, writeMetadata) {
+  if (!snapshot.exists) {
+    await rm(target, {force: true});
+    return;
+  }
+  await writeMetadata(target, snapshot.bytes, snapshot.mode);
+}
+
+function activationError(activationState, cause, rollbackFailures = []) {
+  const error = new Error(rollbackFailures.length === 0 ? `local_activation_failed:${activationState}` : `local_activation_rollback_failed:${activationState}:${rollbackFailures.join(',')}`);
+  error.code = rollbackFailures.length === 0 ? 'local_activation_failed' : 'local_activation_rollback_failed';
+  error.activationState = activationState;
+  error.rollbackState = rollbackFailures.length === 0 ? 'restored' : rollbackFailures.join(',');
+  error.cause = cause;
+  return error;
 }
 
 export async function install({
   paths = defaultInstallPaths(),
+  pathPolicy = productionPathPolicy(),
   port = 43179,
   run = runProcess,
   uid = process.getuid?.(),
   nodePath = process.execPath,
   sourceRoot = pluginRoot,
   validate = validatePrerequisites,
+  writeMetadata = atomicWriteFile,
 } = {}) {
-  assertInstallPaths(paths);
+  await verifyInstallPaths(paths, pathPolicy);
   await validate({supportDir: paths.supportDir, port, run});
+  await verifyInstallPaths(paths, pathPolicy);
   const packageDocument = JSON.parse(await readFile(path.join(sourceRoot, 'package.json'), 'utf8'));
   if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(packageDocument.version ?? '')) throw new Error('invalid_runtime_version');
   const version = packageDocument.version;
@@ -186,10 +222,20 @@ export async function install({
   const versionsDir = path.join(paths.runtimeDir, 'versions');
   await mkdir(versionsDir, {recursive: true, mode: 0o700});
   await chmod(versionsDir, 0o700);
+  await mkdir(paths.logDir, {recursive: true, mode: 0o700});
+  await chmod(paths.logDir, 0o700);
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true, mode: 0o700});
+  await verifyInstallPaths(paths, pathPolicy);
+  const priorPlist = await snapshotFile(paths.launchAgentPath);
+  const priorManifest = await snapshotFile(paths.installationManifestPath);
+  const domain = `gui/${uid}`;
+  const priorAgent = await getLaunchAgentState({run, domain, label});
   const stagePath = path.join(paths.runtimeDir, `.installing-${process.pid}`);
   const runtimePath = path.join(versionsDir, version);
+  await verifyRuntimePath(paths, runtimePath, pathPolicy);
   await rm(stagePath, {recursive: true, force: true});
 
+  let runtimeTransaction;
   try {
     await mkdir(stagePath, {recursive: true, mode: 0o700});
     for (const entry of runtimeEntries) await copyIfPresent(path.join(sourceRoot, entry), path.join(stagePath, entry));
@@ -205,7 +251,7 @@ export async function install({
     await chmod(path.join(appPathInStage, 'Contents', 'MacOS', 'RhizeRemindersHelper'), 0o700);
     await hardenTree(stagePath, new Set(['RhizeRemindersHelper']));
     await runChecked('/usr/bin/codesign', ['--force', '--sign', '-', appPathInStage], {timeoutMs: 30_000}, run);
-    await atomicReplaceDirectory(stagePath, runtimePath);
+    runtimeTransaction = await placeRuntimeCandidate(stagePath, runtimePath);
   } catch (error) {
     await rm(stagePath, {recursive: true, force: true});
     throw error;
@@ -213,23 +259,40 @@ export async function install({
 
   const cliPath = path.join(runtimePath, 'service', 'bin', 'rhize-tasks.mjs');
   const appPath = path.join(runtimePath, 'native', 'RhizeRemindersHelper.app');
-  await mkdir(paths.logDir, {recursive: true, mode: 0o700});
-  await chmod(paths.logDir, 0o700);
-  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true, mode: 0o700});
   const plist = await renderLaunchAgent({
     nodePath,
     cliPath,
     stdoutPath: path.join(paths.logDir, 'routine.log'),
     stderrPath: path.join(paths.logDir, 'routine-error.log'),
   });
-  await writeFile(paths.launchAgentPath, plist, {encoding: 'utf8', mode: 0o600});
-  await chmod(paths.launchAgentPath, 0o600);
-  await writeAtomicJson(paths.installationManifestPath, {schemaVersion: 1, version, runtimePath, cliPath, appPath, label});
-
-  const domain = `gui/${uid}`;
-  await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
-  await runChecked('/bin/launchctl', ['bootstrap', domain, paths.launchAgentPath], {timeoutMs: 15_000}, run);
-  return {appPath, launchAgentPath: paths.launchAgentPath, runtimePath, version, label};
+  const manifest = `${JSON.stringify({schemaVersion: 1, version, runtimePath, cliPath, appPath, label}, null, 2)}\n`;
+  let activationState = 'bootout_failed';
+  try {
+    if (priorAgent.loaded) await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
+    activationState = 'metadata_write_failed';
+    await writeMetadata(paths.launchAgentPath, plist, 0o600);
+    await writeMetadata(paths.installationManifestPath, manifest, 0o600);
+    await verifyInstallPaths(paths, pathPolicy);
+    activationState = 'bootstrap_failed';
+    await runChecked('/bin/launchctl', ['bootstrap', domain, paths.launchAgentPath], {timeoutMs: 15_000}, run);
+    activationState = 'activation_verification_failed';
+    if (!(await getLaunchAgentState({run, domain, label})).loaded) throw new Error('new_agent_not_loaded');
+    await finalizeRuntimeCandidate(runtimeTransaction);
+    return {appPath, launchAgentPath: paths.launchAgentPath, runtimePath, version, label};
+  } catch (activationFailure) {
+    const rollbackFailures = [];
+    try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata); } catch { rollbackFailures.push('plist_restore_failed'); }
+    try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata); } catch { rollbackFailures.push('manifest_restore_failed'); }
+    try { await rollbackRuntimeCandidate(runtimeTransaction); } catch { rollbackFailures.push('runtime_restore_failed'); }
+    try {
+      const current = await getLaunchAgentState({run, domain, label});
+      if (priorAgent.loaded && !current.loaded) await runChecked('/bin/launchctl', ['bootstrap', domain, paths.launchAgentPath], {timeoutMs: 15_000}, run);
+      if (!priorAgent.loaded && current.loaded) await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
+    } catch {
+      rollbackFailures.push('agent_restore_failed');
+    }
+    throw activationError(activationState, activationFailure, rollbackFailures);
+  }
 }
 
 function parseProbeResponse(result, expectedID) {

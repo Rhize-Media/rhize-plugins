@@ -1,12 +1,40 @@
 import assert from 'node:assert/strict';
-import {access, mkdir, mkdtemp, readFile, stat, writeFile} from 'node:fs/promises';
+import {access, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import {runProcess} from '../../service/src/connectors/process-runner.mjs';
 import {createRemindersConnector} from '../../service/src/connectors/reminders.mjs';
-import {checkLoopbackPort, install, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
+import {atomicWriteFile, checkLoopbackPort, install, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
 import {parseUninstallChoice, uninstall} from '../../installer/uninstall.mjs';
+import {createTestPathPolicy, exactInstallPaths} from '../../installer/safe-paths.mjs';
+
+async function seedInstallSource(home, version = '0.1.0') {
+  const sourceRoot = path.join(home, 'plugin');
+  const packageRoot = path.join(sourceRoot, 'native', 'reminders-helper');
+  await mkdir(path.join(packageRoot, '.build', 'release'), {recursive: true});
+  await mkdir(path.join(packageRoot, 'Resources'), {recursive: true});
+  await mkdir(path.join(sourceRoot, 'service', 'bin'), {recursive: true});
+  await mkdir(path.join(sourceRoot, 'schemas'), {recursive: true});
+  await writeFile(path.join(packageRoot, '.build', 'release', 'RhizeRemindersHelper'), '#!/bin/sh\n');
+  await writeFile(path.join(packageRoot, 'Resources', 'Info.plist'), '<plist version="1.0"><dict/></plist>');
+  await writeFile(path.join(sourceRoot, 'package.json'), `${JSON.stringify({name: 'rhize-tasks', version})}\n`);
+  await writeFile(path.join(sourceRoot, 'service', 'bin', 'rhize-tasks.mjs'), 'process.exit(0);\n');
+  await writeFile(path.join(sourceRoot, 'schemas', 'task.schema.json'), '{}\n');
+  return {sourceRoot, packageRoot};
+}
+
+function fakeInstallerRun({loaded = false, bootstrapCode = 0, bootoutCode = 0, calls = []} = {}) {
+  let isLoaded = loaded;
+  return async (file, args) => {
+    calls.push([file, args]);
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    if (args[0] === 'print') return isLoaded ? {code: 0, stdout: 'loaded'} : {code: 3, stderr: 'Could not find service'};
+    if (args[0] === 'bootout') { if (bootoutCode === 0) isLoaded = false; return bootoutCode === 0 ? {code: 0, stdout: ''} : {code: bootoutCode, stderr: 'Input/output error'}; }
+    if (args[0] === 'bootstrap') { if (bootstrapCode === 0) isLoaded = true; return {code: bootstrapCode, stderr: bootstrapCode === 0 ? '' : 'Bootstrap failed'}; }
+    return {code: 0, stdout: ''};
+  };
+}
 
 test('process runner writes one request, captures one response, and enforces timeout', async () => {
   const echo = await runProcess(process.execPath, ['--input-type=module', '--eval', 'process.stdin.pipe(process.stdout)'], {input: '{"command":"lists"}\n', timeoutMs: 2_000});
@@ -130,30 +158,13 @@ test('helper app metadata has a stable identity and Reminders privacy purpose', 
 
 test('installer constructs and signs the app then bootstraps one user agent', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-install-'));
-  const sourceRoot = path.join(root, 'plugin');
-  const packageRoot = path.join(sourceRoot, 'native', 'reminders-helper');
-  await mkdir(path.join(packageRoot, '.build', 'release'), {recursive: true});
-  await mkdir(path.join(packageRoot, 'Resources'), {recursive: true});
-  await mkdir(path.join(sourceRoot, 'service', 'bin'), {recursive: true});
-  await mkdir(path.join(sourceRoot, 'schemas'), {recursive: true});
-  await writeFile(path.join(packageRoot, '.build', 'release', 'RhizeRemindersHelper'), '#!/bin/sh\n');
-  await writeFile(path.join(packageRoot, 'Resources', 'Info.plist'), '<plist version="1.0"><dict/></plist>');
-  await writeFile(path.join(sourceRoot, 'package.json'), '{"name":"rhize-tasks","version":"0.1.0"}\n');
-  await writeFile(path.join(sourceRoot, 'service', 'bin', 'rhize-tasks.mjs'), 'process.exit(0);\n');
-  await writeFile(path.join(sourceRoot, 'schemas', 'task.schema.json'), '{}\n');
+  const {sourceRoot} = await seedInstallSource(root);
   await writeFile(path.join(sourceRoot, 'service', '.env'), 'SECRET=do-not-copy\n');
   await writeFile(path.join(sourceRoot, 'service', 'history.sqlite'), 'do-not-copy');
-  const supportDir = path.join(root, 'Library', 'Application Support', 'Rhize Tasks');
-  const paths = {
-    supportDir,
-    runtimeDir: path.join(supportDir, 'runtime'),
-    launchAgentPath: path.join(root, 'Library', 'LaunchAgents', 'media.rhize.tasks.plist'),
-    logDir: path.join(supportDir, 'logs'),
-    installationManifestPath: path.join(supportDir, 'installation.json'),
-  };
+  const paths = exactInstallPaths(root);
   const calls = [];
-  const run = async (file, args) => { calls.push([file, args]); return {code: 0, stdout: ''}; };
-  const result = await install({paths, sourceRoot, run, uid: 501, nodePath: '/opt/node', validate: async () => ({})});
+  const run = fakeInstallerRun({calls});
+  const result = await install({paths, pathPolicy: createTestPathPolicy(root), sourceRoot, run, uid: 501, nodePath: '/opt/node', validate: async () => ({})});
   await access(path.join(result.appPath, 'Contents', 'MacOS', 'RhizeRemindersHelper'));
   await access(path.join(result.runtimePath, 'service', 'bin', 'rhize-tasks.mjs'));
   await access(path.join(result.runtimePath, 'schemas', 'task.schema.json'));
@@ -175,13 +186,125 @@ test('installer constructs and signs the app then bootstraps one user agent', as
 });
 
 test('installer rejects incomplete paths before any command or filesystem write', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-incomplete-paths-'));
+  const paths = exactInstallPaths(home);
+  delete paths.runtimeDir;
   let calls = 0;
   await assert.rejects(install({
-    paths: {supportDir: '/tmp/Rhize Tasks'},
+    paths,
+    pathPolicy: createTestPathPolicy(home),
     run: async () => { calls += 1; return {code: 0}; },
     validate: async () => { calls += 1; },
-  }), /invalid_install_path_runtimeDir/);
+  }), /unsafe_install_path_runtimeDir/);
   assert.equal(calls, 0);
+});
+
+test('initial install bootstrap failure rolls back all introduced metadata and runtime', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-bootstrap-fail-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  const run = fakeInstallerRun({bootstrapCode: 5});
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.code === 'local_activation_failed' && error.activationState === 'bootstrap_failed');
+  await assert.rejects(access(paths.launchAgentPath));
+  await assert.rejects(access(paths.installationManifestPath));
+  await assert.rejects(access(path.join(paths.runtimeDir, 'versions', '0.1.0')));
+});
+
+test('upgrade bootstrap failure restores prior bytes, modes, runtime, and loaded service', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-upgrade-fail-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  const priorRuntime = path.join(paths.runtimeDir, 'versions', '0.1.0');
+  const priorPlist = Buffer.from('prior plist\n');
+  const priorManifest = Buffer.from(`${JSON.stringify({schemaVersion: 1, runtimePath: priorRuntime, cliPath: path.join(priorRuntime, 'service', 'bin', 'rhize-tasks.mjs')})}\n`);
+  await mkdir(path.join(priorRuntime, 'service', 'bin'), {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
+  await writeFile(path.join(priorRuntime, 'old-runtime-marker'), 'old');
+  await writeFile(paths.launchAgentPath, priorPlist, {mode: 0o640});
+  await writeFile(paths.installationManifestPath, priorManifest, {mode: 0o640});
+  const calls = [];
+  let loaded = true;
+  let bootstrapCalls = 0;
+  const run = async (file, args) => {
+    calls.push([file, args]);
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    if (args[0] === 'print') return loaded ? {code: 0, stdout: 'loaded'} : {code: 3, stderr: 'Could not find service'};
+    if (args[0] === 'bootout') { loaded = false; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootstrap') { bootstrapCalls += 1; if (bootstrapCalls === 1) return {code: 5, stderr: 'Bootstrap failed'}; loaded = true; return {code: 0, stdout: ''}; }
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.code === 'local_activation_failed');
+  assert.deepEqual(await readFile(paths.launchAgentPath), priorPlist);
+  assert.deepEqual(await readFile(paths.installationManifestPath), priorManifest);
+  assert.equal((await stat(paths.launchAgentPath)).mode & 0o777, 0o640);
+  assert.equal((await stat(paths.installationManifestPath)).mode & 0o777, 0o640);
+  assert.equal(await readFile(path.join(priorRuntime, 'old-runtime-marker'), 'utf8'), 'old');
+  assert.equal(bootstrapCalls, 2);
+  assert.equal(loaded, true);
+});
+
+test('bootout failure leaves prior metadata and runtime untouched', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-bootout-transaction-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  const priorRuntime = path.join(paths.runtimeDir, 'versions', '0.1.0');
+  await mkdir(path.join(priorRuntime, 'service'), {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
+  await writeFile(path.join(priorRuntime, 'old'), 'old');
+  await writeFile(paths.launchAgentPath, 'old plist');
+  await writeFile(paths.installationManifestPath, 'old manifest');
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({loaded: true, bootoutCode: 5}), uid: 501, validate: async () => ({})}), error => error.activationState === 'bootout_failed');
+  assert.equal(await readFile(paths.launchAgentPath, 'utf8'), 'old plist');
+  assert.equal(await readFile(paths.installationManifestPath, 'utf8'), 'old manifest');
+  assert.equal(await readFile(path.join(priorRuntime, 'old'), 'utf8'), 'old');
+});
+
+test('manifest atomic-write failure restores plist and removes new runtime', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-manifest-fail-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  let writes = 0;
+  const writeMetadata = async (...args) => {
+    writes += 1;
+    if (writes === 2) throw new Error('injected_manifest_rename_failure');
+    return atomicWriteFile(...args);
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun(), uid: 501, validate: async () => ({}), writeMetadata}), error => error.activationState === 'metadata_write_failed');
+  await assert.rejects(access(paths.launchAgentPath));
+  await assert.rejects(access(paths.installationManifestPath));
+  await assert.rejects(access(path.join(paths.runtimeDir, 'versions', '0.1.0')));
+});
+
+test('installer rejects symlinked trusted ancestors before running commands', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-symlink-install-'));
+  const outside = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-outside-'));
+  await mkdir(path.join(home, 'Library'), {recursive: true});
+  await symlink(outside, path.join(home, 'Library', 'Application Support'));
+  const paths = exactInstallPaths(home);
+  let calls = 0;
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), run: async () => { calls += 1; return {code: 0}; }, validate: async () => { calls += 1; }}), /symlink/);
+  assert.equal(calls, 0);
+});
+
+test('uninstall refuses symlinked runtime and plist targets without removing their targets', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-symlink-uninstall-'));
+  const outside = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-outside-runtime-'));
+  const paths = exactInstallPaths(home);
+  await mkdir(paths.supportDir, {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
+  await writeFile(path.join(outside, 'keep'), 'keep');
+  await symlink(outside, paths.runtimeDir);
+  await writeFile(paths.launchAgentPath, 'plist');
+  await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(home), run: async () => ({code: 0})}), /symlink/);
+  assert.equal(await readFile(path.join(outside, 'keep'), 'utf8'), 'keep');
+  await rm(paths.runtimeDir);
+  await mkdir(paths.runtimeDir);
+  const outsidePlist = path.join(outside, 'plist');
+  await writeFile(outsidePlist, 'keep plist');
+  await rm(paths.launchAgentPath);
+  await symlink(outsidePlist, paths.launchAgentPath);
+  await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(home), run: async () => ({code: 0})}), /symlink/);
+  assert.equal(await readFile(outsidePlist, 'utf8'), 'keep plist');
 });
 
 test('uninstall requires explicit data and item retention choices', () => {
@@ -194,55 +317,52 @@ test('uninstall requires explicit data and item retention choices', () => {
 
 test('uninstall retains data or deletes it only after the explicit choice', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-'));
-  const supportDir = path.join(root, 'Rhize Tasks');
-  const paths = {
-    supportDir,
-    runtimeDir: path.join(supportDir, 'runtime'),
-    launchAgentPath: path.join(root, 'media.rhize.tasks.plist'),
-    installationManifestPath: path.join(supportDir, 'installation.json'),
-  };
+  const paths = exactInstallPaths(root);
+  const supportDir = paths.supportDir;
   await mkdir(paths.runtimeDir, {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await writeFile(path.join(supportDir, 'history.sqlite'), 'history');
   await writeFile(paths.launchAgentPath, 'plist');
   const run = async () => ({code: 0, stdout: ''});
-  const retained = await uninstall({choices: {data: 'retain', items: 'retain'}, paths, run, uid: 501});
+  const retained = await uninstall({choices: {data: 'retain', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(root), run, uid: 501});
   assert.equal(retained.dataRetained, true);
   assert.equal(await readFile(path.join(supportDir, 'history.sqlite'), 'utf8'), 'history');
   await mkdir(paths.runtimeDir, {recursive: true});
-  const deleted = await uninstall({choices: {data: 'delete', items: 'retain'}, paths, run, uid: 501});
+  const deleted = await uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(root), run, uid: 501});
   assert.equal(deleted.dataRetained, false);
   await assert.rejects(access(supportDir));
 });
 
 test('uninstall aborts before any deletion on unrecognized launchctl failure', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-bootout-'));
-  const supportDir = path.join(root, 'Rhize Tasks');
-  const paths = {supportDir, runtimeDir: path.join(supportDir, 'runtime'), launchAgentPath: path.join(root, 'media.rhize.tasks.plist'), installationManifestPath: path.join(supportDir, 'installation.json')};
+  const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await writeFile(paths.launchAgentPath, 'plist');
-  await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, uid: 501, run: async () => ({code: 5, stderr: 'Input/output error'})}), /launchctl_bootout_failed/);
+  await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(root), uid: 501, run: async () => ({code: 5, stderr: 'Input/output error'})}), /launchctl_bootout_failed/);
   await access(paths.runtimeDir);
   await access(paths.launchAgentPath);
 });
 
 test('uninstall continues only for a clearly recognized not-loaded launchctl result', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-not-loaded-'));
-  const supportDir = path.join(root, 'Rhize Tasks');
-  const paths = {supportDir, runtimeDir: path.join(supportDir, 'runtime'), launchAgentPath: path.join(root, 'media.rhize.tasks.plist'), installationManifestPath: path.join(supportDir, 'installation.json')};
+  const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await writeFile(paths.launchAgentPath, 'plist');
-  const result = await uninstall({choices: {data: 'retain', items: 'retain'}, paths, uid: 501, run: async () => ({code: 3, stderr: 'Boot-out failed: 3: No such process'})});
+  const result = await uninstall({choices: {data: 'retain', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(root), uid: 501, run: async () => ({code: 3, stderr: 'Boot-out failed: 3: No such process'})});
   assert.equal(result.ok, true);
   await assert.rejects(access(paths.runtimeDir));
 });
 
 test('delete-items requires verified bounded installed CLI results before local deletion', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-items-'));
-  const supportDir = path.join(root, 'Rhize Tasks');
+  const paths = exactInstallPaths(root);
+  const supportDir = paths.supportDir;
   const runtimePath = path.join(supportDir, 'runtime', 'versions', '0.1.0');
   const cliPath = path.join(runtimePath, 'service', 'bin', 'rhize-tasks.mjs');
-  const paths = {supportDir, runtimeDir: path.join(supportDir, 'runtime'), launchAgentPath: path.join(root, 'media.rhize.tasks.plist'), installationManifestPath: path.join(supportDir, 'installation.json')};
   await mkdir(path.dirname(cliPath), {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await writeFile(cliPath, '');
   await writeFile(paths.launchAgentPath, 'plist');
   await writeFile(paths.installationManifestPath, `${JSON.stringify({schemaVersion: 1, runtimePath, cliPath})}\n`);
@@ -252,7 +372,7 @@ test('delete-items requires verified bounded installed CLI results before local 
     if (file === '/bin/launchctl') return {code: 0, stderr: ''};
     return {code: 0, stdout: '{"ok":true,"reminders":{"verified":true,"deleted":1},"calendar":{"verified":true,"deleted":2}}\n'};
   };
-  const result = await uninstall({choices: {data: 'retain', items: 'delete'}, paths, run, uid: 501, nodePath: '/opt/node'});
+  const result = await uninstall({choices: {data: 'retain', items: 'delete'}, paths, pathPolicy: createTestPathPolicy(root), run, uid: 501, nodePath: '/opt/node'});
   assert.equal(result.itemsRetained, false);
   const cleanup = calls.find(call => call.file === '/opt/node');
   assert.deepEqual(cleanup.args.slice(1), ['uninstall-items', '--json']);
@@ -262,7 +382,7 @@ test('delete-items requires verified bounded installed CLI results before local 
   await writeFile(paths.launchAgentPath, 'plist');
   await writeFile(paths.installationManifestPath, `${JSON.stringify({schemaVersion: 1, runtimePath, cliPath})}\n`);
   await assert.rejects(uninstall({
-    choices: {data: 'delete', items: 'delete'}, paths, uid: 501, nodePath: '/opt/node',
+    choices: {data: 'delete', items: 'delete'}, paths, pathPolicy: createTestPathPolicy(root), uid: 501, nodePath: '/opt/node',
     run: async file => file === '/bin/launchctl' ? {code: 0, stderr: ''} : {code: 0, stdout: '{"ok":true,"reminders":{"verified":true,"deleted":1}}\n'},
   }), /item_cleanup_unverified/);
   await access(paths.runtimeDir);
