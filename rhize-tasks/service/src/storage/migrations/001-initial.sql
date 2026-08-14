@@ -39,18 +39,15 @@ create table if not exists operations (
   idempotency_key text not null unique,
   approval text not null,
   retry_state text not null,
-  attempt_count integer not null default 0 check (attempt_count >= 0),
   data_json text not null,
   result_json text,
   updated_at text not null
 );
 
 create table if not exists approvals (
-  id integer primary key,
-  operation_id text not null references operations(id) on delete cascade,
+  operation_id text primary key references operations(id) on delete cascade,
   approval text not null,
-  actor text,
-  created_at text not null
+  updated_at text not null
 );
 
 create table if not exists audit_log (

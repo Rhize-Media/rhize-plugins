@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
@@ -26,8 +27,8 @@ test('reopening applies each migration once and rejects newer databases', async 
   await withDatabase(file => {
     openDatabase(file).close();
     const db = openDatabase(file);
-    assert.deepEqual(db.prepare('select version from schema_migrations').all(), [{version: 1}]);
-    db.prepare('insert into schema_migrations (version, applied_at) values (?, ?)').run(2, '2026-08-14T09:00:00Z');
+    assert.deepEqual(db.prepare('select version from schema_migrations').all(), [{version: 1}, {version: 2}]);
+    db.prepare('insert into schema_migrations (version, applied_at) values (?, ?)').run(3, '2026-08-14T09:00:00Z');
     db.close();
     assert.throws(() => openDatabase(file), /newer schema migration/);
   });
@@ -43,8 +44,38 @@ test('migration locking rechecks the ledger under one write lock', async () => {
     first.close();
     const second = openDatabase(file);
     assert.equal(contested, true);
-    assert.deepEqual(second.prepare('select version from schema_migrations').all(), [{version: 1}]);
+    assert.deepEqual(second.prepare('select version from schema_migrations').all(), [{version: 1}, {version: 2}]);
     second.close();
+  });
+});
+
+test('upgrades an exact v1 database without rewriting its stamped migration', async () => {
+  await withDatabase(file => {
+    const raw = new DatabaseSync(file);
+    raw.exec('pragma foreign_keys = on');
+    raw.exec('create table schema_migrations (version integer primary key, applied_at text not null)');
+    raw.exec(readFileSync(new URL('../../service/src/storage/migrations/001-initial.sql', import.meta.url), 'utf8'));
+    raw.prepare('insert into schema_migrations (version, applied_at) values (1, ?)').run('2026-08-14T09:00:00Z');
+    raw.prepare('insert into plans (revision, data_json, created_at) values (1, ?, ?)').run(JSON.stringify({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-14', generatedAt: '2026-08-14T09:00:00Z', status: 'preview', blocks: []}), '2026-08-14T09:00:00Z');
+    const payload = {listId: 'tasks', title: 'Persist state', dueAt: null, notes: '', externalId: 'reminder-1'};
+    const operation = {schemaVersion: 1, id: 'operation-v1', planRevision: 1, kind: 'reminder_upsert', targetSystem: 'reminders', targetId: 'task-1', payload, idempotencyKey: operationKey(1, 'reminder_upsert', 'task-1', payload), approval: 'required', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'};
+    raw.prepare('insert into operations (id, plan_revision, idempotency_key, approval, retry_state, data_json, result_json, updated_at) values (?, ?, ?, ?, ?, ?, null, ?)').run(operation.id, operation.planRevision, operation.idempotencyKey, operation.approval, operation.retryState, JSON.stringify(operation), '2026-08-14T09:00:00Z');
+    raw.prepare('insert into approvals (operation_id, approval, updated_at) values (?, ?, ?)').run(operation.id, operation.approval, '2026-08-14T09:00:00Z');
+    raw.close();
+
+    const db = openDatabase(file);
+    const operations = operationRepository(db);
+    assert.deepEqual(db.prepare('select version from schema_migrations order by version').all(), [{version: 1}, {version: 2}]);
+    assert.equal(db.prepare('select attempt_count from operations where id = ?').get(operation.id).attempt_count, 0);
+    assert.deepEqual(operations.get(operation.id), operation);
+    assert.equal(db.prepare('select count(*) as count from approvals where operation_id = ?').get(operation.id).count, 1);
+    operations.setApproval(operation.id, 'approved', 'migration-test');
+    assert.equal(db.prepare('select count(*) as count from approvals where operation_id = ?').get(operation.id).count, 2);
+    db.close();
+
+    const reopened = openDatabase(file);
+    assert.deepEqual(reopened.prepare('select version from schema_migrations order by version').all(), [{version: 1}, {version: 2}]);
+    reopened.close();
   });
 });
 

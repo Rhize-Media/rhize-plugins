@@ -7,6 +7,7 @@ import {defaultDatabasePath} from './paths.mjs';
 
 const migrations = [
   {version: 1, sql: readFileSync(new URL('./migrations/001-initial.sql', import.meta.url), 'utf8')},
+  {version: 2, sql: readFileSync(new URL('./migrations/002-operation-state.sql', import.meta.url), 'utf8')},
 ];
 
 function now() { return new Date().toISOString(); }
