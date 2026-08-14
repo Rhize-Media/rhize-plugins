@@ -6,7 +6,7 @@ import {classifyTask} from '../../service/src/planner/eligibility.mjs';
 import {estimateTask} from '../../service/src/planner/estimates.mjs';
 import {materializeWorkingIntervals, overlaps} from '../../service/src/planner/intervals.mjs';
 import {planDay} from '../../service/src/planner/planning.mjs';
-import {rankTasks} from '../../service/src/planner/priority.mjs';
+import {compareCodePoint, rankTasks} from '../../service/src/planner/priority.mjs';
 
 const now = '2026-08-17T08:00:00.000Z';
 const planningDate = '2026-08-17';
@@ -69,6 +69,55 @@ test('preserves buffer and protected intervals while splitting only inside block
   assert.ok(plan.blocks.every(block => protectedIntervals.every(interval => !overlaps(block, interval))));
   assert.ok(plan.blocks.every(block => block.minutes >= profile.planning.minimumBlockMinutes));
   assert.deepEqual(plan.protectedIntervals, protectedIntervals);
+});
+
+test('merges overlapping recurring work windows without double-counting or block collisions', () => {
+  const overlapping = {...profile, workingIntervals: [{dayOfWeek: 1, start: '09:00', end: '12:00'}, {dayOfWeek: 1, start: '10:00', end: '13:00'}], breaks: [], capacity: {bufferPercent: 0, maxDailyMinutes: 480}};
+  const plan = planDay({tasks: [task({remainingMinutes: 180})], protectedIntervals: [], profile: overlapping, planningDate, now, planRevision: 4});
+  assert.equal(plan.availableMinutes, 240);
+  assert.equal(plan.usedMinutes, 180);
+  assert.ok(plan.blocks.every((block, index) => plan.blocks.slice(index + 1).every(other => !overlaps(block, other))));
+});
+
+test('does not cross a sub-minute protected boundary', () => {
+  const limited = {...profile, workingIntervals: [{dayOfWeek: 1, start: '09:00', end: '11:00'}], breaks: [], capacity: {bufferPercent: 0, maxDailyMinutes: 480}};
+  const protectedIntervals = [{id: 'fractional', start: '2026-08-17T09:29:31.000Z', end: '2026-08-17T10:00:00.000Z', kind: 'fixed', sourceSystem: 'calendar', mutable: false}];
+  const plan = planDay({tasks: [task({remainingMinutes: 30})], protectedIntervals, profile: limited, planningDate, now, planRevision: 5});
+  assert.deepEqual(plan.blocks.map(block => [block.start, block.end]), [['2026-08-17T10:00:00.000Z', '2026-08-17T10:30:00.000Z']]);
+  assert.ok(plan.blocks.every(block => protectedIntervals.every(interval => !overlaps(block, interval))));
+});
+
+test('applies meeting buffer on both sides of fixed meetings only', () => {
+  const buffered = {...profile, workingIntervals: [{dayOfWeek: 1, start: '09:00', end: '12:00'}], breaks: [], capacity: {bufferPercent: 0, maxDailyMinutes: 480}, planning: {...profile.planning, meetingBufferMinutes: 15}};
+  const protectedIntervals = [{id: 'meeting', start: '2026-08-17T10:00:00.000Z', end: '2026-08-17T11:00:00.000Z', kind: 'fixed', sourceSystem: 'calendar', mutable: false}];
+  const plan = planDay({tasks: [task({remainingMinutes: 60})], protectedIntervals, profile: buffered, planningDate, now, planRevision: 6});
+  const bufferedMeeting = {start: '2026-08-17T09:45:00.000Z', end: '2026-08-17T11:15:00.000Z'};
+  assert.equal(plan.availableMinutes, 90);
+  assert.ok(plan.blocks.every(block => !overlaps(block, bufferedMeeting)));
+  assert.deepEqual(plan.protectedIntervals, protectedIntervals);
+});
+
+test('finds a feasible 70 plus 30 minute partition under focus block rules', () => {
+  const splitProfile = {...profile, workingIntervals: [{dayOfWeek: 1, start: '09:00', end: '11:00'}], breaks: [], capacity: {bufferPercent: 0, maxDailyMinutes: 480}};
+  const plan = planDay({tasks: [task({remainingMinutes: 100})], protectedIntervals: [], profile: splitProfile, planningDate, now, planRevision: 7});
+  assert.deepEqual(plan.blocks.map(block => block.minutes), [70, 30]);
+});
+
+test('rejects malformed protected intervals before copying them into a plan', () => {
+  const valid = {id: 'protected', start: '2026-08-17T10:00:00.000Z', end: '2026-08-17T11:00:00.000Z', kind: 'outside', sourceSystem: 'calendar', mutable: false};
+  assert.throws(() => planDay({tasks: [], protectedIntervals: [{...valid, title: 'private'}], profile, planningDate, now, planRevision: 8}), TypeError);
+  const {id, ...missing} = valid;
+  assert.throws(() => planDay({tasks: [], protectedIntervals: [missing], profile, planningDate, now, planRevision: 8}), TypeError);
+  assert.throws(() => planDay({tasks: [], protectedIntervals: [{...valid, mutable: true}], profile, planningDate, now, planRevision: 8}), TypeError);
+});
+
+test('uses code-point ordering without ambient locale comparison', () => {
+  const original = String.prototype.localeCompare;
+  String.prototype.localeCompare = () => { throw new Error('locale comparison must not run'); };
+  try {
+    assert.ok(compareCodePoint('a', 'ä') < 0);
+    assert.deepEqual(rankTasks([task({id: 'ä'}), task({id: 'a'})], profile, now).map(item => item.task.id), ['a', 'ä']);
+  } finally { String.prototype.localeCompare = original; }
 });
 
 test('does not schedule blocked, locked, provisional, reserved, or opportunities', () => {
