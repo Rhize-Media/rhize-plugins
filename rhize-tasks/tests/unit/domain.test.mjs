@@ -56,6 +56,7 @@ test('enforces task source cross-fields and JSON-only operation keys', () => {
   assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', {bad: undefined}), TypeError);
   const cyclic = {}; cyclic.self = cyclic;
   assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', cyclic), TypeError);
+  assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', new Array(2)), TypeError);
 });
 
 test('schema files are strict v1 JSON schemas', async () => {

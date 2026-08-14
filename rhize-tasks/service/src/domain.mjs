@@ -163,7 +163,16 @@ function stableJson(value, ancestors = new WeakSet()) {
   if (value === null || typeof value === 'boolean' || typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'number') { if (!Number.isFinite(value)) fail('payload', 'must contain only finite JSON values'); return JSON.stringify(value); }
   if (typeof value === 'object' && value !== null && ancestors.has(value)) fail('payload', 'must not contain cycles');
-  if (Array.isArray(value)) { ancestors.add(value); const result = `[${value.map(item => stableJson(item, ancestors)).join(',')}]`; ancestors.delete(value); return result; }
+  if (Array.isArray(value)) {
+    ancestors.add(value);
+    const items = [];
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.hasOwn(value, index)) fail('payload', 'must not contain sparse arrays');
+      items.push(stableJson(value[index], ancestors));
+    }
+    ancestors.delete(value);
+    return `[${items.join(',')}]`;
+  }
   if (!isObject(value)) fail('payload', 'must be JSON data');
   ancestors.add(value);
   const result = `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableJson(value[key], ancestors)}`).join(',')}}`;
