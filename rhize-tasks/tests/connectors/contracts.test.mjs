@@ -17,14 +17,14 @@ test('keychain uses fixed security arguments, stdin values, and supports revocat
 });
 
 test('connectors expose the complete common interface and block unsupported writes', async () => {
-  const transport = async request => request.url.includes('auth.test') ? response({team_id: 'T1'}) : response({messages: []});
+  const transport = async request => request.url.includes('auth.test') ? response({ok: true, team_id: 'T1'}) : response({ok: true, messages: []});
   const connectors = [createJiraConnector({baseUrl: 'https://jira.example', accountId: 'a', projectKeys: ['RHIZE'], issueTypes: ['Task'], credentials, transport: async () => response({})}), createGoogleCalendarConnector({readCalendarIds: ['read'], focusCalendarId: 'focus', credentials, transport: async () => response({items: []})}), createSlackConnector({workspaceId: 'T1', channelId: 'C1', senderIds: ['B1'], credentials, transport}), createRemindersConnector({helperPath: '/helper', tasksListId: 'tasks', runner: async () => ({code: 0, stdout: '{"items":[]}'}),})];
   for (const connector of connectors) assert.deepEqual(Object.keys(connector).sort(), [...interfaceNames].sort());
   assert.throws(() => connectors[2].applyOperation({}), error => error.kind === 'unsupported');
 });
 
 test('Jira snapshot keeps JQL within allowlisted projects/types and discovers transitions before writing', async () => {
-  const calls = []; const jira = createJiraConnector({baseUrl: 'https://jira.example', accountId: 'a', projectKeys: ['RHIZE'], issueTypes: ['Task'], credentials, transport: async request => { calls.push(request); if (request.url.includes('/transitions') && request.method === 'GET') return response({transitions: [{id: '7'}]}); if (request.url.includes('/search/jql')) return response({issues: [], total: 0}); return response({}); }});
+  const calls = []; const jira = createJiraConnector({baseUrl: 'https://jira.example', accountId: 'a', projectKeys: ['RHIZE'], issueTypes: ['Task'], credentials, transport: async request => { calls.push(request); if (request.url.includes('/transitions') && request.method === 'GET') return response({transitions: [{id: '7'}]}); if (request.url.includes('/search/jql')) return response({issues: [], total: 0}); if (request.url.includes('/issue/RHIZE-1')) return response({fields: {project: {key: 'RHIZE'}, issuetype: {name: 'Task'}, updated: '1'}}); return response({}); }});
   await jira.readSnapshot(); assert.match(decodeURIComponent(calls[0].url), /project in \("RHIZE"\) AND issuetype in \("Task"\)/);
   await jira.applyOperation({kind: 'jira_transition', targetId: 'RHIZE-1', payload: {transitionId: '7', comment: null}, idempotencyKey: 'x'}); assert.equal(calls.filter(call => call.method === 'POST').length, 1);
 });
@@ -37,7 +37,7 @@ test('Google refreshes only in memory and rejects writes outside the focus calen
 
 test('Slack reads only configured channel replies from exact senders and ignores invalid text', async () => {
   const requests = []; const valid = '*Task:* Audit\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* needs_jira\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000';
-  const slack = createSlackConnector({workspaceId: 'T1', channelId: 'C1', senderIds: ['B1'], credentials, transport: async request => { requests.push(request); if (request.url.includes('history')) return response({messages: [{ts: '1', thread_ts: '1'}]}); return response({messages: [{ts: '1'}, {bot_id: 'B1', text: valid}, {bot_id: 'B2', text: valid}]}); }});
+  const slack = createSlackConnector({workspaceId: 'T1', channelId: 'C1', senderIds: ['B1'], credentials, transport: async request => { requests.push(request); if (request.url.includes('history')) return response({ok: true, messages: [{ts: '1', thread_ts: '1'}]}); return response({ok: true, messages: [{ts: '1'}, {bot_id: 'B1', text: valid}, {bot_id: 'B2', text: valid}]}); }});
   assert.equal((await slack.readSnapshot()).length, 1); assert.ok(requests.every(request => request.method === 'GET' && request.url.includes('channel=C1')));
 });
 

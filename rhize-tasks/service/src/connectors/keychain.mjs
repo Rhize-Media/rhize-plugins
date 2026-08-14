@@ -2,7 +2,8 @@ import {connectorError, normalizeError} from './http.mjs';
 
 export const KEYCHAIN = Object.freeze({api: ['media.rhize.tasks.api', 'bearer'], jira: ['media.rhize.tasks.jira', 'email', 'api-token'], google: ['media.rhize.tasks.google', 'client-id', 'client-secret', 'refresh-token'], slack: ['media.rhize.tasks.slack', 'bot-token']});
 
-function check(service, account) { if (typeof service !== 'string' || !service.startsWith('media.rhize.tasks.') || typeof account !== 'string' || !account) throw connectorError('invalid_credential'); }
+const PAIRS = new Set(Object.values(KEYCHAIN).flatMap(([service, ...accounts]) => accounts.map(account => `${service}\0${account}`)));
+function check(service, account) { if (!PAIRS.has(`${service}\0${account}`)) throw connectorError('invalid_credential'); }
 function resultValue(result) { return typeof result?.stdout === 'string' ? result.stdout.replace(/\n$/, '') : ''; }
 
 export function createKeychain({spawnFile} = {}) {
@@ -10,7 +11,7 @@ export function createKeychain({spawnFile} = {}) {
   async function call(args, input) {
     try {
       const result = await spawnFile('/usr/bin/security', args, {input, timeoutMs: 10_000, maxOutputBytes: 16_384});
-      if (!result || result.code !== 0) throw connectorError('keychain', {retryable: false});
+      if (!result || result.code !== 0 || result.timedOut) throw connectorError(result?.timedOut ? 'timeout' : 'keychain', {retryable: result?.timedOut === true});
       return result;
     } catch (error) { throw normalizeError(error); }
   }
