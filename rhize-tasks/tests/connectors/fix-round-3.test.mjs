@@ -104,6 +104,6 @@ test('HTTP status classification precedes non-JSON content validation', async ()
 test('supported Jira and Reminders findByExternalId return normalized revisions', async () => {
   const jira = createJiraConnector(jiraConfig(async () => ok({id: '1', fields: {updated: 'u2'}})));
   assert.deepEqual(await jira.findByExternalId('R-1'), {revision: 'u2'});
-  const reminders = createRemindersConnector({helperPath: '/helper', tasksListId: 'tasks', runner: async () => ({code: 0, stdout: JSON.stringify({items: [{id: 'r1', revision: 'r2'}]})})});
+  const reminders = createRemindersConnector({helperPath: '/helper', tasksListId: 'tasks', runner: async () => ({code: 0, stdout: JSON.stringify({ok: true, items: [{id: 'r1', revision: 'r2'}]})})});
   assert.deepEqual(await reminders.findByExternalId('r1'), {revision: 'r2'});
 });
