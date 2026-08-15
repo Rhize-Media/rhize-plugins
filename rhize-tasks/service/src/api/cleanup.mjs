@@ -23,7 +23,7 @@ export async function cleanupPluginItems({request, profile, operations, connecto
   const reminders = connectors?.reminders;
   if (!reminders || typeof reminders.readSnapshot !== 'function' || typeof reminders.applyOperation !== 'function' || typeof calendarCleanup !== 'function') throw new Error('cleanup_unavailable');
   const reminderIds = [...new Set(operations.filter(operation => operation.kind === 'reminder_upsert' && operation.targetSystem === 'reminders' && attempted(operation) && operation.payload?.listId === profile.reminders.tasksListId && typeof operation.payload.externalId === 'string').map(operation => operation.payload.externalId))];
-  const calendarKeys = [...new Set(operations.filter(operation => operation.kind === 'calendar_upsert' && operation.targetSystem === 'calendar' && attempted(operation) && operation.payload?.calendarId === profile.calendar.focusCalendarId && /^[0-9a-f]{64}$/.test(operation.idempotencyKey)).map(operation => operation.idempotencyKey))];
+  const calendarKeys = [...new Set(operations.filter(operation => operation.kind === 'calendar_upsert' && operation.targetSystem === 'calendar' && attempted(operation) && operation.payload?.calendarId === profile.calendar.focusCalendarId).map(operation => operation.payload?.operationKey ?? operation.idempotencyKey).filter(key => /^[0-9a-f]{64}$/.test(key)))];
   let before;
   try { before = await reminders.readSnapshot(); } catch { throw new Error('cleanup_unavailable'); }
   if (!Array.isArray(before) || before.some(item => !item || typeof item.id !== 'string')) throw new Error('cleanup_unverified');

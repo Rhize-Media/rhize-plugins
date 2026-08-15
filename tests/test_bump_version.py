@@ -27,6 +27,13 @@ def seed_repo(root: Path, plugin: str, *, dual: bool) -> Path:
         codex = plugin_dir / ".codex-plugin" / "plugin.json"
         codex.parent.mkdir(parents=True)
         codex.write_text(json.dumps({"name": plugin, "version": "0.0.0"}) + "\n", encoding="utf-8")
+        (plugin_dir / "package.json").write_text(json.dumps({"name": plugin, "version": "0.0.0"}) + "\n", encoding="utf-8")
+        context = plugin_dir / "service" / "src" / "api" / "context.mjs"
+        context.parent.mkdir(parents=True)
+        context.write_text("const VERSION = '0.0.0';\n", encoding="utf-8")
+        plist = plugin_dir / "native" / "reminders-helper" / "Resources" / "Info.plist"
+        plist.parent.mkdir(parents=True)
+        plist.write_text("<plist><dict><key>CFBundleShortVersionString</key><string>0.0.0</string></dict></plist>\n", encoding="utf-8")
 
     marketplace = root / ".claude-plugin" / "marketplace.json"
     marketplace.parent.mkdir(parents=True)
@@ -54,6 +61,9 @@ class UpdatePluginManifestsTests(unittest.TestCase):
 
         self.assertEqual(load(repo / "rhize-tasks/.claude-plugin/plugin.json")["version"], "0.1.0")
         self.assertEqual(load(repo / "rhize-tasks/.codex-plugin/plugin.json")["version"], "0.1.0")
+        self.assertEqual(load(repo / "rhize-tasks/package.json")["version"], "0.1.0")
+        self.assertIn("const VERSION = '0.1.0';", (repo / "rhize-tasks/service/src/api/context.mjs").read_text(encoding="utf-8"))
+        self.assertIn("<string>0.1.0</string>", (repo / "rhize-tasks/native/reminders-helper/Resources/Info.plist").read_text(encoding="utf-8"))
         self.assertEqual(load(repo / ".claude-plugin/marketplace.json")["version"], "2.28.0")
 
     def test_keeps_single_manifest_plugins_supported(self) -> None:

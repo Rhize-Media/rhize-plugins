@@ -117,7 +117,7 @@ def infer_level(base: str, plug_name: str) -> str:
 # ---------- writers ----------
 
 def update_plugin_manifests(plugin: str, version: str) -> None:
-    """Update a plugin's Claude manifest and its optional Codex manifest together."""
+    """Update host manifests and any runtime metadata shipped by a plugin together."""
     paths = [REPO / plugin / ".claude-plugin" / "plugin.json"]
     codex = REPO / plugin / ".codex-plugin" / "plugin.json"
     if codex.exists():
@@ -126,6 +126,29 @@ def update_plugin_manifests(plugin: str, version: str) -> None:
         document = json.loads(path.read_text(encoding="utf-8"))
         document["version"] = version
         path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    package = REPO / plugin / "package.json"
+    if package.exists():
+        document = json.loads(package.read_text(encoding="utf-8"))
+        document["version"] = version
+        package.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    runtime = REPO / plugin / "service" / "src" / "api" / "context.mjs"
+    if runtime.exists():
+        text = runtime.read_text(encoding="utf-8")
+        updated, count = re.subn(r"^const VERSION = '[^']+';$", f"const VERSION = '{version}';", text, count=1, flags=re.MULTILINE)
+        if count != 1:
+            fail(f"could not update runtime version in {runtime.relative_to(REPO)}")
+        runtime.write_text(updated, encoding="utf-8")
+
+    info_plist = REPO / plugin / "native" / "reminders-helper" / "Resources" / "Info.plist"
+    if info_plist.exists():
+        text = info_plist.read_text(encoding="utf-8")
+        pattern = r"(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)"
+        updated, count = re.subn(pattern, rf"\g<1>{version}\g<2>", text, count=1)
+        if count != 1:
+            fail(f"could not update helper version in {info_plist.relative_to(REPO)}")
+        info_plist.write_text(updated, encoding="utf-8")
 
 
 def apply_bumps(plug_new: dict, mkt_new: str) -> None:

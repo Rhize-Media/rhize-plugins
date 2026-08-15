@@ -71,7 +71,7 @@ async function fixture(t) {
 test('server is loopback-only, health is minimal, and every v1 route requires bearer auth', async t => {
   const {context, request} = await fixture(t);
   assert.throws(() => createServer({...context, host: '0.0.0.0'}), /loopback/);
-  assert.deepEqual(await request('/health', {auth: false}), {status: 200, body: {version: '0.0.0', status: 'ok'}});
+  assert.deepEqual(await request('/health', {auth: false}), {status: 200, body: {version: context.version, status: 'ok'}});
   assert.equal((await request('/v1/today', {auth: false})).status, 401);
   assert.equal((await request('/v1/doctor', {headers: {authorization: 'Bearer wrong'}})).status, 401);
 });

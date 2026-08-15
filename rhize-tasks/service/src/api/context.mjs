@@ -22,7 +22,7 @@ import {connectorScopeChanges, planningMaterialChanged, profileScopeChanges, pro
 import {createSessionAuthority} from './sessions.mjs';
 import {createSetupProbeAuthority} from './setup-probe.mjs';
 
-const VERSION = '0.0.0';
+const VERSION = '0.1.0';
 const systems = ['jira', 'calendar', 'reminders', 'slack'];
 const autoKinds = new Set(['calendar_upsert', 'calendar_delete', 'reminder_upsert', 'reminder_complete', 'reminder_delete']);
 
@@ -157,8 +157,8 @@ async function googleCalendarCleanup({keys, profile, keychain, transport}) {
 function generatedOperations(plan, profile, freshness, now, ownedCalendarEvents = []) {
   const healthy = system => freshness[system]?.status === 'healthy'; const values = [];
   const ownedBySlot = new Map();
-  if (healthy('calendar')) for (const event of ownedCalendarEvents) { const valuesForSlot = ownedBySlot.get(event.blockSlot) ?? []; valuesForSlot.push(event); ownedBySlot.set(event.blockSlot, valuesForSlot); }
-  const retainedCalendarIds = new Set();
+  const retainedCalendarIds = new Set(ownedCalendarEvents.filter(event => event.manuallyAdjusted === true).map(event => event.id));
+  if (healthy('calendar')) for (const event of ownedCalendarEvents) if (event.manuallyAdjusted !== true) { const valuesForSlot = ownedBySlot.get(event.blockSlot) ?? []; valuesForSlot.push(event); ownedBySlot.set(event.blockSlot, valuesForSlot); }
   for (const block of plan.blocks) {
     const blockSlot = `${block.taskId}:${block.sessionIndex}`; const stableKey = operationKey(1, 'calendar_upsert', blockSlot, {taskId: block.taskId, blockSlot}); const existing = ownedBySlot.get(blockSlot)?.shift() ?? null;
     if (existing) retainedCalendarIds.add(existing.id);
@@ -173,6 +173,27 @@ function generatedOperations(plan, profile, freshness, now, ownedCalendarEvents 
     values.push({schemaVersion: 1, id: `reminder:${key.slice(0, 24)}`, planRevision: plan.planRevision, kind: 'reminder_upsert', targetSystem: 'reminders', targetId: task.id, payload, idempotencyKey: key, approval: healthy('reminders') ? 'approved' : 'required', preconditionRevision: null, retryState: 'pending', createdAt: now});
   }
   return values;
+}
+
+function sameInstant(left, right) { return Number.isFinite(Date.parse(left)) && Date.parse(left) === Date.parse(right); }
+
+function mergeJiraTask(incoming, existing, completed) {
+  if (!existing) return incoming;
+  const locallyCompleted = completed.has(incoming.id);
+  return {
+    ...incoming,
+    manualLock: existing.manualLock || locallyCompleted,
+    carryoverCount: existing.carryoverCount,
+    reserved: existing.reserved,
+    explicitEstimateMinutes: existing.explicitEstimateMinutes ?? incoming.explicitEstimateMinutes,
+    ...(locallyCompleted ? {terminal: true, status: 'Completed locally'} : {}),
+  };
+}
+
+function completionPrompt(task, planRevision, now) {
+  const payload = {body: 'Completed in Rhize Tasks. Confirm the appropriate Jira status before closing this issue.'};
+  const idempotencyKey = operationKey(planRevision, 'jira_comment', task.jiraKey, payload);
+  return {schemaVersion: 1, id: `completion:${idempotencyKey.slice(0, 24)}`, planRevision, kind: 'jira_comment', targetSystem: 'jira', targetId: task.jiraKey, payload, idempotencyKey, approval: 'required', preconditionRevision: task.sourceRevision, retryState: 'pending', createdAt: now};
 }
 
 export async function createServiceContext({databasePath, database, keychain, connectors, connectorFactory, transport = createHttpTransport(), now = () => new Date(), host = '127.0.0.1', port = 43179, lockPath} = {}) {
@@ -191,15 +212,39 @@ export async function createServiceContext({databasePath, database, keychain, co
   const pause = {async isPaused() { return preferences.get('profile')?.approval?.automationPaused === true || preferences.get('paused') === true; }};
   const sync = {async readAll() {
     const registry = await injectedRegistry.get(); const previous = preferences.get('connector_freshness') ?? {}; const freshness = {}; const offlineSystems = []; const protectedBySystem = preferences.get('protected_intervals_by_system') ?? {calendar: preferences.get('last_protected_intervals') ?? [], reminders: []}; let ownedCalendarEvents = preferences.get('last_owned_calendar_events') ?? [];
+    const localCompletions = preferences.get('local_task_completions') ?? {}; const completedIds = new Set(Object.keys(localCompletions));
     for (const system of systems) {
       const connector = registry[system];
       if (!connector || typeof connector.readSnapshot !== 'function') { freshness[system] = {status: 'offline', freshAt: previous[system]?.freshAt ?? null}; offlineSystems.push(system); continue; }
       try {
         const snapshot = await connector.readSnapshot(); const instant = now().toISOString(); freshness[system] = {status: 'healthy', freshAt: instant};
-        if (system === 'jira') for (const item of snapshot) repositories.tasks.upsert(item);
+        if (system === 'jira') for (const item of snapshot) repositories.tasks.upsert(mergeJiraTask(item, repositories.tasks.get(item.id), completedIds));
         if (system === 'slack') for (const item of snapshot) { const canonical = exactDelegationMatch(repositories.tasks.list(), item.delegationId); if (canonical) { repositories.tasks.upsert({...canonical, delegationId: item.delegationId}); repositories.tasks.remove(`delegation:${item.delegationId}`); } else repositories.tasks.upsert(delegationTask(item, now)); }
-        if (system === 'calendar') { const focus = preferences.get('profile')?.calendar?.focusCalendarId; ownedCalendarEvents = snapshot.filter(item => item.calendarId === focus && item.owned === true && typeof item.operationKey === 'string' && typeof item.taskId === 'string' && typeof item.blockSlot === 'string'); protectedBySystem.calendar = snapshot.filter(item => !ownedCalendarEvents.some(owned => owned.id === item.id)).map(item => ({id: item.id, start: item.start, end: item.end, kind: item.calendarId === focus ? 'fixed' : 'outside', sourceSystem: 'calendar', mutable: false})); preferences.set('last_owned_calendar_events', ownedCalendarEvents); }
-        if (system === 'reminders') { const awareness = new Map((preferences.get('profile')?.reminders?.awarenessLists ?? []).map(item => [item.id, item])); const approvedLabels = preferences.get('outside_labels') ?? {}; protectedBySystem.reminders = snapshot.flatMap(item => { const config = awareness.get(item.listId); const start = item.startAt ?? item.dueAt; if (!config || item.completed === true || typeof start !== 'string' || config.protectedDurationMinutes === 0) return []; const end = new Date(Date.parse(start) + config.protectedDurationMinutes * 60_000); if (Number.isNaN(end.getTime())) return []; const id = `reminder:${item.listId}:${item.id}`; if (config.showTitles === true && typeof item.title === 'string' && item.title.trim()) approvedLabels[id] = item.title.trim(); return [{id, start, end: end.toISOString(), kind: 'outside', sourceSystem: 'reminders', mutable: false}]; }); preferences.set('outside_labels', approvedLabels); }
+        if (system === 'calendar') {
+          const focus = preferences.get('profile')?.calendar?.focusCalendarId; const approved = repositories.plans.get(preferences.get('approved_plan_revision')); const approvedBySlot = new Map((approved?.blocks ?? []).map(block => [`${block.taskId}:${block.sessionIndex}`, block]));
+          const rawOwned = snapshot.filter(item => item.calendarId === focus && item.owned === true && typeof item.operationKey === 'string' && typeof item.taskId === 'string' && typeof item.blockSlot === 'string');
+          ownedCalendarEvents = rawOwned.map(event => { const expected = approvedBySlot.get(event.blockSlot); const manuallyAdjusted = Boolean(expected && (!sameInstant(event.start, expected.start) || !sameInstant(event.end, expected.end))); if (manuallyAdjusted) repositories.tasks.lock(event.taskId, 'calendar_manual_move'); return {...event, manuallyAdjusted}; });
+          const ownedIds = new Set(ownedCalendarEvents.map(event => event.id));
+          protectedBySystem.calendar = [
+            ...snapshot.filter(item => !ownedIds.has(item.id)).map(item => ({id: item.id, start: item.start, end: item.end, kind: item.calendarId === focus ? 'fixed' : 'outside', sourceSystem: 'calendar', mutable: false})),
+            ...ownedCalendarEvents.filter(item => item.manuallyAdjusted).map(item => ({id: item.id, start: item.start, end: item.end, kind: 'manual_lock', sourceSystem: 'calendar', mutable: false})),
+          ];
+          preferences.set('last_owned_calendar_events', ownedCalendarEvents);
+        }
+        if (system === 'reminders') {
+          const reminderProfile = preferences.get('profile')?.reminders; const awareness = new Map((reminderProfile?.awarenessLists ?? []).map(item => [item.id, item])); const approvedLabels = preferences.get('outside_labels') ?? {};
+          protectedBySystem.reminders = snapshot.flatMap(item => { const config = awareness.get(item.listId); const start = item.startAt ?? item.dueAt; if (!config || item.completed === true || typeof start !== 'string' || config.protectedDurationMinutes === 0) return []; const end = new Date(Date.parse(start) + config.protectedDurationMinutes * 60_000); if (Number.isNaN(end.getTime())) return []; const id = `reminder:${item.listId}:${item.id}`; if (config.showTitles === true && typeof item.title === 'string' && item.title.trim()) approvedLabels[id] = item.title.trim(); return [{id, start, end: end.toISOString(), kind: 'outside', sourceSystem: 'reminders', mutable: false}]; }); preferences.set('outside_labels', approvedLabels);
+          const completed = snapshot.filter(item => item.listId === reminderProfile?.tasksListId && item.completed === true && typeof item.id === 'string'); const revision = currentRevision(); const blockStates = preferences.get('block_states') ?? {}; const approved = repositories.plans.get(preferences.get('approved_plan_revision'));
+          for (const item of completed) {
+            const task = repositories.tasks.get(item.id); if (!task) continue;
+            const firstObservation = !localCompletions[task.id];
+            localCompletions[task.id] = {reminderRevision: String(item.revision ?? item.id), completedAt: instant}; completedIds.add(task.id);
+            repositories.tasks.upsert({...task, manualLock: true, terminal: true, status: 'Completed locally'});
+            for (const block of approved?.blocks ?? []) if (block.taskId === task.id) blockStates[block.id] = 'completed';
+            if (firstObservation && revision > 0 && task.jiraKey && preferences.get('profile')?.routines?.reconciliationMode !== 'local_only') { const prompt = completionPrompt(task, revision, instant); if (!repositories.operations.get(prompt.id)) repositories.operations.save(prompt); }
+          }
+          if (completed.length) { preferences.set('local_task_completions', localCompletions); preferences.set('block_states', blockStates); }
+        }
       } catch (error) { const status = error?.kind === 'authorization' ? 'revoked' : 'offline'; freshness[system] = {status, freshAt: previous[system]?.freshAt ?? null}; offlineSystems.push(system); }
     }
     const protectedIntervals = [...(protectedBySystem.calendar ?? []), ...(protectedBySystem.reminders ?? [])]; preferences.set('protected_intervals_by_system', protectedBySystem); preferences.set('last_protected_intervals', protectedIntervals); preferences.set('connector_freshness', freshness);

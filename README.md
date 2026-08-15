@@ -1,6 +1,6 @@
 # Rhize Plugins
 
-A curated collection of Claude plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, and internal operations tooling for Claude Code and Cowork.
+A curated collection of Claude and Codex plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, local-first planning, and internal operations tooling.
 
 ## Quick Start
 
@@ -21,8 +21,9 @@ All plugins below will become available for installation. Each plugin may need i
 | [obsidian-second-brain](./obsidian-second-brain) | 1.3.2 | 9 | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
 | [project-launcher](./project-launcher) | 1.7.1 | 2 | End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
 | [rhize-devflow](./rhize-devflow) | 2.10.3 | 6 | Rhize development-workflow skill set — production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.11.0 | 13 | Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.8.1 | 2 | Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.12.0 | 13 | Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.9.0 | 2 | Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-tasks](./rhize-tasks) | 0.1.0 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
@@ -41,6 +42,8 @@ export DATAFORSEO_PASSWORD="your_api_password"
 ```
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
+
+**rhize-tasks** is a macOS-local service and requires macOS 14+, Node.js 22+, a compatible Swift/Xcode toolchain, Apple Reminders permission, and credentials for the connector scopes Tom approves. It stores secrets only in Keychain and keeps Calendar/Reminders writes inside dedicated approved containers. See its [technical README](./rhize-tasks/README.md) and [Tom-facing guide](./rhize-tasks/GUIDE.md).
 
 The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
 
@@ -72,6 +75,9 @@ full list including optional numerator/orchestration sources.
 | project-launcher | 12 integrated external skills (obsidian-second-brain, grill-me, write-a-prd, seo-aeo-geo, brand-voice, n8n-automation, engineering, tdd, prd-to-issues, simplify) | plugin | No | That phase's step is skipped or done with generic prompting |
 | rhize-ops | ecc (cost-tracker Stop hook → `costs.jsonl`) | plugin | No | Scorecard/ROI reports lose their measured-spend denominator |
 | rhize-ops | rtk, Headroom, claude-mem, OpenWolf | cli/plugin | No | Each is one numerator source in the scorecard; missing ones show "no data" |
+| rhize-tasks | macOS 14+, Node.js 22+, Swift/Xcode toolchain | platform/runtime | Yes | The local service and signed EventKit helper cannot be installed |
+| rhize-tasks | Jira, Google Calendar, Apple Reminders | direct connector | Yes | The affected source remains offline and its writes stay paused |
+| rhize-tasks | Slack bot in approved `#tom-tasks` scope | direct connector | No | Structured delegation fallback is disabled; Jira planning continues |
 
 ## Documentation Hierarchy
 
@@ -123,6 +129,7 @@ rhize-plugins/
 ├── rhize-devflow/                 # Plugin: dev workflow
 ├── rhize-context-manager/         # Plugin: context engineering & optimization
 ├── rhize-ops/                     # Plugin: internal ops
+├── rhize-tasks/                   # Plugin: local-first unified task planning
 ├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
 ├── evals/                         # Trigger/quality eval harness
 ├── scripts/                       # Maintainer scripts (e.g. version bump)
