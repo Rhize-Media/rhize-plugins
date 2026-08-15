@@ -54,6 +54,7 @@ async function fixture(t) {
     slack: {async readSnapshot() { return []; }, async health() { return {ok: true}; }},
   };
   const context = await createServiceContext({databasePath: path.join(directory, 'state.sqlite'), keychain, connectors, now: () => new Date(now)});
+  context.repositories.preferences.set('approved_setup_scopes', {jira: {projectKeys: ['R'], issueTypes: ['Task']}, calendar: {readCalendarIds: ['outside', 'focus'], focusCalendarId: 'focus'}, reminders: {awarenessListIds: [], tasksListId: 'tasks'}});
   context.repositories.tasks.upsert(task());
   const server = createServer(context);
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });

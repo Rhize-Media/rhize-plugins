@@ -25,15 +25,20 @@ export function createRouter(context) {
       if (method !== 'GET') throw new ApiError('method_not_allowed', 405);
       return response(200, {version: context.version, status: 'ok'});
     }
+    if (pathname === '/session') {
+      if (method !== 'GET' || [...url.searchParams.keys()].some(key => key !== 'nonce') || url.searchParams.getAll('nonce').length !== 1) throw new ApiError('invalid_session_nonce', 401);
+      const cookie = context.sessions.exchange(url.searchParams.get('nonce'));
+      return {status: 303, body: {ok: true}, headers: {'set-cookie': cookie, location: '/'}};
+    }
     if (!pathname.startsWith('/v1/')) throw new ApiError('not_found', 404);
-    await requireBearer(request, context.auth.getToken);
+    if (!context.sessions?.authenticate(request)) await requireBearer(request, context.auth.getToken);
     if (!['GET', 'POST', 'PUT'].includes(method)) throw new ApiError('method_not_allowed', 405);
 
     if (method === 'GET' && pathname === '/v1/today') return response(200, await context.today());
-    if (method === 'GET' && pathname === '/v1/preferences') return response(200, {planRevision: currentRevision(context), profile: context.repositories.preferences.get('profile')});
+    if (method === 'GET' && pathname === '/v1/preferences') return response(200, {planRevision: currentRevision(context), profile: context.repositories.preferences.get('profile'), connectorConfig: context.repositories.preferences.get('connector_config')});
     if (method === 'GET' && pathname === '/v1/audit') return response(200, {entries: context.repositories.audit.list(Number(url.searchParams.get('limit') ?? 100))});
     if (method === 'GET' && pathname === '/v1/doctor') return response(200, await context.doctor());
-    if (method === 'GET' && pathname === '/v1/setup/status') return response(200, {planRevision: currentRevision(context), stages: context.repositories.preferences.get('setup_stages') ?? {}});
+    if (method === 'GET' && pathname === '/v1/setup/status') return response(200, {planRevision: currentRevision(context), stages: context.repositories.preferences.get('setup_stages') ?? {}, scopePreviews: Object.values(context.repositories.preferences.get('setup_scope_previews') ?? {}).map(item => ({operation: item.operation, scope: item.scope})), approvedScopes: context.repositories.preferences.get('approved_setup_scopes') ?? {}});
     if (method === 'GET' && pathname === '/v1/opportunities') return response(200, {planRevision: currentRevision(context), opportunities: (await context.today()).opportunities});
 
     const discover = /^\/v1\/setup\/discover\/(jira|calendar|reminders|slack)$/.exec(pathname);
@@ -41,9 +46,27 @@ export function createRouter(context) {
 
     if (method === 'PUT' && pathname === '/v1/preferences') {
       const body = await jsonBody(request, ['planRevision', 'profile']); revision(body.planRevision, context); validateProfile(body.profile);
-      const approved = context.repositories.preferences.get('approved_plan_revision'); const profile = approved ? {...body.profile, approval: {...body.profile.approval, firstPlanApproved: true}} : body.profile;
-      context.repositories.preferences.set('profile', profile); context.repositories.audit.append('preferences_saved', 'profile', 'v1', {planRevision: body.planRevision});
-      return response(200, {planRevision: body.planRevision, saved: true, activationReady: await context.activation.canActivate()});
+      const result = await context.settings.proposeProfile(body.profile);
+      return response(result.status === 'approval_required' ? 202 : 200, {planRevision: body.planRevision, saved: result.status === 'saved', approvalRequired: result.status === 'approval_required', operationIds: result.operations.map(operation => operation.id), activationReady: await context.activation.canActivate()});
+    }
+
+    if (method === 'POST' && pathname === '/v1/setup/connectors') {
+      const body = await jsonBody(request, ['planRevision', 'connector', 'scope']); revision(body.planRevision, context);
+      const result = await context.settings.previewSetupScope(body); return response(201, result);
+    }
+
+    if (method === 'PUT' && pathname === '/v1/setup/connectors') {
+      const body = await jsonBody(request, ['planRevision', 'connector', 'scope', 'apply']); revision(body.planRevision, context);
+      if (body.connector !== 'slack' || body.apply !== true) throw new ApiError('invalid_connector_config');
+      const result = await context.settings.proposeConnectorConfig({slack: body.scope});
+      return response(200, {planRevision: body.planRevision, saved: result.status === 'saved', connector: 'slack', scope: body.scope});
+    }
+
+    if (method === 'POST' && pathname === '/v1/setup/probe') {
+      const body = await readJson(request); exactObject(body, body?.mode === 'preview' ? ['planRevision', 'mode', 'remindersListId', 'focusCalendarId'] : ['planRevision', 'mode', 'probeId', 'actor']); revision(body.planRevision, context);
+      if (body.mode === 'preview') return response(201, context.setupProbe.preview(body));
+      if (body.mode === 'apply') return response(200, await context.setupProbe.apply({probeId: body.probeId, actor: actor(body.actor)}));
+      throw new ApiError('invalid_setup_probe');
     }
 
     if (method === 'POST' && pathname === '/v1/plans/preview') {
@@ -60,7 +83,8 @@ export function createRouter(context) {
 
     const operationApproval = /^\/v1\/operations\/([^/]+)\/approve$/.exec(pathname);
     if (method === 'POST' && operationApproval) {
-      const body = await jsonBody(request, ['planRevision', 'actor']); revision(body.planRevision, context); const approvedBy = actor(body.actor); const id = decodeURIComponent(operationApproval[1]); let operation = context.repositories.operations.get(id); if (!operation) throw new ApiError('operation_not_found', 404);
+      const body = await jsonBody(request, ['planRevision', 'actor']); revision(body.planRevision, context); const approvedBy = actor(body.actor); const id = decodeURIComponent(operationApproval[1]); let operation = context.repositories.operations.get(id); if (!operation) { const setup = await context.settings.approveSetupScope(id, approvedBy); if (setup) return response(200, setup); throw new ApiError('operation_not_found', 404); }
+      if (operation.kind === 'scope_expand') return response(200, await context.settings.approveScope(id, approvedBy));
       if (operation.approval === 'required') operation = context.repositories.operations.setApproval(id, 'approved', approvedBy);
       context.repositories.audit.append('operation_approved_via_api', 'operation', id, {actor: body.actor, planRevision: body.planRevision});
       if (await context.pause.isPaused()) return response(202, {operationId: id, state: 'approved_deferred', reason: 'paused'});

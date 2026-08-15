@@ -161,6 +161,10 @@ export function taskRepository(db) {
       });
       return copy;
     },
+    remove(id) {
+      if (typeof id !== 'string' || !id) throw new TypeError('task id must be a nonempty string');
+      transaction(db, () => { if (db.prepare('delete from tasks where id = ?').run(id).changes) appendAudit(db, {event: 'task_removed', entityType: 'task', entityId: id}); });
+    },
     get,
     list() {
       return db.prepare('select data_json, manual_lock from tasks order by id').all().map(row => {

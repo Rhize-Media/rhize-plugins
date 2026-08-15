@@ -210,7 +210,8 @@ export function assertOperation(value) {
   object(value, 'operation', required);
   integer(value.schemaVersion, 'operation.schemaVersion', 1, 1); string(value.id, 'operation.id'); integer(value.planRevision, 'operation.planRevision', 1); enumeration(value.kind, 'operation.kind', OPERATION_KINDS); enumeration(value.targetSystem, 'operation.targetSystem', ['jira', 'calendar', 'reminders', 'local']);
   if (value.targetSystem !== OPERATION_SYSTEMS[value.kind]) fail('operation.targetSystem', `must be ${OPERATION_SYSTEMS[value.kind]} for ${value.kind}`);
-  string(value.targetId, 'operation.targetId'); operationPayload(value.kind, value.payload); string(value.idempotencyKey, 'operation.idempotencyKey', {pattern: /^[0-9a-f]{64}$/}); enumeration(value.approval, 'operation.approval', APPROVAL); nullable(value.preconditionRevision, 'operation.preconditionRevision', string); enumeration(value.retryState, 'operation.retryState', RETRY_STATES); isoDateTime(value.createdAt, 'operation.createdAt');
+  if (value.kind === 'calendar_upsert') nullable(value.targetId, 'operation.targetId', string); else string(value.targetId, 'operation.targetId');
+  operationPayload(value.kind, value.payload); string(value.idempotencyKey, 'operation.idempotencyKey', {pattern: /^[0-9a-f]{64}$/}); enumeration(value.approval, 'operation.approval', APPROVAL); nullable(value.preconditionRevision, 'operation.preconditionRevision', string); enumeration(value.retryState, 'operation.retryState', RETRY_STATES); isoDateTime(value.createdAt, 'operation.createdAt');
   return value;
 }
 

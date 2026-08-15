@@ -7,7 +7,7 @@
   "properties": {
     "schemaVersion": {"const": 1}, "id": {"$ref": "#/$defs/nonempty"}, "planRevision": {"type": "integer", "minimum": 1},
     "kind": {"enum": ["reminder_upsert", "reminder_complete", "reminder_delete", "calendar_upsert", "calendar_delete", "jira_assign", "jira_transition", "jira_comment", "jira_create", "provisional_link", "urgent_displacement", "scope_expand"]},
-    "targetSystem": {"enum": ["jira", "calendar", "reminders", "local"]}, "targetId": {"$ref": "#/$defs/nonempty"}, "payload": {"type": "object"},
+    "targetSystem": {"enum": ["jira", "calendar", "reminders", "local"]}, "targetId": {"type": ["string", "null"], "minLength": 1}, "payload": {"type": "object"},
     "idempotencyKey": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "approval": {"enum": ["required", "approved", "applied", "rejected"]}, "preconditionRevision": {"type": ["string", "null"], "minLength": 1},
     "retryState": {"enum": ["pending", "safe_retry", "reconciliation_required", "applied", "failed"]}, "createdAt": {"type": "string", "format": "date-time"}
   },
@@ -15,7 +15,7 @@
     {"if": {"properties": {"kind": {"const": "reminder_upsert"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "reminders"}, "payload": {"$ref": "#/$defs/reminderUpsert"}}}},
     {"if": {"properties": {"kind": {"const": "reminder_complete"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "reminders"}, "payload": {"$ref": "#/$defs/reminderComplete"}}}},
     {"if": {"properties": {"kind": {"const": "reminder_delete"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "reminders"}, "payload": {"$ref": "#/$defs/empty"}}}},
-    {"if": {"properties": {"kind": {"const": "calendar_upsert"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "calendar"}, "payload": {"$ref": "#/$defs/calendarUpsert"}}}},
+    {"if": {"properties": {"kind": {"const": "calendar_upsert"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "calendar"}, "targetId": {"type": ["string", "null"], "minLength": 1}, "payload": {"$ref": "#/$defs/calendarUpsert"}}}, "else": {"properties": {"targetId": {"$ref": "#/$defs/nonempty"}}}},
     {"if": {"properties": {"kind": {"const": "calendar_delete"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "calendar"}, "payload": {"$ref": "#/$defs/empty"}}}},
     {"if": {"properties": {"kind": {"const": "jira_assign"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "jira"}, "payload": {"$ref": "#/$defs/jiraAssign"}}}},
     {"if": {"properties": {"kind": {"const": "jira_transition"}}, "required": ["kind"]}, "then": {"properties": {"targetSystem": {"const": "jira"}, "payload": {"$ref": "#/$defs/jiraTransition"}}}},

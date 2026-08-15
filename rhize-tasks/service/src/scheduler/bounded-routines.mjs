@@ -16,12 +16,14 @@ export async function runRoutine(kind, context, now = new Date()) {
     return await withSingleInstance(context.lockPath, async () => {
       const due = await context.routineState.evaluate(kind, now);
       if (!due?.shouldRun) return {state: 'not_due'};
-      const runId = await context.routineState.begin(kind, now, due);
+      const phase = kind === 'catch-up' ? due.phase : kind;
+      if (!phase) return {state: 'not_due'};
+      const runId = await context.routineState.begin(phase, now, due);
       try {
         const snapshot = await context.sync.readAll();
-        const result = await context.plans.reconcileAndPlan({kind: due.catchUp ? 'catch_up' : kind, snapshot, now});
+        const result = await context.plans.reconcileAndPlan({kind: phase, snapshot, now, scheduledAt: due.dueAt ? new Date(due.dueAt) : now});
         await context.routineState.complete(runId, 'completed', result);
-        return result;
+        return {...result, phase};
       } catch (error) {
         await context.routineState.complete(runId, 'failed', {kind: error?.kind ?? 'routine_error'});
         throw error;

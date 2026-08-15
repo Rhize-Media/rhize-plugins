@@ -66,3 +66,41 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 ## Remaining acceptance gate
 
 - The approved final Tom-Mac acceptance run remains intentionally unperformed: provision the API bearer and connector credentials in Keychain, complete setup/dry-run approval, exercise one disposable focus block/reminder, simulate pause/restart/catch-up/revocation, and verify bounded uninstall against disposable containers. Any failure should leave automation paused and item deletion unverified.
+
+## Fix Round 1 — bounded planning lifecycle
+
+### Corrected behavior
+
+- Calendar planning now represents new events with `targetId: null`. New blocks reconcile by operation key and use event insertion; updates first prove that the supplied Google event ID carries a Rhize operation marker. The runtime validator and JSON Schema permit null only for `calendar_upsert`.
+- Setup scope is a server-owned, authenticated approval flow that works before profile activation. `POST /v1/setup/connectors` accepts one strict connector-specific scope, performs only read-only discovery/validation, persists a resumable `scope_expand` preview, and returns the exact operation. Existing operation approval records the setup approval without activating preferences. Final profile and Slack-config saves accept only covered approved scopes and consume the approval. Later project/type, calendar, Reminders, or Slack scope expansion must repeat this preview; planning-material changes clear first-plan approval.
+- `POST /v1/setup/probe` now has explicit `preview` and revision-bound, once-only `apply` modes. Apply creates, verifies, deletes, and verifies absence for one exact Rhize Tasks reminder and one exact focus-calendar event, audits success/failure, and never activates automation.
+- The runtime provisions a 32-byte random API bearer into the approved Keychain pair when absent. `provision-token --json` reports only metadata. Bearer comparison hashes both inputs to a fixed length before `timingSafeEqual`.
+- Catch-up evaluates the saved local timezone and morning/midday/evening schedule, selects at most one due phase across sleep/wake boundaries, preserves midday active/completed/manual/frozen blocks, and makes evening a prompted next-day reconciliation with carryover updates.
+- Awareness Reminders are read from exact configured lists with per-list title redaction and become immutable protected intervals from `startAt` or `dueAt`; writes and cleanup remain restricted to the Rhize Tasks list. Titles can surface only through the existing approved-label plus profile privacy gate.
+- Slack delegations retain exact Jira key/URL/state and UUID. Only one Jira task whose description contains the exact marker line is merged; unmatched Jira-ready and `needs_jira` messages remain provisional and unscheduled.
+- The service serves only `/`, `/app.js`, and `/styles.css` from the loopback dashboard directory. `dashboard --json` issues a short-lived, single-use bootstrap nonce; `GET /session?nonce=...` exchanges it for an in-memory `HttpOnly; SameSite=Strict` session cookie. Long-lived bearer values are never placed in URLs, browser storage, plist data, responses, or audit records. All `/v1` data remains authenticated.
+
+### Regression coverage
+
+- Nullable Calendar create versus proven-ID update and absence of a fabricated event ID in POST paths.
+- Pre-activation Jira/Calendar/Reminders/Slack scope discovery, exact preview persistence/resumption, explicit approval, final-scope enforcement, expansion gating, and first-plan invalidation.
+- Revision conflict, once-only sample probe, exact create/find/delete/find sequence for both writable systems, and no activation from probing.
+- Strong first-run bearer provisioning, Keychain-only storage, output/audit non-disclosure, and fixed-work authentication comparison.
+- DST-aware local phase selection, multiple missed phases collapsing to one, midday preservation, evening/carryover behavior, pause, and partial outage isolation.
+- Awareness-list process scoping, redaction, protected-time overlap prevention, and rejection of writes outside the Rhize list.
+- Exact delegation-marker merge, Jira state retention, `needs_jira` provisional handling, and idempotent repeated ingestion.
+- Static asset allowlist, raw traversal rejection, unauthenticated data rejection, nonce single use/expiry, cookie flags, and nonce audit redaction.
+
+### Validation evidence
+
+- Focused Task 7 plus Reminders boundary: `node --test rhize-tasks/tests/e2e/local-service.test.mjs rhize-tasks/tests/e2e/lifecycle-fix-round-1.test.mjs rhize-tasks/tests/failure-injection/routines.test.mjs rhize-tasks/tests/connectors/reminders-process.test.mjs` -> 52 passed, 0 failed.
+- Current shared-tree full suite from `rhize-tasks`: `npm test` -> 150 passed, 0 failed.
+- Package validation: `npm run validate` -> passed.
+- Syntax: `node --check` for the CLI and all changed API/scheduler modules -> passed.
+- The first repository-root `npm test` invocation failed with `ENOENT` because the package manifest is intentionally under `rhize-tasks/`; the command was rerun from the actual package root and passed. Loopback tests required sandbox approval only to bind temporary `127.0.0.1` ports; all external transports, credentials, Keychain calls, and helper processes remained injected fakes.
+
+### Cold review and remaining gate
+
+- Re-read the final source/tests for auth bypass, nonce/bearer disclosure, client-authored setup operations, scope reuse, premature activation, calendar fake IDs, non-Rhize Reminders writes, fuzzy delegation merge, broad static paths, and routine double dispatch. No such path remains in the tested boundary.
+- No runtime dependency or Task 6 installer/launchctl test edit was introduced. Concurrent Task 8 dashboard/skill/command files were not staged as Task 7 work.
+- The same intentionally unperformed live Tom-Mac acceptance gate above remains. Setup probe failure is fail-closed and audited; it does not claim activation or successful cleanup without exact post-delete absence checks.

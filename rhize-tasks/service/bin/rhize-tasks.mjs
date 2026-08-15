@@ -97,7 +97,7 @@ export async function runCli(args, {
     writeJson(stdout, result);
     return result;
   }
-  if (!['serve', 'routine', 'doctor', 'artifact', 'uninstall-items'].includes(command)) throw new TypeError('unknown_command');
+  if (!['serve', 'routine', 'doctor', 'artifact', 'uninstall-items', 'provision-token', 'dashboard'].includes(command)) throw new TypeError('unknown_command');
 
   const context = await createContext();
   try {
@@ -124,6 +124,18 @@ export async function runCli(args, {
       exactArgs(rest, ['--json']);
       const result = await context.doctor();
       writeJson(stdout, {ok: true, ...result});
+      return result;
+    }
+    if (command === 'provision-token') {
+      exactArgs(rest, ['--json']);
+      const result = {ok: true, provisioned: context.auth.provisioned === true, service: 'media.rhize.tasks.api', account: 'bearer'};
+      writeJson(stdout, result);
+      return result;
+    }
+    if (command === 'dashboard') {
+      exactArgs(rest, ['--json']);
+      const issued = context.sessions.issue(); const result = {ok: true, url: `http://${context.host}:${context.port}/session?nonce=${encodeURIComponent(issued.nonce)}`, expiresAt: issued.expiresAt};
+      writeJson(stdout, result);
       return result;
     }
     if (command === 'artifact') {

@@ -7,7 +7,7 @@ import test from 'node:test';
 import {cleanupPluginItems, uninstallCleanupRequest} from '../../service/src/api/cleanup.mjs';
 import {createServiceContext} from '../../service/src/api/context.mjs';
 import {runRoutine, protectedForMidday} from '../../service/src/scheduler/bounded-routines.mjs';
-import {evaluateCatchUp} from '../../service/src/scheduler/catch-up.mjs';
+import {evaluateCatchUp, scheduledInstant, selectDuePhase} from '../../service/src/scheduler/catch-up.mjs';
 import {withSingleInstance} from '../../service/src/scheduler/single-instance.mjs';
 
 test('single-instance lock rejects overlap and reclaims only a dead stale owner', async t => {
@@ -28,6 +28,14 @@ test('catch-up collapses any missed count into exactly one evaluation', () => {
   assert.deepEqual(evaluateCatchUp({lastCompletedAt: '2026-08-17T07:55:00.000Z', now: '2026-08-17T08:00:00.000Z', intervalMinutes: 15}), {shouldRun: false, catchUp: false, missedCount: 0});
 });
 
+test('catch-up selects one latest local phase across DST and missed phases', () => {
+  const profile = {identity: {timezone: 'America/New_York'}, routines: {morningTime: '09:00', middayTime: '12:00', eveningTime: '17:00'}};
+  assert.equal(scheduledInstant('2026-03-08', '09:00', 'America/New_York'), '2026-03-08T13:00:00.000Z');
+  const due = selectDuePhase({profile, lastRuns: {morning: '2026-03-08T13:00:00.000Z', evening: '2026-03-07T22:00:00.000Z'}, now: new Date('2026-03-08T16:30:00.000Z')}); assert.equal(due.phase, 'midday'); assert.equal(due.dueAt, '2026-03-08T16:00:00.000Z'); assert.ok(due.missedCount > 1);
+  const missed = selectDuePhase({profile, lastRuns: {}, now: new Date('2026-03-09T12:00:00.000Z')});
+  assert.equal(missed.phase, 'evening'); assert.equal(missed.dueAt, '2026-03-08T21:00:00.000Z'); assert.ok(missed.missedCount > 1);
+});
+
 test('paused routines do no sync/write and partial connector outage remains scoped', async t => {
   const directory = await mkdtemp(path.join(tmpdir(), 'rhize-task7-routine-'));
   t.after(() => rm(directory, {recursive: true, force: true}));
@@ -41,7 +49,7 @@ test('paused routines do no sync/write and partial connector outage remains scop
   };
   assert.deepEqual(await runRoutine('midday', {...base, pause: {async isPaused() { return true; }}}), {state: 'paused'});
   assert.equal(syncCalls, 0);
-  assert.deepEqual(await runRoutine('midday', {...base, pause: {async isPaused() { return false; }}}), {state: 'planned', writesPausedFor: ['jira']});
+  assert.deepEqual(await runRoutine('midday', {...base, pause: {async isPaused() { return false; }}}), {state: 'planned', writesPausedFor: ['jira'], phase: 'midday'});
   assert.equal(syncCalls, 1); assert.equal(planCalls, 1);
 });
 

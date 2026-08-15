@@ -1,4 +1,4 @@
-import {timingSafeEqual} from 'node:crypto';
+import {createHash, timingSafeEqual} from 'node:crypto';
 
 export const MAX_JSON_BYTES = 64 * 1024;
 
@@ -11,9 +11,9 @@ export class ApiError extends Error {
 }
 
 function equalSecret(left, right) {
-  if (typeof left !== 'string' || typeof right !== 'string') return false;
-  const a = Buffer.from(left); const b = Buffer.from(right);
-  return a.length === b.length && timingSafeEqual(a, b);
+  const encode = value => createHash('sha256').update(typeof value === 'string' ? value : '').digest();
+  const equal = timingSafeEqual(encode(left), encode(right));
+  return typeof left === 'string' && typeof right === 'string' && equal;
 }
 
 export async function requireBearer(request, getToken) {
@@ -22,7 +22,7 @@ export async function requireBearer(request, getToken) {
   if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) throw new ApiError('unauthorized', 401);
   let token;
   try { token = await getToken(); } catch { throw new ApiError('authentication_unavailable', 503); }
-  if (typeof token !== 'string' || token.length < 16 || !equalSecret(authorization.slice(7), token)) throw new ApiError('unauthorized', 401);
+  if (typeof token !== 'string' || token.length < 32 || !equalSecret(authorization.slice(7), token)) throw new ApiError('unauthorized', 401);
 }
 
 export function exactObject(value, keys, {required = keys} = {}) {
