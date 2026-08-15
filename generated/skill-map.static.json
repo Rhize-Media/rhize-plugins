@@ -589,6 +589,78 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/preferences",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/reconcile",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/review-opportunities",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/today",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/manage-task-preferences",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/plan-my-day",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/review-task-opportunities",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/rhize-tasks-doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/rhize-tasks-setup",
+      "type": "contains"
+    },
+    {
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
       "to": "command:seo-aeo-geo/ai-visibility",
@@ -1500,6 +1572,84 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-tasks/manage-task-preferences",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/manage-task-preferences",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "source": "frontmatter",
+      "to": "tag:topic/data-consistency",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:seo-aeo-geo/aeo-geo-optimization",
       "source": "frontmatter",
       "to": "mcp:dataforseo",
@@ -1911,6 +2061,48 @@
       "kind": "command",
       "name": "rhize-setup",
       "path": "rhize-ops/commands/rhize-setup.md"
+    },
+    {
+      "description": "Diagnose the local Rhize Tasks service safely",
+      "id": "command:rhize-tasks/doctor",
+      "kind": "command",
+      "name": "doctor",
+      "path": "rhize-tasks/commands/doctor.md"
+    },
+    {
+      "description": "Review or change Rhize Tasks planning preferences",
+      "id": "command:rhize-tasks/preferences",
+      "kind": "command",
+      "name": "preferences",
+      "path": "rhize-tasks/commands/preferences.md"
+    },
+    {
+      "description": "Preview and reconcile local Rhize task drift",
+      "id": "command:rhize-tasks/reconcile",
+      "kind": "command",
+      "name": "reconcile",
+      "path": "rhize-tasks/commands/reconcile.md"
+    },
+    {
+      "description": "Review urgent high-fit unassigned Rhize work",
+      "id": "command:rhize-tasks/review-opportunities",
+      "kind": "command",
+      "name": "review-opportunities",
+      "path": "rhize-tasks/commands/review-opportunities.md"
+    },
+    {
+      "description": "Run or resume the safe local Rhize Tasks setup wizard",
+      "id": "command:rhize-tasks/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "rhize-tasks/commands/setup.md"
+    },
+    {
+      "description": "Build and review today's bounded Rhize Tasks plan",
+      "id": "command:rhize-tasks/today",
+      "kind": "command",
+      "name": "today",
+      "path": "rhize-tasks/commands/today.md"
     },
     {
       "description": "Check AI/LLM visibility and AEO/GEO optimization status",
@@ -2414,6 +2606,13 @@
       "path": "rhize-ops"
     },
     {
+      "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
+      "id": "plugin:rhize-tasks",
+      "kind": "plugin",
+      "name": "rhize-tasks",
+      "path": "rhize-tasks"
+    },
+    {
       "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
       "id": "plugin:seo-aeo-geo",
       "kind": "plugin",
@@ -2668,7 +2867,7 @@
       "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md"
     },
     {
-      "contentHash": "3966530670a798ec682f23864f47e269c0d312604fb062f712b652ad41f7bf41",
+      "contentHash": "b07a5da9cc65f6b4041ed943e5c92b3904178a5751e954226da867832361a112",
       "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"[name] should handle this\", \"send this to [name]\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json (run `/rhize-ops:delegate-setup` first if no config exists). This skill handles the full delegation pipeline: context gathering, optional meeting-transcript enrichment, task formatting, Jira issue creation, and Slack notification with a mention — gracefully skipping the Jira and/or Slack steps if those integrations aren't marked ready in the config.",
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
@@ -2682,6 +2881,54 @@
       "kind": "skill",
       "name": "skill-dashboard",
       "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
+    },
+    {
+      "contentHash": "ca7d1d80bf8ad0d34e6f45e638d97dfc864d9dd69f562975cea687ddd94c603d",
+      "description": "Review and update Rhize Tasks planning preferences through the authenticated local dashboard. Use to change working hours, buffers, routines, reconciliation, or bounded-replanning rules.",
+      "id": "skill:rhize-tasks/manage-task-preferences",
+      "kind": "skill",
+      "name": "manage-task-preferences",
+      "path": "rhize-tasks/skills/manage-task-preferences/SKILL.md"
+    },
+    {
+      "contentHash": "720c06fc37d806905337eda3b9359f3e1d2c7f4c15433358495c0ee68d688300",
+      "description": "Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. Use for morning planning, catch-up after sleep, carryover review, or deciding what to work on next.",
+      "id": "skill:rhize-tasks/plan-my-day",
+      "kind": "skill",
+      "name": "plan-my-day",
+      "path": "rhize-tasks/skills/plan-my-day/SKILL.md"
+    },
+    {
+      "contentHash": "252c7acc171480d3b58f2396f8398729916cba33250a475aedeae74d9c95ea3a",
+      "description": "Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. Use for stale data, carryover mismatches, duplicate suspicion, or source recovery.",
+      "id": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "kind": "skill",
+      "name": "reconcile-rhize-tasks",
+      "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md"
+    },
+    {
+      "contentHash": "9d33c6060a1fdb248fb17c4d69aae701ad180ecc1d3c92b1a5a89a566ec1031e",
+      "description": "Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
+      "id": "skill:rhize-tasks/review-task-opportunities",
+      "kind": "skill",
+      "name": "review-task-opportunities",
+      "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md"
+    },
+    {
+      "contentHash": "01567549f67c6301b95b312ed5e19335ad2b6694d82c497233a4c9daf37dc97d",
+      "description": "Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. Use when the dashboard is unavailable, stale, degraded, paused, or failing routines.",
+      "id": "skill:rhize-tasks/rhize-tasks-doctor",
+      "kind": "skill",
+      "name": "rhize-tasks-doctor",
+      "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
+    },
+    {
+      "contentHash": "aab3ef64947010b8e2c83d8d82199ebe6b359b03c706931c037079d5ee910f57",
+      "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
+      "id": "skill:rhize-tasks/rhize-tasks-setup",
+      "kind": "skill",
+      "name": "rhize-tasks-setup",
+      "path": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md"
     },
     {
       "contentHash": "ff4cdfdc84d6ce821a6b50f887742f958094482d3fc08b78e5043d3f5357e5cc",

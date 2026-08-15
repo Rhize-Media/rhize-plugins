@@ -1,0 +1,17 @@
+{
+  "name": "rhize-tasks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first planning for Rhize Jira work across Calendar and Reminders",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "install:local": "node installer/install.mjs",
+    "start": "node service/bin/rhize-tasks.mjs serve",
+    "test": "node --test",
+    "uninstall:local": "node installer/uninstall.mjs",
+    "validate": "node --input-type=module --eval \"for (const path of ['package.json', 'setup/manifest.json']) JSON.parse(await (await import('node:fs/promises')).readFile(path, 'utf8'))\""
+  }
+}

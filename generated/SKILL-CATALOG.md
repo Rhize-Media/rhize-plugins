@@ -73,4 +73,15 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 | --- | --- | --- |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying v… | automation, obsidian, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
+
+## rhize-tasks
+
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `manage-task-preferences` | Review and update Rhize Tasks planning preferences through the authenticated local dashboard. | project-planning, workflow-patterns |
+| `plan-my-day` | Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. | automation, project-planning |
+| `reconcile-rhize-tasks` | Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. | data-consistency, workflow-patterns |
+| `review-task-opportunities` | Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. | project-planning, search |
+| `rhize-tasks-doctor` | Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. | automation, observability |
+| `rhize-tasks-setup` | Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, a… | automation, project-planning, workflow-patterns |
 <!-- SKILL-MAP:END -->

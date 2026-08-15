@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.27.0",
+  "version": "2.28.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -112,7 +112,7 @@
       "name": "rhize-ops",
       "source": "./rhize-ops",
       "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
-      "version": "0.8.1",
+      "version": "0.9.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -124,6 +124,25 @@
         "slack",
         "fireflies",
         "team-workflow",
+        "rhize"
+      ],
+      "category": "workflow"
+    },
+    {
+      "name": "rhize-tasks",
+      "source": "./rhize-tasks",
+      "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
+      "version": "0.1.0",
+      "author": {
+        "name": "Rhize Media"
+      },
+      "keywords": [
+        "tasks",
+        "jira",
+        "calendar",
+        "reminders",
+        "planning",
+        "productivity",
         "rhize"
       ],
       "category": "workflow"

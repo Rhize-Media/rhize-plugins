@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Task Opportunities"
+  short_description: "Review high-fit Rhize task opportunities"
+  default_prompt: "Use $review-task-opportunities to review urgent unassigned Rhize work that fits me."

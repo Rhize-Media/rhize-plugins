@@ -957,6 +957,113 @@
           "weight": 2
         }
       ],
+      "skill:rhize-tasks/manage-task-preferences": [
+        {
+          "kind": "name",
+          "label": "manage-task-preferences",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/plan-my-day": [
+        {
+          "kind": "name",
+          "label": "plan-my-day",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/reconcile-rhize-tasks": [
+        {
+          "kind": "name",
+          "label": "reconcile-rhize-tasks",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "data-consistency",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/review-task-opportunities": [
+        {
+          "kind": "name",
+          "label": "review-task-opportunities",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/rhize-tasks-doctor": [
+        {
+          "kind": "name",
+          "label": "rhize-tasks-doctor",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/rhize-tasks-setup": [
+        {
+          "kind": "name",
+          "label": "rhize-tasks-setup",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
       "skill:seo-aeo-geo/aeo-geo-optimization": [
         {
           "kind": "name",

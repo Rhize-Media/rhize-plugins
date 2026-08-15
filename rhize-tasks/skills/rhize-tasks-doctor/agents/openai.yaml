@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rhize Tasks Doctor"
+  short_description: "Diagnose the local Rhize Tasks service"
+  default_prompt: "Use $rhize-tasks-doctor to diagnose my local Rhize Tasks service without exposing secrets."
