@@ -94,10 +94,21 @@ export function createRouter(context) {
     }
 
     if (method === 'POST' && pathname === '/v1/reconcile') {
-      const body = await jsonBody(request, ['planRevision', 'operationIds']); revision(body.planRevision, context); if (!Array.isArray(body.operationIds) || body.operationIds.some(id => typeof id !== 'string')) throw new ApiError('invalid_operation_ids');
-      const operations = body.operationIds.map(id => context.repositories.operations.get(id)); if (operations.some(value => !value)) throw new ApiError('operation_not_found', 404);
-      context.repositories.audit.append('reconciliation_requested', 'plan', body.planRevision, {operationIds: body.operationIds});
-      const {applyApprovedOperations} = await import('../reconciliation/operations.mjs'); const results = await applyApprovedOperations({repository: context.repositories.operations, connectors: await context.connectorRegistry.get(), currentRevision: body.planRevision}, operations); return response(200, {results});
+      const body = await jsonBody(request, ['planRevision', 'operationIds', 'actor']); revision(body.planRevision, context); const requestedBy = actor(body.actor);
+      if (!Array.isArray(body.operationIds) || body.operationIds.length === 0 || body.operationIds.some(id => typeof id !== 'string' || id.length === 0) || new Set(body.operationIds).size !== body.operationIds.length) throw new ApiError('invalid_operation_ids');
+      if (await context.pause.isPaused()) throw new ApiError('automation_paused', 409);
+      const operations = body.operationIds.map(id => context.repositories.operations.get(id));
+      if (operations.some(value => !value)) throw new ApiError('operation_not_found', 404);
+      if (operations.some(value => value.planRevision !== body.planRevision || value.retryState !== 'reconciliation_required' || value.approval !== 'approved')) throw new ApiError('operation_not_reconcilable', 409);
+      const connectors = await context.connectorRegistry.get();
+      for (const system of new Set(operations.map(value => value.targetSystem).filter(value => value !== 'local'))) {
+        const connector = connectors?.[system];
+        if (!connector || typeof connector.health !== 'function') throw new ApiError('connector_unavailable', 503);
+        try { const health = await connector.health(); if (health?.ok !== true) throw new Error('unhealthy'); } catch { throw new ApiError('connector_unavailable', 503); }
+      }
+      context.repositories.audit.append('reconciliation_requested', 'plan', body.planRevision, {operationIds: body.operationIds, actor: requestedBy});
+      const resumed = body.operationIds.map(id => context.repositories.operations.resumeReconciliation(id, requestedBy));
+      const {applyApprovedOperations} = await import('../reconciliation/operations.mjs'); const results = await applyApprovedOperations({repository: context.repositories.operations, connectors, currentRevision: body.planRevision}, resumed); return response(200, {results});
     }
 
     const claim = /^\/v1\/opportunities\/([^/]+)\/claim$/.exec(pathname);

@@ -42,6 +42,7 @@ export function setupConnectorRequest(planRevision, connector, stages) {
 export function probePreviewRequest(planRevision, time) { return {planRevision, mode: 'preview', remindersListId: time.tasksListId, focusCalendarId: time.focusCalendarId}; }
 export function probeApplyRequest(planRevision, probeId, actor) { return {planRevision, mode: 'apply', probeId, actor}; }
 export function planPreviewRequest(planRevision, planningDate) { return planningDate ? {planRevision, planningDate} : {planRevision}; }
+export function reconciliationRequest(planRevision, operationId, actor) { return {planRevision, operationIds: [operationId], actor}; }
 export function resumeSetupStages(stages = {}) { return Array.from({length: 7}, (_, index) => { const number = index + 1; const saved = stages[number]; return {number, complete: saved?.complete === true, data: saved?.data ?? {}}; }); }
 export async function submitCredentials({connector, fields, planRevision, request}) {
   const values = Object.fromEntries(Object.entries(fields).map(([account, field]) => [account, field.value]));
@@ -104,6 +105,21 @@ function addOpportunity(li, item) {
   button.addEventListener('click', async () => { const accountId = state.profile?.jira?.accountId; if (!accountId) { status('plan-status', 'Save Tom’s Jira account ID before claiming an opportunity.'); return; } button.disabled = true; try { await api(`/v1/opportunities/${encodeURIComponent(item.taskId)}/claim`, {method: 'POST', body: {planRevision: state.displayedRevision, actor: 'dashboard', accountId}}); await refreshToday(); } catch (error) { status('plan-status', error.message); } finally { button.disabled = false; } }); li.append(button);
 }
 
+function addReconciliation(li, item, connector) {
+  const summary = document.createElement('span'); summary.textContent = `${item.operationId} · ${item.targetSystem} · ${item.kind} · ${item.reason} `; li.append(summary);
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = `Reconcile ${item.operationId}`;
+  const available = connector?.status === 'healthy'; button.disabled = !available;
+  if (!available) button.title = `${item.targetSystem} is not healthy; refresh after restoring the connector.`;
+  button.addEventListener('click', async () => {
+    if (!globalThis.confirm(`Resume exact operation ${item.operationId}? This starts one new bounded connector attempt.`)) return;
+    button.disabled = true;
+    try { await api('/v1/reconcile', {method: 'POST', body: reconciliationRequest(state.displayedRevision, item.operationId, 'tom')}); await refreshToday(); }
+    catch (error) { status('plan-status', error.message); }
+    finally { button.disabled = false; }
+  });
+  li.append(button);
+}
+
 function renderToday(view) {
   state.planRevision = view.planRevision; state.displayedRevision = view.planRevision; state.paused = view.paused;
   status('plan-status', `Plan revision ${view.planRevision}. ${view.paused ? 'Automation is paused.' : view.degraded ? 'Degraded: unaffected work remains available.' : 'All configured systems are current.'}`);
@@ -112,6 +128,7 @@ function renderToday(view) {
   fillList('timeline', view.timeline, (li, item) => text(li, `${item.start}–${item.end} · ${itemText(item)}${item.redacted ? ' · redacted' : ''}`), 'No scheduled blocks');
   fillList('carryovers', view.carryovers, (li, item) => text(li, `${item.title} · miss ${item.missCount} · ${item.reason} · ${item.resolution}`));
   fillList('approvals', view.approvals, addDecision);
+  fillList('reconciliation', view.reconciliation, (li, item) => addReconciliation(li, item, view.connectors[item.targetSystem]), 'No reconciliation required');
   fillList('opportunities', view.opportunities, addOpportunity);
   fillList('warnings', view.warnings, (li, item) => text(li, `${item.code}: ${item.message}`));
   const connectors = byId('connectors'); connectors.replaceChildren();

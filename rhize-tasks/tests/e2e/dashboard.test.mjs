@@ -11,6 +11,7 @@ import {
   probePreviewRequest,
   profileFromStageData,
   profileToStageData,
+  reconciliationRequest,
   resumeSetupStages,
   setupConnectorRequest,
   submitCredentials,
@@ -30,7 +31,7 @@ function view(overrides = {}) {
     currentBlock: null,
     nextBlock: null,
     capacity: {availableMinutes: 360, plannedMinutes: 120, bufferMinutes: 72, risk: 'normal'},
-    carryovers: [], approvals: [], opportunities: [], warnings: [],
+    carryovers: [], approvals: [], reconciliation: [], opportunities: [], warnings: [],
     connectors: Object.fromEntries(['jira', 'calendar', 'reminders', 'slack'].map(name => [name, {status: 'healthy', freshAt: '2026-08-14T13:00:00Z', staleMinutes: 0}])),
     paused: false, degraded: false,
     ...overrides,
@@ -61,6 +62,7 @@ test('dashboard has one heading, labeled navigation, seven resumable stages, and
   assert.equal((html.match(/<section[^>]+data-stage="[1-7]"/gi) ?? []).length, 7);
   assert.match(html, /<label[^>]+for=/i);
   assert.match(html, /id="pause-automation"/);
+  assert.match(html, /id="reconciliation-heading"/); assert.match(html, /id="reconciliation"/); assert.match(html, /Nothing retries automatically/);
   assert.match(html, /aria-live="polite"/);
   for (const id of ['tom-name', 'jira-base-url', 'jira-projects', 'competency-rows', 'add-competency', 'slack-channel-id', 'calendar-read-ids', 'calendar-scope-explanation', 'awareness-lists', 'working-interval-rows', 'add-working-interval', 'break-interval-rows', 'add-break-interval', 'morning-time']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /Exclude a category/); assert.match(html, /focus calendar is automatically included once/i);
@@ -149,6 +151,7 @@ test('request helpers preserve scope boundaries and use only lifecycle-owned req
   assert.deepEqual(probePreviewRequest(4, stages[4]), {planRevision: 4, mode: 'preview', remindersListId: 'tasks', focusCalendarId: 'focus'});
   assert.deepEqual(probeApplyRequest(4, 'probe-1', 'dashboard'), {planRevision: 4, mode: 'apply', probeId: 'probe-1', actor: 'dashboard'});
   assert.deepEqual(planPreviewRequest(4, '2026-08-17'), {planRevision: 4, planningDate: '2026-08-17'});
+  assert.deepEqual(reconciliationRequest(4, 'operation-1', 'tom'), {planRevision: 4, operationIds: ['operation-1'], actor: 'tom'});
 });
 
 test('seven-stage resume state is deterministic and retains saved data', () => {
@@ -203,6 +206,6 @@ test('shared skills and Claude commands preserve the local planning boundary', a
   }
 
   const [reconcile, wrapper] = await Promise.all([readFile(new URL('../../skills/reconcile-rhize-tasks/SKILL.md', import.meta.url), 'utf8'), readFile(new URL('../../commands/reconcile.md', import.meta.url), 'utf8')]);
-  assert.match(reconcile, /installation\.json/); assert.match(reconcile, /absolute child of `runtimePath`/); assert.match(reconcile, /POST \/v1\/reconcile/); assert.match(reconcile, /\{planRevision, operationIds\}/); assert.doesNotMatch(reconcile, /request a reconciliation preview/i); assert.doesNotMatch(reconcile, /node <cliPath> reconcile/);
-  assert.match(wrapper, /TodayView reconciliation-required operations/); assert.match(wrapper, /\/v1\/reconcile/);
+  assert.match(reconcile, /installation\.json/); assert.match(reconcile, /absolute child of `runtimePath`/); assert.match(reconcile, /POST \/v1\/reconcile/); assert.match(reconcile, /\{planRevision, operationIds, actor\}/); assert.doesNotMatch(reconcile, /request a reconciliation preview/i); assert.doesNotMatch(reconcile, /node <cliPath> reconcile/);
+  assert.match(wrapper, /TodayView `reconciliation` array/); assert.match(wrapper, /actor name/); assert.match(wrapper, /\/v1\/reconcile/);
 });

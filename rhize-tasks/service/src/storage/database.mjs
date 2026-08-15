@@ -294,6 +294,19 @@ export function operationRepository(db) {
       return {operation: clone(updated.operation, 'operation'), attemptCount: updated.attemptCount, result: updated.result === null ? null : clone(updated.result, 'operation result')};
     },
     markState(id, state, result = null) { return writeState(id, state, result); },
+    resumeReconciliation(id, actor) {
+      if (typeof id !== 'string' || id.length === 0 || typeof actor !== 'string' || actor.trim().length === 0) throw new TypeError('reconciliation resume requires an operation id and actor');
+      let updated;
+      transaction(db, () => {
+        const current = getRecord(id);
+        if (!current) throw new Error(`operation ${id} does not exist`);
+        if (current.operation.retryState !== 'reconciliation_required' || current.operation.approval !== 'approved') throw new Error(`operation ${id} is not approved reconciliation work`);
+        updated = {...current.operation, retryState: 'pending'};
+        updateRecord(id, updated, 0, null);
+        appendAudit(db, {event: 'operation_reconciliation_resumed', entityType: 'operation', entityId: id, data: {actor: actor.trim(), priorResult: current.result}});
+      });
+      return clone(updated, 'operation');
+    },
     setApproval(id, nextApproval, actor) {
       if (!['approved', 'rejected'].includes(nextApproval) || typeof actor !== 'string' || actor.length === 0) throw new TypeError('approval transition requires approved or rejected state and a nonempty actor');
       let updated;

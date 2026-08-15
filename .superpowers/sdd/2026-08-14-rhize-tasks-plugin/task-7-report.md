@@ -190,3 +190,25 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 - Re-read the state transitions for false proof, duplicate create on replay, delete-preflight 404, response-lost ambiguity, final-null false success, stale pending IDs, and skipped Reminder cleanup. Success now requires every positive and cleanup gate in the same attempt; unresolved history remains pending for reconciliation.
 - Task 8 dashboard, skills, commands, and tests were not modified. The paused Task 8 read-only review can resume independently.
 - The live Tom-Mac acceptance gate remains intentionally unperformed.
+
+## Final reconciliation contract — prompted resume authority
+
+### Corrected behavior
+
+- Added the single-purpose transactional `resumeReconciliation(id, actor)` repository transition. It accepts only approved operations currently in `reconciliation_required`, preserves the prior normalized result in the same-transaction audit event, clears the active result, resets the state to `pending` and attempt count to zero, and therefore grants exactly one new maximum-two-attempt budget after explicit human approval. Other operation states and unapproved records are rejected.
+- `POST /v1/reconcile` now accepts only `{planRevision, operationIds, actor}`. It rejects empty/duplicate/unknown IDs, stale revisions, paused automation, unapproved or non-reconciliation records, and unhealthy affected connectors before changing operation state. The exact human request is audited before any resume. Only the selected persisted IDs are resumed and passed to the existing idempotent connector executor; no client-authored operation data or new ID is accepted.
+- A repeated ambiguous connector outcome returns the operation to `reconciliation_required`; it is never retried automatically. A later explicit request starts another independently bounded attempt whose connector marker/preflight runs before mutation.
+- TodayView now requires a separate `reconciliation` array containing only sanitized `{operationId, kind, targetSystem, reason}` records. Reasons come from a fixed safe internal allowlist or the generic `reconciliation_required` value, and reconciliation records are not duplicated in the approval-required list.
+
+### Regression and validation evidence
+
+- Focused storage/API/schema/dashboard boundary: `node --test tests/e2e/local-service.test.mjs tests/e2e/dashboard.test.mjs tests/unit/storage.test.mjs tests/unit/schema-contract.test.mjs` -> 30 passed, 0 failed.
+- Full package suite after the final safe-reason allowlist review: `npm test` -> 170 passed, 0 failed.
+- `npm run validate` -> passed; `claude plugin validate rhize-tasks` -> passed; all six `quick_validate.py` skill checks -> valid.
+- `node --check` for the changed dashboard, API, context, storage, and TodayView modules -> passed. `git diff --check` -> passed.
+- Tests prove the prior terminal-replay behavior, transactional reset/audit preservation, actual connector health/preflight/write after explicit resume, exact selected-ID isolation, audit ordering, stale/paused/unapproved/wrong-state/duplicate rejection, and a second ambiguous result returning to prompted reconciliation.
+
+### Cold review
+
+- Re-read the final boundary for generic state mutation exposure, implicit retries, actor omission, client-supplied operation substitution, pre-audit state changes, partial selected-ID broadening, unsafe persisted reason disclosure, and approval/reconciliation mixing. The public API exposes only the purpose-built route and the repository transition remains state-specific.
+- Loopback tests used only the local hermetic server with injected connectors and credentials. No live connector, Keychain, helper, or external network call ran.

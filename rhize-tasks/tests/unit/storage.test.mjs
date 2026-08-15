@@ -123,3 +123,24 @@ test('operation state round-trips exactly and approval transitions are authorita
     db.close();
   });
 });
+
+test('approved reconciliation resumes atomically with a fresh bounded budget and preserves the prior result in audit', async () => {
+  await withDatabase(file => {
+    const db = openDatabase(file);
+    planRepository(db).save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-14', generatedAt: '2026-08-14T09:00:00Z', status: 'preview', blocks: []});
+    const payload = {listId: 'tasks', title: 'Persist state', dueAt: null, notes: '', externalId: 'reminder-1'};
+    const base = {schemaVersion: 1, id: 'operation-resume', planRevision: 1, kind: 'reminder_upsert', targetSystem: 'reminders', targetId: 'task-1', payload, idempotencyKey: operationKey(1, 'reminder_upsert', 'task-1', payload), approval: 'approved', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'};
+    const operations = operationRepository(db);
+    operations.save(base); operations.beginAttempt(base.id); operations.markState(base.id, 'reconciliation_required', {reason: 'ambiguous_apply', error: {kind: 'timeout', retryable: true, ambiguous: true, status: null}});
+    const resumed = operations.resumeReconciliation(base.id, 'tom');
+    assert.equal(resumed.retryState, 'pending');
+    assert.deepEqual(operations.execution(base.id), {operation: resumed, attemptCount: 0, result: null});
+    const audit = db.prepare("select data_json from audit_log where event = 'operation_reconciliation_resumed' and entity_id = ?").get(base.id);
+    assert.deepEqual(JSON.parse(audit.data_json), {actor: 'tom', priorResult: {reason: 'ambiguous_apply', error: {kind: 'timeout', retryable: true, ambiguous: true, status: null}}});
+    assert.throws(() => operations.resumeReconciliation(base.id, 'tom'), /not approved reconciliation work/);
+    const unapproved = {...base, id: 'operation-unapproved', approval: 'required', idempotencyKey: 'b'.repeat(64)}; operations.save(unapproved); operations.markState(unapproved.id, 'reconciliation_required', {reason: 'ambiguous_apply'});
+    assert.throws(() => operations.resumeReconciliation(unapproved.id, 'tom'), /not approved reconciliation work/);
+    assert.equal(operations.execution(unapproved.id).result.reason, 'ambiguous_apply');
+    db.close();
+  });
+});

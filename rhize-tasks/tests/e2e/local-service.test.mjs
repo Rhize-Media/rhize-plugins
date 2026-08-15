@@ -65,7 +65,7 @@ async function fixture(t) {
     const text = await response.text();
     return {status: response.status, body: text ? JSON.parse(text) : null};
   };
-  return {context, request, writes, secrets};
+  return {context, request, writes, secrets, connectors};
 }
 
 test('server is loopback-only, health is minimal, and every v1 route requires bearer auth', async t => {
@@ -97,6 +97,49 @@ test('revision gates and persisted approval prevent duplicate connector writes',
   const replay = await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: true}});
   assert.equal(first.status, 200); assert.equal(replay.status, 200);
   assert.ok(writes.length >= 1); assert.equal(new Set(writes.map(value => value.idempotencyKey)).size, writes.length);
+});
+
+test('prompted reconciliation exposes exact safe IDs and explicitly resumes only selected approved work', async t => {
+  const {context, request, connectors, writes} = await fixture(t);
+  context.repositories.plans.save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-17', generatedAt: now, status: 'approved', blocks: []});
+  const first = operation({id: 'reconcile-first', approval: 'approved', retryState: 'pending', preconditionRevision: 'r1'});
+  const second = operation({id: 'reconcile-second', approval: 'required', retryState: 'pending', idempotencyKey: 'b'.repeat(64), payload: {listId: 'tasks', title: 'Other', dueAt: null, notes: '', externalId: 'task-2'}});
+  for (const value of [first, second]) { context.repositories.operations.save(value); context.repositories.operations.beginAttempt(value.id); context.repositories.operations.markState(value.id, 'reconciliation_required', {reason: value === first ? 'ambiguous_apply' : '<private source text>'}); }
+  let preflights = 0; connectors.reminders.findByExternalId = async () => { preflights += 1; return {revision: 'r1'}; };
+  const today = await request('/v1/today');
+  assert.deepEqual(today.body.reconciliation, [
+    {operationId: first.id, kind: first.kind, targetSystem: 'reminders', reason: 'ambiguous_apply'},
+    {operationId: second.id, kind: second.kind, targetSystem: 'reminders', reason: 'reconciliation_required'},
+  ]);
+  assert.deepEqual(today.body.approvals, []);
+  const resumed = await request('/v1/reconcile', {method: 'POST', body: {planRevision: 1, operationIds: [first.id], actor: 'tom'}});
+  assert.equal(resumed.status, 200); assert.equal(resumed.body.results[0].state, 'applied'); assert.equal(writes.at(-1).id, first.id); assert.equal(preflights, 1);
+  assert.equal(context.repositories.operations.execution(first.id).attemptCount, 1);
+  assert.equal(context.repositories.operations.get(second.id).retryState, 'reconciliation_required');
+  const events = context.repositories.audit.list(100).reverse().filter(entry => entry.entityId === first.id || entry.event === 'reconciliation_requested').map(entry => entry.event);
+  const requestedAt = events.indexOf('reconciliation_requested'); const resumedAt = events.indexOf('operation_reconciliation_resumed', requestedAt + 1); const attemptedAt = events.indexOf('operation_attempted', resumedAt + 1);
+  assert.ok(requestedAt >= 0 && requestedAt < resumedAt && resumedAt < attemptedAt);
+});
+
+test('reconciliation route rejects invalid authority and a second ambiguous attempt returns to reconciliation required', async t => {
+  const {context, request, connectors} = await fixture(t);
+  context.repositories.plans.save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-17', generatedAt: now, status: 'approved', blocks: []});
+  const pending = operation({id: 'pending', approval: 'approved'}); context.repositories.operations.save(pending);
+  const unapproved = operation({id: 'unapproved', approval: 'required', idempotencyKey: 'c'.repeat(64)}); context.repositories.operations.save(unapproved); context.repositories.operations.markState(unapproved.id, 'reconciliation_required', {reason: 'ambiguous_apply'});
+  const ambiguous = operation({id: 'ambiguous-again', approval: 'approved', idempotencyKey: 'd'.repeat(64)}); context.repositories.operations.save(ambiguous); context.repositories.operations.markState(ambiguous.id, 'reconciliation_required', {reason: 'ambiguous_apply'});
+  const post = body => request('/v1/reconcile', {method: 'POST', body});
+  assert.equal((await post({planRevision: 1, operationIds: [], actor: 'tom'})).status, 400);
+  assert.equal((await post({planRevision: 1, operationIds: [ambiguous.id, ambiguous.id], actor: 'tom'})).status, 400);
+  assert.equal((await post({planRevision: 1, operationIds: [ambiguous.id]})).status, 400);
+  assert.equal((await post({planRevision: 0, operationIds: [ambiguous.id], actor: 'tom'})).status, 409);
+  assert.equal((await post({planRevision: 1, operationIds: ['missing'], actor: 'tom'})).status, 404);
+  assert.equal((await post({planRevision: 1, operationIds: [pending.id], actor: 'tom'})).status, 409);
+  assert.equal((await post({planRevision: 1, operationIds: [unapproved.id], actor: 'tom'})).status, 409);
+  context.repositories.preferences.set('paused', true); assert.equal((await post({planRevision: 1, operationIds: [ambiguous.id], actor: 'tom'})).status, 409); context.repositories.preferences.set('paused', false);
+  const healthy = connectors.reminders.health; connectors.reminders.health = async () => { throw new Error('offline'); }; assert.equal((await post({planRevision: 1, operationIds: [ambiguous.id], actor: 'tom'})).status, 503); connectors.reminders.health = healthy;
+  let calls = 0; connectors.reminders.applyOperation = async () => { calls += 1; throw {kind: 'timeout', retryable: true, ambiguous: true, status: null}; };
+  const first = await post({planRevision: 1, operationIds: [ambiguous.id], actor: 'tom'}); assert.equal(first.body.results[0].state, 'reconciliation_required'); assert.equal(calls, 1);
+  const second = await post({planRevision: 1, operationIds: [ambiguous.id], actor: 'tom'}); assert.equal(second.body.results[0].state, 'reconciliation_required'); assert.equal(calls, 2); assert.equal(context.repositories.operations.execution(ambiguous.id).attemptCount, 1);
 });
 
 test('JSON handling rejects wrong content type, oversized/unknown bodies, and never echoes credentials', async t => {
@@ -150,7 +193,7 @@ test('CLI artifact writes one private read-only TodayView snapshot', async t => 
   const directory = await mkdtemp(path.join(tmpdir(), 'rhize-task7-artifact-'));
   const output = path.join(directory, 'today.html'); let closed = false;
   t.after(() => rm(directory, {recursive: true, force: true}));
-  const view = {schemaVersion: 1, planRevision: 7, generatedAt: now, timeline: [{id: 'busy-opaque', kind: 'outside', start: now, end: '2026-08-17T13:00:00.000Z', redacted: true}], currentBlock: null, nextBlock: null, capacity: {availableMinutes: 420, plannedMinutes: 0, bufferMinutes: 84, risk: 'normal'}, carryovers: [], approvals: [], opportunities: [], warnings: [], connectors: Object.fromEntries(['jira', 'calendar', 'reminders', 'slack'].map(name => [name, {status: 'healthy', freshAt: now, staleMinutes: 0}])), paused: false, degraded: false};
+  const view = {schemaVersion: 1, planRevision: 7, generatedAt: now, timeline: [{id: 'busy-opaque', kind: 'outside', start: now, end: '2026-08-17T13:00:00.000Z', redacted: true}], currentBlock: null, nextBlock: null, capacity: {availableMinutes: 420, plannedMinutes: 0, bufferMinutes: 84, risk: 'normal'}, carryovers: [], approvals: [], reconciliation: [], opportunities: [], warnings: [], connectors: Object.fromEntries(['jira', 'calendar', 'reminders', 'slack'].map(name => [name, {status: 'healthy', freshAt: now, staleMinutes: 0}])), paused: false, degraded: false};
   await runCli(['artifact', '--output', output], {
     createContext: async () => ({async today() { return view; }, close() { closed = true; }}),
     stdout() {},
