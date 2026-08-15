@@ -1,16 +1,84 @@
+function copyIntervals(values = []) { return values.map(({dayOfWeek, start, end}) => ({dayOfWeek, start, end})); }
+function copyCompetencies(values = []) { return values.map(({name, confidence, excluded}) => ({name, confidence, excluded})); }
+function copyStrings(values = []) { return [...values]; }
+
+export function unionCalendarIds(readCalendarIds = [], focusCalendarId) {
+  const result = []; const seen = new Set();
+  for (const value of [...readCalendarIds, focusCalendarId]) if (typeof value === 'string' && value && !seen.has(value)) { seen.add(value); result.push(value); }
+  return result;
+}
+export function profileToStageData(profile, connectorConfig = null) {
+  return {
+    2: {...profile.identity, jiraBaseUrl: profile.jira.baseUrl, jiraAccountId: profile.jira.accountId, slackWorkspaceId: connectorConfig?.slack?.workspaceId ?? '', slackChannelId: connectorConfig?.slack?.channelId ?? '', slackSenderIds: copyStrings(connectorConfig?.slack?.senderIds)},
+    3: {projects: copyStrings(profile.jira.projects), issueTypes: copyStrings(profile.jira.issueTypes), excludedIssueTypes: copyStrings(profile.jira.excludedIssueTypes), projectImportance: {...profile.jira.projectImportance}, opportunityUrgencyThreshold: profile.jira.opportunityUrgencyThreshold, maxDailySuggestions: profile.jira.maxDailySuggestions, competencies: copyCompetencies(profile.jira.competencies)},
+    4: {readCalendarIds: copyStrings(profile.calendar.readCalendarIds), focusCalendarId: profile.calendar.focusCalendarId, redactOutsideTitles: profile.calendar.redactOutsideTitles, awarenessLists: profile.reminders.awarenessLists.map(item => ({...item})), tasksListId: profile.reminders.tasksListId, showOutsideTitles: profile.privacy.showOutsideTitles},
+    5: {workingIntervals: copyIntervals(profile.workingIntervals), breaks: copyIntervals(profile.breaks), ...profile.capacity, ...profile.planning},
+    6: {...profile.routines},
+  };
+}
+export function profileFromStageData(stages, {setupComplete = false, firstPlanApproved = false, automationPaused = false} = {}) {
+  const identity = stages[2]; const jira = stages[3]; const time = stages[4]; const work = stages[5]; const routines = stages[6];
+  return {
+    schemaVersion: 1,
+    identity: {name: identity.name, timezone: identity.timezone, locale: identity.locale},
+    jira: {accountId: identity.jiraAccountId, baseUrl: identity.jiraBaseUrl, projects: copyStrings(jira.projects), issueTypes: copyStrings(jira.issueTypes), excludedIssueTypes: copyStrings(jira.excludedIssueTypes), projectImportance: {...jira.projectImportance}, opportunityUrgencyThreshold: jira.opportunityUrgencyThreshold, maxDailySuggestions: jira.maxDailySuggestions, competencies: copyCompetencies(jira.competencies)},
+    calendar: {readCalendarIds: unionCalendarIds(time.readCalendarIds, time.focusCalendarId), focusCalendarId: time.focusCalendarId, focusCalendarName: 'Rhize Focus', redactOutsideTitles: time.redactOutsideTitles},
+    reminders: {awarenessLists: time.awarenessLists.map(item => ({...item})), tasksListId: time.tasksListId, tasksListName: 'Rhize Tasks'},
+    workingIntervals: copyIntervals(work.workingIntervals), breaks: copyIntervals(work.breaks),
+    capacity: {bufferPercent: work.bufferPercent, maxDailyMinutes: work.maxDailyMinutes},
+    planning: {focusBlockMinutes: work.focusBlockMinutes, minimumBlockMinutes: work.minimumBlockMinutes, allowSplitting: work.allowSplitting, meetingBufferMinutes: work.meetingBufferMinutes, freezeWindowMinutes: work.freezeWindowMinutes},
+    routines: {...routines}, approval: {setupComplete, firstPlanApproved, automationPaused}, privacy: {showOutsideTitles: time.showOutsideTitles},
+  };
+}
+export function setupConnectorRequest(planRevision, connector, stages) {
+  const identity = stages[2]; const jira = stages[3]; const time = stages[4]; let scope;
+  if (connector === 'jira') scope = {projectKeys: copyStrings(jira.projects), issueTypes: copyStrings(jira.issueTypes)};
+  else if (connector === 'calendar') scope = {readCalendarIds: unionCalendarIds(time.readCalendarIds, time.focusCalendarId), focusCalendarId: time.focusCalendarId};
+  else if (connector === 'reminders') scope = {awarenessListIds: time.awarenessLists.map(item => item.id), tasksListId: time.tasksListId};
+  else if (connector === 'slack') scope = {workspaceId: identity.slackWorkspaceId, channelId: identity.slackChannelId, senderIds: copyStrings(identity.slackSenderIds)};
+  else throw new TypeError('invalid_connector');
+  return {planRevision, connector, scope};
+}
+export function probePreviewRequest(planRevision, time) { return {planRevision, mode: 'preview', remindersListId: time.tasksListId, focusCalendarId: time.focusCalendarId}; }
+export function probeApplyRequest(planRevision, probeId, actor) { return {planRevision, mode: 'apply', probeId, actor}; }
+export function planPreviewRequest(planRevision, planningDate) { return planningDate ? {planRevision, planningDate} : {planRevision}; }
+export function resumeSetupStages(stages = {}) { return Array.from({length: 7}, (_, index) => { const number = index + 1; const saved = stages[number]; return {number, complete: saved?.complete === true, data: saved?.data ?? {}}; }); }
+export async function submitCredentials({connector, fields, planRevision, request}) {
+  const values = Object.fromEntries(Object.entries(fields).map(([account, field]) => [account, field.value]));
+  if (Object.values(values).some(value => typeof value !== 'string' || !value)) throw new Error(`Complete every ${connector} credential field.`);
+  for (const field of Object.values(fields)) field.value = '';
+  return request('/v1/setup/credentials', {method: 'POST', body: {planRevision, connector, values}});
+}
+export function createApiRequest({authState, fetchImpl = globalThis.fetch, onUnauthorized = () => {}, onConflict = async () => {}}) {
+  return async (path, options = {}) => {
+    const headers = {...(authState.token ? {authorization: `Bearer ${authState.token}`} : {}), ...(options.body ? {'content-type': 'application/json'} : {})};
+    const response = await fetchImpl(path, {method: options.method ?? 'GET', credentials: 'same-origin', headers, body: options.body ? JSON.stringify(options.body) : undefined});
+    if (response.status === 401) { authState.token = ''; onUnauthorized(); }
+    let body; try { body = await response.json(); } catch { throw new Error(`Local service returned HTTP ${response.status}.`); }
+    if (response.status === 409) { await onConflict(); throw new Error('The plan changed. The current view was refreshed; review it before trying again.'); }
+    if (!response.ok) throw new Error(body?.error?.kind ?? `Local service returned HTTP ${response.status}.`);
+    return body;
+  };
+}
+
 const state = {token: '', planRevision: 0, displayedRevision: 0, paused: false, preview: null, setupScope: null, probe: null, profile: null, connectorConfig: null};
 const byId = id => document.getElementById(id);
 const status = (id, message) => { byId(id).textContent = message; };
 
-async function api(path, options = {}) {
-  const headers = {...(state.token ? {authorization: `Bearer ${state.token}`} : {}), ...(options.body ? {'content-type': 'application/json'} : {})};
-  const response = await fetch(path, {method: options.method ?? 'GET', credentials: 'same-origin', headers, body: options.body ? JSON.stringify(options.body) : undefined});
-  let body = null;
-  try { body = await response.json(); } catch { throw new Error(`Local service returned HTTP ${response.status}.`); }
-  if (response.status === 409) { state.preview = null; state.setupScope = null; state.probe = null; for (const id of ['approve-preview', 'approve-scope', 'approve-sample']) byId(id).disabled = true; await refreshToday(); throw new Error('The plan changed. The current view was refreshed; review it before trying again.'); }
-  if (!response.ok) throw new Error(body?.error?.kind ?? `Local service returned HTTP ${response.status}.`);
-  return body;
-}
+const api = createApiRequest({
+  authState: state,
+  onUnauthorized() {
+    if (typeof document === 'undefined') return;
+    byId('api-token').value = '';
+    status('service-status', 'Disconnected. The troubleshooting bearer was cleared. Run the installed CLI dashboard command for a fresh one-time local session link.');
+  },
+  async onConflict() {
+    state.preview = null; state.setupScope = null; state.probe = null;
+    if (typeof document === 'undefined') return;
+    for (const id of ['approve-preview', 'approve-scope', 'approve-sample']) byId(id).disabled = true;
+    await refreshToday();
+  },
+});
 
 function itemText(item) { return item?.title ?? (item?.redacted ? 'Busy (title hidden)' : item?.kind ?? 'None'); }
 function fillList(id, values, render, empty = 'None') {
@@ -61,34 +129,76 @@ function pairs(value, {number = false} = {}) {
 function awareness(value) {
   return lines(value).map(item => { const [id, duration, show] = item.split('|').map(part => part.trim()); const protectedDurationMinutes = Number(duration); if (!id || !Number.isInteger(protectedDurationMinutes) || !['true', 'false'].includes(show)) throw new Error('Reminder awareness lines must use ID|minutes|true-or-false.'); return {id, protectedDurationMinutes, showTitles: show === 'true'}; });
 }
+const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+function labeledControl(labelText, control) {
+  const wrapper = document.createElement('div'); const label = document.createElement('label'); label.htmlFor = control.id; label.textContent = labelText; wrapper.append(label, control); return wrapper;
+}
+function intervalRows(id) {
+  return [...byId(id).querySelectorAll('.interval-row')].map(row => ({
+    dayOfWeek: Number(row.querySelector('[data-part="day"]').value),
+    start: row.querySelector('[data-part="start"]').value,
+    end: row.querySelector('[data-part="end"]').value,
+  }));
+}
+function renderIntervalRows(id, values = [], label = 'Working interval') {
+  const container = byId(id); container.replaceChildren();
+  values.forEach((value, index) => {
+    const row = document.createElement('div'); row.className = 'dynamic-row interval-row';
+    const key = `${id}-${index}`;
+    const day = document.createElement('select'); day.id = `${key}-day`; day.dataset.part = 'day';
+    dayNames.forEach((name, dayIndex) => { const option = document.createElement('option'); option.value = String(dayIndex + 1); option.textContent = name; day.append(option); }); day.value = String(value.dayOfWeek);
+    const start = document.createElement('input'); start.id = `${key}-start`; start.dataset.part = 'start'; start.type = 'time'; start.value = value.start;
+    const end = document.createElement('input'); end.id = `${key}-end`; end.dataset.part = 'end'; end.type = 'time'; end.value = value.end;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove-row'; remove.textContent = 'Remove'; remove.setAttribute('aria-label', `Remove ${label.toLowerCase()} ${index + 1}`);
+    remove.addEventListener('click', () => { const next = intervalRows(id); next.splice(index, 1); renderIntervalRows(id, next, label); });
+    row.append(labeledControl(`${label} ${index + 1} day`, day), labeledControl(`${label} ${index + 1} start`, start), labeledControl(`${label} ${index + 1} end`, end), remove); container.append(row);
+  });
+}
+function competencyRows() {
+  return [...byId('competency-rows').querySelectorAll('.competency-row')].map(row => ({
+    name: row.querySelector('[data-part="name"]').value.trim(),
+    confidence: Number(row.querySelector('[data-part="confidence"]').value),
+    excluded: row.querySelector('[data-part="excluded"]').checked,
+  }));
+}
+function renderCompetencyRows(values = []) {
+  const container = byId('competency-rows'); container.replaceChildren();
+  values.forEach((value, index) => {
+    const row = document.createElement('div'); row.className = 'dynamic-row competency-row'; const key = `competency-${index}`;
+    const name = document.createElement('input'); name.id = `${key}-name`; name.dataset.part = 'name'; name.value = value.name;
+    const confidence = document.createElement('input'); confidence.id = `${key}-confidence`; confidence.dataset.part = 'confidence'; confidence.type = 'number'; confidence.min = '0'; confidence.max = '1'; confidence.step = '0.01'; confidence.value = String(value.confidence);
+    const excluded = document.createElement('input'); excluded.id = `${key}-excluded`; excluded.dataset.part = 'excluded'; excluded.type = 'checkbox'; excluded.checked = value.excluded === true;
+    const excludedLabel = document.createElement('label'); excludedLabel.className = 'checkbox-label'; excludedLabel.htmlFor = excluded.id; excludedLabel.append(excluded, ' Exclude');
+    const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove-row'; remove.textContent = 'Remove'; remove.setAttribute('aria-label', `Remove competency ${index + 1}`);
+    remove.addEventListener('click', () => { const next = competencyRows(); next.splice(index, 1); renderCompetencyRows(next); });
+    row.append(labeledControl(`Competency ${index + 1} name`, name), labeledControl(`Competency ${index + 1} confidence`, confidence), excludedLabel, remove); container.append(row);
+  });
+}
 function applyStageData(number, data = {}) {
   if (number === 1) check('safety-confirmed', data.safetyConfirmed);
   if (number === 2) { assign('tom-name', data.name); assign('timezone', data.timezone); assign('locale', data.locale); assign('jira-base-url', data.jiraBaseUrl); assign('jira-account-id', data.jiraAccountId); assign('slack-workspace-id', data.slackWorkspaceId); assign('slack-channel-id', data.slackChannelId); assign('slack-sender-ids', data.slackSenderIds?.join('\n')); }
-  if (number === 3) { assign('jira-projects', data.projects?.join('\n')); assign('jira-issue-types', data.issueTypes?.join('\n')); assign('jira-excluded-types', data.excludedIssueTypes?.join('\n')); assign('project-importance', data.projectImportance && Object.entries(data.projectImportance).map(([key, value]) => `${key}=${value}`).join('\n')); assign('competencies', data.competencies?.map(item => `${item.name}=${item.confidence}`).join('\n')); assign('urgency-threshold', data.opportunityUrgencyThreshold); assign('max-suggestions', data.maxDailySuggestions); assign('scope-connector', data.scopeConnector); }
+  if (number === 3) { assign('jira-projects', data.projects?.join('\n')); assign('jira-issue-types', data.issueTypes?.join('\n')); assign('jira-excluded-types', data.excludedIssueTypes?.join('\n')); assign('project-importance', data.projectImportance && Object.entries(data.projectImportance).map(([key, value]) => `${key}=${value}`).join('\n')); if (data.competencies) renderCompetencyRows(data.competencies); assign('urgency-threshold', data.opportunityUrgencyThreshold); assign('max-suggestions', data.maxDailySuggestions); assign('scope-connector', data.scopeConnector); }
   if (number === 4) { assign('calendar-read-ids', data.readCalendarIds?.join('\n')); assign('focus-calendar-id', data.focusCalendarId); check('redact-outside-titles', data.redactOutsideTitles); assign('awareness-lists', data.awarenessLists?.map(item => `${item.id}|${item.protectedDurationMinutes}|${item.showTitles}`).join('\n')); assign('sample-list-id', data.tasksListId); check('show-outside-titles', data.showOutsideTitles); }
-  if (number === 5) { assign('working-days', data.workingDays?.join(',')); assign('work-start', data.workStart); assign('work-end', data.workEnd); assign('break-start', data.breakStart); assign('break-end', data.breakEnd); assign('buffer-percent', data.bufferPercent); assign('max-daily-minutes', data.maxDailyMinutes); assign('focus-minutes', data.focusBlockMinutes); assign('minimum-block-minutes', data.minimumBlockMinutes); assign('meeting-buffer-minutes', data.meetingBufferMinutes); assign('freeze-window-minutes', data.freezeWindowMinutes); check('allow-splitting', data.allowSplitting); }
+  if (number === 5) { if (data.workingIntervals) renderIntervalRows('working-interval-rows', data.workingIntervals, 'Working interval'); if (data.breaks) renderIntervalRows('break-interval-rows', data.breaks, 'Break'); assign('buffer-percent', data.bufferPercent); assign('max-daily-minutes', data.maxDailyMinutes); assign('focus-minutes', data.focusBlockMinutes); assign('minimum-block-minutes', data.minimumBlockMinutes); assign('meeting-buffer-minutes', data.meetingBufferMinutes); assign('freeze-window-minutes', data.freezeWindowMinutes); check('allow-splitting', data.allowSplitting); }
   if (number === 6) { assign('replanning-mode', data.replanningMode); assign('reconciliation-mode', data.reconciliationMode); assign('morning-time', data.morningTime); assign('midday-time', data.middayTime); assign('evening-time', data.eveningTime); }
 }
 function applyProfile(profile, connectorConfig) {
   if (!profile) return;
-  applyStageData(2, {...profile.identity, jiraBaseUrl: profile.jira.baseUrl, jiraAccountId: profile.jira.accountId, slackWorkspaceId: connectorConfig?.slack?.workspaceId, slackChannelId: connectorConfig?.slack?.channelId, slackSenderIds: connectorConfig?.slack?.senderIds});
-  applyStageData(3, profile.jira);
-  applyStageData(4, {...profile.calendar, ...profile.reminders, showOutsideTitles: profile.privacy.showOutsideTitles});
-  const work = profile.workingIntervals[0]; const rest = profile.breaks[0]; applyStageData(5, {...profile.capacity, ...profile.planning, workingDays: [...new Set(profile.workingIntervals.map(item => item.dayOfWeek))], workStart: work?.start, workEnd: work?.end, breakStart: rest?.start, breakEnd: rest?.end});
-  applyStageData(6, profile.routines);
+  const stages = profileToStageData(profile, connectorConfig);
+  for (let number = 2; number <= 6; number += 1) applyStageData(number, stages[number]);
 }
 async function loadSetup() {
   const [setup, preferences] = await Promise.all([api('/v1/setup/status'), api('/v1/preferences')]); state.planRevision = setup.planRevision; state.profile = preferences.profile; state.connectorConfig = preferences.connectorConfig;
-  for (let number = 1; number <= 7; number += 1) { const saved = setup.stages?.[number]; document.querySelector(`[data-stage="${number}"]`).dataset.complete = String(saved?.complete === true); applyStageData(number, saved?.data); }
+  for (const saved of resumeSetupStages(setup.stages)) { document.querySelector(`[data-stage="${saved.number}"]`).dataset.complete = String(saved.complete); applyStageData(saved.number, saved.data); }
   applyProfile(state.profile, state.connectorConfig);
   status('setup-status', `Setup state loaded at plan revision ${state.planRevision}.`);
 }
 function stageData(number) {
   if (number === 1) return {safetyConfirmed: byId('safety-confirmed').checked};
   if (number === 2) return {credentialStorage: 'macos_keychain', name: byId('tom-name').value.trim(), timezone: byId('timezone').value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone, locale: byId('locale').value.trim(), jiraBaseUrl: byId('jira-base-url').value.trim(), jiraAccountId: byId('jira-account-id').value.trim(), slackWorkspaceId: byId('slack-workspace-id').value.trim(), slackChannelId: byId('slack-channel-id').value.trim(), slackSenderIds: lines(byId('slack-sender-ids').value)};
-  if (number === 3) return {projects: lines(byId('jira-projects').value), issueTypes: lines(byId('jira-issue-types').value), excludedIssueTypes: lines(byId('jira-excluded-types').value), projectImportance: pairs(byId('project-importance').value, {number: true}), competencies: Object.entries(pairs(byId('competencies').value, {number: true})).map(([name, confidence]) => ({name, confidence, excluded: false})), opportunityUrgencyThreshold: byId('urgency-threshold').value, maxDailySuggestions: Number(byId('max-suggestions').value), scopeConnector: byId('scope-connector').value};
+  if (number === 3) return {projects: lines(byId('jira-projects').value), issueTypes: lines(byId('jira-issue-types').value), excludedIssueTypes: lines(byId('jira-excluded-types').value), projectImportance: pairs(byId('project-importance').value, {number: true}), competencies: competencyRows(), opportunityUrgencyThreshold: byId('urgency-threshold').value, maxDailySuggestions: Number(byId('max-suggestions').value), scopeConnector: byId('scope-connector').value};
   if (number === 4) return {readCalendarIds: lines(byId('calendar-read-ids').value), focusCalendarId: byId('focus-calendar-id').value.trim(), redactOutsideTitles: byId('redact-outside-titles').checked, awarenessLists: awareness(byId('awareness-lists').value), tasksListId: byId('sample-list-id').value.trim(), showOutsideTitles: byId('show-outside-titles').checked};
-  if (number === 5) return {workingDays: byId('working-days').value.split(',').map(value => Number(value.trim())).filter(Number.isInteger), workStart: byId('work-start').value, workEnd: byId('work-end').value, breakStart: byId('break-start').value, breakEnd: byId('break-end').value, bufferPercent: Number(byId('buffer-percent').value), maxDailyMinutes: Number(byId('max-daily-minutes').value), focusBlockMinutes: Number(byId('focus-minutes').value), minimumBlockMinutes: Number(byId('minimum-block-minutes').value), allowSplitting: byId('allow-splitting').checked, meetingBufferMinutes: Number(byId('meeting-buffer-minutes').value), freezeWindowMinutes: Number(byId('freeze-window-minutes').value)};
+  if (number === 5) return {workingIntervals: intervalRows('working-interval-rows'), breaks: intervalRows('break-interval-rows'), bufferPercent: Number(byId('buffer-percent').value), maxDailyMinutes: Number(byId('max-daily-minutes').value), focusBlockMinutes: Number(byId('focus-minutes').value), minimumBlockMinutes: Number(byId('minimum-block-minutes').value), allowSplitting: byId('allow-splitting').checked, meetingBufferMinutes: Number(byId('meeting-buffer-minutes').value), freezeWindowMinutes: Number(byId('freeze-window-minutes').value)};
   if (number === 6) return {replanningMode: byId('replanning-mode').value, reconciliationMode: byId('reconciliation-mode').value, morningTime: byId('morning-time').value, middayTime: byId('midday-time').value, eveningTime: byId('evening-time').value};
   return {dryRunReviewed: state.preview !== null};
 }
@@ -99,10 +209,7 @@ async function saveStage(number) {
 
 async function saveCredentials(connector) {
   const fields = connector === 'jira' ? {email: 'jira-email', 'api-token': 'jira-token'} : connector === 'google' ? {'client-id': 'google-client-id', 'client-secret': 'google-client-secret', 'refresh-token': 'google-refresh-token'} : {'bot-token': 'slack-bot-token'};
-  const values = Object.fromEntries(Object.entries(fields).map(([account, id]) => [account, byId(id).value]));
-  if (Object.values(values).some(value => !value)) throw new Error(`Complete every ${connector} credential field.`);
-  Object.values(fields).forEach(id => { byId(id).value = ''; });
-  await api('/v1/setup/credentials', {method: 'POST', body: {planRevision: state.planRevision, connector, values}});
+  await submitCredentials({connector, fields: Object.fromEntries(Object.entries(fields).map(([account, id]) => [account, byId(id)])), planRevision: state.planRevision, request: api});
   status('setup-status', `${connector} credentials saved to Keychain; values were cleared from the page.`);
 }
 async function discover(connector) {
@@ -111,43 +218,27 @@ async function discover(connector) {
 function planningDate() { const timeZone = byId('timezone').value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone; const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts().filter(part => part.type !== 'literal').map(part => [part.type, part.value])); return `${parts.year}-${parts.month}-${parts.day}`; }
 function renderPreviewOperation(li, operation) { li.textContent = `${operation.id} · ${operation.kind} · ${operation.targetSystem} · target ${operation.targetId ?? 'new item'} · ${operation.approval} approval · payload ${JSON.stringify(operation.payload)}`; }
 async function preview() {
-  const result = await api('/v1/plans/preview', {method: 'POST', body: {planRevision: state.planRevision, planningDate: planningDate()}}); if (!Array.isArray(result.operations) || !Array.isArray(result.approvalsRequired)) throw new Error('The local service returned an invalid plan preview.'); state.preview = result; state.planRevision = result.planRevision; state.displayedRevision = result.planRevision; fillList('preview-operations', result.operations, renderPreviewOperation, 'No connector writes proposed'); byId('zero-work-reason').textContent = result.zeroWorkReason ? `No schedulable work: ${result.zeroWorkReason}` : 'Schedulable work was found.'; byId('exact-preview').textContent = JSON.stringify(result, null, 2); byId('approve-preview').disabled = false; status('setup-status', `Exact server-derived revision ${result.planRevision} is ready with ${result.approvalsRequired.length} approval-required operations. Review every operation before confirmation.`);
+  const result = await api('/v1/plans/preview', {method: 'POST', body: planPreviewRequest(state.planRevision, planningDate())}); if (!Array.isArray(result.operations) || !Array.isArray(result.approvalsRequired)) throw new Error('The local service returned an invalid plan preview.'); state.preview = result; state.planRevision = result.planRevision; state.displayedRevision = result.planRevision; fillList('preview-operations', result.operations, renderPreviewOperation, 'No connector writes proposed'); byId('zero-work-reason').textContent = result.zeroWorkReason ? `No schedulable work: ${result.zeroWorkReason}` : 'Schedulable work was found.'; byId('exact-preview').textContent = JSON.stringify(result, null, 2); byId('approve-preview').disabled = false; status('setup-status', `Exact server-derived revision ${result.planRevision} is ready with ${result.approvalsRequired.length} approval-required operations. Review every operation before confirmation.`);
 }
 async function previewScope() {
-  const connector = byId('scope-connector').value; const identity = stageData(2); const jira = stageData(3); const time = stageData(4); let scope;
-  if (connector === 'jira') scope = {projectKeys: jira.projects, issueTypes: jira.issueTypes};
-  if (connector === 'calendar') scope = {readCalendarIds: time.readCalendarIds, focusCalendarId: time.focusCalendarId};
-  if (connector === 'reminders') scope = {awarenessListIds: time.awarenessLists.map(item => item.id), tasksListId: time.tasksListId};
-  if (connector === 'slack') scope = {workspaceId: identity.slackWorkspaceId, channelId: identity.slackChannelId, senderIds: identity.slackSenderIds};
-  const result = await api('/v1/setup/connectors', {method: 'POST', body: {planRevision: state.planRevision, connector, scope}}); state.setupScope = result; byId('scope-preview').textContent = JSON.stringify({planRevision: result.planRevision, operation: result.operation, scope: result.scope}, null, 2); byId('approve-scope').disabled = false; status('setup-status', `Exact ${connector} scope is ready for approval at revision ${result.planRevision}.`);
+  const connector = byId('scope-connector').value; const stages = {2: stageData(2), 3: stageData(3), 4: stageData(4)};
+  const result = await api('/v1/setup/connectors', {method: 'POST', body: setupConnectorRequest(state.planRevision, connector, stages)}); state.setupScope = result; byId('scope-preview').textContent = JSON.stringify({planRevision: result.planRevision, operation: result.operation, scope: result.scope}, null, 2); byId('approve-scope').disabled = false; status('setup-status', `Exact ${connector} scope is ready for approval at revision ${result.planRevision}.`);
 }
 async function approveScope() { if (!state.setupScope?.operation?.id) throw new Error('Preview exact connector scope first.'); const result = await api(`/v1/operations/${encodeURIComponent(state.setupScope.operation.id)}/approve`, {method: 'POST', body: {planRevision: state.setupScope.planRevision, actor: 'dashboard'}}); if (result.state !== 'approved_setup_scope') throw new Error('The service did not verify setup scope approval.'); byId('approve-scope').disabled = true; status('setup-status', 'Displayed connector scope was approved and recorded locally.'); state.setupScope = null; }
 async function previewSample() {
-  const remindersListId = byId('sample-list-id').value.trim(); const focusCalendarId = byId('focus-calendar-id').value.trim(); if (!remindersListId || !focusCalendarId) throw new Error('Choose the exact Rhize Tasks list and Rhize Focus calendar first.');
-  const result = await api('/v1/setup/probe', {method: 'POST', body: {planRevision: state.planRevision, mode: 'preview', remindersListId, focusCalendarId}}); state.probe = result; byId('probe-preview').textContent = JSON.stringify({planRevision: result.planRevision, probeId: result.probeId, exact: result.exact}, null, 2); byId('approve-sample').disabled = false; status('setup-status', `Exact reversible probe ${result.probeId} is ready for approval.`);
+  const time = stageData(4); if (!time.tasksListId || !time.focusCalendarId) throw new Error('Choose the exact Rhize Tasks list and Rhize Focus calendar first.');
+  const result = await api('/v1/setup/probe', {method: 'POST', body: probePreviewRequest(state.planRevision, time)}); state.probe = result; byId('probe-preview').textContent = JSON.stringify({planRevision: result.planRevision, probeId: result.probeId, exact: result.exact}, null, 2); byId('approve-sample').disabled = false; status('setup-status', `Exact reversible probe ${result.probeId} is ready for approval.`);
 }
-async function approveSample() { if (!state.probe?.probeId) throw new Error('Preview the reversible probe first.'); const result = await api('/v1/setup/probe', {method: 'POST', body: {planRevision: state.probe.planRevision, mode: 'apply', probeId: state.probe.probeId, actor: 'dashboard'}}); if (result.verified?.reminders !== true || result.verified?.calendar !== true) throw new Error('The service could not verify both reversible probe cleanups.'); byId('approve-sample').disabled = true; status('setup-status', 'Calendar and Reminders probes were created, verified, and removed.'); state.probe = null; }
+async function approveSample() { if (!state.probe?.probeId) throw new Error('Preview the reversible probe first.'); const result = await api('/v1/setup/probe', {method: 'POST', body: probeApplyRequest(state.probe.planRevision, state.probe.probeId, 'dashboard')}); if (result.verified?.reminders !== true || result.verified?.calendar !== true) throw new Error('The service could not verify both reversible probe cleanups.'); byId('approve-sample').disabled = true; status('setup-status', 'Calendar and Reminders probes were created, verified, and removed.'); state.probe = null; }
 function required(value, label) { if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required.`); return value.trim(); }
 function profileFromForm({setupComplete = false} = {}) {
   const identity = stageData(2); const jira = stageData(3); const time = stageData(4); const work = stageData(5); const routines = stageData(6);
-  if (!jira.projects.length || !jira.issueTypes.length || !time.readCalendarIds.length || !work.workingDays.length) throw new Error('Complete the approved Jira scope, calendar awareness, and working days before saving preferences.');
-  if (new Set(work.workingDays).size !== work.workingDays.length || work.workingDays.some(day => day < 1 || day > 7)) throw new Error('Working days must be unique numbers from 1 through 7.');
-  if ((work.breakStart && !work.breakEnd) || (!work.breakStart && work.breakEnd)) throw new Error('Set both break times or leave both blank.');
-  const projectImportance = Object.fromEntries(jira.projects.map(project => [project, jira.projectImportance[project] ?? 3]));
-  return {
-    schemaVersion: 1,
-    identity: {name: required(identity.name, 'Name'), timezone: required(identity.timezone, 'Time zone'), locale: required(identity.locale, 'Locale')},
-    jira: {accountId: required(identity.jiraAccountId, 'Jira account ID'), baseUrl: required(identity.jiraBaseUrl, 'Jira site URL'), projects: jira.projects, issueTypes: jira.issueTypes, excludedIssueTypes: jira.excludedIssueTypes, projectImportance, opportunityUrgencyThreshold: jira.opportunityUrgencyThreshold, maxDailySuggestions: jira.maxDailySuggestions, competencies: jira.competencies},
-    calendar: {readCalendarIds: time.readCalendarIds, focusCalendarId: required(time.focusCalendarId, 'Rhize Focus calendar ID'), focusCalendarName: 'Rhize Focus', redactOutsideTitles: time.redactOutsideTitles},
-    reminders: {awarenessLists: time.awarenessLists, tasksListId: required(time.tasksListId, 'Rhize Tasks list ID'), tasksListName: 'Rhize Tasks'},
-    workingIntervals: work.workingDays.map(dayOfWeek => ({dayOfWeek, start: work.workStart, end: work.workEnd})),
-    breaks: work.breakStart ? work.workingDays.map(dayOfWeek => ({dayOfWeek, start: work.breakStart, end: work.breakEnd})) : [],
-    capacity: {bufferPercent: work.bufferPercent, maxDailyMinutes: work.maxDailyMinutes},
-    planning: {focusBlockMinutes: work.focusBlockMinutes, minimumBlockMinutes: work.minimumBlockMinutes, allowSplitting: work.allowSplitting, meetingBufferMinutes: work.meetingBufferMinutes, freezeWindowMinutes: work.freezeWindowMinutes},
-    routines,
-    approval: {setupComplete, firstPlanApproved: state.profile?.approval?.firstPlanApproved === true, automationPaused: state.paused},
-    privacy: {showOutsideTitles: time.showOutsideTitles},
-  };
+  required(identity.name, 'Name'); required(identity.timezone, 'Time zone'); required(identity.locale, 'Locale'); required(identity.jiraAccountId, 'Jira account ID'); required(identity.jiraBaseUrl, 'Jira site URL'); required(time.focusCalendarId, 'Rhize Focus calendar ID'); required(time.tasksListId, 'Rhize Tasks list ID');
+  if (!jira.projects.length || !jira.issueTypes.length || !work.workingIntervals.length) throw new Error('Complete the approved Jira scope and at least one working interval before saving preferences.');
+  for (const item of [...work.workingIntervals, ...work.breaks]) if (!Number.isInteger(item.dayOfWeek) || item.dayOfWeek < 1 || item.dayOfWeek > 7 || !item.start || !item.end || item.start >= item.end) throw new Error('Every work interval and break needs a valid day, start, and later end time.');
+  for (const item of jira.competencies) if (!item.name || !Number.isFinite(item.confidence) || item.confidence < 0 || item.confidence > 1) throw new Error('Every competency needs a name and confidence from 0 to 1.');
+  jira.projectImportance = Object.fromEntries(jira.projects.map(project => [project, jira.projectImportance[project] ?? 3]));
+  return profileFromStageData({2: identity, 3: jira, 4: time, 5: work, 6: routines}, {setupComplete, firstPlanApproved: state.profile?.approval?.firstPlanApproved === true, automationPaused: state.paused});
 }
 function connectorConfigFromForm() {
   const setup = stageData(2); const parts = [setup.slackWorkspaceId, setup.slackChannelId, ...setup.slackSenderIds];
@@ -166,13 +257,23 @@ async function previewPlan() { if (await savePreferences({setupComplete: true}))
 async function confirmPreview() { if (!state.preview) throw new Error('Generate and review a preview first.'); await api(`/v1/plans/${state.displayedRevision}/approve`, {method: 'POST', body: {actor: 'dashboard', apply: true}}); await saveStage(7); status('setup-status', `Displayed revision ${state.displayedRevision} was confirmed and setup is complete. Refreshing current state.`); state.preview = null; byId('approve-preview').disabled = true; await Promise.all([loadSetup(), refreshToday()]); }
 
 async function loadAuthorized() { await Promise.all([loadSetup(), refreshToday()]); status('service-status', 'Connected to the authenticated loopback service.'); }
-async function connect() { state.token = byId('api-token').value; byId('api-token').value = ''; if (!state.token) { status('service-status', 'Enter a temporary bearer only for local troubleshooting.'); return; } try { await loadAuthorized(); } catch (error) { state.token = ''; status('service-status', error.message); } }
+async function connect() { state.token = byId('api-token').value; byId('api-token').value = ''; if (!state.token) { status('service-status', 'Enter a temporary bearer only for local troubleshooting.'); return; } try { await loadAuthorized(); } catch (error) { state.token = ''; status('service-status', `${error.message} Disconnected; the troubleshooting bearer was cleared. Run the installed CLI dashboard command for a fresh one-time local session link.`); } }
 async function guarded(action) { try { await action(); } catch (error) { status('setup-status', error.message); } }
 
-byId('connect').addEventListener('click', connect);
-byId('pause-automation').addEventListener('click', async () => { try { const result = await api('/v1/pause', {method: 'POST', body: {planRevision: state.displayedRevision, paused: !state.paused}}); state.paused = result.paused; await refreshToday(); } catch (error) { status('plan-status', error.message); } });
-document.querySelectorAll('[data-save-stage]').forEach(button => button.addEventListener('click', () => guarded(() => saveStage(Number(button.dataset.saveStage)))));
-document.querySelectorAll('[data-secret]').forEach(button => button.addEventListener('click', () => guarded(() => saveCredentials(button.dataset.secret))));
-document.querySelectorAll('[data-discover]').forEach(button => button.addEventListener('click', () => guarded(() => discover(button.dataset.discover))));
-byId('preview-scope').addEventListener('click', () => guarded(previewScope)); byId('approve-scope').addEventListener('click', () => guarded(approveScope)); byId('preview-sample').addEventListener('click', () => guarded(previewSample)); byId('approve-sample').addEventListener('click', () => guarded(approveSample)); byId('preview-plan').addEventListener('click', () => guarded(previewPlan)); byId('approve-preview').addEventListener('click', () => guarded(confirmPreview));
-loadAuthorized().catch(error => { status('service-status', `${error.message} Open a fresh one-time dashboard link or use the local bearer troubleshooting fallback.`); });
+export function bootDashboard() {
+  renderCompetencyRows([{name: 'ads', confidence: .95, excluded: false}, {name: 'marketing', confidence: .95, excluded: false}, {name: 'GHL', confidence: .9, excluded: false}, {name: 'Sanity content', confidence: .75, excluded: false}]);
+  renderIntervalRows('working-interval-rows', [1, 2, 3, 4, 5].map(dayOfWeek => ({dayOfWeek, start: '09:00', end: '17:00'})), 'Working interval');
+  renderIntervalRows('break-interval-rows', [], 'Break');
+  byId('connect').addEventListener('click', connect);
+  byId('pause-automation').addEventListener('click', async () => { try { const result = await api('/v1/pause', {method: 'POST', body: {planRevision: state.displayedRevision, paused: !state.paused}}); state.paused = result.paused; await refreshToday(); } catch (error) { status('plan-status', error.message); } });
+  byId('add-competency').addEventListener('click', () => renderCompetencyRows([...competencyRows(), {name: '', confidence: .5, excluded: false}]));
+  byId('add-working-interval').addEventListener('click', () => renderIntervalRows('working-interval-rows', [...intervalRows('working-interval-rows'), {dayOfWeek: 1, start: '09:00', end: '17:00'}], 'Working interval'));
+  byId('add-break-interval').addEventListener('click', () => renderIntervalRows('break-interval-rows', [...intervalRows('break-interval-rows'), {dayOfWeek: 1, start: '12:00', end: '13:00'}], 'Break'));
+  document.querySelectorAll('[data-save-stage]').forEach(button => button.addEventListener('click', () => guarded(() => saveStage(Number(button.dataset.saveStage)))));
+  document.querySelectorAll('[data-secret]').forEach(button => button.addEventListener('click', () => guarded(() => saveCredentials(button.dataset.secret))));
+  document.querySelectorAll('[data-discover]').forEach(button => button.addEventListener('click', () => guarded(() => discover(button.dataset.discover))));
+  byId('preview-scope').addEventListener('click', () => guarded(previewScope)); byId('approve-scope').addEventListener('click', () => guarded(approveScope)); byId('preview-sample').addEventListener('click', () => guarded(previewSample)); byId('approve-sample').addEventListener('click', () => guarded(approveSample)); byId('preview-plan').addEventListener('click', () => guarded(previewPlan)); byId('approve-preview').addEventListener('click', () => guarded(confirmPreview));
+  loadAuthorized().catch(error => { status('service-status', `${error.message} Open a fresh one-time dashboard link or use the local bearer troubleshooting fallback.`); });
+}
+
+if (typeof document !== 'undefined') bootDashboard();

@@ -21,6 +21,12 @@ fieldset { margin: 1rem 0; padding: 1rem; border: 1px solid var(--line); border-
 .section-heading, .button-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
 .summary-grid, .command-grid { display: grid; gap: 1rem; } .summary-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } .command-grid { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 1rem; }
 .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 1rem; }
+.dynamic-rows { display: grid; gap: .75rem; margin-bottom: .75rem; }
+.dynamic-row { display: grid; grid-template-columns: minmax(8rem, 1fr) repeat(2, minmax(7rem, .8fr)) auto; gap: .75rem; align-items: end; padding: .75rem; border: 1px solid var(--line); border-radius: .55rem; }
+.dynamic-row.competency-row { grid-template-columns: minmax(10rem, 1fr) minmax(8rem, .6fr) auto auto; }
+.dynamic-row input, .dynamic-row select { margin-bottom: 0; }
+.dynamic-row .checkbox-label { align-self: center; white-space: nowrap; }
+.dynamic-row .remove-row { background: transparent; color: var(--ink); border-color: var(--line); }
 article, [data-stage] { border: 1px solid var(--line); border-radius: .75rem; padding: 1rem; }
 .timeline { padding-left: 1.25rem; } li + li { margin-top: .6rem; }
 dl { display: grid; grid-template-columns: minmax(6rem, auto) 1fr; gap: .35rem .75rem; } dt { font-weight: 800; } dd { margin: 0; }
@@ -28,4 +34,4 @@ dl { display: grid; grid-template-columns: minmax(6rem, auto) 1fr; gap: .35rem .
 pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 22rem; overflow: auto; padding: .75rem; background: var(--surface); border-radius: .45rem; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; } }
 @media (forced-colors: active) { button, article, [data-stage], main > section { border: 1px solid ButtonText; } .status::before { color: CanvasText; } }
-@media (max-width: 620px) { header { display: block; } .section-heading { align-items: start; } }
+@media (max-width: 620px) { header { display: block; } .section-heading { align-items: start; } .dynamic-row, .dynamic-row.competency-row { grid-template-columns: 1fr; align-items: stretch; } }

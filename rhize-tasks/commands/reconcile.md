@@ -4,4 +4,4 @@ argument-hint: "[source or issue filter]"
 allowed-tools: [Bash, Read]
 ---
 
-Use `$reconcile-rhize-tasks` for this request. Pass `$ARGUMENTS` as user context and preserve prompted reconciliation, approval, stable-ID, and revision boundaries. Never ask for secrets in chat.
+Use `$reconcile-rhize-tasks` for this request. Pass `$ARGUMENTS` as user context, resolve the installed CLI from its manifest, review existing TodayView reconciliation-required operations, and submit only explicitly approved operation IDs and the displayed revision to the local `/v1/reconcile` route. Never ask for secrets in chat.

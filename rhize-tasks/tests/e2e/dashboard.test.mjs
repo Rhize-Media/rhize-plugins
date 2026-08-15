@@ -4,6 +4,17 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
+import {
+  createApiRequest,
+  planPreviewRequest,
+  probeApplyRequest,
+  probePreviewRequest,
+  profileFromStageData,
+  profileToStageData,
+  resumeSetupStages,
+  setupConnectorRequest,
+  submitCredentials,
+} from '../../dashboard/app.js';
 import {renderArtifact, writeArtifactFile} from '../../dashboard/artifact.mjs';
 
 const dashboard = new URL('../../dashboard/', import.meta.url);
@@ -26,6 +37,23 @@ function view(overrides = {}) {
   };
 }
 
+function profile() {
+  return {
+    schemaVersion: 1,
+    identity: {name: 'Tom', timezone: 'America/New_York', locale: 'en-US'},
+    jira: {accountId: 'tom', baseUrl: 'https://jira.example', projects: ['R'], issueTypes: ['Task'], excludedIssueTypes: ['Epic'], projectImportance: {R: 5}, opportunityUrgencyThreshold: 'high', maxDailySuggestions: 3, competencies: [{name: 'ads', confidence: .95, excluded: false}, {name: 'development', confidence: .2, excluded: true}]},
+    calendar: {readCalendarIds: ['outside', 'focus', 'personal'], focusCalendarId: 'focus', focusCalendarName: 'Rhize Focus', redactOutsideTitles: true},
+    reminders: {awarenessLists: [{id: 'personal', protectedDurationMinutes: 30, showTitles: false}], tasksListId: 'tasks', tasksListName: 'Rhize Tasks'},
+    workingIntervals: [{dayOfWeek: 1, start: '08:30', end: '12:00'}, {dayOfWeek: 1, start: '13:00', end: '17:30'}, {dayOfWeek: 3, start: '10:00', end: '16:00'}],
+    breaks: [{dayOfWeek: 1, start: '12:00', end: '13:00'}, {dayOfWeek: 3, start: '12:30', end: '13:15'}],
+    capacity: {bufferPercent: 20, maxDailyMinutes: 480},
+    planning: {focusBlockMinutes: 60, minimumBlockMinutes: 30, allowSplitting: true, meetingBufferMinutes: 15, freezeWindowMinutes: 30},
+    routines: {replanningMode: 'bounded', reconciliationMode: 'prompted', morningTime: '09:00', middayTime: '12:00', eveningTime: '17:00'},
+    approval: {setupComplete: true, firstPlanApproved: true, automationPaused: false},
+    privacy: {showOutsideTitles: false},
+  };
+}
+
 test('dashboard has one heading, labeled navigation, seven resumable stages, and accessible controls', async () => {
   const [html, css] = await Promise.all([asset('index.html'), asset('styles.css')]);
   assert.equal((html.match(/<h1\b/gi) ?? []).length, 1);
@@ -34,7 +62,8 @@ test('dashboard has one heading, labeled navigation, seven resumable stages, and
   assert.match(html, /<label[^>]+for=/i);
   assert.match(html, /id="pause-automation"/);
   assert.match(html, /aria-live="polite"/);
-  for (const id of ['tom-name', 'jira-base-url', 'jira-projects', 'competencies', 'slack-channel-id', 'calendar-read-ids', 'awareness-lists', 'working-days', 'morning-time']) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ['tom-name', 'jira-base-url', 'jira-projects', 'competency-rows', 'add-competency', 'slack-channel-id', 'calendar-read-ids', 'calendar-scope-explanation', 'awareness-lists', 'working-interval-rows', 'add-working-interval', 'break-interval-rows', 'add-break-interval', 'morning-time']) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /Exclude a category/); assert.match(html, /focus calendar is automatically included once/i);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);
   assert.match(css, /forced-colors/);
@@ -48,12 +77,12 @@ test('dashboard uses only the authenticated local API and retains revision-bound
   assert.match(javascript, /\/v1\/setup\/connectors/);
   assert.match(javascript, /\/v1\/setup\/probe/);
   assert.match(javascript, /approved_setup_scope/);
-  assert.match(javascript, /mode:\s*'preview'.*remindersListId.*focusCalendarId/);
-  assert.match(javascript, /mode:\s*'apply'.*probeId.*actor/);
+  assert.match(javascript, /probePreviewRequest\(state\.planRevision, time\)/);
+  assert.match(javascript, /probeApplyRequest\(state\.probe\.planRevision, state\.probe\.probeId, 'dashboard'\)/);
   assert.match(javascript, /verified\?\.reminders.*verified\?\.calendar/);
   assert.match(javascript, /connector:\s*'slack'.*scope:\s*config\.slack.*apply:\s*true/);
   assert.doesNotMatch(javascript, /operationKey|crypto\.subtle|reminder_upsert|calendar_upsert/);
-  assert.match(javascript, /\/v1\/plans\/preview.*planRevision:\s*state\.planRevision.*planningDate:\s*planningDate\(\)/);
+  assert.match(javascript, /\/v1\/plans\/preview.*planPreviewRequest\(state\.planRevision, planningDate\(\)\)/);
   assert.match(javascript, /result\.operations/);
   assert.match(javascript, /zeroWorkReason/);
   assert.doesNotMatch(javascript, /proposedOperations|baseRevision|sourceRevision/);
@@ -65,6 +94,8 @@ test('dashboard uses only the authenticated local API and retains revision-bound
   assert.match(javascript, /planRevision/);
   assert.match(javascript, /response\.status === 409/);
   assert.match(javascript, /credentials:\s*'same-origin'/);
+  assert.match(javascript, /typeof document !== 'undefined'/);
+  assert.match(javascript, /troubleshooting bearer was cleared/i);
   assert.doesNotMatch(javascript, /localStorage|sessionStorage|document\.cookie/);
   assert.doesNotMatch(`${html}\n${javascript}`, /nonce/i);
   assert.doesNotMatch(javascript, /atlassian\.net|googleapis\.com|slack\.com/);
@@ -104,6 +135,44 @@ test('artifact export atomically writes one private HTML snapshot', async t => {
   assert.equal((await stat(output)).mode & 0o777, 0o600);
 });
 
+test('profile setup state round-trips ordered intervals, per-day breaks, and excluded competencies exactly', () => {
+  const original = profile(); const stages = profileToStageData(original, {slack: {workspaceId: 'W', channelId: 'C', senderIds: ['B']}});
+  assert.deepEqual(stages[5].workingIntervals, original.workingIntervals);
+  assert.deepEqual(stages[5].breaks, original.breaks);
+  assert.deepEqual(stages[3].competencies, original.jira.competencies);
+  assert.deepEqual(profileFromStageData(stages, {setupComplete: true, firstPlanApproved: true, automationPaused: false}), original);
+});
+
+test('request helpers preserve scope boundaries and use only lifecycle-owned request shapes', () => {
+  const stages = profileToStageData(profile(), {slack: {workspaceId: 'W', channelId: 'C', senderIds: ['B']}}); stages[4].readCalendarIds = ['outside', 'outside'];
+  assert.deepEqual(setupConnectorRequest(4, 'calendar', stages), {planRevision: 4, connector: 'calendar', scope: {readCalendarIds: ['outside', 'focus'], focusCalendarId: 'focus'}});
+  assert.deepEqual(probePreviewRequest(4, stages[4]), {planRevision: 4, mode: 'preview', remindersListId: 'tasks', focusCalendarId: 'focus'});
+  assert.deepEqual(probeApplyRequest(4, 'probe-1', 'dashboard'), {planRevision: 4, mode: 'apply', probeId: 'probe-1', actor: 'dashboard'});
+  assert.deepEqual(planPreviewRequest(4, '2026-08-17'), {planRevision: 4, planningDate: '2026-08-17'});
+});
+
+test('seven-stage resume state is deterministic and retains saved data', () => {
+  const result = resumeSetupStages({1: {complete: true, data: {safetyConfirmed: true}}, 4: {complete: false, data: {tasksListId: 'tasks'}}});
+  assert.equal(result.length, 7); assert.deepEqual(result[0], {number: 1, complete: true, data: {safetyConfirmed: true}}); assert.deepEqual(result[3], {number: 4, complete: false, data: {tasksListId: 'tasks'}}); assert.equal(result[6].complete, false);
+});
+
+test('credentials clear before a failed request and any 401 clears the troubleshooting bearer', async () => {
+  const fields = {email: {value: 'tom@example.com'}, 'api-token': {value: 'secret'}};
+  await assert.rejects(submitCredentials({connector: 'jira', fields, planRevision: 2, request: async () => { throw new Error('offline'); }}), /offline/);
+  assert.deepEqual(Object.values(fields).map(field => field.value), ['', '']);
+  const authState = {token: 'temporary-bearer'}; let disconnected = false;
+  const request = createApiRequest({authState, fetchImpl: async () => ({status: 401, ok: false, async json() { return {error: {kind: 'unauthorized'}}; }}), onUnauthorized() { disconnected = true; }});
+  await assert.rejects(request('/v1/today'), /unauthorized/); assert.equal(authState.token, ''); assert.equal(disconnected, true);
+});
+
+test('dashboard application is importable without a browser and delegates state/request rules to pure helpers', async () => {
+  const application = await import('../../dashboard/app.js');
+  assert.equal(typeof application.bootDashboard, 'function');
+  const javascript = await asset('app.js');
+  for (const helper of ['profileToStageData', 'profileFromStageData', 'resumeSetupStages', 'setupConnectorRequest', 'submitCredentials']) assert.match(javascript, new RegExp(`${helper}\\(`));
+  assert.match(javascript, /renderIntervalRows\('working-interval-rows'/); assert.match(javascript, /renderCompetencyRows/); assert.match(javascript, /data\.competencies/);
+});
+
 test('shared skills and Claude commands preserve the local planning boundary', async () => {
   const skills = new Map([
     ['rhize-tasks-setup', 'setup'],
@@ -132,4 +201,8 @@ test('shared skills and Claude commands preserve the local planning boundary', a
     assert.match(command, new RegExp(`\\$${name}`), name);
     assert.match(command, /Never ask for secrets in chat/i, name);
   }
+
+  const [reconcile, wrapper] = await Promise.all([readFile(new URL('../../skills/reconcile-rhize-tasks/SKILL.md', import.meta.url), 'utf8'), readFile(new URL('../../commands/reconcile.md', import.meta.url), 'utf8')]);
+  assert.match(reconcile, /installation\.json/); assert.match(reconcile, /absolute child of `runtimePath`/); assert.match(reconcile, /POST \/v1\/reconcile/); assert.match(reconcile, /\{planRevision, operationIds\}/); assert.doesNotMatch(reconcile, /request a reconciliation preview/i); assert.doesNotMatch(reconcile, /node <cliPath> reconcile/);
+  assert.match(wrapper, /TodayView reconciliation-required operations/); assert.match(wrapper, /\/v1\/reconcile/);
 });
