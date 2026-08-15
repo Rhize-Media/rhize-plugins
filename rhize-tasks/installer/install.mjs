@@ -4,8 +4,8 @@ import {createServer} from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {bootoutIfLoaded, getLaunchAgentState} from './launchctl.mjs';
-import {exactInstallPaths, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
+import {bootoutIfLoaded, bootoutServiceIfLoaded, getLaunchAgentState} from './launchctl.mjs';
+import {assertInstallPathIdentities, captureInstallPathIdentities, exactInstallPaths, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
 
 const installerDir = path.dirname(fileURLToPath(import.meta.url));
@@ -115,7 +115,7 @@ async function hardenTree(root, executableNames = new Set()) {
   await chmod(root, executableNames.has(path.basename(root)) ? 0o700 : 0o600);
 }
 
-async function placeRuntimeCandidate(stagePath, targetPath) {
+async function placeRuntimeCandidate(stagePath, targetPath, beforeMutation = async () => {}) {
   const backupPath = `${targetPath}.previous-${process.pid}`;
   let hadTarget = false;
   try {
@@ -124,36 +124,51 @@ async function placeRuntimeCandidate(stagePath, targetPath) {
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
+  await beforeMutation(backupPath);
   await rm(backupPath, {recursive: true, force: true});
-  if (hadTarget) await rename(targetPath, backupPath);
+  if (hadTarget) {
+    await beforeMutation(targetPath);
+    await rename(targetPath, backupPath);
+  }
   try {
+    await beforeMutation(targetPath);
     await rename(stagePath, targetPath);
   } catch (error) {
-    if (hadTarget) await rename(backupPath, targetPath);
+    if (hadTarget) {
+      await beforeMutation(targetPath);
+      await rename(backupPath, targetPath);
+    }
     throw error;
   }
   return {backupPath, hadTarget, targetPath};
 }
 
-async function rollbackRuntimeCandidate(transaction) {
+async function rollbackRuntimeCandidate(transaction, beforeMutation = async () => {}) {
+  await beforeMutation(transaction.targetPath);
   await rm(transaction.targetPath, {recursive: true, force: true});
-  if (transaction.hadTarget) await rename(transaction.backupPath, transaction.targetPath);
+  if (transaction.hadTarget) {
+    await beforeMutation(transaction.targetPath);
+    await rename(transaction.backupPath, transaction.targetPath);
+  }
 }
 
-async function finalizeRuntimeCandidate(transaction) {
+async function finalizeRuntimeCandidate(transaction, beforeMutation = async () => {}) {
+  await beforeMutation(transaction.backupPath);
   await rm(transaction.backupPath, {recursive: true, force: true});
 }
 
-export async function atomicWriteFile(target, value, mode = 0o600) {
+export async function atomicWriteFile(target, value, mode = 0o600, {beforeMutation = async () => {}} = {}) {
   const temporary = `${target}.installing-${process.pid}`;
   let handle;
   try {
+    await beforeMutation(target);
     handle = await open(temporary, 'wx', mode);
     await handle.writeFile(value);
     await handle.sync();
     await handle.close();
     handle = undefined;
     await chmod(temporary, mode);
+    await beforeMutation(target);
     await rename(temporary, target);
     const directory = await open(path.dirname(target), 'r');
     try {
@@ -163,7 +178,10 @@ export async function atomicWriteFile(target, value, mode = 0o600) {
     }
   } catch (error) {
     await handle?.close().catch(() => {});
-    await rm(temporary, {force: true});
+    try {
+      await beforeMutation(target);
+      await rm(temporary, {force: true});
+    } catch {}
     throw error;
   }
 }
@@ -180,12 +198,27 @@ async function snapshotFile(target) {
   }
 }
 
-async function restoreFile(target, snapshot, writeMetadata) {
+async function restoreFile(target, snapshot, writeMetadata, beforeMutation) {
+  await beforeMutation(target);
   if (!snapshot.exists) {
     await rm(target, {force: true});
     return;
   }
-  await writeMetadata(target, snapshot.bytes, snapshot.mode);
+  await writeMetadata(target, snapshot.bytes, snapshot.mode, {beforeMutation});
+}
+
+async function assertFileRestored(target, snapshot) {
+  if (!snapshot.exists) {
+    try {
+      await lstat(target);
+    } catch (error) {
+      if (error.code === 'ENOENT') return;
+      throw error;
+    }
+    throw new Error('restored_file_should_be_absent');
+  }
+  const metadata = await lstat(target);
+  if (!metadata.isFile() || metadata.isSymbolicLink() || (metadata.mode & 0o777) !== snapshot.mode || !(await readFile(target)).equals(snapshot.bytes)) throw new Error('restored_file_mismatch');
 }
 
 function activationError(activationState, cause, rollbackFailures = []) {
@@ -195,6 +228,20 @@ function activationError(activationState, cause, rollbackFailures = []) {
   error.rollbackState = rollbackFailures.length === 0 ? 'restored' : rollbackFailures.join(',');
   error.cause = cause;
   return error;
+}
+
+function assertLoadedConfiguration(state, plistPath) {
+  if (!state.loaded || typeof state.configurationPath !== 'string' || path.resolve(state.configurationPath) !== path.resolve(plistPath)) throw new Error('launchctl_configuration_mismatch');
+}
+
+async function bootstrapAgent({run, domain, plistPath}) {
+  let result;
+  try {
+    result = await run('/bin/launchctl', ['bootstrap', domain, plistPath], {timeoutMs: 15_000, maxOutputBytes: 64_000});
+  } catch {
+    throw new Error('launchctl_bootstrap_uncertain');
+  }
+  if (!result || result.code !== 0 || result.timedOut) throw new Error('launchctl_bootstrap_uncertain');
 }
 
 export async function install({
@@ -226,13 +273,17 @@ export async function install({
   await chmod(paths.logDir, 0o700);
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true, mode: 0o700});
   await verifyInstallPaths(paths, pathPolicy);
+  const pathIdentities = await captureInstallPathIdentities(paths, pathPolicy);
+  const beforeMutation = target => assertInstallPathIdentities(pathIdentities, target);
   const priorPlist = await snapshotFile(paths.launchAgentPath);
   const priorManifest = await snapshotFile(paths.installationManifestPath);
   const domain = `gui/${uid}`;
   const priorAgent = await getLaunchAgentState({run, domain, label});
+  if (priorAgent.loaded) assertLoadedConfiguration(priorAgent, paths.launchAgentPath);
   const stagePath = path.join(paths.runtimeDir, `.installing-${process.pid}`);
   const runtimePath = path.join(versionsDir, version);
   await verifyRuntimePath(paths, runtimePath, pathPolicy);
+  await beforeMutation(stagePath);
   await rm(stagePath, {recursive: true, force: true});
 
   let runtimeTransaction;
@@ -251,9 +302,13 @@ export async function install({
     await chmod(path.join(appPathInStage, 'Contents', 'MacOS', 'RhizeRemindersHelper'), 0o700);
     await hardenTree(stagePath, new Set(['RhizeRemindersHelper']));
     await runChecked('/usr/bin/codesign', ['--force', '--sign', '-', appPathInStage], {timeoutMs: 30_000}, run);
-    runtimeTransaction = await placeRuntimeCandidate(stagePath, runtimePath);
+    await assertInstallPathIdentities(pathIdentities);
+    runtimeTransaction = await placeRuntimeCandidate(stagePath, runtimePath, beforeMutation);
   } catch (error) {
-    await rm(stagePath, {recursive: true, force: true});
+    try {
+      await beforeMutation(stagePath);
+      await rm(stagePath, {recursive: true, force: true});
+    } catch {}
     throw error;
   }
 
@@ -267,29 +322,72 @@ export async function install({
   });
   const manifest = `${JSON.stringify({schemaVersion: 1, version, runtimePath, cliPath, appPath, label}, null, 2)}\n`;
   let activationState = 'bootout_failed';
+  let priorBootoutAttempted = false;
+  let newBootstrapState = 'not_attempted';
   try {
-    if (priorAgent.loaded) await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
+    await assertInstallPathIdentities(pathIdentities);
+    if (priorAgent.loaded) {
+      priorBootoutAttempted = true;
+      await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
+    }
     activationState = 'metadata_write_failed';
-    await writeMetadata(paths.launchAgentPath, plist, 0o600);
-    await writeMetadata(paths.installationManifestPath, manifest, 0o600);
+    await assertInstallPathIdentities(pathIdentities);
+    await writeMetadata(paths.launchAgentPath, plist, 0o600, {beforeMutation});
+    await assertInstallPathIdentities(pathIdentities);
+    await writeMetadata(paths.installationManifestPath, manifest, 0o600, {beforeMutation});
     await verifyInstallPaths(paths, pathPolicy);
     activationState = 'bootstrap_failed';
-    await runChecked('/bin/launchctl', ['bootstrap', domain, paths.launchAgentPath], {timeoutMs: 15_000}, run);
+    await assertInstallPathIdentities(pathIdentities);
+    newBootstrapState = 'attempted_uncertain';
+    await bootstrapAgent({run, domain, plistPath: paths.launchAgentPath});
+    newBootstrapState = 'succeeded';
     activationState = 'activation_verification_failed';
-    if (!(await getLaunchAgentState({run, domain, label})).loaded) throw new Error('new_agent_not_loaded');
-    await finalizeRuntimeCandidate(runtimeTransaction);
+    assertLoadedConfiguration(await getLaunchAgentState({run, domain, label}), paths.launchAgentPath);
+    await finalizeRuntimeCandidate(runtimeTransaction, beforeMutation);
     return {appPath, launchAgentPath: paths.launchAgentPath, runtimePath, version, label};
   } catch (activationFailure) {
     const rollbackFailures = [];
-    try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata); } catch { rollbackFailures.push('plist_restore_failed'); }
-    try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata); } catch { rollbackFailures.push('manifest_restore_failed'); }
-    try { await rollbackRuntimeCandidate(runtimeTransaction); } catch { rollbackFailures.push('runtime_restore_failed'); }
+    const agentMayHaveChanged = priorBootoutAttempted || newBootstrapState !== 'not_attempted';
+    if (agentMayHaveChanged) {
+      try {
+        await beforeMutation(paths.launchAgentPath);
+        await bootoutServiceIfLoaded({run, domain, label});
+        if ((await getLaunchAgentState({run, domain, label})).loaded) throw new Error('launchctl_service_still_loaded');
+      } catch {
+        rollbackFailures.push('agent_bootout_failed');
+      }
+    }
+    try { await rollbackRuntimeCandidate(runtimeTransaction, beforeMutation); } catch { rollbackFailures.push('runtime_restore_failed'); }
+    try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata, beforeMutation); } catch { rollbackFailures.push('manifest_restore_failed'); }
+    try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata, beforeMutation); } catch { rollbackFailures.push('plist_restore_failed'); }
     try {
-      const current = await getLaunchAgentState({run, domain, label});
-      if (priorAgent.loaded && !current.loaded) await runChecked('/bin/launchctl', ['bootstrap', domain, paths.launchAgentPath], {timeoutMs: 15_000}, run);
-      if (!priorAgent.loaded && current.loaded) await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
+      await assertFileRestored(paths.launchAgentPath, priorPlist);
+      await assertFileRestored(paths.installationManifestPath, priorManifest);
     } catch {
-      rollbackFailures.push('agent_restore_failed');
+      rollbackFailures.push('metadata_verification_failed');
+    }
+    if (priorAgent.loaded) {
+      try {
+        await beforeMutation(paths.launchAgentPath);
+        if (!priorPlist.exists || !priorManifest.exists) throw new Error('prior_configuration_incomplete');
+        await assertFileRestored(paths.launchAgentPath, priorPlist);
+        await assertFileRestored(paths.installationManifestPath, priorManifest);
+        await bootstrapAgent({run, domain, plistPath: paths.launchAgentPath});
+        assertLoadedConfiguration(await getLaunchAgentState({run, domain, label}), paths.launchAgentPath);
+      } catch {
+        rollbackFailures.push('agent_restore_failed');
+      }
+    } else {
+      try {
+        const current = await getLaunchAgentState({run, domain, label});
+        if (current.loaded) {
+          await beforeMutation(paths.launchAgentPath);
+          await bootoutServiceIfLoaded({run, domain, label});
+        }
+        if ((await getLaunchAgentState({run, domain, label})).loaded) throw new Error('launchctl_service_still_loaded');
+      } catch {
+        rollbackFailures.push('agent_restore_failed');
+      }
     }
     throw activationError(activationState, activationFailure, rollbackFailures);
   }

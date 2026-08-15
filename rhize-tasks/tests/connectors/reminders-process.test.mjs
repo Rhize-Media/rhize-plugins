@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {access, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises';
+import {access, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -8,6 +8,7 @@ import {createRemindersConnector} from '../../service/src/connectors/reminders.m
 import {atomicWriteFile, checkLoopbackPort, install, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
 import {parseUninstallChoice, uninstall} from '../../installer/uninstall.mjs';
 import {createTestPathPolicy, exactInstallPaths} from '../../installer/safe-paths.mjs';
+import {isKnownBootoutNotLoaded, isKnownPrintNotLoaded} from '../../installer/launchctl.mjs';
 
 async function seedInstallSource(home, version = '0.1.0') {
   const sourceRoot = path.join(home, 'plugin');
@@ -24,17 +25,26 @@ async function seedInstallSource(home, version = '0.1.0') {
   return {sourceRoot, packageRoot};
 }
 
-function fakeInstallerRun({loaded = false, bootstrapCode = 0, bootoutCode = 0, calls = []} = {}) {
+function fakeInstallerRun({loaded = false, bootstrapCode = 0, bootoutCode = 0, calls = [], plistPath = '/tmp/media.rhize.tasks.plist'} = {}) {
   let isLoaded = loaded;
   return async (file, args) => {
     calls.push([file, args]);
     if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
-    if (args[0] === 'print') return isLoaded ? {code: 0, stdout: 'loaded'} : {code: 3, stderr: 'Could not find service'};
+    if (args[0] === 'print') return isLoaded ? {code: 0, stdout: `path = ${plistPath}\n`} : {code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'};
     if (args[0] === 'bootout') { if (bootoutCode === 0) isLoaded = false; return bootoutCode === 0 ? {code: 0, stdout: ''} : {code: bootoutCode, stderr: 'Input/output error'}; }
     if (args[0] === 'bootstrap') { if (bootstrapCode === 0) isLoaded = true; return {code: bootstrapCode, stderr: bootstrapCode === 0 ? '' : 'Bootstrap failed'}; }
     return {code: 0, stdout: ''};
   };
 }
+
+test('launchctl print and bootout use independent narrow absent-service classifiers', () => {
+  const expected = {domain: 'gui/501', label: 'media.rhize.tasks'};
+  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'}, expected), true);
+  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Could not find service "other" in domain for user gui: 501'}, expected), false);
+  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Input/output error'}, expected), false);
+  assert.equal(isKnownBootoutNotLoaded({code: 3, stderr: 'Boot-out failed: 3: No such process'}), true);
+  assert.equal(isKnownBootoutNotLoaded({code: 113, stderr: 'Could not find service "media.rhize.tasks" in domain for user gui: 501'}), false);
+});
 
 test('process runner writes one request, captures one response, and enforces timeout', async () => {
   const echo = await runProcess(process.execPath, ['--input-type=module', '--eval', 'process.stdin.pipe(process.stdout)'], {input: '{"command":"lists"}\n', timeoutMs: 2_000});
@@ -163,7 +173,7 @@ test('installer constructs and signs the app then bootstraps one user agent', as
   await writeFile(path.join(sourceRoot, 'service', 'history.sqlite'), 'do-not-copy');
   const paths = exactInstallPaths(root);
   const calls = [];
-  const run = fakeInstallerRun({calls});
+  const run = fakeInstallerRun({calls, plistPath: paths.launchAgentPath});
   const result = await install({paths, pathPolicy: createTestPathPolicy(root), sourceRoot, run, uid: 501, nodePath: '/opt/node', validate: async () => ({})});
   await access(path.join(result.appPath, 'Contents', 'MacOS', 'RhizeRemindersHelper'));
   await access(path.join(result.runtimePath, 'service', 'bin', 'rhize-tasks.mjs'));
@@ -203,7 +213,7 @@ test('initial install bootstrap failure rolls back all introduced metadata and r
   const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-bootstrap-fail-'));
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
-  const run = fakeInstallerRun({bootstrapCode: 5});
+  const run = fakeInstallerRun({bootstrapCode: 5, plistPath: paths.launchAgentPath});
   await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.code === 'local_activation_failed' && error.activationState === 'bootstrap_failed');
   await assert.rejects(access(paths.launchAgentPath));
   await assert.rejects(access(paths.installationManifestPath));
@@ -228,7 +238,7 @@ test('upgrade bootstrap failure restores prior bytes, modes, runtime, and loaded
   const run = async (file, args) => {
     calls.push([file, args]);
     if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
-    if (args[0] === 'print') return loaded ? {code: 0, stdout: 'loaded'} : {code: 3, stderr: 'Could not find service'};
+    if (args[0] === 'print') return loaded ? {code: 0, stdout: `path = ${paths.launchAgentPath}\n`} : {code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'};
     if (args[0] === 'bootout') { loaded = false; return {code: 0, stdout: ''}; }
     if (args[0] === 'bootstrap') { bootstrapCalls += 1; if (bootstrapCalls === 1) return {code: 5, stderr: 'Bootstrap failed'}; loaded = true; return {code: 0, stdout: ''}; }
     return {code: 0, stdout: ''};
@@ -243,6 +253,100 @@ test('upgrade bootstrap failure restores prior bytes, modes, runtime, and loaded
   assert.equal(loaded, true);
 });
 
+test('verification failure after successful bootstrap boots out new state and restores the exact prior cross-version config', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-verify-rollback-'));
+  const {sourceRoot} = await seedInstallSource(home, '0.2.0');
+  const paths = exactInstallPaths(home);
+  const priorRuntime = path.join(paths.runtimeDir, 'versions', '0.1.0');
+  const newRuntime = path.join(paths.runtimeDir, 'versions', '0.2.0');
+  const priorPlist = Buffer.from(`old-runtime=${priorRuntime}\n`);
+  const priorManifest = Buffer.from(`${JSON.stringify({schemaVersion: 1, version: '0.1.0', runtimePath: priorRuntime, cliPath: path.join(priorRuntime, 'service', 'bin', 'rhize-tasks.mjs')})}\n`);
+  await mkdir(path.join(priorRuntime, 'service', 'bin'), {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
+  await writeFile(path.join(priorRuntime, 'old-runtime-marker'), 'old');
+  await writeFile(paths.launchAgentPath, priorPlist);
+  await writeFile(paths.installationManifestPath, priorManifest);
+  let loaded = true;
+  let printCalls = 0;
+  let bootstrapCalls = 0;
+  let restoredBootstrapPlist = null;
+  const run = async (file, args) => {
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    if (args[0] === 'print') {
+      printCalls += 1;
+      if (printCalls === 2) return {code: 5, stderr: 'state temporarily unavailable'};
+      return loaded ? {code: 0, stdout: `path = ${paths.launchAgentPath}\n`} : {code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'};
+    }
+    if (args[0] === 'bootout') { loaded = false; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootstrap') { bootstrapCalls += 1; if (bootstrapCalls === 2) restoredBootstrapPlist = await readFile(args[2]); loaded = true; return {code: 0, stdout: ''}; }
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.activationState === 'activation_verification_failed' && error.rollbackState === 'restored');
+  assert.deepEqual(await readFile(paths.launchAgentPath), priorPlist);
+  assert.deepEqual(await readFile(paths.installationManifestPath), priorManifest);
+  assert.equal(await readFile(path.join(priorRuntime, 'old-runtime-marker'), 'utf8'), 'old');
+  await assert.rejects(access(newRuntime));
+  assert.equal(loaded, true);
+  assert.equal(bootstrapCalls, 2);
+  assert.deepEqual(restoredBootstrapPlist, priorPlist);
+});
+
+test('ambiguous new bootstrap is treated as possibly loaded and restored to the prior agent', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-ambiguous-bootstrap-'));
+  const {sourceRoot} = await seedInstallSource(home, '0.2.0');
+  const paths = exactInstallPaths(home);
+  const priorRuntime = path.join(paths.runtimeDir, 'versions', '0.1.0');
+  await mkdir(path.join(priorRuntime, 'service', 'bin'), {recursive: true});
+  await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
+  await writeFile(paths.launchAgentPath, `old=${priorRuntime}\n`);
+  await writeFile(paths.installationManifestPath, `${JSON.stringify({schemaVersion: 1, version: '0.1.0', runtimePath: priorRuntime})}\n`);
+  let loaded = true;
+  let bootstrapCalls = 0;
+  let bootoutCalls = 0;
+  const run = async (file, args) => {
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    if (args[0] === 'print') return loaded ? {code: 0, stdout: `path = ${paths.launchAgentPath}\n`} : {code: 113, stderr: 'Could not find service "media.rhize.tasks" in domain for user gui: 501'};
+    if (args[0] === 'bootout') { bootoutCalls += 1; loaded = false; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootstrap') {
+      bootstrapCalls += 1;
+      loaded = true;
+      if (bootstrapCalls === 1) throw new Error('lost bootstrap response');
+      return {code: 0, stdout: ''};
+    }
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.activationState === 'bootstrap_failed' && error.rollbackState === 'restored');
+  assert.equal(loaded, true);
+  assert.equal(bootstrapCalls, 2);
+  assert.equal(bootoutCalls, 2);
+  assert.match(await readFile(paths.launchAgentPath, 'utf8'), /0\.1\.0/);
+});
+
+test('prior-unloaded rollback removes a newly loaded service even when the restored plist is absent', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-unloaded-rollback-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  let loaded = false;
+  let printCalls = 0;
+  let bootoutCalls = 0;
+  const run = async (file, args) => {
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    if (args[0] === 'print') {
+      printCalls += 1;
+      if (printCalls === 2) return {code: 5, stderr: 'state temporarily unavailable'};
+      return loaded ? {code: 0, stdout: `path = ${paths.launchAgentPath}\n`} : {code: 113, stderr: 'Could not find service "media.rhize.tasks" in domain for user gui: 501'};
+    }
+    if (args[0] === 'bootstrap') { loaded = true; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootout') { bootoutCalls += 1; loaded = false; return {code: 0, stdout: ''}; }
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.activationState === 'activation_verification_failed' && error.rollbackState === 'restored');
+  assert.equal(loaded, false);
+  assert.equal(bootoutCalls, 1);
+  await assert.rejects(access(paths.launchAgentPath));
+  await assert.rejects(access(paths.installationManifestPath));
+});
+
 test('bootout failure leaves prior metadata and runtime untouched', async () => {
   const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-bootout-transaction-'));
   const {sourceRoot} = await seedInstallSource(home);
@@ -253,7 +357,7 @@ test('bootout failure leaves prior metadata and runtime untouched', async () => 
   await writeFile(path.join(priorRuntime, 'old'), 'old');
   await writeFile(paths.launchAgentPath, 'old plist');
   await writeFile(paths.installationManifestPath, 'old manifest');
-  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({loaded: true, bootoutCode: 5}), uid: 501, validate: async () => ({})}), error => error.activationState === 'bootout_failed');
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({loaded: true, bootoutCode: 5, plistPath: paths.launchAgentPath}), uid: 501, validate: async () => ({})}), error => error.activationState === 'bootout_failed');
   assert.equal(await readFile(paths.launchAgentPath, 'utf8'), 'old plist');
   assert.equal(await readFile(paths.installationManifestPath, 'utf8'), 'old manifest');
   assert.equal(await readFile(path.join(priorRuntime, 'old'), 'utf8'), 'old');
@@ -269,7 +373,7 @@ test('manifest atomic-write failure restores plist and removes new runtime', asy
     if (writes === 2) throw new Error('injected_manifest_rename_failure');
     return atomicWriteFile(...args);
   };
-  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun(), uid: 501, validate: async () => ({}), writeMetadata}), error => error.activationState === 'metadata_write_failed');
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({plistPath: paths.launchAgentPath}), uid: 501, validate: async () => ({}), writeMetadata}), error => error.activationState === 'metadata_write_failed');
   await assert.rejects(access(paths.launchAgentPath));
   await assert.rejects(access(paths.installationManifestPath));
   await assert.rejects(access(path.join(paths.runtimeDir, 'versions', '0.1.0')));
@@ -284,6 +388,34 @@ test('installer rejects symlinked trusted ancestors before running commands', as
   let calls = 0;
   await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), run: async () => { calls += 1; return {code: 0}; }, validate: async () => { calls += 1; }}), /symlink/);
   assert.equal(calls, 0);
+});
+
+test('installer detects an ancestor identity swap after staging without writing or launching through the attacker path', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-identity-swap-'));
+  const attacker = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-attacker-'));
+  const {sourceRoot} = await seedInstallSource(home);
+  const paths = exactInstallPaths(home);
+  const launchAgents = path.dirname(paths.launchAgentPath);
+  const originalLaunchAgents = `${launchAgents}.original`;
+  const launchctlCalls = [];
+  let swapped = false;
+  const run = async (file, args) => {
+    if (file === '/bin/launchctl') {
+      launchctlCalls.push(args);
+      return {code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'};
+    }
+    if (file === '/usr/bin/codesign' && !swapped) {
+      swapped = true;
+      await rename(launchAgents, originalLaunchAgents);
+      await symlink(attacker, launchAgents);
+    }
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => /install_path_identity_changed/.test(error.message) || (error.code === 'local_activation_rollback_failed' && /install_path_identity_changed/.test(error.cause?.message ?? '')));
+  assert.deepEqual(await readdir(attacker), []);
+  assert.equal(launchctlCalls.some(args => args[0] === 'bootout' || args[0] === 'bootstrap'), false);
+  await rm(launchAgents);
+  await rename(originalLaunchAgents, launchAgents);
 });
 
 test('uninstall refuses symlinked runtime and plist targets without removing their targets', async () => {
@@ -305,6 +437,27 @@ test('uninstall refuses symlinked runtime and plist targets without removing the
   await symlink(outsidePlist, paths.launchAgentPath);
   await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(home), run: async () => ({code: 0})}), /symlink/);
   assert.equal(await readFile(outsidePlist, 'utf8'), 'keep plist');
+});
+
+test('uninstall rechecks ancestor identities after bootout before removing local files', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-swap-'));
+  const attacker = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-attacker-'));
+  const paths = exactInstallPaths(home);
+  const launchAgents = path.dirname(paths.launchAgentPath);
+  const originalLaunchAgents = `${launchAgents}.original`;
+  await mkdir(paths.runtimeDir, {recursive: true});
+  await mkdir(launchAgents, {recursive: true});
+  await writeFile(paths.launchAgentPath, 'plist');
+  const run = async () => {
+    await rename(launchAgents, originalLaunchAgents);
+    await symlink(attacker, launchAgents);
+    return {code: 0, stdout: ''};
+  };
+  await assert.rejects(uninstall({choices: {data: 'delete', items: 'retain'}, paths, pathPolicy: createTestPathPolicy(home), uid: 501, run}), /install_path_identity_changed|symlink_install_path/);
+  assert.deepEqual(await readdir(attacker), []);
+  await access(paths.runtimeDir);
+  await rm(launchAgents);
+  await rename(originalLaunchAgents, launchAgents);
 });
 
 test('uninstall requires explicit data and item retention choices', () => {

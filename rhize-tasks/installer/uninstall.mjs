@@ -4,7 +4,7 @@ import process from 'node:process';
 import {pathToFileURL} from 'node:url';
 import {bootoutIfLoaded} from './launchctl.mjs';
 import {defaultInstallPaths} from './install.mjs';
-import {productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
+import {assertInstallPathIdentities, captureInstallPathIdentities, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
 
 const allowedOptions = new Set(['--retain-data', '--delete-data', '--retain-items', '--delete-items']);
@@ -73,6 +73,7 @@ export async function requestInstalledItemCleanup({paths, pathPolicy = productio
 export async function uninstall({choices, paths = defaultInstallPaths(), pathPolicy = productionPathPolicy(), run = runProcess, uid = process.getuid?.(), nodePath = process.execPath} = {}) {
   validateChoices(choices);
   await verifyInstallPaths(paths, pathPolicy);
+  const pathIdentities = await captureInstallPathIdentities(paths, pathPolicy);
   const support = path.resolve(paths.supportDir);
   const runtime = path.resolve(paths.runtimeDir);
   try {
@@ -81,13 +82,22 @@ export async function uninstall({choices, paths = defaultInstallPaths(), pathPol
   } catch (error) {
     if (error.code !== 'ENOENT') throw error;
   }
+  await assertInstallPathIdentities(pathIdentities, paths.launchAgentPath);
   await bootoutIfLoaded({run, domain: `gui/${uid}`, plistPath: paths.launchAgentPath});
   if (choices.items === 'delete') await requestInstalledItemCleanup({paths, pathPolicy, run, nodePath});
   await verifyInstallPaths(paths, pathPolicy);
+  await assertInstallPathIdentities(pathIdentities);
+  await assertInstallPathIdentities(pathIdentities, paths.launchAgentPath);
   await rm(paths.launchAgentPath, {force: true});
+  await assertInstallPathIdentities(pathIdentities, paths.installationManifestPath);
   await rm(paths.installationManifestPath, {force: true});
-  if (choices.data === 'delete') await rm(support, {recursive: true, force: true});
-  else await rm(runtime, {recursive: true, force: true});
+  if (choices.data === 'delete') {
+    await assertInstallPathIdentities(pathIdentities, support);
+    await rm(support, {recursive: true, force: true});
+  } else {
+    await assertInstallPathIdentities(pathIdentities, runtime);
+    await rm(runtime, {recursive: true, force: true});
+  }
   return {ok: true, dataRetained: choices.data === 'retain', itemsRetained: choices.items === 'retain'};
 }
 
