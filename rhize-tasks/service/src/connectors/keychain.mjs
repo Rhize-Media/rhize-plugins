@@ -11,6 +11,7 @@ export function createKeychain({spawnFile} = {}) {
   async function call(args, input) {
     try {
       const result = await spawnFile('/usr/bin/security', args, {input, timeoutMs: 10_000, maxOutputBytes: 16_384});
+      if (result?.code === 44) throw connectorError('not_found');
       if (!result || result.code !== 0 || result.timedOut) throw connectorError(result?.timedOut ? 'timeout' : 'keychain', {retryable: result?.timedOut === true});
       return result;
     } catch (error) { throw normalizeError(error); }

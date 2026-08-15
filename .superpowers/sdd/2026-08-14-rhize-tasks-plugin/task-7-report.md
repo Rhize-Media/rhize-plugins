@@ -104,3 +104,38 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 - Re-read the final source/tests for auth bypass, nonce/bearer disclosure, client-authored setup operations, scope reuse, premature activation, calendar fake IDs, non-Rhize Reminders writes, fuzzy delegation merge, broad static paths, and routine double dispatch. No such path remains in the tested boundary.
 - No runtime dependency or Task 6 installer/launchctl test edit was introduced. Concurrent Task 8 dashboard/skill/command files were not staged as Task 7 work.
 - The same intentionally unperformed live Tom-Mac acceptance gate above remains. Setup probe failure is fail-closed and audited; it does not claim activation or successful cleanup without exact post-delete absence checks.
+
+## Fix Round 2 — lifecycle-owned reconciliation
+
+### Corrected behavior
+
+- Focus-calendar events are considered mutable only when all three private properties are present: `rhizeOperationKey`, `rhizeTaskId`, and `rhizeBlockSlot`. Snapshot sync removes only those proven-owned events from protected time. Planning reuses the stable logical `taskId:sessionIndex` slot across plan revisions, updates the proven Google event ID, creates only a missing slot, and proposes deletion only for exact orphaned owned events. Unmarked focus events and all outside-calendar events remain immutable commitments.
+- Catch-up completion now stores the selected due instance plus every earlier missed instance and records all of them in one database transaction. The next poll is therefore `not_due` until a genuinely new phase. Evening carryover is limited to unfinished, nonterminal owned tasks that appeared in the prior approved plan; opportunities, provisional work, terminal work, and never-scheduled tasks are excluded.
+- Authenticated pre-profile discovery uses credential-backed, discovery-only adapters and never depends on an active profile. Jira, Calendar, Reminders, and Slack responses expose only sanitized identifiers/names/configuration, and the common mutation/snapshot methods on production discovery adapters return `unsupported`.
+- Setup probes now require the current plan revision and previously approved exact Reminders/Calendar scope at preview and apply. The pending record contains the exact scope, operations, operation keys, and revision. Apply persists its actor approval audit before acquiring connectors or performing a side effect, reconciles an ambiguous create by exact `findByExternalId`, verifies both samples, and always attempts exact cleanup. An unproven ambiguous result remains `reconciliation_required` and never returns a verified response.
+- Installer activation now verifies an existing strong API bearer or generates, writes, and reads back a new 32-byte bearer through the injected Keychain adapter before LaunchAgent activation. Existing tokens are never rotated implicitly. Keychain failure aborts activation; a newly introduced token is deleted during rollback. Runtime bootstrap no longer creates or rotates credentials and fails closed when installation did not provision a valid bearer. This supersedes the Fix Round 1 runtime-provisioning statement above.
+- `POST /v1/plans/preview` now accepts only `{planRevision, planningDate?}`. The service validates the optional Gregorian date, performs its own connector snapshot and planning pass, and derives the exact operations. Client-authored operation arrays are rejected. An empty plan is approvable only with the explicit `zeroWorkReason: "no_eligible_tasks"`; an empty plan with eligible work is rejected at approval.
+
+### Regression coverage
+
+- Proven owned event update, orphan deletion, stable block-slot key, user focus-event protection, and exact private-property round trip.
+- DST/backlog catch-up collapse with a second same-wake evaluation returning `not_due`.
+- Pre-profile discovery factory invocation in discovery-only mode.
+- Existing/missing/failed Keychain bearer behavior and installer rollback paths.
+- Server-owned plan preview contract plus existing revision, activation, approval replay, and JSON strictness E2E coverage.
+- Existing setup-probe tests now require approved scope and prove revision binding, once-only execution, verification, exact deletion, and non-activation.
+
+### Validation evidence
+
+- Focused lifecycle/installer/routine boundary: `node --test tests/e2e/lifecycle-fix-round-2.test.mjs tests/connectors/reminders-process.test.mjs tests/failure-injection/routines.test.mjs` -> 42 passed, 0 failed after the final installer state correction; the narrower final lifecycle/installer rerun was 35 passed, 0 failed.
+- Full package suite with ephemeral loopback permission: `npm test` -> 155 passed, 0 failed.
+- Package validation: `npm run validate` -> passed.
+- Syntax: `node --check` for changed context, routes, probe, Calendar connector, and installer modules -> passed.
+- Diff hygiene: `git diff --check` -> passed.
+- No network, real Keychain, real Google/Jira/Slack transport, or real Reminders helper was used; every external boundary was injected.
+
+### Cold review and handoff
+
+- Re-read the changed service, connector, scheduler, installer, schema, and tests for unproven Calendar deletion, plan-revision-dependent ownership, catch-up replay, broad discovery, pre-audit probe writes, token disclosure/rotation, and client-authored plan operations. No such path remains in the tested boundary.
+- Task 8 must update its plan-preview request to the exact contract `POST /v1/plans/preview` with `{planRevision, planningDate?}`. The response contains the server-derived `operations`, `approvalsRequired`, freshness, and `zeroWorkReason`.
+- The live Tom-Mac acceptance gate remains intentionally unperformed.

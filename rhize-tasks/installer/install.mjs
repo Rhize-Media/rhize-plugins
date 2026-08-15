@@ -1,12 +1,14 @@
 import {access, chmod, copyFile, cp, lstat, mkdir, open, readFile, readdir, rename, rm} from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
 import {createServer} from 'node:net';
+import {randomBytes} from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {bootoutIfLoaded, bootoutServiceIfLoaded, getLaunchAgentState} from './launchctl.mjs';
 import {assertInstallPathIdentities, captureInstallPathIdentities, exactInstallPaths, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
+import {createKeychain} from '../service/src/connectors/keychain.mjs';
 
 const installerDir = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.dirname(installerDir);
@@ -77,6 +79,26 @@ async function runChecked(file, args, options = {}, run = runProcess) {
   const result = await run(file, args, options);
   if (!result || result.code !== 0 || result.timedOut) throw new Error('installer_command_failed');
   return result;
+}
+
+export async function ensureApiBearer({keychain, randomBytesImpl = randomBytes}) {
+  if (!keychain?.get || !keychain?.set || !keychain?.delete) throw new TypeError('invalid_keychain');
+  try {
+    const existing = await keychain.get('media.rhize.tasks.api', 'bearer');
+    if (typeof existing !== 'string' || existing.length < 32) throw new Error('api_token_invalid');
+    return {created: false};
+  } catch (error) {
+    if (error?.kind !== 'not_found') throw error;
+  }
+  const value = randomBytesImpl(32).toString('base64url');
+  try {
+    await keychain.set('media.rhize.tasks.api', 'bearer', value);
+    if (await keychain.get('media.rhize.tasks.api', 'bearer') !== value) throw new Error('api_token_verification_failed');
+    return {created: true};
+  } catch (error) {
+    try { await keychain.delete('media.rhize.tasks.api', 'bearer'); } catch {}
+    throw error;
+  }
 }
 
 export async function renderLaunchAgent({nodePath, cliPath, stdoutPath, stderrPath, templatePath = path.join(installerDir, 'media.rhize.tasks.plist.template')}) {
@@ -254,6 +276,7 @@ export async function install({
   sourceRoot = pluginRoot,
   validate = validatePrerequisites,
   writeMetadata = atomicWriteFile,
+  keychain = createKeychain({spawnFile: run}),
 } = {}) {
   await verifyInstallPaths(paths, pathPolicy);
   await validate({supportDir: paths.supportDir, port, run});
@@ -324,8 +347,12 @@ export async function install({
   let activationState = 'bootout_failed';
   let priorBootoutAttempted = false;
   let newBootstrapState = 'not_attempted';
+  let tokenCreated = false;
   try {
     await assertInstallPathIdentities(pathIdentities);
+    activationState = 'token_provision_failed';
+    tokenCreated = (await ensureApiBearer({keychain})).created;
+    activationState = 'bootout_failed';
     if (priorAgent.loaded) {
       priorBootoutAttempted = true;
       await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath});
@@ -358,6 +385,7 @@ export async function install({
       }
     }
     try { await rollbackRuntimeCandidate(runtimeTransaction, beforeMutation); } catch { rollbackFailures.push('runtime_restore_failed'); }
+    if (tokenCreated) try { await keychain.delete('media.rhize.tasks.api', 'bearer'); } catch { rollbackFailures.push('token_restore_failed'); }
     try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata, beforeMutation); } catch { rollbackFailures.push('manifest_restore_failed'); }
     try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata, beforeMutation); } catch { rollbackFailures.push('plist_restore_failed'); }
     try {

@@ -5,10 +5,13 @@ import path from 'node:path';
 import test from 'node:test';
 import {runProcess} from '../../service/src/connectors/process-runner.mjs';
 import {createRemindersConnector} from '../../service/src/connectors/reminders.mjs';
-import {atomicWriteFile, checkLoopbackPort, install, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
+import {atomicWriteFile, checkLoopbackPort, ensureApiBearer, install as installRuntime, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
 import {parseUninstallChoice, uninstall} from '../../installer/uninstall.mjs';
 import {createTestPathPolicy, exactInstallPaths} from '../../installer/safe-paths.mjs';
 import {isKnownBootoutNotLoaded, isKnownPrintNotLoaded} from '../../installer/launchctl.mjs';
+
+const existingKeychain = () => ({async get() { return 't'.repeat(43); }, async set() {}, async delete() {}});
+const install = options => installRuntime({keychain: existingKeychain(), ...options});
 
 async function seedInstallSource(home, version = '0.1.0') {
   const sourceRoot = path.join(home, 'plugin');
@@ -29,6 +32,7 @@ function fakeInstallerRun({loaded = false, bootstrapCode = 0, bootoutCode = 0, c
   let isLoaded = loaded;
   return async (file, args) => {
     calls.push([file, args]);
+    if (file === '/usr/bin/security' && args[0] === 'find-generic-password') return {code: 0, stdout: `${'t'.repeat(43)}\n`};
     if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
     if (args[0] === 'print') return isLoaded ? {code: 0, stdout: `path = ${plistPath}\n`} : {code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'};
     if (args[0] === 'bootout') { if (bootoutCode === 0) isLoaded = false; return bootoutCode === 0 ? {code: 0, stdout: ''} : {code: bootoutCode, stderr: 'Input/output error'}; }
@@ -36,6 +40,16 @@ function fakeInstallerRun({loaded = false, bootstrapCode = 0, bootoutCode = 0, c
     return {code: 0, stdout: ''};
   };
 }
+
+test('installer token authority verifies existing tokens and provisions missing tokens without returning the secret', async () => {
+  let value = null; let writes = 0;
+  const keychain = {async get() { if (value === null) throw {kind: 'not_found'}; return value; }, async set(_service, _account, next) { writes += 1; value = next; }, async delete() { value = null; }};
+  assert.deepEqual(await ensureApiBearer({keychain, randomBytesImpl: () => Buffer.alloc(32, 7)}), {created: true});
+  assert.equal(writes, 1); assert.equal(value.length >= 32, true);
+  assert.deepEqual(await ensureApiBearer({keychain}), {created: false}); assert.equal(writes, 1);
+  const broken = {async get() { throw {kind: 'not_found'}; }, async set() { throw new Error('keychain_write_failed'); }, async delete() {}};
+  await assert.rejects(ensureApiBearer({keychain: broken}), /keychain_write_failed/);
+});
 
 test('launchctl print and bootout use independent narrow absent-service classifiers', () => {
   const expected = {domain: 'gui/501', label: 'media.rhize.tasks'};

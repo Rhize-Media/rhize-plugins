@@ -1,8 +1,8 @@
-import {randomBytes, randomUUID} from 'node:crypto';
+import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
 import {createGoogleCalendarConnector} from '../connectors/google-calendar.mjs';
-import {createHttpTransport} from '../connectors/http.mjs';
+import {connectorError, createHttpTransport} from '../connectors/http.mjs';
 import {createJiraConnector} from '../connectors/jira.mjs';
 import {createKeychain} from '../connectors/keychain.mjs';
 import {runProcess} from '../connectors/process-runner.mjs';
@@ -55,8 +55,8 @@ function routineStore(db, now) {
       const last = lastRuns[kind]; const sameLocalDay = last && localDateInZone(new Date(last), value.identity.timezone) === localDateInZone(instant, value.identity.timezone);
       return {shouldRun: !sameLocalDay, catchUp: false, phase: kind, dueAt: null};
     },
-    async begin(kind, instant, due) { const id = randomUUID(); db.prepare('insert into routine_runs (id, routine, state, started_at, completed_at, data_json) values (?, ?, ?, ?, null, ?)').run(id, kind, 'running', instant.toISOString(), json({catchUp: due.catchUp === true})); return id; },
-    async complete(id, state, data) { db.prepare('update routine_runs set state = ?, completed_at = ?, data_json = ? where id = ?').run(state, now().toISOString(), json(sanitize(data)), id); },
+    async begin(kind, instant, due) { const id = randomUUID(); db.prepare('insert into routine_runs (id, routine, state, started_at, completed_at, data_json) values (?, ?, ?, ?, null, ?)').run(id, kind, 'running', instant.toISOString(), json({catchUp: due.catchUp === true, dueAt: due.dueAt ?? null, covered: due.covered ?? [], missedCount: due.missedCount ?? 0})); return id; },
+    async complete(id, state, data) { const row = db.prepare('select routine, data_json from routine_runs where id = ?').get(id); const started = parse(row?.data_json, {}); const completedAt = now().toISOString(); db.exec('begin immediate'); try { db.prepare('update routine_runs set state = ?, completed_at = ?, data_json = ? where id = ?').run(state, completedAt, json(sanitize({...data, missedCount: started.missedCount ?? 0})), id); if (state === 'completed' && started.catchUp === true) for (const covered of started.covered ?? []) if (covered.phase !== row.routine || covered.dueAt !== started.dueAt) db.prepare('insert into routine_runs (id, routine, state, started_at, completed_at, data_json) values (?, ?, ?, ?, ?, ?)').run(randomUUID(), covered.phase, 'completed', completedAt, completedAt, json({coveredBy: id, dueAt: covered.dueAt})); db.exec('commit'); } catch (error) { db.exec('rollback'); throw error; } },
   };
 }
 
@@ -69,6 +69,11 @@ function exactDelegationMatch(tasks, delegationId) {
   const marker = `rhize-delegation:v1:${delegationId}`;
   const matches = tasks.filter(task => task.sourceType === 'jira' && typeof task.description === 'string' && task.description.split(/\r?\n/).some(line => line === marker));
   return matches.length === 1 ? matches[0] : null;
+}
+
+function discoveryAdapter(connector) {
+  const unsupported = async () => { throw connectorError('unsupported'); };
+  return {health: () => connector.health(), discover: () => connector.discover(), readSnapshot: unsupported, applyOperation: unsupported, findByExternalId: unsupported};
 }
 
 function defaultRegistry({preferences, keychain, transport, now}) {
@@ -95,6 +100,21 @@ function defaultRegistry({preferences, keychain, transport, now}) {
       if (connector === 'reminders') return createRemindersConnector({helperPath: fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url)), tasksListId: scope.tasksListId, awarenessListIds: scope.awarenessListIds});
       if (connector === 'slack') return createSlackConnector({...scope, credentials: keychain, transport});
       throw new TypeError('invalid setup connector');
+    },
+    async getDiscovery(connector) {
+      const identity = (preferences.get('setup_stages') ?? {})['2']?.data ?? {};
+      if (connector === 'jira') {
+        if (typeof identity.jiraBaseUrl !== 'string' || !identity.jiraBaseUrl || typeof identity.jiraAccountId !== 'string' || !identity.jiraAccountId) throw new ApiError('connector_configuration_required', 409);
+        return discoveryAdapter(createJiraConnector({baseUrl: identity.jiraBaseUrl, accountId: identity.jiraAccountId, projectKeys: [], issueTypes: [], credentials: keychain, transport, discoverAll: true, discoveryOnly: true}));
+      }
+      if (connector === 'calendar') return discoveryAdapter(createGoogleCalendarConnector({readCalendarIds: [], focusCalendarId: '__discovery__', credentials: keychain, transport, now, discoverAll: true, discoveryOnly: true}));
+      if (connector === 'reminders') return discoveryAdapter(createRemindersConnector({helperPath: fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url)), tasksListId: '__discovery__', awarenessListIds: []}));
+      if (connector === 'slack') {
+        const scope = {workspaceId: identity.slackWorkspaceId, channelId: identity.slackChannelId, senderIds: identity.slackSenderIds};
+        if (!scope.workspaceId || !scope.channelId || !Array.isArray(scope.senderIds) || scope.senderIds.length === 0) throw new ApiError('connector_configuration_required', 409);
+        return discoveryAdapter(createSlackConnector({...scope, credentials: keychain, transport}));
+      }
+      throw new ApiError('invalid_connector');
     },
     async getSetupProbe(exact) {
       return {calendar: await this.getSetup('calendar', {readCalendarIds: [exact.focusCalendarId], focusCalendarId: exact.focusCalendarId}), reminders: await this.getSetup('reminders', {awarenessListIds: [], tasksListId: exact.remindersListId})};
@@ -134,13 +154,19 @@ async function googleCalendarCleanup({keys, profile, keychain, transport}) {
   return deleted;
 }
 
-function generatedOperations(plan, profile, freshness, now) {
+function generatedOperations(plan, profile, freshness, now, ownedCalendarEvents = []) {
   const healthy = system => freshness[system]?.status === 'healthy'; const values = [];
+  const ownedBySlot = new Map();
+  if (healthy('calendar')) for (const event of ownedCalendarEvents) { const valuesForSlot = ownedBySlot.get(event.blockSlot) ?? []; valuesForSlot.push(event); ownedBySlot.set(event.blockSlot, valuesForSlot); }
+  const retainedCalendarIds = new Set();
   for (const block of plan.blocks) {
-    const payload = {calendarId: profile.calendar.focusCalendarId, title: 'Rhize Focus', start: block.start, end: block.end, description: `Rhize task ${block.taskId}`, externalId: block.id};
-    const key = operationKey(plan.planRevision, 'calendar_upsert', null, payload);
-    values.push({schemaVersion: 1, id: `calendar:${key.slice(0, 24)}`, planRevision: plan.planRevision, kind: 'calendar_upsert', targetSystem: 'calendar', targetId: null, payload, idempotencyKey: key, approval: healthy('calendar') ? 'approved' : 'required', preconditionRevision: null, retryState: 'pending', createdAt: now});
+    const blockSlot = `${block.taskId}:${block.sessionIndex}`; const stableKey = operationKey(1, 'calendar_upsert', blockSlot, {taskId: block.taskId, blockSlot}); const existing = ownedBySlot.get(blockSlot)?.shift() ?? null;
+    if (existing) retainedCalendarIds.add(existing.id);
+    const payload = {calendarId: profile.calendar.focusCalendarId, title: 'Rhize Focus', start: block.start, end: block.end, description: `Rhize task ${block.taskId}`, externalId: block.id, operationKey: stableKey, taskId: block.taskId, blockSlot};
+    const key = operationKey(plan.planRevision, 'calendar_upsert', existing?.id ?? null, payload);
+    values.push({schemaVersion: 1, id: `calendar:${key.slice(0, 24)}`, planRevision: plan.planRevision, kind: 'calendar_upsert', targetSystem: 'calendar', targetId: existing?.id ?? null, payload, idempotencyKey: key, approval: healthy('calendar') ? 'approved' : 'required', preconditionRevision: existing?.revision ?? null, retryState: 'pending', createdAt: now});
   }
+  if (healthy('calendar')) for (const event of ownedCalendarEvents) if (!retainedCalendarIds.has(event.id)) { const payload = {}; const key = operationKey(plan.planRevision, 'calendar_delete', event.id, payload); values.push({schemaVersion: 1, id: `calendar:${key.slice(0, 24)}`, planRevision: plan.planRevision, kind: 'calendar_delete', targetSystem: 'calendar', targetId: event.id, payload, idempotencyKey: key, approval: 'approved', preconditionRevision: event.revision, retryState: 'pending', createdAt: now}); }
   for (const taskId of new Set(plan.blocks.map(block => block.taskId))) {
     const task = plan.__tasks.find(item => item.id === taskId); const payload = {listId: profile.reminders.tasksListId, title: task.title, dueAt: null, notes: '', externalId: task.id};
     const key = operationKey(plan.planRevision, 'reminder_upsert', task.id, payload);
@@ -154,20 +180,17 @@ export async function createServiceContext({databasePath, database, keychain, co
   const preferences = preferenceStore(db, now); const audit = auditStore(db, now);
   const repositories = {tasks: taskRepository(db), plans: planRepository(db), operations: operationRepository(db), preferences, audit};
   const credentialStore = keychain ?? createKeychain({spawnFile: runProcess});
-  let apiToken; let tokenProvisioned = false;
-  try { apiToken = await credentialStore.get('media.rhize.tasks.api', 'bearer'); } catch {}
-  if (typeof apiToken !== 'string' || apiToken.length < 32) {
-    apiToken = randomBytes(32).toString('base64url');
-    await credentialStore.set('media.rhize.tasks.api', 'bearer', apiToken);
-    tokenProvisioned = true;
-  }
-  const injectedRegistry = connectors ? {async get() { return connectors; }, async getSetup(name) { return connectors[name]; }, async getSetupProbe() { return connectors; }} : connectorFactory ? {async get() { return connectorFactory(preferences.get('profile')); }, async getSetup(name, scope) { return (await connectorFactory(null, {name, scope}))[name]; }, async getSetupProbe(exact) { return connectorFactory(null, {probe: exact}); }} : defaultRegistry({preferences, keychain: credentialStore, transport, now});
+  let apiToken;
+  try { apiToken = await credentialStore.get('media.rhize.tasks.api', 'bearer'); } catch { throw new ApiError('api_token_missing', 503); }
+  if (typeof apiToken !== 'string' || apiToken.length < 32) throw new ApiError('api_token_invalid', 503);
+  const injectedRegistry = connectors ? {async get() { return connectors; }, async getDiscovery(name) { return connectors[name]; }, async getSetup(name) { return connectors[name]; }, async getSetupProbe() { return connectors; }} : connectorFactory ? {async get() { return connectorFactory(preferences.get('profile')); }, async getDiscovery(name) { return (await connectorFactory(null, {name, discoveryOnly: true}))[name]; }, async getSetup(name, scope) { return (await connectorFactory(null, {name, scope}))[name]; }, async getSetupProbe(exact) { return connectorFactory(null, {probe: exact}); }} : defaultRegistry({preferences, keychain: credentialStore, transport, now});
   const activation = {async canActivate() { const value = preferences.get('profile'); return Boolean(value && isAutomationActive(value) && Number.isInteger(preferences.get('approved_plan_revision')) && !preferences.get('pending_scope_change')); }};
   const sessions = createSessionAuthority({preferences, audit, now, port});
-  const setupProbe = createSetupProbeAuthority({preferences, audit, connectorRegistry: injectedRegistry, now});
+  const currentRevision = () => repositories.plans.latest()?.planRevision ?? 0;
+  const setupProbe = createSetupProbeAuthority({preferences, audit, connectorRegistry: injectedRegistry, currentRevision, now});
   const pause = {async isPaused() { return preferences.get('profile')?.approval?.automationPaused === true || preferences.get('paused') === true; }};
   const sync = {async readAll() {
-    const registry = await injectedRegistry.get(); const previous = preferences.get('connector_freshness') ?? {}; const freshness = {}; const offlineSystems = []; const protectedBySystem = preferences.get('protected_intervals_by_system') ?? {calendar: preferences.get('last_protected_intervals') ?? [], reminders: []};
+    const registry = await injectedRegistry.get(); const previous = preferences.get('connector_freshness') ?? {}; const freshness = {}; const offlineSystems = []; const protectedBySystem = preferences.get('protected_intervals_by_system') ?? {calendar: preferences.get('last_protected_intervals') ?? [], reminders: []}; let ownedCalendarEvents = preferences.get('last_owned_calendar_events') ?? [];
     for (const system of systems) {
       const connector = registry[system];
       if (!connector || typeof connector.readSnapshot !== 'function') { freshness[system] = {status: 'offline', freshAt: previous[system]?.freshAt ?? null}; offlineSystems.push(system); continue; }
@@ -175,24 +198,26 @@ export async function createServiceContext({databasePath, database, keychain, co
         const snapshot = await connector.readSnapshot(); const instant = now().toISOString(); freshness[system] = {status: 'healthy', freshAt: instant};
         if (system === 'jira') for (const item of snapshot) repositories.tasks.upsert(item);
         if (system === 'slack') for (const item of snapshot) { const canonical = exactDelegationMatch(repositories.tasks.list(), item.delegationId); if (canonical) { repositories.tasks.upsert({...canonical, delegationId: item.delegationId}); repositories.tasks.remove(`delegation:${item.delegationId}`); } else repositories.tasks.upsert(delegationTask(item, now)); }
-        if (system === 'calendar') protectedBySystem.calendar = snapshot.map(item => ({id: item.id, start: item.start, end: item.end, kind: item.calendarId === preferences.get('profile')?.calendar?.focusCalendarId ? 'fixed' : 'outside', sourceSystem: 'calendar', mutable: false}));
+        if (system === 'calendar') { const focus = preferences.get('profile')?.calendar?.focusCalendarId; ownedCalendarEvents = snapshot.filter(item => item.calendarId === focus && item.owned === true && typeof item.operationKey === 'string' && typeof item.taskId === 'string' && typeof item.blockSlot === 'string'); protectedBySystem.calendar = snapshot.filter(item => !ownedCalendarEvents.some(owned => owned.id === item.id)).map(item => ({id: item.id, start: item.start, end: item.end, kind: item.calendarId === focus ? 'fixed' : 'outside', sourceSystem: 'calendar', mutable: false})); preferences.set('last_owned_calendar_events', ownedCalendarEvents); }
         if (system === 'reminders') { const awareness = new Map((preferences.get('profile')?.reminders?.awarenessLists ?? []).map(item => [item.id, item])); const approvedLabels = preferences.get('outside_labels') ?? {}; protectedBySystem.reminders = snapshot.flatMap(item => { const config = awareness.get(item.listId); const start = item.startAt ?? item.dueAt; if (!config || item.completed === true || typeof start !== 'string' || config.protectedDurationMinutes === 0) return []; const end = new Date(Date.parse(start) + config.protectedDurationMinutes * 60_000); if (Number.isNaN(end.getTime())) return []; const id = `reminder:${item.listId}:${item.id}`; if (config.showTitles === true && typeof item.title === 'string' && item.title.trim()) approvedLabels[id] = item.title.trim(); return [{id, start, end: end.toISOString(), kind: 'outside', sourceSystem: 'reminders', mutable: false}]; }); preferences.set('outside_labels', approvedLabels); }
       } catch (error) { const status = error?.kind === 'authorization' ? 'revoked' : 'offline'; freshness[system] = {status, freshAt: previous[system]?.freshAt ?? null}; offlineSystems.push(system); }
     }
     const protectedIntervals = [...(protectedBySystem.calendar ?? []), ...(protectedBySystem.reminders ?? [])]; preferences.set('protected_intervals_by_system', protectedBySystem); preferences.set('last_protected_intervals', protectedIntervals); preferences.set('connector_freshness', freshness);
-    return {tasks: repositories.tasks.list(), protectedIntervals, freshness, offlineSystems};
+    return {tasks: repositories.tasks.list(), protectedIntervals, ownedCalendarEvents, freshness, offlineSystems};
   }};
 
   async function persistPreview({baseRevision, planningDate, sourceRevision, proposedOperations, snapshot, kind = 'preview'}) {
     const latest = repositories.plans.latest(); const current = latest?.planRevision ?? 0;
     if (baseRevision !== current) throw new RangeError('plan revision conflict');
     const profile = preferences.get('profile'); if (!profile) throw new ApiError('preferences_required', 409); validateProfile(profile);
+    planningDate ??= localDateInZone(now(), profile.identity.timezone); sourceRevision ??= `server:${now().toISOString()}`;
     const source = snapshot ?? await sync.readAll();
     const preserved = kind === 'midday' && latest ? protectedForMidday(latest, preferences.get('block_states') ?? {}, now().toISOString(), profile.planning.freezeWindowMinutes) : [];
     const plan = planDay({tasks: source.tasks, protectedIntervals: [...source.protectedIntervals, ...preserved], profile, planningDate, now: now().toISOString(), planRevision: current + 1});
+    plan.zeroWorkReason = plan.blocks.length === 0 && !plan.ranked.some(item => item.schedulable) ? 'no_eligible_tasks' : null;
     Object.defineProperty(plan, '__tasks', {value: source.tasks, configurable: true});
     let candidates = proposedOperations;
-    if (candidates === undefined) candidates = generatedOperations(plan, profile, source.freshness, now().toISOString());
+    if (candidates === undefined) candidates = generatedOperations(plan, profile, source.freshness, now().toISOString(), source.ownedCalendarEvents);
     const active = await activation.canActivate();
     candidates = candidates.map(candidate => { assertOperation(candidate); const approval = !active || !autoKinds.has(candidate.kind) || source.offlineSystems.includes(candidate.targetSystem) ? 'required' : candidate.approval; return {...candidate, approval}; });
     const preview = previewOperations(plan, {sourceRevision, proposedOperations: candidates});
@@ -203,6 +228,7 @@ export async function createServiceContext({databasePath, database, keychain, co
 
   async function approvePlan(revision, actor, apply) {
     const plan = repositories.plans.latest(); if (!plan || plan.planRevision !== revision) throw new RangeError('plan revision conflict');
+    if (plan.blocks.length === 0 && plan.zeroWorkReason !== 'no_eligible_tasks') throw new ApiError('empty_plan_not_approvable', 409);
     const already = preferences.get('approved_plan_revision') === revision;
     const operations = repositories.operations.listForPlan(revision);
     if (!already) {
@@ -219,7 +245,7 @@ export async function createServiceContext({databasePath, database, keychain, co
     approve: approvePlan,
     async reconcileAndPlan({kind, snapshot, now: instant, scheduledAt = instant}) {
       const profile = preferences.get('profile'); const scheduledDate = localDateInZone(scheduledAt, profile.identity.timezone); const planningDate = kind === 'evening' ? addLocalDays(scheduledDate, 1) : localDateInZone(instant, profile.identity.timezone); const latest = repositories.plans.latest();
-      if (kind === 'evening') snapshot = {...snapshot, tasks: snapshot.tasks.map(task => task.terminal ? task : {...task, carryoverCount: task.carryoverCount + 1})};
+      if (kind === 'evening') { const approved = repositories.plans.get(preferences.get('approved_plan_revision')); const states = preferences.get('block_states') ?? {}; const scheduled = new Set((approved?.blocks ?? []).filter(block => states[block.id] !== 'completed').map(block => block.taskId)); snapshot = {...snapshot, tasks: snapshot.tasks.map(task => task.lane === 'owned' && !task.terminal && scheduled.has(task.id) ? {...task, carryoverCount: task.carryoverCount + 1} : task)}; }
       if (kind === 'evening') for (const task of snapshot.tasks) repositories.tasks.upsert(task);
       const result = await persistPreview({baseRevision: latest?.planRevision ?? 0, planningDate, sourceRevision: `${kind}:${instant.toISOString()}`, proposedOperations: undefined, snapshot, kind});
       const applicable = result.operations.filter(operation => operation.approval === 'approved' && !snapshot.offlineSystems.includes(operation.targetSystem));
@@ -288,7 +314,7 @@ export async function createServiceContext({databasePath, database, keychain, co
   const routineState = routineStore(db, now);
   return {
     version: VERSION, host, port, db, repositories, keychain: credentialStore, connectorRegistry: injectedRegistry, activation, pause, sync, plans, settings, sessions, setupProbe, routineState, lockPath: lockPath ?? `${applicationSupportDirectory()}/routine.lock`, now,
-    auth: {getToken: () => credentialStore.get('media.rhize.tasks.api', 'bearer'), provisioned: tokenProvisioned},
+    auth: {getToken: () => credentialStore.get('media.rhize.tasks.api', 'bearer'), provisioned: false},
     close() { db.close(); },
     async today() { const plan = repositories.plans.latest(); if (!plan) throw new ApiError('plan_not_found', 404); return projectTodayView({plan, tasks: repositories.tasks.list(), operations: repositories.operations.listForPlan(plan.planRevision), profile: preferences.get('profile'), freshness: preferences.get('connector_freshness') ?? {}, approvedOutsideLabels: preferences.get('outside_labels') ?? {}, now: now().toISOString()}); },
     async doctor() { const registry = await injectedRegistry.get(); const connectorStatus = {}; for (const system of systems) { try { connectorStatus[system] = registry[system] && await registry[system].health() ? 'healthy' : 'offline'; } catch (error) { connectorStatus[system] = error?.kind === 'authorization' ? 'revoked' : 'offline'; } } return {version: VERSION, database: 'ready', activation: await activation.canActivate(), paused: await pause.isPaused(), connectors: connectorStatus}; },

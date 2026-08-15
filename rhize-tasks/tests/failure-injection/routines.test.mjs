@@ -102,7 +102,7 @@ test('Calendar uninstall counts are verified by an exact post-delete ownership l
     };
     const context = await createServiceContext({
       databasePath: path.join(directory, 'state.sqlite'), transport,
-      keychain: {async get() { return 'credential'; }, async set() {}, async delete() {}},
+      keychain: {async get() { return 'credential-that-is-long-enough-for-api-auth'; }, async set() {}, async delete() {}},
       connectors: {reminders: {async readSnapshot() { return []; }, async applyOperation() { throw new Error('unexpected_reminder_write'); }}},
     });
     context.repositories.preferences.set('profile', {reminders: {tasksListId: 'tasks'}, calendar: {focusCalendarId: 'focus'}});

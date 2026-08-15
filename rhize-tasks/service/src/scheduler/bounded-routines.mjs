@@ -23,7 +23,7 @@ export async function runRoutine(kind, context, now = new Date()) {
         const snapshot = await context.sync.readAll();
         const result = await context.plans.reconcileAndPlan({kind: phase, snapshot, now, scheduledAt: due.dueAt ? new Date(due.dueAt) : now});
         await context.routineState.complete(runId, 'completed', result);
-        return {...result, phase};
+        return {...result, phase, ...(due.catchUp === true ? {missedCount: due.missedCount ?? 0} : {})};
       } catch (error) {
         await context.routineState.complete(runId, 'failed', {kind: error?.kind ?? 'routine_error'});
         throw error;

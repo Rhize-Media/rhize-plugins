@@ -49,7 +49,7 @@ async function fixture(t) {
   };
   const connectors = {
     jira: {async readSnapshot() { return []; }, async health() { return {ok: true}; }},
-    calendar: {async readSnapshot() { return [{id: 'private-source-id', calendarId: 'outside', revision: 'e1', start: '2026-08-17T12:00:00.000Z', end: '2026-08-17T13:00:00.000Z', title: 'Private therapy', description: 'secret'}]; }, async health() { return {ok: true}; }},
+    calendar: {async readSnapshot() { return [{id: 'private-source-id', calendarId: 'outside', revision: 'e1', start: '2026-08-17T12:00:00.000Z', end: '2026-08-17T13:00:00.000Z', title: 'Private therapy', description: 'secret'}]; }, async health() { return {ok: true}; }, async findByExternalId() { return null; }, async applyOperation(value) { writes.push(value); return {externalId: value.targetId ?? 'calendar-created', revision: 'e2'}; }},
     reminders: {async readSnapshot() { return []; }, async health() { return {ok: true}; }, async findByExternalId() { return null; }, async applyOperation(value) { writes.push(value); return {externalId: value.targetId, revision: 'r2'}; }},
     slack: {async readSnapshot() { return []; }, async health() { return {ok: true}; }},
   };
@@ -81,7 +81,7 @@ test('preferences and first approved plan are both required for activation', asy
   assert.equal(await context.activation.canActivate(), false);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 0, profile: profile()}})).status, 200);
   assert.equal(await context.activation.canActivate(), false);
-  const preview = await request('/v1/plans/preview', {method: 'POST', body: {baseRevision: 0, planningDate: '2026-08-17', sourceRevision: 'snapshot-1', proposedOperations: [operation()]}});
+  const preview = await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-08-17'}});
   assert.equal(preview.status, 201);
   assert.equal((await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: false}})).status, 200);
   assert.equal(await context.activation.canActivate(), true);
@@ -90,12 +90,12 @@ test('preferences and first approved plan are both required for activation', asy
 test('revision gates and persisted approval prevent duplicate connector writes', async t => {
   const {request, writes} = await fixture(t);
   await request('/v1/preferences', {method: 'PUT', body: {planRevision: 0, profile: profile()}});
-  assert.equal((await request('/v1/plans/preview', {method: 'POST', body: {baseRevision: 1, planningDate: '2026-08-17', sourceRevision: 'snapshot-1', proposedOperations: []}})).status, 409);
-  await request('/v1/plans/preview', {method: 'POST', body: {baseRevision: 0, planningDate: '2026-08-17', sourceRevision: 'snapshot-1', proposedOperations: [operation()]}});
+  assert.equal((await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 1, planningDate: '2026-08-17'}})).status, 409);
+  await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-08-17'}});
   const first = await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: true}});
   const replay = await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: true}});
   assert.equal(first.status, 200); assert.equal(replay.status, 200);
-  assert.equal(writes.length, 1);
+  assert.ok(writes.length >= 1); assert.equal(new Set(writes.map(value => value.idempotencyKey)).size, writes.length);
 });
 
 test('JSON handling rejects wrong content type, oversized/unknown bodies, and never echoes credentials', async t => {

@@ -9,6 +9,8 @@ function response(status, body) { return {status, body}; }
 function currentRevision(context) { return context.repositories.plans.latest()?.planRevision ?? 0; }
 function revision(value, context) { if (!Number.isInteger(value) || value < 0 || value !== currentRevision(context)) throw new ApiError('revision_conflict', 409); }
 function actor(value) { if (typeof value !== 'string' || !value.trim()) throw new ApiError('invalid_actor'); return value; }
+function planningDate(value) { if (value === undefined) return undefined; const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value); if (!match) throw new ApiError('invalid_planning_date'); const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]))); if (date.getUTCFullYear() !== Number(match[1]) || date.getUTCMonth() !== Number(match[2]) - 1 || date.getUTCDate() !== Number(match[3])) throw new ApiError('invalid_planning_date'); return value; }
+function discoveryResources(connector, value) { if (connector === 'reminders') return {lists: (value?.lists ?? []).filter(item => typeof item?.id === 'string' && item.id).map(item => ({id: item.id, name: typeof item.name === 'string' ? item.name : typeof item.title === 'string' ? item.title : ''}))}; return value; }
 function safeSetupData(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new ApiError('invalid_setup_data');
   if (Object.keys(value).some(key => /token|secret|password|credential|authorization/i.test(key))) throw new ApiError('credential_field_not_allowed');
@@ -42,7 +44,7 @@ export function createRouter(context) {
     if (method === 'GET' && pathname === '/v1/opportunities') return response(200, {planRevision: currentRevision(context), opportunities: (await context.today()).opportunities});
 
     const discover = /^\/v1\/setup\/discover\/(jira|calendar|reminders|slack)$/.exec(pathname);
-    if (method === 'GET' && discover) { const connector = (await context.connectorRegistry.get())[discover[1]]; if (!connector?.discover) throw new ApiError('connector_unavailable', 503); return response(200, {connector: discover[1], resources: await connector.discover()}); }
+    if (method === 'GET' && discover) { const connector = await context.connectorRegistry.getDiscovery(discover[1]); if (!connector?.discover) throw new ApiError('connector_unavailable', 503); return response(200, {connector: discover[1], resources: discoveryResources(discover[1], await connector.discover())}); }
 
     if (method === 'PUT' && pathname === '/v1/preferences') {
       const body = await jsonBody(request, ['planRevision', 'profile']); revision(body.planRevision, context); validateProfile(body.profile);
@@ -65,14 +67,13 @@ export function createRouter(context) {
     if (method === 'POST' && pathname === '/v1/setup/probe') {
       const body = await readJson(request); exactObject(body, body?.mode === 'preview' ? ['planRevision', 'mode', 'remindersListId', 'focusCalendarId'] : ['planRevision', 'mode', 'probeId', 'actor']); revision(body.planRevision, context);
       if (body.mode === 'preview') return response(201, context.setupProbe.preview(body));
-      if (body.mode === 'apply') return response(200, await context.setupProbe.apply({probeId: body.probeId, actor: actor(body.actor)}));
+      if (body.mode === 'apply') return response(200, await context.setupProbe.apply({planRevision: body.planRevision, probeId: body.probeId, actor: actor(body.actor)}));
       throw new ApiError('invalid_setup_probe');
     }
 
     if (method === 'POST' && pathname === '/v1/plans/preview') {
-      const body = await jsonBody(request, ['baseRevision', 'planningDate', 'sourceRevision', 'proposedOperations']);
-      if (!Number.isInteger(body.baseRevision) || body.baseRevision < 0 || typeof body.planningDate !== 'string' || typeof body.sourceRevision !== 'string' || !body.sourceRevision || !Array.isArray(body.proposedOperations)) throw new ApiError('invalid_preview');
-      const plan = await context.plans.preview(body); return response(201, plan);
+      const body = await jsonBody(request, ['planRevision', 'planningDate']); revision(body.planRevision, context);
+      const plan = await context.plans.preview({baseRevision: body.planRevision, planningDate: planningDate(body.planningDate)}); return response(201, plan);
     }
 
     const planApproval = /^\/v1\/plans\/([1-9][0-9]*)\/approve$/.exec(pathname);

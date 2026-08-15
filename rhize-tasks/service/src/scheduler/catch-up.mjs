@@ -47,5 +47,5 @@ export function selectDuePhase({profile, lastRuns = {}, now = new Date()}) {
     candidates.push({phase, dueAt});
   }
   candidates.sort((left, right) => Date.parse(right.dueAt) - Date.parse(left.dueAt));
-  return candidates[0] ? {shouldRun: true, catchUp: true, ...candidates[0], missedCount: candidates.length} : {shouldRun: false, catchUp: false, phase: null, dueAt: null, missedCount: 0};
+  return candidates[0] ? {shouldRun: true, catchUp: true, ...candidates[0], missedCount: candidates.length, covered: candidates.map(item => ({...item}))} : {shouldRun: false, catchUp: false, phase: null, dueAt: null, missedCount: 0, covered: []};
 }

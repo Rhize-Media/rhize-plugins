@@ -180,8 +180,8 @@ function operationPayload(kind, value) {
       break;
     case 'reminder_delete': object(value, path, []); break;
     case 'calendar_upsert':
-      object(value, path, ['calendarId', 'title', 'start', 'end', 'description', 'externalId']);
-      string(value.calendarId, `${path}.calendarId`); string(value.title, `${path}.title`); isoDateTime(value.start, `${path}.start`); isoDateTime(value.end, `${path}.end`); if (Date.parse(value.start) >= Date.parse(value.end)) fail(path, 'start must precede end'); string(value.description, `${path}.description`, {min: 0}); string(value.externalId, `${path}.externalId`);
+      object(value, path, ['calendarId', 'title', 'start', 'end', 'description', 'externalId', 'operationKey', 'taskId', 'blockSlot'], ['calendarId', 'title', 'start', 'end', 'description', 'externalId']);
+      string(value.calendarId, `${path}.calendarId`); string(value.title, `${path}.title`); isoDateTime(value.start, `${path}.start`); isoDateTime(value.end, `${path}.end`); if (Date.parse(value.start) >= Date.parse(value.end)) fail(path, 'start must precede end'); string(value.description, `${path}.description`, {min: 0}); string(value.externalId, `${path}.externalId`); if ('operationKey' in value) string(value.operationKey, `${path}.operationKey`, {pattern: /^[0-9a-f]{64}$/}); if ('taskId' in value) string(value.taskId, `${path}.taskId`); if ('blockSlot' in value) string(value.blockSlot, `${path}.blockSlot`);
       break;
     case 'calendar_delete': object(value, path, []); break;
     case 'jira_assign': object(value, path, ['accountId']); string(value.accountId, `${path}.accountId`); break;

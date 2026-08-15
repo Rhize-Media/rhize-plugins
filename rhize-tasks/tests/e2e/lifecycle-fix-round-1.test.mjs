@@ -75,13 +75,13 @@ test('scope expansion stays pending, narrowing is immediate, and material planni
   const jira = {async discover() { return {projects: [{key: 'R'}], issueTypes: [{name: 'Task'}, {name: 'Bug'}]}; }, async readSnapshot() { return []; }, async health() { return {ok: true}; }};
   const {context, request} = await httpFixture(t, {connectors: emptyConnectors({jira})}); context.repositories.tasks.upsert(taskValue()); context.repositories.preferences.set('approved_setup_scopes', {jira: {projectKeys: ['R'], issueTypes: ['Task']}, calendar: {readCalendarIds: ['outside', 'focus'], focusCalendarId: 'focus'}, reminders: {awarenessListIds: [], tasksListId: 'tasks'}});
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 0, profile: profile()}})).status, 200);
-  await request('/v1/plans/preview', {method: 'POST', body: {baseRevision: 0, planningDate: '2026-08-17', sourceRevision: 'initial', proposedOperations: []}});
+  await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-08-17'}});
   await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: false}}); assert.equal(await context.activation.canActivate(), true);
   const expanded = profile({jira: {...profile().jira, issueTypes: ['Task', 'Bug']}});
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 1, profile: expanded}})).status, 409); assert.equal(context.repositories.preferences.get('profile').jira.issueTypes.includes('Bug'), false);
   const pending = await request('/v1/setup/connectors', {method: 'POST', body: {planRevision: 1, connector: 'jira', scope: {projectKeys: ['R'], issueTypes: ['Task', 'Bug']}}}); assert.equal(pending.status, 201);
   assert.equal((await request(`/v1/operations/${pending.body.operation.id}/approve`, {method: 'POST', body: {planRevision: 1, actor: 'tom'}})).status, 200); assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 1, profile: expanded}})).status, 200); assert.deepEqual(context.repositories.preferences.get('profile').jira.issueTypes, ['Task', 'Bug']); assert.equal(await context.activation.canActivate(), false);
-  await request('/v1/plans/preview', {method: 'POST', body: {baseRevision: 1, planningDate: '2026-08-17', sourceRevision: 'scope-change', proposedOperations: []}}); await request('/v1/plans/2/approve', {method: 'POST', body: {actor: 'tom', apply: false}}); assert.equal(await context.activation.canActivate(), true);
+  await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 1, planningDate: '2026-08-17'}}); await request('/v1/plans/2/approve', {method: 'POST', body: {actor: 'tom', apply: false}}); assert.equal(await context.activation.canActivate(), true);
   const narrowed = await request('/v1/preferences', {method: 'PUT', body: {planRevision: 2, profile: profile()}}); assert.equal(narrowed.status, 200); assert.deepEqual(context.repositories.preferences.get('profile').jira.issueTypes, ['Task']);
   const material = profile({capacity: {bufferPercent: 30, maxDailyMinutes: 480}}); assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 2, profile: material}})).status, 200); assert.equal(context.repositories.preferences.get('profile').approval.firstPlanApproved, false); assert.equal(await context.activation.canActivate(), false);
 });
@@ -121,6 +121,7 @@ test('setup probe is revision-bound, once-only, verified, reversible, and does n
     async applyOperation(operation) { calls.push(`${system}:${operation.kind}:${String(operation.targetId)}`); if (operation.kind.endsWith('delete')) { store.delete(operation.targetId); return {externalId: operation.targetId, revision: 'deleted'}; } const id = operation.targetId ?? 'google-probe-event'; store.set(id, `${system}-revision`); return {externalId: id, revision: `${system}-revision`}; },
   });
   const {context, request} = await httpFixture(t, {connectors: emptyConnectors({reminders: connector('reminders', reminders), calendar: connector('calendar', events)})});
+  context.repositories.preferences.set('approved_setup_scopes', {reminders: {awarenessListIds: [], tasksListId: 'tasks'}, calendar: {readCalendarIds: ['focus'], focusCalendarId: 'focus'}});
   const preview = await request('/v1/setup/probe', {method: 'POST', body: {planRevision: 0, mode: 'preview', remindersListId: 'tasks', focusCalendarId: 'focus'}}); assert.equal(preview.status, 201); assert.equal(preview.body.approvalRequired, true); assert.equal(calls.length, 0);
   assert.equal((await request('/v1/setup/probe', {method: 'POST', body: {planRevision: 1, mode: 'apply', probeId: preview.body.probeId, actor: 'tom'}})).status, 409);
   const applied = await request('/v1/setup/probe', {method: 'POST', body: {planRevision: 0, mode: 'apply', probeId: preview.body.probeId, actor: 'tom'}}); assert.equal(applied.status, 200); assert.deepEqual(applied.body.verified, {reminders: true, calendar: true}); assert.equal(reminders.size, 0); assert.equal(events.size, 0); assert.equal(await context.activation.canActivate(), false);
@@ -128,11 +129,9 @@ test('setup probe is revision-bound, once-only, verified, reversible, and does n
   assert.ok(calls.some(value => value === 'calendar:calendar_upsert:null')); assert.ok(calls.some(value => value === 'calendar:calendar_delete:google-probe-event'));
 });
 
-test('first run provisions a strong Keychain bearer without exposing it', async t => {
-  let stored; const writes = [];
-  const keychain = {async get(service, account) { if (service === 'media.rhize.tasks.api' && account === 'bearer' && stored) return stored; throw new Error('missing'); }, async set(service, account, value) { writes.push({service, account, value}); stored = value; }, async delete() {}};
-  const {context} = await contextFixture(t, {keychain}); assert.equal(writes.length, 1); assert.match(stored, /^[A-Za-z0-9_-]{43}$/); assert.equal(await context.auth.getToken(), stored); assert.doesNotMatch(JSON.stringify(context.repositories.audit.list()), new RegExp(stored));
-  const output = []; await runCli(['provision-token', '--json'], {createContext: async () => ({auth: {provisioned: true}, close() {}}), stdout: value => output.push(value)}); assert.doesNotMatch(output.join(''), new RegExp(stored)); assert.deepEqual(JSON.parse(output.join('')), {ok: true, provisioned: true, service: 'media.rhize.tasks.api', account: 'bearer'});
+test('runtime fails closed when the installer has not provisioned the bearer', async () => {
+  const keychain = {async get() { throw new Error('missing'); }, async set() { throw new Error('unexpected_write'); }, async delete() {}};
+  await assert.rejects(createServiceContext({databasePath: ':memory:', keychain, connectors: emptyConnectors()}), error => error.kind === 'api_token_missing' && error.status === 503);
 });
 
 test('awareness reminders are read globally as redacted protected time while writes remain list-bound', async t => {
