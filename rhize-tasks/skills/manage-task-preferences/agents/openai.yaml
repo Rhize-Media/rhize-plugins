@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage Task Preferences"
+  short_description: "Update Rhize Tasks planning preferences"
+  default_prompt: "Use $manage-task-preferences to review or change my saved Rhize Tasks preferences."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan My Day"
+  short_description: "Build and review today’s bounded Rhize plan"
+  default_prompt: "Use $plan-my-day to build and review my current Rhize work plan."

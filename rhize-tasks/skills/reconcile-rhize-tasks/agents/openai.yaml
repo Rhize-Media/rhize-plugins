@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reconcile Rhize Tasks"
+  short_description: "Reconcile Rhize tasks with Jira safely"
+  default_prompt: "Use $reconcile-rhize-tasks to preview and reconcile my local Rhize task state with Jira."

@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import {open, rename, rm} from 'node:fs/promises';
-import path from 'node:path';
 import process from 'node:process';
 import {pathToFileURL} from 'node:url';
 
+import {writeArtifactFile} from '../../dashboard/artifact.mjs';
 import {install} from '../../installer/install.mjs';
 import {parseUninstallChoice, uninstall} from '../../installer/uninstall.mjs';
 import {createServiceContext} from '../src/api/context.mjs';
@@ -36,26 +35,6 @@ async function readOneJsonLine(input = process.stdin) {
   if (lines.at(-1) === '') lines.pop();
   if (lines.length !== 1 || lines[0].length === 0) throw new TypeError('invalid_json_line');
   try { return JSON.parse(lines[0]); } catch { throw new TypeError('invalid_json_line'); }
-}
-
-async function writeArtifact(target, value) {
-  if (typeof target !== 'string' || !target || target.includes('\0')) throw new TypeError('invalid_output_path');
-  const resolved = path.resolve(target);
-  const temporary = `${resolved}.writing-${process.pid}`;
-  let handle;
-  try {
-    handle = await open(temporary, 'wx', 0o600);
-    await handle.writeFile(`${JSON.stringify(value, null, 2)}\n`);
-    await handle.sync();
-    await handle.close();
-    handle = undefined;
-    await rename(temporary, resolved);
-  } catch (error) {
-    await handle?.close().catch(() => {});
-    await rm(temporary, {force: true}).catch(() => {});
-    throw error;
-  }
-  return resolved;
 }
 
 function errorKind(error) {
@@ -141,7 +120,7 @@ export async function runCli(args, {
     if (command === 'artifact') {
       if (rest.length !== 2 || rest[0] !== '--output') throw new TypeError('invalid_arguments');
       const view = await context.today();
-      const output = await writeArtifact(rest[1], view);
+      const output = await writeArtifactFile(rest[1], view);
       const result = {ok: true, output, planRevision: view.planRevision};
       writeJson(stdout, result);
       return result;

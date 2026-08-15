@@ -146,14 +146,14 @@ test('CLI uninstall handshake accepts exactly one bounded JSON line and returns 
 
 test('CLI artifact writes one private read-only TodayView snapshot', async t => {
   const directory = await mkdtemp(path.join(tmpdir(), 'rhize-task7-artifact-'));
-  const output = path.join(directory, 'today.json'); let closed = false;
+  const output = path.join(directory, 'today.html'); let closed = false;
   t.after(() => rm(directory, {recursive: true, force: true}));
-  const view = {schemaVersion: 1, planRevision: 7, timeline: [{id: 'busy-opaque', redacted: true}], approvals: []};
+  const view = {schemaVersion: 1, planRevision: 7, generatedAt: now, timeline: [{id: 'busy-opaque', kind: 'outside', start: now, end: '2026-08-17T13:00:00.000Z', redacted: true}], currentBlock: null, nextBlock: null, capacity: {availableMinutes: 420, plannedMinutes: 0, bufferMinutes: 84, risk: 'normal'}, carryovers: [], approvals: [], opportunities: [], warnings: [], connectors: Object.fromEntries(['jira', 'calendar', 'reminders', 'slack'].map(name => [name, {status: 'healthy', freshAt: now, staleMinutes: 0}])), paused: false, degraded: false};
   await runCli(['artifact', '--output', output], {
     createContext: async () => ({async today() { return view; }, close() { closed = true; }}),
     stdout() {},
   });
-  assert.deepEqual(JSON.parse(await readFile(output, 'utf8')), view);
+  const html = await readFile(output, 'utf8'); assert.match(html, /Plan revision 7/); assert.doesNotMatch(html, /<form\b|<button\b|fetch\s*\(/i);
   assert.equal((await stat(output)).mode & 0o777, 0o600);
   assert.equal(closed, true);
 });
