@@ -62,6 +62,38 @@ test('unresolved repeated Calendar ambiguity remains reconciliation_required whi
   await assert.rejects(context.setupProbe.apply({planRevision: 0, probeId: preview.probeId, actor: 'tom'}), error => error.kind === 'reconciliation_required' && error.ambiguous === true); assert.equal(context.repositories.preferences.get('pending_setup_probe').state, 'reconciliation_required'); assert.equal(probe.reminders.size, 0); assert.equal(calls.filter(value => value === 'calendar:calendar_upsert').length, 1);
 });
 
+function productionCalendarProbeFixture() {
+  const calls = []; const reminders = new Map(); let event = null; let visible = false;
+  const reminder = {async readSnapshot() { return []; }, async health() { return {ok: true}; }, async findByExternalId(id) { return reminders.has(id) ? {revision: 'r1'} : null; }, async applyOperation(operation) { if (operation.kind === 'reminder_delete') reminders.delete(operation.targetId); else reminders.set(operation.targetId, true); return {externalId: operation.targetId, revision: 'r1'}; }};
+  const transport = async request => {
+    calls.push(request); if (request.url.includes('oauth2.googleapis.com')) return {status: 200, body: {access_token: 'access'}};
+    const url = new URL(request.url); const directId = /\/events\/([^/?]+)$/.exec(url.pathname)?.[1];
+    if (request.method === 'POST') { const body = JSON.parse(request.body); event = {id: 'probe-event', etag: 'e1', start: body.start, end: body.end, extendedProperties: body.extendedProperties}; return {status: 200, body: event}; }
+    if (request.method === 'DELETE') { event = null; visible = false; return {status: 204, body: ''}; }
+    if (directId) return visible && event?.id === decodeURIComponent(directId) ? {status: 200, body: event} : {status: 404, body: {}};
+    const marker = url.searchParams.get('privateExtendedProperty'); const matches = visible && event && marker === `rhizeOperationKey=${event.extendedProperties.private.rhizeOperationKey}` ? [event] : [];
+    return {status: 200, body: {items: matches}};
+  };
+  const calendar = createGoogleCalendarConnector({readCalendarIds: ['focus'], focusCalendarId: 'focus', credentials: {async get() { return 'credential'; }}, transport, now: () => new Date(instant)});
+  const empty = {async readSnapshot() { return []; }, async health() { return {ok: true}; }};
+  return {connectors: {jira: empty, slack: empty, reminders: reminder, calendar}, calls, reminders, recover() { visible = true; }, hasEvent() { return event !== null; }};
+}
+
+test('production Calendar probe does not claim cleanup when POST succeeds but verification is transiently absent', async t => {
+  const probe = productionCalendarProbeFixture(); const context = await fixture(t, probe.connectors); context.repositories.preferences.set('approved_setup_scopes', {reminders: {awarenessListIds: [], tasksListId: 'tasks'}, calendar: {readCalendarIds: ['focus'], focusCalendarId: 'focus'}});
+  const preview = context.setupProbe.preview({planRevision: 0, remindersListId: 'tasks', focusCalendarId: 'focus'});
+  await assert.rejects(context.setupProbe.apply({planRevision: 0, probeId: preview.probeId, actor: 'tom'}), error => error.kind === 'reconciliation_required' && error.ambiguous === true);
+  const pending = context.repositories.preferences.get('pending_setup_probe'); assert.equal(pending.state, 'reconciliation_required'); assert.equal(pending.calendarId, 'probe-event'); assert.deepEqual(pending.calendarCleanup, {createdOrFound: true, provenPositive: false, deleteDispatched: false, deleteConfirmed: false, finalAbsent: true}); assert.equal(probe.calls.filter(call => call.method === 'POST' && call.url.includes('/events')).length, 1); assert.equal(probe.calls.filter(call => call.method === 'DELETE').length, 0); assert.equal(probe.hasEvent(), true); assert.equal(probe.reminders.size, 0);
+});
+
+test('production Calendar probe replay recovers exact marker proof before deleting and verifying absence', async t => {
+  const probe = productionCalendarProbeFixture(); const context = await fixture(t, probe.connectors); context.repositories.preferences.set('approved_setup_scopes', {reminders: {awarenessListIds: [], tasksListId: 'tasks'}, calendar: {readCalendarIds: ['focus'], focusCalendarId: 'focus'}});
+  const preview = context.setupProbe.preview({planRevision: 0, remindersListId: 'tasks', focusCalendarId: 'focus'});
+  await assert.rejects(context.setupProbe.apply({planRevision: 0, probeId: preview.probeId, actor: 'tom'}), error => error.kind === 'reconciliation_required'); probe.recover();
+  assert.deepEqual(await context.setupProbe.apply({planRevision: 0, probeId: preview.probeId, actor: 'tom'}), {probeId: preview.probeId, verified: {reminders: true, calendar: true}});
+  assert.equal(probe.calls.filter(call => call.method === 'POST' && call.url.includes('/events')).length, 1); assert.equal(probe.calls.filter(call => call.method === 'DELETE').length, 1); assert.equal(probe.hasEvent(), false); assert.equal(probe.reminders.size, 0); assert.equal(context.repositories.preferences.get('pending_setup_probe'), null);
+});
+
 test('two applied plans update the owned slot, delete an orphan, and never mutate a user focus event', async t => {
   const owned = new Map(); const writes = []; let userProtected = false; const empty = {async readSnapshot() { return []; }, async health() { return {ok: true}; }};
   const calendar = {async health() { return {ok: true}; }, async readSnapshot() { return [...owned.values(), ...(userProtected ? [{id: 'user', calendarId: 'focus', revision: 'user-r1', start: '2026-08-17T09:00:00.000Z', end: '2026-08-17T10:00:00.000Z'}] : [])]; }, async findByExternalId(id) { const event = owned.get(id); return event ? {revision: event.revision} : null; }, async applyOperation(operation) { writes.push(operation); if (operation.kind === 'calendar_delete') { owned.delete(operation.targetId); return {externalId: operation.targetId, revision: 'deleted'}; } const id = operation.targetId ?? 'owned-event'; const prior = owned.get(id); owned.set(id, {id, calendarId: 'focus', revision: prior ? 'e2' : 'e1', start: operation.payload.start, end: operation.payload.end, owned: true, operationKey: operation.payload.operationKey, taskId: operation.payload.taskId, blockSlot: operation.payload.blockSlot}); return {externalId: id, revision: owned.get(id).revision}; }};

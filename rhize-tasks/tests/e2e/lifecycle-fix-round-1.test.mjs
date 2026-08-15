@@ -117,8 +117,8 @@ test('setup probe is revision-bound, once-only, verified, reversible, and does n
   const reminders = new Map(); const events = new Map(); const calls = [];
   const connector = (system, store) => ({
     async readSnapshot() { return []; }, async health() { return {ok: true}; },
-    async findByExternalId(id) { calls.push(`${system}:find:${id}`); const value = store.get(id); return value ? {revision: value} : null; },
-    async applyOperation(operation) { calls.push(`${system}:${operation.kind}:${String(operation.targetId)}`); if (operation.kind.endsWith('delete')) { store.delete(operation.targetId); return {externalId: operation.targetId, revision: 'deleted'}; } const id = operation.targetId ?? 'google-probe-event'; store.set(id, `${system}-revision`); return {externalId: id, revision: `${system}-revision`}; },
+    async findByExternalId(id) { calls.push(`${system}:find:${id}`); const direct = store.get(id); if (direct) return {revision: direct.revision}; const keyed = [...store].find(([, value]) => value.operationKey === id); return keyed ? {externalId: keyed[0], revision: keyed[1].revision} : null; },
+    async applyOperation(operation) { calls.push(`${system}:${operation.kind}:${String(operation.targetId)}`); if (operation.kind.endsWith('delete')) { store.delete(operation.targetId); return {externalId: operation.targetId, revision: 'deleted'}; } const id = operation.targetId ?? 'google-probe-event'; store.set(id, {revision: `${system}-revision`, operationKey: operation.payload.operationKey}); return {externalId: id, revision: `${system}-revision`}; },
   });
   const {context, request} = await httpFixture(t, {connectors: emptyConnectors({reminders: connector('reminders', reminders), calendar: connector('calendar', events)})});
   context.repositories.preferences.set('approved_setup_scopes', {reminders: {awarenessListIds: [], tasksListId: 'tasks'}, calendar: {readCalendarIds: ['focus'], focusCalendarId: 'focus'}});

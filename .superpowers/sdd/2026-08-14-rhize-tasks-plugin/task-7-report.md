@@ -165,3 +165,28 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 - Re-read the final diff for duplicate creates after proof, lost cleanup authority, false verified responses, skipped Reminder cleanup, optional-field strictness regressions, secret-bearing compound errors, unverified token rollback, duplicate owned events, broad deletion, and user-event mutation. The new tests exercise each boundary and the full suite remains green.
 - Task 8 files were not modified. The plan-preview contract remains `{planRevision, planningDate?}`.
 - The live Tom-Mac acceptance gate remains intentionally unperformed.
+
+## Fix Round 4 — fail-closed Calendar probe verification
+
+### RED and corrected behavior
+
+- Two production Google Calendar connector fixtures initially failed because a successful event POST followed by transiently absent marker/ID reads was incorrectly returned as `{verified:{calendar:true}}`.
+- Calendar probe state now separates a known create/result ID, exact positive operation-marker proof, confirmed delete dispatch/response, and final absence. `calendarProven` is set only when the private operation-key lookup returns the same nonempty event ID.
+- A known POST result remains exact cleanup authority even when verification is transiently absent, but absence alone cannot prove cleanup. If the connector's delete preflight cannot find the event and therefore sends no DELETE, the probe persists `reconciliation_required` with non-secret cleanup state and never returns verified success. The original verification failure is not cleared by later null lookups.
+- A reconciliation replay reuses the preserved event ID and never issues another create. Only a later positive marker-to-ID match allows the exact delete; success then additionally requires the confirmed delete result and verified absence by both event ID and operation key. Reminder cleanup remains independent on every path.
+
+### Regression and validation evidence
+
+- Focused lifecycle suite: `node --test tests/e2e/lifecycle-fix-round-1.test.mjs tests/e2e/lifecycle-fix-round-2.test.mjs` -> 17 passed, 0 failed.
+- The transient-loss fixture uses the production Google Calendar connector: one event POST, no DELETE after the connector's 404 preflight, pending `reconciliation_required`, no verified response, and successful Reminder cleanup.
+- The recovery fixture runs the same pending probe again after visibility returns: still one total event POST, exact marker proof, one DELETE, absence by ID and marker, no Calendar or Reminder sample left, and verified success.
+- Full package suite with ephemeral loopback permission: `npm test` -> 162 passed, 0 failed.
+- Package validation: `npm run validate` -> passed.
+- Syntax and diff hygiene: `node --check rhize-tasks/service/src/api/setup-probe.mjs` and `git diff --check` -> passed.
+- No network, real Keychain, live Calendar, or helper process was used; transports and connector state remained injected and hermetic.
+
+### Cold review
+
+- Re-read the state transitions for false proof, duplicate create on replay, delete-preflight 404, response-lost ambiguity, final-null false success, stale pending IDs, and skipped Reminder cleanup. Success now requires every positive and cleanup gate in the same attempt; unresolved history remains pending for reconciliation.
+- Task 8 dashboard, skills, commands, and tests were not modified. The paused Task 8 read-only review can resume independently.
+- The live Tom-Mac acceptance gate remains intentionally unperformed.
