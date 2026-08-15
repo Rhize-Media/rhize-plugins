@@ -255,6 +255,11 @@ export function operationRepository(db) {
     appendAudit(db, {event: 'task_manual_locked', entityType: 'task', entityId: targetId, data: {reason}});
     return locked;
   };
+  const authorityError = kind => Object.assign(new Error(kind), {kind});
+  const isPaused = () => {
+    const value = key => { const row = db.prepare('select value_json from preferences where key = ?').get(key); return row ? decodeJson(row.value_json, 'preferences', 'value_json') : null; };
+    return value('paused') === true || value('profile')?.approval?.automationPaused === true;
+  };
   return {
     save(operation) {
       assertOperation(operation);
@@ -306,6 +311,30 @@ export function operationRepository(db) {
         appendAudit(db, {event: 'operation_reconciliation_resumed', entityType: 'operation', entityId: id, data: {actor: actor.trim(), priorResult: current.result}});
       });
       return clone(updated, 'operation');
+    },
+    resumeReconciliations({operations, actor, planRevision}) {
+      if (!Array.isArray(operations) || operations.length === 0 || typeof actor !== 'string' || actor.trim().length === 0 || !Number.isInteger(planRevision) || planRevision < 1) throw new TypeError('reconciliation batch requires operations, actor, and plan revision');
+      const expected = operations.map(operation => clone(assertOperation(operation), 'expected operation'));
+      if (new Set(expected.map(operation => operation.id)).size !== expected.length) throw new TypeError('reconciliation batch operation ids must be unique');
+      let resumed;
+      transaction(db, () => {
+        const latestRevision = db.prepare('select max(revision) as revision from plans').get().revision ?? 0;
+        if (latestRevision !== planRevision) throw authorityError('revision_conflict');
+        if (isPaused()) throw authorityError('automation_paused');
+        const current = expected.map(operation => {
+          const value = getRecord(operation.id);
+          if (!value || value.operation.id !== operation.id || value.operation.planRevision !== planRevision || value.operation.approval !== 'approved' || value.operation.retryState !== 'reconciliation_required' || value.operation.targetSystem !== operation.targetSystem || value.operation.kind !== operation.kind || value.operation.idempotencyKey !== operation.idempotencyKey) throw authorityError('operation_not_reconcilable');
+          return value;
+        });
+        appendAudit(db, {event: 'reconciliation_requested', entityType: 'plan', entityId: String(planRevision), data: {operationIds: expected.map(operation => operation.id), actor: actor.trim()}});
+        resumed = current.map(value => {
+          const updated = {...value.operation, retryState: 'pending'};
+          updateRecord(updated.id, updated, 0, null);
+          appendAudit(db, {event: 'operation_reconciliation_resumed', entityType: 'operation', entityId: updated.id, data: {actor: actor.trim(), priorResult: value.result}});
+          return updated;
+        });
+      });
+      return {planRevision, operations: clone(resumed, 'resumed operations')};
     },
     setApproval(id, nextApproval, actor) {
       if (!['approved', 'rejected'].includes(nextApproval) || typeof actor !== 'string' || actor.length === 0) throw new TypeError('approval transition requires approved or rejected state and a nonempty actor');

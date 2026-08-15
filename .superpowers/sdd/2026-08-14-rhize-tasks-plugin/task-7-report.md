@@ -212,3 +212,16 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 
 - Re-read the final boundary for generic state mutation exposure, implicit retries, actor omission, client-supplied operation substitution, pre-audit state changes, partial selected-ID broadening, unsafe persisted reason disclosure, and approval/reconciliation mixing. The public API exposes only the purpose-built route and the repository transition remains state-specific.
 - Loopback tests used only the local hermetic server with injected connectors and credentials. No live connector, Keychain, helper, or external network call ran.
+
+## Final authority race closure
+
+- After all asynchronous connector health checks, reconciliation now enters one synchronous database transaction. That transaction re-reads the latest plan revision and both persisted pause sources, then re-reads every exact selected record and verifies its ID, plan revision, approved state, `reconciliation_required` state, target system, kind, and idempotency key against the pre-health snapshot.
+- The same transaction appends the human request audit and resumes every selected operation. A stale plan, newly paused service, or changed selected operation rolls back the complete batch, so no partial multi-operation reset or request audit survives. The returned transaction revision—not an unchecked request cache—is passed to the existing executor.
+- Deferred-health loopback regressions pause automation, save a new plan, and change the selected operation while health is pending. Each returns HTTP 409 with no connector write, no operation reset, and no reconciliation-request audit. A storage regression changes the second of two selected records and proves the first reset and batch audit both roll back.
+
+### Validation
+
+- Focused storage and loopback boundary: `node --test tests/unit/storage.test.mjs tests/e2e/local-service.test.mjs` -> 21 passed, 0 failed.
+- Final full suite: `npm test` -> 175 passed, 0 failed.
+- `npm run validate`, changed-module syntax checks, and `git diff --check` -> passed.
+- Cold review confirmed there is no `await` between the final transactional authority checks, audit, and all selected resets; the route no longer performs per-operation resume transactions.

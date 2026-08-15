@@ -1,4 +1,5 @@
 import {operationKey, validateProfile} from '../domain.mjs';
+import {applyApprovedOperations} from '../reconciliation/operations.mjs';
 import {ApiError, exactObject, readJson, requireBearer, sanitize} from './auth.mjs';
 
 const accounts = Object.freeze({api: ['bearer'], jira: ['email', 'api-token'], google: ['client-id', 'client-secret', 'refresh-token'], slack: ['bot-token']});
@@ -106,9 +107,10 @@ export function createRouter(context) {
         if (!connector || typeof connector.health !== 'function') throw new ApiError('connector_unavailable', 503);
         try { const health = await connector.health(); if (health?.ok !== true) throw new Error('unhealthy'); } catch { throw new ApiError('connector_unavailable', 503); }
       }
-      context.repositories.audit.append('reconciliation_requested', 'plan', body.planRevision, {operationIds: body.operationIds, actor: requestedBy});
-      const resumed = body.operationIds.map(id => context.repositories.operations.resumeReconciliation(id, requestedBy));
-      const {applyApprovedOperations} = await import('../reconciliation/operations.mjs'); const results = await applyApprovedOperations({repository: context.repositories.operations, connectors, currentRevision: body.planRevision}, resumed); return response(200, {results});
+      let authority;
+      try { authority = context.repositories.operations.resumeReconciliations({operations, actor: requestedBy, planRevision: body.planRevision}); }
+      catch (error) { if (error?.kind === 'revision_conflict') throw new ApiError('revision_conflict', 409); if (error?.kind === 'automation_paused') throw new ApiError('automation_paused', 409); if (error?.kind === 'operation_not_reconcilable') throw new ApiError('operation_not_reconcilable', 409); throw error; }
+      const results = await applyApprovedOperations({repository: context.repositories.operations, connectors, currentRevision: authority.planRevision}, authority.operations); return response(200, {results});
     }
 
     const claim = /^\/v1\/opportunities\/([^/]+)\/claim$/.exec(pathname);

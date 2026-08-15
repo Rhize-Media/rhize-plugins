@@ -144,3 +144,21 @@ test('approved reconciliation resumes atomically with a fresh bounded budget and
     db.close();
   });
 });
+
+test('batch reconciliation authority rolls back every resume when one selected operation changed', async () => {
+  await withDatabase(file => {
+    const db = openDatabase(file);
+    planRepository(db).save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-14', generatedAt: '2026-08-14T09:00:00Z', status: 'preview', blocks: []});
+    const operations = operationRepository(db);
+    const make = (id, key) => { const payload = {listId: 'tasks', title: id, dueAt: null, notes: '', externalId: id}; return {schemaVersion: 1, id, planRevision: 1, kind: 'reminder_upsert', targetSystem: 'reminders', targetId: id, payload, idempotencyKey: key.repeat(64), approval: 'approved', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'}; };
+    const first = make('operation-first', 'a'); const second = make('operation-second', 'b');
+    for (const value of [first, second]) { operations.save(value); operations.markState(value.id, 'reconciliation_required', {reason: 'ambiguous_apply'}); }
+    const expected = [operations.get(first.id), operations.get(second.id)];
+    operations.markState(second.id, 'applied', {reason: null, externalId: second.id, revision: '2'});
+    assert.throws(() => operations.resumeReconciliations({operations: expected, actor: 'tom', planRevision: 1}), error => error.kind === 'operation_not_reconcilable');
+    assert.equal(operations.get(first.id).retryState, 'reconciliation_required');
+    assert.equal(operations.execution(first.id).result.reason, 'ambiguous_apply');
+    assert.equal(db.prepare("select count(*) as count from audit_log where event = 'reconciliation_requested'").get().count, 0);
+    db.close();
+  });
+});

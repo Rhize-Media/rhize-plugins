@@ -142,6 +142,28 @@ test('reconciliation route rejects invalid authority and a second ambiguous atte
   const second = await post({planRevision: 1, operationIds: [ambiguous.id], actor: 'tom'}); assert.equal(second.body.results[0].state, 'reconciliation_required'); assert.equal(calls, 2); assert.equal(context.repositories.operations.execution(ambiguous.id).attemptCount, 1);
 });
 
+test('reconciliation rechecks revision, pause, and selected operation authority after deferred health', async t => {
+  const scenarios = [
+    {name: 'pause changed', mutate({context}) { context.repositories.preferences.set('paused', true); }, expectedKind: 'automation_paused', expectedState: 'reconciliation_required'},
+    {name: 'plan changed', mutate({context}) { context.repositories.plans.save({schemaVersion: 1, planRevision: 2, planningDate: '2026-08-18', generatedAt: now, status: 'approved', blocks: []}); }, expectedKind: 'revision_conflict', expectedState: 'reconciliation_required'},
+    {name: 'operation changed', mutate({context, item}) { context.repositories.operations.markState(item.id, 'applied', {reason: null, externalId: item.targetId, revision: 'r2'}); }, expectedKind: 'operation_not_reconcilable', expectedState: 'applied'},
+  ];
+  for (const scenario of scenarios) await t.test(scenario.name, async child => {
+    const value = await fixture(child); const {context, request, connectors, writes} = value;
+    context.repositories.plans.save({schemaVersion: 1, planRevision: 1, planningDate: '2026-08-17', generatedAt: now, status: 'approved', blocks: []});
+    const item = operation({id: `race-${scenario.name.replace(' ', '-')}`, approval: 'approved'}); context.repositories.operations.save(item); context.repositories.operations.markState(item.id, 'reconciliation_required', {reason: 'ambiguous_apply'});
+    let releaseHealth; let healthStarted; const started = new Promise(resolve => { healthStarted = resolve; });
+    connectors.reminders.health = () => { healthStarted(); return new Promise(resolve => { releaseHealth = resolve; }); };
+    const responsePromise = request('/v1/reconcile', {method: 'POST', body: {planRevision: 1, operationIds: [item.id], actor: 'tom'}});
+    await started; scenario.mutate({context, item}); releaseHealth({ok: true});
+    const response = await responsePromise;
+    assert.equal(response.status, 409); assert.equal(response.body.error.kind, scenario.expectedKind);
+    assert.equal(context.repositories.operations.get(item.id).retryState, scenario.expectedState);
+    assert.equal(writes.length, 0);
+    assert.equal(context.repositories.audit.list(100).some(entry => entry.event === 'reconciliation_requested'), false);
+  });
+});
+
 test('JSON handling rejects wrong content type, oversized/unknown bodies, and never echoes credentials', async t => {
   const {request, secrets} = await fixture(t);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: '{}', headers: {'content-type': 'text/plain'}})).status, 415);
