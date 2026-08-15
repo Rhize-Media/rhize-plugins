@@ -139,3 +139,29 @@ Commit: `feat(tasks): serve one bounded local planning authority` (this commit)
 - Re-read the changed service, connector, scheduler, installer, schema, and tests for unproven Calendar deletion, plan-revision-dependent ownership, catch-up replay, broad discovery, pre-audit probe writes, token disclosure/rotation, and client-authored plan operations. No such path remains in the tested boundary.
 - Task 8 must update its plan-preview request to the exact contract `POST /v1/plans/preview` with `{planRevision, planningDate?}`. The response contains the server-derived `operations`, `approvalsRequired`, freshness, and `zeroWorkReason`.
 - The live Tom-Mac acceptance gate remains intentionally unperformed.
+
+## Fix Round 3 — ambiguous setup-write cleanup
+
+### Corrected behavior
+
+- Calendar operation-key lookup now returns the exact matched event ID together with its revision. Setup-probe reconciliation treats that exact marker proof as authoritative, does not issue another create, retains the ID for cleanup, and verifies absence through both the event ID and private operation key. A lost create response followed by marker proof therefore produces one create, one exact delete, and no leaked sample.
+- Calendar and Reminder cleanup are attempted independently. Repeated ambiguous Calendar lookup or unresolved cleanup persists the pending probe as `reconciliation_required`, returns an ambiguous reconciliation error, and still removes the exact Reminder sample. A verified absent Calendar sample is accepted even when the delete response itself was lost.
+- `planningDate` is genuinely optional on strict `POST /v1/plans/preview` requests. Omitted dates are derived server-side in the saved profile timezone; supplied values still require a real Gregorian `YYYY-MM-DD` date.
+- Keychain provisioning cleanup is now compound and verifiable. A failed readback attempts deletion, verifies the approved pair is absent, and reports exact non-secret cleanup states when deletion or verification fails. Later activation rollback applies the same delete-and-verify rule to a newly introduced bearer; any failure is included in the installer rollback state.
+- Applied-plan reconciliation is covered end to end: the second plan reuses and moves the proven owned event, deletes an exact orphan, keeps one logical block/event, and never writes or deletes the unmarked user focus event.
+
+### Regression and validation evidence
+
+- Focused route/probe/Calendar/installer suite: `node --test tests/e2e/lifecycle-fix-round-2.test.mjs tests/e2e/local-service.test.mjs tests/connectors/reminders-process.test.mjs tests/connectors/fix-round-3.test.mjs` -> 57 tests, 57 passed after the final test-fixture path correction.
+- Full package suite with ephemeral loopback permission: `npm test` -> 160 passed, 0 failed.
+- Package validation: `npm run validate` -> passed.
+- Syntax: `node --check` for routes, setup probe, Google Calendar, and installer modules -> passed.
+- LaunchAgent template: `/usr/bin/plutil -lint installer/media.rhize.tasks.plist.template` -> `OK`.
+- Diff hygiene: `git diff --check` -> passed.
+- All credentials, transports, Keychain behavior, Calendar state, helper behavior, and loopback requests remained injected and hermetic; no live I/O ran.
+
+### Cold review
+
+- Re-read the final diff for duplicate creates after proof, lost cleanup authority, false verified responses, skipped Reminder cleanup, optional-field strictness regressions, secret-bearing compound errors, unverified token rollback, duplicate owned events, broad deletion, and user-event mutation. The new tests exercise each boundary and the full suite remains green.
+- Task 8 files were not modified. The plan-preview contract remains `{planRevision, planningDate?}`.
+- The live Tom-Mac acceptance gate remains intentionally unperformed.

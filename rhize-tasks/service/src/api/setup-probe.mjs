@@ -16,14 +16,16 @@ function approved(preferences, remindersListId, focusCalendarId) {
 }
 
 export function createSetupProbeAuthority({preferences, audit, connectorRegistry, currentRevision, now = () => new Date()}) {
+  const reconciliationRequired = () => { const error = new ApiError('reconciliation_required', 409); error.ambiguous = true; return error; };
   const reconcileCreate = async (connector, create, lookup) => {
     const existing = await connector.findByExternalId(lookup);
-    if (existing) return connector.applyOperation(create);
+    if (existing) { const externalId = existing.externalId ?? create.targetId; if (!externalId) throw reconciliationRequired(); return {externalId, revision: existing.revision}; }
     try { return await connector.applyOperation(create); } catch (error) {
       if (error?.ambiguous !== true) throw error;
       const found = await connector.findByExternalId(lookup);
-      if (!found) throw new ApiError('reconciliation_required', 409);
-      return connector.applyOperation(create);
+      if (!found) throw reconciliationRequired();
+      const externalId = found.externalId ?? create.targetId; if (!externalId) throw reconciliationRequired();
+      return {externalId, revision: found.revision};
     }
   };
   return {
@@ -48,17 +50,17 @@ export function createSetupProbeAuthority({preferences, audit, connectorRegistry
       audit.append('setup_probe_approved', 'setup_probe', probeId, {actor, planRevision, exact: pending.exact});
       const registry = await connectorRegistry.getSetupProbe(pending.exact); const reminders = registry?.reminders; const calendar = registry?.calendar;
       if (!reminders?.applyOperation || !reminders?.findByExternalId || !calendar?.applyOperation || !calendar?.findByExternalId) throw new ApiError('connector_unavailable', 503);
-      let reminderId = pending.exact.reminderExternalId; let calendarId = null; let failure = null;
+      let reminderId = pending.exact.reminderExternalId; let calendarId = null; let failure = null; let reminderProven = false; let calendarProven = false; let reminderClean = false; let calendarClean = false;
       try {
-        await reconcileCreate(reminders, pending.reminder, reminderId); if (!await reminders.findByExternalId(reminderId)) throw new Error('reminder_probe_unverified');
+        await reconcileCreate(reminders, pending.reminder, reminderId); reminderProven = true; if (!await reminders.findByExternalId(reminderId)) throw new Error('reminder_probe_unverified');
         const calendarResult = await reconcileCreate(calendar, pending.calendar, pending.exact.calendarOperationKey); calendarId = calendarResult?.externalId;
-        if (typeof calendarId !== 'string' || !calendarId || !await calendar.findByExternalId(calendarId)) throw new Error('calendar_probe_unverified');
+        if (typeof calendarId !== 'string' || !calendarId) throw new Error('calendar_probe_unverified'); calendarProven = true; if (!await calendar.findByExternalId(calendarId)) throw new Error('calendar_probe_unverified');
       } catch (error) { failure = error; }
-      try {
-        if (calendarId) { const value = operation({revision: pending.calendar.planRevision, kind: 'calendar_delete', targetSystem: 'calendar', targetId: calendarId, payload: {}, now: now().toISOString()}); await calendar.applyOperation(value); if (await calendar.findByExternalId(calendarId)) throw new Error('calendar_probe_cleanup_unverified'); }
-        if (reminderId && await reminders.findByExternalId(reminderId)) { const value = operation({revision: pending.reminder.planRevision, kind: 'reminder_delete', targetSystem: 'reminders', targetId: reminderId, payload: {}, now: now().toISOString()}); await reminders.applyOperation(value); if (await reminders.findByExternalId(reminderId)) throw new Error('reminder_probe_cleanup_unverified'); }
-      } catch (error) { failure = failure ?? error; }
-      if (failure) { const reconciliation = failure?.message === 'reconciliation_required' || failure?.status === 409; preferences.set('pending_setup_probe', {...pending, state: reconciliation ? 'reconciliation_required' : 'failed'}); audit.append(reconciliation ? 'setup_probe_reconciliation_required' : 'setup_probe_failed', 'setup_probe', probeId, {actor, cleanupAttempted: true}); throw new ApiError(reconciliation ? 'reconciliation_required' : 'setup_probe_failed', reconciliation ? 409 : 503); }
+      if (!calendarId) try { const found = await calendar.findByExternalId(pending.exact.calendarOperationKey); if (found?.externalId) { calendarId = found.externalId; calendarProven = true; } } catch (error) { failure ??= error; }
+      if (calendarId) { let deleteError = null; try { const value = operation({revision: pending.calendar.planRevision, kind: 'calendar_delete', targetSystem: 'calendar', targetId: calendarId, payload: {}, now: now().toISOString()}); await calendar.applyOperation(value); } catch (error) { deleteError = error; } try { const [byId, byKey] = await Promise.all([calendar.findByExternalId(calendarId), calendar.findByExternalId(pending.exact.calendarOperationKey)]); calendarClean = byId === null && byKey === null; } catch (error) { deleteError ??= error; } if (!calendarClean) failure ??= deleteError ?? reconciliationRequired(); }
+      try { if (reminderId && await reminders.findByExternalId(reminderId)) { const value = operation({revision: pending.reminder.planRevision, kind: 'reminder_delete', targetSystem: 'reminders', targetId: reminderId, payload: {}, now: now().toISOString()}); await reminders.applyOperation(value); } reminderClean = await reminders.findByExternalId(reminderId) === null; if (!reminderClean) throw new Error('reminder_probe_cleanup_unverified'); } catch (error) { failure ??= error; }
+      if (reminderProven && calendarProven && reminderClean && calendarClean) failure = null;
+      if (failure) { const reconciliation = failure?.ambiguous === true || failure?.message === 'reconciliation_required' || failure?.status === 409 || (calendarProven && !calendarClean) || (reminderProven && !reminderClean); preferences.set('pending_setup_probe', {...pending, state: reconciliation ? 'reconciliation_required' : 'failed', ...(calendarId ? {calendarId} : {})}); audit.append(reconciliation ? 'setup_probe_reconciliation_required' : 'setup_probe_failed', 'setup_probe', probeId, {actor, cleanupAttempted: true}); const error = new ApiError(reconciliation ? 'reconciliation_required' : 'setup_probe_failed', reconciliation ? 409 : 503); if (reconciliation) error.ambiguous = true; throw error; }
       preferences.delete('pending_setup_probe'); audit.append('setup_probe_completed', 'setup_probe', probeId, {actor, verified: {reminders: true, calendar: true}});
       return {probeId, verified: {reminders: true, calendar: true}};
     },

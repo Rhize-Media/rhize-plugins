@@ -81,6 +81,17 @@ async function runChecked(file, args, options = {}, run = runProcess) {
   return result;
 }
 
+async function removeApiBearer(keychain) {
+  const failures = [];
+  try { await keychain.delete('media.rhize.tasks.api', 'bearer'); } catch { failures.push('token_delete_failed'); }
+  try { await keychain.get('media.rhize.tasks.api', 'bearer'); failures.push('token_delete_unverified'); } catch (error) { if (error?.kind !== 'not_found') failures.push('token_absence_verification_failed'); }
+  return failures;
+}
+
+function tokenCleanupError(cause, failures) {
+  const error = new Error(`api_token_cleanup_failed:${failures.join(',')}`); error.code = 'api_token_cleanup_failed'; error.cleanupState = failures.join(','); error.cause = cause; return error;
+}
+
 export async function ensureApiBearer({keychain, randomBytesImpl = randomBytes}) {
   if (!keychain?.get || !keychain?.set || !keychain?.delete) throw new TypeError('invalid_keychain');
   try {
@@ -96,7 +107,8 @@ export async function ensureApiBearer({keychain, randomBytesImpl = randomBytes})
     if (await keychain.get('media.rhize.tasks.api', 'bearer') !== value) throw new Error('api_token_verification_failed');
     return {created: true};
   } catch (error) {
-    try { await keychain.delete('media.rhize.tasks.api', 'bearer'); } catch {}
+    const cleanupFailures = await removeApiBearer(keychain);
+    if (cleanupFailures.length) throw tokenCleanupError(error, cleanupFailures);
     throw error;
   }
 }
@@ -385,7 +397,7 @@ export async function install({
       }
     }
     try { await rollbackRuntimeCandidate(runtimeTransaction, beforeMutation); } catch { rollbackFailures.push('runtime_restore_failed'); }
-    if (tokenCreated) try { await keychain.delete('media.rhize.tasks.api', 'bearer'); } catch { rollbackFailures.push('token_restore_failed'); }
+    if (tokenCreated) rollbackFailures.push(...await removeApiBearer(keychain));
     try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata, beforeMutation); } catch { rollbackFailures.push('manifest_restore_failed'); }
     try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata, beforeMutation); } catch { rollbackFailures.push('plist_restore_failed'); }
     try {

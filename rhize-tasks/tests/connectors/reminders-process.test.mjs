@@ -49,6 +49,20 @@ test('installer token authority verifies existing tokens and provisions missing 
   assert.deepEqual(await ensureApiBearer({keychain}), {created: false}); assert.equal(writes, 1);
   const broken = {async get() { throw {kind: 'not_found'}; }, async set() { throw new Error('keychain_write_failed'); }, async delete() {}};
   await assert.rejects(ensureApiBearer({keychain: broken}), /keychain_write_failed/);
+  let reads = 0; const cleanupSecret = 'never-print-this-token'; const cleanupBroken = {async get() { reads += 1; if (reads === 1) throw {kind: 'not_found'}; if (reads === 2) throw new Error('readback_failed'); return cleanupSecret; }, async set() {}, async delete() { throw new Error('delete_failed'); }};
+  await assert.rejects(ensureApiBearer({keychain: cleanupBroken}), error => error.code === 'api_token_cleanup_failed' && error.cleanupState === 'token_delete_failed,token_delete_unverified' && !JSON.stringify(error).includes(cleanupSecret));
+});
+
+test('installer removes and verifies a newly introduced bearer when later activation fails', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-key-cleanup-')); const {sourceRoot} = await seedInstallSource(home); const paths = exactInstallPaths(home); let value = null;
+  const keychain = {async get() { if (value === null) throw {kind: 'not_found'}; return value; }, async set(_service, _account, next) { value = next; }, async delete() { value = null; }};
+  await assert.rejects(installRuntime({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({bootstrapCode: 5, plistPath: paths.launchAgentPath}), uid: 501, validate: async () => ({}), keychain}), error => error.activationState === 'bootstrap_failed' && error.rollbackState === 'restored'); assert.equal(value, null);
+});
+
+test('installer reports unverified introduced-token cleanup in rollback state without the token', async () => {
+  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-key-unverified-')); const {sourceRoot} = await seedInstallSource(home); const paths = exactInstallPaths(home); let value = null;
+  const keychain = {async get() { if (value === null) throw {kind: 'not_found'}; return value; }, async set(_service, _account, next) { value = next; }, async delete() {}};
+  await assert.rejects(installRuntime({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({bootstrapCode: 5, plistPath: paths.launchAgentPath}), uid: 501, validate: async () => ({}), keychain}), error => error.code === 'local_activation_rollback_failed' && error.rollbackState.includes('token_delete_unverified') && !JSON.stringify(error).includes(value));
 });
 
 test('launchctl print and bootout use independent narrow absent-service classifiers', () => {

@@ -72,7 +72,7 @@ export function createRouter(context) {
     }
 
     if (method === 'POST' && pathname === '/v1/plans/preview') {
-      const body = await jsonBody(request, ['planRevision', 'planningDate']); revision(body.planRevision, context);
+      const body = await jsonBody(request, ['planRevision', 'planningDate'], {required: ['planRevision']}); revision(body.planRevision, context);
       const plan = await context.plans.preview({baseRevision: body.planRevision, planningDate: planningDate(body.planningDate)}); return response(201, plan);
     }
 

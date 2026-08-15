@@ -81,8 +81,9 @@ test('preferences and first approved plan are both required for activation', asy
   assert.equal(await context.activation.canActivate(), false);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 0, profile: profile()}})).status, 200);
   assert.equal(await context.activation.canActivate(), false);
-  const preview = await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-08-17'}});
+  const preview = await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0}});
   assert.equal(preview.status, 201);
+  assert.equal(preview.body.planningDate, '2026-08-17');
   assert.equal((await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: false}})).status, 200);
   assert.equal(await context.activation.canActivate(), true);
 });
@@ -102,6 +103,7 @@ test('JSON handling rejects wrong content type, oversized/unknown bodies, and ne
   const {request, secrets} = await fixture(t);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: '{}', headers: {'content-type': 'text/plain'}})).status, 415);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 0, profile: profile(), surprise: true}})).status, 400);
+  assert.equal((await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-02-30'}})).status, 400);
   assert.equal((await request('/v1/preferences', {method: 'PUT', body: JSON.stringify({padding: 'x'.repeat(70_000)})})).status, 413);
   const saved = await request('/v1/setup/credentials', {method: 'POST', body: {planRevision: 0, connector: 'jira', values: {email: 'tom@example.com', 'api-token': 'jira-secret-value'}}});
   assert.equal(saved.status, 200);
