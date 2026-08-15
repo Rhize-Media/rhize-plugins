@@ -53,6 +53,12 @@ test('dashboard uses only the authenticated local API and retains revision-bound
   assert.match(javascript, /verified\?\.reminders.*verified\?\.calendar/);
   assert.match(javascript, /connector:\s*'slack'.*scope:\s*config\.slack.*apply:\s*true/);
   assert.doesNotMatch(javascript, /operationKey|crypto\.subtle|reminder_upsert|calendar_upsert/);
+  assert.match(javascript, /\/v1\/plans\/preview.*planRevision:\s*state\.planRevision.*planningDate:\s*planningDate\(\)/);
+  assert.match(javascript, /result\.operations/);
+  assert.match(javascript, /zeroWorkReason/);
+  assert.doesNotMatch(javascript, /proposedOperations|baseRevision|sourceRevision/);
+  assert.match(html, /id="preview-operations"/);
+  assert.match(html, /id="zero-work-reason"/);
   assert.match(javascript, /\/v1\/operations\/.*\/approve/);
   assert.match(javascript, /\/v1\/opportunities\/.*\/claim/);
   assert.match(javascript, /operationId/);

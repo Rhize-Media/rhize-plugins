@@ -109,8 +109,9 @@ async function discover(connector) {
   const result = await api(`/v1/setup/discover/${connector}`); const target = connector === 'jira' ? 'jira-discovery' : 'time-discovery'; byId(target).textContent = JSON.stringify(result.resources, null, 2); status('setup-status', `${connector} discovery complete. Confirm exact resources before saving scope.`);
 }
 function planningDate() { const timeZone = byId('timezone').value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone; const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US', {timeZone, year: 'numeric', month: '2-digit', day: '2-digit'}).formatToParts().filter(part => part.type !== 'literal').map(part => [part.type, part.value])); return `${parts.year}-${parts.month}-${parts.day}`; }
-async function preview(proposedOperations) {
-  const result = await api('/v1/plans/preview', {method: 'POST', body: {baseRevision: state.planRevision, planningDate: planningDate(), sourceRevision: `dashboard-setup:${Date.now()}`, proposedOperations}}); state.preview = result; state.planRevision = result.planRevision; state.displayedRevision = result.planRevision; byId('exact-preview').textContent = JSON.stringify(result, null, 2); byId('approve-preview').disabled = false; status('setup-status', `Exact preview revision ${result.planRevision} is ready. Review every operation before confirmation.`);
+function renderPreviewOperation(li, operation) { li.textContent = `${operation.id} · ${operation.kind} · ${operation.targetSystem} · target ${operation.targetId ?? 'new item'} · ${operation.approval} approval · payload ${JSON.stringify(operation.payload)}`; }
+async function preview() {
+  const result = await api('/v1/plans/preview', {method: 'POST', body: {planRevision: state.planRevision, planningDate: planningDate()}}); if (!Array.isArray(result.operations) || !Array.isArray(result.approvalsRequired)) throw new Error('The local service returned an invalid plan preview.'); state.preview = result; state.planRevision = result.planRevision; state.displayedRevision = result.planRevision; fillList('preview-operations', result.operations, renderPreviewOperation, 'No connector writes proposed'); byId('zero-work-reason').textContent = result.zeroWorkReason ? `No schedulable work: ${result.zeroWorkReason}` : 'Schedulable work was found.'; byId('exact-preview').textContent = JSON.stringify(result, null, 2); byId('approve-preview').disabled = false; status('setup-status', `Exact server-derived revision ${result.planRevision} is ready with ${result.approvalsRequired.length} approval-required operations. Review every operation before confirmation.`);
 }
 async function previewScope() {
   const connector = byId('scope-connector').value; const identity = stageData(2); const jira = stageData(3); const time = stageData(4); let scope;
@@ -161,7 +162,7 @@ async function savePreferences({setupComplete = false} = {}) {
   if (config.slack) await api('/v1/setup/connectors', {method: 'PUT', body: {planRevision: state.planRevision, connector: 'slack', scope: config.slack, apply: true}});
   state.profile = profile; state.connectorConfig = config; status('setup-status', 'Preferences saved. Generating the first no-write plan preview.'); return true;
 }
-async function previewPlan() { if (await savePreferences({setupComplete: true})) await preview([]); }
+async function previewPlan() { if (await savePreferences({setupComplete: true})) await preview(); }
 async function confirmPreview() { if (!state.preview) throw new Error('Generate and review a preview first.'); await api(`/v1/plans/${state.displayedRevision}/approve`, {method: 'POST', body: {actor: 'dashboard', apply: true}}); await saveStage(7); status('setup-status', `Displayed revision ${state.displayedRevision} was confirmed and setup is complete. Refreshing current state.`); state.preview = null; byId('approve-preview').disabled = true; await Promise.all([loadSetup(), refreshToday()]); }
 
 async function loadAuthorized() { await Promise.all([loadSetup(), refreshToday()]); status('service-status', 'Connected to the authenticated loopback service.'); }
