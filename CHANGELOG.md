@@ -8,6 +8,52 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-16_ **Rhize Dev Flow becomes the engineering control plane —
+  `impact-map → check → review → release`.** Dev Flow now owns the full change lifecycle, not
+  just impact mapping: canonical `/rhize-devflow:check` (evidence-driven mid-implementation
+  validation — builds a deterministic evidence packet via the new `scripts/devflow.py evidence`
+  CLI, selects checks only from repository instructions and known-safe declared package scripts,
+  never executes shell text parsed from prose, returns `PASS`/`PASS_WITH_WARNINGS`/`BLOCKED`) and
+  `/rhize-devflow:review` (read-only production merge/release gate — resolves the exact base/head
+  range from explicit intent, builds a risk map from actual diff evidence across
+  deployment/data/security/authorization/billing/migration/cache/external-write categories, routes
+  only relevant specialists, requires an independent skeptical reviewer for non-trivial work,
+  returns `PASS`/`FAIL_WITH_FIXABLE_GAPS`/`FAIL_REQUIRES_HUMAN`, and is the executable successor to
+  the retired `rhize-review` workflow). `/rhize-devflow:mutation-check` and
+  `/rhize-devflow:browser-qa` consolidate the former `mutation-analyze`/`mutation-check`/
+  `mutation-fix` and `browser-debug`/`browser-help`/`browser-perf`/`browser-test` command sprawl
+  into one read-only, scenario-driven command apiece; the six retired commands become one-line
+  `> **Deprecated:**` adapters (no duplicated workflow text) for the 2.12.0 compatibility window.
+  `scripts/devflow.py doctor` (CLI-only — no `/rhize-devflow:doctor` slash command) validates
+  plugin health — manifests, canonical commands, referenced assets, duplicate bodies, stale
+  tokens, script importability, and capability dependencies — from both a source checkout and an
+  installed plugin cache; `schemas/devflow-evidence-v1.schema.json` is the stable output contract
+  for `evidence --json`. `setup/manifest.json`'s Sentry/Vercel/GitHub/Chrome DevTools MCP
+  dependencies are now capability-scoped and optional at the plugin level (a missing tool degrades
+  only the capability it gates, e.g. `browser-qa`, not the whole plugin). A new
+  `.codex-plugin/plugin.json` gives Dev Flow a Codex identity that routes through the same
+  `skills/dev-flow-foundations` command bodies Claude uses, rather than forking a second workflow.
+  Dev Flow's five overlay skills (`chrome-devtools-mcp`, `data-mutation-consistency`,
+  `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`) are narrowed to
+  Rhize-specific policy and convention only — stale Zen/Serena/Graphiti requirements and legacy
+  `@...` command aliases are removed, `error-lifecycle-management`'s
+  `ARCHITECTURE-PROPOSAL.md` is archived outside the plugin, and `chrome-devtools-mcp` shrinks to
+  DevTools-protocol mechanics used by `/rhize-devflow:browser-qa` rather than general browser
+  guidance. `rhize-context-manager`'s `/impact-map` is now a one-line deprecation adapter to
+  `/rhize-devflow:impact-map` (the canonical body moved to Dev Flow), and `/done` truthfully
+  delegates code-change review to `/rhize-devflow:review` when Dev Flow is installed and code
+  changed this session, disclosing its local fallback checklist otherwise instead of silently
+  running it or claiming a bundled verifier that only ever existed in Dev Flow. New
+  `evals/rhize-devflow/` trigger/quality/false-positive fixtures and an extended
+  `tests/rhize-devflow/` integrity suite (asset-existence, no-unresolved-placeholder,
+  no-unjustified-duplicate-command-body, single-canonical-owner, no-stale-dependency-term
+  contracts) are wired into the existing unconditional version/CI gate via
+  `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS`, so a regression on any of these claims
+  fails the same gate a version bump already runs. This is a compatibility release: no public
+  command name is removed yet — see both plugins' README migration tables for the full old→new
+  command mapping, and the plan at
+  `.claude/plans/rhize-devflow-v3-engineering-control-plane.md` for the full task list and the
+  30-day/two-release-cycle observation window before Dev Flow 3.0.0 removes the adapters.
 - _2026-08-16_ version bump — **rhize-context-manager** 0.12.0 → 0.13.0 (minor); **rhize-devflow** 2.10.3 → 2.11.0 (minor); marketplace 2.28.0 → 2.29.0.
 - _2026-08-16_ **CodeGraph-first semantic impact mapping across Rhize Dev Flow and Context
   Manager.** `dev-flow-foundations` now defines a strict authority split: CodeGraph owns current

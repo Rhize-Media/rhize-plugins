@@ -176,7 +176,9 @@ Manually verify:
 
 ## Relationship to Other Rhize Workflows
 
-- **Runtime command:** `/rhize-context-manager:impact-map` executes this protocol.
+- **Runtime command:** `/rhize-devflow:impact-map` executes this protocol (Dev Flow owns the
+  canonical implementation; `rhize-context-manager`'s `/impact-map` is a deprecation adapter
+  pointing here for the 2.12.0 compatibility window only).
 - **Component Registry:** identifies existing code to reuse after structural discovery.
 - **Regression Prevention:** turns affected behavior and invariants into required tests.
 - **Data Mutation Consistency:** deepens cache, query-key, transaction, and lifecycle analysis.

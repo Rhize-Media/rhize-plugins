@@ -2674,14 +2674,14 @@
       "path": "project-launcher"
     },
     {
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them.",
+      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. /done delegates code-change review to rhize-devflow's /review when installed. /impact-map is a deprecation adapter to rhize-devflow, which owns the executable command.",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",
       "path": "rhize-context-manager"
     },
     {
-      "description": "Rhize development-workflow skill set — production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager.",
+      "description": "Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",

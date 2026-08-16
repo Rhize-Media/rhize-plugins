@@ -36,6 +36,17 @@ the right one, and health-checks the whole thing.
   → the `context-engineering` skill (sessions, memory extraction, hygiene). This moved
   here from rhize-devflow; all triggers work as before.
 
+- **"Done / finished / ready to commit / wrap up"**
+  → `/done` — the session-closure bookend. If this session changed code **and**
+  `rhize-devflow` is installed with its `/review` command available, `/done` delegates to
+  the fully qualified `/rhize-devflow:review` (Dev Flow's production merge/release gate,
+  which routes to its independent verifier subagent for non-trivial changes) rather than
+  grading its own work. Without Dev Flow installed, or when no code changed this session,
+  `/done` runs — and explicitly discloses — a minimal local fallback checklist instead; it
+  never silently skips review or blocks session closure on Dev Flow's absence. Either path
+  ends with a `STATE.md` update before commit.
+  *Example: "I'm done with this fix — wrap up the session."*
+
 - **"What will this change affect?" / "map this before implementing"**
   → `/rhize-devflow:impact-map` (Dev Flow owns this command; install `rhize-devflow` alongside
   this plugin) — when the repository already has CodeGraph, it queries that first for current

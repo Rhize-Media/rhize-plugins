@@ -4,15 +4,29 @@ This guide explains what the rhize-devflow plugin does, how its pieces fit toget
 
 ## What This Plugin Does
 
-rhize-devflow teaches Claude the production-grade development discipline Rhize expects on real client projects: how to run a session without losing context, how to triage and root-cause a production error, how to keep cache tags and query keys from drifting apart, how to instrument code with Sentry the Rhize way, how to drive a real browser for debugging and performance work, and how to write Sanity schemas and GROQ queries in house style.
+rhize-devflow is Rhize's engineering control plane: the executable workflow that takes a change
+from "what will this touch" through "does it pass" to "is it safe to ship" —
 
-It's for developers (and Claude, acting as one) who are shipping to production — not prototyping in a vacuum. The plugin assumes real stakes: a stale cache means a client sees wrong data, an uninstrumented error means nobody finds out until a user complains, and a context-exhausted session means work gets redone. Every skill here exists to prevent one of those failure modes.
+```text
+impact-map → check → review → release
+```
+
+— plus the production-grade development discipline Rhize expects around that spine: triaging and
+root-causing a production error, keeping cache tags and query keys from drifting apart,
+instrumenting code with Sentry the Rhize way, driving a real browser for acceptance testing, and
+writing Sanity schemas and GROQ queries in house style.
+
+It's for developers (and Claude, acting as one) who are shipping to production — not prototyping
+in a vacuum. The plugin assumes real stakes: an unmapped change breaks an unexpected consumer, a
+stale cache means a client sees wrong data, an uninstrumented error means nobody finds out until a
+user complains, and a merge without an independent review is a merge nobody actually checked.
+Every command and skill here exists to prevent one of those failure modes.
 
 The plugin has two kinds of components:
 
-**Skills** are reference knowledge Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output.
+**Skills** are reference knowledge Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output. All five overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
 
-**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:mutation-check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
+**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
 ## Getting Started
 
@@ -27,26 +41,28 @@ section](./README.md#install) for the exact commands — the short version:
 
 Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
 start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
-confirm you see `mutation-check`, `browser-debug`, and the rest of the list in the [Commands
-Reference](#commands-reference) below. If a command or skill is missing after an update, the
-installed cache is probably pinned behind the marketplace — re-run the update commands above and
-start another fresh session before assuming something is broken.
+confirm you see `impact-map`, `check`, `review`, `mutation-check`, `browser-qa`, and
+`devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
+missing after an update, run `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it names
+exactly what's missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
-Six skills, clustered into five jobs:
+The control-plane sequence is the spine; five overlay skills feed it or run alongside it:
 
-| Cluster | Skills | Question it answers |
+| Stage/Cluster | Command or skills | Question it answers |
 |---------|--------|----------------------|
-| **Session & context hygiene** | `dev-flow-foundations` (session/context engineering itself now lives in the `rhize-context-manager` plugin) | "Where were we, what already exists, and is this session getting too heavy?" |
+| **1. Map** | `/rhize-devflow:impact-map` (backed by `dev-flow-foundations`) | "What already touches this area, and what's the intended change?" |
+| **2. Validate** | `/rhize-devflow:check` | "Does this pass the tests and gates that actually apply to what changed?" |
+| **3. Gate** | `/rhize-devflow:review` | "Is this safe to merge, and has someone other than me actually checked?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
-| **Data-mutation consistency** | `data-mutation-consistency` | "Will this mutation leave the cache and the UI in sync, or will someone have to hard-refresh?" |
-| **Browser debugging** | `chrome-devtools-mcp` | "What does this actually look like/do in a real browser — network, console, performance, visuals?" |
+| **Data-mutation consistency** | `data-mutation-consistency`, `/rhize-devflow:mutation-check` | "Will this mutation leave the cache and the UI in sync, or will someone have to hard-refresh?" |
+| **Browser acceptance** | `chrome-devtools-mcp`, `/rhize-devflow:browser-qa` | "What does this actually look like/do in a real browser — network, console, accessibility, layout, performance?" |
 | **CMS house style** | `sanity-development` | "What's the Rhize-opinionated way to model this in Sanity?" |
 
-Commands are the hands-on-keyboard layer built on top of these skills. Dev Flow ships the
-`/mutation-*` and `/browser-*` commands; the paired `rhize-context-manager` plugin owns `/start`,
-`/done`, `/impact-map`, and `/context-hygiene` so there is one session/impact command surface.
+Session lifecycle (`/start`, `/done`, `/context-hygiene`) is owned by the paired
+`rhize-context-manager` plugin, not this one — `/done` there delegates code-change review to
+`/rhize-devflow:review` when Dev Flow is installed and code changed this session.
 
 ## Skills Reference
 
@@ -57,10 +73,10 @@ Commands are the hands-on-keyboard layer built on top of these skills. Dev Flow 
 **What it knows:** Six foundational workflow problems and their fixes — CodeGraph-first structural discovery paired with semantic impact mapping, a component/function registry to stop duplicate components from being built, context hygiene principles (CLAUDE.md as a <200-line router, not an essay), regression prevention (root-cause first, never patch blind), anti-pattern detection at write-time rather than at review, and a skill-refinement pattern for turning a repeated fix into a formal skill.
 
 **How to use it effectively:**
-- Ask "before I build this, what already touches this area?" — it uses CodeGraph for the current call/dependency surface, then records only the semantic delta, invariants, risks, and acceptance tests that a graph cannot express.
-- After implementation, have it sync CodeGraph and reconcile the actual graph and diff against the impact map. A stale pre-change map is not completion evidence.
+- Run `/rhize-devflow:impact-map` before implementing or materially changing a feature, bug fix, refactor, schema, migration, cache path, authorization rule, or cross-repository contract — it uses CodeGraph for the current call/dependency surface, then records only the semantic delta, invariants, risks, and acceptance tests a graph cannot express.
+- After implementation, the same command reconciles the completed graph and diff against the map (`IN_SYNC` / `IN_SYNC_WITH_EXCEPTIONS` / blocking `OUT_OF_SYNC`). A stale pre-change map is not completion evidence.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
-- This is the reference layer, not a command surface — its patterns show up concretely inside the `rhize-context-manager` plugin's `context-engineering` skill (which implements the registry and dependency-graph ideas as `/rhize-context-manager:impact-map` and the duplicate-check hook) and inside `error-lifecycle-management` (which implements regression prevention as the triage workflow).
+- This is the reference layer behind the executable command, not a command surface itself — `/rhize-devflow:impact-map` (this plugin) implements the Dependency Graph foundation directly; `error-lifecycle-management` implements the Regression Prevention foundation as its triage workflow.
 
 ### error-lifecycle-management
 
@@ -96,23 +112,22 @@ Commands are the hands-on-keyboard layer built on top of these skills. Dev Flow 
 
 **How to use it effectively:**
 - Say "why isn't this update showing up without a refresh?" — Claude reasons about whether the mutation revalidates the right cache tag and whether the frontend query key factory actually matches it.
-- Say "review this Server Action" or "check this mutation" — it scores the mutation against required elements (typed client, error handling, cache revalidation) and recommended ones (optimistic UI, rollback logic).
-- This skill is advisory, not blocking — it will flag gaps with a score and a TODO comment and let you keep moving, rather than stopping implementation cold.
+- Say "review this Server Action" or "check this mutation" — it scores the mutation against required elements (typed client, error handling, cache revalidation) and recommended ones (optimistic UI, rollback logic) via `/rhize-devflow:mutation-check`.
+- This skill is advisory. `/rhize-devflow:mutation-check` reports gaps with a score, never edits source or adds a TODO comment — use `--fix-plan` for a proposed-changes report to apply yourself.
 
 **Key insight:** The skill's real value is the *cross-layer* check — most mutation bugs aren't "forgot to revalidate," they're "revalidated tag X but the query key factory reads tag Y." That mismatch is invisible unless you're checking both sides at once.
 
 ### chrome-devtools-mcp
 
-**When it activates:** You want to "test in browser", "check performance", "debug network", "take a screenshot", "fill a form", inspect "console errors", "inspect the page", "automate the browser", diagnose "CORS issues", or run a "lighthouse audit" — including on Next.js/Sanity/Payload preview URLs.
+**When it activates:** You ask specifically about Chrome DevTools MCP tool names/parameters, connecting to a running Chrome instance, or MCP-level configuration/troubleshooting for that server. General "test in the browser" / "check performance" / "debug this page" requests go through `/rhize-devflow:browser-qa` instead — that command detects whichever browser capability is actually connected (Chrome DevTools MCP is one candidate, not an assumed default) and this skill supplies the DevTools-protocol mechanics only when that server is the active one.
 
-**What it knows:** The full Chrome DevTools Protocol tool surface via the official Puppeteer-backed MCP server — input automation (click, fill, drag, upload), navigation (multi-tab), performance tracing (Core Web Vitals — LCP, FID/INP, CLS), network inspection (request/response detail, CORS diagnosis), console/DOM debugging (screenshots, accessibility snapshots, arbitrary JS evaluation), and device emulation for responsive testing.
+**What it knows:** The Chrome DevTools Protocol tool surface via the official Puppeteer-backed MCP server — input automation (click, fill, drag, upload), navigation (multi-tab), performance tracing (Core Web Vitals — LCP, FID/INP, CLS), network inspection (request/response detail, CORS diagnosis), console/DOM debugging (screenshots, accessibility snapshots, arbitrary JS evaluation), and device emulation for responsive testing.
 
 **How to use it effectively:**
-- Ask "check the performance of my dashboard page" — it navigates, starts a trace, and comes back with Core Web Vitals plus specific render-blocking resources, not just a pass/fail.
-- Ask "why is my login form failing silently?" — it navigates, fills and submits the form, then inspects both network requests (auth headers, response bodies) and console errors together.
-- Ask "show me this page at mobile, tablet, and desktop" — it emulates each viewport and screenshots all three so you can compare layouts in one pass.
+- Ask "check the performance of my dashboard page" or "why is my login form failing silently" — these route through `/rhize-devflow:browser-qa`'s scenario list.
+- Ask specifically "what's the Chrome DevTools MCP tool for X" or "why won't the DevTools MCP server connect" — this skill's own reference and troubleshooting docs take over.
 
-**Key insight:** This pairs with `gsd-browser-harness` — prefer this skill specifically when you need DevTools-protocol-level performance and network introspection (traces, waterfalls, CORS headers), not just generic browser automation.
+**Key insight:** This is the mechanics layer behind one candidate implementation of `/rhize-devflow:browser-qa`, not a general browser-testing entry point — reach for `/rhize-devflow:browser-qa` for the acceptance workflow itself.
 
 ### sanity-development
 
@@ -129,127 +144,228 @@ Commands are the hands-on-keyboard layer built on top of these skills. Dev Flow 
 
 ## Commands Reference
 
-> **Moved:** the session & context commands (`/rhize-devflow:start`, `/rhize-devflow:done`,
-> `/rhize-devflow:context-hygiene`, `/rhize-devflow:impact-map`) now live in the
-> `rhize-context-manager` plugin as `/rhize-context-manager:start`, `/rhize-context-manager:done`,
-> `/rhize-context-manager:context-hygiene`, and `/rhize-context-manager:impact-map`.
+### The control-plane sequence
 
-### Data-mutation commands
+#### /rhize-devflow:impact-map
 
-#### /rhize-devflow:mutation-analyze
+**Usage:** `/rhize-devflow:impact-map` (no flags — describe the change in the prompt)
 
-**Usage:** `/rhize-devflow:mutation-analyze [--focus table|entity]`
-
-Full codebase scan for mutation patterns. Detects which sub-skill applies (React Query, Payload CMS) from `package.json`, scores every mutation found, cross-checks that backend cache tags match frontend query keys, and writes a detailed report to `.claude/analysis/mutation-report-{date}.md` while keeping the chat summary to a few lines.
+Maps a change before implementation, then reconciles the completed diff against the same
+evidence. CodeGraph (when an existing healthy index is present) is authoritative for current
+structural truth — symbols, callers, tests, dependency paths. The map itself is authoritative
+for intended change — business behavior, invariants, planned symbols, operational effects, risks,
+acceptance criteria. Requires a post-implementation `IN_SYNC`, `IN_SYNC_WITH_EXCEPTIONS`, or
+blocking `OUT_OF_SYNC` verdict.
 
 **Examples:**
-- `/rhize-devflow:mutation-analyze` for a full sweep before a release
-- `/rhize-devflow:mutation-analyze --focus players` when you suspect one entity/table specifically
+- "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
+- "Reconcile the impact map against what actually changed" (after implementation).
+
+#### /rhize-devflow:check
+
+**Usage:** `/rhize-devflow:check` (invoke mid-implementation, no flags)
+
+Evidence-driven mid-implementation validation. Builds a deterministic evidence packet
+(`devflow.py evidence --json`) — changed files, protected-file matches, declared package
+scripts, package manager, impact-map status — then selects checks *only* from repository
+instructions and known-safe declared package-script names (`test`, `lint`, `typecheck`, `build`,
+`schema`, `codegen`). Never runs shell text parsed from a README, commit message, or generated
+report. Runs focused tests first, then repository-mandated broader gates. Returns `PASS`,
+`PASS_WITH_WARNINGS`, or `BLOCKED` with the exact evidence table.
+
+**Examples:**
+- "Run check — the failing test for refund calculation just started passing."
+- "Check this before I pause for the day."
+
+#### /rhize-devflow:review
+
+**Usage:** `/rhize-devflow:review` (invoke before merge/push/release)
+
+The read-only production merge/release gate — the executable successor to the retired
+`rhize-review` workflow. Resolves the exact base/head comparison range from explicit intent and
+Git evidence (never assumes the default branch is the merge target), builds a risk map across
+deployment/data/security/authorization/billing/migration/cache/external-write categories from
+actual diff evidence, routes only the specialist reviews that risk map calls for, and requires an
+independent skeptical reviewer for any non-trivial change (a disclosed cold review if none is
+available). Returns exactly one of `PASS`, `FAIL_WITH_FIXABLE_GAPS`, `FAIL_REQUIRES_HUMAN`. Never
+commits, pushes, merges, or deploys — the actual ship step stays a separate, explicit action
+governed by the repository's own push policy.
+
+**Examples:**
+- "Review this before I merge to main — target branch is `dev`, per the repo's push policy."
+- "Run review for the migration in this PR."
+
+### Overlay commands
 
 #### /rhize-devflow:mutation-check
 
-**Usage:** `/rhize-devflow:mutation-check <file>`
+**Usage:** `/rhize-devflow:mutation-check PATH...` | `--all [--focus <entity>]` | `--fix-plan [--priority P0|P1|P2] [--file <path>]`
 
-Quick single-file check — no report file, just an inline score and a list of present/missing required elements (error handling, cache revalidation, type safety, and category-specific checks for React Query or Payload).
-
-**Examples:**
-- `/rhize-devflow:mutation-check app/actions/players.ts` right before committing a mutation
-- `/rhize-devflow:mutation-check hooks/useUpdatePlayer.ts` right after editing it
-
-#### /rhize-devflow:mutation-fix
-
-**Usage:** `/rhize-devflow:mutation-fix [P0|P1|P2] [--file <path>] [--add-todos]`
-
-Generates a concrete fix plan from a prior analysis (or runs a fresh one), filtered by priority — P0 is critical-only, P1 (the default) is critical + warnings, P2 is everything. Can write a fix-plan file or add inline `TODO(mutation-consistency)` comments directly to the source for incremental fixing.
+Read-only data-mutation consistency check, replacing the former `mutation-analyze` /
+`mutation-check` / `mutation-fix` split. `PATH...` is a fast scoped check with an inline score and
+present/missing required elements; `--all` is a full-codebase sweep that writes a report to
+`.claude/analysis/mutation-report-{date}.md`; `--fix-plan` writes a proposed-changes report to
+`.claude/analysis/` without touching source. There is no `--add-todos`/`--apply` — this command
+never edits files.
 
 **Examples:**
-- `/rhize-devflow:mutation-fix P1` after `/rhize-devflow:mutation-analyze` flags issues
-- `/rhize-devflow:mutation-fix --file app/actions/players.ts` to scope the fix plan to one file
-- `/rhize-devflow:mutation-fix --add-todos P1` to mark issues in place rather than generate a separate plan doc
+- `/rhize-devflow:mutation-check app/actions/players.ts` right after editing it.
+- `/rhize-devflow:mutation-check --all` for a full sweep before a release.
+- `/rhize-devflow:mutation-check --fix-plan --priority P1` to get a fix plan after `--all` flags issues.
 
-### Browser commands
+#### /rhize-devflow:browser-qa
 
-#### /rhize-devflow:browser-perf
+**Usage:** `/rhize-devflow:browser-qa` (describe the URL/flow to exercise in the prompt)
 
-**Usage:** `/rhize-devflow:browser-perf [url] [--mobile]`
-
-Records a Chrome DevTools performance trace against a URL and reports Core Web Vitals (LCP, FID/INP, CLS) against target thresholds, plus specific render-blocking resources and unused-JS findings.
-
-**Examples:**
-- `/rhize-devflow:browser-perf http://localhost:3000/dashboard`
-- `/rhize-devflow:browser-perf --mobile http://localhost:3000` to check mobile performance specifically
-
-#### /rhize-devflow:browser-debug
-
-**Usage:** `/rhize-devflow:browser-debug [url] [--action "click submit"]`
-
-Navigates to a URL (optionally performing an action first), then lists network requests with failures called out, console errors/warnings, and CORS issues — with full request/response detail on anything that failed.
+One scenario-driven browser acceptance workflow, replacing the former `browser-help` /
+`browser-debug` / `browser-perf` / `browser-test` split: functional path, console/network errors,
+accessibility smoke, responsive layout (mobile/tablet/desktop presets), and performance (only on
+request or when the change plausibly affects load/render). Detects whichever browser capability
+is actually connected in the session rather than assuming a specific named MCP server, and
+degrades explicitly (reports scenarios as unavailable, never fabricates a result) when none is
+available.
 
 **Examples:**
-- `/rhize-devflow:browser-debug http://localhost:3000/checkout`
-- `/rhize-devflow:browser-debug --action "click submit" http://localhost:3000/form`
+- "Run browser QA on `http://localhost:3000/checkout` after this form change."
+- "Check performance on the dashboard page — I added a heavy chart component."
 
-#### /rhize-devflow:browser-test
+#### /rhize-devflow:devflow-setup
 
-**Usage:** `/rhize-devflow:browser-test [url] [--responsive] [--form "field=value,..."]`
+**Usage:** `/rhize-devflow:devflow-setup`
 
-Visual and functional testing. Default mode screenshots the page and checks for console errors; `--responsive` screenshots mobile/tablet/desktop and flags layout issues; `--form` fills and submits a form and verifies the result (redirect, success message, no console errors).
+Interview-driven setup wizard that establishes the per-machine `.claude/*.local.md` tenant-file
+convention — see the [README](./README.md#rhize-devflowdevflow-setup--local-tenant-file-convention)
+for what the convention is.
 
 **Examples:**
-- `/rhize-devflow:browser-test http://localhost:3000/pricing`
-- `/rhize-devflow:browser-test --responsive http://localhost:3000`
-- `/rhize-devflow:browser-test --form "email=test@test.com,password=Test123" http://localhost:3000/login`
+- "Set up the local tenant-file convention for this repo — new client project."
 
-#### /rhize-devflow:browser-help
+### Deprecated commands
 
-**Usage:** `/rhize-devflow:browser-help`
-
-Quick reference card for the other three browser commands, the full MCP tool list, installation/configuration snippets, and a troubleshooting table. Reach for this when you've forgotten the exact flag or tool name rather than re-deriving it.
+`browser-debug`, `browser-help`, `browser-perf`, `browser-test`, `mutation-analyze`, and
+`mutation-fix` are one-line deprecation adapters during the 2.12.0 compatibility window — invoking
+one just tells you the canonical replacement rather than running any workflow itself. See the
+[README's migration table](./README.md#migration-table) for the full old→new mapping. They will be
+removed no earlier than Dev Flow 3.0.0.
 
 ## How the Skills and Commands Work Together
 
-**Session lifecycle bookends now live elsewhere:** the `context-engineering` skill and its `/start`/`/done`/`/context-hygiene`/`/impact-map` bookend commands moved to the `rhize-context-manager` plugin (`/rhize-context-manager:start`, `/rhize-context-manager:done`, etc.). `dev-flow-foundations` remains here in rhize-devflow.
+**The control-plane sequence is the backbone.** `/rhize-devflow:impact-map` maps a change before
+implementation and reconciles it after; `/rhize-devflow:check` validates the in-progress work
+against deterministic evidence; `/rhize-devflow:review` gates the actual merge/push/release
+decision. Each stage expects the one before it to have already run, but none of the three commits,
+pushes, or deploys — that stays a separate, explicit, repository-governed action.
 
-**Foundations feed the commands:** `dev-flow-foundations` is the reference layer, not something you invoke directly — its dependency-graph and component-registry patterns are what `rhize-context-manager`'s `/rhize-context-manager:impact-map` command actually executes, and its regression-prevention protocol (root cause before fix) is what `error-lifecycle-management`'s triage workflow follows.
+**Session lifecycle bookends live in the paired plugin:** `rhize-context-manager`'s `/start`,
+`/done`, and `/context-hygiene` own session state. `/done` there delegates code-change review to
+this plugin's `/rhize-devflow:review` when Dev Flow is installed and code changed this session —
+otherwise it discloses a local fallback checklist rather than silently skipping review.
 
-**Instrumentation feeds triage:** `sentry-instrumentation` is how the code gets Sentry coverage in the first place (captureException, spans, structured logs); `error-lifecycle-management` is what runs once one of those instrumented errors actually fires in production, correlating it against Vercel deploys and GitHub commits.
+**Foundations feed the control-plane commands:** `dev-flow-foundations` is the reference layer,
+not something you invoke directly — its dependency-graph pattern is exactly what
+`/rhize-devflow:impact-map` executes, and its regression-prevention protocol (root cause before
+fix) is what `error-lifecycle-management`'s triage workflow follows.
 
-**Mutation analyze → check → fix is a pipeline:** `/rhize-devflow:mutation-analyze` finds the issues across the codebase, `/rhize-devflow:mutation-check` lets you spot-check a single file (before committing, or after editing), and `/rhize-devflow:mutation-fix` turns flagged issues into an actual fix plan or inline TODOs. Re-run `/rhize-devflow:mutation-analyze` after applying fixes to confirm the score improved.
+**Instrumentation feeds triage:** `sentry-instrumentation` is how the code gets Sentry coverage in
+the first place (captureException, spans, structured logs); `error-lifecycle-management` is what
+runs once one of those instrumented errors actually fires in production, correlating it against
+Vercel deploys and GitHub commits.
 
-**Chrome DevTools feeds all three browser commands:** `chrome-devtools-mcp` is the underlying tool knowledge; `/rhize-devflow:browser-perf`, `/rhize-devflow:browser-debug`, and `/rhize-devflow:browser-test` are three different lenses on the same MCP server — performance tracing, network/console debugging, and visual/form testing, respectively. `/rhize-devflow:browser-help` is the cheat sheet that ties them together when you need a reminder of which one does what.
+**Mutation and browser overlays sit alongside the spine:** `/rhize-devflow:mutation-check` and
+`/rhize-devflow:browser-qa` are scenario-driven acceptance checks you reach for during
+implementation or as part of `/rhize-devflow:check`'s broader validation — not replacements for
+it. `data-mutation-consistency` and `chrome-devtools-mcp` are the reference knowledge behind each.
 
-**Sanity development stands alongside, not inside:** `sanity-development` doesn't feed a slash command in this plugin — it's pure reference knowledge Claude applies automatically whenever you're editing schema or GROQ files in a Sanity codebase, the same way `sentry-instrumentation` applies automatically when you're adding error tracking.
+**Sanity development stands alongside, not inside:** `sanity-development` doesn't feed a slash
+command in this plugin — it's pure reference knowledge Claude applies automatically whenever
+you're editing schema or GROQ files in a Sanity codebase, the same way `sentry-instrumentation`
+applies automatically when you're adding error tracking.
 
 ## Tips for Getting the Best Results
 
-**Run `/rhize-context-manager:start` even for a "quick fix."** The whole point of `STATE.md` is that a five-minute fix six months from now shouldn't require re-discovering context that was already captured. Skipping `/start` on "small" sessions is how that discipline erodes. (This command now lives in the `rhize-context-manager` plugin.)
+**Run `/rhize-devflow:impact-map` before touching code on anything non-trivial.** Skipping it on
+"small" changes is how an unmapped consumer gets broken silently — the reconciliation step at the
+end is what catches a stale map, but only if one was made in the first place.
 
-**Don't skip `/rhize-context-manager:done` because the build passed.** A green build is necessary but not sufficient — the verifier subagent exists specifically because the maker (Claude, in this session) is a bad judge of its own work. A FAIL_REQUIRES_HUMAN verdict is meant to stop a commit, not get worked around. (This command now lives in the `rhize-context-manager` plugin; the bundled `agents/verifier.md` it delegates to still lives here in rhize-devflow.)
+**Use `/rhize-devflow:check` as a habit, not a one-time gate.** It's fast enough — evidence-driven,
+no arbitrary command execution — to run every time a meaningful unit of change lands, not just
+right before `/rhize-devflow:review`.
 
-**Mention the platform when it matters for mutation work.** "Check this mutation" triggers a generic pass; "check this Payload afterChange hook" or "check this React Query mutation" lets the skill apply the sub-skill-specific checks (Payload's `afterDelete` cache invalidation vs. React Query's rollback context) instead of only the generic ones.
+**Don't skip `/rhize-devflow:review` because `check` passed.** A green `check` is necessary but
+not sufficient — it validates the in-progress change, not the shippability of the diff as a whole.
+`review`'s independent-reviewer requirement exists specifically because the session that authored
+a change is a bad judge of its own work.
 
-**Use `/rhize-devflow:mutation-check` right after editing, not just before committing.** It's fast enough (no file output, no full-codebase scan) to run as a habit every time you touch a Server Action or mutation hook.
+**Mention the platform when it matters for mutation work.** "Check this mutation" triggers a
+generic pass; "check this Payload afterChange hook" or "check this React Query mutation" lets the
+skill apply the sub-skill-specific checks (Payload's `afterDelete` cache invalidation vs. React
+Query's rollback context) instead of only the generic ones.
 
-**Pair browser commands with a running Sentry investigation.** If `error-lifecycle-management` surfaces a client-side error, `/rhize-devflow:browser-debug` on the same URL/action is usually the fastest way to reproduce it live and see the console/network state Sentry's stack trace alone doesn't show you.
+**Pair `/rhize-devflow:browser-qa` with a running Sentry investigation.** If
+`error-lifecycle-management` surfaces a client-side error, running browser QA on the same
+URL/action is usually the fastest way to reproduce it live and see the console/network state
+Sentry's stack trace alone doesn't show you.
 
-**Be specific about viewport and device for browser-test.** "`--responsive`" gives you the three standard breakpoints; if you need something else, name the exact width/height and it'll emulate that instead of guessing.
+**Be specific about viewport and device for browser QA's responsive scenario.** The default
+presets (mobile/tablet/desktop) cover the common case; name an exact width/height if you need
+something else.
 
 ## Troubleshooting
 
-**Browser commands fail or hang:** The Chrome DevTools MCP server isn't installed or isn't running. Install with `claude mcp add --scope user chrome-devtools npx chrome-devtools-mcp@latest`, then verify with `/rhize-devflow:browser-help` which lists the install/verify steps.
+**A command or skill is missing after install/update:** Run
+`python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it validates manifests, canonical
+commands, referenced assets, duplicate bodies, stale tokens, and capability dependencies, and
+names exactly what's wrong instead of leaving you to guess. Anything other than `HEALTHY` (plus
+informational findings) means the plugin cache is stale — re-run
+`claude plugin marketplace update rhize-plugins` then `claude plugin update rhize-devflow`, then
+start a fresh session.
 
-**"Element not found" during `/rhize-devflow:browser-test` or `/rhize-devflow:browser-debug`:** The page hadn't finished rendering before the action ran. Ask Claude to add a `wait_for` on the target selector before the click/fill — this is the single most common cause per the skill's own troubleshooting table.
+**`/rhize-devflow:check` reports a gate as skipped/unavailable when you expected it to run:** It
+only selects checks from repository instructions (`CLAUDE.md`/`AGENTS.md`) and known-safe declared
+package-script names — if the script isn't declared under one of those safe names, or the
+repository doesn't require it, `check` reports it as unavailable rather than guessing at a command
+from a README or comment. Declare the gate explicitly in the repository's own instructions or
+`package.json` if it should always run.
 
-**Screenshots come back blank:** Usually a GPU/headless rendering issue. Try adding `--disable-gpu` to the Chrome launch args, or drop `--headless` for a visible browser window if you're debugging locally.
+**`/rhize-devflow:review` asks you to confirm the target branch:** This happens when base
+resolution came from a guess (default-branch fallback) rather than an explicit signal (a stated
+PR/branch or a tracked upstream) — name the actual target branch or PR and re-run rather than
+letting it guess, since the wrong base silently narrows or widens the diff under review.
 
-**`/rhize-devflow:mutation-analyze` reports a low score but the app "works fine":** A passing score isn't about whether the happy path works today — it's about whether the mutation is guaranteed to keep the cache and UI in sync under retries, concurrent edits, or partial failures. Treat the report as a leading indicator, not a false alarm.
+**`/rhize-devflow:review` reports no independent reviewer ran:** This is disclosed, not hidden —
+check the output for which limitation applies. A disclosed cold review still happened; it's
+weaker than a genuinely independent pass, not a skipped step.
 
-**Mutation fix plan references a cache tag you don't recognize:** Check whether a query-key factory was renamed on one side (frontend) but not the other (backend `revalidateTag`) — this exact drift is what the cross-layer validation is built to catch, and it's usually the actual root cause of "I had to hard-refresh."
+**Browser commands fail or hang:** The active browser capability isn't installed or isn't running.
+For Chrome DevTools MCP specifically: install with
+`claude mcp add --scope user chrome-devtools npx chrome-devtools-mcp@latest`, then re-run
+`/rhize-devflow:browser-qa` — it detects the connected tool rather than assuming one.
 
-**`/rhize-context-manager:done` can't find a verifier subagent:** Confirm `agents/verifier.md` exists (either the global `~/.claude/agents/verifier.md` or the copy bundled in this plugin). If genuinely unavailable, the command falls back to performing the same checks (diff review, build, STATE.md update) explicitly and should say so rather than silently skipping verification.
+**"Element not found" during `/rhize-devflow:browser-qa`:** The page hadn't finished rendering
+before the action ran. Ask Claude to wait on the target selector before the click/fill — this is
+the single most common cause per the underlying tool's own troubleshooting notes.
+
+**Screenshots come back blank:** Usually a GPU/headless rendering issue. Try adding `--disable-gpu`
+to the Chrome launch args, or drop `--headless` for a visible browser window if you're debugging
+locally.
+
+**`/rhize-devflow:mutation-check` reports a low score but the app "works fine":** A passing score
+isn't about whether the happy path works today — it's about whether the mutation is guaranteed to
+keep the cache and UI in sync under retries, concurrent edits, or partial failures. Treat the
+report as a leading indicator, not a false alarm.
+
+**Mutation fix plan references a cache tag you don't recognize:** Check whether a query-key
+factory was renamed on one side (frontend) but not the other (backend `revalidateTag`) — this
+exact drift is what the cross-layer validation is built to catch, and it's usually the actual root
+cause of "I had to hard-refresh."
+
+**`rhize-context-manager`'s `/done` runs a local fallback instead of delegating to review:**
+Expected when Dev Flow isn't installed, or no code changed this session — it discloses the
+fallback explicitly rather than silently skipping independent review. Install `rhize-devflow` if
+you expected delegation to happen.
 
 **Sanity schema or query changes aren't reflected in TypeScript types:** Run the typegen workflow (`sanity schema extract` then `sanity typegen generate`), and if VS Code still shows stale types, restart the TS server (Cmd+Shift+P → "TypeScript: Restart TS Server").
 
 **Sentry captures fire in code but nothing shows up in the dashboard:** This skill only covers in-code instrumentation conventions, not SDK setup — check `enableLogs: true` is set in your Sentry init (required for `logger.fmt` calls to actually ship), and if the issue is initialization itself, defer to the official `sentry:*` skills for full SDK configuration.
 
-**Heavier guard hooks (prewrite mutation check, protect-files, mutation/sentry-stale-data suggesters) don't seem to be running:** They're opt-in by design — all four ship under `hooks/` but only the lightweight SessionStart banner in `hooks/hooks.json` is auto-wired. See the README's Hooks section (or `setup/manifest.json`, which the `/rhize-setup` wizard in `rhize-ops` reads) for the full list and exact commands, and wire in the ones you want per-project rather than expecting them to fire out of the box. (The context-engineering guard hooks — duplicate-check, pre-commit-guard, session-init, skill-suggester — and the skill/session refinement suggesters now live in the `rhize-context-manager` plugin, not here.)
+**Heavier guard hooks (prewrite mutation check, protect-files, mutation/sentry-stale-data suggesters) don't seem to be running:** They're opt-in by design — all four ship under `hooks/` but nothing is auto-wired. See the README's Hooks section (or `setup/manifest.json`, which the `/rhize-setup` wizard in `rhize-ops` reads) for the full list and exact commands, and wire in the ones you want per-project rather than expecting them to fire out of the box.
