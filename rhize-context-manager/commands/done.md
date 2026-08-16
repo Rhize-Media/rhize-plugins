@@ -14,9 +14,9 @@ Complete validation after finishing a feature or bug fix.
 1. **Full Impact Analysis** - All files changed this session
 2. **Verify Related Files** - Ensure no incomplete changes
 3. **Build Validation** - Full type check and build
-4. **Code Review** - Multi-perspective review via MCP
-5. **Generate Commit Message** - Based on changes
-6. **Update Context** - Mark progress in sprint file
+4. **Generate Commit Message** - Based on changes
+5. **Delegate Code Review** - `/rhize-devflow:review` when available, disclosed fallback otherwise
+6. **Update Context** - Mark progress in sprint file + STATE.md
 
 ## Automatic Actions
 
@@ -39,14 +39,7 @@ npm run build  # or yarn build, pnpm build
 npm run typecheck  # if separate
 ```
 
-### Step 4: Code Review (if Zen MCP available)
-```
-Use zen precommit to validate changes:
-- Focus: quality, correctness
-- Files: [list of changed files]
-```
-
-### Step 5: Generate Commit Message
+### Step 4: Generate Commit Message
 Based on changes, suggest commit message:
 ```
 type(scope): description
@@ -57,7 +50,7 @@ type(scope): description
 
 Types: feat, fix, refactor, docs, style, test, chore
 
-### Step 6: Delegate Code-Change Review (Dev Flow when available)
+### Step 5: Delegate Code-Change Review (Dev Flow when available)
 The maker never grades its own work. This plugin does not bundle its own verifier — the
 independent verifier subagent lives only at `rhize-devflow/agents/verifier.md`.
 
@@ -82,7 +75,7 @@ code changed):
 - [ ] Tests/build were run and their result reported (or explicitly "no code change to test")
 - [ ] STATE.md (if the project has one) was updated
 
-### Step 7: Update Context File + STATE.md (compounding contract)
+### Step 6: Update Context File + STATE.md (compounding contract)
 - Mark completed items; update "Completed This Session" section; clear done pending items
 - If the project has a `STATE.md` (Verified facts · General rules · Open failures ·
   Lessons learned · Last session): record at least one verified fact, open failure
