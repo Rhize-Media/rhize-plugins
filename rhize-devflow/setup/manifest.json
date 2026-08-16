@@ -45,8 +45,9 @@
     {
       "name": "Sentry MCP server",
       "kind": "mcp",
+      "capability": "error-lifecycle",
       "purpose": "Required by error-lifecycle-management (get_issues/get_issue/get_issue_events/get_performance_issues) and by sentry-instrumentation to verify conventions against real issues.",
-      "required": true,
+      "required": false,
       "degradedBehavior": "error-lifecycle-management can't fetch issues, events, or performance data at all; sentry-instrumentation can still advise on Rhize's captureException/spans conventions from static guidance, but can't verify against live issues.",
       "replacement": {
         "suggestion": "read the Sentry dashboard manually and paste findings into the session",
@@ -56,8 +57,9 @@
     {
       "name": "Vercel MCP server",
       "kind": "mcp",
+      "capability": "deploy-correlation",
       "purpose": "Required by error-lifecycle-management (get_deployments/get_build_logs/get_functions_logs/get_environment) for Sentry↔Vercel deploy correlation.",
-      "required": true,
+      "required": false,
       "degradedBehavior": "error-lifecycle-management can't correlate an error with the deployment that introduced it — no deployment, build-log, or env-var evidence.",
       "replacement": {
         "suggestion": "check the Vercel dashboard manually for the matching deployment",
@@ -67,8 +69,9 @@
     {
       "name": "GitHub MCP server",
       "kind": "mcp",
+      "capability": "commit-pr-correlation",
       "purpose": "Required by error-lifecycle-management (get_commits/get_pull_request/create_issue/get_diff) to identify the commit/PR that likely caused an error and to file a bug ticket.",
-      "required": true,
+      "required": false,
       "degradedBehavior": "error-lifecycle-management can't identify the causing commit/PR or auto-file a tracker issue.",
       "replacement": {
         "suggestion": "search git log and the GitHub UI manually, and file issues by hand",
@@ -78,8 +81,9 @@
     {
       "name": "Chrome DevTools MCP server",
       "kind": "mcp",
+      "capability": "browser-qa",
       "purpose": "Required by the entire chrome-devtools-mcp skill — browser automation, perf traces, network/console debugging.",
-      "required": true,
+      "required": false,
       "degradedBehavior": "The chrome-devtools-mcp skill can't run at all — there's no non-MCP fallback path documented for it.",
       "replacement": {
         "suggestion": "drive a browser manually or script it with Playwright directly",

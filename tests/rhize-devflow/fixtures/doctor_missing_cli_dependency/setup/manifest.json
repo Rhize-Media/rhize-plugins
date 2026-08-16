@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "plugin": "fixture-missing-cli",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "Definitely Fake CLI Tool",
+      "kind": "cli",
+      "binary": "definitely-not-a-real-binary-xyz123",
+      "capability": "fake-capability",
+      "purpose": "Exercises the degraded-capability path for a missing optional CLI dependency.",
+      "required": false,
+      "degradedBehavior": "fake-capability is unavailable.",
+      "replacement": {"suggestion": "n/a", "warning": "n/a"}
+    }
+  ]
+}
