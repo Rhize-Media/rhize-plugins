@@ -1,0 +1,4 @@
+platform:
+  deployment: vercel
+  framework: nextjs
+this is: not: valid: yaml: [

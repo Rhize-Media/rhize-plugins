@@ -27,6 +27,13 @@ evals/skill-map/data/
 # Claude Code local config
 .claude/
 
+# Exception: fixture data for test_mutation_analysis.py's malformed-config fail-closed
+# case. analyze_mutations.py hardcodes .claude/mutation-patterns.yaml as its config path,
+# so the fixture must live at exactly that relative location to exercise the real code
+# path — both the directory and its contents need unignoring for git to descend into it.
+!tests/rhize-devflow/fixtures/mutation/malformed_config_project/.claude/
+!tests/rhize-devflow/fixtures/mutation/malformed_config_project/.claude/**
+
 # Local scripts (not part of plugin distribution) — exceptions below
 scripts/*
 !scripts/bump_version.py
