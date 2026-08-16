@@ -17,33 +17,36 @@ Prevents "mutation drift" where data mutation patterns become inconsistent acros
 
 ## Quick Start
 
-### Commands
+### Command
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/rhize-devflow:mutation-analyze` | `@analyze-mutations` | Full codebase mutation analysis |
-| `/rhize-devflow:mutation-check [file]` | `@check-mutation` | Single file quick check |
-| `/rhize-devflow:mutation-fix [priority]` | `@fix-mutations` | Generate fix plan for issues |
+| Command | Mode | Description |
+|---------|------|-------------|
+| `/rhize-devflow:mutation-check PATH...` | scoped | One or more files, immediate inline result |
+| `/rhize-devflow:mutation-check --all` | whole-codebase | Full analysis, written to `.claude/analysis/` |
+| `/rhize-devflow:mutation-check --fix-plan` | fix-plan | Proposed changes only, never edits source |
+
+`mutation-analyze` and `mutation-fix` are retired; `commands/mutation-analyze.md` and
+`commands/mutation-fix.md` are deprecation adapters pointing back to `mutation-check`.
 
 ### Example Usage
 
 ```bash
-# Full analysis with dashboard
-@analyze-mutations --dashboard
+# Full analysis, optionally scoped
+/rhize-devflow:mutation-check --all --focus players
 
 # Check single file
-@check-mutation app/actions/players.ts
+/rhize-devflow:mutation-check app/actions/players.ts
 
-# Generate fixes for warnings
-@fix-mutations P1
+# Generate a fix plan (read-only report, no source edits)
+/rhize-devflow:mutation-check --fix-plan --priority P1
 ```
 
 ## Features
 
 ### Scoring System
 - **≥ 9.0**: Passing - no action needed
-- **7.0 - 8.9**: Warning - TODO added, proceeds with warning
-- **< 7.0**: Critical - immediate attention required
+- **7.0 - 8.9**: Warning - reported in chat/report; run `--fix-plan` for proposed changes
+- **< 7.0**: Critical - immediate attention required; run `--fix-plan` for proposed changes
 
 ### Sub-Skills (Auto-Detected)
 - **react-query-mutations**: TanStack Query / React Query patterns
@@ -52,7 +55,8 @@ Prevents "mutation drift" where data mutation patterns become inconsistent acros
 - **sanity-cms-hooks**: Sanity CMS (planned)
 
 ### Enforcement Mode
-Advisory mode - warns and adds TODOs but doesn't block implementation.
+Read-only, fail-closed - reports warnings and writes proposed-change reports, but never
+edits source files and never blocks implementation on its own.
 
 ## Directory Structure
 
@@ -71,8 +75,7 @@ data-mutation-consistency/
 │   ├── analyze_mutations.py    # Full analysis
 │   ├── check_single_file.py    # Single file check
 │   ├── generate_fixes.py       # Fix generation
-│   ├── sentry_integration.py   # Sentry stale data detection
-│   └── zen_memory.py           # Cross-session memory
+│   └── sentry_integration.py   # Sentry stale data detection
 ├── hooks/
 │   ├── mutation-detector.sh    # UserPromptSubmit hook
 │   ├── prewrite-check.sh       # PreToolUse hook
@@ -87,8 +90,7 @@ data-mutation-consistency/
 └── references/
     ├── IMPLEMENTATION-STRATEGY.md
     ├── platform-standards.md
-    ├── cross-layer-validation.md
-    └── zen-memory-integration.md
+    └── cross-layer-validation.md
 ```
 
 ## Installation
@@ -133,9 +135,6 @@ Configure in `.claude/settings.json`:
 
 ### Sentry MCP
 Detects stale data patterns in Sentry issues and suggests mutation analysis.
-
-### Zen MCP Memory
-Stores analysis results for cross-session awareness and trend tracking.
 
 ### Anti-Pattern Agent
 Integrates with dev-flow-foundations anti-pattern detection for real-time enforcement.

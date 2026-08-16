@@ -88,6 +88,24 @@
       "id": "tag:condition/type-error",
       "kind": "tag",
       "description": "A static type check failed (tsc, mypy, or equivalent)"
+    },
+    {
+      "id": "external:sentry-plugin",
+      "kind": "external",
+      "name": "sentry (sentry-plugin-marketplace)",
+      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it."
+    },
+    {
+      "id": "external:sanity-plugin",
+      "kind": "external",
+      "name": "sanity (sanity-agent-toolkit)",
+      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it."
+    },
+    {
+      "id": "external:ecc-browser-qa",
+      "kind": "external",
+      "name": "ecc:browser-qa (skill)",
+      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls."
     }
   ],
   "edges": [
@@ -208,6 +226,24 @@
     {
       "from": "command:rhize-context-manager/skill-refine",
       "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "to": "external:sentry-plugin",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "to": "external:sanity-plugin",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "to": "external:ecc-browser-qa",
       "type": "depends-on",
       "source": "relations-catalog"
     }

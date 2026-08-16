@@ -30,8 +30,8 @@ MCP Integration:
     2. Get fix patterns from Context7:
        mcp__context7__get-library-docs(topic="error handling")
 
-    3. Navigate to code with Serena:
-       mcp__serena__find_symbol(name_path="<function>", include_body=true)
+    3. Navigate to the flagged code: use CodeGraph (`codegraph_explore`) if the project has
+       a `.codegraph/` index, otherwise Grep for the function name and Read the file.
 """
 
 import re

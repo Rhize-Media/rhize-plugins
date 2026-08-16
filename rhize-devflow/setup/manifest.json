@@ -8,7 +8,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
-      "description": "When the prompt combines a mutation/cache keyword (stale cache, revalidate, useMutation, afterChange, ...) with a bug/error keyword, suggests `@analyze-mutations` / `@check-mutation` before proceeding. Lets explicit @-triggers and /rhize-devflow:mutation through unconditionally.",
+      "description": "When the prompt combines a mutation/cache keyword (stale cache, revalidate, useMutation, afterChange, ...) with a bug/error keyword, suggests `/rhize-devflow:mutation-check` before proceeding. Lets explicit /rhize-devflow:mutation-check invocations through unconditionally.",
       "default": false
     },
     {

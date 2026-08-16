@@ -10,13 +10,13 @@ description: >-
   stale. Use when the user reports "stale data", "not updating", "cache", "revalidate", "mutation",
   "optimistic update", "data is out of sync", "had to hard-refresh", or when reviewing React Query,
   Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical),
-  runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check,
-  and mutation-fix.
+  runs cross-layer validation, and generates fix plans via the read-only
+  /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).
 metadata:
   rhize:
     topics: [data-consistency, workflow-patterns]
     stacks: [nextjs, sanity, sentry, vercel]
-    dependsOn: ["mcp:sentry", "mcp:zen"]
+    dependsOn: ["mcp:sentry"]
     extends: [dev-flow-foundations]
 
 ---
@@ -27,7 +27,7 @@ metadata:
 > **Last Updated:** 2024-12-05
 > **Platform:** Vercel + Next.js + Supabase
 > **Tools:** Native Claude Code (Grep, Glob, Read, Bash), Task Agents
-> **Integration:** Sentry MCP, Zen MCP Memory
+> **Integration:** Sentry MCP
 
 ---
 
@@ -99,28 +99,29 @@ Target State:
 
 ## Commands
 
-### Slash Commands
+### Slash Command
 
-| Command | Alias | Description |
-|---------|-------|-------------|
-| `/rhize-devflow:mutation-analyze` | `@analyze-mutations` | Full codebase mutation analysis |
-| `/rhize-devflow:mutation-check [file]` | `@check-mutation` | Single file quick check |
-| `/rhize-devflow:mutation-fix [priority]` | `@fix-mutations` | Generate fix plan for issues |
+| Command | Mode | Description |
+|---------|------|-------------|
+| `/rhize-devflow:mutation-check PATH...` | scoped | One or more files, immediate inline result |
+| `/rhize-devflow:mutation-check --all` | whole-codebase | Full analysis, report written to `.claude/analysis/` |
+| `/rhize-devflow:mutation-check --fix-plan` | fix-plan | Proposed changes only, written to `.claude/analysis/` — never edits source |
+
+`mutation-analyze` and `mutation-fix` are retired aliases; both `commands/mutation-analyze.md`
+and `commands/mutation-fix.md` are `> **Deprecated:**` adapters pointing back to
+`mutation-check`.
 
 ### Usage Examples
 
 ```bash
-# Full analysis with dashboard
-@analyze-mutations --dashboard
+# Full analysis, optionally scoped to one table/feature
+/rhize-devflow:mutation-check --all --focus players
 
 # Check single file
-@check-mutation app/actions/players.ts
+/rhize-devflow:mutation-check app/actions/players.ts
 
-# Generate fixes for warnings and above
-@fix-mutations P1
-
-# Fix and add TODO comments to source
-@fix-mutations P1 --add-todos
+# Generate a fix plan for a priority tier (read-only report, no source edits)
+/rhize-devflow:mutation-check --fix-plan --priority P1
 ```
 
 ---
@@ -148,7 +149,7 @@ Before writing/editing mutation files, checks for:
 ### Sentry Integration
 
 When debugging stale data issues from Sentry:
-1. Skill suggests running `@analyze-mutations`
+1. Skill suggests running `/rhize-devflow:mutation-check --all`
 2. Cross-references error context with mutation analysis
 3. Identifies cache/revalidation gaps
 
@@ -161,8 +162,8 @@ When debugging stale data issues from Sentry:
 | Score | Status | Action |
 |-------|--------|--------|
 | ≥ 9.0 | ✅ Passing | No action needed |
-| 7.0 - 8.9 | ⚠️ Warning | TODO added, proceed with warning |
-| < 7.0 | 🚨 Critical | Immediate attention required |
+| 7.0 - 8.9 | ⚠️ Warning | Reported in chat/report; run `--fix-plan` for proposed changes |
+| < 7.0 | 🚨 Critical | Immediate attention required; run `--fix-plan` for proposed changes |
 
 ### Weights Configuration
 
@@ -299,30 +300,25 @@ Misalignments are detected and reported. See `references/cross-layer-validation.
 
 ## Enforcement Mode
 
-**Mode: Advisory** (non-blocking)
+**Mode: Read-only, fail-closed** (matches `/rhize-devflow:mutation-check`'s core contract)
 
 ```yaml
 on_violation:
   action: warn
   behavior:
     - Log warning to chat
-    - Add TODO comment in generated code
-    - Continue with implementation
     - Append to pending-fixes.md
+    - Write a proposed-changes report via --fix-plan (never edits source, never adds TODOs)
+on_failure:
+  action: fail_closed
+  behavior:
+    - Unreadable file, malformed .claude/mutation-patterns.yaml, or file set over the
+      configured limit stops the run with a non-zero exit and an explicit error — never a
+      partial score presented as complete
 ```
 
-### Generated TODO Pattern
-
-```typescript
-export async function updatePlayer(id: string, data: PlayerUpdate) {
-  // TODO(mutation-consistency): Add revalidateTag('players') after mutation
-  // TODO(mutation-consistency): Add error boundary for RLS failures
-  // Score: 7.5/10 - See .claude/analysis/mutation-report-2024-12-05.md
-
-  const supabase = await createClient();
-  // ... implementation
-}
-```
+Applying a proposed fix from a `--fix-plan` report is a separate, explicit edit the user or
+Claude performs after reviewing it — this skill and its command never write to source files.
 
 ---
 
@@ -337,23 +333,9 @@ When investigating stale data bugs from Sentry issues:
 mcp__sentry__get_issue_details(issueUrl='...')
 
 # 2. If stale data related, skill suggests:
-@analyze-mutations --focus=[affected-table]
+/rhize-devflow:mutation-check --all --focus [affected-table]
 
 # 3. Cross-reference findings with Sentry context
-```
-
-### → Zen MCP Memory
-
-Store analysis results for cross-session awareness:
-
-```bash
-# After analysis, store key findings
-mcp__zen__chat("Store mutation analysis: Score 8.2/10,
-  4 warnings in players mutations,
-  missing cache revalidation pattern")
-
-# On future sessions, recall context
-mcp__zen__chat("What mutation issues were found previously?")
 ```
 
 ### → Anti-Pattern Agent
@@ -377,7 +359,7 @@ Add to deprecated-triggers.ts:
 ### → Regression Prevention
 
 When investigating stale data bugs:
-1. Run `@analyze-mutations --focus=[affected table]`
+1. Run `/rhize-devflow:mutation-check --all --focus [affected table]`
 2. Check revalidation coverage
 3. Verify Supabase RLS isn't blocking
 4. Add findings to RCA
@@ -409,7 +391,6 @@ enforcement:
   mode: advisory
   warning_threshold: 9.0
   critical_threshold: 7.0
-  add_todos: true
 
 scoring:
   weights_file: "config/scoring-weights.yaml"
@@ -485,13 +466,13 @@ claude-skill-data-mutation-consistency/
 │  • redux-toolkit-mutations - RTK Query (planned)                │
 │  • sanity-cms-hooks - Sanity CMS                                │
 ├─────────────────────────────────────────────────────────────────┤
-│  ENFORCEMENT: Advisory (warn + TODO, don't block)               │
+│  ENFORCEMENT: Read-only, fail-closed (report, never edit source)│
 │  THRESHOLD: < 9.0 = warning, < 7.0 = critical                   │
 ├─────────────────────────────────────────────────────────────────┤
-│  COMMANDS:                                                       │
-│  @analyze-mutations      → Full analysis (output to file)       │
-│  @check-mutation [file]  → Single file check                    │
-│  @fix-mutations [P0-P2]  → Generate fix plan                    │
+│  COMMAND:                                                        │
+│  /rhize-devflow:mutation-check PATH...     → Scoped file check  │
+│  /rhize-devflow:mutation-check --all       → Full analysis      │
+│  /rhize-devflow:mutation-check --fix-plan  → Generate fix plan  │
 ├─────────────────────────────────────────────────────────────────┤
 │  HOOKS:                                                          │
 │  mutation-detector.sh    → Detect mutation keywords             │
@@ -499,7 +480,6 @@ claude-skill-data-mutation-consistency/
 ├─────────────────────────────────────────────────────────────────┤
 │  INTEGRATIONS:                                                   │
 │  Sentry MCP              → Stale data issue detection           │
-│  Zen MCP Memory          → Cross-session awareness              │
 │  Anti-Pattern Agent      → Real-time pattern enforcement        │
 └─────────────────────────────────────────────────────────────────┘
 ```

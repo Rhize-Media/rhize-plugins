@@ -110,35 +110,22 @@ def missing_assets_in(markdown_path: Path, base_dir: Path) -> list[str]:
 
 
 # (markdown file, xfail marks or None) — base_dir is always the file's own skill root.
+#
+# ARCHITECTURE-PROPOSAL.md was archived outside the plugin by Task 8 (moved to
+# docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL.md) rather than cleaned in
+# place, so there is no longer a file at the skill path to check — its asset-existence and
+# stale-deps cases are deleted rather than kept as always-XFAIL checks against a path that
+# no longer exists, same pattern as
+# test_skill_local_mutation_and_browser_command_directories_removed above.
 _ASSET_CASES = [
     pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/ARCHITECTURE-PROPOSAL.md",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="fixed by Task 8 — ARCHITECTURE-PROPOSAL.md is removed/archived outside "
-            "the plugin, or the hooks/sub-skills/config it claims are implemented",
-        ),
-        id="error-lifecycle-management/ARCHITECTURE-PROPOSAL.md",
-    ),
-    pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/SKILL.md",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="fixed by Task 8 — SKILL.md stops advertising nonexistent scripts "
-            "(check_dependencies.js, reproduce_build.sh, bundle_analyzer.js, "
-            "implement_sentry.ts, add_performance_tracking.ts, performance_bisect.sh, "
-            "data_integrity_check.py) and templates/reference (performance-report.md, "
-            "data-recovery.md), or ships them",
-        ),
+        marks=(),
         id="error-lifecycle-management/SKILL.md",
     ),
     pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/reference/error-patterns.md",
-        marks=pytest.mark.xfail(
-            strict=True,
-            reason="fixed by Task 8 — error-patterns.md stops advertising nonexistent "
-            "scripts/check_rls_policies.sql and scripts/detect_memory_leak.js, or ships them",
-        ),
+        marks=(),
         id="error-lifecycle-management/reference/error-patterns.md",
     ),
     # Control cases: these already resolve every advertised asset today and must stay green.
@@ -369,67 +356,62 @@ def stale_dependency_terms(text: str) -> list[str]:
 
 
 _STALE_DEPENDENCY_CASES = [
-    # dev-flow-foundations legacy sub-skill docs (Zen/Graphiti context-save workflows)
+    # dev-flow-foundations sub-skill docs (Zen/Graphiti context-save workflows) — Task 8
+    # replaced Zen with Context Manager/STATE.md persistence and removed the Graphiti TODOs;
+    # now control cases.
     pytest.param(
         DEVFLOW / "skills/dev-flow-foundations/SKILL-foundations-index.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Zen/Graphiti TODOs removed from foundations index"),
+        marks=(),
         id="dev-flow-foundations/SKILL-foundations-index.md",
     ),
     pytest.param(
         DEVFLOW / "skills/dev-flow-foundations/SKILL-regression-prevention-v1.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Zen precommit/consensus steps removed or replaced"),
+        marks=(),
         id="dev-flow-foundations/SKILL-regression-prevention-v1.md",
     ),
     pytest.param(
         DEVFLOW / "skills/dev-flow-foundations/SKILL-context-hygiene-v1.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Zen context save/restore replaced by Context Manager/STATE.md"),
+        marks=(),
         id="dev-flow-foundations/SKILL-context-hygiene-v1.md",
     ),
-    # data-mutation-consistency Zen MCP memory integration
+    # data-mutation-consistency Zen MCP memory integration — Task 8 removed the Zen
+    # dependency/section from SKILL.md and README.md, both now control cases below.
+    # `references/zen-memory-integration.md` and `scripts/zen_memory.py` were deleted
+    # outright (confirmed no live consumer repo-wide) rather than cleaned in place — same
+    # pattern as test_skill_local_mutation_and_browser_command_directories_removed above,
+    # so those 2 cases are deleted rather than kept as always-XFAIL checks against a path
+    # that no longer exists.
     pytest.param(
         DEVFLOW / "skills/data-mutation-consistency/SKILL.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Zen MCP Memory dependency/section removed"),
+        marks=(),
         id="data-mutation-consistency/SKILL.md-zen",
     ),
     pytest.param(
         DEVFLOW / "skills/data-mutation-consistency/README.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Zen MCP Memory section removed from README"),
+        marks=(),
         id="data-mutation-consistency/README.md",
     ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/references/zen-memory-integration.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — zen-memory-integration.md deleted after confirming no live consumer"),
-        id="data-mutation-consistency/references/zen-memory-integration.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/scripts/zen_memory.py",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — zen_memory.py deleted after confirming no live consumer"),
-        id="data-mutation-consistency/scripts/zen_memory.py",
-    ),
-    # error-lifecycle-management Serena-memory templates and stale architecture proposal
-    pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/ARCHITECTURE-PROPOSAL.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — removed/archived outside the plugin"),
-        id="error-lifecycle-management/ARCHITECTURE-PROPOSAL.md-stale-deps",
-    ),
+    # error-lifecycle-management Serena-memory templates. (ARCHITECTURE-PROPOSAL.md's
+    # stale-deps case was deleted, not just unmarked — see the _ASSET_CASES comment above
+    # for why: the file was archived outside the plugin, so there's no longer a path here.)
     pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/scripts/validate_error_coverage.py",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Serena navigation reference removed"),
+        marks=(),
         id="error-lifecycle-management/scripts/validate_error_coverage.py",
     ),
     pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/templates/triage-summary.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Serena memory format replaced with Context Manager/STATE.md persistence"),
+        marks=(),
         id="error-lifecycle-management/templates/triage-summary.md",
     ),
     pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/templates/validation-summary.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Serena memory format replaced with Context Manager/STATE.md persistence"),
+        marks=(),
         id="error-lifecycle-management/templates/validation-summary.md",
     ),
     pytest.param(
         DEVFLOW / "skills/error-lifecycle-management/templates/pattern-doc.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Serena memory checklist item replaced"),
+        marks=(),
         id="error-lifecycle-management/templates/pattern-doc.md",
     ),
     # legacy `@...` command aliases in shipped top-level command bodies.
@@ -468,6 +450,27 @@ def test_no_zen_serena_graphiti_or_legacy_alias_requirement(workflow_path: Path)
     assert found == [], (
         f"{workflow_path.relative_to(REPO_ROOT)} requires stale dependency/alias terms: {found}"
     )
+
+
+def test_data_mutation_consistency_zen_memory_files_removed() -> None:
+    """Task 8 deleted zen_memory.py and its integration reference outright after
+    confirming no live consumer repo-wide — assert they stay gone, so a regression that
+    reintroduces them is caught even though there is no longer a stale-term case pointed
+    at either path (see the comment in _STALE_DEPENDENCY_CASES above)."""
+    assert not (DEVFLOW / "skills/data-mutation-consistency/scripts/zen_memory.py").exists()
+    assert not (
+        DEVFLOW / "skills/data-mutation-consistency/references/zen-memory-integration.md"
+    ).exists()
+
+
+def test_error_lifecycle_architecture_proposal_archived_outside_plugin() -> None:
+    """Task 8 archived ARCHITECTURE-PROPOSAL.md out of the distributed plugin rather than
+    deleting or fixing it in place — assert it stays gone from the skill and lives at its
+    archive path, so a regression that reintroduces it in the plugin is caught."""
+    assert not (DEVFLOW / "skills/error-lifecycle-management/ARCHITECTURE-PROPOSAL.md").exists()
+    assert (
+        REPO_ROOT / "docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL.md"
+    ).exists()
 
 
 # ---------------------------------------------------------------------------

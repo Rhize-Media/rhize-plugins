@@ -3,15 +3,14 @@ name: chrome-devtools-mcp
 tier: custom
 domain: dev-flow
 maturity: stable
-version: 1.0.0
+version: 2.0.0
 description: >-
-  Browser automation, debugging, and performance analysis via the official Google Chrome DevTools
-  MCP server (Puppeteer-backed, wait-aware). Use when the user wants to "test in browser", "check
-  performance", "debug network", "take a screenshot", "fill a form", inspect "console errors",
-  "inspect the page", "automate the browser", diagnose "CORS issues", or run a "lighthouse audit" —
-  including Core Web Vitals traces, network waterfalls, and visual checks on Next.js/Sanity/Payload
-  preview URLs. Pairs with gsd-browser-harness; prefer this for DevTools-protocol performance and
-  network introspection.
+  DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by
+  `/rhize-devflow:browser-qa` when that server is the active browser capability. Use when the
+  user asks specifically about Chrome DevTools MCP tool names/parameters, connecting to a
+  running Chrome instance, or MCP-level configuration/troubleshooting for that server — not
+  for general "test in the browser" requests, which should go through
+  `/rhize-devflow:browser-qa` instead.
 metadata:
   rhize:
     topics: [automation, observability]
@@ -22,7 +21,19 @@ metadata:
 
 # Chrome DevTools MCP Server Skill
 
-> Browser automation, debugging, and performance analysis via Chrome DevTools Protocol
+> DevTools-protocol mechanics for the `chrome-devtools` MCP server — the tool this plugin's
+> canonical browser command calls when that server is the active browser capability.
+
+**Run a Rhize acceptance check?** Use `/rhize-devflow:browser-qa` — it owns the scenario
+sequencing (functional path, console/network errors, accessibility smoke, responsive layout,
+performance) and defers to this skill only for DevTools-protocol tool mechanics once
+`chrome-devtools` is the detected capability. This skill does not itself define an
+acceptance workflow, to avoid a second, drifting copy of that sequence.
+
+For anything beyond the mechanics below — full API reference, config flags, CI setup
+patterns — see the official [chrome-devtools-mcp repository](https://github.com/ChromeDevTools/chrome-devtools-mcp)
+and [npm package](https://npmjs.org/package/chrome-devtools-mcp); this skill does not
+duplicate that documentation.
 
 ---
 
@@ -70,102 +81,14 @@ metadata:
 
 ## Installation
 
-### Claude Code (Recommended)
-
 ```bash
-# User-scope (available across all projects)
 claude mcp add --scope user chrome-devtools npx chrome-devtools-mcp@latest
-
-# Project-scope (specific project only)
-claude mcp add chrome-devtools npx chrome-devtools-mcp@latest
 ```
 
-### Manual Configuration
-
-Add to your MCP configuration file:
-
-**Location:**
-- Claude Desktop: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Claude Code: `~/.claude/settings.json` or project `.mcp.json`
-
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest"]
-    }
-  }
-}
-```
-
-### Verify Installation
-
-Test with this prompt:
-```
-Check the performance of https://example.com
-```
-
-The MCP server should launch Chrome and return a performance report.
-
----
-
-## Configuration Options
-
-### Basic Options
-
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--headless` | boolean | `false` | Run without visible browser window |
-| `--isolated` | boolean | `false` | Use temporary profile (cleared after close) |
-| `--channel` | string | `stable` | Chrome channel: `stable`, `canary`, `beta`, `dev` |
-| `--viewport` | string | - | Initial viewport size, e.g., `1440x900` |
-
-### Connection Options
-
-| Flag | Type | Description |
-|------|------|-------------|
-| `--browserUrl`, `-u` | string | Connect to running Chrome via port forwarding |
-| `--wsEndpoint`, `-w` | string | WebSocket endpoint for direct connection |
-| `--executablePath`, `-e` | string | Path to custom Chrome executable |
-
-### Configuration Examples
-
-**Development Setup (Persistent State):**
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest", "--viewport=1440x900"]
-    }
-  }
-}
-```
-
-**CI/CD Setup (Headless):**
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest", "--headless=true", "--isolated=true"]
-    }
-  }
-}
-```
-
-**Connect to Existing Chrome:**
-```json
-{
-  "mcpServers": {
-    "chrome-devtools": {
-      "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"]
-    }
-  }
-}
-```
+For manual MCP config, headless/CI flags, custom viewports, or connecting to an existing
+Chrome instance's debug port, see the official
+[chrome-devtools-mcp README](https://github.com/ChromeDevTools/chrome-devtools-mcp#readme) —
+this skill does not restate its configuration surface.
 
 ---
 
@@ -231,52 +154,10 @@ The MCP server should launch Chrome and return a performance report.
 
 ## Common Workflows
 
-### Performance Analysis
-```markdown
-1. Navigate to target URL
-2. Start performance trace
-3. Perform user interactions (scroll, click)
-4. Stop trace and analyze insights
-5. Get actionable recommendations
-
-Prompt: "Check the performance of http://localhost:3000/dashboard, 
-scroll through the page, and identify render-blocking resources"
-```
-
-### Network Debugging
-```markdown
-1. Navigate to page
-2. Reproduce the issue (form submit, API call)
-3. List network requests (filter for failures)
-4. Get full request details (headers, body)
-5. Identify issues (CORS, auth, payload)
-
-Prompt: "Navigate to http://localhost:3000/login, submit with 
-test@example.com / password123, and show any failed API requests"
-```
-
-### Visual Testing
-```markdown
-1. Navigate to URL
-2. Optionally emulate device
-3. Take screenshot (full page or element)
-4. Compare across viewports
-
-Prompt: "Take screenshots of http://localhost:3000/pricing at 
-desktop (1440x900), tablet (768x1024), and mobile (375x667)"
-```
-
-### Form Automation
-```markdown
-1. Navigate to form page
-2. Fill form fields
-3. Handle dialogs
-4. Submit and verify result
-
-Prompt: "Fill the registration form at http://localhost:3000/register:
-name=Test User, email=test@example.com, password=Secure123!
-Then submit and verify no console errors"
-```
+Rhize's scenario sequencing (functional path → console/network → accessibility smoke →
+responsive layout → performance-on-request) lives in `/rhize-devflow:browser-qa`, not here
+— run that command for an acceptance check. [EXAMPLES.md](references/EXAMPLES.md) has
+detailed per-tool prompt patterns for cases outside that sequencing.
 
 ---
 
@@ -292,24 +173,11 @@ Then submit and verify no console errors"
 
 ## Connecting to Running Chrome
 
-For maintaining browser state or working around sandbox restrictions:
-
-### 1. Start Chrome with Debug Port
-```bash
-# macOS
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-  --remote-debugging-port=9222 \
-  --user-data-dir=/tmp/chrome-mcp-profile
-```
-
-### 2. Configure MCP Connection
-```json
-{
-  "args": ["-y", "chrome-devtools-mcp@latest", "--browser-url=http://127.0.0.1:9222"]
-}
-```
-
-> ⚠️ **Security**: Debug port exposes browser to any local application. Don't browse sensitive sites.
+For maintaining browser state or working around sandbox restrictions, connect via
+`--browser-url` to a Chrome instance started with `--remote-debugging-port`. See
+[TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) for the full setup and the debug-port
+security caveat (it exposes the browser to any local application — don't browse sensitive
+sites with it open).
 
 ---
 
@@ -325,48 +193,6 @@ For maintaining browser state or working around sandbox restrictions:
 
 - [EXAMPLES.md](references/EXAMPLES.md) - 📖 READ: Detailed prompts and integration patterns
 - [TROUBLESHOOTING.md](references/TROUBLESHOOTING.md) - 📖 READ: Platform-specific solutions
-
----
-
-## Quick Reference
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              CHROME DEVTOOLS MCP CHEAT SHEET                     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  PERFORMANCE            NETWORK               DEBUGGING          │
-│  ───────────            ───────               ─────────          │
-│  performance_start_     list_network_         list_console_      │
-│    trace                  requests              messages         │
-│  performance_stop_      get_network_          evaluate_script    │
-│    trace                  request             take_screenshot    │
-│  performance_analyze_                         take_snapshot      │
-│    insight                                                       │
-│                                                                  │
-│  AUTOMATION             NAVIGATION            EMULATION          │
-│  ──────────             ──────────            ─────────          │
-│  click, fill            navigate_page         emulate            │
-│  fill_form, hover       new_page, close_page  resize_page        │
-│  press_key, drag        list_pages, select_                      │
-│  upload_file              page, wait_for                         │
-│  handle_dialog                                                   │
-│                                                                  │
-│  QUICK PROMPTS                                                   │
-│  ─────────────                                                   │
-│  "Check performance of [url]"                                    │
-│  "Show console errors on [url]"                                  │
-│  "Take screenshot at mobile viewport"                            │
-│  "Fill form and submit"                                          │
-│  "Debug CORS issues on [url]"                                    │
-│                                                                  │
-│  INSTALLATION                                                    │
-│  ────────────                                                    │
-│  claude mcp add --scope user chrome-devtools \                   │
-│    npx chrome-devtools-mcp@latest                                │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-```
 
 ---
 

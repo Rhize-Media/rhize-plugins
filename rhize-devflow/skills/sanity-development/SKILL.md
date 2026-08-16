@@ -45,14 +45,17 @@ metadata:
 │  KNOWLEDGE ROUTER                                                │
 │  ├── Schema Design        → ./references/sanity-schema.md       │
 │  ├── GROQ Queries         → ./references/sanity-groq.md         │
-│  ├── Project Structure    → ./references/sanity-project.md      │
-│  ├── Studio Structure     → ./references/sanity-studio.md       │
+│  ├── Project Structure    → ./references/sanity-project-structure.md │
+│  ├── Studio Structure     → ./references/sanity-studio-structure.md │
 │  ├── Next.js Integration  → ./references/sanity-nextjs.md       │
-│  ├── Visual Editing       → ./references/sanity-visual.md       │
-│  ├── Page Builder         → ./references/sanity-pagebuilder.md  │
-│  ├── Portable Text        → ./references/sanity-pte.md          │
+│  ├── Visual Editing       → ./references/sanity-visual-editing.md │
+│  ├── Page Builder         → ./references/sanity-page-builder.md │
+│  ├── Portable Text        → ./references/sanity-portable-text.md │
 │  ├── Images               → ./references/sanity-image.md        │
-│  └── TypeGen              → ./references/sanity-typegen.md      │
+│  ├── TypeGen              → ./references/sanity-typegen.md      │
+│  ├── Localization         → ./references/sanity-localization.md │
+│  ├── Content Migration    → ./references/sanity-migration.md    │
+│  └── SEO                  → ./references/sanity-seo.md          │
 ├─────────────────────────────────────────────────────────────────┤
 │  CORE PRINCIPLES                                                 │
 │  • Model WHAT things ARE, not what they LOOK LIKE               │
@@ -78,14 +81,17 @@ metadata:
 |:------|:-----------------|:---------------|
 | **Schema** | schema, model, document, field, defineType, validation | `./references/sanity-schema.md` |
 | **GROQ** | groq, query, defineQuery, projection, filter, order | `./references/sanity-groq.md` |
-| **Project Structure** | structure, monorepo, embedded studio, file naming | `./references/sanity-project.md` |
-| **Studio Structure** | desk, sidebar, singleton, grouping, S.structure | `./references/sanity-studio.md` |
+| **Project Structure** | structure, monorepo, embedded studio, file naming | `./references/sanity-project-structure.md` |
+| **Studio Structure** | desk, sidebar, singleton, grouping, S.structure | `./references/sanity-studio-structure.md` |
 | **Next.js** | next.js, app router, server component, defineLive | `./references/sanity-nextjs.md` |
-| **Visual Editing** | stega, visual editing, overlay, presentation tool | `./references/sanity-visual.md` |
-| **Page Builder** | page builder, pageBuilder, block component, alignment | `./references/sanity-pagebuilder.md` |
-| **Portable Text** | portable text, rich text, block content, serializer | `./references/sanity-pte.md` |
+| **Visual Editing** | stega, visual editing, overlay, presentation tool | `./references/sanity-visual-editing.md` |
+| **Page Builder** | page builder, pageBuilder, block component, alignment | `./references/sanity-page-builder.md` |
+| **Portable Text** | portable text, rich text, block content, serializer | `./references/sanity-portable-text.md` |
 | **Images** | image, urlFor, crop, hotspot, lqip | `./references/sanity-image.md` |
 | **TypeGen** | typegen, typescript, types, infer, generate | `./references/sanity-typegen.md` |
+| **Localization** | localization, i18n, translation, locale | `./references/sanity-localization.md` |
+| **Content Migration** | migration, import, portable text conversion, HTML/Markdown | `./references/sanity-migration.md` |
+| **SEO** | seo, metadata, open graph, sitemap, JSON-LD | `./references/sanity-seo.md` |
 
 ---
 
@@ -442,14 +448,17 @@ Detailed patterns are in `./references/`:
 
 - `sanity-schema.md` - Field types, validation, deprecation
 - `sanity-groq.md` - Query optimization, fragments, performance
-- `sanity-project.md` - Monorepo vs embedded, file naming
-- `sanity-studio.md` - Desk structure, singletons, views
+- `sanity-project-structure.md` - Monorepo vs embedded, file naming
+- `sanity-studio-structure.md` - Desk structure, singletons, views
 - `sanity-nextjs.md` - defineLive, caching, webhooks
-- `sanity-visual.md` - Stega, overlays, presentation tool
-- `sanity-pagebuilder.md` - Block components, rendering
-- `sanity-pte.md` - Portable Text components, marks
+- `sanity-visual-editing.md` - Stega, overlays, presentation tool
+- `sanity-page-builder.md` - Block components, rendering
+- `sanity-portable-text.md` - Portable Text components, marks
 - `sanity-image.md` - urlFor, hotspot, LQIP
 - `sanity-typegen.md` - Type generation workflow
+- `sanity-localization.md` - i18n patterns, editor-first localization
+- `sanity-migration.md` - HTML/Markdown → Portable Text migration
+- `sanity-seo.md` - Metadata, Open Graph, sitemaps, JSON-LD
 
 ---
 

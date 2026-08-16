@@ -78,17 +78,19 @@ When production error is detected:
 
 ### 2. Build Failure Analysis
 For Vercel build/deployment failures:
-1. **Get Build Logs** → `Vercel:get_build_logs` 
+1. **Get Build Logs** → `Vercel:get_build_logs`
 2. **Identify Pattern** → Check `reference/error-patterns.md`
-3. **Verify Dependencies** → Run `scripts/check_dependencies.js`
-4. **Test Locally** → Use `scripts/reproduce_build.sh`
+3. **Verify Dependencies** → Diff the lockfile against the failing build's install log
+4. **Test Locally** → Reproduce with the declared package-manager install/build scripts
 
 ### 3. Performance Degradation
 When performance issues arise:
 1. **Collect Metrics** → `Sentry:get_performance_issues`
 2. **Analyze Queries** → Run `scripts/analyze_performance.js`
-3. **Check Bundle** → Execute `scripts/bundle_analyzer.js`
-4. **Generate Report** → Use `templates/performance-report.md`
+3. **Check Bundle** → Use the deployment platform's bundle-analysis output (e.g. Vercel
+   build output) — this skill does not ship a bundle analyzer
+4. **Generate Report** → Summarize findings in chat; write to `.claude/analysis/` if the
+   host project uses that convention
 
 ## MCP Tools Required
 
@@ -116,9 +118,9 @@ GitHub:get_diff           // View code changes
 
 For new projects or features, implement proactive monitoring:
 1. Run `scripts/setup_error_boundaries.ts` to add React error boundaries
-2. Execute `scripts/implement_sentry.ts` for comprehensive Sentry setup
-3. Add performance monitoring with `scripts/add_performance_tracking.ts`
-4. Validate coverage using `scripts/validate_error_coverage.py`
+2. Follow `sentry-instrumentation`'s Rhize conventions for redaction, tagging, and tracing
+   setup — this skill defers general Sentry instrumentation to that skill
+3. Validate coverage using `scripts/validate_error_coverage.py`
 
 ## Critical Decision Points
 
@@ -129,12 +131,12 @@ For new projects or features, implement proactive monitoring:
 
 **Performance Regression?** (>20% degradation)
 → Rollback deployment via `Vercel:rollback_deployment`
-→ Analyze with `scripts/performance_bisect.sh`
+→ Bisect via `GitHub:get_commits` + `Vercel:get_deployments` to find the introducing deploy
 
 **Data Corruption Risk?**
 → STOP all operations
-→ Run `scripts/data_integrity_check.py`
-→ Follow `reference/data-recovery.md`
+→ Hand off to `data-mutation-consistency`'s `/rhize-devflow:mutation-check` for read-only
+  cache/revalidation diagnosis — this skill does not ship a data-recovery script or guide
 
 ## Scripts
 

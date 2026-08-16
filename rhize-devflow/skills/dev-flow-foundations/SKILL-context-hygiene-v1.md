@@ -2,7 +2,7 @@
 
 > **Status:** Foundation Draft v1
 > **Last Updated:** 2024-12-01
-> **Dependencies:** Zen MCP, SuperClaude /sc:save & /sc:load, Git hooks
+> **Dependencies:** rhize-context-manager (`/rhize-context-manager:start`, `/rhize-context-manager:done`), Git hooks
 
 ---
 
@@ -200,58 +200,36 @@ Save threshold: After review complete
 
 ### Context Preservation
 
-#### Using Zen MCP
+#### Using rhize-context-manager
 
 ```markdown
-## Zen Context Save/Restore
+## STATE.md Persistence (via /rhize-context-manager)
 
 ### Save Context (End of Session)
-```
-Use zen to save current context with key: 'feature-player-registration-v2'
-
-Include in save:
+Run `/rhize-context-manager:done`. It writes/updates the project's STATE.md with:
 - Current implementation status
 - Files modified
 - Tests written/needed
-- Known issues
+- Known issues (open failures)
 - Next steps
-```
 
 ### Restore Context (New Session)
-```
-Use zen to restore context from key: 'feature-player-registration-v2'
-```
+Run `/rhize-context-manager:start`. It reads STATE.md and any recent context-hygiene
+output back into the session.
 
-### Key Naming Convention
-Format: [type]-[feature]-[version]
-Examples:
+### Entry Naming Convention
+Format: [type]-[feature]-[version], matching the STATE.md section it belongs under
+(Verified facts / General rules / Open failures / Lessons learned):
 - feature-player-registration-v1
 - bugfix-team-roster-null-v2
 - refactor-api-layer-v1
 - debug-auth-flow-session3
 ```
 
-#### Using SuperClaude
-
-```markdown
-## SuperClaude Session Management
-
-### Save Session
-/sc:save "player-registration-complete"
-
-### Load Session
-/sc:load "player-registration-complete"
-
-### Best Practices
-- Save at natural break points
-- Use descriptive names
-- Include status in name: "auth-flow-wip" vs "auth-flow-done"
-```
-
 #### Manual Context File (Fallback)
 
 ```markdown
-## SESSION_CONTEXT.md (When MCP unavailable)
+## SESSION_CONTEXT.md (When rhize-context-manager is not installed)
 
 Create before session ends:
 
@@ -355,7 +333,7 @@ Key finding: All errors from Safari users on iOS 16."
 - Attempted solutions
 - Code snippets for reference
 
-### Zen/SuperClaude Context
+### STATE.md (via rhize-context-manager)
 - Session continuity info
 - Cross-session patterns
 - Feature progress state
@@ -462,14 +440,14 @@ If this week included:
 Read CLAUDE.md only (router pattern ensures this is light)
 
 ### Step 2: Check Session State
-- Is there a zen context saved for current work?
+- Is there a STATE.md entry saved for current work (`/rhize-context-manager:start`)?
 - Is there a CURRENT_SPRINT.md with recent updates?
 - Is there a SESSION_CONTEXT.md from last session?
 
 ### Step 3: Restore Relevant Context
 Based on intended task:
-- Feature work → Restore from zen + load CURRENT_SPRINT
-- Bug fix → Restore from zen + load error context
+- Feature work → Restore via `/rhize-context-manager:start` + load CURRENT_SPRINT
+- Bug fix → Restore via `/rhize-context-manager:start` + load error context
 - New task → Fresh start, just CLAUDE.md
 
 ### Step 4: Verify Understanding
@@ -503,7 +481,7 @@ FILES TO REVIEW:
 - [Key files for next session]
 
 CONTEXT SAVED TO:
-- Zen key: '[key name]'
+- STATE.md entry: '[entry name]' (via /rhize-context-manager:done)
 - Files: [any context files created]"
 ```
 
@@ -589,8 +567,8 @@ done
 │  └── Components → COMPONENT_REGISTRY.md                     │
 ├─────────────────────────────────────────────────────────────┤
 │  SESSION MANAGEMENT                                         │
-│  • Save context: zen save OR /sc:save                       │
-│  • Load context: zen restore OR /sc:load                    │
+│  • Save context: /rhize-context-manager:done                │
+│  • Load context: /rhize-context-manager:start                │
 │  • New session: Every 20-30 messages OR task switch        │
 ├─────────────────────────────────────────────────────────────┤
 │  CONTEXT OFFLOADING                                         │

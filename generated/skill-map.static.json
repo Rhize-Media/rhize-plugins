@@ -1339,6 +1339,12 @@
     },
     {
       "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "relations-catalog",
+      "to": "external:ecc-browser-qa",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
       "source": "frontmatter",
       "to": "mcp:chrome-devtools",
       "type": "depends-on"
@@ -1371,12 +1377,6 @@
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "mcp:sentry",
-      "type": "depends-on"
-    },
-    {
-      "from": "skill:rhize-devflow/data-mutation-consistency",
-      "source": "frontmatter",
-      "to": "mcp:zen",
       "type": "depends-on"
     },
     {
@@ -1489,6 +1489,12 @@
     },
     {
       "from": "skill:rhize-devflow/sanity-development",
+      "source": "relations-catalog",
+      "to": "external:sanity-plugin",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
       "source": "frontmatter",
       "to": "tag:stack/nextjs",
       "type": "stack-tag"
@@ -1516,6 +1522,12 @@
       "source": "frontmatter",
       "to": "tag:topic/content-authoring",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "relations-catalog",
+      "to": "external:sentry-plugin",
+      "type": "depends-on"
     },
     {
       "from": "skill:rhize-devflow/sentry-instrumentation",
@@ -2239,6 +2251,12 @@
       "path": "seo-aeo-geo/commands/technical-audit.md"
     },
     {
+      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls.",
+      "id": "external:ecc-browser-qa",
+      "kind": "external",
+      "name": "ecc:browser-qa (skill)"
+    },
+    {
       "description": "everything-claude-code general build/TypeScript error resolution agent.",
       "id": "external:ecc-build-error-resolver",
       "kind": "external",
@@ -2358,6 +2376,18 @@
       "kind": "external",
       "name": "tool-design",
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
+    },
+    {
+      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
+      "id": "external:sanity-plugin",
+      "kind": "external",
+      "name": "sanity (sanity-agent-toolkit)"
+    },
+    {
+      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it.",
+      "id": "external:sentry-plugin",
+      "kind": "external",
+      "name": "sentry (sentry-plugin-marketplace)"
     },
     {
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on.",
@@ -2630,11 +2660,6 @@
       "name": "vercel"
     },
     {
-      "id": "mcp:zen",
-      "kind": "mcp-server",
-      "name": "zen"
-    },
-    {
       "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
       "id": "plugin:obsidian-second-brain",
       "kind": "plugin",
@@ -2883,16 +2908,16 @@
       "path": "rhize-context-manager/skills/tool-design/SKILL.md"
     },
     {
-      "contentHash": "07bffadff77aaffd02944fe17f571d887449af6f9e4c73eac814efbf1bf62158",
-      "description": "Browser automation, debugging, and performance analysis via the official Google Chrome DevTools MCP server (Puppeteer-backed, wait-aware). Use when the user wants to \"test in browser\", \"check performance\", \"debug network\", \"take a screenshot\", \"fill a form\", inspect \"console errors\", \"inspect the page\", \"automate the browser\", diagnose \"CORS issues\", or run a \"lighthouse audit\" — including Core Web Vitals traces, network waterfalls, and visual checks on Next.js/Sanity/Payload preview URLs. Pairs with gsd-browser-harness; prefer this for DevTools-protocol performance and network introspection.",
+      "contentHash": "d96305ea8157ab5f60ff5698a97d9df2b26fdeae472c8d263442bef1952259a5",
+      "description": "DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the active browser capability. Use when the user asks specifically about Chrome DevTools MCP tool names/parameters, connecting to a running Chrome instance, or MCP-level configuration/troubleshooting for that server — not for general \"test in the browser\" requests, which should go through `/rhize-devflow:browser-qa` instead.",
       "id": "skill:rhize-devflow/chrome-devtools-mcp",
       "kind": "skill",
       "name": "chrome-devtools-mcp",
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
     },
     {
-      "contentHash": "419c29b6771f303a6146223d2b50905718d30b5e16f8a3c19072337da214d448",
-      "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check, and mutation-fix.",
+      "contentHash": "a35de9fe6e547ceaa959ae21ec40c6ca421c12aea230f12e30e6535bcab6474d",
+      "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
@@ -2907,7 +2932,7 @@
       "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md"
     },
     {
-      "contentHash": "9422d96ba3d1dbe413b9196dd7c53985041cbacaada71c68261840becb8a3193",
+      "contentHash": "734f8034733f676e5775580509634afa584b7009f5f4d57b3364de4166fceb24",
       "description": "End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use whenever the user mentions an \"error\", \"bug\", \"crash\", \"exception\", \"stack trace\", \"500/404\", \"timeout\", \"failed deployment\", \"production issue/incident\", \"memory leak\", \"bundle size\", or something is \"slow\" or \"broken\" — and when correlating an error spike to a recent deploy or commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident protocol); complements the official engineering:* and sentry:* skills.",
       "id": "skill:rhize-devflow/error-lifecycle-management",
       "kind": "skill",
@@ -2915,7 +2940,7 @@
       "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md"
     },
     {
-      "contentHash": "e70acc27a4ebfd32650309119ce164cb8098a6671af2e51c0cfb55c7e72da50d",
+      "contentHash": "875ff69e56b8a58cb7fbb1e890aa7bbcbed3054e8e5e278f292dc2a2ed7bbeb9",
       "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
       "id": "skill:rhize-devflow/sanity-development",
       "kind": "skill",
