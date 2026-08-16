@@ -9,7 +9,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMMAND = REPO_ROOT / "rhize-context-manager/commands/impact-map.md"
+COMMAND = REPO_ROOT / "rhize-devflow/commands/impact-map.md"
+CM_ADAPTER = REPO_ROOT / "rhize-context-manager/commands/impact-map.md"
 FOUNDATION = (
     REPO_ROOT
     / "rhize-devflow/skills/dev-flow-foundations/SKILL-dependency-graph-v1.md"
@@ -35,10 +36,17 @@ def normalized(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_context_manager_is_the_only_impact_map_command_owner() -> None:
+def test_dev_flow_is_the_only_impact_map_command_owner() -> None:
+    """Dev Flow owns the canonical body; Context Manager keeps only a deprecation adapter."""
     assert COMMAND.exists()
+    assert CM_ADAPTER.exists()
     command_files = sorted(REPO_ROOT.glob("*/commands/impact-map.md"))
-    assert command_files == [COMMAND]
+    assert command_files == sorted([COMMAND, CM_ADAPTER])
+
+    adapter_text = CM_ADAPTER.read_text()
+    assert "> **Deprecated:**" in adapter_text
+    assert "/rhize-devflow:impact-map" in adapter_text
+    assert "## Phase 5: Reconcile After Implementation" not in adapter_text
 
     graph = json.loads(GENERATED_MAP.read_text())
     command_nodes = [
@@ -46,11 +54,20 @@ def test_context_manager_is_the_only_impact_map_command_owner() -> None:
         for node in graph["nodes"]
         if node.get("kind") == "command" and node.get("name") == "impact-map"
     ]
-    assert [node["path"] for node in command_nodes] == [
-        "rhize-context-manager/commands/impact-map.md"
-    ]
+    assert sorted(node["path"] for node in command_nodes) == sorted(
+        [
+            "rhize-devflow/commands/impact-map.md",
+            "rhize-context-manager/commands/impact-map.md",
+        ]
+    )
 
     expected_edge = {
+        "from": "command:rhize-devflow/impact-map",
+        "to": "skill:rhize-devflow/dev-flow-foundations",
+        "type": "depends-on",
+        "source": "relations-catalog",
+    }
+    obsolete_edge = {
         "from": "command:rhize-context-manager/impact-map",
         "to": "skill:rhize-devflow/dev-flow-foundations",
         "type": "depends-on",
@@ -58,6 +75,7 @@ def test_context_manager_is_the_only_impact_map_command_owner() -> None:
     }
     source_edges = json.loads(RELATIONS.read_text())["edges"]
     assert [edge for edge in source_edges if edge == expected_edge] == [expected_edge]
+    assert obsolete_edge not in source_edges
 
     ownership_edges = [
         edge
@@ -66,6 +84,15 @@ def test_context_manager_is_the_only_impact_map_command_owner() -> None:
         and edge.get("to") == expected_edge["to"]
     ]
     assert ownership_edges == [expected_edge]
+
+    replaces_edge = {
+        "from": "command:rhize-devflow/impact-map",
+        "to": "command:rhize-context-manager/impact-map",
+        "type": "replaces",
+        "source": "relations-catalog",
+    }
+    assert replaces_edge in source_edges
+    assert replaces_edge in graph["edges"]
 
 
 def test_command_uses_codegraph_before_text_search_when_indexed() -> None:
@@ -195,7 +222,7 @@ def test_foundation_and_docs_share_the_same_contract() -> None:
 
 def main() -> int:
     tests = [
-        test_context_manager_is_the_only_impact_map_command_owner,
+        test_dev_flow_is_the_only_impact_map_command_owner,
         test_command_uses_codegraph_before_text_search_when_indexed,
         test_command_has_safe_absent_stale_and_multi_repo_fallbacks,
         test_impact_map_is_semantic_delta_not_a_second_dependency_dump,

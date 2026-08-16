@@ -162,14 +162,15 @@ what must not.
 
 These foundations inform practical implementations:
 
-The executable impact-map command is owned by `rhize-context-manager`; this plugin keeps the
-development foundation so the two plugins remain complementary instead of shipping duplicate
-commands.
+The executable `/rhize-devflow:impact-map` command is owned by this plugin
+(`commands/impact-map.md`), implementing the Dependency Graph foundation directly. A short
+compatibility adapter remains at `rhize-context-manager`'s `commands/impact-map.md` for the
+2.12.0 release window, pointing back to the fully qualified Dev Flow command.
 
 | Foundation | Implemented In |
 |------------|----------------|
 | Context Hygiene | context-engineering (hooks, commands) |
-| Dependency Graph | context-engineering (`/impact-map`: CodeGraph-first discovery + semantic reconciliation) |
+| Dependency Graph | `/rhize-devflow:impact-map` (CodeGraph-first discovery + semantic reconciliation, this plugin) |
 | Component Registry | context-engineering (duplicate-check hook) |
 | Regression Prevention | error-lifecycle-management (triage workflow) |
 | Anti-Pattern Agent | error-lifecycle-management (validation scripts) |

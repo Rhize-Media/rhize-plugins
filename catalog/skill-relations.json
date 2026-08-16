@@ -116,9 +116,15 @@
       "source": "relations-catalog"
     },
     {
-      "from": "command:rhize-context-manager/impact-map",
+      "from": "command:rhize-devflow/impact-map",
       "to": "skill:rhize-devflow/dev-flow-foundations",
       "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "to": "command:rhize-context-manager/impact-map",
+      "type": "replaces",
       "source": "relations-catalog"
     },
     {

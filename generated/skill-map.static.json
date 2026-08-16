@@ -13,15 +13,21 @@
       "type": "precedes"
     },
     {
-      "from": "command:rhize-context-manager/impact-map",
-      "source": "relations-catalog",
-      "to": "skill:rhize-devflow/dev-flow-foundations",
-      "type": "depends-on"
-    },
-    {
       "from": "command:rhize-context-manager/skill-refine",
       "source": "relations-catalog",
       "to": "external:skill-forge",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "source": "relations-catalog",
+      "to": "command:rhize-context-manager/impact-map",
+      "type": "replaces"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
       "type": "depends-on"
     },
     {
@@ -484,6 +490,12 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "command:rhize-devflow/devflow-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/impact-map",
       "type": "contains"
     },
     {
@@ -1964,7 +1976,7 @@
       "path": "rhize-context-manager/commands/done.md"
     },
     {
-      "description": "CodeGraph-first impact mapping that separates current dependency truth from the intended semantic change",
+      "description": "Deprecated — use /rhize-devflow:impact-map instead.",
       "id": "command:rhize-context-manager/impact-map",
       "kind": "command",
       "name": "impact-map",
@@ -2025,6 +2037,13 @@
       "kind": "command",
       "name": "devflow-setup",
       "path": "rhize-devflow/commands/devflow-setup.md"
+    },
+    {
+      "description": "CodeGraph-first impact mapping that separates current dependency truth from the intended semantic change",
+      "id": "command:rhize-devflow/impact-map",
+      "kind": "command",
+      "name": "impact-map",
+      "path": "rhize-devflow/commands/impact-map.md"
     },
     {
       "description": "",
@@ -2841,7 +2860,7 @@
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "5bba8585c6f4024de810b00bf52056f46988172c40dc2fcd19182701a380a7fd",
+      "contentHash": "4f8cf7637a62a2fed2e7641931735aebee83688faf6ed4baacbf66c4fdf1d49d",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",

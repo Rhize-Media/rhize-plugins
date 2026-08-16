@@ -27,6 +27,17 @@ and "single canonical owner" — only if one of its lines starts with the litera
 ``> **Deprecated:**`` followed by the canonical replacement command/path. A file without that
 marker is treated as carrying real, canonical workflow content, even if another copy of it
 exists elsewhere.
+
+Canonical-body marker convention (used by the impact-map single-canonical-owner check, Task 4)
+-----------------------------------------------------------------------------------------
+The Dev Flow canonical impact-map command (``rhize-devflow/commands/impact-map.md``) carries a
+literal marker line ``<!-- canonical: rhize-devflow:impact-map -->`` right after its frontmatter.
+A file counts as carrying the canonical impact-map body only if it contains this exact marker
+string. This is deliberately stricter than matching on a heading name (e.g. the Phase 5
+reconciliation heading), which could coincidentally reappear in a rogue copy or a byte-identical
+duplicate that was never marked as a deprecation adapter — see the mutation tests below, which
+prove the ownership check rejects both a second real copy and an "adapter" that still carries
+copied workflow text.
 """
 
 from __future__ import annotations
@@ -42,10 +53,10 @@ CONTEXT_MANAGER = REPO_ROOT / "rhize-context-manager"
 
 DEPRECATION_MARKER = "> **Deprecated:**"
 
-# Heading present in an impact-map command body only when it carries the real,
-# canonical Phase 5 reconciliation workflow (see test_impact_map_contract.py, which pins
-# this same heading for the *current* owner).
-IMPACT_MAP_CANONICAL_MARKER = "## Phase 5: Reconcile After Implementation"
+# Literal marker line present in an impact-map command body only when it carries the real,
+# canonical workflow (see the module docstring's "Canonical-body marker convention" section,
+# and test_impact_map_contract.py, which pins the same file as the current owner).
+IMPACT_MAP_CANONICAL_MARKER = "<!-- canonical: rhize-devflow:impact-map -->"
 
 
 # ---------------------------------------------------------------------------
@@ -291,36 +302,63 @@ def carries_canonical_impact_map_body(path: Path) -> bool:
     return path.exists() and IMPACT_MAP_CANONICAL_MARKER in read(path)
 
 
-def test_dev_flow_owns_the_canonical_impact_map_command() -> None:
-    devflow_command = DEVFLOW / "commands/impact-map.md"
-    cm_command = CONTEXT_MANAGER / "commands/impact-map.md"
+def assert_single_canonical_impact_map_owner(devflow_command: Path, cm_command: Path) -> None:
+    """Shared assertion body: `devflow_command` must carry the canonical marker, and
+    `cm_command` (if present) must be a deprecation adapter that does not also carry it.
 
+    Reused by the real ownership test below and by the mutation tests, which feed it
+    synthetic paths to prove the check actually rejects a bad state rather than merely
+    describing a good one.
+    """
     assert carries_canonical_impact_map_body(devflow_command), (
-        f"{devflow_command.relative_to(REPO_ROOT)} should be the canonical impact-map "
-        "command body (containing the Phase 5 reconciliation workflow), but it is missing "
-        "or does not carry it"
+        f"{devflow_command} should be the canonical impact-map command body (containing "
+        f"the {IMPACT_MAP_CANONICAL_MARKER!r} marker), but it is missing or does not carry it"
     )
 
     if cm_command.exists():
         cm_text = read(cm_command)
         assert not carries_canonical_impact_map_body(cm_command), (
-            f"{cm_command.relative_to(REPO_ROOT)} still carries the canonical impact-map "
-            "body — it must be a deprecation adapter (or absent) once Dev Flow owns "
-            "impact-map"
+            f"{cm_command} still carries the canonical impact-map body — it must be a "
+            "deprecation adapter (or absent) once Dev Flow owns impact-map"
         )
         assert is_deprecation_adapter(cm_text), (
-            f"{cm_command.relative_to(REPO_ROOT)} exists but is neither the canonical body "
-            "nor a `> **Deprecated:**` adapter naming the Dev Flow replacement"
+            f"{cm_command} exists but is neither the canonical body nor a "
+            "`> **Deprecated:**` adapter naming the Dev Flow replacement"
         )
 
 
-test_dev_flow_owns_the_canonical_impact_map_command = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "fixed by Task 4 — canonical impact-map body moves to "
-        "rhize-devflow/commands/impact-map.md; the Context Manager copy becomes an adapter"
-    ),
-)(test_dev_flow_owns_the_canonical_impact_map_command)
+def test_dev_flow_owns_the_canonical_impact_map_command() -> None:
+    assert_single_canonical_impact_map_owner(
+        DEVFLOW / "commands/impact-map.md",
+        CONTEXT_MANAGER / "commands/impact-map.md",
+    )
+
+
+def test_mutation_second_canonical_marker_anywhere_fails(tmp_path: Path) -> None:
+    """A rogue byte-identical copy of the canonical body — with no deprecation-adapter
+    marker excusing it — must fail ownership, not be silently treated as harmless."""
+    devflow_command = tmp_path / "devflow-impact-map.md"
+    devflow_command.write_text(f"# Impact Map\n\n{IMPACT_MAP_CANONICAL_MARKER}\n\nBody.\n")
+    rogue_copy = tmp_path / "rogue-impact-map.md"
+    rogue_copy.write_text(devflow_command.read_text())
+
+    with pytest.raises(AssertionError):
+        assert_single_canonical_impact_map_owner(devflow_command, rogue_copy)
+
+
+def test_mutation_copied_workflow_text_in_adapter_fails(tmp_path: Path) -> None:
+    """An "adapter" that claims `> **Deprecated:**` but still carries the canonical marker
+    (i.e. someone pasted the real workflow body back in) must still fail ownership."""
+    devflow_command = tmp_path / "devflow-impact-map.md"
+    devflow_command.write_text(f"# Impact Map\n\n{IMPACT_MAP_CANONICAL_MARKER}\n\nBody.\n")
+    fake_adapter = tmp_path / "cm-impact-map.md"
+    fake_adapter.write_text(
+        f"{DEPRECATION_MARKER} use `/rhize-devflow:impact-map` instead.\n\n"
+        f"{IMPACT_MAP_CANONICAL_MARKER}\n\nCopied workflow body.\n"
+    )
+
+    with pytest.raises(AssertionError):
+        assert_single_canonical_impact_map_owner(devflow_command, fake_adapter)
 
 
 # ---------------------------------------------------------------------------
@@ -484,12 +522,3 @@ def test_context_manager_done_does_not_claim_a_bundled_verifier() -> None:
             f"plugin's agents/, but {cm_bundled_verifier.relative_to(REPO_ROOT)} does not "
             "exist — the verifier lives only at rhize-devflow/agents/verifier.md"
         )
-
-
-test_context_manager_done_does_not_claim_a_bundled_verifier = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "fixed by Task 4 — done.md no longer claims a Context-Manager-bundled verifier copy; "
-        "it names rhize-devflow/agents/verifier.md as the sole implementation"
-    ),
-)(test_context_manager_done_does_not_claim_a_bundled_verifier)

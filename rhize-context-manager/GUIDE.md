@@ -37,13 +37,16 @@ the right one, and health-checks the whole thing.
   here from rhize-devflow; all triggers work as before.
 
 - **"What will this change affect?" / "map this before implementing"**
-  → `/impact-map` — when the repository already has CodeGraph, it queries that first for current
+  → `/rhize-devflow:impact-map` (Dev Flow owns this command; install `rhize-devflow` alongside
+  this plugin) — when the repository already has CodeGraph, it queries that first for current
   symbols, callers, tests, and dependency paths. It then creates a semantic impact map for the
   intended behavior, invariants, planned code, operational effects, acceptance tests, and
   explicitly unaffected paths. After implementation it syncs CodeGraph and reports whether the
   graph, diff, and map are in sync. Without `.codegraph/`, it falls back to `rg`; it never indexes
-  a repository without the owner's decision.
-  *Example: "Run /impact-map for this sponsor lifecycle change, then reconcile it after the fix."*
+  a repository without the owner's decision. This plugin's own `/impact-map` is a deprecation
+  adapter that points here for the 2.12.0 compatibility window only.
+  *Example: "Run /rhize-devflow:impact-map for this sponsor lifecycle change, then reconcile it
+  after the fix."*
 
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
@@ -131,9 +134,9 @@ the right one, and health-checks the whole thing.
 
 ## Troubleshooting
 
-- **`/impact-map` is unknown after installing Dev Flow** → the executable command lives in
-  `rhize-context-manager`; install/update that plugin too, then start a new session. Dev Flow alone
-  provides the reference foundation without registering a competing command.
+- **`/impact-map` is unknown, or only shows a deprecation notice** → the executable command is
+  `/rhize-devflow:impact-map`; install/update the `rhize-devflow` plugin, then start a new session.
+  This plugin's own `/impact-map` is a deprecation adapter for the 2.12.0 compatibility window.
 - **/graphify fires twice or behaves oddly** → you still have the old user-level skill;
   delete `~/.claude/skills/graphify`.
 - **Doctor says a layer is "dead" that you expect alive** → check the tool's own logs

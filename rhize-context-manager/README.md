@@ -13,8 +13,9 @@ and their own hook plugins stay externally installed and updated.
 
 ## Install
 
-Install `rhize-devflow` alongside this plugin for the shared impact-analysis foundation. Context
-Manager remains the sole executable owner of `/impact-map`; Dev Flow does not duplicate it.
+Install `rhize-devflow` alongside this plugin. Dev Flow owns the executable `/impact-map` command
+(`/rhize-devflow:impact-map`); this plugin keeps a deprecation adapter at `/impact-map` for the
+2.12.0 compatibility window only.
 
 **Claude Code / Cowork:**
 
@@ -32,8 +33,9 @@ codex plugin add rhize-devflow@rhize-plugins
 codex plugin add rhize-context-manager@rhize-plugins
 ```
 
-Start a new session after an install or update. CodeGraph itself remains optional: `/impact-map`
-uses an existing healthy index when available and otherwise falls back to `rg`.
+Start a new session after an install or update. CodeGraph itself remains optional:
+`/rhize-devflow:impact-map` uses an existing healthy index when available and otherwise falls
+back to `rg`.
 
 ## Skills
 
@@ -70,9 +72,9 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags. Persists each run to `~/.claude/context-manager/doctor/<YYYY-MM-DD-HHMM>.json`, prints a delta against the previous run, and — if the `ecc` plugin's `harness-audit` skill is available — chains into it as a final deeper pass (graceful one-line skip otherwise). |
 | `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
-| `/done` | Session bookend — verifier PASS + `STATE.md` update before commit (moved from rhize-devflow) |
+| `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
-| `/impact-map` | CodeGraph-first current-structure discovery plus a semantic change/invariant map; syncs and reconciles the graph after implementation (runtime moved from rhize-devflow; foundation remains there) |
+| `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 

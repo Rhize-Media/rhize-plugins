@@ -57,17 +57,30 @@ type(scope): description
 
 Types: feat, fix, refactor, docs, style, test, chore
 
-### Step 6: Independent Verification (verifier subagent)
-The maker never grades its own work. Delegate to the `verifier` subagent (global
-`~/.claude/agents/verifier.md`, or the copy bundled in this plugin's `agents/`):
-```
-Use the verifier subagent to check this session's changes: it must inspect the diff,
-run the relevant tests/build, and confirm STATE.md was updated.
-```
-- Verdicts: PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN
-- FAIL_WITH_FIXABLE_GAPS → fix the listed gaps, re-verify
-- FAIL_REQUIRES_HUMAN → stop and escalate; do NOT commit
-- If no verifier subagent is available, perform the same checks explicitly and say so
+### Step 6: Delegate Code-Change Review (Dev Flow when available)
+The maker never grades its own work. This plugin does not bundle its own verifier — the
+independent verifier subagent lives only at `rhize-devflow/agents/verifier.md`.
+
+- If this session changed code **and** the `rhize-devflow` plugin is installed with its
+  `/review` command available: delegate to the fully qualified `/rhize-devflow:review`
+  command — Dev Flow's production merge/release gate, which routes to that verifier for
+  non-trivial changes.
+  ```
+  Run /rhize-devflow:review to independently verify this session's changes: diff,
+  tests/build, and STATE.md updates.
+  ```
+  - Verdicts: `PASS` / `FAIL_WITH_FIXABLE_GAPS` / `FAIL_REQUIRES_HUMAN`
+  - `FAIL_WITH_FIXABLE_GAPS` → fix the listed gaps, re-verify
+  - `FAIL_REQUIRES_HUMAN` → stop and escalate; do NOT commit
+- Otherwise — no code changed this session, or Dev Flow/`/review` is unavailable — run the
+  minimal fallback self-review checklist below yourself and **disclose** that the fallback
+  ran instead of an independent review. Never block session closure on Dev Flow's absence.
+
+**Minimal fallback self-review checklist** (used only when Dev Flow is unavailable or no
+code changed):
+- [ ] Diff matches the stated task; no unrelated files touched
+- [ ] Tests/build were run and their result reported (or explicitly "no code change to test")
+- [ ] STATE.md (if the project has one) was updated
 
 ### Step 7: Update Context File + STATE.md (compounding contract)
 - Mark completed items; update "Completed This Session" section; clear done pending items
@@ -107,7 +120,7 @@ run the relevant tests/build, and confirm STATE.md was updated.
 - [ ] No type errors
 - [ ] Build passes
 - [ ] Code reviewed
-- [ ] Verifier subagent returned PASS
+- [ ] `/rhize-devflow:review` returned PASS, or the disclosed local fallback checklist ran
 - [ ] Context file + STATE.md updated (something persisted for the next run)
 - [ ] Commit message accurate
 
