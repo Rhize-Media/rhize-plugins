@@ -32,6 +32,14 @@ from common.scoring import ScoreCalculator
 from common.output import ReportGenerator, format_summary, generate_dashboard
 
 
+class AnalysisFailedClosed(Exception):
+    """Raised instead of returning a partial/complete-looking result whenever analysis
+    cannot honestly cover the requested scope (unreadable files, or a file set larger
+    than --max-files). Never caught and silently downgraded to a warning — main() turns
+    this into a non-zero exit and an explicit stderr message instead of writing a report
+    that looks complete."""
+
+
 def find_files(
     root: Path,
     patterns: list[str],
@@ -62,8 +70,14 @@ def analyze_project(
     root: Path,
     config: ProjectConfig,
     sub_skills: Optional[list[str]] = None,
+    max_files: Optional[int] = None,
 ) -> AnalysisResult:
-    """Run full mutation analysis on a project."""
+    """Run full mutation analysis on a project.
+
+    Fails closed (raises AnalysisFailedClosed) rather than returning a result that
+    looks complete when it isn't: a file set larger than max_files is refused outright
+    instead of silently truncated, and any file that fails to read aborts the run
+    instead of being silently skipped and counted as "no mutations found"."""
     timestamp = datetime.now()
 
     # Detect or use specified sub-skills
@@ -99,12 +113,21 @@ def analyze_project(
         config.ignore_files,
     )
 
+    if max_files is not None and len(files) > max_files:
+        raise AnalysisFailedClosed(
+            f"found {len(files)} candidate files, which exceeds --max-files {max_files}. "
+            "Refusing to silently analyze a truncated subset — narrow --root to a smaller "
+            "path, or pass a higher --max-files explicitly."
+        )
+
+    read_errors: list[tuple[Path, str]] = []
+
     # Analyze each file
     for file_path in files:
         try:
             content = file_path.read_text(encoding="utf-8")
         except Exception as e:
-            print(f"Warning: Could not read {file_path}: {e}", file=sys.stderr)
+            read_errors.append((file_path, str(e)))
             continue
 
         # Find platform mutations (Supabase)
@@ -121,6 +144,13 @@ def analyze_project(
             mutations.extend(payload_mutations)
 
         result.mutations.extend(mutations)
+
+    if read_errors:
+        detail = "; ".join(f"{p}: {e}" for p, e in read_errors)
+        raise AnalysisFailedClosed(
+            f"{len(read_errors)} file(s) could not be read and were excluded from "
+            f"analysis: {detail}. Refusing to report a score that silently omits them."
+        )
 
     # Score all mutations
     for mutation in result.mutations:
@@ -257,6 +287,13 @@ def main():
         action="store_true",
         help="Don't write report file, only print summary",
     )
+    parser.add_argument(
+        "--max-files",
+        type=int,
+        default=5000,
+        help="Fail closed instead of analyzing a silently truncated subset when more than "
+        "this many candidate files are found (default: 5000)",
+    )
 
     args = parser.parse_args()
 
@@ -274,7 +311,11 @@ def main():
 
     # Run analysis
     print("Analyzing mutations...", file=sys.stderr)
-    result = analyze_project(args.root, config, sub_skills)
+    try:
+        result = analyze_project(args.root, config, sub_skills, max_files=args.max_files)
+    except AnalysisFailedClosed as e:
+        print(f"ANALYSIS FAILED CLOSED: {e}", file=sys.stderr)
+        sys.exit(3)
 
     # Generate and write full report
     if not args.no_file_output:

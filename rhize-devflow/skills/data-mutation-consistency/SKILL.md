@@ -429,6 +429,10 @@ ignore:
 
 ## Directory Structure
 
+The command body lives at `rhize-devflow/commands/mutation-check.md`
+(`/rhize-devflow:mutation-check`), not inside this skill directory — this skill ships the
+scripts, hooks, and reference material the command invokes.
+
 ```
 claude-skill-data-mutation-consistency/
 ├── SKILL.md                              # This file (router)
@@ -448,10 +452,6 @@ claude-skill-data-mutation-consistency/
 ├── hooks/
 │   ├── mutation-detector.sh              # UserPromptSubmit
 │   └── prewrite-check.sh                 # PreToolUse
-├── commands/
-│   ├── analyze-mutations.md              # /rhize-devflow:mutation-analyze
-│   ├── check-mutation.md                 # /rhize-devflow:mutation-check
-│   └── fix-mutations.md                  # /rhize-devflow:mutation-fix
 ├── config/
 │   ├── scoring-weights.yaml              # Configurable weights
 │   └── detection-patterns.yaml           # Pattern definitions

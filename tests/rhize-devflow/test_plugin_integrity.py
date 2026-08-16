@@ -193,36 +193,16 @@ def test_advertised_assets_exist(markdown_path: Path) -> None:
 _PLACEHOLDER = "/path/to/skill"
 
 _PLACEHOLDER_CASES = [
-    pytest.param(
-        DEVFLOW / "commands/mutation-analyze.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — mutation-check.md consolidation resolves the CLI path"),
-        id="commands/mutation-analyze.md",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/mutation-check.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — mutation-check.md consolidation resolves the CLI path"),
-        id="commands/mutation-check.md",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/mutation-fix.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — mutation-check.md consolidation resolves the CLI path"),
-        id="commands/mutation-fix.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/commands/analyze-mutations.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — skill-local mutation commands become deprecation adapters"),
-        id="skills/data-mutation-consistency/commands/analyze-mutations.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/commands/check-mutation.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — skill-local mutation commands become deprecation adapters"),
-        id="skills/data-mutation-consistency/commands/check-mutation.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/commands/fix-mutations.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 7 — skill-local mutation commands become deprecation adapters"),
-        id="skills/data-mutation-consistency/commands/fix-mutations.md",
-    ),
+    # Task 7 resolved the CLI path via installed-root-safe ${CLAUDE_PLUGIN_ROOT}
+    # resolution — these are now permanent control cases, not xfail.
+    pytest.param(DEVFLOW / "commands/mutation-analyze.md", marks=(), id="commands/mutation-analyze.md"),
+    pytest.param(DEVFLOW / "commands/mutation-check.md", marks=(), id="commands/mutation-check.md"),
+    pytest.param(DEVFLOW / "commands/mutation-fix.md", marks=(), id="commands/mutation-fix.md"),
+    # The 3 skill-local mutation commands that previously carried this placeholder were
+    # removed outright by Task 7 (not converted to adapters) — see
+    # test_skill_local_mutation_and_browser_command_directories_removed below, which
+    # asserts the directories are gone. There is nothing left here to check for a
+    # placeholder, so those 3 cases are deleted rather than kept as always-passing no-ops.
     # Control cases: browser commands and the setup wizard never carried this placeholder.
     pytest.param(DEVFLOW / "commands/browser-debug.md", marks=(), id="commands/browser-debug.md"),
     pytest.param(DEVFLOW / "commands/browser-help.md", marks=(), id="commands/browser-help.md"),
@@ -239,6 +219,15 @@ def test_no_unresolved_skill_path_placeholder(command_path: Path) -> None:
         f"{command_path.relative_to(REPO_ROOT)} still contains the literal placeholder "
         f"'{_PLACEHOLDER}'"
     )
+
+
+def test_skill_local_mutation_and_browser_command_directories_removed() -> None:
+    """Task 7 removed the 7 skill-local duplicate command files outright (rather than
+    converting them to adapters) — assert their parent `commands/` directories are gone,
+    so a regression that reintroduces them is caught even though there is no longer a
+    placeholder string to check for in a file that no longer exists."""
+    assert not (DEVFLOW / "skills/data-mutation-consistency/commands").exists()
+    assert not (DEVFLOW / "skills/chrome-devtools-mcp/commands").exists()
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +263,10 @@ def unjustified_duplicate_pairs() -> list[tuple[Path, Path]]:
 
 
 def test_no_unjustified_duplicate_command_bodies() -> None:
+    # Fixed by Task 7: the 4 browser-*.md and 3 mutation-*.md skill-local duplicates were
+    # removed outright, and the top-level browser/mutation commands are now either the
+    # canonical body or a `> **Deprecated:**` adapter — this is a permanent control case,
+    # not xfail.
     violations = unjustified_duplicate_pairs()
     assert violations == [], (
         "byte-identical command bodies without a `> **Deprecated:**` marker naming a "
@@ -282,15 +275,6 @@ def test_no_unjustified_duplicate_command_bodies() -> None:
             f"{a.relative_to(REPO_ROOT)} == {b.relative_to(REPO_ROOT)}" for a, b in violations
         )
     )
-
-
-test_no_unjustified_duplicate_command_bodies = pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "fixed by Task 7 — the 4 browser-*.md and 3 mutation command files ship as "
-        "skill-local deprecation adapters (or are removed) instead of byte-identical copies"
-    ),
-)(test_no_unjustified_duplicate_command_bodies)
 
 
 # ---------------------------------------------------------------------------
@@ -448,42 +432,25 @@ _STALE_DEPENDENCY_CASES = [
         marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — Serena memory checklist item replaced"),
         id="error-lifecycle-management/templates/pattern-doc.md",
     ),
-    # legacy `@...` command aliases in shipped top-level command bodies
-    pytest.param(
-        DEVFLOW / "commands/mutation-analyze.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @analyze-mutations alias references removed"),
-        id="commands/mutation-analyze.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/mutation-check.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @check-mutation alias references removed"),
-        id="commands/mutation-check.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/mutation-fix.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @analyze-mutations/@fix-mutations alias references removed"),
-        id="commands/mutation-fix.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/browser-debug.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @browser-debug/@browser-test alias references removed"),
-        id="commands/browser-debug.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/browser-help.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @browser-help alias reference removed"),
-        id="commands/browser-help.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/browser-perf.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @browser-debug/@browser-test alias references removed"),
-        id="commands/browser-perf.md-legacy-alias",
-    ),
-    pytest.param(
-        DEVFLOW / "commands/browser-test.md",
-        marks=pytest.mark.xfail(strict=True, reason="fixed by Task 8 — legacy @browser-test/@browser-debug alias references removed"),
-        id="commands/browser-test.md-legacy-alias",
-    ),
+    # legacy `@...` command aliases in shipped top-level command bodies.
+    #
+    # These 7 were originally tagged "fixed by Task 8", but Task 7's required rewrite —
+    # consolidating mutation-analyze/check/fix into mutation-check.md and
+    # browser-debug/help/perf/test into browser-qa.md, converting the legacy names to
+    # `> **Deprecated:**` one-line adapters using the exact rhize-context-manager
+    # impact-map.md adapter template — incidentally produced bodies with no `@alias`
+    # text at all (the template itself carries none). That is a side effect of following
+    # the given adapter convention, not a deliberate Task 8 edit: XPASS under
+    # strict=True would otherwise hard-fail the suite, so these moved to control cases
+    # here instead of waiting for Task 8. Verified via `python3 -m pytest` before this
+    # change (each case reported XPASS(strict)).
+    pytest.param(DEVFLOW / "commands/mutation-analyze.md", marks=(), id="commands/mutation-analyze.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/mutation-check.md", marks=(), id="commands/mutation-check.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/mutation-fix.md", marks=(), id="commands/mutation-fix.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/browser-debug.md", marks=(), id="commands/browser-debug.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/browser-help.md", marks=(), id="commands/browser-help.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/browser-perf.md", marks=(), id="commands/browser-perf.md-legacy-alias"),
+    pytest.param(DEVFLOW / "commands/browser-test.md", marks=(), id="commands/browser-test.md-legacy-alias"),
     # Control cases: these already avoid every stale dependency term and must stay green.
     pytest.param(DEVFLOW / "skills/dev-flow-foundations/SKILL.md", marks=(), id="dev-flow-foundations/SKILL.md-clean"),
     pytest.param(DEVFLOW / "skills/sanity-development/SKILL.md", marks=(), id="sanity-development/SKILL.md-clean"),

@@ -483,6 +483,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/browser-qa",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "command:rhize-devflow/browser-test",
       "type": "contains"
     },
@@ -2016,28 +2022,35 @@
       "path": "rhize-context-manager/commands/start.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-debug",
       "kind": "command",
       "name": "browser-debug",
       "path": "rhize-devflow/commands/browser-debug.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-help",
       "kind": "command",
       "name": "browser-help",
       "path": "rhize-devflow/commands/browser-help.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-perf",
       "kind": "command",
       "name": "browser-perf",
       "path": "rhize-devflow/commands/browser-perf.md"
     },
     {
-      "description": "",
+      "description": "Scenario-driven browser acceptance check — functional path, console/network errors, accessibility smoke, responsive layout, and performance on request — against whichever browser tool is actually available",
+      "id": "command:rhize-devflow/browser-qa",
+      "kind": "command",
+      "name": "browser-qa",
+      "path": "rhize-devflow/commands/browser-qa.md"
+    },
+    {
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-test",
       "kind": "command",
       "name": "browser-test",
@@ -2065,21 +2078,21 @@
       "path": "rhize-devflow/commands/impact-map.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:mutation-check --all instead.",
       "id": "command:rhize-devflow/mutation-analyze",
       "kind": "command",
       "name": "mutation-analyze",
       "path": "rhize-devflow/commands/mutation-analyze.md"
     },
     {
-      "description": "",
+      "description": "Read-only data-mutation consistency check — scoped file(s), whole codebase, or a proposed fix plan — never edits source or adds TODOs",
       "id": "command:rhize-devflow/mutation-check",
       "kind": "command",
       "name": "mutation-check",
       "path": "rhize-devflow/commands/mutation-check.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:mutation-check --fix-plan instead.",
       "id": "command:rhize-devflow/mutation-fix",
       "kind": "command",
       "name": "mutation-fix",
@@ -2878,7 +2891,7 @@
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
     },
     {
-      "contentHash": "e4218eb6573f0f2c776b0a8cc2a9eb14eed39ac4efa12d46c80d74f4c91f5d12",
+      "contentHash": "419c29b6771f303a6146223d2b50905718d30b5e16f8a3c19072337da214d448",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check, and mutation-fix.",
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",

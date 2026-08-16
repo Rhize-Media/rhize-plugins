@@ -56,6 +56,9 @@ Advisory mode - warns and adds TODOs but doesn't block implementation.
 
 ## Directory Structure
 
+The command body lives at `rhize-devflow/commands/mutation-check.md`
+(`/rhize-devflow:mutation-check`), not inside this skill directory.
+
 ```
 data-mutation-consistency/
 ├── SKILL.md                    # Main router document
@@ -74,10 +77,6 @@ data-mutation-consistency/
 │   ├── mutation-detector.sh    # UserPromptSubmit hook
 │   ├── prewrite-check.sh       # PreToolUse hook
 │   └── sentry-stale-data.sh    # Sentry issue detection
-├── commands/
-│   ├── analyze-mutations.md
-│   ├── check-mutation.md
-│   └── fix-mutations.md
 ├── config/
 │   ├── scoring-weights.yaml
 │   └── detection-patterns.yaml

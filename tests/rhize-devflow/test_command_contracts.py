@@ -228,6 +228,131 @@ def test_foundations_skill_routes_to_check() -> None:
     assert "review" in skill.lower()
 
 
+# ---------------------------------------------------------------------------
+# 8. /rhize-devflow:mutation-check and /rhize-devflow:browser-qa (Task 7)
+# ---------------------------------------------------------------------------
+
+MUTATION_CHECK = DEVFLOW / "commands" / "mutation-check.md"
+BROWSER_QA = DEVFLOW / "commands" / "browser-qa.md"
+MUTATION_CHECK_MARKER = "<!-- canonical: rhize-devflow:mutation-check -->"
+BROWSER_QA_MARKER = "<!-- canonical: rhize-devflow:browser-qa -->"
+
+DEPRECATED_MUTATION_COMMANDS = [
+    DEVFLOW / "commands" / "mutation-analyze.md",
+    DEVFLOW / "commands" / "mutation-fix.md",
+]
+DEPRECATED_BROWSER_COMMANDS = [
+    DEVFLOW / "commands" / "browser-debug.md",
+    DEVFLOW / "commands" / "browser-help.md",
+    DEVFLOW / "commands" / "browser-perf.md",
+    DEVFLOW / "commands" / "browser-test.md",
+]
+
+
+def _canonical_marker_immediately_after_frontmatter(text: str, marker: str) -> bool:
+    lines = text.splitlines()
+    fm_end = next(i for i, line in enumerate(lines) if i > 0 and line.strip() == "---")
+    following = [line for line in lines[fm_end + 1 : fm_end + 3] if line.strip()]
+    return bool(following) and following[0] == marker
+
+
+def test_mutation_check_carries_its_canonical_marker() -> None:
+    assert MUTATION_CHECK.exists()
+    assert _canonical_marker_immediately_after_frontmatter(read(MUTATION_CHECK), MUTATION_CHECK_MARKER)
+
+
+def test_browser_qa_carries_its_canonical_marker() -> None:
+    assert BROWSER_QA.exists()
+    assert _canonical_marker_immediately_after_frontmatter(read(BROWSER_QA), BROWSER_QA_MARKER)
+
+
+def test_mutation_check_declares_its_three_modes() -> None:
+    text = read(MUTATION_CHECK)
+    assert "PATH..." in text
+    assert "--all" in text
+    assert "--fix-plan" in text
+
+
+def test_mutation_check_is_read_only_and_fix_plan_only() -> None:
+    text = read(MUTATION_CHECK)
+    lowered = text.lower()
+    assert "never edits source" in lowered or "never edit source" in lowered
+    assert "never adds todo" in lowered or "no todo" in lowered or "add todo" in lowered
+    # --add-todos/--apply may be named only as explicitly prohibited flags (they write to
+    # source and generate_fixes.py still implements them) — never presented as something to
+    # actually pass.
+    assert "never pass `--add-todos`" in lowered or "never pass ‘--add-todos’" in lowered
+
+
+def test_mutation_check_documents_fail_closed_behavior() -> None:
+    text = read(MUTATION_CHECK)
+    lowered = text.lower()
+    assert "fail" in lowered and "closed" in lowered
+    assert "never a partial" in lowered or "not a partial" in lowered or "partial score" in lowered
+
+
+def test_mutation_check_has_no_unresolved_skill_path_placeholder() -> None:
+    assert "/path/to/skill" not in read(MUTATION_CHECK)
+    assert "${CLAUDE_PLUGIN_ROOT}" in read(MUTATION_CHECK)
+
+
+def test_browser_qa_covers_the_five_scenarios() -> None:
+    text = read(BROWSER_QA)
+    for scenario in (
+        "Functional path",
+        "Console and network errors",
+        "Accessibility smoke",
+        "Responsive layout",
+        "Performance",
+    ):
+        assert scenario in text, f"missing scenario section: {scenario}"
+
+
+def test_browser_qa_detects_capability_rather_than_assuming_one_named_tool() -> None:
+    text = read(BROWSER_QA)
+    lowered = text.lower()
+    assert "detect" in lowered
+    assert "do not assume" in lowered or "not assume a specific named mcp" in lowered
+    # Names at least two distinct browser-capability families as candidates, not one.
+    candidate_families = ["claude browser pane", "chrome-devtools", "claude-in-chrome", "playwright"]
+    mentioned = [name for name in candidate_families if name in lowered]
+    assert len(mentioned) >= 2, f"expected multiple browser-tool candidates named, found: {mentioned}"
+
+
+def test_browser_qa_degrades_explicitly_when_no_browser_tool_is_available() -> None:
+    text = read(BROWSER_QA)
+    lowered = text.lower()
+    assert "degrade" in lowered
+    assert "never fabricate" in lowered or "not fabricate" in lowered
+
+
+def test_browser_qa_performance_scenario_is_not_run_by_default() -> None:
+    text = read(BROWSER_QA)
+    performance_section_start = text.index("### 5. Performance")
+    performance_section = text[performance_section_start : performance_section_start + 800]
+    lowered = performance_section.lower()
+    assert "on request" in lowered or "when relevant" in lowered
+    assert "not run this scenario by default" in lowered or "not by default" in lowered
+
+
+@pytest.mark.parametrize("adapter_path", DEPRECATED_MUTATION_COMMANDS, ids=lambda p: p.name)
+def test_deprecated_mutation_commands_are_thin_adapters_to_mutation_check(adapter_path: Path) -> None:
+    assert adapter_path.exists()
+    text = read(adapter_path)
+    assert "> **Deprecated:**" in text
+    assert "/rhize-devflow:mutation-check" in text
+    assert MUTATION_CHECK_MARKER not in text  # adapter must not carry the canonical body
+
+
+@pytest.mark.parametrize("adapter_path", DEPRECATED_BROWSER_COMMANDS, ids=lambda p: p.name)
+def test_deprecated_browser_commands_are_thin_adapters_to_browser_qa(adapter_path: Path) -> None:
+    assert adapter_path.exists()
+    text = read(adapter_path)
+    assert "> **Deprecated:**" in text
+    assert "/rhize-devflow:browser-qa" in text
+    assert BROWSER_QA_MARKER not in text  # adapter must not carry the canonical body
+
+
 def test_foundations_skill_routes_to_review() -> None:
     skill = read(DEVFLOW / "skills" / "dev-flow-foundations" / "SKILL.md")
     assert "/rhize-devflow:review" in skill

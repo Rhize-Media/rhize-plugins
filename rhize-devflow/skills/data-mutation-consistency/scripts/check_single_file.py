@@ -240,8 +240,12 @@ def main():
     else:
         print(format_output(result))
 
-    # Exit code based on status
-    if result.get("status") == "critical":
+    # Exit code based on status. "error" (file not found / unreadable) must fail
+    # closed with its own distinct code -- it is not a passing result, and must never
+    # fall through to the default 0 (previously it silently did).
+    if result.get("status") == "error":
+        sys.exit(3)
+    elif result.get("status") == "critical":
         sys.exit(2)
     elif result.get("status") == "warning":
         sys.exit(1)
