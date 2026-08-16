@@ -489,6 +489,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "command:rhize-devflow/devflow-setup",
       "type": "contains"
     },
@@ -2032,6 +2038,13 @@
       "path": "rhize-devflow/commands/browser-test.md"
     },
     {
+      "description": "Evidence-driven mid-implementation validation — selects and runs the right focused tests and repository-mandated gates from deterministic facts, never from prose",
+      "id": "command:rhize-devflow/check",
+      "kind": "command",
+      "name": "check",
+      "path": "rhize-devflow/commands/check.md"
+    },
+    {
       "description": "",
       "id": "command:rhize-devflow/devflow-setup",
       "kind": "command",
@@ -2860,7 +2873,7 @@
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "4f8cf7637a62a2fed2e7641931735aebee83688faf6ed4baacbf66c4fdf1d49d",
+      "contentHash": "296f6b5e2f03f1f21c9646699fdb8eed60d454cdcbe8eee3bdc3ad0b60d60156",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",

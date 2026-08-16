@@ -167,12 +167,20 @@ The executable `/rhize-devflow:impact-map` command is owned by this plugin
 compatibility adapter remains at `rhize-context-manager`'s `commands/impact-map.md` for the
 2.12.0 release window, pointing back to the fully qualified Dev Flow command.
 
+`/rhize-devflow:check` (`commands/check.md`) is the mid-implementation validation step that
+follows impact mapping: it builds a deterministic evidence packet with
+`devflow.py evidence --json`, selects checks only from repository instructions and
+known-safe declared package scripts, and returns `PASS`, `PASS_WITH_WARNINGS`, or `BLOCKED`.
+The control-plane sequence is `/rhize-devflow:impact-map` → `/rhize-devflow:check` →
+`/rhize-devflow:review` → release: map the change, validate it evidence-first while
+implementing, then gate the merge.
+
 | Foundation | Implemented In |
 |------------|----------------|
 | Context Hygiene | context-engineering (hooks, commands) |
 | Dependency Graph | `/rhize-devflow:impact-map` (CodeGraph-first discovery + semantic reconciliation, this plugin) |
 | Component Registry | context-engineering (duplicate-check hook) |
-| Regression Prevention | error-lifecycle-management (triage workflow) |
+| Regression Prevention | error-lifecycle-management (triage workflow); `/rhize-devflow:check` (evidence-driven implementation validation, this plugin) |
 | Anti-Pattern Agent | error-lifecycle-management (validation scripts) |
 
 ---
