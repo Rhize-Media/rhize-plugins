@@ -2,9 +2,12 @@
 
 import importlib.util
 import json
+import subprocess
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -74,6 +77,56 @@ class UpdatePluginManifestsTests(unittest.TestCase):
 
         self.assertEqual(load(repo / "legacy-plugin/.claude-plugin/plugin.json")["version"], "0.1.0")
         self.assertFalse((repo / "legacy-plugin/.codex-plugin/plugin.json").exists())
+
+
+class PluginContractCheckTests(unittest.TestCase):
+    def test_runs_impact_map_contract_and_generated_map_freshness(self) -> None:
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="PASS\n", stderr="")
+        with patch.object(bump_version.subprocess, "run", return_value=completed) as run:
+            errors = bump_version.run_repository_contract_checks()
+
+        self.assertEqual(errors, [])
+        self.assertEqual(
+            [call.args[0] for call in run.call_args_list],
+            [
+                [
+                    bump_version.sys.executable,
+                    str(ROOT / "tests/rhize-devflow/test_impact_map_contract.py"),
+                ],
+                [
+                    bump_version.sys.executable,
+                    str(ROOT / "scripts/validate_skill_map.py"),
+                    "--check-stale",
+                ],
+            ],
+        )
+
+    def test_reports_each_failed_repository_contract(self) -> None:
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=1, stdout="FAIL\n", stderr="details\n"
+        )
+        with patch.object(bump_version.subprocess, "run", return_value=completed):
+            errors = bump_version.run_repository_contract_checks()
+
+        self.assertEqual(
+            errors,
+            ["CodeGraph + impact-map contract failed", "skill-map freshness failed"],
+        )
+
+    def test_contract_failure_blocks_check_when_release_commit_is_the_base(self) -> None:
+        args = SimpleNamespace(since=None)
+        with (
+            patch.object(bump_version, "last_release_ref", return_value="release"),
+            patch.object(bump_version, "changed_dirs", return_value=set()),
+            patch.object(
+                bump_version,
+                "run_repository_contract_checks",
+                return_value=["CodeGraph + impact-map contract failed"],
+            ),
+        ):
+            result = bump_version.cmd_check(args, {})
+
+        self.assertEqual(result, 1)
 
 
 if __name__ == "__main__":

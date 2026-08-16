@@ -116,6 +116,12 @@
       "source": "relations-catalog"
     },
     {
+      "from": "command:rhize-context-manager/impact-map",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
       "from": "external:humanizer-humanizer",
       "to": "tag:topic/content-authoring",
       "type": "augments",

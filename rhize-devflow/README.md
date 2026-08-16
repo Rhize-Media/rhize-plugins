@@ -11,7 +11,7 @@ in the standalone `CLAUDE-SKILLS` repo (now archived). Everything namespaces as
 | --- | --- | --- |
 | `chrome-devtools-mcp` | Browser automation, debugging, and performance analysis via the official Google Chrome DevTools MCP server (Puppeteer-backed, wait-aware). | automation, nextjs, observability, testing |
 | `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, vercel, workflow-patterns |
-| `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — dependency-graph impact mapping, component/function registry to prevent dup… | project-planning, workflow-patterns |
+| `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
@@ -30,6 +30,14 @@ mutation-fix · browser-debug · browser-help · browser-perf · browser-test ·
 > `context-hygiene`, and `impact-map` commands) now lives in the
 > [`rhize-context-manager`](../rhize-context-manager/README.md) plugin.
 
+`dev-flow-foundations` still owns the impact-analysis discipline: use CodeGraph first for current
+symbols, callers, tests, and dependency paths; use the semantic impact map for intended behavior,
+invariants, operational risk, planned code, and acceptance criteria; then sync CodeGraph and
+reconcile both after implementation. The executable `/rhize-context-manager:impact-map` command
+implements that contract so the two plugins do not ship competing copies.
+The compiled skill graph records the command's dependency on the shared foundation, and the
+existing version/CI gate runs the shared contract test whenever either owning plugin changes.
+
 ### `/rhize-devflow:devflow-setup` — local-tenant-file convention
 
 Sets up the per-machine `.claude/*.local.md` tenant store for a client repo — see the
@@ -39,10 +47,28 @@ this repo — gitignored, as the convention requires).
 
 ## Install
 
-```
+For the complete CodeGraph + semantic impact-map workflow, install both plugins. Dev Flow alone
+still supplies the reference skill, but it deliberately does not register a duplicate
+`/impact-map` command.
+
+**Claude Code / Cowork:**
+
+```text
 /plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
 /plugin install rhize-devflow@rhize-plugins
+/plugin install rhize-context-manager@rhize-plugins
 ```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+codex plugin add rhize-devflow@rhize-plugins
+codex plugin add rhize-context-manager@rhize-plugins
+```
+
+Start a new Claude/Codex session after installing or updating so the refreshed skills, command,
+and compiled cross-plugin relationship are loaded.
 
 ## Hooks
 

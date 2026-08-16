@@ -16,7 +16,7 @@ The plugin has two kinds of components:
 
 ## Quick Mental Model
 
-Seven skills, but they cluster into four jobs:
+Six skills, clustered into five jobs:
 
 | Cluster | Skills | Question it answers |
 |---------|--------|----------------------|
@@ -26,18 +26,21 @@ Seven skills, but they cluster into four jobs:
 | **Browser debugging** | `chrome-devtools-mcp` | "What does this actually look like/do in a real browser — network, console, performance, visuals?" |
 | **CMS house style** | `sanity-development` | "What's the Rhize-opinionated way to model this in Sanity?" |
 
-Commands are the hands-on-keyboard layer built on top of these skills — `/start` and `/done` bookend a session, `/impact-map` and `/context-hygiene` keep it clean mid-session, `/mutation-*` commands drive the data-mutation skill, and `/browser-*` commands drive the Chrome DevTools skill.
+Commands are the hands-on-keyboard layer built on top of these skills. Dev Flow ships the
+`/mutation-*` and `/browser-*` commands; the paired `rhize-context-manager` plugin owns `/start`,
+`/done`, `/impact-map`, and `/context-hygiene` so there is one session/impact command surface.
 
 ## Skills Reference
 
 ### dev-flow-foundations
 
-**When it activates:** You mention "design patterns", "workflow optimization", "prevent regression", "anti-patterns", "dependency mapping", "component registry", "why did this break again", or want to set up durable development guardrails.
+**When it activates:** You mention "design patterns", "workflow optimization", "prevent regression", "anti-patterns", "dependency mapping", "impact map", "CodeGraph", "component registry", "why did this break again", or want to set up durable development guardrails.
 
-**What it knows:** Six foundational workflow problems and their fixes — dependency-graph impact mapping ("what uses this?" before "how do I change this?"), a component/function registry to stop duplicate components from being built, context hygiene principles (CLAUDE.md as a <200-line router, not an essay), regression prevention (root-cause first, never patch blind), anti-pattern detection at write-time rather than at review, and a skill-refinement pattern for turning a repeated fix into a formal skill.
+**What it knows:** Six foundational workflow problems and their fixes — CodeGraph-first structural discovery paired with semantic impact mapping, a component/function registry to stop duplicate components from being built, context hygiene principles (CLAUDE.md as a <200-line router, not an essay), regression prevention (root-cause first, never patch blind), anti-pattern detection at write-time rather than at review, and a skill-refinement pattern for turning a repeated fix into a formal skill.
 
 **How to use it effectively:**
-- Ask "before I build this, what already touches this area?" — it reasons from the dependency-graph pattern rather than jumping straight to code.
+- Ask "before I build this, what already touches this area?" — it uses CodeGraph for the current call/dependency surface, then records only the semantic delta, invariants, risks, and acceptance tests that a graph cannot express.
+- After implementation, have it sync CodeGraph and reconcile the actual graph and diff against the impact map. A stale pre-change map is not completion evidence.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
 - This is the reference layer, not a command surface — its patterns show up concretely inside the `rhize-context-manager` plugin's `context-engineering` skill (which implements the registry and dependency-graph ideas as `/rhize-context-manager:impact-map` and the duplicate-check hook) and inside `error-lifecycle-management` (which implements regression prevention as the triage workflow).
 

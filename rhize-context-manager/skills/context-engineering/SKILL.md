@@ -130,7 +130,7 @@ Structured workflows for common development operations.
 | [/start](../../commands/start.md) | start, begin, new session | Initialize session with context loading |
 | [/done](../../commands/done.md) | done, finished, commit | Post-implementation validation |
 | [/context-hygiene](../../commands/context-hygiene.md) | confused, slow, cleanup | Manage context window health |
-| [/impact-map](../../commands/impact-map.md) | implement, create new, build | Map dependencies before changes |
+| [/impact-map](../../commands/impact-map.md) | implement, create new, build | Use CodeGraph for current structure, map the semantic delta, then reconcile after implementation |
 
 ### Command Usage
 
@@ -386,6 +386,7 @@ Prevent duplicate components:
 │  NEW FEATURE             BUG FIX                COMMIT          │
 │  ───────────             ───────                ──────          │
 │  □ /impact-map first     □ Check Sentry         □ /done first   │
+│  □ CodeGraph → semantics □ Verify runtime       □ Graph synced  │
 │  □ Check registry        □ Map dependencies     □ Build passes? │
 │  □ Reuse existing?       □ Systematic debug     □ All staged?   │
 │  □ Plan impl order       □ Test the fix         □ Zen review    │

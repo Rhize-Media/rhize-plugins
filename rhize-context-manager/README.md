@@ -11,6 +11,30 @@ tools with their own release cycles. This plugin owns the *decision layer* — w
 to use when, how they coexist, and how to health-check the stack — while the binaries
 and their own hook plugins stay externally installed and updated.
 
+## Install
+
+Install `rhize-devflow` alongside this plugin for the shared impact-analysis foundation. Context
+Manager remains the sole executable owner of `/impact-map`; Dev Flow does not duplicate it.
+
+**Claude Code / Cowork:**
+
+```text
+/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+/plugin install rhize-devflow@rhize-plugins
+/plugin install rhize-context-manager@rhize-plugins
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+codex plugin add rhize-devflow@rhize-plugins
+codex plugin add rhize-context-manager@rhize-plugins
+```
+
+Start a new session after an install or update. CodeGraph itself remains optional: `/impact-map`
+uses an existing healthy index when available and otherwise falls back to `rg`.
+
 ## Skills
 
 ### Rhize-authored (orchestration layer)
@@ -48,7 +72,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — verifier PASS + `STATE.md` update before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
-| `/impact-map` | Pre-feature impact mapping against the component registry (moved from rhize-devflow) |
+| `/impact-map` | CodeGraph-first current-structure discovery plus a semantic change/invariant map; syncs and reconciles the graph after implementation (runtime moved from rhize-devflow; foundation remains there) |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 

@@ -30,6 +30,10 @@ from pathlib import Path
 
 LEVELS = {None: 0, "patch": 1, "minor": 2, "major": 3}
 ORDER = {1: "patch", 2: "minor", 3: "major"}
+REPOSITORY_CONTRACTS = (
+    ("CodeGraph + impact-map contract", "tests/rhize-devflow/test_impact_map_contract.py"),
+    ("skill-map freshness", "scripts/validate_skill_map.py", "--check-stale"),
+)
 
 
 def fail(msg: str) -> "None":
@@ -112,6 +116,25 @@ def infer_level(base: str, plug_name: str) -> str:
         if LEVELS[lvl] > LEVELS[best]:
             best = lvl
     return best or "patch"
+
+
+def run_repository_contract_checks() -> list[str]:
+    """Run repository contracts even when the current commit is itself the release base."""
+    errors = []
+    for label, relative_path, *arguments in REPOSITORY_CONTRACTS:
+        result = subprocess.run(
+            [sys.executable, str(REPO / relative_path), *arguments],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        if result.returncode != 0:
+            errors.append(f"{label} failed")
+    return errors
 
 
 # ---------- writers ----------
@@ -242,10 +265,15 @@ def cmd_plugin(args, plugins: dict) -> int:
 def cmd_check(args, plugins: dict) -> int:
     base = last_release_ref(args.since)
     dirty = changed_dirs(base, plugins)
+    errors = run_repository_contract_checks()
     if not dirty:
+        if errors:
+            print("✗ check failed — repository contract errors:", file=sys.stderr)
+            for error in errors:
+                print(f"    - {error}", file=sys.stderr)
+            return 1
         print("✓ check: no plugin changes since last release.")
         return 0
-    errors = []
     for name in sorted(dirty):
         cur = read_version(plugin_manifest(plugins[name]))
         based = git("show", f"{base}:{name}/.claude-plugin/plugin.json")
@@ -260,7 +288,7 @@ def cmd_check(args, plugins: dict) -> int:
     if not git("diff", "--name-only", f"{base}..HEAD", "--", "CHANGELOG.md"):
         print("  note: CHANGELOG.md not updated since last release.", file=sys.stderr)
     if errors:
-        print("✗ check failed — stale versions:", file=sys.stderr)
+        print("✗ check failed — validation errors:", file=sys.stderr)
         for e in errors:
             print(f"    - {e}", file=sys.stderr)
         print("  run: python3 scripts/bump_version.py --auto --yes", file=sys.stderr)

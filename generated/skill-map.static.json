@@ -13,6 +13,12 @@
       "type": "precedes"
     },
     {
+      "from": "command:rhize-context-manager/impact-map",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "depends-on"
+    },
+    {
       "from": "command:rhize-context-manager/skill-refine",
       "source": "relations-catalog",
       "to": "external:skill-forge",
@@ -1958,7 +1964,7 @@
       "path": "rhize-context-manager/commands/done.md"
     },
     {
-      "description": "Pre-feature impact mapping — map dependencies against the component registry before implementing changes",
+      "description": "CodeGraph-first impact mapping that separates current dependency truth from the intended semantic change",
       "id": "command:rhize-context-manager/impact-map",
       "kind": "command",
       "name": "impact-map",
@@ -2726,7 +2732,7 @@
       "path": "rhize-context-manager/skills/context-degradation/SKILL.md"
     },
     {
-      "contentHash": "30ca6c44fdf76094e1066283e59356b1add1a78d7c1e3f83f77c280d9cda51a4",
+      "contentHash": "8c0d339d2edebb80187d274ee5bf53755898db78764e65caa26f46bead5b2098",
       "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
       "id": "skill:rhize-context-manager/context-engineering",
       "kind": "skill",
@@ -2835,8 +2841,8 @@
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "6a7a1b17e7650312741a77a2908d9d5a5ee2061f740bf04028114b55c03c36f5",
-      "description": "Foundational workflow patterns for large-codebase development — dependency-graph impact mapping, component/function registry to prevent duplication, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"component registry\", \"why did this break again\", or wants to set up durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
+      "contentHash": "5bba8585c6f4024de810b00bf52056f46988172c40dc2fcd19182701a380a7fd",
+      "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
       "name": "dev-flow-foundations",
