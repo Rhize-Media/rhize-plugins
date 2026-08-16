@@ -14,6 +14,24 @@ The plugin has two kinds of components:
 
 **Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:mutation-check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
+## Getting Started
+
+If Dev Flow isn't installed yet, or you suspect a stale copy, see the [README's Install
+section](./README.md#install) for the exact commands — the short version:
+
+- **Claude Code**, marketplace already configured: `claude plugin install rhize-devflow@rhize-plugins`.
+- **Claude Code**, updating: `claude plugin marketplace update rhize-plugins` then
+  `claude plugin update rhize-devflow`.
+- **Codex**: `codex plugin add rhize-devflow@rhize-plugins` (after `codex plugin marketplace add`
+  once, the first time).
+
+Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
+start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
+confirm you see `mutation-check`, `browser-debug`, and the rest of the list in the [Commands
+Reference](#commands-reference) below. If a command or skill is missing after an update, the
+installed cache is probably pinned behind the marketplace — re-run the update commands above and
+start another fresh session before assuming something is broken.
+
 ## Quick Mental Model
 
 Six skills, clustered into five jobs:

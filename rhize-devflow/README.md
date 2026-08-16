@@ -51,13 +51,33 @@ For the complete CodeGraph + semantic impact-map workflow, install both plugins.
 still supplies the reference skill, but it deliberately does not register a duplicate
 `/impact-map` command.
 
-**Claude Code / Cowork:**
+**Claude Code — first time on this machine (marketplace not yet configured):**
 
 ```text
 /plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
 /plugin install rhize-devflow@rhize-plugins
 /plugin install rhize-context-manager@rhize-plugins
 ```
+
+**Claude Code — `rhize-plugins` marketplace already configured (the common case on a Rhize dev
+machine):**
+
+```bash
+claude plugin install rhize-devflow@rhize-plugins
+claude plugin install rhize-context-manager@rhize-plugins
+```
+
+**Claude Code — updating an existing install:**
+
+```bash
+claude plugin marketplace update rhize-plugins
+claude plugin update rhize-devflow
+claude plugin update rhize-context-manager
+```
+
+`claude plugin marketplace update` refreshes the local `rhize-plugins` marketplace snapshot to
+the latest commit; `claude plugin update` then pulls each installed plugin up to that snapshot's
+version. Running only the second command against a stale snapshot silently no-ops.
 
 **Codex:**
 
@@ -68,7 +88,29 @@ codex plugin add rhize-context-manager@rhize-plugins
 ```
 
 Start a new Claude/Codex session after installing or updating so the refreshed skills, command,
-and compiled cross-plugin relationship are loaded.
+and compiled cross-plugin relationship are loaded. Do not append a local cachebuster suffix
+(a throwaway branch ref, a `?v=` query string, a re-cloned temp path) to force a refresh for a
+published release — resolve through the named `rhize-plugins` marketplace entry and the update
+commands above.
+
+### Cache/reinstall smoke test
+
+Plugin caches only refresh on session start, so an update can silently fail to take effect until
+you verify it. After any install or update:
+
+1. Start a **fresh** Claude Code session (not a resumed one).
+2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`mutation-check`,
+   `mutation-analyze`, `mutation-fix`, `browser-debug`, `browser-help`, `browser-perf`,
+   `browser-test`, `devflow-setup`) — or run `claude plugin details rhize-devflow` for a
+   non-interactive check of the installed component inventory.
+3. Confirm the six skills above (`dev-flow-foundations`, `data-mutation-consistency`,
+   `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
+   `chrome-devtools-mcp`) are discoverable in that session.
+4. Start a **fresh** Codex session and confirm the same skills load from
+   `.codex-plugin/plugin.json`'s `skills: "./skills/"` path.
+5. If a command or skill is missing after an update, the installed plugin cache is likely pinned
+   behind this repo — re-run `claude plugin marketplace update rhize-plugins` then
+   `claude plugin update rhize-devflow`, then repeat steps 1–3 in a new session.
 
 ## Hooks
 
