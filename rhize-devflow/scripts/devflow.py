@@ -59,8 +59,11 @@ here instead:
       "healthy": bool
     }
 
-`healthy` is true iff every finding has severity "info" — stale tokens and capability
-degradation are always reported, never treated as a plugin-wide failure.
+`healthy` is true iff every finding has severity "info" — capability degradation is reported
+independently in `capabilities` and never affects `healthy`. Most stale-token findings
+(historical `zen`/`serena`/`graphiti` mentions) are informational only; a live-instruction
+defect (`legacy-alias`, `/path/to/skill`) is reported at "warning" severity and does block
+`healthy`, since a user copying that text would run something stale.
 """
 from __future__ import annotations
 
@@ -132,7 +135,22 @@ _STALE_TOKEN_PATTERNS: dict[str, re.Pattern] = {
     "zen": re.compile(r"(?i)\bzen\b|zen_memory|mcp__zen__"),
     "serena": re.compile(r"(?i)\bserena\b|mcp__serena__"),
     "graphiti": re.compile(r"(?i)\bgraphiti\b"),
+    "legacy-alias": re.compile(
+        r"@(analyze-mutations|check-mutation|fix-mutations|browser-debug|browser-help|"
+        r"browser-perf|browser-test)\b"
+    ),
 }
+
+# legacy-alias and /path/to/skill are live-instruction defects (a user copying the text
+# would run something stale) — always reported at warning severity, blocking `healthy`.
+# zen/serena/graphiti are historical-reference mentions only — info severity.
+_STALE_TOKEN_WARNING_NAMES = {"legacy-alias", "/path/to/skill"}
+
+# Lines that legitimately still contain a legacy `@alias` and must not trip the scanner:
+# (1) ANALYSIS_TRIGGERS-style compat-matcher array entries — bare quoted literals used to
+# detect old-style invocations so they still work, not instructions telling anyone to run
+# one; and (2) "(formerly @alias)" annotations that intentionally document the rename.
+_LEGACY_ALIAS_ARRAY_LITERAL = re.compile(r'^"@[\w-]+"\s*,?\s*$')
 
 
 def _read_text(path: Path) -> str:
@@ -294,17 +312,44 @@ def _check_shell_hooks(plugin_root: Path, findings: list[dict]) -> None:
             )
 
 
+def _line_has_unexcused_stale_hit(line: str, pattern: re.Pattern, name: str) -> bool:
+    if not pattern.search(line):
+        return False
+    if name != "legacy-alias":
+        return True
+    if "formerly" in line.lower():
+        return False
+    if _LEGACY_ALIAS_ARRAY_LITERAL.match(line.strip()):
+        return False
+    return True
+
+
+def _stale_tokens_in_text(text: str) -> list[str]:
+    lines = text.splitlines()
+    hits: list[str] = []
+    for name, pattern in _STALE_TOKEN_PATTERNS.items():
+        if any(_line_has_unexcused_stale_hit(line, pattern, name) for line in lines):
+            hits.append(name)
+    return hits
+
+
 def _check_stale_tokens(plugin_root: Path, findings: list[dict]) -> None:
-    for md_path in sorted(plugin_root.rglob("*.md")):
-        text = _read_text(md_path)
-        hits = [name for name, pattern in _STALE_TOKEN_PATTERNS.items() if pattern.search(text)]
-        for name in hits:
+    # This module's own source defines the stale-token patterns as literal strings (the
+    # words "zen"/"serena"/"graphiti", the "/path/to/skill" placeholder, the `@alias`
+    # regex) — scanning it would be a self-referential false positive, not a real defect.
+    self_path = Path(__file__).resolve()
+    paths = set(plugin_root.rglob("*.md")) | set(plugin_root.rglob("*.sh")) | set(plugin_root.rglob("*.py"))
+    paths = {p for p in paths if p.resolve() != self_path}
+    for path in sorted(paths):
+        text = _read_text(path)
+        for name in _stale_tokens_in_text(text):
+            severity = "warning" if name in _STALE_TOKEN_WARNING_NAMES else "info"
             findings.append(
                 make_finding(
                     "stale-token",
-                    "info",
+                    severity,
                     f"contains stale token/reference: {name}",
-                    rel(plugin_root, md_path),
+                    rel(plugin_root, path),
                 )
             )
 

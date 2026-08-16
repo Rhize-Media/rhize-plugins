@@ -70,9 +70,10 @@ python3 "$CLAUDE_PLUGIN_ROOT/skills/data-mutation-consistency/scripts/generate_f
 ```
 
 Writes a fix plan to `.claude/analysis/fix-plan-{timestamp}.md` describing what to change
-and why. **Never pass `--add-todos` or `--apply`** — both write to source files, which is
-out of contract for this command. Applying a proposed fix is a separate, explicit edit the
-user or Claude performs after reviewing the plan.
+and why. **`--add-todos` and `--apply` do not exist** — both wrote to source files, which
+was out of contract for this command, so they were removed from `generate_fixes.py`
+outright rather than merely discouraged. Applying a proposed fix is a separate, explicit
+edit the user or Claude performs after reviewing the plan.
 
 ## Exit Codes
 

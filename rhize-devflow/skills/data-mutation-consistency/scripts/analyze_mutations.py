@@ -365,8 +365,8 @@ def generate_pending_fixes(result: AnalysisResult) -> str:
         "",
         "---",
         "",
-        "Run `@fix-mutations P0` to generate fix plan for critical issues.",
-        "Run `@fix-mutations P1` to include warnings.",
+        "Run `/rhize-devflow:mutation-check --fix-plan --priority P0` to generate a fix plan for critical issues.",
+        "Run `/rhize-devflow:mutation-check --fix-plan --priority P1` to include warnings.",
     ])
 
     return "\n".join(lines)

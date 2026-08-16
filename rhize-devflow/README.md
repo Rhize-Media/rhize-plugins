@@ -33,13 +33,14 @@ the session-lifecycle side of this boundary.
 | `/rhize-devflow:review` | 3 — gate | Read-only production merge/release gate. Resolves the exact base/head comparison range, builds a risk map from actual diff evidence (deployment, data, security, authorization, billing, migration, cache, external-write), routes only relevant specialists, requires an independent skeptical reviewer for non-trivial work, returns `PASS` / `FAIL_WITH_FIXABLE_GAPS` / `FAIL_REQUIRES_HUMAN`. Never commits, pushes, merges, or deploys. |
 | `/rhize-devflow:mutation-check` | overlay | Read-only data-mutation consistency check — `PATH...` (scoped file(s)), `--all` (whole codebase), or `--fix-plan` (proposed changes only, never edits source). |
 | `/rhize-devflow:browser-qa` | overlay | Scenario-driven browser acceptance check (functional path, console/network errors, accessibility smoke, responsive layout, performance on request) against whichever browser tool is actually connected. |
+| `/rhize-devflow:doctor` | overlay | Read-only plugin/install health check — thin adapter over `scripts/devflow.py doctor`. Manifests, canonical commands, referenced assets, duplicate bodies, stale tokens, script/hook integrity, and capability dependencies, reported independently per capability. |
 | `/rhize-devflow:devflow-setup` | setup | Interview-driven wizard for the per-machine `.claude/*.local.md` tenant-file convention. |
 
 Release itself (the actual push/merge/deploy) stays outside this plugin — it's governed by
 each repository's own push policy, never performed by `check` or `review`.
 
-`python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` (plugin health) is **CLI-only** — there
-is no `/rhize-devflow:doctor` slash command. See [Doctor and evidence CLI](#doctor-and-evidence-cli-scriptsdevflowpy) below.
+See [Doctor and evidence CLI](#doctor-and-evidence-cli-scriptsdevflowpy) below for the CLI
+`/rhize-devflow:doctor` wraps, and for the separate `evidence` subcommand `check`/`review` use.
 
 ### Deprecated (2.12.0 compatibility window)
 
@@ -64,6 +65,7 @@ mutation-analyze · mutation-fix
 | `/rhize-devflow:browser-test` | `/rhize-devflow:browser-qa` | Functional/responsive/accessibility scenarios. |
 | *(new, no predecessor)* | `/rhize-devflow:check` | Mid-implementation evidence-driven validation. |
 | *(new, no predecessor)* | `/rhize-devflow:review` | Production merge/release gate — the executable successor to the retired `rhize-review` skill workflow. |
+| *(new, no predecessor)* | `/rhize-devflow:doctor` | Thin slash-command adapter over `scripts/devflow.py doctor` — plugin/install health. |
 
 ## Skills
 
@@ -110,7 +112,8 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" evidence [--json] [--repo PATH]
   duplicate command bodies, stale tokens, Python-script importability, hook syntax, and
   capability dependencies. Reports each capability independently (a missing Chrome DevTools MCP
   server degrades `browser-qa` only, not `check`/`review`). Read-only; run it from either the
-  source checkout or an installed plugin cache.
+  source checkout or an installed plugin cache. `/rhize-devflow:doctor` is a thin slash-command
+  adapter over this same CLI invocation.
 - **`evidence`** collects a deterministic Git/repo-state packet — base/head resolution, changed
   files, protected-file matches, detected package manager and declared package-script names/text,
   repository instruction-file presence, and existing-CodeGraph-index presence/health. `/check` and
@@ -121,8 +124,8 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" evidence [--json] [--repo PATH]
 (`devflow-evidence-v1`); `doctor --json`'s shape is documented in the CLI module's own docstring
 rather than a separate schema, since it describes plugin health rather than repository evidence.
 
-There is no `/rhize-devflow:doctor` slash command — invoke the CLI directly, or through
-`/context-doctor` (`rhize-context-manager`) if that plugin chains into it.
+Invoke the CLI directly, via `/rhize-devflow:doctor`, or through `/context-doctor`
+(`rhize-context-manager`) if that plugin chains into it.
 
 ### Capability-scoped dependencies (`setup/manifest.json`)
 

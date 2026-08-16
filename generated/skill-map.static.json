@@ -507,6 +507,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "command:rhize-devflow/impact-map",
       "type": "contains"
     },
@@ -2081,6 +2087,13 @@
       "kind": "command",
       "name": "devflow-setup",
       "path": "rhize-devflow/commands/devflow-setup.md"
+    },
+    {
+      "description": "Read-only plugin/install health check — manifests, canonical commands, referenced assets, duplicate bodies, stale tokens, script/hook integrity, and capability dependencies",
+      "id": "command:rhize-devflow/doctor",
+      "kind": "command",
+      "name": "doctor",
+      "path": "rhize-devflow/commands/doctor.md"
     },
     {
       "description": "CodeGraph-first impact mapping that separates current dependency truth from the intended semantic change",

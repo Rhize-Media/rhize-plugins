@@ -347,103 +347,59 @@ _LEGACY_ALIAS_PATTERN = re.compile(
     r"browser-perf|browser-test)\b"
 )
 
+# A bare quoted `@alias` on its own line is an ANALYSIS_TRIGGERS-style compat-matcher
+# array entry — it exists so an old-style invocation still gets detected, not to instruct
+# anyone to run one — and must not count as a live stale-alias requirement.
+_LEGACY_ALIAS_ARRAY_LITERAL = re.compile(r'^"@[\w-]+"\s*,?\s*$')
+
+
+def _line_has_unexcused_legacy_alias(line: str) -> bool:
+    if not _LEGACY_ALIAS_PATTERN.search(line):
+        return False
+    # "(formerly @alias)" annotations intentionally document the rename; they are not an
+    # instruction to run the old form.
+    if "formerly" in line.lower():
+        return False
+    if _LEGACY_ALIAS_ARRAY_LITERAL.match(line.strip()):
+        return False
+    return True
+
 
 def stale_dependency_terms(text: str) -> list[str]:
     found = [name for name, pattern in _STALE_TERM_PATTERNS.items() if pattern.search(text)]
-    if _LEGACY_ALIAS_PATTERN.search(text):
+    if any(_line_has_unexcused_legacy_alias(line) for line in text.splitlines()):
         found.append("legacy-@-alias")
     return found
 
 
-_STALE_DEPENDENCY_CASES = [
-    # dev-flow-foundations sub-skill docs (Zen/Graphiti context-save workflows) — Task 8
-    # replaced Zen with Context Manager/STATE.md persistence and removed the Graphiti TODOs;
-    # now control cases.
-    pytest.param(
-        DEVFLOW / "skills/dev-flow-foundations/SKILL-foundations-index.md",
-        marks=(),
-        id="dev-flow-foundations/SKILL-foundations-index.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/dev-flow-foundations/SKILL-regression-prevention-v1.md",
-        marks=(),
-        id="dev-flow-foundations/SKILL-regression-prevention-v1.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/dev-flow-foundations/SKILL-context-hygiene-v1.md",
-        marks=(),
-        id="dev-flow-foundations/SKILL-context-hygiene-v1.md",
-    ),
-    # data-mutation-consistency Zen MCP memory integration — Task 8 removed the Zen
-    # dependency/section from SKILL.md and README.md, both now control cases below.
-    # `references/zen-memory-integration.md` and `scripts/zen_memory.py` were deleted
-    # outright (confirmed no live consumer repo-wide) rather than cleaned in place — same
-    # pattern as test_skill_local_mutation_and_browser_command_directories_removed above,
-    # so those 2 cases are deleted rather than kept as always-XFAIL checks against a path
-    # that no longer exists.
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/SKILL.md",
-        marks=(),
-        id="data-mutation-consistency/SKILL.md-zen",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/data-mutation-consistency/README.md",
-        marks=(),
-        id="data-mutation-consistency/README.md",
-    ),
-    # error-lifecycle-management Serena-memory templates. (ARCHITECTURE-PROPOSAL.md's
-    # stale-deps case was deleted, not just unmarked — see the _ASSET_CASES comment above
-    # for why: the file was archived outside the plugin, so there's no longer a path here.)
-    pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/scripts/validate_error_coverage.py",
-        marks=(),
-        id="error-lifecycle-management/scripts/validate_error_coverage.py",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/templates/triage-summary.md",
-        marks=(),
-        id="error-lifecycle-management/templates/triage-summary.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/templates/validation-summary.md",
-        marks=(),
-        id="error-lifecycle-management/templates/validation-summary.md",
-    ),
-    pytest.param(
-        DEVFLOW / "skills/error-lifecycle-management/templates/pattern-doc.md",
-        marks=(),
-        id="error-lifecycle-management/templates/pattern-doc.md",
-    ),
-    # legacy `@...` command aliases in shipped top-level command bodies.
-    #
-    # These 7 were originally tagged "fixed by Task 8", but Task 7's required rewrite —
-    # consolidating mutation-analyze/check/fix into mutation-check.md and
-    # browser-debug/help/perf/test into browser-qa.md, converting the legacy names to
-    # `> **Deprecated:**` one-line adapters using the exact rhize-context-manager
-    # impact-map.md adapter template — incidentally produced bodies with no `@alias`
-    # text at all (the template itself carries none). That is a side effect of following
-    # the given adapter convention, not a deliberate Task 8 edit: XPASS under
-    # strict=True would otherwise hard-fail the suite, so these moved to control cases
-    # here instead of waiting for Task 8. Verified via `python3 -m pytest` before this
-    # change (each case reported XPASS(strict)).
-    pytest.param(DEVFLOW / "commands/mutation-analyze.md", marks=(), id="commands/mutation-analyze.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/mutation-check.md", marks=(), id="commands/mutation-check.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/mutation-fix.md", marks=(), id="commands/mutation-fix.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/browser-debug.md", marks=(), id="commands/browser-debug.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/browser-help.md", marks=(), id="commands/browser-help.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/browser-perf.md", marks=(), id="commands/browser-perf.md-legacy-alias"),
-    pytest.param(DEVFLOW / "commands/browser-test.md", marks=(), id="commands/browser-test.md-legacy-alias"),
-    # Control cases: these already avoid every stale dependency term and must stay green.
-    pytest.param(DEVFLOW / "skills/dev-flow-foundations/SKILL.md", marks=(), id="dev-flow-foundations/SKILL.md-clean"),
-    pytest.param(DEVFLOW / "skills/sanity-development/SKILL.md", marks=(), id="sanity-development/SKILL.md-clean"),
-    pytest.param(DEVFLOW / "skills/sentry-instrumentation/SKILL.md", marks=(), id="sentry-instrumentation/SKILL.md-clean"),
-    pytest.param(DEVFLOW / "skills/chrome-devtools-mcp/SKILL.md", marks=(), id="chrome-devtools-mcp/SKILL.md-clean"),
-    pytest.param(DEVFLOW / "skills/error-lifecycle-management/README.md", marks=(), id="error-lifecycle-management/README.md-clean"),
-    pytest.param(DEVFLOW / "commands/devflow-setup.md", marks=(), id="commands/devflow-setup.md-clean"),
-]
+# Every file under rhize-devflow/ that could carry a stale-dependency/alias instruction —
+# a full recursive walk, not the former ~22-file whitelist. That whitelist could not catch
+# a stale term in a file nobody thought to list; a scanner hole the pre-release verifier
+# flagged directly. `stale_dependency_terms()` above already excludes the two legitimate
+# carriers of a literal `@alias` substring (the compat-matcher array literal, the
+# "(formerly ...)" annotation), so a real recursive scan no longer needs a per-file
+# whitelist to avoid tripping on them.
+#
+# One further exclusion is explicit and file-level, not content-level: `scripts/devflow.py`
+# itself, which *defines* these patterns as literal strings ("zen", "serena", "graphiti",
+# "/path/to/skill", the `@alias` regex) — scanning its own source is a self-referential
+# false positive, mirrored by the equivalent exclusion in devflow.py's own
+# `_check_stale_tokens` (Gap 3a). No other exclusion exists: any other file with a stale
+# term is a real defect and must fail this test.
+_STALE_DEPENDENCY_SELF_EXCLUSIONS = {DEVFLOW / "scripts" / "devflow.py"}
 
 
-@pytest.mark.parametrize("workflow_path", _STALE_DEPENDENCY_CASES)
+def stale_dependency_scan_targets() -> list[Path]:
+    files: set[Path] = set()
+    for pattern in ("*.md", "*.sh", "*.py"):
+        files |= set(DEVFLOW.rglob(pattern))
+    files -= _STALE_DEPENDENCY_SELF_EXCLUSIONS
+    return sorted(files)
+
+
+@pytest.mark.parametrize(
+    "workflow_path", stale_dependency_scan_targets(), ids=lambda p: str(p.relative_to(DEVFLOW))
+)
 def test_no_zen_serena_graphiti_or_legacy_alias_requirement(workflow_path: Path) -> None:
     assert workflow_path.exists(), f"fixture file moved or renamed: {workflow_path}"
     found = stale_dependency_terms(read(workflow_path))

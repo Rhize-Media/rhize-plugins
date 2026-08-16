@@ -24,10 +24,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `mutation-fix` and `browser-debug`/`browser-help`/`browser-perf`/`browser-test` command sprawl
   into one read-only, scenario-driven command apiece; the six retired commands become one-line
   `> **Deprecated:**` adapters (no duplicated workflow text) for the 2.12.0 compatibility window.
-  `scripts/devflow.py doctor` (CLI-only — no `/rhize-devflow:doctor` slash command) validates
-  plugin health — manifests, canonical commands, referenced assets, duplicate bodies, stale
-  tokens, script importability, and capability dependencies — from both a source checkout and an
-  installed plugin cache; `schemas/devflow-evidence-v1.schema.json` is the stable output contract
+  `scripts/devflow.py doctor` (also reachable as the thin `/rhize-devflow:doctor` slash-command
+  adapter) validates plugin health — manifests, canonical commands, referenced assets, duplicate
+  bodies, stale tokens, script importability, and capability dependencies — from both a source
+  checkout and an installed plugin cache; `schemas/devflow-evidence-v1.schema.json` is the stable output contract
   for `evidence --json`. `setup/manifest.json`'s Sentry/Vercel/GitHub/Chrome DevTools MCP
   dependencies are now capability-scoped and optional at the plugin level (a missing tool degrades
   only the capability it gates, e.g. `browser-qa`, not the whole plugin). A new

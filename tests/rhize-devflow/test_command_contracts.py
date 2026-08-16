@@ -278,10 +278,11 @@ def test_mutation_check_is_read_only_and_fix_plan_only() -> None:
     lowered = text.lower()
     assert "never edits source" in lowered or "never edit source" in lowered
     assert "never adds todo" in lowered or "no todo" in lowered or "add todo" in lowered
-    # --add-todos/--apply may be named only as explicitly prohibited flags (they write to
-    # source and generate_fixes.py still implements them) — never presented as something to
-    # actually pass.
-    assert "never pass `--add-todos`" in lowered or "never pass ‘--add-todos’" in lowered
+    # --add-todos/--apply were removed outright from generate_fixes.py (they wrote to
+    # source, out of contract for a read-only command) — the body must state they no
+    # longer exist, never merely warn against passing them.
+    assert "`--add-todos`" in text and "`--apply`" in text
+    assert "do not exist" in lowered
 
 
 def test_mutation_check_documents_fail_closed_behavior() -> None:
@@ -357,6 +358,36 @@ def test_foundations_skill_routes_to_review() -> None:
     skill = read(DEVFLOW / "skills" / "dev-flow-foundations" / "SKILL.md")
     assert "/rhize-devflow:review" in skill
     assert "commands/review.md" in skill
+
+
+# ---------------------------------------------------------------------------
+# `/rhize-devflow:doctor` — thin host adapter over `scripts/devflow.py doctor`
+# ---------------------------------------------------------------------------
+
+DOCTOR = DEVFLOW / "commands" / "doctor.md"
+DOCTOR_MARKER = "<!-- canonical: rhize-devflow:doctor -->"
+
+
+def test_doctor_command_exists_and_carries_the_canonical_marker() -> None:
+    assert DOCTOR.exists()
+    assert _canonical_marker_immediately_after_frontmatter(read(DOCTOR), DOCTOR_MARKER)
+
+
+def test_doctor_is_read_only() -> None:
+    lowered = read(DOCTOR).lower()
+    assert "read-only" in lowered
+
+
+def test_doctor_references_the_devflow_cli() -> None:
+    text = read(DOCTOR)
+    assert 'devflow.py" doctor' in text
+    assert "$CLAUDE_PLUGIN_ROOT" in text
+
+
+def test_doctor_reports_degraded_capabilities_independently_not_plugin_wide() -> None:
+    lowered = read(DOCTOR).lower()
+    assert "independent" in lowered
+    assert "degrad" in lowered
 
 
 # ---------------------------------------------------------------------------

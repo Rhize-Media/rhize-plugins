@@ -87,7 +87,10 @@ def bump_semver(ver: str, level: str) -> str:
 def last_release_ref(since: str | None) -> str:
     if since:
         return since
-    ref = git("log", "-1", "--format=%H", "--", ".claude-plugin/marketplace.json")
+    # Key the release base on the last commit that CHANGED a version line in the
+    # marketplace manifest, not merely touched the file — a commit that edits only
+    # descriptions (or other non-version fields) must not be mistaken for a release.
+    ref = git("log", "-1", "--format=%H", "-G\"version\"", "--", ".claude-plugin/marketplace.json")
     return ref or git("rev-list", "--max-parents=0", "HEAD")
 
 

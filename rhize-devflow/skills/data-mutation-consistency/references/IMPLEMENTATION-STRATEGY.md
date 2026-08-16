@@ -74,7 +74,7 @@
 ```yaml
 name: analyze-mutations
 description: Full codebase mutation pattern analysis
-trigger: "@analyze-mutations"
+trigger: "/rhize-devflow:mutation-check --all"
 enforcement: advisory
 output: file-first
 
@@ -193,7 +193,7 @@ output_format: |
 ```yaml
 name: check-mutation
 description: Quick pattern check for single file
-trigger: "@check-mutation [file]"
+trigger: "/rhize-devflow:mutation-check [file]"
 enforcement: advisory
 output: inline (brief)
 
@@ -234,7 +234,7 @@ workflow:
 ```yaml
 name: fix-mutations
 description: Generate fixes for identified issues
-trigger: "@fix-mutations [priority]"
+trigger: "/rhize-devflow:mutation-check --fix-plan [priority]"
 enforcement: advisory
 output: file
 
@@ -364,12 +364,12 @@ When debugging stale/inconsistent data:
 
 1. **Quick Check**
    ```
-   @check-mutation [affected file]
+   /rhize-devflow:mutation-check [affected file]
    ```
 
 2. **If score < 9.0, run full analysis**
    ```
-   @analyze-mutations
+   /rhize-devflow:mutation-check --all
    ```
 
 3. **Check cross-layer alignment**
@@ -411,7 +411,7 @@ mutation_dependencies:
 - [ ] Create templates/mutation-report.md
 
 ## Validation
-- [ ] Manual test: @analyze-mutations on a real project repo
+- [ ] Manual test: /rhize-devflow:mutation-check --all on a real project repo
 - [ ] Verify file output works
 - [ ] Check score calculation
 ```
@@ -541,7 +541,7 @@ thresholds:
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| Analysis Speed | < 30s | Time for @analyze-mutations |
+| Analysis Speed | < 30s | Time for /rhize-devflow:mutation-check --all |
 | Report Completeness | 100% | All mutations analyzed |
 | Context Usage | < 500 tokens | Chat response size |
 | False Positives | < 10% | User overrides with valid reason |
@@ -552,9 +552,9 @@ thresholds:
 
 ## Quick Start
 
-1. **Copy skills to your directory:**
+1. **The skill ships inside the `rhize-devflow` plugin — no manual copy needed:**
    ```bash
-   cp -r /path/to/skills/data-mutation-consistency /dev-local/claude-skills/
+   ls "$CLAUDE_PLUGIN_ROOT/skills/data-mutation-consistency"
    ```
 
 2. **Create project config:**
@@ -565,7 +565,7 @@ thresholds:
 
 3. **Run initial analysis:**
    ```
-   @analyze-mutations
+   /rhize-devflow:mutation-check --all
    ```
 
 4. **Review report:**
@@ -575,7 +575,7 @@ thresholds:
 
 5. **Generate fixes:**
    ```
-   @fix-mutations P1
+   /rhize-devflow:mutation-check --fix-plan P1
    ```
 
 ---

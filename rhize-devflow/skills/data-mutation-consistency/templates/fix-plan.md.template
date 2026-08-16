@@ -33,20 +33,8 @@ Files Affected: {{file_count}}
 
 ## How to Apply
 
-### Option 1: Manual Review
-Review each fix above and apply changes manually.
-
-### Option 2: TODO Comments
-Run the following to add TODO comments to your code:
-```bash
-python3 scripts/generate_fixes.py --root . --priority {{priority}} --add-todos
-```
-
-### Option 3: Apply with Claude
-Ask Claude to apply specific fixes:
-```
-Apply fix #1 from the fix plan
-```
+Review each fix above and apply changes manually. This is a plan only — nothing in this
+report has touched source files.
 
 ---
 
@@ -54,7 +42,7 @@ Apply fix #1 from the fix plan
 
 After applying fixes, run:
 ```
-@analyze-mutations
+/rhize-devflow:mutation-check --all
 ```
 
 Expected: All affected mutations should now score ≥ 9.0

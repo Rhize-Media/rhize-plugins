@@ -79,6 +79,68 @@ class UpdatePluginManifestsTests(unittest.TestCase):
         self.assertFalse((repo / "legacy-plugin/.codex-plugin/plugin.json").exists())
 
 
+class LastReleaseRefTests(unittest.TestCase):
+    """Regression coverage for the release-base bug: a commit that touches
+    marketplace.json without changing any version line (e.g. editing plugin
+    descriptions) must not be mistaken for the last release."""
+
+    def setUp(self) -> None:
+        self.original_repo = bump_version.REPO
+        self.temp_dir = TemporaryDirectory()
+        self.repo = Path(self.temp_dir.name)
+        subprocess.run(["git", "init", "-q"], cwd=self.repo, check=True)
+        subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=self.repo, check=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=self.repo, check=True)
+        bump_version.REPO = self.repo
+
+    def tearDown(self) -> None:
+        bump_version.REPO = self.original_repo
+        self.temp_dir.cleanup()
+
+    def _commit(self, message: str) -> str:
+        subprocess.run(["git", "add", "-A"], cwd=self.repo, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", message], cwd=self.repo, check=True)
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.repo, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    def _write_marketplace(self, payload: dict) -> None:
+        mf = self.repo / ".claude-plugin" / "marketplace.json"
+        mf.parent.mkdir(parents=True, exist_ok=True)
+        mf.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    def test_ignores_a_commit_that_only_touches_descriptions(self) -> None:
+        self._write_marketplace(
+            {"version": "1.0.0", "plugins": [{"name": "rhize-devflow", "version": "1.0.0", "description": "old"}]}
+        )
+        release_sha = self._commit("release(devflow): 1.0.0")
+
+        self._write_marketplace(
+            {"version": "1.0.0", "plugins": [{"name": "rhize-devflow", "version": "1.0.0", "description": "new"}]}
+        )
+        self._commit("docs(devflow): reword marketplace description")
+
+        self.assertEqual(bump_version.last_release_ref(None), release_sha)
+
+    def test_finds_a_later_commit_that_changed_a_version(self) -> None:
+        self._write_marketplace(
+            {"version": "1.0.0", "plugins": [{"name": "rhize-devflow", "version": "1.0.0", "description": "old"}]}
+        )
+        self._commit("release(devflow): 1.0.0")
+
+        self._write_marketplace(
+            {"version": "1.0.0", "plugins": [{"name": "rhize-devflow", "version": "1.0.0", "description": "new"}]}
+        )
+        self._commit("docs(devflow): reword marketplace description")
+
+        self._write_marketplace(
+            {"version": "1.1.0", "plugins": [{"name": "rhize-devflow", "version": "1.1.0", "description": "new"}]}
+        )
+        release_sha = self._commit("release(devflow): 1.1.0")
+
+        self.assertEqual(bump_version.last_release_ref(None), release_sha)
+
+
 class PluginContractCheckTests(unittest.TestCase):
     def test_runs_impact_map_contract_devflow_suite_and_generated_map_freshness(self) -> None:
         completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="PASS\n", stderr="")

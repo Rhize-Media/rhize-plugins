@@ -41,10 +41,11 @@ section](./README.md#install) for the exact commands — the short version:
 
 Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
 start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
-confirm you see `impact-map`, `check`, `review`, `mutation-check`, `browser-qa`, and
+confirm you see `impact-map`, `check`, `review`, `mutation-check`, `browser-qa`, `doctor`, and
 `devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
-missing after an update, run `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it names
-exactly what's missing or stale — before assuming something is broken.
+missing after an update, run `/rhize-devflow:doctor` (or
+`python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` directly) — it names exactly what's
+missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
@@ -312,10 +313,11 @@ something else.
 
 ## Troubleshooting
 
-**A command or skill is missing after install/update:** Run
-`python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it validates manifests, canonical
-commands, referenced assets, duplicate bodies, stale tokens, and capability dependencies, and
-names exactly what's wrong instead of leaving you to guess. Anything other than `HEALTHY` (plus
+**A command or skill is missing after install/update:** Run `/rhize-devflow:doctor` (thin
+adapter over `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor`) — it validates
+manifests, canonical commands, referenced assets, duplicate bodies, stale tokens, and
+capability dependencies, and names exactly what's wrong instead of leaving you to guess.
+Anything other than `HEALTHY` (plus
 informational findings) means the plugin cache is stale — re-run
 `claude plugin marketplace update rhize-plugins` then `claude plugin update rhize-devflow`, then
 start a fresh session.
