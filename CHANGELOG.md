@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-16_ version bump — **rhize-context-manager** 0.12.0 → 0.13.0 (minor); **rhize-devflow** 2.10.3 → 2.11.0 (minor); marketplace 2.28.0 → 2.29.0.
 - _2026-08-16_ **CodeGraph-first semantic impact mapping across Rhize Dev Flow and Context
   Manager.** `dev-flow-foundations` now defines a strict authority split: CodeGraph owns current
   structural evidence, while the impact map owns intended behavior, invariants, planned code,
