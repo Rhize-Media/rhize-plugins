@@ -1,0 +1,85 @@
+{
+  "_comment": "Trigger-phrase keyword sets, one list per skill/command id, used only by evals/rhize-devflow/run_evals.py's deterministic routing heuristic. Every phrase here is hand-curated FROM its target's own live frontmatter `description:` (SKILL.md for skill:*, the command .md for command:*) -- see README.md 'Method' for extraction rules and limits. run_evals.py's keyword-drift check fails the eval run if a phrase here no longer appears verbatim (case-insensitive) in its target's live source file, so this file cannot silently go stale.",
+  "skill:dev-flow-foundations": [
+    "design patterns",
+    "workflow optimization",
+    "prevent regression",
+    "anti-patterns",
+    "dependency mapping",
+    "impact map",
+    "codegraph",
+    "component registry",
+    "why did this break again"
+  ],
+  "skill:data-mutation-consistency": [
+    "stale data",
+    "not updating",
+    "cache",
+    "revalidate",
+    "mutation",
+    "optimistic update",
+    "data is out of sync",
+    "had to hard-refresh"
+  ],
+  "skill:error-lifecycle-management": [
+    "stack trace",
+    "500/404",
+    "failed deployment",
+    "production incident",
+    "memory leak",
+    "bundle size",
+    "crash",
+    "exception"
+  ],
+  "skill:sentry-instrumentation": [
+    "add sentry",
+    "capture exception",
+    "add tracing",
+    "set up structured logging"
+  ],
+  "skill:sanity-development": [
+    "definetype",
+    "definefield",
+    "groq",
+    "definequery",
+    "portable text",
+    "typegen",
+    "stega",
+    "visual editing",
+    "sanity studio"
+  ],
+  "skill:chrome-devtools-mcp": [
+    "running chrome instance",
+    "chrome devtools mcp tool",
+    "devtools-protocol",
+    "mcp-level configuration"
+  ],
+  "command:impact-map": [
+    "codegraph-first impact mapping",
+    "dependency truth",
+    "intended semantic change"
+  ],
+  "command:check": [
+    "evidence-driven mid-implementation validation",
+    "focused tests",
+    "repository-mandated gates",
+    "deterministic facts"
+  ],
+  "command:review": [
+    "production merge/release gate",
+    "risk map from actual diff evidence",
+    "independent skeptical reviewer",
+    "one merge verdict"
+  ],
+  "command:mutation-check": [
+    "data-mutation consistency check",
+    "proposed fix plan",
+    "never edits source"
+  ],
+  "command:browser-qa": [
+    "browser acceptance check",
+    "console/network errors",
+    "accessibility smoke",
+    "responsive layout"
+  ]
+}

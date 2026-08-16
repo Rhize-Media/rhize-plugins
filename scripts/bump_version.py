@@ -32,6 +32,7 @@ LEVELS = {None: 0, "patch": 1, "minor": 2, "major": 3}
 ORDER = {1: "patch", 2: "minor", 3: "major"}
 REPOSITORY_CONTRACTS = (
     ("CodeGraph + impact-map contract", "tests/rhize-devflow/test_impact_map_contract.py"),
+    ("Dev Flow test suite", "tests/rhize-devflow", "-q"),
     ("skill-map freshness", "scripts/validate_skill_map.py", "--check-stale"),
 )
 
@@ -119,11 +120,25 @@ def infer_level(base: str, plug_name: str) -> str:
 
 
 def run_repository_contract_checks() -> list[str]:
-    """Run repository contracts even when the current commit is itself the release base."""
+    """Run repository contracts even when the current commit is itself the release base.
+
+    A contract entry naming a `.py` file is run directly as a script (its own
+    `if __name__ == "__main__":` guard is the pytest-independent entry point,
+    e.g. test_impact_map_contract.py, validate_skill_map.py). A contract entry
+    naming anything else (a directory, e.g. "tests/rhize-devflow") is run via
+    `python3 -m pytest <target> <arguments>` instead, so a whole test suite's
+    actual test functions execute and fail the gate on any regression — a
+    plain `python3 <dir>` would not run pytest's test_* functions at all.
+    """
     errors = []
     for label, relative_path, *arguments in REPOSITORY_CONTRACTS:
+        target = REPO / relative_path
+        if target.suffix == ".py":
+            command = [sys.executable, str(target), *arguments]
+        else:
+            command = [sys.executable, "-m", "pytest", str(target), *arguments]
         result = subprocess.run(
-            [sys.executable, str(REPO / relative_path), *arguments],
+            command,
             cwd=REPO,
             capture_output=True,
             text=True,

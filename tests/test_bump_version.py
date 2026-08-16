@@ -80,7 +80,7 @@ class UpdatePluginManifestsTests(unittest.TestCase):
 
 
 class PluginContractCheckTests(unittest.TestCase):
-    def test_runs_impact_map_contract_and_generated_map_freshness(self) -> None:
+    def test_runs_impact_map_contract_devflow_suite_and_generated_map_freshness(self) -> None:
         completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="PASS\n", stderr="")
         with patch.object(bump_version.subprocess, "run", return_value=completed) as run:
             errors = bump_version.run_repository_contract_checks()
@@ -92,6 +92,13 @@ class PluginContractCheckTests(unittest.TestCase):
                 [
                     bump_version.sys.executable,
                     str(ROOT / "tests/rhize-devflow/test_impact_map_contract.py"),
+                ],
+                [
+                    bump_version.sys.executable,
+                    "-m",
+                    "pytest",
+                    str(ROOT / "tests/rhize-devflow"),
+                    "-q",
                 ],
                 [
                     bump_version.sys.executable,
@@ -110,8 +117,58 @@ class PluginContractCheckTests(unittest.TestCase):
 
         self.assertEqual(
             errors,
-            ["CodeGraph + impact-map contract failed", "skill-map freshness failed"],
+            [
+                "CodeGraph + impact-map contract failed",
+                "Dev Flow test suite failed",
+                "skill-map freshness failed",
+            ],
         )
+
+    def test_directory_contract_entries_invoke_pytest_as_a_module(self) -> None:
+        """Regression coverage for the file-vs-directory detection in
+        run_repository_contract_checks() itself, independent of whatever the
+        real REPOSITORY_CONTRACTS tuple happens to contain — a directory
+        entry must be run via `-m pytest`, never as a plain script."""
+        original = bump_version.REPOSITORY_CONTRACTS
+        bump_version.REPOSITORY_CONTRACTS = (("Directory contract", "tests/rhize-devflow", "-q"),)
+        try:
+            completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+            with patch.object(bump_version.subprocess, "run", return_value=completed) as run:
+                errors = bump_version.run_repository_contract_checks()
+            self.assertEqual(errors, [])
+            self.assertEqual(
+                run.call_args_list[0].args[0],
+                [
+                    bump_version.sys.executable,
+                    "-m",
+                    "pytest",
+                    str(ROOT / "tests/rhize-devflow"),
+                    "-q",
+                ],
+            )
+        finally:
+            bump_version.REPOSITORY_CONTRACTS = original
+
+    def test_file_contract_entries_still_invoke_the_script_directly(self) -> None:
+        original = bump_version.REPOSITORY_CONTRACTS
+        bump_version.REPOSITORY_CONTRACTS = (
+            ("File contract", "scripts/validate_skill_map.py", "--check-stale"),
+        )
+        try:
+            completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+            with patch.object(bump_version.subprocess, "run", return_value=completed) as run:
+                errors = bump_version.run_repository_contract_checks()
+            self.assertEqual(errors, [])
+            self.assertEqual(
+                run.call_args_list[0].args[0],
+                [
+                    bump_version.sys.executable,
+                    str(ROOT / "scripts/validate_skill_map.py"),
+                    "--check-stale",
+                ],
+            )
+        finally:
+            bump_version.REPOSITORY_CONTRACTS = original
 
     def test_contract_failure_blocks_check_when_release_commit_is_the_base(self) -> None:
         args = SimpleNamespace(since=None)

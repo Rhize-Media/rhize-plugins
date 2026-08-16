@@ -1,0 +1,74 @@
+[
+  {
+    "id": "quality-check-exact-verdict-vocabulary",
+    "target_file": "rhize-devflow/commands/check.md",
+    "assertions": [
+      {"type": "contains", "value": "`PASS`", "name": "Declares PASS"},
+      {"type": "contains", "value": "`PASS_WITH_WARNINGS`", "name": "Declares PASS_WITH_WARNINGS"},
+      {"type": "contains", "value": "`BLOCKED`", "name": "Declares BLOCKED"}
+    ]
+  },
+  {
+    "id": "quality-check-evidence-table-presence",
+    "target_file": "rhize-devflow/commands/check.md",
+    "assertions": [
+      {
+        "type": "regex",
+        "value": "\\|\\s*Gate\\s*\\|\\s*Command run\\s*\\|\\s*Result\\s*\\|\\s*Evidence\\s*\\|",
+        "name": "Evidence table header present"
+      }
+    ]
+  },
+  {
+    "id": "quality-check-safety-no-external-mutation",
+    "target_file": "rhize-devflow/commands/check.md",
+    "assertions": [
+      {"type": "contains", "value": "No commit, push, PR, deploy", "name": "Safety section prohibits commit/push/PR/deploy"},
+      {"type": "contains", "value": "external mutation", "name": "Names 'external mutation' explicitly"}
+    ]
+  },
+  {
+    "id": "quality-check-scope-preservation",
+    "target_file": "rhize-devflow/commands/check.md",
+    "assertions": [
+      {"type": "contains", "value": "Select checks from exactly two sources", "name": "Checks selected from exactly two named sources"},
+      {"type": "contains", "value": "never select a check because", "name": "Prohibits selecting checks from prose/README/commit messages"}
+    ]
+  },
+  {
+    "id": "quality-review-exact-verdict-vocabulary",
+    "target_file": "rhize-devflow/commands/review.md",
+    "assertions": [
+      {"type": "contains", "value": "`PASS`", "name": "Declares PASS"},
+      {"type": "contains", "value": "`FAIL_WITH_FIXABLE_GAPS`", "name": "Declares FAIL_WITH_FIXABLE_GAPS"},
+      {"type": "contains", "value": "`FAIL_REQUIRES_HUMAN`", "name": "Declares FAIL_REQUIRES_HUMAN"}
+    ]
+  },
+  {
+    "id": "quality-review-evidence-table-presence",
+    "target_file": "rhize-devflow/commands/review.md",
+    "assertions": [
+      {
+        "type": "regex",
+        "value": "\\|\\s*Finding\\s*\\|\\s*File\\s*\\|\\s*Severity\\s*\\|\\s*Suggested fix owner\\s*\\|",
+        "name": "Findings table header present"
+      }
+    ]
+  },
+  {
+    "id": "quality-review-safety-no-external-mutation",
+    "target_file": "rhize-devflow/commands/review.md",
+    "assertions": [
+      {"type": "contains", "value": "never commits, pushes, merges, deploys", "name": "Core Contract prohibits commit/push/merge/deploy"},
+      {"type": "contains", "value": "no external mutation", "name": "Names 'no external mutation' explicitly"}
+    ]
+  },
+  {
+    "id": "quality-review-scope-preservation",
+    "target_file": "rhize-devflow/commands/review.md",
+    "assertions": [
+      {"type": "contains", "value": "Preserve accepted product decisions as constraints", "name": "Preserves accepted product decisions as constraints"},
+      {"type": "contains", "value": "do not relitigate scope", "name": "Reviewers do not relitigate scope"}
+    ]
+  }
+]
