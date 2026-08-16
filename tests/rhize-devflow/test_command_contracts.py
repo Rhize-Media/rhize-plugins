@@ -42,6 +42,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEVFLOW = REPO_ROOT / "rhize-devflow"
+CONTEXT_MANAGER = REPO_ROOT / "rhize-context-manager"
 CHECK = DEVFLOW / "commands" / "check.md"
 DEVFLOW_SCRIPT = DEVFLOW / "scripts" / "devflow.py"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
@@ -227,6 +228,12 @@ def test_foundations_skill_routes_to_check() -> None:
     assert "review" in skill.lower()
 
 
+def test_foundations_skill_routes_to_review() -> None:
+    skill = read(DEVFLOW / "skills" / "dev-flow-foundations" / "SKILL.md")
+    assert "/rhize-devflow:review" in skill
+    assert "commands/review.md" in skill
+
+
 # ---------------------------------------------------------------------------
 # Fixture-driven evidence tests — the deterministic half of the seven check scenarios
 # ---------------------------------------------------------------------------
@@ -301,3 +308,295 @@ def test_docs_only_change_evidence_changed_files_are_all_markdown(tmp_path: Path
     # Gate scripts are declared (repo has package.json), but nothing code-related changed —
     # the evidence packet gives the agent no changed source file to justify running them.
     assert doc["package_scripts"].keys() == {"test", "build"}
+
+
+# ---------------------------------------------------------------------------
+# `/rhize-devflow:review` — Task 6 of the control-plane plan (restore the production
+# merge/release gate). Same two-tier convention as the `/check` coverage above: static
+# text-contract checks against `rhize-devflow/commands/review.md`, plus fixture-driven
+# evidence tests exercising the deterministic half of the eight golden review scenarios
+# built by tests/rhize-devflow/fixtures/review_scenarios.py.
+# ---------------------------------------------------------------------------
+
+REVIEW = DEVFLOW / "commands" / "review.md"
+assert REVIEW.exists(), f"missing {REVIEW}"
+
+review_scenarios = _load_module("review_scenarios", FIXTURES / "review_scenarios.py")
+
+REVIEW_CANONICAL_MARKER = "<!-- canonical: rhize-devflow:review -->"
+_REVIEW_EXPECTED_VERDICTS = {"PASS", "FAIL_WITH_FIXABLE_GAPS", "FAIL_REQUIRES_HUMAN"}
+
+
+def run_evidence_cli_with_base(repo: Path, base: str | None = None) -> dict:
+    cmd = [sys.executable, str(DEVFLOW_SCRIPT), "evidence", "--json", "--repo", str(repo)]
+    if base is not None:
+        cmd += ["--base", base]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return json.loads(result.stdout)
+
+
+# 1. Canonical marker
+# ---------------------------------------------------------------------------
+
+
+def test_review_command_exists_and_carries_the_canonical_marker() -> None:
+    assert REVIEW.exists()
+    text = read(REVIEW)
+    lines = text.splitlines()
+    fm_end = next(i for i, line in enumerate(lines) if i > 0 and line.strip() == "---")
+    following = [line for line in lines[fm_end + 1 : fm_end + 3] if line.strip()]
+    assert following and following[0] == REVIEW_CANONICAL_MARKER, (
+        f"expected {REVIEW_CANONICAL_MARKER!r} immediately after frontmatter, got: {following}"
+    )
+
+
+# 2. Verdict vocabulary: exactly PASS / FAIL_WITH_FIXABLE_GAPS / FAIL_REQUIRES_HUMAN,
+#    matching the independent verifier's vocabulary at rhize-devflow/agents/verifier.md.
+# ---------------------------------------------------------------------------
+
+
+def test_review_verdict_vocabulary_is_exactly_the_three_merge_verdicts() -> None:
+    text = read(REVIEW)
+    for required in ("`PASS`", "`FAIL_WITH_FIXABLE_GAPS`", "`FAIL_REQUIRES_HUMAN`"):
+        assert required in text, f"missing required verdict token: {required}"
+
+    found = set(_BACKTICKED_ALLCAPS.findall(text))
+    rogue = found - _REVIEW_EXPECTED_VERDICTS
+    assert rogue == set(), (
+        f"review.md contains backticked ALL_CAPS token(s) outside the stable verdict "
+        f"vocabulary {_REVIEW_EXPECTED_VERDICTS}: {rogue}"
+    )
+    assert found == _REVIEW_EXPECTED_VERDICTS, (
+        f"review.md must use exactly one verdict vocabulary; found {found}"
+    )
+
+
+def test_review_exactly_one_merge_verdict_is_returned() -> None:
+    text = read(REVIEW)
+    assert "Return exactly one of:" in text
+    verdict_section_start = text.index("## Phase 6: Report One Merge Verdict")
+    verdict_section = text[verdict_section_start : text.index("## Safety")]
+    for verdict in _REVIEW_EXPECTED_VERDICTS:
+        assert f"`{verdict}`" in verdict_section
+
+
+def test_review_verdict_vocabulary_matches_the_independent_verifier_agent() -> None:
+    """review.md routes to agents/verifier.md for non-trivial work (Phase 5) — its verdict
+    vocabulary must not drift from the agent it delegates to."""
+    verifier_text = read(DEVFLOW / "agents" / "verifier.md")
+    for verdict in _REVIEW_EXPECTED_VERDICTS:
+        assert verdict in verifier_text, (
+            f"rhize-devflow/agents/verifier.md is missing verdict {verdict!r} that "
+            "review.md's vocabulary depends on"
+        )
+
+
+# 3. Read-only prohibition
+# ---------------------------------------------------------------------------
+
+
+def test_review_is_read_only_and_never_performs_external_mutation() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert "read-only" in lowered
+    assert "## safety" in lowered
+    safety_section = text[text.index("## Safety") : text.index("## Related Workflows")]
+    safety_lowered = safety_section.lower()
+    for forbidden in ("commit", "push", "merge", "deploy", "edit", "external"):
+        assert forbidden in safety_lowered, f"Safety section missing prohibition of: {forbidden}"
+    core_contract_section = text[text.index("## Core Contract") : text.index("## Triggers")]
+    assert "never commits, pushes, merges, deploys" in core_contract_section.lower()
+
+
+def test_review_never_auto_approves_an_unsanctioned_workflow_touch() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert ".github/workflows/*" in text
+    assert "fail_requires_human" in lowered
+    assert "never auto-approved" in lowered
+
+
+# 4. Base/head resolution — no default-branch assumption
+# ---------------------------------------------------------------------------
+
+
+def test_review_resolves_exact_range_before_analysis() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert "## phase 1: resolve the exact comparison range" in lowered
+    assert "never assume the default branch is the merge target" in lowered
+    assert "ambiguity" in lowered and ("ask" in lowered or "report" in lowered)
+    assert "resolved_via" in text
+
+
+# 5. Independent reviewer requirement with disclosed fallback
+# ---------------------------------------------------------------------------
+
+
+def test_review_requires_independent_reviewer_or_a_disclosed_cold_review() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert "independent" in lowered and "reviewer" in lowered
+    assert "disclosed cold review" in lowered
+    assert "did not write the change" in lowered
+
+
+# 6. Risk-map coverage terms
+# ---------------------------------------------------------------------------
+
+_RISK_CATEGORIES = (
+    "deployment",
+    "data",
+    "security",
+    "authorization",
+    "billing",
+    "migration",
+    "cache",
+    "external-write",
+)
+
+
+def test_review_risk_map_names_every_required_category() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    risk_section_start = text.index("## Phase 3: Build the Risk Map")
+    risk_section = text[risk_section_start : text.index("## Phase 4")].lower()
+    for category in _RISK_CATEGORIES:
+        assert category in risk_section, f"risk map missing required category: {category}"
+    assert lowered.count("no fixed panel") >= 1
+
+
+# 7. Preserves accepted decisions; distinguishes introduced vs pre-existing failures
+# ---------------------------------------------------------------------------
+
+
+def test_review_preserves_accepted_product_decisions_as_constraints() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert "accepted product decision" in lowered
+    assert "do not relitigate scope" in lowered or "not relitigate scope" in lowered
+
+
+def test_review_distinguishes_introduced_from_pre_existing_failures() -> None:
+    text = read(REVIEW)
+    lowered = text.lower()
+    assert "introduced failures from pre-existing failures" in lowered
+    assert "dismiss" in lowered
+
+
+# 8. References the deterministic evidence CLI with --base
+# ---------------------------------------------------------------------------
+
+
+def test_review_references_devflow_evidence_cli_with_base() -> None:
+    text = read(REVIEW)
+    assert "devflow.py evidence" in text
+    assert "--json" in text
+    assert "--repo" in text
+    assert "--base" in text
+    assert "never initialize" in text.lower() or "never initializes" in text.lower()
+
+
+# 9. done.md delegates using the same verdict vocabulary review.md defines
+# ---------------------------------------------------------------------------
+
+
+def test_done_delegation_verdict_vocabulary_matches_review() -> None:
+    done_text = read(CONTEXT_MANAGER / "commands" / "done.md")
+    for verdict in _REVIEW_EXPECTED_VERDICTS:
+        assert f"`{verdict}`" in done_text, (
+            f"rhize-context-manager/commands/done.md's delegation is missing verdict "
+            f"{verdict!r} that review.md now defines"
+        )
+    assert "/rhize-devflow:review" in done_text
+
+
+# ---------------------------------------------------------------------------
+# Fixture-driven evidence tests — the deterministic half of the eight review golden cases
+# ---------------------------------------------------------------------------
+
+
+def test_cross_repo_production_release_evidence_is_reported_per_root(tmp_path: Path) -> None:
+    frontend, backend = review_scenarios.build_cross_repo_production_release(tmp_path)
+    frontend_doc = run_evidence_cli(frontend)
+    backend_doc = run_evidence_cli(backend)
+    assert frontend_doc["repo_root"] != backend_doc["repo_root"]
+    assert {c["path"] for c in frontend_doc["git"]["changed_files"]} & {"app/page.tsx"}
+    assert {c["path"] for c in backend_doc["git"]["changed_files"]} & {"api/handler.py"}
+    text = read(REVIEW).lower()
+    assert "treat each independently" in text
+
+
+def test_protected_workflow_touch_evidence_flags_the_workflow_file(tmp_path: Path) -> None:
+    repo = review_scenarios.build_protected_workflow_touch(tmp_path)
+    doc = run_evidence_cli(repo)
+    assert any(p.startswith(".github/workflows/") for p in doc["protected_matches"])
+    text = read(REVIEW).lower()
+    assert "unsanctioned touch to" in text and "fail_requires_human" in text
+
+
+def test_migration_change_evidence_shows_migrations_path(tmp_path: Path) -> None:
+    repo = review_scenarios.build_migration_change(tmp_path)
+    doc = run_evidence_cli(repo)
+    changed = {c["path"] for c in doc["git"]["changed_files"]}
+    assert any(p.startswith("migrations/") for p in changed)
+    risk_section = read(REVIEW)
+    risk_section = risk_section[
+        risk_section.index("## Phase 3: Build the Risk Map") : risk_section.index("## Phase 4")
+    ]
+    assert "migrations/" in risk_section
+
+
+def test_sentry_privacy_change_evidence_shows_changed_config(tmp_path: Path) -> None:
+    repo = review_scenarios.build_sentry_privacy_change(tmp_path)
+    doc = run_evidence_cli(repo)
+    changed = {c["path"] for c in doc["git"]["changed_files"]}
+    assert "sentry.server.config.ts" in changed
+    risk_section = read(REVIEW)
+    risk_section = risk_section[
+        risk_section.index("## Phase 3: Build the Risk Map") : risk_section.index("## Phase 4")
+    ].lower()
+    assert "security" in risk_section and "pii" in risk_section
+
+
+def test_trivial_docs_diff_evidence_has_no_protected_or_risk_signal(tmp_path: Path) -> None:
+    repo = review_scenarios.build_trivial_docs_diff(tmp_path)
+    doc = run_evidence_cli(repo)
+    changed = [c["path"] for c in doc["git"]["changed_files"]]
+    assert changed and all(p.endswith(".md") for p in changed)
+    assert doc["protected_matches"] == []
+    text = read(REVIEW).lower()
+    assert "trivial" in text and "no fixed panel" in text
+
+
+def test_unavailable_independent_reviewer_is_disclosed_not_silently_skipped(
+    tmp_path: Path,
+) -> None:
+    repo = review_scenarios.build_unavailable_independent_reviewer(tmp_path)
+    doc = run_evidence_cli(repo)
+    changed = {c["path"] for c in doc["git"]["changed_files"]}
+    assert "auth.py" in changed  # non-trivial: matches the security risk category
+    text = read(REVIEW).lower()
+    assert "disclosed cold review" in text
+    assert "never silently skip this step" in text
+
+
+def test_ambiguous_target_branch_evidence_resolves_via_local_fallback(tmp_path: Path) -> None:
+    repo = review_scenarios.build_ambiguous_target_branch(tmp_path)
+    doc = run_evidence_cli_with_base(repo)
+    assert doc["git"]["base"]["resolved_via"] == "local-fallback"
+    text = read(REVIEW).lower()
+    assert "local-fallback" in text
+    assert "do not silently treat a guess as the merge target" in text
+
+
+def test_accepted_product_constraint_evidence_shows_instruction_file_present(
+    tmp_path: Path,
+) -> None:
+    repo = review_scenarios.build_accepted_product_constraint(tmp_path)
+    doc = run_evidence_cli(repo)
+    assert doc["instruction_files"]["CLAUDE.md"] is True
+    assert doc["protected_matches"] == []
+    text = read(REVIEW).lower()
+    assert "accepted product decision" in text
+    assert "not relitigate scope" in text

@@ -171,6 +171,16 @@ compatibility adapter remains at `rhize-context-manager`'s `commands/impact-map.
 follows impact mapping: it builds a deterministic evidence packet with
 `devflow.py evidence --json`, selects checks only from repository instructions and
 known-safe declared package scripts, and returns `PASS`, `PASS_WITH_WARNINGS`, or `BLOCKED`.
+
+`/rhize-devflow:review` (`commands/review.md`) is the read-only production merge/release
+gate that follows `check`: it resolves the exact base/head comparison range (never assuming
+the default branch is the merge target), builds a risk map from actual diff evidence across
+deployment, data, security, authorization, billing, migration, cache, and external-write
+risk, routes only the specialist reviews that risk map calls for, and requires an
+independent skeptical reviewer for non-trivial work. It returns exactly one of `PASS`,
+`FAIL_WITH_FIXABLE_GAPS`, or `FAIL_REQUIRES_HUMAN` and never commits, pushes, merges, or
+deploys itself.
+
 The control-plane sequence is `/rhize-devflow:impact-map` → `/rhize-devflow:check` →
 `/rhize-devflow:review` → release: map the change, validate it evidence-first while
 implementing, then gate the merge.
@@ -180,7 +190,7 @@ implementing, then gate the merge.
 | Context Hygiene | context-engineering (hooks, commands) |
 | Dependency Graph | `/rhize-devflow:impact-map` (CodeGraph-first discovery + semantic reconciliation, this plugin) |
 | Component Registry | context-engineering (duplicate-check hook) |
-| Regression Prevention | error-lifecycle-management (triage workflow); `/rhize-devflow:check` (evidence-driven implementation validation, this plugin) |
+| Regression Prevention | error-lifecycle-management (triage workflow); `/rhize-devflow:check` (evidence-driven implementation validation, this plugin); `/rhize-devflow:review` (independent merge/release gate, this plugin) |
 | Anti-Pattern Agent | error-lifecycle-management (validation scripts) |
 
 ---
