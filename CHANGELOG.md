@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-16_ version bump — **rhize-context-manager** 0.13.0 → 0.14.0 (minor); **rhize-devflow** 2.11.0 → 2.12.0 (minor); **rhize-ops** 0.9.0 → 0.10.0 (minor); marketplace 2.29.0 → 2.30.0.
 - _2026-08-16_ **Rhize Dev Flow becomes the engineering control plane —
   `impact-map → check → review → release`.** Dev Flow now owns the full change lifecycle, not
   just impact mapping: canonical `/rhize-devflow:check` (evidence-driven mid-implementation
