@@ -8,7 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-17_ version bump — **rhize-tasks** 0.2.0 → 0.3.0 (minor); marketplace 2.31.0 → 2.32.0.
 - _2026-08-17_ version bump — **rhize-tasks** 0.1.0 → 0.2.0 (minor); marketplace 2.30.1 → 2.31.0.
+- _2026-08-17_ **rhize-tasks 0.3.0 — Reminders TCC redesign, persisted Slack watermark, signing
+  auto-detect.** Closes the items 0.2.0 had deferred, per Jim's direction. The Swift EventKit
+  helper now runs as its own gui-domain LaunchAgent (`media.rhize.tasks.reminders-helper`)
+  serving one JSON request per connection over a 0600 Unix socket at a stable bundle path —
+  making the helper its own TCC-responsible process so Reminders prompts/grants work under the
+  background agent (reviewer finding #2, fix option 2). Scope stays caller-supplied per request
+  (`allowedListId` in each socket request; env for the stdin/dev path). Hardened per a second
+  Codex adversarial pass: routine-before-helper stop ordering, helper socket-readiness gating
+  before routine bootstrap, `sun_path` length guard, split-brain socket protection (live-probe
+  before unlink, inode-checked shutdown cleanup), per-connection read deadlines, write-ambiguity
+  classification on socket transport failures with a 1MB response cap, and uninstall item-cleanup
+  running through the live helper socket before bootout. Slack syncs now persist a watermark:
+  parents always scan the full lookback window, reply pagination is gated on
+  `latest_reply` vs watermark (24h grace), and the watermark advances only on untruncated syncs.
+  Installer auto-detects a Developer ID Application identity by certificate hash (ad-hoc
+  fallback; `RHIZE_TASKS_SIGN_IDENTITY` overrides). Doctor reports the resolved helper
+  transport/paths. README known-limitations section removed — remaining operational caveats
+  (ad-hoc re-prompt after updates until a signing cert exists; OAuth app must be in Production
+  publishing status) are documented as requirements/install notes, not open questions.
+  Tests 277 → 328 node + 16 Swift.
 - _2026-08-17_ **rhize-tasks 0.2.0 — external-review remediation (Tom Cassidy's 0.1.0 review,
   25 findings + plugin wiring), hardened by a second adversarial pass.** First-run path now works:
   `dashboard` starts the local server itself (pidfile-managed; installer/uninstaller stop it

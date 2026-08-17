@@ -11,8 +11,14 @@ export function exactInstallPaths(home = homedir()) {
     supportDir,
     runtimeDir: path.join(supportDir, 'runtime'),
     launchAgentPath: path.join(resolvedHome, 'Library', 'LaunchAgents', 'media.rhize.tasks.plist'),
+    // The Reminders helper is its own launchd job (its own TCC-responsible
+    // process) with its own stable bundle and socket, outside the
+    // per-version runtime tree.
+    helperLaunchAgentPath: path.join(resolvedHome, 'Library', 'LaunchAgents', 'media.rhize.tasks.reminders-helper.plist'),
     logDir: path.join(supportDir, 'logs'),
     installationManifestPath: path.join(supportDir, 'installation.json'),
+    helperAppPath: path.join(supportDir, 'native', 'RhizeRemindersHelper.app'),
+    helperSocketPath: path.join(supportDir, 'reminders-helper.sock'),
   };
 }
 
@@ -70,6 +76,10 @@ async function inspectChain(home, target, targetKind = 'either') {
     const expectedKind = entry.final ? targetKind : 'directory';
     if (expectedKind === 'directory' && !metadata.isDirectory()) throw new Error(`non_directory_install_path:${entry.value}`);
     if (expectedKind === 'file' && !metadata.isFile()) throw new Error(`non_file_install_path:${entry.value}`);
+    // The helper's Unix socket is a live special file while the helper is
+    // running, not a regular file — `isFile()` is always false for it, so
+    // it needs its own kind rather than being checked as 'file'.
+    if (expectedKind === 'socket' && !metadata.isSocket()) throw new Error(`non_socket_install_path:${entry.value}`);
   }
 }
 
@@ -107,6 +117,10 @@ function identityTargets(paths, home) {
     path.join(paths.runtimeDir, 'versions'),
     paths.logDir,
     path.dirname(paths.launchAgentPath),
+    // The helper bundle's own stable directory (`supportDir/native`) — like
+    // `runtimeDir/versions`, this is tracked rather than the bundle itself,
+    // since the bundle is the thing that gets atomically swapped.
+    path.dirname(paths.helperAppPath),
   ])];
 }
 
@@ -119,8 +133,16 @@ export async function verifyInstallPaths(paths, policy = productionPathPolicy())
   await inspectChain(home, paths.logDir, 'directory');
   await inspectChain(home, path.dirname(paths.launchAgentPath), 'directory');
   await inspectChain(home, paths.launchAgentPath, 'file');
+  await inspectChain(home, paths.helperLaunchAgentPath, 'file');
   await inspectChain(home, paths.installationManifestPath, 'file');
-  for (const target of [paths.supportDir, paths.runtimeDir, paths.logDir, path.dirname(paths.launchAgentPath), paths.launchAgentPath, paths.installationManifestPath]) {
+  await inspectChain(home, path.dirname(paths.helperAppPath), 'directory');
+  await inspectChain(home, paths.helperAppPath, 'directory');
+  await inspectChain(home, paths.helperSocketPath, 'socket');
+  for (const target of [
+    paths.supportDir, paths.runtimeDir, paths.logDir, path.dirname(paths.launchAgentPath),
+    paths.launchAgentPath, paths.helperLaunchAgentPath, paths.installationManifestPath,
+    path.dirname(paths.helperAppPath), paths.helperAppPath, paths.helperSocketPath,
+  ]) {
     await assertRealContainment(home, target);
   }
   return {home};

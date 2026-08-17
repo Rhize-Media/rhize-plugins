@@ -1,6 +1,6 @@
 import {access, chmod, copyFile, cp, lstat, mkdir, open, readFile, readdir, rename, rm, writeFile} from 'node:fs/promises';
 import {constants as fsConstants} from 'node:fs';
-import {createServer} from 'node:net';
+import {createConnection, createServer} from 'node:net';
 import {randomBytes} from 'node:crypto';
 import path from 'node:path';
 import process from 'node:process';
@@ -13,6 +13,11 @@ import {createKeychain} from '../service/src/connectors/keychain.mjs';
 const installerDir = path.dirname(fileURLToPath(import.meta.url));
 const pluginRoot = path.dirname(installerDir);
 export const label = 'media.rhize.tasks';
+// The Reminders helper is its own launchd job — and its own TCC-responsible
+// process — so it can be its own long-lived accept loop (`--serve`) instead
+// of being spawned per-request from the routine agent's process (finding
+// #2 of the Reminders TCC redesign).
+export const helperLabel = 'media.rhize.tasks.reminders-helper';
 const runtimeEntries = ['package.json', 'service', 'schemas', 'setup', 'installer', 'dashboard', 'skills', 'commands'];
 
 export const defaultInstallPaths = exactInstallPaths;
@@ -255,22 +260,33 @@ export async function ensureApiBearer({keychain, randomBytesImpl = randomBytes})
   }
 }
 
-// These four placeholders are always filesystem paths in this template,
-// never credential material — a checkout under a path like
+// These placeholders are always filesystem paths in these templates, never
+// credential material — a checkout under a path like
 // ~/dev/secrets-tooling/ must not fail install just because the word
-// "secrets" appears inside NODE_PATH/CLI_PATH/STDOUT_PATH/STDERR_PATH
-// (finding #25). Scan everything else (the static template plus any future
-// placeholder not listed here) so real secret material is still caught.
-const pathShapedPlaceholders = new Set(['NODE_PATH', 'CLI_PATH', 'STDOUT_PATH', 'STDERR_PATH']);
+// "secrets" appears inside one of them (finding #25). Scan everything else
+// (the static template text plus any future placeholder not listed here)
+// so real secret material is still caught.
+const pathShapedPlaceholders = new Set(['NODE_PATH', 'CLI_PATH', 'STDOUT_PATH', 'STDERR_PATH', 'HELPER_BINARY_PATH', 'SOCKET_PATH']);
 
-export async function renderLaunchAgent({nodePath, cliPath, stdoutPath, stderrPath, templatePath = path.join(installerDir, 'media.rhize.tasks.plist.template')}) {
-  const template = await readFile(templatePath, 'utf8');
-  const values = {NODE_PATH: nodePath, CLI_PATH: cliPath, STDOUT_PATH: stdoutPath, STDERR_PATH: stderrPath};
+function renderPlistTemplate(template, values) {
   const rendered = Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{{${key}}}`, xmlEscape(path.resolve(value))), template);
   if (/{{[A-Z_]+}}/.test(rendered)) throw new Error('unresolved_launch_agent_placeholder');
   const scanTarget = Object.entries(values).reduce((text, [key, value]) => pathShapedPlaceholders.has(key) ? text.replaceAll(xmlEscape(path.resolve(value)), '') : text, rendered);
   if (/token|secret|password|bearer/i.test(scanTarget)) throw new Error('launch_agent_may_not_contain_secrets');
   return rendered;
+}
+
+export async function renderLaunchAgent({nodePath, cliPath, stdoutPath, stderrPath, templatePath = path.join(installerDir, 'media.rhize.tasks.plist.template')}) {
+  const template = await readFile(templatePath, 'utf8');
+  return renderPlistTemplate(template, {NODE_PATH: nodePath, CLI_PATH: cliPath, STDOUT_PATH: stdoutPath, STDERR_PATH: stderrPath});
+}
+
+// The helper is bootstrapped as its own LaunchAgent (its own TCC-responsible
+// process, per finding #2) rather than spawned per-request by the routine
+// agent, so it gets its own template/plist just like the routine does.
+export async function renderHelperLaunchAgent({helperBinaryPath, socketPath, stdoutPath, stderrPath, templatePath = path.join(installerDir, 'media.rhize.tasks.reminders-helper.plist.template')}) {
+  const template = await readFile(templatePath, 'utf8');
+  return renderPlistTemplate(template, {HELPER_BINARY_PATH: helperBinaryPath, SOCKET_PATH: socketPath, STDOUT_PATH: stdoutPath, STDERR_PATH: stderrPath});
 }
 
 // process.execPath is realpath()'d by libuv, so a version-manager shim
@@ -332,6 +348,54 @@ export async function resolveInstallNodePath(candidate, checkExecutable, {
   }
   if (!await verifyCapable(candidate)) throw Object.assign(new Error(`node_path_incapable:${candidate}`), {code: 'node_path_incapable'});
   return {nodePath: candidate, warnings};
+}
+
+// No paid Developer ID identity used to be assumed unavailable, defaulting
+// straight to ad-hoc signing (`-`) every time. Auto-detect one instead: a
+// machine that already has exactly one "Developer ID Application" identity
+// in the keychain should use it without an operator having to know to set
+// RHIZE_TASKS_SIGN_IDENTITY. Multiple matches are ambiguous (which one?) and
+// fall back to ad-hoc rather than guessing.
+//
+// Dedup/select by the certificate's SHA-1 HASH, not its display name
+// (finding #9): a renewed Developer ID certificate keeps the SAME display
+// name as its predecessor but gets a NEW hash, so two genuinely different,
+// simultaneously-valid certificates can share one name. Deduping by name
+// alone would collapse them into "exactly one identity" and hand codesign
+// a name that's still ambiguous to IT. The hash is the one identifier
+// `security`/`codesign` both treat as unique, so it's what gets returned
+// here and passed to `codesign --sign` — never the name.
+async function detectDeveloperIdIdentity({run = runProcess, security = '/usr/bin/security'} = {}) {
+  let result;
+  try {
+    result = await run(security, ['find-identity', '-v', '-p', 'codesigning'], {timeoutMs: 10_000, maxOutputBytes: 64_000});
+  } catch {
+    return null;
+  }
+  if (!result || result.code !== 0 || result.timedOut || typeof result.stdout !== 'string') return null;
+  // A valid identity line looks like: `  1) <40-hex-char SHA-1 hash> "<name>"`.
+  const matches = [...result.stdout.matchAll(/^\s*\d+\)\s+([0-9A-Fa-f]{40})\s+"(Developer ID Application:[^"]+)"/gm)];
+  const byHash = new Map(matches.map(match => [match[1], match[2]]));
+  return byHash.size === 1 ? [...byHash.keys()][0] : null;
+}
+
+// RHIZE_TASKS_SIGN_IDENTITY always wins when set (an operator's explicit
+// choice overrides auto-detection). Otherwise: exactly one Developer ID
+// Application identity -> use it; anything else -> ad-hoc. `kind` is what
+// gets recorded in installation.json (`signingIdentity`): the literal
+// override string when one was given (an arbitrary identity, not
+// necessarily Developer-ID-shaped), or one of the two fixed classifications
+// otherwise.
+export async function resolveSigningIdentity({
+  run = runProcess,
+  envOverride = process.env.RHIZE_TASKS_SIGN_IDENTITY,
+  detect = detectDeveloperIdIdentity,
+} = {}) {
+  const override = (envOverride ?? '').trim();
+  if (override) return {identity: override, kind: override};
+  const detected = await detect({run});
+  if (detected) return {identity: detected, kind: 'developer-id'};
+  return {identity: '-', kind: 'ad-hoc'};
 }
 
 // Best-effort only: the seeded test fixture's Info.plist has neither key,
@@ -446,7 +510,9 @@ const runningPid = pid => { try { process.kill(pid, 0); return true; } catch (er
 // to leave a complete runtime copy behind per attempt, since .installing-*
 // stage dirs and *.previous-<pid> rollback backups were only ever cleaned
 // up on the happy path (finding #23). Sweep any such artifact whose
-// embedded pid is no longer running before starting a new install.
+// embedded pid is no longer running before starting a new install. Reused
+// for both the runtime/versions tree and the helper bundle's own directory
+// (`<supportDir>/native`), which now stages and swaps independently.
 async function sweepStaleArtifacts(directory, pattern, beforeMutation = async () => {}) {
   let entries;
   try { entries = await readdir(directory); } catch { return; }
@@ -579,6 +645,46 @@ async function bootstrapAgent({run, domain, plistPath}, attempts = 3, delayMs = 
   throw new Error('launchctl_bootstrap_uncertain');
 }
 
+// "launchctl reports the job loaded" is not "the helper is actually
+// answering on its socket" — a crash-looping helper (bad binary, TCC
+// denial, whatever) still shows as loaded, and without this check install()
+// would go ahead and bootstrap the routine agent against a helper that will
+// never actually respond. One attempt: connect, and disconnect immediately
+// (no request is sent — this only proves something is listening).
+function defaultProbeHelperSocketConnect(socketPath, {timeoutMs = 500} = {}) {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection(socketPath);
+    const timer = setTimeout(() => { socket.destroy(); reject(new Error('helper_socket_probe_timed_out')); }, timeoutMs);
+    socket.once('connect', () => { clearTimeout(timer); socket.end(); resolve(); });
+    socket.once('error', error => { clearTimeout(timer); socket.destroy(); reject(error); });
+  });
+}
+
+// Bounded polling around the single-attempt probe above — the helper's
+// process may exist and its LaunchAgent may report loaded before the
+// process has actually gotten around to calling `listen()` on the socket,
+// so one immediate probe would be a false negative on a perfectly healthy
+// start. Injectable so tests never open a real socket to prove this works.
+export async function waitForHelperSocketReady(socketPath, {
+  timeoutMs = 5_000,
+  intervalMs = 100,
+  probeConnect = defaultProbeHelperSocketConnect,
+  sleep = defaultSleep,
+} = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      await probeConnect(socketPath);
+      return;
+    } catch (error) {
+      lastError = error;
+      await sleep(intervalMs);
+    }
+  }
+  throw Object.assign(new Error('helper_socket_not_ready'), {code: 'helper_socket_not_ready', cause: lastError});
+}
+
 export async function install({
   paths = defaultInstallPaths(),
   pathPolicy = productionPathPolicy(),
@@ -592,8 +698,18 @@ export async function install({
   validate = validatePrerequisites,
   writeMetadata = atomicWriteFile,
   keychain = createKeychain({spawnFile: run}),
+  detectSigningIdentity = resolveSigningIdentity,
+  probeHelperSocketReady = waitForHelperSocketReady,
 } = {}) {
   await verifyInstallPaths(paths, pathPolicy);
+  // sun_path has a hard 104-byte limit (including the NUL terminator the
+  // kernel appends). A socket path that doesn't fit would only be
+  // discovered when the helper fails at `--serve` startup — after paying
+  // for the swift build and partway through activation. Fail before any
+  // mutation instead.
+  if (Buffer.byteLength(paths.helperSocketPath, 'utf8') >= 104) {
+    throw Object.assign(new Error(`helper_socket_path_too_long:${paths.helperSocketPath}`), {code: 'helper_socket_path_too_long'});
+  }
   await validate({supportDir: paths.supportDir, port, run});
   await verifyInstallPaths(paths, pathPolicy);
   const packageDocument = JSON.parse(await readFile(path.join(sourceRoot, 'package.json'), 'utf8'));
@@ -604,10 +720,7 @@ export async function install({
   // fails fast instead of after paying that cost.
   const {nodePath: resolvedNodePath, warnings: nodePathWarnings} = await resolveInstallNodePath(nodePath, checkNodePathExecutable, {verifyCapable: verifyNodePathCapable});
   const packagePath = path.join(sourceRoot, 'native', 'reminders-helper');
-  // No paid Developer ID identity is available on this machine today (0
-  // identities), so ad-hoc signing (`-`) remains the default; this override
-  // lets a future stable signing identity be supplied without a code change.
-  const signingIdentity = (process.env.RHIZE_TASKS_SIGN_IDENTITY ?? '').trim() || '-';
+  const {identity: codesignIdentity, kind: signingIdentityKind} = await detectSigningIdentity({run});
   await runChecked('/usr/bin/swift', ['build', '-c', 'release', '--package-path', packagePath], {timeoutMs: 120_000}, run);
 
   await mkdir(paths.runtimeDir, {recursive: true, mode: 0o700});
@@ -618,6 +731,13 @@ export async function install({
   await mkdir(paths.logDir, {recursive: true, mode: 0o700});
   await chmod(paths.logDir, 0o700);
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true, mode: 0o700});
+  // The helper bundle now lives at a STABLE path under supportDir, outside
+  // the per-version runtime tree (closes the deferred half of finding #3 —
+  // previously every version reinstall left behind its own independently
+  // ad-hoc-signed copy).
+  const helperAppDir = path.dirname(paths.helperAppPath);
+  await mkdir(helperAppDir, {recursive: true, mode: 0o700});
+  await chmod(helperAppDir, 0o700);
   await verifyInstallPaths(paths, pathPolicy);
   const pathIdentities = await captureInstallPathIdentities(paths, pathPolicy);
   const beforeMutation = target => assertInstallPathIdentities(pathIdentities, target);
@@ -626,25 +746,38 @@ export async function install({
   // copy behind forever — nothing ever swept a dead pid's leftover
   // .installing-<pid> stage dir or <version>.previous-<pid> backup
   // (finding #23). Sweep any such artifact whose owning pid is no longer
-  // running before this install adds one of its own.
+  // running before this install adds one of its own — for both the
+  // versioned runtime tree and the helper bundle's own directory.
   await sweepStaleArtifacts(paths.runtimeDir, /^\.installing-(\d+)$/, beforeMutation);
   await sweepStaleArtifacts(versionsDir, /\.previous-(\d+)$/, beforeMutation);
+  await sweepStaleArtifacts(helperAppDir, /^\.installing-(\d+)$/, beforeMutation);
+  await sweepStaleArtifacts(helperAppDir, /\.previous-(\d+)$/, beforeMutation);
   const priorPlist = await snapshotFile(paths.launchAgentPath);
+  const priorHelperPlist = await snapshotFile(paths.helperLaunchAgentPath);
   const priorManifest = await snapshotFile(paths.installationManifestPath);
   const domain = `gui/${uid}`;
   const priorAgent = await getLaunchAgentState({run, domain, label});
   if (priorAgent.loaded) assertLoadedConfiguration(priorAgent, paths.launchAgentPath);
+  const priorHelperAgent = await getLaunchAgentState({run, domain, label: helperLabel});
+  if (priorHelperAgent.loaded) assertLoadedConfiguration(priorHelperAgent, paths.helperLaunchAgentPath);
   const stagePath = path.join(paths.runtimeDir, `.installing-${process.pid}`);
+  const helperStagePath = path.join(helperAppDir, `.installing-${process.pid}`);
   const runtimePath = path.join(versionsDir, version);
   await verifyRuntimePath(paths, runtimePath, pathPolicy);
   await beforeMutation(stagePath);
   await rm(stagePath, {recursive: true, force: true});
+  await beforeMutation(helperStagePath);
+  await rm(helperStagePath, {recursive: true, force: true});
 
   let runtimeTransaction;
+  let helperTransaction;
   let activationState = 'stage_build_failed';
   let priorBootoutAttempted = false;
   let oldAgentStopped = false;
+  let priorHelperBootoutAttempted = false;
+  let oldHelperAgentStopped = false;
   let newBootstrapState = 'not_attempted';
+  let newHelperBootstrapState = 'not_attempted';
   let tokenCreated = false;
   let appPath;
   try {
@@ -654,49 +787,82 @@ export async function install({
     await access(path.join(stagePath, 'schemas'), fsConstants.R_OK);
     const cliPathInStage = path.join(stagePath, 'service', 'bin', 'rhize-tasks.mjs');
     await access(cliPathInStage, fsConstants.R_OK);
+    await hardenTree(stagePath, new Set());
 
-    const appPathInStage = path.join(stagePath, 'native', 'RhizeRemindersHelper.app');
-    await mkdir(path.join(appPathInStage, 'Contents', 'MacOS'), {recursive: true, mode: 0o700});
-    await copyFile(path.join(packagePath, '.build', 'release', 'RhizeRemindersHelper'), path.join(appPathInStage, 'Contents', 'MacOS', 'RhizeRemindersHelper'));
-    await writeFile(path.join(appPathInStage, 'Contents', 'Info.plist'), await renderHelperInfoPlist({templatePath: path.join(packagePath, 'Resources', 'Info.plist'), version}));
-    await chmod(path.join(appPathInStage, 'Contents', 'MacOS', 'RhizeRemindersHelper'), 0o700);
+    // The helper bundle is built and signed into its OWN stage directory,
+    // independent of the runtime stage above — it swaps into the stable
+    // `helperAppPath`, not into `versions/<version>/`.
+    await mkdir(path.join(helperStagePath, 'Contents', 'MacOS'), {recursive: true, mode: 0o700});
+    await copyFile(path.join(packagePath, '.build', 'release', 'RhizeRemindersHelper'), path.join(helperStagePath, 'Contents', 'MacOS', 'RhizeRemindersHelper'));
+    await writeFile(path.join(helperStagePath, 'Contents', 'Info.plist'), await renderHelperInfoPlist({templatePath: path.join(packagePath, 'Resources', 'Info.plist'), version}));
+    await chmod(path.join(helperStagePath, 'Contents', 'MacOS', 'RhizeRemindersHelper'), 0o700);
     // codesign BEFORE hardenTree (finding #25): signing after hardening left
     // the generated _CodeSignature/CodeResources at the process umask,
     // breaking the "everything is 0600" invariant for exactly the signature
     // material. hardenTree now walks the tree once, after signing, so it
     // normalizes what codesign just wrote too.
-    await runChecked('/usr/bin/codesign', ['--force', '--sign', signingIdentity, appPathInStage], {timeoutMs: 30_000}, run);
-    await hardenTree(stagePath, new Set(['RhizeRemindersHelper']));
+    await runChecked('/usr/bin/codesign', ['--force', '--sign', codesignIdentity, helperStagePath], {timeoutMs: 30_000}, run);
+    await hardenTree(helperStagePath, new Set(['RhizeRemindersHelper']));
     await assertInstallPathIdentities(pathIdentities);
 
-    // Stop the OLD agent BEFORE the runtime directory is swapped (finding
-    // #21). On a same-version reinstall — the common case — the swap target
-    // IS the currently-running agent's code: booting out afterward left a
-    // window where a running routine could be mid-import()ing from a
+    // Stop the OLD agents BEFORE their artifacts are swapped (finding #21).
+    // On a same-version reinstall — the common case — the swap target IS
+    // the currently-running agent's code: booting out afterward left a
+    // window where a running job could be mid-execution against a
     // directory that had just been renamed away and was about to be
-    // deleted, and let launchd's 15-minute timer spawn a fresh job from the
-    // OLD plist against the NEW code in between.
+    // deleted, and let launchd's timer spawn a fresh job from the OLD plist
+    // against the NEW code in between.
+    //
+    // The ROUTINE stops (and swaps) FIRST, then the helper — the reverse of
+    // START order below, and deliberately so: the routine is the helper's
+    // consumer (it calls into the helper's socket from its catch-up job).
+    // Stopping the consumer before touching the producer means there is
+    // never a live routine process that could watch the helper's socket
+    // vanish mid-swap and fall back to spawning the bundle directly while
+    // it's half-renamed. Stopping the helper first (the original order)
+    // could do exactly that.
     activationState = 'bootout_failed';
     if (priorAgent.loaded) {
       priorBootoutAttempted = true;
       await bootoutIfLoaded({run, domain, plistPath: paths.launchAgentPath, label});
       oldAgentStopped = true;
     }
-
     activationState = 'runtime_swap_failed';
     runtimeTransaction = await placeRuntimeCandidate(stagePath, runtimePath, beforeMutation);
 
+    activationState = 'helper_bootout_failed';
+    if (priorHelperAgent.loaded) {
+      priorHelperBootoutAttempted = true;
+      await bootoutIfLoaded({run, domain, plistPath: paths.helperLaunchAgentPath, label: helperLabel});
+      oldHelperAgentStopped = true;
+    }
+    activationState = 'helper_swap_failed';
+    helperTransaction = await placeRuntimeCandidate(helperStagePath, paths.helperAppPath, beforeMutation);
+
     const cliPath = path.join(runtimePath, 'service', 'bin', 'rhize-tasks.mjs');
-    appPath = path.join(runtimePath, 'native', 'RhizeRemindersHelper.app');
+    appPath = paths.helperAppPath;
+    const helperBinaryPath = path.join(paths.helperAppPath, 'Contents', 'MacOS', 'RhizeRemindersHelper');
     const plist = await renderLaunchAgent({
       nodePath: resolvedNodePath,
       cliPath,
       stdoutPath: path.join(paths.logDir, 'routine.log'),
       stderrPath: path.join(paths.logDir, 'routine-error.log'),
     });
+    const helperPlist = await renderHelperLaunchAgent({
+      helperBinaryPath,
+      socketPath: paths.helperSocketPath,
+      stdoutPath: path.join(paths.logDir, 'helper.log'),
+      stderrPath: path.join(paths.logDir, 'helper-error.log'),
+    });
     // Recorded so `doctor` can assert the plist's node path still exists
-    // without re-deriving the ephemeral-path heuristic itself.
-    const manifest = `${JSON.stringify({schemaVersion: 1, version, runtimePath, cliPath, appPath, label, nodePath: resolvedNodePath}, null, 2)}\n`;
+    // without re-deriving the ephemeral-path heuristic itself, and so the
+    // socket client (reminders.mjs) and setup/doctor skills can find the
+    // helper's stable app/socket paths without recomputing them.
+    const manifest = `${JSON.stringify({
+      schemaVersion: 1, version, runtimePath, cliPath, appPath, label,
+      helperLabel, helperAppPath: paths.helperAppPath, helperSocketPath: paths.helperSocketPath,
+      nodePath: resolvedNodePath, signingIdentity: signingIdentityKind,
+    }, null, 2)}\n`;
 
     await assertInstallPathIdentities(pathIdentities);
     activationState = 'token_provision_failed';
@@ -705,8 +871,31 @@ export async function install({
     await assertInstallPathIdentities(pathIdentities);
     await writeMetadata(paths.launchAgentPath, plist, 0o600, {beforeMutation});
     await assertInstallPathIdentities(pathIdentities);
+    await writeMetadata(paths.helperLaunchAgentPath, helperPlist, 0o600, {beforeMutation});
+    await assertInstallPathIdentities(pathIdentities);
     await writeMetadata(paths.installationManifestPath, manifest, 0o600, {beforeMutation});
     await verifyInstallPaths(paths, pathPolicy);
+
+    // Bootstrap the helper BEFORE the routine agent: the routine's
+    // `catch-up` job runs at load (RunAtLoad) and calls into the Reminders
+    // connector, which talks to the helper over its socket — bringing the
+    // helper up first avoids a race where the routine's first run finds no
+    // socket to connect to.
+    activationState = 'helper_bootstrap_failed';
+    await assertInstallPathIdentities(pathIdentities);
+    newHelperBootstrapState = 'attempted_uncertain';
+    await bootstrapAgent({run, domain, plistPath: paths.helperLaunchAgentPath});
+    newHelperBootstrapState = 'succeeded';
+    activationState = 'helper_activation_verification_failed';
+    assertLoadedConfiguration(await getLaunchAgentState({run, domain, label: helperLabel}), paths.helperLaunchAgentPath);
+    // "launchctl reports the job loaded" is not "the helper is actually
+    // answering" (finding #3) — a crash-looping helper still shows as
+    // loaded. Confirm the socket itself is accepting connections before
+    // bootstrapping the routine agent against it; roll back (like any
+    // other activation failure) if it never comes up.
+    activationState = 'helper_socket_not_ready';
+    await probeHelperSocketReady(paths.helperSocketPath);
+
     activationState = 'bootstrap_failed';
     await assertInstallPathIdentities(pathIdentities);
     newBootstrapState = 'attempted_uncertain';
@@ -714,93 +903,128 @@ export async function install({
     newBootstrapState = 'succeeded';
     activationState = 'activation_verification_failed';
     assertLoadedConfiguration(await getLaunchAgentState({run, domain, label}), paths.launchAgentPath);
+
     await finalizeRuntimeCandidate(runtimeTransaction, beforeMutation);
+    await finalizeRuntimeCandidate(helperTransaction, beforeMutation);
     // Best-effort: an old version dir left behind is hygiene debt, not a
     // reason to fail an otherwise-successful install (finding #3 — "old
     // versions are never pruned", multiplying stale ad-hoc-signed bundles).
     await pruneOldRuntimeVersions(versionsDir, version, beforeMutation);
-    return {appPath, launchAgentPath: paths.launchAgentPath, runtimePath, version, label, nodePath: resolvedNodePath, ...(nodePathWarnings.length ? {nodePathWarnings} : {})};
+    return {
+      appPath, helperAppPath: paths.helperAppPath, helperSocketPath: paths.helperSocketPath,
+      launchAgentPath: paths.launchAgentPath, helperLaunchAgentPath: paths.helperLaunchAgentPath,
+      runtimePath, version, label, helperLabel, nodePath: resolvedNodePath, signingIdentity: signingIdentityKind,
+      ...(nodePathWarnings.length ? {nodePathWarnings} : {}),
+    };
   } catch (activationFailure) {
     const rollbackFailures = [];
-    // `agentMayHaveChanged` is "did we touch launchd at all" (old bootout
-    // attempted, or a new bootstrap attempted) — it does NOT mean either one
-    // actually succeeded. Rolling back on the strength of "attempted" alone
-    // used to have two failure modes (finding #4-followup): (a) a failure
-    // *before* the old agent was ever stopped still tried to re-bootstrap
-    // it — harmless in itself, but it turns a pre-swap failure like a
-    // codesign error into a confusing local_activation_rollback_failed; (b)
-    // a failure *after* the swap, where confirming the new job's bootout
-    // itself failed, still went ahead and swapped the runtime/plist back —
-    // pulling the rug out from under a process we never confirmed was
-    // stopped, recreating the exact race finding #21 exists to prevent,
-    // just during rollback. `agentConfirmedStopped` gates the two mutating
-    // steps that only matter once we KNOW nothing is running against the
-    // runtime we're about to touch.
-    const agentMayHaveChanged = priorBootoutAttempted || newBootstrapState !== 'not_attempted';
-    let agentConfirmedStopped = !agentMayHaveChanged;
-    if (agentMayHaveChanged) {
-      try {
-        await beforeMutation(paths.launchAgentPath);
-        await bootoutServiceIfLoaded({run, domain, label});
-        if ((await getLaunchAgentState({run, domain, label})).loaded) throw new Error('launchctl_service_still_loaded');
-        agentConfirmedStopped = true;
-      } catch {
-        rollbackFailures.push('agent_bootout_failed');
+
+    // Each agent's rollback is independent — the helper and routine are
+    // unrelated launchd labels/plists/artifacts, so whether it's safe to
+    // touch ONE agent's own files depends only on whether ITS OWN launchd
+    // state was ever perturbed (bootout attempted, or a new bootstrap
+    // attempted), never on the other agent's outcome. `agentMayHaveChanged`
+    // is "did we touch launchd at all for this agent" — it does NOT mean
+    // that touch succeeded. Rolling back on the strength of "attempted"
+    // alone used to have two failure modes (finding #4-followup): (a) a
+    // failure *before* the old agent was ever stopped still tried to
+    // re-bootstrap it — harmless, but confusing; (b) a failure *after* the
+    // swap, where confirming the new job's bootout itself failed, still
+    // went ahead and swapped the artifact back — pulling the rug out from
+    // under a process never confirmed stopped, recreating the exact race
+    // finding #21 exists to prevent, just during rollback.
+    // `agentConfirmedStopped` gates the two mutating steps that only matter
+    // once we KNOW nothing is running against the artifact we're about to
+    // touch back.
+    async function settleAgent({label: agentLabel, plistPath, priorAgentState, priorPlistSnapshot, bootoutAttempted, oldStopped, agentNewBootstrapState, transaction, ownStagePath, prefix}) {
+      const agentMayHaveChanged = bootoutAttempted || agentNewBootstrapState !== 'not_attempted';
+      let agentConfirmedStopped = !agentMayHaveChanged;
+      if (agentMayHaveChanged) {
+        try {
+          await beforeMutation(plistPath);
+          await bootoutServiceIfLoaded({run, domain, label: agentLabel});
+          if ((await getLaunchAgentState({run, domain, label: agentLabel})).loaded) throw new Error('launchctl_service_still_loaded');
+          agentConfirmedStopped = true;
+        } catch { rollbackFailures.push(`${prefix}_bootout_failed`); }
       }
+
+      // Always safe regardless of agent state: our own not-yet-activated
+      // stage directory. Only reached when the swap never happened
+      // (transaction unset), so nothing live is at risk either way.
+      if (!transaction) {
+        try {
+          await beforeMutation(ownStagePath);
+          await rm(ownStagePath, {recursive: true, force: true});
+        } catch {}
+      }
+
+      if (!agentConfirmedStopped) return {confirmedStopped: false};
+
+      if (transaction) {
+        try { await rollbackRuntimeCandidate(transaction, beforeMutation); } catch { rollbackFailures.push(`${prefix}_restore_failed`); }
+      }
+      try { await restoreFile(plistPath, priorPlistSnapshot, writeMetadata, beforeMutation); } catch { rollbackFailures.push(`${prefix}_plist_restore_failed`); }
+      try { await assertFileRestored(plistPath, priorPlistSnapshot); } catch { rollbackFailures.push(`${prefix}_plist_verification_failed`); }
+
+      if (priorAgentState.loaded && oldStopped) {
+        try {
+          await beforeMutation(plistPath);
+          if (!priorPlistSnapshot.exists || !priorManifest.exists) throw new Error('prior_configuration_incomplete');
+          await assertFileRestored(plistPath, priorPlistSnapshot);
+          await bootstrapAgent({run, domain, plistPath});
+          assertLoadedConfiguration(await getLaunchAgentState({run, domain, label: agentLabel}), plistPath);
+        } catch { rollbackFailures.push(`${prefix}_agent_restore_failed`); }
+      } else if (!priorAgentState.loaded) {
+        try {
+          const current = await getLaunchAgentState({run, domain, label: agentLabel});
+          if (current.loaded) {
+            await beforeMutation(plistPath);
+            await bootoutServiceIfLoaded({run, domain, label: agentLabel});
+          }
+          if ((await getLaunchAgentState({run, domain, label: agentLabel})).loaded) throw new Error('launchctl_service_still_loaded');
+        } catch { rollbackFailures.push(`${prefix}_agent_restore_failed`); }
+      }
+      // else: priorAgentState.loaded && !oldStopped -> the old agent was
+      // never touched (nothing to restore); leaving it running as-is is
+      // correct.
+      return {confirmedStopped: true};
     }
 
-    // Always safe regardless of agent state: our own not-yet-activated
-    // stage directory. Only reached when the swap never happened
-    // (runtimeTransaction unset), so nothing live is at risk either way.
-    if (!runtimeTransaction) {
-      try {
-        await beforeMutation(stagePath);
-        await rm(stagePath, {recursive: true, force: true});
-      } catch {}
-    }
+    // Settle the ROUTINE first, and only mutate the HELPER's own artifacts
+    // once the routine is confirmed stopped — mirroring the forward path's
+    // stop order above. The routine is the helper's consumer; rolling the
+    // helper's bundle/plist back while we can't confirm the routine is
+    // stopped would risk the exact same "live consumer watches the socket
+    // vanish mid-swap" race the forward-path ordering exists to prevent,
+    // just happening during rollback instead.
+    const routineOutcome = await settleAgent({
+      label, plistPath: paths.launchAgentPath, priorAgentState: priorAgent,
+      priorPlistSnapshot: priorPlist, bootoutAttempted: priorBootoutAttempted, oldStopped: oldAgentStopped,
+      agentNewBootstrapState: newBootstrapState, transaction: runtimeTransaction, ownStagePath: stagePath, prefix: 'routine',
+    });
+    const helperOutcome = routineOutcome.confirmedStopped
+      ? await settleAgent({
+        label: helperLabel, plistPath: paths.helperLaunchAgentPath, priorAgentState: priorHelperAgent,
+        priorPlistSnapshot: priorHelperPlist, bootoutAttempted: priorHelperBootoutAttempted, oldStopped: oldHelperAgentStopped,
+        agentNewBootstrapState: newHelperBootstrapState, transaction: helperTransaction, ownStagePath: helperStagePath, prefix: 'helper',
+      })
+      : {confirmedStopped: false};
 
-    if (!agentConfirmedStopped) {
+    // The token and the manifest are shared state, not owned by either
+    // agent individually — only restore them once BOTH agents are known to
+    // be in a safe, fully-settled state. If either agent could not be
+    // confirmed stopped, leaving the manifest/token exactly as they were at
+    // the point of failure (rather than guessing) matches the
+    // manual-recovery posture above: do nothing further once safety can't
+    // be established.
+    if (!helperOutcome.confirmedStopped || !routineOutcome.confirmedStopped) {
       throw activationError(activationState, activationFailure, [...rollbackFailures, 'manual_recovery_required']);
     }
 
-    if (runtimeTransaction) {
-      try { await rollbackRuntimeCandidate(runtimeTransaction, beforeMutation); } catch { rollbackFailures.push('runtime_restore_failed'); }
-    }
     if (tokenCreated) rollbackFailures.push(...await removeApiBearer(keychain));
     try { await restoreFile(paths.installationManifestPath, priorManifest, writeMetadata, beforeMutation); } catch { rollbackFailures.push('manifest_restore_failed'); }
-    try { await restoreFile(paths.launchAgentPath, priorPlist, writeMetadata, beforeMutation); } catch { rollbackFailures.push('plist_restore_failed'); }
-    try {
-      await assertFileRestored(paths.launchAgentPath, priorPlist);
-      await assertFileRestored(paths.installationManifestPath, priorManifest);
-    } catch {
-      rollbackFailures.push('metadata_verification_failed');
-    }
-    if (priorAgent.loaded && oldAgentStopped) {
-      try {
-        await beforeMutation(paths.launchAgentPath);
-        if (!priorPlist.exists || !priorManifest.exists) throw new Error('prior_configuration_incomplete');
-        await assertFileRestored(paths.launchAgentPath, priorPlist);
-        await assertFileRestored(paths.installationManifestPath, priorManifest);
-        await bootstrapAgent({run, domain, plistPath: paths.launchAgentPath});
-        assertLoadedConfiguration(await getLaunchAgentState({run, domain, label}), paths.launchAgentPath);
-      } catch {
-        rollbackFailures.push('agent_restore_failed');
-      }
-    } else if (!priorAgent.loaded) {
-      try {
-        const current = await getLaunchAgentState({run, domain, label});
-        if (current.loaded) {
-          await beforeMutation(paths.launchAgentPath);
-          await bootoutServiceIfLoaded({run, domain, label});
-        }
-        if ((await getLaunchAgentState({run, domain, label})).loaded) throw new Error('launchctl_service_still_loaded');
-      } catch {
-        rollbackFailures.push('agent_restore_failed');
-      }
-    }
-    // else: priorAgent.loaded && !oldAgentStopped -> the old agent was
-    // never touched (nothing to restore); leaving it running as-is is
-    // correct.
+    try { await assertFileRestored(paths.installationManifestPath, priorManifest); } catch { rollbackFailures.push('metadata_verification_failed'); }
+
     throw activationError(activationState, activationFailure, rollbackFailures);
   }
 }

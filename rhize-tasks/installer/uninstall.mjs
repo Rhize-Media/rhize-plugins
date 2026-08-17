@@ -2,8 +2,8 @@ import {readFile, rm} from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import {pathToFileURL} from 'node:url';
-import {bootoutIfLoaded} from './launchctl.mjs';
-import {defaultInstallPaths, defaultProbeOwnServer, label, servePidPath, stopServeProcessIfRunning} from './install.mjs';
+import {bootoutIfLoaded, bootoutServiceIfLoaded} from './launchctl.mjs';
+import {defaultInstallPaths, defaultProbeOwnServer, helperLabel, label, servePidPath, stopServeProcessIfRunning} from './install.mjs';
 import {assertInstallPathIdentities, captureInstallPathIdentities, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
 
@@ -105,11 +105,30 @@ export async function uninstall({choices, paths = defaultInstallPaths(), pathPol
       throw Object.assign(new Error(`own_server_stop_failed:${serveStopped.reason}`), {code: 'own_server_stop_failed', reason: serveStopped.reason});
     }
   }
+  // Item cleanup runs while the helper's socket is STILL up (finding #7):
+  // the CLI subprocess it spawns talks to Reminders through the helper, and
+  // booting the helper out first would force it onto the direct-spawn
+  // fallback path for every call — the exact per-request-process TCC
+  // exposure this whole redesign exists to remove. The helper is booted
+  // out only after cleanup completes (or is skipped entirely).
   if (choices.items === 'delete') await requestInstalledItemCleanup({paths, pathPolicy, run, nodePath});
+  // The helper is its own launchd job — boot it out too, by label (it has
+  // no plist-path-first ambiguity to resolve: label form tolerates
+  // not-loaded on its own, via the same isKnownBootoutNotLoaded handling
+  // the routine agent's bootout above already relies on).
+  await assertInstallPathIdentities(pathIdentities, paths.helperLaunchAgentPath);
+  await bootoutServiceIfLoaded({run, domain: `gui/${uid}`, label: helperLabel});
   await verifyInstallPaths(paths, pathPolicy);
   await assertInstallPathIdentities(pathIdentities);
   await assertInstallPathIdentities(pathIdentities, paths.launchAgentPath);
   await rm(paths.launchAgentPath, {force: true});
+  await assertInstallPathIdentities(pathIdentities, paths.helperLaunchAgentPath);
+  await rm(paths.helperLaunchAgentPath, {force: true});
+  // The socket is an ephemeral runtime artifact, not user data — remove it
+  // unconditionally, the same way the plists above are, regardless of the
+  // data-retention choice.
+  await assertInstallPathIdentities(pathIdentities, paths.helperSocketPath);
+  await rm(paths.helperSocketPath, {force: true});
   await assertInstallPathIdentities(pathIdentities, paths.installationManifestPath);
   await rm(paths.installationManifestPath, {force: true});
   if (choices.data === 'delete') {
@@ -118,6 +137,13 @@ export async function uninstall({choices, paths = defaultInstallPaths(), pathPol
   } else {
     await assertInstallPathIdentities(pathIdentities, runtime);
     await rm(runtime, {recursive: true, force: true});
+    // The helper bundle is code, not data — like `runtime` above, it is
+    // removed even when `--retain-data` keeps the sqlite state and logs
+    // that live directly under `support`. `delete`-data's rm(support, ...)
+    // already covers this directory; only the `retain` branch needs an
+    // explicit removal.
+    await assertInstallPathIdentities(pathIdentities, path.dirname(paths.helperAppPath));
+    await rm(path.dirname(paths.helperAppPath), {recursive: true, force: true});
   }
   return {ok: true, dataRetained: choices.data === 'retain', itemsRetained: choices.items === 'retain'};
 }

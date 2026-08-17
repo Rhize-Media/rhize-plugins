@@ -60,6 +60,11 @@ struct HelperRequest: Codable, Sendable {
     let approved: Bool?
     let createList: Bool?
     let redactTitles: Bool?
+    /// Only meaningful in `--serve` (socket) mode: the caller-supplied list
+    /// scope for THIS request. The stdin/stdout mode ignores it entirely
+    /// and keeps using the process-wide `RHIZE_TASKS_REMINDERS_LIST_ID` env
+    /// var, since one stdin/stdout process is already scoped to one caller.
+    let allowedListId: String?
 }
 
 struct HelperList: Codable, Equatable, Sendable {
@@ -101,18 +106,54 @@ func processRequestLine(_ line: String, store: EventKitStore) async -> HelperRes
     }
 }
 
+/// Where a request's allowed-list scope comes from. The stdin/stdout mode
+/// spawns one process per caller, so the scope was always fixed for that
+/// process's whole lifetime (`RHIZE_TASKS_REMINDERS_LIST_ID`, read once at
+/// startup). The `--serve` socket mode is a single long-lived process
+/// handling requests from potentially many callers over its lifetime, so
+/// scope must travel with each individual request instead — a helper with
+/// no list scope at all would report every real snapshot/write as
+/// `out_of_scope` despite `authorize` looking perfectly healthy.
+enum ScopeSource: Sendable {
+    case fixedList(String)
+    case perRequest
+}
+
 actor EventKitStore {
     static let markerPrefix = "rhize-tasks:item:"
 
     private let eventStore: any ReminderBackingStore
-    private let allowedListID: String
+    private let scope: ScopeSource
     private let dateFormatter: ISO8601DateFormatter
 
+    /// Preserved for the stdin/stdout mode and every existing call site —
+    /// equivalent to `init(eventStore:scope: .fixedList(allowedListID))`.
     init(eventStore: any ReminderBackingStore, allowedListID: String) {
+        self.init(eventStore: eventStore, scope: .fixedList(allowedListID))
+    }
+
+    init(eventStore: any ReminderBackingStore, scope: ScopeSource) {
         self.eventStore = eventStore
-        self.allowedListID = allowedListID
+        self.scope = scope
         self.dateFormatter = ISO8601DateFormatter()
         self.dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    }
+
+    /// Resolves the list this specific request is allowed to touch. Fixed
+    /// scope ignores anything the request itself claims (the env var is
+    /// authoritative for that whole process); per-request scope requires
+    /// the caller to supply one — a `--serve`-mode request with no
+    /// `allowedListId` is out of scope, not "use whatever the last caller
+    /// used".
+    private func resolveAllowedListID(_ request: HelperRequest) throws -> String {
+        switch scope {
+        case .fixedList(let listID):
+            guard !listID.isEmpty else { throw HelperFailure.outOfScope }
+            return listID
+        case .perRequest:
+            guard let listID = request.allowedListId, !listID.isEmpty else { throw HelperFailure.outOfScope }
+            return listID
+        }
     }
 
     func execute(_ request: HelperRequest) async throws -> HelperResponse {
@@ -131,7 +172,8 @@ actor EventKitStore {
             return HelperResponse(lists: try eventStore.lists().map { HelperList(id: $0.id, title: $0.title) })
         case "snapshot":
             let requested = request.listIds ?? []
-            guard !allowedListID.isEmpty, !requested.isEmpty, requested.allSatisfy({ $0 == allowedListID }) else {
+            let allowed = try resolveAllowedListID(request)
+            guard !requested.isEmpty, requested.allSatisfy({ $0 == allowed }) else {
                 throw HelperFailure.outOfScope
             }
             let redact = request.redactTitles ?? false
@@ -158,14 +200,15 @@ actor EventKitStore {
         }
     }
 
-    private func requireAllowedList(_ listID: String?) throws -> String {
-        guard let listID, !listID.isEmpty, listID == allowedListID else { throw HelperFailure.outOfScope }
+    private func requireAllowedList(_ request: HelperRequest) throws -> String {
+        let allowed = try resolveAllowedListID(request)
+        guard let listID = request.listId, !listID.isEmpty, listID == allowed else { throw HelperFailure.outOfScope }
         guard try eventStore.lists().contains(where: { $0.id == listID }) else { throw HelperFailure.listNotFound }
         return listID
     }
 
     private func upsert(_ request: HelperRequest) async throws -> HelperResponse {
-        let listID = try requireAllowedList(request.listId)
+        let listID = try requireAllowedList(request)
         guard let externalID = request.externalId, isSafeStableID(externalID),
               let title = request.title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw HelperFailure.invalidRequest
@@ -204,7 +247,7 @@ actor EventKitStore {
     }
 
     private func mutate(_ request: HelperRequest, delete: Bool) async throws -> HelperResponse {
-        let listID = try requireAllowedList(request.listId)
+        let listID = try requireAllowedList(request)
         guard let id = request.id, isSafeStableID(id) else { throw HelperFailure.invalidRequest }
         let reminders = try await eventStore.reminders(listIDs: [listID])
         guard var reminder = reminders.first(where: {

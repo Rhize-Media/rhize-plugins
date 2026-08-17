@@ -25,7 +25,26 @@ import {hasActiveProcessGroups, killActiveProcessGroups, runProcess} from '../..
 import {withSingleInstance} from '../../service/src/scheduler/single-instance.mjs';
 
 const existingKeychain = () => ({async get() { return 't'.repeat(43); }, async set() {}, async delete() {}});
-const install = options => installRuntime({keychain: existingKeychain(), checkNodePathExecutable: async () => {}, verifyNodePathCapable: async () => true, ...options});
+// probeHelperSocketReady defaults to a no-op: production's real default
+// (waitForHelperSocketReady -> an actual socket connect) would otherwise
+// poll for up to 5s and then fail every single test here, since none of
+// these fakes ever start a real listening helper process. Tests of the
+// readiness check itself (finding #3) override this explicitly.
+const install = options => installRuntime({keychain: existingKeychain(), checkNodePathExecutable: async () => {}, verifyNodePathCapable: async () => true, probeHelperSocketReady: async () => {}, ...options});
+
+// os.tmpdir() on macOS resolves to a long per-user path (~46+ bytes,
+// /var/folders/<hash>/<hash>/T/) that, combined with Library/Application
+// Support/Rhize Tasks/reminders-helper.sock (65 bytes), reliably exceeds
+// sockaddr_un's 104-byte sun_path limit and trips install()'s new
+// helper_socket_path_too_long guard (finding #3) — not hypothetical, it
+// broke every install() test in this file the moment the guard was added.
+// /tmp (13 real bytes as /private/tmp) with a length-capped prefix stays
+// well clear of that limit. (tmpdir() itself is still used directly by the
+// one test below that deliberately needs a long-lived, symlink-safe path
+// outside any per-test directory it also creates.)
+function shortTempHome(label) {
+  return mkdtemp(path.join('/tmp', `rt-${label.slice(0, 15)}-`));
+}
 
 async function seedInstallSource(home, version = '0.1.0') {
   const sourceRoot = path.join(home, 'plugin');
@@ -42,14 +61,34 @@ async function seedInstallSource(home, version = '0.1.0') {
   return {sourceRoot, packageRoot};
 }
 
+// Tracks the routine agent and the helper agent independently — install()
+// now bootstraps/boots out two separate launchd labels, and a shared single
+// `isLoaded`/plist-path pair (the pre-dual-agent shape of this fake) makes
+// print() answer with the ROUTINE's plist path even when the HELPER's
+// label was queried, tripping `launchctl_configuration_mismatch` spuriously.
+// `loaded` seeds the ROUTINE's initial state only (matches every existing
+// caller's intent); the helper always starts unloaded unless a test
+// bootstraps it itself. Target detection is by substring on the call's own
+// args, so no caller needs to say which target it's calling.
 function fakeRun(plistPath, {loaded = false, calls = []} = {}) {
-  let isLoaded = loaded;
+  let routineLoaded = loaded;
+  let routinePlistPath = plistPath;
+  let helperLoaded = false;
+  let helperPlistPath = null;
   return async (file, args) => {
     calls.push([file, args]);
     if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
-    if (args[0] === 'print') return isLoaded ? {code: 0, stdout: `path = ${plistPath}\n`} : {code: 113, stderr: 'not loaded'};
-    if (args[0] === 'bootout') { isLoaded = false; return {code: 0, stdout: ''}; }
-    if (args[0] === 'bootstrap') { isLoaded = true; return {code: 0, stdout: ''}; }
+    const isHelper = args.some(arg => typeof arg === 'string' && arg.includes('reminders-helper'));
+    if (args[0] === 'print') {
+      if (isHelper) return helperLoaded ? {code: 0, stdout: `path = ${helperPlistPath}\n`} : {code: 113, stderr: 'not loaded'};
+      return routineLoaded ? {code: 0, stdout: `path = ${routinePlistPath}\n`} : {code: 113, stderr: 'not loaded'};
+    }
+    if (args[0] === 'bootout') { if (isHelper) helperLoaded = false; else routineLoaded = false; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootstrap') {
+      const plistArg = args.at(-1);
+      if (isHelper) { helperLoaded = true; helperPlistPath = plistArg; } else { routineLoaded = true; routinePlistPath = plistArg; }
+      return {code: 0, stdout: ''};
+    }
     return {code: 0, stdout: ''};
   };
 }
@@ -74,7 +113,7 @@ test('runProcess timeout actually terminates a grandchild, not just resolves qui
   // termination directly: the grandchild writes its own pid, then loops
   // appending to a marker file — after the group is killed, both the marker
   // must stop growing and the grandchild's pid must no longer exist.
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-groupkill-'));
+  const dir = await shortTempHome('groupkill');
   const marker = path.join(dir, 'marker.log');
   const pidFile = path.join(dir, 'grandchild.pid');
   const script = `(echo $$ > ${JSON.stringify(pidFile)}; while true; do echo tick >> ${JSON.stringify(marker)}; sleep 0.1; done) & exec sleep 30`;
@@ -92,7 +131,7 @@ test('runProcess timeout actually terminates a grandchild, not just resolves qui
 });
 
 test('killActiveProcessGroups reaches a still-running child\'s grandchild too (finding #6-followup)', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-killactive-'));
+  const dir = await shortTempHome('killactive');
   const marker = path.join(dir, 'marker.log');
   const pidFile = path.join(dir, 'grandchild.pid');
   const script = `(echo $$ > ${JSON.stringify(pidFile)}; while true; do echo tick >> ${JSON.stringify(marker)}; sleep 0.1; done) & exec sleep 30`;
@@ -113,9 +152,24 @@ test('killActiveProcessGroups reaches a still-running child\'s grandchild too (f
   await rm(dir, {recursive: true, force: true});
 });
 
+// Several tests below hand-write a bespoke `run` closure to exercise a
+// specific ROUTINE-agent launchctl sequence in detail. None of them are
+// about the helper agent, so every helper-targeted call just succeeds
+// uninterrupted (tracking its own trivial loaded/not-loaded state so the
+// post-bootstrap activation-verification print still answers correctly).
+function helperSucceedsHandler(paths) {
+  let loaded = false;
+  return async args => {
+    if (args[0] === 'print') return loaded ? {code: 0, stdout: `path = ${paths.helperLaunchAgentPath}\n`} : {code: 113, stderr: 'not loaded'};
+    if (args[0] === 'bootout') { loaded = false; return {code: 0, stdout: ''}; }
+    if (args[0] === 'bootstrap') { loaded = true; return {code: 0, stdout: ''}; }
+    return {code: 0, stdout: ''};
+  };
+}
+
 // #21 — bootout before the runtime swap.
 test('same-version reinstall stops the old agent before the runtime directory is swapped (finding #21)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-reorder-'));
+  const home = await shortTempHome('reorder');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const priorRuntime = path.join(paths.runtimeDir, 'versions', '0.1.0');
@@ -126,9 +180,13 @@ test('same-version reinstall stops the old agent before the runtime directory is
   await writeFile(paths.launchAgentPath, 'old plist\n');
   await writeFile(paths.installationManifestPath, `${JSON.stringify({schemaVersion: 1, runtimePath: priorRuntime, cliPath: cliInPriorRuntime})}\n`);
   let observedAtBootout = null;
+  const helperHandler = helperSucceedsHandler(paths);
   const run = async (file, args) => {
-    if (file === '/bin/launchctl' && args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
-    if (file === '/bin/launchctl' && args[0] === 'bootout') {
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    // This test is about the ROUTINE agent only — no prior helper exists.
+    if (args.some(arg => typeof arg === 'string' && arg.includes('reminders-helper'))) return helperHandler(args);
+    if (args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
+    if (args[0] === 'bootout') {
       observedAtBootout = await readFile(cliInPriorRuntime, 'utf8').catch(() => 'MISSING');
       return {code: 0, stdout: ''};
     }
@@ -141,7 +199,7 @@ test('same-version reinstall stops the old agent before the runtime directory is
 
 // #22 — SIGTERM releases the lock, and a dead pid is reclaimable regardless of age.
 test('withSingleInstance releases its lock on SIGTERM instead of leaving it stale for 30 minutes (finding #22)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sigterm-'));
+  const directory = await shortTempHome('sigterm');
   const lockPath = path.join(directory, 'routine.lock');
   // The action's promise must keep the event loop non-idle (a live timer),
   // or Node's own "unsettled top-level await" detector force-exits the
@@ -175,7 +233,7 @@ test('withSingleInstance releases its lock on SIGTERM instead of leaving it stal
 });
 
 test('withSingleInstance reclaims a dead pid immediately, without waiting out the 30-minute age gate (finding #22)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-reclaim-'));
+  const directory = await shortTempHome('reclaim');
   const lockPath = path.join(directory, 'routine.lock');
   await writeFile(lockPath, JSON.stringify({pid: 999999, token: 'stale', startedAt: new Date().toISOString()}), {mode: 0o600});
   const result = await withSingleInstance(lockPath, async () => 'reclaimed-immediately');
@@ -185,7 +243,7 @@ test('withSingleInstance reclaims a dead pid immediately, without waiting out th
 
 // #23 — stale artifact sweep and atomicWriteFile EEXIST recovery.
 test('install sweeps a dead pid\'s leftover .installing-<pid> stage dir and <version>.previous-<pid> backup (finding #23)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sweep-'));
+  const home = await shortTempHome('sweep');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const deadPid = 999999;
@@ -202,7 +260,7 @@ test('install sweeps a dead pid\'s leftover .installing-<pid> stage dir and <ver
 });
 
 test('install does not sweep a stage dir or backup whose pid is still running (finding #23)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sweep-live-'));
+  const home = await shortTempHome('sweep-live');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   // pid 1 (launchd) is always running and is never the current process's own
@@ -219,7 +277,7 @@ test('install does not sweep a stage dir or backup whose pid is still running (f
 });
 
 test('atomicWriteFile clears a stale same-pid .installing temp file instead of hard-failing EEXIST (finding #23)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-atomic-eexist-'));
+  const directory = await shortTempHome('atomic-eexist');
   const target = path.join(directory, 'file.json');
   const temporary = `${target}.installing-${process.pid}`;
   await writeFile(temporary, 'orphaned debris from an earlier run that reused this pid');
@@ -302,7 +360,7 @@ test('resolveInstallNodePath rejects an executable but incapable stable-looking 
 });
 
 test('install records the resolved node path in installation.json for doctor to check (finding #4)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-nodepath-manifest-'));
+  const home = await shortTempHome('nodepath-manifest');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const run = fakeRun(paths.launchAgentPath);
@@ -326,7 +384,7 @@ test('resolveInstallNodePath default capability probe accepts the real, currentl
 
 // #3 — stable version metadata, old-version pruning, signing identity override.
 test('install syncs CFBundleShortVersionString/CFBundleVersion into the staged Info.plist from package.json (finding #3)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-plist-version-'));
+  const home = await shortTempHome('plist-version');
   const {sourceRoot} = await seedInstallSource(home, '0.7.3');
   const paths = exactInstallPaths(home);
   const run = fakeRun(paths.launchAgentPath);
@@ -337,7 +395,7 @@ test('install syncs CFBundleShortVersionString/CFBundleVersion into the staged I
 });
 
 test('install prunes old runtime version directories after a successful install (finding #3)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-prune-'));
+  const home = await shortTempHome('prune');
   const {sourceRoot} = await seedInstallSource(home, '0.2.0');
   const paths = exactInstallPaths(home);
   const oldVersionDir = path.join(paths.runtimeDir, 'versions', '0.1.0');
@@ -350,7 +408,7 @@ test('install prunes old runtime version directories after a successful install 
 });
 
 test('install ad-hoc signs by default but honors RHIZE_TASKS_SIGN_IDENTITY when set (finding #3)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sign-identity-'));
+  const home = await shortTempHome('sign-identity');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const codesignArgs = [];
@@ -362,7 +420,7 @@ test('install ad-hoc signs by default but honors RHIZE_TASKS_SIGN_IDENTITY when 
   await install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})});
   assert.deepEqual(codesignArgs[0].slice(0, 3), ['--force', '--sign', '-']);
 
-  const home2 = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sign-identity-2-'));
+  const home2 = await shortTempHome('sign-identity-2');
   const {sourceRoot: sourceRoot2} = await seedInstallSource(home2);
   const paths2 = exactInstallPaths(home2);
   const codesignArgs2 = [];
@@ -382,7 +440,7 @@ test('install ad-hoc signs by default but honors RHIZE_TASKS_SIGN_IDENTITY when 
 
 // #25 — codesign before hardenTree, so signature material is also normalized to 0600.
 test('codesign runs before hardenTree so _CodeSignature material is also normalized to 0600 (finding #25)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-sign-order-'));
+  const home = await shortTempHome('sign-order');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const base = fakeRun(paths.launchAgentPath);
@@ -403,7 +461,7 @@ test('codesign runs before hardenTree so _CodeSignature material is also normali
 
 // #25 — symlinked $HOME message.
 test('a symlinked $HOME reports a clear message instead of reading as a security violation (finding #25)', async () => {
-  const real = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-real-home-'));
+  const real = await shortTempHome('real-home');
   const link = path.join(tmpdir(), `rhize-tasks-home-link-${process.pid}-${Date.now()}`);
   const {symlink} = await import('node:fs/promises');
   await symlink(real, link);
@@ -421,7 +479,7 @@ test('a symlinked $HOME reports a clear message instead of reading as a security
 
 // #25 — secret-scanner false positive on path-shaped placeholder values.
 test('renderLaunchAgent does not false-positive on "secrets" appearing inside a path (finding #25)', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-plist-secretpath-'));
+  const dir = await shortTempHome('plist-secretpath');
   const templatePath = path.join(dir, 'template.plist');
   await writeFile(templatePath, await readFile(new URL('../../installer/media.rhize.tasks.plist.template', import.meta.url), 'utf8'));
   const output = await renderLaunchAgent({
@@ -435,7 +493,7 @@ test('renderLaunchAgent does not false-positive on "secrets" appearing inside a 
 });
 
 test('renderLaunchAgent still rejects a real secret injected outside the known path placeholders (finding #25)', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-plist-realsecret-'));
+  const dir = await shortTempHome('plist-realsecret');
   const templatePath = path.join(dir, 'template.plist');
   const original = await readFile(new URL('../../installer/media.rhize.tasks.plist.template', import.meta.url), 'utf8');
   await writeFile(templatePath, original.replace('<key>Label</key>', '<key>Label</key>\n  <!-- bearer-token-leak -->'));
@@ -447,7 +505,7 @@ test('renderLaunchAgent still rejects a real secret injected outside the known p
 
 // #25 — plist passes --no-warnings so node:sqlite's ExperimentalWarning does not spam the log every 15 minutes.
 test('rendered launch agent passes --no-warnings to node so node:sqlite does not spam the log every 15 minutes (finding #25)', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-plist-nowarn-'));
+  const dir = await shortTempHome('plist-nowarn');
   const templatePath = path.join(dir, 'template.plist');
   await writeFile(templatePath, await readFile(new URL('../../installer/media.rhize.tasks.plist.template', import.meta.url), 'utf8'));
   const output = await renderLaunchAgent({nodePath: '/opt/node', cliPath: '/opt/cli.mjs', stdoutPath: '/tmp/out', stderrPath: '/tmp/err', templatePath});
@@ -465,7 +523,7 @@ test('errorKind derives a classification from message or code when .kind is abse
 });
 
 test('runChecked failures surface the command, exit code, and output tail instead of a bare command_failed (finding #6)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-runchecked-'));
+  const home = await shortTempHome('runchecked');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   const run = async file => {
@@ -525,7 +583,7 @@ test('ensureServerRunning throws a diagnosable error when the spawned server nev
 // failing outright (checkLoopbackPort) or deleting the runtime out from
 // under it (uninstall).
 test('the serve command writes a pidfile on start and removes it on shutdown (finding #1)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-servepid-'));
+  const directory = await shortTempHome('servepid');
   const stored = new Map([['media.rhize.tasks.api\0bearer', 't'.repeat(43)]]);
   const keychain = {
     async get(service, account) { const value = stored.get(`${service}\0${account}`); if (!value) throw {kind: 'not_found'}; return value; },
@@ -552,7 +610,7 @@ test('the serve command writes a pidfile on start and removes it on shutdown (fi
 });
 
 test('serve writes its pidfile before listening, so a write failure never leaves a listening server untracked (finding #1-followup)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-servepid-writefail-'));
+  const directory = await shortTempHome('servepid-writefail');
   const stored = new Map([['media.rhize.tasks.api\0bearer', 't'.repeat(43)]]);
   const keychain = {
     async get(service, account) { const value = stored.get(`${service}\0${account}`); if (!value) throw {kind: 'not_found'}; return value; },
@@ -578,7 +636,7 @@ test('serve writes its pidfile before listening, so a write failure never leaves
 });
 
 test('serve cleans up its pidfile when listen() fails after a successful write, instead of leaving it stale (finding #1-followup)', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-servepid-listenfail-'));
+  const directory = await shortTempHome('servepid-listenfail');
   const stored = new Map([['media.rhize.tasks.api\0bearer', 't'.repeat(43)]]);
   const keychain = {
     async get(service, account) { const value = stored.get(`${service}\0${account}`); if (!value) throw {kind: 'not_found'}; return value; },
@@ -641,7 +699,7 @@ test('checkLoopbackPort actually stops a real detached process via its pidfile (
   // End-to-end proof of the real, non-faked stopServeProcessIfRunning path:
   // spawn a real dummy "serve" stand-in, write its pid to a file, and
   // confirm checkLoopbackPort's default stopOwnServer terminates it.
-  const dir = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-stopserver-'));
+  const dir = await shortTempHome('stopserver');
   const pidPath = path.join(dir, 'serve.pid');
   const child = spawn(process.execPath, ['--input-type=module', '--eval', "setInterval(() => {}, 1000); process.stdout.write('ready\\n');"], {stdio: ['ignore', 'pipe', 'ignore']});
   await new Promise((resolve, reject) => {
@@ -666,7 +724,7 @@ test('checkLoopbackPort actually stops a real detached process via its pidfile (
 });
 
 test('uninstall stops its own running server before deleting the runtime/database out from under it (finding #1)', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-stopserver-'));
+  const root = await shortTempHome('uninstall-stopserver');
   const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
@@ -681,7 +739,7 @@ test('uninstall stops its own running server before deleting the runtime/databas
 });
 
 test('uninstall aborts instead of deleting the runtime when it cannot confirm its own server stopped (finding #1)', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-stopserver-fail-'));
+  const root = await shortTempHome('uninstall-stopserver-fail');
   const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
@@ -702,7 +760,7 @@ test('uninstall probes /health and aborts instead of deleting the runtime when n
   // install from before the pidfile mechanism existed, a manually deleted
   // pidfile, or a corrupted write could all leave a real server running
   // with no pidfile pointing at it.
-  const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-nopid-answering-'));
+  const root = await shortTempHome('uninstall-nopid-answering');
   const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
@@ -722,7 +780,7 @@ test('uninstall probes /health and aborts instead of deleting the runtime when n
 });
 
 test('uninstall proceeds when there is no pidfile and nothing answers /health either (finding #1-followup)', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-uninstall-nopid-quiet-'));
+  const root = await shortTempHome('uninstall-nopid-quiet');
   const paths = exactInstallPaths(root);
   await mkdir(paths.runtimeDir, {recursive: true});
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
@@ -741,16 +799,21 @@ test('uninstall proceeds when there is no pidfile and nothing answers /health ei
 // must not attempt to "restore" it, and a failure after the swap where we
 // cannot confirm the new job is stopped must not touch the runtime/plist.
 test('a stage-build failure before the old agent is stopped never attempts to re-bootstrap it (finding #4-followup)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-preswap-fail-'));
+  const home = await shortTempHome('preswap-fail');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await writeFile(paths.launchAgentPath, 'old plist');
   const bootstrapCalls = [];
+  const helperHandler = helperSucceedsHandler(paths);
   const run = async (file, args) => {
     if (file === '/usr/bin/codesign') throw new Error('codesign_unavailable');
-    if (file === '/bin/launchctl' && args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
-    if (file === '/bin/launchctl' && args[0] === 'bootstrap') bootstrapCalls.push(args);
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    // No prior helper in this scenario — only the routine's prior agent
+    // matters to this test.
+    if (args.some(arg => typeof arg === 'string' && arg.includes('reminders-helper'))) return helperHandler(args);
+    if (args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
+    if (args[0] === 'bootstrap') bootstrapCalls.push(args);
     return {code: 0, stdout: ''};
   };
   await assert.rejects(install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}), error => error.activationState === 'stage_build_failed');
@@ -759,21 +822,24 @@ test('a stage-build failure before the old agent is stopped never attempts to re
 });
 
 test('a post-swap failure that cannot confirm the new job stopped leaves the runtime and plist untouched, reporting manual recovery (finding #4-followup)', async () => {
-  const home = await mkdtemp(path.join(tmpdir(), 'rhize-tasks-postswap-fail-'));
+  const home = await shortTempHome('postswap-fail');
   const {sourceRoot} = await seedInstallSource(home);
   const paths = exactInstallPaths(home);
   await mkdir(path.dirname(paths.launchAgentPath), {recursive: true});
   await mkdir(paths.supportDir, {recursive: true});
   await writeFile(paths.launchAgentPath, 'old plist');
   await writeFile(paths.installationManifestPath, 'old manifest');
+  const helperHandler = helperSucceedsHandler(paths);
   const run = async (file, args) => {
-    if (file === '/bin/launchctl' && args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
-    // Old bootout succeeds (so the swap proceeds); the NEW bootstrap
-    // succeeds too (so a job is now running against the new runtime);
-    // final verification then fails, and — critically — the rollback's own
-    // attempt to bootout the NEW job also fails, so its state can never be
-    // confirmed.
-    if (file === '/bin/launchctl' && args[0] === 'bootout') throw new Error('unconfirmable');
+    if (file !== '/bin/launchctl') return {code: 0, stdout: ''};
+    // No prior helper in this scenario — only the routine's prior agent
+    // matters to this test, so the helper's own swap+rollback proceeds
+    // uneventfully while the routine's bootout is what can never be
+    // confirmed (both the forward attempt and rollback's own re-attempt hit
+    // the same unconditional throw below).
+    if (args.some(arg => typeof arg === 'string' && arg.includes('reminders-helper'))) return helperHandler(args);
+    if (args[0] === 'print') return {code: 0, stdout: `path = ${paths.launchAgentPath}\n`};
+    if (args[0] === 'bootout') throw new Error('unconfirmable');
     return {code: 0, stdout: ''};
   };
   const error = await install({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run, uid: 501, validate: async () => ({})}).catch(value => value);

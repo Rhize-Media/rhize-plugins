@@ -39,7 +39,8 @@ private func request(
     externalID: String? = "RHIZE-123",
     approved: Bool? = nil,
     createList: Bool? = nil,
-    redactTitles: Bool? = nil
+    redactTitles: Bool? = nil,
+    allowedListId: String? = nil
 ) -> HelperRequest {
     HelperRequest(
         command: command,
@@ -54,7 +55,8 @@ private func request(
         completedAt: nil,
         approved: approved,
         createList: createList,
-        redactTitles: redactTitles
+        redactTitles: redactTitles,
+        allowedListId: allowedListId
     )
 }
 

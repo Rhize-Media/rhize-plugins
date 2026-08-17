@@ -29,7 +29,7 @@ The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is
 | Local service | Unified plan, approvals, audit, carryover, setup | Local SQLite and connector snapshots | Local SQLite; approved operations delegated to connectors |
 | Dashboard/artifact | Human review | Sanitized TodayView | Dashboard uses authenticated API; artifact is read-only |
 
-The production runtime is split into a Node.js service and a small Swift EventKit helper. The helper accepts newline-delimited JSON, requests full Reminders access through macOS, and enforces the configured list ID. The service owns validation, planning, connector scopes, approval state, routine locks, and audit records. Claude and Codex skills call this same local authority; they do not independently reimplement Jira or scheduling logic.
+The production runtime is split into a Node.js service and a small Swift EventKit helper. The helper runs as its own LaunchAgent (`media.rhize.tasks.reminders-helper`) serving newline-delimited JSON over a private Unix socket — making it its own TCC-responsible process, so the macOS Reminders permission prompt is attributed to the helper bundle and the grant holds for background routine runs. The service connects over the socket (falling back to direct stdin/stdout spawn when no socket is installed, e.g. in development), and the helper enforces the configured list ID either way. The service owns validation, planning, connector scopes, approval state, routine locks, and audit records. Claude and Codex skills call this same local authority; they do not independently reimplement Jira or scheduling logic.
 
 ## Requirements
 
@@ -39,7 +39,8 @@ The production runtime is split into a Node.js service and a small Swift EventKi
 - Xcode or Command Line Tools capable of building the Swift 6 EventKit package. Some Command Line Tools-only installations cannot resolve the macOS framework/toolchain combination even when `swift` is present; install or select a compatible full Xcode toolchain before treating that as an application defect.
 - Loopback port `43179` available.
 - Jira Cloud API credentials, Google OAuth client/refresh credentials, and a Slack bot token if Slack fallback is enabled.
-- macOS Reminders permission for the installed helper app. Grant access only when the setup wizard runs its explicit check.
+- The Google Cloud OAuth app must be in **Production** publishing status. Testing status force-expires refresh tokens after 7 days, which surfaces as a weekly `revoked` calendar.
+- macOS Reminders permission for the installed helper app. Grant access only when the setup wizard runs its explicit check. Note: with the default ad-hoc code signature, macOS re-prompts for this grant after each plugin update; installing a Developer ID Application certificate in the keychain makes the grant persist (the installer detects and uses it automatically).
 
 The installer validates these requirements before activation. It does not perform a live Jira, Calendar, Reminders, or Slack write during installation.
 
@@ -57,7 +58,7 @@ From the plugin directory:
 npm run install:local
 ```
 
-The install is transactional. It builds the Swift helper in release mode, constructs and ad-hoc signs `RhizeRemindersHelper.app` with bundle ID `media.rhize.tasks.reminders-helper` (set `RHIZE_TASKS_SIGN_IDENTITY` to sign with a real identity instead), installs an immutable runtime copy, writes the manifest and LaunchAgent atomically, boots out the old agent before swapping the runtime, and restores the previous loaded configuration only when it can verify that restore is safe — otherwise it stops with `manual_recovery_required` rather than mutating a runtime it cannot prove is quiescent.
+The install is transactional. It builds the Swift helper in release mode and constructs `RhizeRemindersHelper.app` with bundle ID `media.rhize.tasks.reminders-helper`, signing with a Developer ID Application identity when one exists in the keychain (auto-detected; `RHIZE_TASKS_SIGN_IDENTITY` overrides; ad-hoc otherwise). The helper bundle installs at a stable path outside the versioned runtime tree, and its LaunchAgent serves the Unix socket. The installer writes both LaunchAgents (helper first, then routine) and the manifest atomically, boots out the old agents before swapping the runtime, and restores the previous loaded configuration only when it can verify that restore is safe — otherwise it stops with `manual_recovery_required` rather than mutating a runtime it cannot prove is quiescent.
 
 Reinstalling while the plugin's own local server is running is handled automatically: the installer recognizes its own `/health` endpoint on port `43179`, stops that server via its pidfile, and proceeds. Only a foreign process on the port aborts the install.
 
@@ -73,7 +74,10 @@ Installed paths:
 | Database | `~/Library/Application Support/Rhize Tasks/state.sqlite` |
 | Routine lock | `~/Library/Application Support/Rhize Tasks/routine.lock` |
 | Logs | `~/Library/Application Support/Rhize Tasks/logs/` |
-| LaunchAgent | `~/Library/LaunchAgents/media.rhize.tasks.plist` |
+| Routine LaunchAgent | `~/Library/LaunchAgents/media.rhize.tasks.plist` |
+| Helper LaunchAgent | `~/Library/LaunchAgents/media.rhize.tasks.reminders-helper.plist` |
+| Helper bundle (stable) | `~/Library/Application Support/Rhize Tasks/native/RhizeRemindersHelper.app` |
+| Helper socket | `~/Library/Application Support/Rhize Tasks/reminders-helper.sock` |
 
 Support/runtime/log directories are restricted to the user, metadata is written with private modes, and symlinked or changed path ancestors are rejected. No token is written to the plist, runtime tree, logs, or SQLite database.
 
@@ -133,7 +137,9 @@ Scope expansion is previewed as an exact operation and requires approval. Expand
 - **Evening:** identify unfinished scheduled work, increment carryover once, and preview the next day.
 - **Catch-up:** after sleep or a missed launch, evaluate all missed phases but run exactly one appropriate phase. Repeated wakeups do not duplicate the evaluation.
 
-The LaunchAgent invokes `routine catch-up` every 15 minutes and at load. The local routine evaluator decides whether morning, midday, or evening is actually due from Tom's saved times. A single-instance lock prevents overlapping runs and reclaims a stale lock only when its recorded process is no longer alive.
+Slack syncs are incremental: channel parents are always scanned over the full lookback window, while a persisted watermark gates the expensive per-thread reply pagination (a thread's replies are re-fetched only when its latest reply is newer than the watermark, with a 24-hour grace). The watermark advances only when a sync completes without truncation, so budget-capped syncs never silently skip messages, and new replies to old threads are still caught.
+
+The routine LaunchAgent invokes `routine catch-up` every 15 minutes and at load. The local routine evaluator decides whether morning, midday, or evening is actually due from Tom's saved times. A single-instance lock prevents overlapping runs and reclaims a stale lock only when its recorded process is no longer alive.
 
 Carryover is intentionally bounded: the first miss is rescheduled once, the next asks for diagnosis, and repeated misses require a decision such as split, delegate, defer, or renegotiate. Local carryover, manual locks, reservations, and confirmed estimates survive ordinary Jira refreshes.
 
@@ -183,7 +189,7 @@ Each skill resolves the versioned installed CLI, treats imported content as untr
 
 ## Pause, recovery, and diagnosis
 
-Use the dashboard pause control before changing credentials, permissions, calendar/list ownership, or routine policy. `doctor --json` reports redacted version (read from `package.json`), database, activation, pause, connector health, and installation health: `agentLoaded`, `plistNodePathExists`, `runtimeVersionMatch`, and `lastRoutineRun` (each degrades to `null` rather than failing). `revoked` means the credential or permission must be restored; it does not authorize a new write. A Google refresh token rejected with `invalid_grant` and a denied macOS Reminders authorization both report as `revoked` — they are no longer indistinguishable from `offline`.
+Use the dashboard pause control before changing credentials, permissions, calendar/list ownership, or routine policy. `doctor --json` reports redacted version (read from `package.json`), database, activation, pause, connector health, and installation health: `agentLoaded`, `plistNodePathExists`, `runtimeVersionMatch`, `lastRoutineRun`, and `remindersHelper` (which transport — socket or spawn — and paths resolved; each degrades to `null` rather than failing). `revoked` means the credential or permission must be restored; it does not authorize a new write. A Google refresh token rejected with `invalid_grant` and a denied macOS Reminders authorization both report as `revoked` — they are no longer indistinguishable from `offline`.
 
 On a `revision_conflict`, refresh TodayView and review the new operations. On `reconciliation_required`, select only displayed operation IDs and approve one bounded attempt. If Reminders permission is denied, open macOS **System Settings > Privacy & Security > Reminders** and restore access to Rhize Reminders Helper, then rerun doctor and the approved probe. If port `43179` is occupied by a foreign process, identify and stop it before reinstalling; the plugin's own server is detected and stopped automatically. Connector rate limits are honored: a `429` waits out `Retry-After` (capped at 30s) before its single bounded retry instead of retrying immediately.
 
@@ -218,13 +224,6 @@ python3 ../tests/rhize-ops/test_delegation_contract.py
 
 Repository release validation also checks both plugin manifests, the marketplace, generated skill map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A real Tom-Mac acceptance remains mandatory before enabling writes: approve a disposable Jira issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample, exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
 
-## Known limitations (open decisions)
-
-- **Reminders writes under launchd are expected to fail authorization.** macOS attributes a TCC request to the responsible process; the helper binary is spawned directly by the Node agent, so under launchd there is no GUI context to prompt and no bundle-derived attribution. Interactive use (server started from Terminal via `dashboard`) prompts and works; the background routine's Reminders writes will report `revoked` until the helper is registered as its own launch agent or launched through LaunchServices. This is a deliberate open design decision, now *visible* through doctor rather than silent.
-- **Ad-hoc signing resets the Reminders grant on every rebuild.** Without a stable Developer ID signature, the helper's cdhash changes each time it is rebuilt and TCC re-prompts. Supply `RHIZE_TASKS_SIGN_IDENTITY` once a signing identity is provisioned.
-- **Google OAuth apps in “Testing” publishing status expire refresh tokens after 7 days.** That expiry now surfaces as `revoked` instead of `offline`, but the fix is publishing the OAuth consent screen, not code.
-- **Slack sync reads a bounded 7-day lookback window per run** (configurable), not a persisted high-water mark.
-
-## Current 0.1 boundary
+## Current 0.x boundary
 
 Rhize Tasks is a Mac-local planning service, not a cloud sync product or a general Jira automation engine. The first release handles the exact completion signal from a plugin-created reminder by prompting an approval-required Jira comment. Choosing among site-specific Done/Blocked/Partial transitions still requires Tom to review the actual Jira workflow; the plugin does not guess transition IDs. Slack messages outside the strict delegation contract are ignored.

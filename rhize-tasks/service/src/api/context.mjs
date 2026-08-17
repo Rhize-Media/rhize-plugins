@@ -34,6 +34,40 @@ function json(value) { return JSON.stringify(value); }
 function parse(value, fallback = null) { try { return JSON.parse(value); } catch { return fallback; } }
 function addLocalDays(date, count) { const [year, month, day] = date.split('-').map(Number); const value = new Date(Date.UTC(year, month - 1, day + count)); return `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, '0')}-${String(value.getUTCDate()).padStart(2, '0')}`; }
 
+function installationManifestPath(home) { return join(home, 'Library', 'Application Support', 'Rhize Tasks', 'installation.json'); }
+
+async function readInstallationManifest(home) {
+  try {
+    const manifest = JSON.parse(await readFile(installationManifestPath(home), 'utf8'));
+    return manifest && typeof manifest === 'object' && !Array.isArray(manifest) ? manifest : null;
+  } catch { return null; }
+}
+
+// Resolves how to reach the Reminders helper. The installer records `helperAppPath` (the
+// installed .app bundle, at a stable path) and `helperSocketPath` (a long-lived socket) in
+// installation.json once it lands the bundle. When that manifest is present, prefer its
+// recorded socket and derive the spawn-fallback binary from its bundle path. Falls back to the
+// runtime-relative dev/test path — the pre-installer behavior — when no manifest exists or it's
+// malformed, so dev/test setups that never ran the installer keep working. Never throws.
+export async function resolveRemindersHelperConfig({home = homedir(), readManifest = readInstallationManifest} = {}) {
+  let manifest = null;
+  try { manifest = await readManifest(home); } catch { manifest = null; }
+  const helperAppPath = typeof manifest?.helperAppPath === 'string' && manifest.helperAppPath ? manifest.helperAppPath : null;
+  const helperPath = helperAppPath ? join(helperAppPath, 'Contents', 'MacOS', 'RhizeRemindersHelper') : fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url));
+  const socketPath = typeof manifest?.helperSocketPath === 'string' && manifest.helperSocketPath ? manifest.helperSocketPath : null;
+  return {helperPath, socketPath};
+}
+
+// The stored watermark (epoch seconds, Slack's own ts unit) is handed to the connector as-is.
+// Parents are always fully rescanned by slack.mjs regardless of this value (a thread whose
+// parent predates any client-computed bound would otherwise become permanently invisible to
+// conversations.history, silently losing new replies posted to it — the bug a client-side
+// oldest/grace computation here previously had). slack.mjs alone decides, per thread, whether
+// to paginate replies, applying its own ~24h grace against replyWatermark. null on first sync.
+function slackReplyWatermark(watermarkSeconds) {
+  return Number.isFinite(watermarkSeconds) ? watermarkSeconds : null;
+}
+
 function preferenceStore(db, now) {
   return {
     get(key) { const row = db.prepare('select value_json from preferences where key = ?').get(key); return row ? parse(row.value_json) : null; },
@@ -89,10 +123,11 @@ function defaultRegistry({preferences, keychain, transport, now}) {
       const signature = json([profile, config]);
       if (signature === cachedProfile && cached) return cached;
       cachedProfile = signature; cachedConfig = config;
+      const remindersHelper = await resolveRemindersHelperConfig();
       cached = {
         jira: createJiraConnector({baseUrl: profile.jira.baseUrl, accountId: profile.jira.accountId, projectKeys: profile.jira.projects, issueTypes: profile.jira.issueTypes, credentials: keychain, transport}),
         calendar: createGoogleCalendarConnector({readCalendarIds: profile.calendar.readCalendarIds, focusCalendarId: profile.calendar.focusCalendarId, credentials: keychain, transport, now, redactOutsideTitles: profile.calendar.redactOutsideTitles}),
-        reminders: createRemindersConnector({helperPath: config.remindersHelperPath ?? fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url)), tasksListId: profile.reminders.tasksListId, awarenessLists: profile.reminders.awarenessLists}),
+        reminders: createRemindersConnector({helperPath: config.remindersHelperPath ?? remindersHelper.helperPath, socketPath: remindersHelper.socketPath, tasksListId: profile.reminders.tasksListId, awarenessLists: profile.reminders.awarenessLists}),
       };
       if (config.slack?.workspaceId && config.slack?.channelId && Array.isArray(config.slack.senderIds)) cached.slack = createSlackConnector({...config.slack, credentials: keychain, transport});
       return cached;
@@ -101,7 +136,7 @@ function defaultRegistry({preferences, keychain, transport, now}) {
       const stages = preferences.get('setup_stages') ?? {}; const identity = stages['2']?.data ?? {};
       if (connector === 'jira') return createJiraConnector({baseUrl: identity.jiraBaseUrl, accountId: identity.jiraAccountId, projectKeys: scope.projectKeys, issueTypes: scope.issueTypes, credentials: keychain, transport});
       if (connector === 'calendar') return createGoogleCalendarConnector({readCalendarIds: scope.readCalendarIds, focusCalendarId: scope.focusCalendarId, credentials: keychain, transport, now});
-      if (connector === 'reminders') return createRemindersConnector({helperPath: fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url)), tasksListId: scope.tasksListId, awarenessListIds: scope.awarenessListIds});
+      if (connector === 'reminders') { const remindersHelper = await resolveRemindersHelperConfig(); return createRemindersConnector({helperPath: remindersHelper.helperPath, socketPath: remindersHelper.socketPath, tasksListId: scope.tasksListId, awarenessListIds: scope.awarenessListIds}); }
       if (connector === 'slack') return createSlackConnector({...scope, credentials: keychain, transport});
       throw new TypeError('invalid setup connector');
     },
@@ -113,7 +148,7 @@ function defaultRegistry({preferences, keychain, transport, now}) {
         return discoveryAdapter(createJiraConnector({baseUrl: identity.jiraBaseUrl, accountId: identity.jiraAccountId, projectKeys: [], issueTypes: [], credentials: keychain, transport, discoverAll: true, discoveryOnly: true}));
       }
       if (connector === 'calendar') return discoveryAdapter(createGoogleCalendarConnector({readCalendarIds: [], focusCalendarId: '__discovery__', credentials: keychain, transport, now, discoverAll: true, discoveryOnly: true}));
-      if (connector === 'reminders') return discoveryAdapter(createRemindersConnector({helperPath: fileURLToPath(new URL('../../../native/RhizeRemindersHelper.app/Contents/MacOS/RhizeRemindersHelper', import.meta.url)), tasksListId: '__discovery__', awarenessListIds: []}));
+      if (connector === 'reminders') { const remindersHelper = await resolveRemindersHelperConfig(); return discoveryAdapter(createRemindersConnector({helperPath: remindersHelper.helperPath, socketPath: remindersHelper.socketPath, tasksListId: '__discovery__', awarenessListIds: []})); }
       if (connector === 'slack') {
         const scope = {workspaceId: identity.slackWorkspaceId, channelId: identity.slackChannelId, senderIds: identity.slackSenderIds};
         if (!scope.workspaceId || !scope.channelId || !Array.isArray(scope.senderIds) || scope.senderIds.length === 0) throw new ApiError('connector_configuration_required', 409);
@@ -226,10 +261,13 @@ function defaultSystemProbe({home = homedir()} = {}) {
     },
     async installedRuntimeVersion() {
       try {
-        const contents = await readFile(join(home, 'Library', 'Application Support', 'Rhize Tasks', 'installation.json'), 'utf8');
+        const contents = await readFile(installationManifestPath(home), 'utf8');
         const manifest = JSON.parse(contents);
         return typeof manifest.version === 'string' ? manifest.version : null;
       } catch { return null; }
+    },
+    async remindersHelperConfig() {
+      try { return await resolveRemindersHelperConfig({home}); } catch { return null; }
     },
   };
 }
@@ -255,9 +293,18 @@ export async function createServiceContext({databasePath, database, keychain, co
       const connector = registry[system];
       if (!connector || typeof connector.readSnapshot !== 'function') { freshness[system] = {status: 'offline', freshAt: previous[system]?.freshAt ?? null}; offlineSystems.push(system); continue; }
       try {
-        const snapshot = await connector.readSnapshot(); const instant = now().toISOString(); freshness[system] = {status: 'healthy', freshAt: instant};
+        const readOptions = system === 'slack' ? {replyWatermark: slackReplyWatermark(preferences.get('slack_sync_watermark'))} : undefined;
+        const snapshot = await connector.readSnapshot(readOptions); const instant = now().toISOString(); freshness[system] = {status: 'healthy', freshAt: instant};
         if (system === 'jira') for (const item of snapshot) repositories.tasks.upsert(mergeJiraTask(item, repositories.tasks.get(item.id), completedIds));
-        if (system === 'slack') for (const item of snapshot) { const canonical = exactDelegationMatch(repositories.tasks.list(), item.delegationId); if (canonical) { repositories.tasks.upsert({...canonical, delegationId: item.delegationId}); repositories.tasks.remove(`delegation:${item.delegationId}`); } else repositories.tasks.upsert(delegationTask(item, now)); }
+        if (system === 'slack') {
+          for (const item of snapshot) { const canonical = exactDelegationMatch(repositories.tasks.list(), item.delegationId); if (canonical) { repositories.tasks.upsert({...canonical, delegationId: item.delegationId}); repositories.tasks.remove(`delegation:${item.delegationId}`); } else repositories.tasks.upsert(delegationTask(item, now)); }
+          const syncMeta = snapshot.syncMeta;
+          // Only advance the watermark once the connector reports a COMPLETE sync
+          // (syncMeta.truncated === false). Advancing past a truncated sync's cutoff would
+          // permanently drop whatever fell outside this run's page budget on the next sync,
+          // since `oldest` would then start after them.
+          if (syncMeta && syncMeta.truncated === false && Number.isFinite(syncMeta.latestTs)) preferences.set('slack_sync_watermark', syncMeta.latestTs);
+        }
         if (system === 'calendar') {
           const focus = preferences.get('profile')?.calendar?.focusCalendarId; const approved = repositories.plans.get(preferences.get('approved_plan_revision')); const approvedBySlot = new Map((approved?.blocks ?? []).map(block => [`${block.taskId}:${block.sessionIndex}`, block]));
           const rawOwned = snapshot.filter(item => item.calendarId === focus && item.owned === true && typeof item.operationKey === 'string' && typeof item.taskId === 'string' && typeof item.blockSlot === 'string');
@@ -442,14 +489,16 @@ export async function createServiceContext({databasePath, database, keychain, co
       const registry = await injectedRegistry.get(); const connectorStatus = {};
       for (const system of systems) { try { connectorStatus[system] = registry[system] && await registry[system].health() ? 'healthy' : 'offline'; } catch (error) { connectorStatus[system] = error?.kind === 'authorization' ? 'revoked' : 'offline'; } }
       const lastRoutineRunRow = db.prepare("select max(completed_at) as completedAt from routine_runs where state = 'completed'").get();
-      const [agentLoaded, plistNodePathExists, installedRuntimeVersion] = await Promise.all([
+      const [agentLoaded, plistNodePathExists, installedRuntimeVersion, remindersHelperConfig] = await Promise.all([
         systemProbe.agentLoaded().catch(() => null),
         systemProbe.plistNodePathExists().catch(() => null),
         systemProbe.installedRuntimeVersion().catch(() => null),
+        typeof systemProbe.remindersHelperConfig === 'function' ? systemProbe.remindersHelperConfig().catch(() => null) : Promise.resolve(null),
       ]);
       return {
         version: VERSION, database: 'ready', activation: await activation.canActivate(), paused: await pause.isPaused(), connectors: connectorStatus,
         agentLoaded, plistNodePathExists, runtimeVersionMatch: installedRuntimeVersion === null ? null : installedRuntimeVersion === VERSION,
+        remindersHelper: remindersHelperConfig && typeof remindersHelperConfig === 'object' ? {transport: remindersHelperConfig.socketPath ? 'socket' : 'spawn', helperPath: remindersHelperConfig.helperPath ?? null, socketPath: remindersHelperConfig.socketPath ?? null} : null,
         lastRoutineRun: lastRoutineRunRow?.completedAt ?? null,
       };
     },
