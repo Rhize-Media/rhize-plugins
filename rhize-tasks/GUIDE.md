@@ -21,6 +21,12 @@ Then use either assistant:
 
 Both paths use the same installed service and saved preferences.
 
+## Running under Claude Cowork / non-macOS environments
+
+If you're talking to Claude from a Cowork session (or any non-Mac environment), none of the `/rhize-tasks:*` commands can actually install or run Rhize Tasks there — it's a Linux container, and Rhize Tasks needs macOS 14+, Keychain, EventKit, and `launchctl`, none of which exist on Linux. Every skill checks for this first and will not attempt an install, a launchd/Keychain/EventKit step, or a dashboard open in that environment.
+
+What Claude *can* do from Cowork: review the service code, run the fake-backed `npm test` suite, and write you a setup runbook. For the real thing — install, setup wizard, daily planning, anything that touches Jira/Calendar/Reminders/Slack — run Claude Code (or the equivalent Codex flow) directly in Terminal.app on your own Mac.
+
 ## Walk through the seven stages
 
 ### 1. Confirm the boundary
@@ -142,10 +148,10 @@ Diagnostic prompts:
 Common states:
 
 - `offline`: the source cannot currently be reached. Only affected writes pause.
-- `revoked`: a token or macOS permission is no longer valid. Restore it in the dashboard/Keychain or System Settings.
+- `revoked`: a token or macOS permission is no longer valid — this includes an expired/revoked Google refresh token (`invalid_grant`) and a denied Reminders permission. Restore it in the dashboard/Keychain or System Settings.
 - `revision_conflict`: the plan changed; refresh and review the new revision.
 - `reconciliation_required`: the outcome may be ambiguous; approve only an exact displayed retry.
-- Dashboard unavailable: run `doctor --json`, confirm port `43179` is free, and inspect the private logs under Application Support.
+- Dashboard unavailable: run `dashboard --json` again — it now starts the local server itself if nothing is listening. If it still fails, run `doctor --json` (check `agentLoaded` and `plistNodePathExists` — a `false` node path means your Node install moved and a reinstall is needed) and inspect the private logs under Application Support.
 
 Never “fix” the installation by copying the runtime or plist manually. Reinstall so the transactional installer can verify paths and restore the prior service if activation fails.
 

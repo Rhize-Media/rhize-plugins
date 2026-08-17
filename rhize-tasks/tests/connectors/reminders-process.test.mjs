@@ -8,7 +8,7 @@ import {createRemindersConnector} from '../../service/src/connectors/reminders.m
 import {atomicWriteFile, checkLoopbackPort, ensureApiBearer, install as installRuntime, renderLaunchAgent, runRemindersAccessProbe, validatePrerequisites} from '../../installer/install.mjs';
 import {parseUninstallChoice, uninstall} from '../../installer/uninstall.mjs';
 import {createTestPathPolicy, exactInstallPaths} from '../../installer/safe-paths.mjs';
-import {isKnownBootoutNotLoaded, isKnownPrintNotLoaded} from '../../installer/launchctl.mjs';
+import {bootoutIfLoaded, getLaunchAgentState, isKnownBootoutNotLoaded} from '../../installer/launchctl.mjs';
 
 const existingKeychain = () => ({async get() { return 't'.repeat(43); }, async set() {}, async delete() {}});
 const install = options => installRuntime({keychain: existingKeychain(), ...options});
@@ -65,13 +65,64 @@ test('installer reports unverified introduced-token cleanup in rollback state wi
   await assert.rejects(installRuntime({paths, pathPolicy: createTestPathPolicy(home), sourceRoot, run: fakeInstallerRun({bootstrapCode: 5, plistPath: paths.launchAgentPath}), uid: 501, validate: async () => ({}), keychain}), error => error.code === 'local_activation_rollback_failed' && error.rollbackState.includes('token_delete_unverified') && !JSON.stringify(error).includes(value));
 });
 
-test('launchctl print and bootout use independent narrow absent-service classifiers', () => {
-  const expected = {domain: 'gui/501', label: 'media.rhize.tasks'};
-  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'}, expected), true);
-  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Could not find service "other" in domain for user gui: 501'}, expected), false);
-  assert.equal(isKnownPrintNotLoaded({code: 113, stderr: 'Input/output error'}, expected), false);
+test('launchctl print treats a clean non-zero exit as not-loaded without matching stderr wording (finding #20)', async () => {
+  const domain = 'gui/501'; const label = 'media.rhize.tasks';
+  const fastSleep = async () => {};
+  const loaded = await getLaunchAgentState({run: async () => ({code: 0, stdout: 'path = /tmp/media.rhize.tasks.plist\n'}), domain, label});
+  assert.deepEqual(loaded, {loaded: true, configurationPath: '/tmp/media.rhize.tasks.plist'});
+  const knownNotLoaded = await getLaunchAgentState({run: async () => ({code: 113, stderr: 'Bad request.\nCould not find service "media.rhize.tasks" in domain for user gui: 501'}), domain, label});
+  assert.deepEqual(knownNotLoaded, {loaded: false, configurationPath: null});
+  // A wording/exit-code drift in a macOS point release must not resurrect
+  // launchctl_state_failed — as long as the exit was clean (no signal, not
+  // timed out), any non-zero code is "not loaded".
+  const unrecognizedWording = await getLaunchAgentState({run: async () => ({code: 5, stderr: 'state temporarily unavailable'}), domain, label});
+  assert.deepEqual(unrecognizedWording, {loaded: false, configurationPath: null});
+  await assert.rejects(getLaunchAgentState({run: async () => { throw new Error('spawn failed'); }, domain, label}, {sleep: fastSleep}), /launchctl_state_failed/);
   assert.equal(isKnownBootoutNotLoaded({code: 3, stderr: 'Boot-out failed: 3: No such process'}), true);
   assert.equal(isKnownBootoutNotLoaded({code: 113, stderr: 'Could not find service "media.rhize.tasks" in domain for user gui: 501'}), false);
+});
+
+test('launchctl print treats a signal-killed, timed-out, or null-exit-code result as unknown, not not-loaded (finding #2-followup)', async () => {
+  // Treating literally any non-zero exit as "not loaded" let install() swap
+  // the runtime under a job it never actually confirmed was stopped —
+  // recreating the exact race finding #21 was written to prevent. A
+  // signal/timeout/spawn-error tells us nothing either way, so it must
+  // retry briefly and then fail closed (throw) rather than guess.
+  const domain = 'gui/501'; const label = 'media.rhize.tasks';
+  const fastSleep = async () => {};
+  const signalKilled = async () => ({code: null, signal: 'SIGKILL', timedOut: false});
+  let signalCalls = 0;
+  await assert.rejects(getLaunchAgentState({run: async () => { signalCalls += 1; return signalKilled(); }, domain, label}, {sleep: fastSleep}), /launchctl_state_failed/);
+  assert.equal(signalCalls, 3, 'default is 2 retries (3 attempts total) before giving up');
+
+  const timedOutResult = async () => ({code: null, timedOut: true, signal: 'SIGKILL'});
+  await assert.rejects(getLaunchAgentState({run: timedOutResult, domain, label}, {sleep: fastSleep}), /launchctl_state_failed/);
+
+  // A transient hiccup that clears up on retry must recover, not throw.
+  let attempt = 0;
+  const recovers = async () => { attempt += 1; return attempt < 2 ? {code: null, signal: 'SIGKILL', timedOut: false} : {code: 0, stdout: 'path = /tmp/media.rhize.tasks.plist\n'}; };
+  const recovered = await getLaunchAgentState({run: recovers, domain, label}, {sleep: fastSleep});
+  assert.deepEqual(recovered, {loaded: true, configurationPath: '/tmp/media.rhize.tasks.plist'});
+  assert.equal(attempt, 2);
+});
+
+test('bootoutIfLoaded tolerates a missing plist path by falling back to the service-label form instead of assuming not-loaded (finding #19 + #3-followup)', async () => {
+  // launchd can hold a job loaded independent of the plist file that
+  // created it, so a missing file alone is not proof there's nothing to
+  // stop — it must still ask launchctl, just by label instead of by path.
+  const calls = [];
+  const notLoadedRun = async (file, args) => { calls.push([file, args]); return {code: 3, stderr: 'Could not find specified service'}; };
+  const result = await bootoutIfLoaded({run: notLoadedRun, domain: 'gui/501', plistPath: '/tmp/rhize-tasks-definitely-missing.plist', label: 'media.rhize.tasks'});
+  assert.deepEqual(result, {notLoaded: true});
+  assert.deepEqual(calls, [['/bin/launchctl', ['bootout', 'gui/501/media.rhize.tasks']]]);
+
+  const stillLoadedCalls = [];
+  const stillLoadedRun = async (file, args) => { stillLoadedCalls.push([file, args]); return {code: 0, stdout: ''}; };
+  const stillLoadedResult = await bootoutIfLoaded({run: stillLoadedRun, domain: 'gui/501', plistPath: '/tmp/rhize-tasks-definitely-missing.plist', label: 'media.rhize.tasks'});
+  assert.deepEqual(stillLoadedResult, {notLoaded: false});
+  assert.deepEqual(stillLoadedCalls, [['/bin/launchctl', ['bootout', 'gui/501/media.rhize.tasks']]]);
+
+  await assert.rejects(bootoutIfLoaded({run: async () => ({code: 0}), domain: 'gui/501', plistPath: '/tmp/rhize-tasks-definitely-missing.plist'}), TypeError);
 });
 
 test('process runner writes one request, captures one response, and enforces timeout', async () => {
@@ -158,6 +209,7 @@ test('installer preflight enforces macOS, Node floor, tools, writable support, a
     mkdirImpl: async value => calls.push(['mkdir', value]),
     chmodImpl: async value => calls.push(['chmod', value]),
     checkPort: async value => calls.push(['port', value]),
+    run: async () => ({code: 0, stdout: 'ok', timedOut: false}),
   };
   const result = await validatePrerequisites(options);
   assert.equal(result.nodeMajor, 22);
@@ -167,13 +219,41 @@ test('installer preflight enforces macOS, Node floor, tools, writable support, a
   await assert.rejects(validatePrerequisites({...options, nodeVersion: '21.9.0'}), /node_22_required/);
 });
 
+test('installer preflight fails clearly when node:sqlite is unavailable instead of dying weeks later (finding #25)', async () => {
+  const options = {
+    platform: 'darwin', macOSVersion: '14.0', nodeVersion: '22.1.0', supportDir: '/tmp/Rhize Tasks', port: 43179,
+    accessImpl: async () => {}, mkdirImpl: async () => {}, chmodImpl: async () => {}, checkPort: async () => {},
+  };
+  await assert.rejects(validatePrerequisites({...options, run: async () => ({code: 1, stderr: 'ERR_UNKNOWN_BUILTIN_MODULE', timedOut: false})}), /node_sqlite_unavailable/);
+  await assert.rejects(validatePrerequisites({...options, run: async () => { throw new Error('spawn failed'); }}), /node_sqlite_unavailable/);
+  const result = await validatePrerequisites({...options, run: async () => ({code: 0, stdout: 'ok\n', timedOut: false})});
+  assert.equal(result.nodeMajor, 22);
+});
+
 test('loopback check normalizes occupied port', async () => {
   const fake = () => ({
     unref() {},
     once(_event, handler) { this.handler = handler; },
     listen() { const error = new Error('busy'); error.code = 'EADDRINUSE'; this.handler(error); },
   });
-  await assert.rejects(checkLoopbackPort(43179, {createServerImpl: fake}), /loopback_port_in_use/);
+  await assert.rejects(checkLoopbackPort(43179, {createServerImpl: fake, probeOwnServer: async () => null}), /loopback_port_in_use/);
+});
+
+test('loopback check distinguishes its own already-running server from a bare port conflict (finding #1)', async () => {
+  const fake = () => ({
+    unref() {},
+    once(_event, handler) { this.handler = handler; },
+    listen() { const error = new Error('busy'); error.code = 'EADDRINUSE'; this.handler(error); },
+  });
+  const probeCalls = [];
+  await assert.rejects(
+    checkLoopbackPort(43179, {createServerImpl: fake, probeOwnServer: async port => { probeCalls.push(port); return {status: 'ok', version: '0.1.0'}; }}),
+    error => error.code === 'loopback_port_held_by_own_server' && error.version === '0.1.0',
+  );
+  assert.deepEqual(probeCalls, [43179]);
+  // An unrelated process squatting the port (no /health, or a different
+  // shape) must still report the original conflict, not our own-server code.
+  await assert.rejects(checkLoopbackPort(43179, {createServerImpl: fake, probeOwnServer: async () => { throw new Error('connection_refused'); }}), /loopback_port_in_use/);
 });
 
 test('launch agent has explicit paths, one catch-up command, and no secret material', async () => {
@@ -202,7 +282,7 @@ test('installer constructs and signs the app then bootstraps one user agent', as
   const paths = exactInstallPaths(root);
   const calls = [];
   const run = fakeInstallerRun({calls, plistPath: paths.launchAgentPath});
-  const result = await install({paths, pathPolicy: createTestPathPolicy(root), sourceRoot, run, uid: 501, nodePath: '/opt/node', validate: async () => ({})});
+  const result = await install({paths, pathPolicy: createTestPathPolicy(root), sourceRoot, run, uid: 501, nodePath: '/opt/node', checkNodePathExecutable: async () => {}, verifyNodePathCapable: async () => true, validate: async () => ({})});
   await access(path.join(result.appPath, 'Contents', 'MacOS', 'RhizeRemindersHelper'));
   await access(path.join(result.runtimePath, 'service', 'bin', 'rhize-tasks.mjs'));
   await access(path.join(result.runtimePath, 'schemas', 'task.schema.json'));

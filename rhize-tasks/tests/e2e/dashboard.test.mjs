@@ -201,7 +201,11 @@ test('shared skills and Claude commands preserve the local planning boundary', a
     assert.match(instructions, /do not call Jira, Google Calendar, Apple Reminders, or Slack directly/i, name);
     assert.match(agent, new RegExp(`default_prompt: "Use \\$${name}`), name);
     assert.match(command, /^---\n[\s\S]+?\n---\n/, name);
-    assert.match(command, new RegExp(`\\$${name}`), name);
+    // Claude Code substitutes `$ARGUMENTS`/`$1`-`$9`, not `$skill-name` — that's Codex syntax
+    // (see the `agents/openai.yaml` assertion above). The Claude-side command must name the
+    // skill directly and carry `Skill` in its allowed-tools or invocation can silently no-op.
+    assert.match(command, new RegExp(`rhize-tasks:${name}`), name);
+    assert.match(command, /allowed-tools:\s*\[[^\]]*\bSkill\b/, name);
     assert.match(command, /Never ask for secrets in chat/i, name);
   }
 

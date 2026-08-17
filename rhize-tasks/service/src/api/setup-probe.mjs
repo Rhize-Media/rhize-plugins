@@ -33,9 +33,16 @@ export function createSetupProbeAuthority({preferences, audit, connectorRegistry
     if (!found || typeof found.externalId !== 'string' || !found.externalId || (expectedId && found.externalId !== expectedId)) return null;
     return found;
   };
+  let applying = false;
   return {
     preview({planRevision, remindersListId, focusCalendarId}) {
       if (planRevision !== currentRevision() || typeof remindersListId !== 'string' || !remindersListId || typeof focusCalendarId !== 'string' || !focusCalendarId) throw new ApiError('revision_conflict', 409);
+      const existing = preferences.get('pending_setup_probe');
+      // A probe left in 'reconciliation_required' or 'failed' state may have created real
+      // Calendar/Reminders items that were never confirmed cleaned up; `pending_setup_probe`
+      // is the only pointer to that orphan. Refuse to overwrite it — surface it back instead
+      // so the caller can resolve (retry `apply`) or hand it to cleanup rather than losing it.
+      if (existing && existing.state !== 'approval_required') throw new ApiError('setup_probe_orphan_pending', 409, {probeId: existing.probeId, state: existing.state});
       approved(preferences, remindersListId, focusCalendarId);
       const probeId = randomUUID(); const revision = Math.max(1, planRevision + 1); const externalId = `access-probe:${probeId}`; const instant = now(); const start = new Date(instant.getTime() + 5 * 60_000).toISOString(); const end = new Date(instant.getTime() + 20 * 60_000).toISOString();
       const stableCalendarKey = operationKey(1, 'calendar_upsert', probeId, {probeId});
@@ -47,6 +54,16 @@ export function createSetupProbeAuthority({preferences, audit, connectorRegistry
       return {planRevision, probeId, approvalRequired: true, exact};
     },
     async apply({planRevision, probeId, actor}) {
+      // Server-side concurrency guard: a double-click (or any concurrent apply call) must not
+      // run two overlapping attempts against the same in-flight probe — both would see
+      // findByExternalId() return null and both would create an item, stranding one of them.
+      if (applying) throw new ApiError('setup_probe_busy', 409);
+      applying = true;
+      try { return await applyProbe({planRevision, probeId, actor}); }
+      finally { applying = false; }
+    },
+  };
+  async function applyProbe({planRevision, probeId, actor}) {
       const pending = preferences.get('pending_setup_probe');
       if (!pending || pending.probeId !== probeId) throw new ApiError('setup_probe_not_found', 404);
       if (planRevision !== currentRevision() || pending.planRevision !== planRevision) throw new ApiError('revision_conflict', 409);
@@ -74,6 +91,5 @@ export function createSetupProbeAuthority({preferences, audit, connectorRegistry
       if (failure) { const reconciliation = failure?.ambiguous === true || failure?.message === 'reconciliation_required' || failure?.status === 409 || Boolean(calendarId) || (reminderProven && !reminderClean); const calendarCleanup = {createdOrFound: Boolean(calendarId), provenPositive: calendarProven, deleteDispatched: calendarDeleteDispatched, deleteConfirmed: calendarDeleteConfirmed, finalAbsent: calendarFinalAbsent}; preferences.set('pending_setup_probe', {...pending, state: reconciliation ? 'reconciliation_required' : 'failed', calendarCleanup, ...(calendarId ? {calendarId} : {})}); audit.append(reconciliation ? 'setup_probe_reconciliation_required' : 'setup_probe_failed', 'setup_probe', probeId, {actor, cleanupAttempted: true, calendarCleanup}); const error = new ApiError(reconciliation ? 'reconciliation_required' : 'setup_probe_failed', reconciliation ? 409 : 503); if (reconciliation) error.ambiguous = true; throw error; }
       preferences.delete('pending_setup_probe'); audit.append('setup_probe_completed', 'setup_probe', probeId, {actor, verified: {reminders: true, calendar: true}});
       return {probeId, verified: {reminders: true, calendar: true}};
-    },
-  };
+  }
 }

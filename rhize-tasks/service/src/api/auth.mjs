@@ -3,10 +3,11 @@ import {createHash, timingSafeEqual} from 'node:crypto';
 export const MAX_JSON_BYTES = 64 * 1024;
 
 export class ApiError extends Error {
-  constructor(kind, status = 400) {
+  constructor(kind, status = 400, detail) {
     super(kind);
     this.kind = kind;
     this.status = status;
+    if (detail !== undefined) this.detail = detail;
   }
 }
 
@@ -59,7 +60,7 @@ export function sanitize(value, seen = new WeakSet()) {
 }
 
 export function publicError(error) {
-  if (error instanceof ApiError) return {status: error.status, body: {error: {kind: error.kind, status: error.status}}};
+  if (error instanceof ApiError) return {status: error.status, body: {error: {kind: error.kind, status: error.status, ...(error.detail !== undefined ? {detail: error.detail} : {})}}};
   if (error instanceof RangeError && /revision/i.test(error.message)) return {status: 409, body: {error: {kind: 'revision_conflict', status: 409}}};
   if (error instanceof TypeError || error instanceof SyntaxError) return {status: 400, body: {error: {kind: 'invalid_request', status: 400}}};
   return {status: 500, body: {error: {kind: 'internal_error', status: 500}}};

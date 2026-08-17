@@ -3,7 +3,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {pathToFileURL} from 'node:url';
 import {bootoutIfLoaded} from './launchctl.mjs';
-import {defaultInstallPaths} from './install.mjs';
+import {defaultInstallPaths, defaultProbeOwnServer, label, servePidPath, stopServeProcessIfRunning} from './install.mjs';
 import {assertInstallPathIdentities, captureInstallPathIdentities, productionPathPolicy, verifyInstallPaths, verifyRuntimePath} from './safe-paths.mjs';
 import {runProcess} from '../service/src/connectors/process-runner.mjs';
 
@@ -70,7 +70,7 @@ export async function requestInstalledItemCleanup({paths, pathPolicy = productio
   return response;
 }
 
-export async function uninstall({choices, paths = defaultInstallPaths(), pathPolicy = productionPathPolicy(), run = runProcess, uid = process.getuid?.(), nodePath = process.execPath} = {}) {
+export async function uninstall({choices, paths = defaultInstallPaths(), pathPolicy = productionPathPolicy(), run = runProcess, uid = process.getuid?.(), nodePath = process.execPath, port = 43179, stopOwnServer = stopServeProcessIfRunning, probeOwnServer = defaultProbeOwnServer} = {}) {
   validateChoices(choices);
   await verifyInstallPaths(paths, pathPolicy);
   const pathIdentities = await captureInstallPathIdentities(paths, pathPolicy);
@@ -83,7 +83,28 @@ export async function uninstall({choices, paths = defaultInstallPaths(), pathPol
     if (error.code !== 'ENOENT') throw error;
   }
   await assertInstallPathIdentities(pathIdentities, paths.launchAgentPath);
-  await bootoutIfLoaded({run, domain: `gui/${uid}`, plistPath: paths.launchAgentPath});
+  await bootoutIfLoaded({run, domain: `gui/${uid}`, plistPath: paths.launchAgentPath, label});
+  // A `dashboard`-spawned `serve` process holds the SQLite DB open and keeps
+  // writing to files under `support`/`runtime` — stop it before the item
+  // cleanup subprocess runs against that same runtime, and well before the
+  // directories themselves are deleted underneath it (finding #1).
+  const serveStopped = await stopOwnServer({pidPath: servePidPath(paths.supportDir)});
+  if (!serveStopped.stopped) {
+    if (serveStopped.reason === 'no_pid_file') {
+      // The pidfile is our primary way to find `serve`'s pid, but its
+      // absence is not proof nothing is running — an install from before
+      // this mechanism existed, a manually deleted pidfile, or a corrupted
+      // write could all leave a real server up with no pidfile to find it
+      // by (finding #1-followup). Probe /health directly before trusting
+      // "no pidfile" as "nothing to stop".
+      const stillAnswering = await probeOwnServer(port).catch(() => null);
+      if (stillAnswering) {
+        throw Object.assign(new Error(`own_server_stop_failed:no_pid_file_but_still_answering:${stillAnswering.version}`), {code: 'own_server_stop_failed', reason: 'no_pid_file_but_still_answering', version: stillAnswering.version});
+      }
+    } else {
+      throw Object.assign(new Error(`own_server_stop_failed:${serveStopped.reason}`), {code: 'own_server_stop_failed', reason: serveStopped.reason});
+    }
+  }
   if (choices.items === 'delete') await requestInstalledItemCleanup({paths, pathPolicy, run, nodePath});
   await verifyInstallPaths(paths, pathPolicy);
   await assertInstallPathIdentities(pathIdentities);

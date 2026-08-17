@@ -14,7 +14,7 @@ function jira(transport) {
 test('Jira findByExternalId rejects a successful response without a genuine revision', async () => {
   for (const body of [{}, {fields: {updated: null}, version: null, id: null}, {fields: {updated: ' '}, version: '', id: ''}]) {
     await assert.rejects(jira(async () => ok(body)).findByExternalId('R-1'), error => {
-      assert.deepEqual(error, {kind: 'malformed_response', retryable: false, ambiguous: false, status: null});
+      assert.deepEqual(error, {kind: 'malformed_response', retryable: false, ambiguous: false, status: null, body: null, retryAfterMs: null});
       return true;
     });
   }
@@ -29,7 +29,7 @@ test('Jira transition rejects a malformed fresh revision as ambiguous after disp
     return ok({fields: {project: {key: 'R'}, issuetype: {name: 'Task'}, assignee: null, status: {name: 'Open'}, updated: 'before'}});
   });
   await assert.rejects(connector.applyOperation({kind: 'jira_transition', targetId: 'R-1', idempotencyKey: '6'.repeat(64), payload: {transitionId: '31', comment: null}}), error => {
-    assert.deepEqual(error, {kind: 'malformed_response', retryable: false, ambiguous: true, status: null});
+    assert.deepEqual(error, {kind: 'malformed_response', retryable: false, ambiguous: true, status: null, body: null, retryAfterMs: null});
     return true;
   });
 });

@@ -43,6 +43,12 @@ The production runtime is split into a Node.js service and a small Swift EventKi
 
 The installer validates these requirements before activation. It does not perform a live Jira, Calendar, Reminders, or Slack write during installation.
 
+## Running under Claude Cowork / non-macOS environments
+
+Claude Cowork sessions run in a Linux container. Rhize Tasks cannot install, run its LaunchAgent, sign or launch the Swift EventKit helper, or open the local dashboard there — Keychain, EventKit, `launchctl`, `security`, `swift`, and `codesign` do not exist outside macOS.
+
+Every skill in this plugin checks `uname -s` before attempting any macOS-only step. On a non-Darwin host, it will not touch the installer or the local service; instead it reviews the `service/`/`installer/` code, runs `npm test` (the fake-backed service-layer suite — no live connector I/O either way), and hands back a setup runbook for you to run yourself in Terminal.app on your Mac. Use one of these environments when you want to actually install, run, or exercise Rhize Tasks against a real Jira/Calendar/Reminders/Slack account.
+
 ## Install
 
 From the plugin directory:
@@ -51,7 +57,11 @@ From the plugin directory:
 npm run install:local
 ```
 
-The install is transactional. It builds the Swift helper in release mode, constructs and ad-hoc signs `RhizeRemindersHelper.app` with bundle ID `media.rhize.tasks.reminders-helper`, installs an immutable runtime copy, writes the manifest and LaunchAgent atomically, and restores the previous loaded configuration if activation fails.
+The install is transactional. It builds the Swift helper in release mode, constructs and ad-hoc signs `RhizeRemindersHelper.app` with bundle ID `media.rhize.tasks.reminders-helper` (set `RHIZE_TASKS_SIGN_IDENTITY` to sign with a real identity instead), installs an immutable runtime copy, writes the manifest and LaunchAgent atomically, boots out the old agent before swapping the runtime, and restores the previous loaded configuration only when it can verify that restore is safe — otherwise it stops with `manual_recovery_required` rather than mutating a runtime it cannot prove is quiescent.
+
+Reinstalling while the plugin's own local server is running is handled automatically: the installer recognizes its own `/health` endpoint on port `43179`, stops that server via its pidfile, and proceeds. Only a foreign process on the port aborts the install.
+
+The LaunchAgent's Node binary is resolved to a stable path at install time. If the installing shell's `node` lives in an ephemeral location (fnm multishell, nvm version dir, Homebrew Cellar), the installer probes `/usr/local/bin/node` and `/opt/homebrew/bin/node` for a capable (≥22, `node:sqlite`-enabled) alternative; if none exists it fails closed with a remediation pointing to the nodejs.org installer. Set `RHIZE_TASKS_ALLOW_EPHEMERAL_NODE=1` to override, accepting that the agent dies when that path disappears. The chosen path is recorded in `installation.json` and checked by `doctor`.
 
 Installed paths:
 
@@ -86,13 +96,21 @@ The EventKit helper requests full Reminders access because current macOS APIs re
 
 The service binds only to `127.0.0.1:43179`. `/health` returns only version and status. Every `/v1` route requires authentication.
 
+The CLI is not assumed to be on `PATH`. Resolve the installed `cliPath` from `installation.json` once — this is the one canonical way these docs reach the CLI, reused in the Commands section below:
+
+```bash
+RHIZE_TASKS_CLI="$(python3 -c 'import json, pathlib; print(json.loads((pathlib.Path.home()/"Library/Application Support/Rhize Tasks/installation.json").read_text())["cliPath"])')"
+```
+
 Run the installed CLI's dashboard command to create a single-use, 60-second session URL:
 
 ```bash
-node "$(python3 -c 'import json, pathlib; print(json.loads((pathlib.Path.home()/"Library/Application Support/Rhize Tasks/installation.json").read_text())["cliPath"])')" dashboard --json
+node "$RHIZE_TASKS_CLI" dashboard --json
 ```
 
-Opening that URL exchanges a hashed nonce for an `HttpOnly`, `SameSite=Strict` cookie. The nonce is not stored in the DOM or browser storage. Cookie-authenticated mutations require the exact loopback Origin. A manual bearer field exists only for local troubleshooting and is never persisted.
+The `dashboard` command ensures the server is actually running before minting the URL: it probes `/health`, starts a detached `serve` process (tracked by a pidfile in Application Support) if nothing answers, and waits for health before returning. The installer and uninstaller use the same pidfile to stop the server cleanly.
+
+Opening that URL exchanges a hashed nonce for an `HttpOnly`, `SameSite=Strict` cookie; the nonce is consumed only after it validates, so a garbage request cannot burn a pending session URL. The nonce is not stored in the DOM or browser storage. Every cookie-authenticated request — all methods, not just mutations — requires the exact loopback Origin when an Origin header is present, a validated `Host`, and the dashboard's own `x-rhize-tasks-dashboard` request header, so pages served from other local ports cannot trigger side-effectful GETs (discovery, doctor) as subresources. A manual bearer field exists only for local troubleshooting and is never persisted.
 
 Static browser assets are dependency-free and served from an allowlist: `/`, `/app.js`, and `/styles.css`. The standalone artifact contains escaped TodayView data, makes no network request, has no form or mutation control, and displays its plan revision.
 
@@ -106,7 +124,7 @@ Static browser assets are dependency-free and served from an allowlist: `/`, `/a
 6. Choose routine times, replanning mode, and reconciliation mode. Defaults are bounded replanning and prompted reconciliation.
 7. Review the server-derived dry run and approve the first plan.
 
-Scope expansion is previewed as an exact operation and requires approval. The access probe is also exact and approval-bound: it creates, verifies, deletes, and verifies absence of one disposable Calendar event and one Reminder. Any ambiguous cleanup fails closed and leaves automation inactive.
+Scope expansion is previewed as an exact operation and requires approval. Expanding an already-configured profile beyond its approved scopes now stages a pending scope change (visible in the dashboard's dedicated approval list and in `/v1/setup/status`) for one-click approval instead of hard-rejecting the settings save; approval applies the settings, audit record, and pending-state cleanup in a single transaction. The access probe is also exact and approval-bound: it creates, verifies, deletes, and verifies absence of one disposable Calendar event and one Reminder. A pending or orphaned probe is surfaced through setup status with its ID and state, is never silently overwritten by a re-preview, and its items are folded into uninstall cleanup. Any ambiguous cleanup fails closed and leaves automation inactive.
 
 ## Planning lifecycle
 
@@ -121,18 +139,18 @@ Carryover is intentionally bounded: the first miss is rescheduled once, the next
 
 ## Commands
 
-Resolve the installed `cliPath` from `installation.json`; the CLI is not assumed to be on `PATH`.
+Using the same `$RHIZE_TASKS_CLI` resolved above:
 
 ```text
-install
-serve
-routine morning|midday|evening|catch-up
-doctor --json
-provision-token --json
-dashboard --json
-artifact --output <private-html-path>
-uninstall-items --json        # installer handshake; bounded request on stdin
-uninstall --retain-data|--delete-data --retain-items|--delete-items
+node "$RHIZE_TASKS_CLI" install
+node "$RHIZE_TASKS_CLI" serve
+node "$RHIZE_TASKS_CLI" routine morning|midday|evening|catch-up
+node "$RHIZE_TASKS_CLI" doctor --json
+node "$RHIZE_TASKS_CLI" provision-token --json
+node "$RHIZE_TASKS_CLI" dashboard --json
+node "$RHIZE_TASKS_CLI" artifact --output <private-html-path>
+node "$RHIZE_TASKS_CLI" uninstall-items --json        # installer handshake; bounded request on stdin
+node "$RHIZE_TASKS_CLI" uninstall --retain-data|--delete-data --retain-items|--delete-items
 ```
 
 Repository convenience scripts are `npm run install:local`, `npm start`, `npm test`, `npm run validate`, and `npm run uninstall:local -- <both uninstall choices>`.
@@ -165,9 +183,9 @@ Each skill resolves the versioned installed CLI, treats imported content as untr
 
 ## Pause, recovery, and diagnosis
 
-Use the dashboard pause control before changing credentials, permissions, calendar/list ownership, or routine policy. `doctor --json` reports only redacted version, database, activation, pause, and connector health. `revoked` means the credential or permission must be restored; it does not authorize a new write.
+Use the dashboard pause control before changing credentials, permissions, calendar/list ownership, or routine policy. `doctor --json` reports redacted version (read from `package.json`), database, activation, pause, connector health, and installation health: `agentLoaded`, `plistNodePathExists`, `runtimeVersionMatch`, and `lastRoutineRun` (each degrades to `null` rather than failing). `revoked` means the credential or permission must be restored; it does not authorize a new write. A Google refresh token rejected with `invalid_grant` and a denied macOS Reminders authorization both report as `revoked` — they are no longer indistinguishable from `offline`.
 
-On a `revision_conflict`, refresh TodayView and review the new operations. On `reconciliation_required`, select only displayed operation IDs and approve one bounded attempt. If Reminders permission is denied, open macOS **System Settings > Privacy & Security > Reminders** and restore access to Rhize Reminders Helper, then rerun doctor and the approved probe. If port `43179` is occupied, identify and stop the conflicting local service before reinstalling.
+On a `revision_conflict`, refresh TodayView and review the new operations. On `reconciliation_required`, select only displayed operation IDs and approve one bounded attempt. If Reminders permission is denied, open macOS **System Settings > Privacy & Security > Reminders** and restore access to Rhize Reminders Helper, then rerun doctor and the approved probe. If port `43179` is occupied by a foreign process, identify and stop it before reinstalling; the plugin's own server is detected and stopped automatically. Connector rate limits are honored: a `429` waits out `Retry-After` (capped at 30s) before its single bounded retry instead of retrying immediately.
 
 The installer and uninstaller reject symlinked install ancestors. Do not move the installed runtime by hand; reinstall so the manifest, plist, signature, and runtime path remain consistent.
 
@@ -186,17 +204,26 @@ The data choice controls local Application Support data. The item choice separat
 
 ## Validation
 
-No automated test performs live connector I/O. The release gate uses injected fakes and temporary SQLite databases:
+No automated test performs live connector I/O. The test suite uses injected fakes and temporary SQLite databases. Run these from the plugin directory (`rhize-tasks/`) unless noted otherwise:
 
 ```bash
 npm test
-npm run validate
 swift test --package-path native/reminders-helper
 python3 ../tests/rhize-ops/test_delegation_contract.py
-python3 -m unittest ../tests.test_bump_version -v
 ```
 
+`python3 -m unittest tests.test_bump_version -v` lives in the parent `rhize-plugins` repo, not this plugin, so it needs that directory as its working directory — run it as `(cd .. && python3 -m unittest tests.test_bump_version -v)` from `rhize-tasks/`, or `python3 -m unittest tests.test_bump_version -v` directly from the `rhize-plugins` root.
+
+`npm run validate` is not a release gate — it only checks that `package.json` and `setup/manifest.json` are syntactically valid JSON. Treat it as a quick manifest sanity check, not a substitute for the tests above.
+
 Repository release validation also checks both plugin manifests, the marketplace, generated skill map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A real Tom-Mac acceptance remains mandatory before enabling writes: approve a disposable Jira issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample, exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
+
+## Known limitations (open decisions)
+
+- **Reminders writes under launchd are expected to fail authorization.** macOS attributes a TCC request to the responsible process; the helper binary is spawned directly by the Node agent, so under launchd there is no GUI context to prompt and no bundle-derived attribution. Interactive use (server started from Terminal via `dashboard`) prompts and works; the background routine's Reminders writes will report `revoked` until the helper is registered as its own launch agent or launched through LaunchServices. This is a deliberate open design decision, now *visible* through doctor rather than silent.
+- **Ad-hoc signing resets the Reminders grant on every rebuild.** Without a stable Developer ID signature, the helper's cdhash changes each time it is rebuilt and TCC re-prompts. Supply `RHIZE_TASKS_SIGN_IDENTITY` once a signing identity is provisioned.
+- **Google OAuth apps in “Testing” publishing status expire refresh tokens after 7 days.** That expiry now surfaces as `revoked` instead of `offline`, but the fix is publishing the OAuth consent screen, not code.
+- **Slack sync reads a bounded 7-day lookback window per run** (configurable), not a persisted high-water mark.
 
 ## Current 0.1 boundary
 

@@ -149,7 +149,7 @@ test('only connector-proven safe errors retry, and revision drift creates a manu
     const retried = operation();
     const connector = {calls: 0, async findByExternalId() { return {revision: '17'}; }, async applyOperation() { this.calls += 1; if (this.calls === 1) throw {kind: 'timeout', retryable: true, ambiguous: false}; return {externalId: 'reminder-1', revision: '18'}; }};
     repository.save(retried);
-    const result = await applyApprovedOperations({repository, connectors: {reminders: connector}, currentRevision: 3}, [retried]);
+    const result = await applyApprovedOperations({repository, connectors: {reminders: connector}, currentRevision: 3, sleep: async () => {}}, [retried]);
     assert.equal(result[0].state, 'applied');
     assert.equal(connector.calls, 2);
     await assert.rejects(applyApprovedOperations({repository, connectors: {reminders: connector}, currentRevision: 4}, [operation({id: 'stale'})]), /plan revision/);

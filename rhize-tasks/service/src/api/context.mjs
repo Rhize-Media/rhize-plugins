@@ -1,4 +1,8 @@
 import {randomUUID} from 'node:crypto';
+import {access, readFile} from 'node:fs/promises';
+import {readFileSync, constants as fsConstants} from 'node:fs';
+import {homedir} from 'node:os';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {createGoogleCalendarConnector} from '../connectors/google-calendar.mjs';
@@ -8,10 +12,10 @@ import {createKeychain} from '../connectors/keychain.mjs';
 import {runProcess} from '../connectors/process-runner.mjs';
 import {createRemindersConnector} from '../connectors/reminders.mjs';
 import {createSlackConnector} from '../connectors/slack.mjs';
-import {assertOperation, isAutomationActive, operationKey, validateProfile} from '../domain.mjs';
+import {assertHttpsUrl, assertOperation, isAutomationActive, operationKey, validateProfile} from '../domain.mjs';
 import {planDay} from '../planner/planning.mjs';
 import {applyApprovedOperations, previewOperations} from '../reconciliation/operations.mjs';
-import {openDatabase, operationRepository, planRepository, taskRepository} from '../storage/database.mjs';
+import {openDatabase, operationRepository, planRepository, taskRepository, transaction} from '../storage/database.mjs';
 import {applicationSupportDirectory} from '../storage/paths.mjs';
 import {protectedForMidday} from '../scheduler/bounded-routines.mjs';
 import {localDate as localDateInZone, selectDuePhase} from '../scheduler/catch-up.mjs';
@@ -22,7 +26,7 @@ import {connectorScopeChanges, planningMaterialChanged, profileScopeChanges, pro
 import {createSessionAuthority} from './sessions.mjs';
 import {createSetupProbeAuthority} from './setup-probe.mjs';
 
-const VERSION = '0.1.0';
+const VERSION = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version;
 const systems = ['jira', 'calendar', 'reminders', 'slack'];
 const autoKinds = new Set(['calendar_upsert', 'calendar_delete', 'reminder_upsert', 'reminder_complete', 'reminder_delete']);
 
@@ -105,6 +109,7 @@ function defaultRegistry({preferences, keychain, transport, now}) {
       const identity = (preferences.get('setup_stages') ?? {})['2']?.data ?? {};
       if (connector === 'jira') {
         if (typeof identity.jiraBaseUrl !== 'string' || !identity.jiraBaseUrl || typeof identity.jiraAccountId !== 'string' || !identity.jiraAccountId) throw new ApiError('connector_configuration_required', 409);
+        assertHttpsUrl(identity.jiraBaseUrl, 'jiraBaseUrl');
         return discoveryAdapter(createJiraConnector({baseUrl: identity.jiraBaseUrl, accountId: identity.jiraAccountId, projectKeys: [], issueTypes: [], credentials: keychain, transport, discoverAll: true, discoveryOnly: true}));
       }
       if (connector === 'calendar') return discoveryAdapter(createGoogleCalendarConnector({readCalendarIds: [], focusCalendarId: '__discovery__', credentials: keychain, transport, now, discoverAll: true, discoveryOnly: true}));
@@ -196,7 +201,40 @@ function completionPrompt(task, planRevision, now) {
   return {schemaVersion: 1, id: `completion:${idempotencyKey.slice(0, 24)}`, planRevision, kind: 'jira_comment', targetSystem: 'jira', targetId: task.jiraKey, payload, idempotencyKey, approval: 'required', preconditionRevision: task.sourceRevision, retryState: 'pending', createdAt: now};
 }
 
-export async function createServiceContext({databasePath, database, keychain, connectors, connectorFactory, transport = createHttpTransport(), now = () => new Date(), host = '127.0.0.1', port = 43179, lockPath} = {}) {
+// Best-effort, read-only inspection of installed launchd/runtime state for `doctor`. Every
+// method swallows its own errors and resolves to null so a missing/foreign install never
+// throws. Real filesystem/launchctl access only happens through this seam so tests can inject
+// a fake implementation instead of touching the machine.
+function defaultSystemProbe({home = homedir()} = {}) {
+  return {
+    async agentLoaded() {
+      try {
+        const uid = typeof process.getuid === 'function' ? process.getuid() : null;
+        if (uid === null) return null;
+        const result = await runProcess('launchctl', ['print', `gui/${uid}/media.rhize.tasks`], {timeoutMs: 3000});
+        return result.code === 0;
+      } catch { return null; }
+    },
+    async plistNodePathExists() {
+      try {
+        const contents = await readFile(join(home, 'Library', 'LaunchAgents', 'media.rhize.tasks.plist'), 'utf8');
+        const match = /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]*)<\/string>/.exec(contents);
+        if (!match || !match[1]) return false;
+        await access(match[1], fsConstants.X_OK);
+        return true;
+      } catch { return false; }
+    },
+    async installedRuntimeVersion() {
+      try {
+        const contents = await readFile(join(home, 'Library', 'Application Support', 'Rhize Tasks', 'installation.json'), 'utf8');
+        const manifest = JSON.parse(contents);
+        return typeof manifest.version === 'string' ? manifest.version : null;
+      } catch { return null; }
+    },
+  };
+}
+
+export async function createServiceContext({databasePath, database, keychain, connectors, connectorFactory, transport = createHttpTransport(), now = () => new Date(), host = '127.0.0.1', port = 43179, lockPath, systemProbe = defaultSystemProbe()} = {}) {
   const db = database ?? openDatabase(databasePath);
   const preferences = preferenceStore(db, now); const audit = auditStore(db, now);
   const repositories = {tasks: taskRepository(db), plans: planRepository(db), operations: operationRepository(db), preferences, audit};
@@ -322,7 +360,31 @@ export async function createServiceContext({databasePath, database, keychain, co
       return {status: 'saved', material, operations: []};
     }
     const requested = profile ? profileSetupScopes(normalizedProfile) : {slack: connectorConfig.slack};
-    for (const {connector} of changes) if (!setupScopeCovered(connector, approvedSetupScopes[connector], requested[connector])) throw new ApiError('scope_approval_required', 409);
+    const uncovered = changes.filter(({connector}) => !setupScopeCovered(connector, approvedSetupScopes[connector], requested[connector]));
+    if (uncovered.length > 0) {
+      // Stage one operation-shaped proposal per uncovered connector so `settings.approveScope`
+      // becomes reachable, instead of hard-rejecting outright. The immediate hard rejection
+      // above (for `!beforeProfile` / `!beforeConfig`, i.e. first-time setup) is untouched and
+      // remains the enforced backstop for brand-new scope grants.
+      //
+      // These proposals deliberately never touch `repositories.operations`/`plans`, mirroring
+      // `previewSetupScope` below. Saving them there was tried and reverted after an
+      // adversarial review (Codex) found it live-broke three ways: (a) the `operations` table
+      // has a hard foreign key onto `plans`, and an established profile can be edited before
+      // any plan has ever been previewed, so the insert can fail outright; (b) reusing the
+      // current plan revision means the generic `plans.approve()` path lists and
+      // auto-approves EVERY operation at that revision regardless of kind, so it can approve
+      // and dispatch this as a connector write behind `settings.approveScope`'s back — it has
+      // `targetSystem: 'local'`, so that dispatch just fails and stays failed forever with
+      // `pending_scope_change` stranded; (c) a deterministic idempotency key means proposing
+      // the same connector+resources twice reuses the same operation id, and a later proposal
+      // with a different `createdAt` fails the immutable-fields check on re-save instead of
+      // creating a fresh approval. None of that applies once these never leave preferences.
+      const operations = uncovered.map(({connector}) => ({id: `scope-change:${connector}:${randomUUID()}`, connector, resourceIds: scopeResourceIds(connector, requested[connector]), approval: 'required'}));
+      preferences.set('pending_scope_change', {operations, profile: normalizedProfile, connectorConfig, material, connectors: uncovered.map(change => change.connector)});
+      audit.append('scope_change_proposed', 'profile', 'v1', {material, operationIds: operations.map(operation => operation.id), connectors: uncovered.map(change => change.connector)});
+      return {status: 'approval_required', material, operations};
+    }
     applySettings({profile: normalizedProfile, connectorConfig, material});
     for (const {connector} of changes) delete approvedSetupScopes[connector]; preferences.set('approved_setup_scopes', approvedSetupScopes);
     audit.append('settings_saved', 'profile', 'v1', {material, approvedScopeConnectors: changes.map(change => change.connector)});
@@ -342,18 +404,32 @@ export async function createServiceContext({databasePath, database, keychain, co
       delete previews[operationId]; preferences.set('setup_scope_previews', previews); const approved = preferences.get('approved_setup_scopes') ?? {}; approved[preview.connector] = preview.scope; preferences.set('approved_setup_scopes', approved); audit.append('setup_scope_approved', 'operation', operationId, {actor, connector: preview.connector, resourceIds: scopeResourceIds(preview.connector, preview.scope)});
       return {operationId, state: 'approved_setup_scope', scope: preview.scope};
     },
+    // Returns null (not a thrown 404) when `operationId` isn't a pending scope-change
+    // operation, matching `approveSetupScope`'s convention above — routes.mjs tries both as
+    // fallbacks before a real operation-not-found 404, since neither lives in the operations
+    // table.
     async approveScope(operationId, actor) {
       const pending = preferences.get('pending_scope_change');
-      if (!pending?.operationIds?.includes(operationId)) throw new ApiError('scope_change_not_found', 404);
-      let operation = repositories.operations.get(operationId); if (!operation || operation.kind !== 'scope_expand') throw new ApiError('scope_change_not_found', 404);
-      if (operation.approval === 'required') operation = repositories.operations.setApproval(operationId, 'approved', actor);
-      const ready = pending.operationIds.every(id => repositories.operations.get(id)?.approval === 'approved');
-      if (!ready) return {operationId, state: 'approved_pending_scope'};
-      applySettings(pending);
-      for (const id of pending.operationIds) repositories.operations.markState(id, 'applied', {reason: null, appliedLocally: true});
-      preferences.delete('pending_scope_change');
-      audit.append('scope_change_applied', 'plan', operation.planRevision, {operationIds: pending.operationIds});
-      return {operationId, state: 'applied', scopeApplied: true, requiresPlanApproval: pending.material};
+      const index = pending?.operations?.findIndex(operation => operation.id === operationId) ?? -1;
+      if (index === -1) return null;
+      const operations = pending.operations.map((operation, position) => position === index ? {...operation, approval: 'approved'} : operation);
+      const updated = {...pending, operations};
+      const ready = operations.every(operation => operation.approval === 'approved');
+      // Recording this approval, applying the settings once every operation is approved, and
+      // deleting `pending_scope_change` were previously three separate auto-committed writes.
+      // A crash between them left the proposal permanently pending (future settings changes
+      // 409 scope_change_pending) with no way back — wrap the whole sequence in one SQLite
+      // transaction so it is all-or-nothing (Codex adversarial review, round 3 follow-up).
+      return transaction(db, () => {
+        preferences.set('pending_scope_change', updated);
+        audit.append('scope_change_operation_approved', 'profile', 'v1', {operationId, actor});
+        if (!ready) return {operationId, state: 'approved_pending_scope'};
+        applySettings(updated);
+        if (Array.isArray(updated.connectors)) { const approvedSetupScopes = preferences.get('approved_setup_scopes') ?? {}; for (const connector of updated.connectors) delete approvedSetupScopes[connector]; preferences.set('approved_setup_scopes', approvedSetupScopes); }
+        preferences.delete('pending_scope_change');
+        audit.append('scope_change_applied', 'profile', 'v1', {operationIds: operations.map(operation => operation.id)});
+        return {operationId, state: 'applied', scopeApplied: true, requiresPlanApproval: updated.material};
+      });
     },
   };
   const routineState = routineStore(db, now);
@@ -362,7 +438,35 @@ export async function createServiceContext({databasePath, database, keychain, co
     auth: {getToken: () => credentialStore.get('media.rhize.tasks.api', 'bearer'), provisioned: false},
     close() { db.close(); },
     async today() { const plan = repositories.plans.latest(); if (!plan) throw new ApiError('plan_not_found', 404); const operations = repositories.operations.listForPlan(plan.planRevision).map(operation => ({...operation, reconciliationResult: repositories.operations.execution(operation.id)?.result ?? null})); return projectTodayView({plan, tasks: repositories.tasks.list(), operations, profile: preferences.get('profile'), freshness: preferences.get('connector_freshness') ?? {}, approvedOutsideLabels: preferences.get('outside_labels') ?? {}, now: now().toISOString()}); },
-    async doctor() { const registry = await injectedRegistry.get(); const connectorStatus = {}; for (const system of systems) { try { connectorStatus[system] = registry[system] && await registry[system].health() ? 'healthy' : 'offline'; } catch (error) { connectorStatus[system] = error?.kind === 'authorization' ? 'revoked' : 'offline'; } } return {version: VERSION, database: 'ready', activation: await activation.canActivate(), paused: await pause.isPaused(), connectors: connectorStatus}; },
-    async cleanup(request) { const profile = preferences.get('profile'); const records = db.prepare('select data_json, attempt_count from operations order by id').all().map(row => ({...parse(row.data_json), attemptCount: row.attempt_count})); const registry = await injectedRegistry.get(); return cleanupPluginItems({request, profile, operations: records, connectors: registry, calendarCleanup: keys => googleCalendarCleanup({keys, profile, keychain: credentialStore, transport})}); },
+    async doctor() {
+      const registry = await injectedRegistry.get(); const connectorStatus = {};
+      for (const system of systems) { try { connectorStatus[system] = registry[system] && await registry[system].health() ? 'healthy' : 'offline'; } catch (error) { connectorStatus[system] = error?.kind === 'authorization' ? 'revoked' : 'offline'; } }
+      const lastRoutineRunRow = db.prepare("select max(completed_at) as completedAt from routine_runs where state = 'completed'").get();
+      const [agentLoaded, plistNodePathExists, installedRuntimeVersion] = await Promise.all([
+        systemProbe.agentLoaded().catch(() => null),
+        systemProbe.plistNodePathExists().catch(() => null),
+        systemProbe.installedRuntimeVersion().catch(() => null),
+      ]);
+      return {
+        version: VERSION, database: 'ready', activation: await activation.canActivate(), paused: await pause.isPaused(), connectors: connectorStatus,
+        agentLoaded, plistNodePathExists, runtimeVersionMatch: installedRuntimeVersion === null ? null : installedRuntimeVersion === VERSION,
+        lastRoutineRun: lastRoutineRunRow?.completedAt ?? null,
+      };
+    },
+    async cleanup(request) {
+      const profile = preferences.get('profile');
+      const records = db.prepare('select data_json, attempt_count from operations order by id').all().map(row => ({...parse(row.data_json), attemptCount: row.attempt_count}));
+      // Setup-probe items never go through the operations table (see setup-probe.mjs: the
+      // operations table's plan_revision has a hard foreign key onto a saved plan, which does
+      // not necessarily exist yet during first-run setup). When a probe is abandoned in a
+      // stranded ('reconciliation_required'/'failed') state, fold its operation-shaped records
+      // in here so cleanup can still find and remove whatever it created.
+      const pendingProbe = preferences.get('pending_setup_probe');
+      if (pendingProbe && ['reconciliation_required', 'failed'].includes(pendingProbe.state)) {
+        if (pendingProbe.reminder) records.push({...pendingProbe.reminder, attemptCount: 1});
+        if (pendingProbe.calendar) records.push({...pendingProbe.calendar, attemptCount: 1});
+      }
+      const registry = await injectedRegistry.get(); return cleanupPluginItems({request, profile, operations: records, connectors: registry, calendarCleanup: keys => googleCalendarCleanup({keys, profile, keychain: credentialStore, transport})});
+    },
   };
 }

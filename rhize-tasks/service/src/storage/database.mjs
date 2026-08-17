@@ -102,12 +102,18 @@ export function transaction(db, fn) {
   }
 }
 
-export function openDatabase(path = defaultDatabasePath(), {Database = DatabaseSync, beforeMigrations} = {}) {
+export function openDatabase(path = defaultDatabasePath(), {Database = DatabaseSync, beforeMigrations, busyTimeoutMs = 5000} = {}) {
   if (typeof path !== 'string' || path.length === 0) throw new TypeError('database path must be a nonempty string');
+  if (!Number.isInteger(busyTimeoutMs) || busyTimeoutMs < 0) throw new TypeError('busyTimeoutMs must be a nonnegative integer');
   mkdirSync(dirname(path), {recursive: true});
   const db = new Database(path);
   try {
     db.exec('pragma foreign_keys = on');
+    // busy_timeout must be set BEFORE the journal_mode=wal switch itself, which can contend
+    // with an existing reader/writer on the file; setting it after would leave that specific
+    // transition racing with a zero timeout on a fresh post-upgrade open.
+    db.exec(`pragma busy_timeout = ${busyTimeoutMs}`);
+    db.exec('pragma journal_mode = wal');
     transaction(db, () => {
       db.exec('create table if not exists schema_migrations (version integer primary key, applied_at text not null)');
       if (beforeMigrations !== undefined) {

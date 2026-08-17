@@ -2,6 +2,14 @@ import {assertOperation} from '../domain.mjs';
 
 const SAFE_RETRY_KINDS = new Set(['reminder_upsert', 'reminder_complete', 'reminder_delete', 'calendar_upsert', 'calendar_delete', 'jira_assign', 'provisional_link', 'urgent_displacement', 'scope_expand']);
 const TERMINAL_STATES = new Set(['applied', 'reconciliation_required', 'failed']);
+const DEFAULT_RETRY_BACKOFF_MS = 1500;
+const MAX_RETRY_WAIT_MS = 30_000;
+const defaultSleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function retryWaitMs(normalized) {
+  if (Number.isFinite(normalized.retryAfterMs) && normalized.retryAfterMs >= 0) return Math.min(normalized.retryAfterMs, MAX_RETRY_WAIT_MS);
+  return DEFAULT_RETRY_BACKOFF_MS;
+}
 
 function copy(value) { return structuredClone(value); }
 
@@ -33,8 +41,8 @@ export function previewOperations(plan, snapshot) {
 }
 
 function normalizedError(error) {
-  if (!error || typeof error !== 'object') return {kind: 'connector_error', retryable: false, ambiguous: false, status: null};
-  return {kind: typeof error.kind === 'string' && error.kind.length > 0 ? error.kind : 'connector_error', retryable: error.retryable === true, ambiguous: error.ambiguous === true, status: Number.isInteger(error.status) ? error.status : null};
+  if (!error || typeof error !== 'object') return {kind: 'connector_error', retryable: false, ambiguous: false, status: null, retryAfterMs: null};
+  return {kind: typeof error.kind === 'string' && error.kind.length > 0 ? error.kind : 'connector_error', retryable: error.retryable === true, ambiguous: error.ambiguous === true, status: Number.isInteger(error.status) ? error.status : null, retryAfterMs: Number.isFinite(error.retryAfterMs) && error.retryAfterMs >= 0 ? error.retryAfterMs : null};
 }
 
 function terminalResult(operationId, execution) {
@@ -70,7 +78,7 @@ async function precondition(repository, connector, operation) {
   return null;
 }
 
-async function applyOne(repository, connector, operation) {
+async function applyOne(repository, connector, operation, sleep) {
   const preconditionResult = await precondition(repository, connector, operation);
   if (preconditionResult) return preconditionResult;
   while (true) {
@@ -98,6 +106,7 @@ async function applyOne(repository, connector, operation) {
           if (stateError instanceof SyntaxError) throw stateError;
           return reconciliationAfterExternalCall(repository, operation, 'retry_state_persistence_failed', {error: normalized});
         }
+        await sleep(retryWaitMs(normalized));
         continue;
       }
       return failure(repository, operation, normalized);
@@ -113,7 +122,7 @@ async function applyOne(repository, connector, operation) {
   }
 }
 
-export async function applyApprovedOperations({repository, connectors, currentRevision}, operations) {
+export async function applyApprovedOperations({repository, connectors, currentRevision, sleep = defaultSleep}, operations) {
   if (!repository || typeof repository.get !== 'function' || typeof repository.save !== 'function' || typeof repository.execution !== 'function' || typeof repository.beginAttempt !== 'function' || typeof repository.markState !== 'function' || typeof repository.appendAudit !== 'function' || typeof repository.reconcileDrift !== 'function') throw new TypeError('repository does not implement the operation repository contract');
   if (!Number.isInteger(currentRevision) || currentRevision < 1) throw new RangeError('currentRevision must be an integer >= 1');
   if (!Array.isArray(operations)) throw new TypeError('operations must be an array');
@@ -138,7 +147,7 @@ export async function applyApprovedOperations({repository, connectors, currentRe
       results.push(failure(repository, operation, {kind: 'missing_connector', retryable: false, ambiguous: false, status: null}));
       continue;
     }
-    results.push(await applyOne(repository, connector, operation));
+    results.push(await applyOne(repository, connector, operation, sleep));
   }
   return results;
 }

@@ -38,7 +38,7 @@ test('migration locking rechecks the ledger under one write lock', async () => {
   await withDatabase(file => {
     let contested = false;
     const first = openDatabase(file, {beforeMigrations() {
-      assert.throws(() => openDatabase(file), /locked|busy/i);
+      assert.throws(() => openDatabase(file, {busyTimeoutMs: 0}), /locked|busy/i);
       contested = true;
     }});
     first.close();

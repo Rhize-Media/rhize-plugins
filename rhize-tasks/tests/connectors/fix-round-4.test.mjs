@@ -21,7 +21,7 @@ test('Jira transition POST 500 preserves status/retryability and is ambiguous', 
     if (request.url.endsWith('/transitions') && request.method === 'POST') return {status: 500, headers: {}, body: {private: 'redacted'}};
     return ok(scoped('before'));
   });
-  await assert.rejects(connector.applyOperation(operation), error => { assert.deepEqual(error, {kind: 'http', retryable: true, ambiguous: true, status: 500}); return true; });
+  await assert.rejects(connector.applyOperation(operation), error => { assert.deepEqual(error, {kind: 'http', retryable: true, ambiguous: true, status: 500, body: null, retryAfterMs: null}); return true; });
 });
 
 test('Jira successful transition followed by revision timeout remains ambiguous', async () => {

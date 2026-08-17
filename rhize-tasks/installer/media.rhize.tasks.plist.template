@@ -7,6 +7,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>{{NODE_PATH}}</string>
+    <string>--no-warnings</string>
     <string>{{CLI_PATH}}</string>
     <string>routine</string>
     <string>catch-up</string>

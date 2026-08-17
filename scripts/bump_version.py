@@ -178,9 +178,12 @@ def update_plugin_manifests(plugin: str, version: str) -> None:
     if runtime.exists():
         text = runtime.read_text(encoding="utf-8")
         updated, count = re.subn(r"^const VERSION = '[^']+';$", f"const VERSION = '{version}';", text, count=1, flags=re.MULTILINE)
-        if count != 1:
+        if count == 1:
+            runtime.write_text(updated, encoding="utf-8")
+        elif re.search(r"^const VERSION = JSON\.parse\(.*package\.json.*\)\.version;$", text, flags=re.MULTILINE):
+            pass  # runtime derives its version from package.json; nothing to patch
+        else:
             fail(f"could not update runtime version in {runtime.relative_to(REPO)}")
-        runtime.write_text(updated, encoding="utf-8")
 
     info_plist = REPO / plugin / "native" / "reminders-helper" / "Resources" / "Info.plist"
     if info_plist.exists():

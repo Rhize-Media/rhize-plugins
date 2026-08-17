@@ -18,7 +18,7 @@ function isNonEmptyString(value) {
 function validateResponse(command, payload, value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw connectorError('malformed_response');
   if (value.ok !== true) {
-    if (value.ok === false && isNonEmptyString(value.error)) throw connectorError(value.error, {retryable: false});
+    if (value.ok === false && isNonEmptyString(value.error)) throw connectorError(value.error === 'authorization_denied' ? 'authorization' : value.error, {retryable: false});
     throw connectorError('malformed_response');
   }
   if (command === 'authorize' && value.authorized !== true) throw connectorError('malformed_response');

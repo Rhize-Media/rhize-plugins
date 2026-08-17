@@ -8,6 +8,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-17_ version bump — **rhize-tasks** 0.1.0 → 0.2.0 (minor); marketplace 2.30.1 → 2.31.0.
+- _2026-08-17_ **rhize-tasks 0.2.0 — external-review remediation (Tom Cassidy's 0.1.0 review,
+  25 findings + plugin wiring), hardened by a second adversarial pass.** First-run path now works:
+  `dashboard` starts the local server itself (pidfile-managed; installer/uninstaller stop it
+  cleanly, reinstall no longer conflicts with its own port). Installer: stable Node path
+  resolution with capability probing (fails closed on ephemeral fnm/nvm paths), tri-state
+  launchctl detection with label-form bootout fallback, bootout-before-swap reinstall ordering,
+  rollback gated on verified agent stop (`manual_recovery_required` instead of unsafe mutation),
+  process-group kill with SIGTERM forwarding, stderr surfaced from failed `swift build`/`codesign`
+  through the CLI JSON boundary, corrupt Keychain token self-heal, stale artifact sweep, scoped
+  secret scanner, `--no-warnings` in the LaunchAgent. Connectors: Google `invalid_grant` and
+  denied Reminders access now surface as `revoked` (previously indistinguishable from `offline`),
+  in-memory Google token cache with shared in-flight refresh + 401 invalidation, `Retry-After`
+  honoring backoff, bounded Slack pagination with mrkdwn un-escaping (Jira URLs from real Slack
+  now parse) and real channel verification at discovery. API/dashboard: scope-expansion approval
+  path wired up end-to-end (preferences-backed, transactional approval), setup-probe orphan
+  recovery + concurrency guards, artifact `$`-replacement corruption fixed, discovery-path HTTPS
+  enforcement, nonce burn-after-validate, Origin/Host/`x-rhize-tasks-dashboard` header enforcement
+  on every cookie-authenticated request, SQLite WAL + 5s busy timeout, doctor now reports
+  `agentLoaded`/`plistNodePathExists`/`runtimeVersionMatch`/`lastRoutineRun`. Claude wiring: all
+  six commands now invoke their skills via the Skill tool (`allowed-tools` includes `Skill`);
+  skills carry a non-macOS (Claude Cowork) platform guard. Tests 181 → 277. Known limitations
+  documented in README: Reminders TCC under launchd, ad-hoc signing grant resets, Google
+  OAuth Testing-status token expiry, per-run Slack lookback.
 - _2026-08-16_ version bump — **rhize-devflow** 2.12.0 → 2.12.1 (patch); marketplace 2.30.0 → 2.30.1.
 - _2026-08-16_ version bump — **rhize-context-manager** 0.13.0 → 0.14.0 (minor); **rhize-devflow** 2.11.0 → 2.12.0 (minor); **rhize-ops** 0.9.0 → 0.10.0 (minor); marketplace 2.29.0 → 2.30.0.
 - _2026-08-16_ **Rhize Dev Flow becomes the engineering control plane —

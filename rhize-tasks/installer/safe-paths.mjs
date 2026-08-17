@@ -56,7 +56,17 @@ async function inspectChain(home, target, targetKind = 'either') {
       if (error.code === 'ENOENT') return;
       throw error;
     }
-    if (metadata.isSymbolicLink()) throw new Error(`symlink_install_path:${entry.value}`);
+    if (metadata.isSymbolicLink()) {
+      // The home directory itself being a symlink (common on managed Macs
+      // with NFS/AFP-mounted or redirected home directories) is a platform
+      // fact, not evidence of an attacker swapping one of our own managed
+      // subpaths — `symlink_install_path` reads like a security violation
+      // for what is really "install path checks cannot be enforced here"
+      // (finding #25). Everywhere else in the chain, a symlink is still
+      // exactly the tamper signal this function exists to catch.
+      if (entry.value === home) throw new Error(`home_directory_is_symlink:${entry.value}: home directory is a symlink; install path checks cannot be enforced`);
+      throw new Error(`symlink_install_path:${entry.value}`);
+    }
     const expectedKind = entry.final ? targetKind : 'directory';
     if (expectedKind === 'directory' && !metadata.isDirectory()) throw new Error(`non_directory_install_path:${entry.value}`);
     if (expectedKind === 'file' && !metadata.isFile()) throw new Error(`non_file_install_path:${entry.value}`);

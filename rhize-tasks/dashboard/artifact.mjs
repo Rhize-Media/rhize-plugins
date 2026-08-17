@@ -32,7 +32,7 @@ export function renderArtifact(view) {
     `<section class="card"><h2>Connector freshness</h2><dl>${Object.entries(view.connectors).map(([name, connector]) => `<dt>${escapeHtml(name)}</dt><dd>${escapeHtml(connector.status)} · ${escapeHtml(connector.staleMinutes)} minutes stale${connector.freshAt ? ` · refreshed ${escapeHtml(connector.freshAt)}` : ''}</dd>`).join('')}</dl></section>`,
     `<section class="card"><h2>Service state</h2><p>${view.paused ? 'Paused' : 'Running'} · ${view.degraded ? 'Degraded' : 'Healthy'}</p></section>`,
   ].join('');
-  return template.replaceAll('{{PLAN_REVISION}}', String(view.planRevision)).replace('{{GENERATED_AT}}', escapeHtml(view.generatedAt)).replace('{{TODAY_CONTENT}}', content).replace('{{TODAY_VIEW_JSON}}', escapeHtml(JSON.stringify(view, null, 2)));
+  return template.replaceAll('{{PLAN_REVISION}}', String(view.planRevision)).replace('{{GENERATED_AT}}', escapeHtml(view.generatedAt)).replace('{{TODAY_CONTENT}}', () => content).replace('{{TODAY_VIEW_JSON}}', () => escapeHtml(JSON.stringify(view, null, 2)));
 }
 
 export async function writeArtifactFile(target, view) {

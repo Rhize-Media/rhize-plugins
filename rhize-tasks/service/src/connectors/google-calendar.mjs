@@ -26,8 +26,55 @@ export function createGoogleCalendarConnector({readCalendarIds, focusCalendarId,
   function eventTime(event, key) { const value = event[key]; if (!object(value)) throw connectorError('malformed_response'); const dateTime = value.dateTime; const date = value.date; if (dateTime !== undefined && date !== undefined) throw connectorError('malformed_response'); if (typeof dateTime === 'string' && validDateTime(dateTime)) return dateTime; if (typeof date === 'string' && validDate(date)) return date; throw connectorError('malformed_response'); }
   function snapshotEvent(event, calendarId) { const privateProperties = event.extendedProperties?.private; const owned = calendarId === focusCalendarId && typeof privateProperties?.rhizeOperationKey === 'string' && /^[0-9a-f]{64}$/.test(privateProperties.rhizeOperationKey) && typeof privateProperties.rhizeTaskId === 'string' && privateProperties.rhizeTaskId && typeof privateProperties.rhizeBlockSlot === 'string' && privateProperties.rhizeBlockSlot; return {id: event.id, calendarId, revision: event.etag, start: eventTime(event, 'start'), end: eventTime(event, 'end'), title: calendarId === focusCalendarId || !redactOutsideTitles ? event.summary ?? '' : '', description: calendarId === focusCalendarId || !redactOutsideTitles ? event.description ?? '' : '', ...(owned ? {owned: true, operationKey: privateProperties.rhizeOperationKey, taskId: privateProperties.rhizeTaskId, blockSlot: privateProperties.rhizeBlockSlot} : {})}; }
   async function normalized(action, {afterWrite = false} = {}) { try { return await action(); } catch (error) { throw normalizeError(error, {afterWrite}); } }
-  async function token() { try { const [client_id, client_secret, refresh_token] = await Promise.all(['client-id', 'client-secret', 'refresh-token'].map(account => credentials.get('media.rhize.tasks.google', account))); const response = await transport({url: 'https://oauth2.googleapis.com/token', method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({client_id, client_secret, refresh_token, grant_type: 'refresh_token'}).toString()}); if (!response || response.status < 200 || response.status >= 300 || !response.body || typeof response.body.access_token !== 'string') throw connectorError('authorization', {status: response?.status}); return response.body.access_token; } catch (error) { throw normalizeError(error); } }
-  async function request(path, options = {}) { try { const access = await token(); const response = await transport({url: `https://www.googleapis.com/calendar/v3${path}`, method: options.method ?? 'GET', headers: {authorization: `Bearer ${access}`, ...(options.body ? {'content-type': 'application/json'} : {})}, body: options.body ? JSON.stringify(options.body) : undefined}); if (!response || response.status < 200 || response.status >= 300) throw connectorError(response?.status === 401 || response?.status === 403 ? 'authorization' : 'http', {status: response?.status, retryable: response?.status >= 500 || response?.status === 429}); return response; } catch (error) { throw normalizeError(error, {afterWrite: options.method && options.method !== 'GET'}); } }
+  const TOKEN_REFRESH_SKEW_MS = 60_000;
+  let cachedToken = null;
+  let refreshPromise = null;
+  async function refreshAccessToken() {
+    const [client_id, client_secret, refresh_token] = await Promise.all(['client-id', 'client-secret', 'refresh-token'].map(account => credentials.get('media.rhize.tasks.google', account)));
+    const response = await transport({url: 'https://oauth2.googleapis.com/token', method: 'POST', headers: {'content-type': 'application/x-www-form-urlencoded'}, body: new URLSearchParams({client_id, client_secret, refresh_token, grant_type: 'refresh_token'}).toString()});
+    if (!response || response.status < 200 || response.status >= 300 || !response.body || typeof response.body.access_token !== 'string') throw connectorError('authorization', {status: response?.status});
+    const expiresIn = Number(response.body.expires_in);
+    cachedToken = {accessToken: response.body.access_token, expiresAt: now().getTime() + (Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn * 1000 : 0)};
+    return cachedToken.accessToken;
+  }
+  // Concurrent callers (readSnapshot fans out per calendar) must share one in-flight refresh
+  // instead of each starting their own grant against Google's token endpoint.
+  async function token() {
+    if (cachedToken && cachedToken.expiresAt - now().getTime() > TOKEN_REFRESH_SKEW_MS) return cachedToken.accessToken;
+    if (!refreshPromise) {
+      refreshPromise = refreshAccessToken().catch(error => {
+        cachedToken = null;
+        if (error?.status === 400 && error?.body?.error === 'invalid_grant') throw connectorError('authorization', {status: error.status});
+        throw normalizeError(error);
+      }).finally(() => { refreshPromise = null; });
+    }
+    return refreshPromise;
+  }
+  async function request(path, options = {}) {
+    const method = options.method ?? 'GET';
+    const send = async access => {
+      const response = await transport({url: `https://www.googleapis.com/calendar/v3${path}`, method, headers: {authorization: `Bearer ${access}`, ...(options.body ? {'content-type': 'application/json'} : {})}, body: options.body ? JSON.stringify(options.body) : undefined});
+      if (!response || response.status < 200 || response.status >= 300) throw connectorError(response?.status === 401 || response?.status === 403 ? 'authorization' : 'http', {status: response?.status, retryable: response?.status >= 500 || response?.status === 429});
+      return response;
+    };
+    try {
+      const access = await token();
+      try {
+        return await send(access);
+      } catch (error) {
+        // A 401 mid-lifetime means Google revoked the token server-side before our local
+        // expiry; the cache would otherwise keep replaying the known-bad token for the rest
+        // of the sync. Only clear it if it is still the exact token we used (a concurrent
+        // caller may have already refreshed it), and only auto-retry idempotent reads —
+        // mutating calls propagate the error so reconciliation's own retry logic decides.
+        if (error?.status === 401) {
+          if (cachedToken?.accessToken === access) cachedToken = null;
+          if (method === 'GET') return await send(await token());
+        }
+        throw error;
+      }
+    } catch (error) { throw normalizeError(error, {afterWrite: method !== 'GET'}); }
+  }
   async function events(calendarId, extra = {}) { const all = []; const seen = new Set(); let pageToken; const keyQuery = Object.hasOwn(extra, 'privateExtendedProperty'); for (let count = 0; count < 100; count += 1) { const qs = new URLSearchParams({singleEvents: 'true', orderBy: 'startTime', ...(keyQuery ? {} : {timeMin: now().toISOString()}), maxResults: '250', ...extra}); if (pageToken) qs.set('pageToken', pageToken); const body = bodyOf(await request(`/calendars/${encodeURIComponent(calendarId)}/events?${qs}`)); if (!Array.isArray(body.items)) throw connectorError('malformed_response'); body.items.forEach(eventIdentity); all.push(...body.items); pageToken = body.nextPageToken; if (pageToken !== undefined && pageToken !== null && typeof pageToken !== 'string') throw connectorError('malformed_response'); if (!pageToken) return all; if (seen.has(pageToken)) throw connectorError('pagination_loop'); seen.add(pageToken); } throw connectorError('pagination_limit'); }
   const api = {
     async health() { return normalized(async () => { await request('/users/me/calendarList?maxResults=1'); return {ok: true}; }); },

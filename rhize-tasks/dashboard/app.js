@@ -50,13 +50,22 @@ export async function submitCredentials({connector, fields, planRevision, reques
   for (const field of Object.values(fields)) field.value = '';
   return request('/v1/setup/credentials', {method: 'POST', body: {planRevision, connector, values}});
 }
+// 409s carrying one of these kinds are a setup-probe retry state, not a stale plan revision —
+// treating them as the latter would wipe `state.probe` via onConflict and strand the user with
+// no way back to the orphan (see sessions.mjs / setup-probe.mjs). Let the caller's own
+// try/catch (previewSample/approveSample) show the message and keep retrying instead.
+const RETRYABLE_ERROR_KINDS = new Set(['setup_probe_orphan_pending', 'setup_probe_busy', 'reconciliation_required']);
+
 export function createApiRequest({authState, fetchImpl = globalThis.fetch, onUnauthorized = () => {}, onConflict = async () => {}}) {
   return async (path, options = {}) => {
-    const headers = {...(authState.token ? {authorization: `Bearer ${authState.token}`} : {}), ...(options.body ? {'content-type': 'application/json'} : {})};
+    // Identifies this as a real dashboard-originated request. A cross-site request (an <img>,
+    // <a>, or <form>) can never set a custom header, so the service requires it on every
+    // cookie-authenticated request — see sessions.mjs. Harmless alongside bearer auth too.
+    const headers = {'x-rhize-tasks-dashboard': '1', ...(authState.token ? {authorization: `Bearer ${authState.token}`} : {}), ...(options.body ? {'content-type': 'application/json'} : {})};
     const response = await fetchImpl(path, {method: options.method ?? 'GET', credentials: 'same-origin', headers, body: options.body ? JSON.stringify(options.body) : undefined});
     if (response.status === 401) { authState.token = ''; onUnauthorized(); }
     let body; try { body = await response.json(); } catch { throw new Error(`Local service returned HTTP ${response.status}.`); }
-    if (response.status === 409) { await onConflict(); throw new Error('The plan changed. The current view was refreshed; review it before trying again.'); }
+    if (response.status === 409 && !RETRYABLE_ERROR_KINDS.has(body?.error?.kind)) { await onConflict(); throw new Error('The plan changed. The current view was refreshed; review it before trying again.'); }
     if (!response.ok) throw new Error(body?.error?.kind ?? `Local service returned HTTP ${response.status}.`);
     return body;
   };
@@ -96,6 +105,16 @@ function addDecision(li, operation) {
     try { await api(`/v1/operations/${encodeURIComponent(operation.operationId)}/approve`, {method: 'POST', body: {planRevision: state.displayedRevision, actor: 'dashboard'}}); await refreshToday(); }
     catch (error) { status('plan-status', error.message); }
     finally { button.disabled = false; }
+  });
+  li.append(button);
+}
+function addScopeChangeDecision(li, operation) {
+  const summary = document.createElement('span'); summary.textContent = `${operation.connector}: ${operation.resourceIds.join(', ')} `; li.append(summary);
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = operation.approval === 'approved' ? 'Approved' : 'Approve'; button.disabled = operation.approval === 'approved';
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    try { await api(`/v1/operations/${encodeURIComponent(operation.id)}/approve`, {method: 'POST', body: {planRevision: state.planRevision, actor: 'dashboard'}}); status('setup-status', 'Scope change operation approved.'); await loadSetup(); }
+    catch (error) { button.disabled = false; status('setup-status', error.message); }
   });
   li.append(button);
 }
@@ -208,6 +227,22 @@ async function loadSetup() {
   const [setup, preferences] = await Promise.all([api('/v1/setup/status'), api('/v1/preferences')]); state.planRevision = setup.planRevision; state.profile = preferences.profile; state.connectorConfig = preferences.connectorConfig;
   for (const saved of resumeSetupStages(setup.stages)) { document.querySelector(`[data-stage="${saved.number}"]`).dataset.complete = String(saved.complete); applyStageData(saved.number, saved.data); }
   applyProfile(state.profile, state.connectorConfig);
+  // Rediscover anything left pending from a previous session — otherwise a stranded scope
+  // proposal or setup-probe orphan is only ever visible as a one-shot error on the request
+  // that first triggered it, with no way back to it (see fix-round-3 findings #10, #13).
+  fillList('pending-scope-changes', setup.pendingScopeChange?.operations ?? [], addScopeChangeDecision, 'None');
+  const pendingProbe = setup.pendingSetupProbe;
+  const pendingProbeSection = byId('pending-probe');
+  if (pendingProbe) {
+    // Retry must target the plan revision the probe was actually proposed against, which can
+    // differ from the current one — the server rejects a mismatch either way.
+    state.probe = {planRevision: pendingProbe.planRevision, probeId: pendingProbe.probeId, exact: pendingProbe.exact};
+    pendingProbeSection.hidden = false;
+    byId('pending-probe-status').textContent = `Probe ${pendingProbe.probeId} is ${pendingProbe.state}. Approve the displayed reversible probe below to retry cleanup.`;
+    byId('approve-sample').disabled = false;
+  } else {
+    pendingProbeSection.hidden = true;
+  }
   status('setup-status', `Setup state loaded at plan revision ${state.planRevision}.`);
 }
 function stageData(number) {
@@ -238,15 +273,33 @@ async function preview() {
   const result = await api('/v1/plans/preview', {method: 'POST', body: planPreviewRequest(state.planRevision, planningDate())}); if (!Array.isArray(result.operations) || !Array.isArray(result.approvalsRequired)) throw new Error('The local service returned an invalid plan preview.'); state.preview = result; state.planRevision = result.planRevision; state.displayedRevision = result.planRevision; fillList('preview-operations', result.operations, renderPreviewOperation, 'No connector writes proposed'); byId('zero-work-reason').textContent = result.zeroWorkReason ? `No schedulable work: ${result.zeroWorkReason}` : 'Schedulable work was found.'; byId('exact-preview').textContent = JSON.stringify(result, null, 2); byId('approve-preview').disabled = false; status('setup-status', `Exact server-derived revision ${result.planRevision} is ready with ${result.approvalsRequired.length} approval-required operations. Review every operation before confirmation.`);
 }
 async function previewScope() {
-  const connector = byId('scope-connector').value; const stages = {2: stageData(2), 3: stageData(3), 4: stageData(4)};
-  const result = await api('/v1/setup/connectors', {method: 'POST', body: setupConnectorRequest(state.planRevision, connector, stages)}); state.setupScope = result; byId('scope-preview').textContent = JSON.stringify({planRevision: result.planRevision, operation: result.operation, scope: result.scope}, null, 2); byId('approve-scope').disabled = false; status('setup-status', `Exact ${connector} scope is ready for approval at revision ${result.planRevision}.`);
+  const button = byId('preview-scope'); button.disabled = true;
+  try {
+    const connector = byId('scope-connector').value; const stages = {2: stageData(2), 3: stageData(3), 4: stageData(4)};
+    const result = await api('/v1/setup/connectors', {method: 'POST', body: setupConnectorRequest(state.planRevision, connector, stages)}); state.setupScope = result; byId('scope-preview').textContent = JSON.stringify({planRevision: result.planRevision, operation: result.operation, scope: result.scope}, null, 2); byId('approve-scope').disabled = false; status('setup-status', `Exact ${connector} scope is ready for approval at revision ${result.planRevision}.`);
+  } finally { button.disabled = false; }
 }
-async function approveScope() { if (!state.setupScope?.operation?.id) throw new Error('Preview exact connector scope first.'); const result = await api(`/v1/operations/${encodeURIComponent(state.setupScope.operation.id)}/approve`, {method: 'POST', body: {planRevision: state.setupScope.planRevision, actor: 'dashboard'}}); if (result.state !== 'approved_setup_scope') throw new Error('The service did not verify setup scope approval.'); byId('approve-scope').disabled = true; status('setup-status', 'Displayed connector scope was approved and recorded locally.'); state.setupScope = null; }
+async function approveScope() {
+  if (!state.setupScope?.operation?.id) throw new Error('Preview exact connector scope first.');
+  const button = byId('approve-scope'); button.disabled = true;
+  try {
+    const result = await api(`/v1/operations/${encodeURIComponent(state.setupScope.operation.id)}/approve`, {method: 'POST', body: {planRevision: state.setupScope.planRevision, actor: 'dashboard'}}); if (result.state !== 'approved_setup_scope') throw new Error('The service did not verify setup scope approval.'); status('setup-status', 'Displayed connector scope was approved and recorded locally.'); state.setupScope = null;
+  } catch (error) { button.disabled = false; throw error; }
+}
 async function previewSample() {
-  const time = stageData(4); if (!time.tasksListId || !time.focusCalendarId) throw new Error('Choose the exact Rhize Tasks list and Rhize Focus calendar first.');
-  const result = await api('/v1/setup/probe', {method: 'POST', body: probePreviewRequest(state.planRevision, time)}); state.probe = result; byId('probe-preview').textContent = JSON.stringify({planRevision: result.planRevision, probeId: result.probeId, exact: result.exact}, null, 2); byId('approve-sample').disabled = false; status('setup-status', `Exact reversible probe ${result.probeId} is ready for approval.`);
+  const button = byId('preview-sample'); button.disabled = true;
+  try {
+    const time = stageData(4); if (!time.tasksListId || !time.focusCalendarId) throw new Error('Choose the exact Rhize Tasks list and Rhize Focus calendar first.');
+    const result = await api('/v1/setup/probe', {method: 'POST', body: probePreviewRequest(state.planRevision, time)}); state.probe = result; byId('probe-preview').textContent = JSON.stringify({planRevision: result.planRevision, probeId: result.probeId, exact: result.exact}, null, 2); byId('approve-sample').disabled = false; status('setup-status', `Exact reversible probe ${result.probeId} is ready for approval.`);
+  } finally { button.disabled = false; }
 }
-async function approveSample() { if (!state.probe?.probeId) throw new Error('Preview the reversible probe first.'); const result = await api('/v1/setup/probe', {method: 'POST', body: probeApplyRequest(state.probe.planRevision, state.probe.probeId, 'dashboard')}); if (result.verified?.reminders !== true || result.verified?.calendar !== true) throw new Error('The service could not verify both reversible probe cleanups.'); byId('approve-sample').disabled = true; status('setup-status', 'Calendar and Reminders probes were created, verified, and removed.'); state.probe = null; }
+async function approveSample() {
+  if (!state.probe?.probeId) throw new Error('Preview the reversible probe first.');
+  const button = byId('approve-sample'); button.disabled = true;
+  try {
+    const result = await api('/v1/setup/probe', {method: 'POST', body: probeApplyRequest(state.probe.planRevision, state.probe.probeId, 'dashboard')}); if (result.verified?.reminders !== true || result.verified?.calendar !== true) throw new Error('The service could not verify both reversible probe cleanups.'); status('setup-status', 'Calendar and Reminders probes were created, verified, and removed.'); state.probe = null;
+  } catch (error) { button.disabled = false; throw error; }
+}
 function required(value, label) { if (typeof value !== 'string' || !value.trim()) throw new Error(`${label} is required.`); return value.trim(); }
 function profileFromForm({setupComplete = false} = {}) {
   const identity = stageData(2); const jira = stageData(3); const time = stageData(4); const work = stageData(5); const routines = stageData(6);
@@ -267,11 +320,23 @@ async function savePreferences({setupComplete = false} = {}) {
   const profile = profileFromForm({setupComplete}); const config = connectorConfigFromForm();
   const profileResult = await api('/v1/preferences', {method: 'PUT', body: {planRevision: state.planRevision, profile}}); const profileOperations = profileResult.operationIds ?? [];
   if (profileOperations.length) { byId('exact-preview').textContent = JSON.stringify({planRevision: state.planRevision, operationIds: profileOperations}, null, 2); status('setup-status', 'Profile scope changed. Review and approve the listed operations before continuing.'); await refreshToday(); return false; }
-  if (config.slack) await api('/v1/setup/connectors', {method: 'PUT', body: {planRevision: state.planRevision, connector: 'slack', scope: config.slack, apply: true}});
+  if (config.slack) {
+    const slackResult = await api('/v1/setup/connectors', {method: 'PUT', body: {planRevision: state.planRevision, connector: 'slack', scope: config.slack, apply: true}});
+    if (slackResult.approvalRequired) { byId('exact-preview').textContent = JSON.stringify({planRevision: state.planRevision, operationIds: slackResult.operationIds}, null, 2); status('setup-status', 'Slack scope changed. Review and approve the listed operations before continuing.'); await refreshToday(); return false; }
+  }
   state.profile = profile; state.connectorConfig = config; status('setup-status', 'Preferences saved. Generating the first no-write plan preview.'); return true;
 }
-async function previewPlan() { if (await savePreferences({setupComplete: true})) await preview(); }
-async function confirmPreview() { if (!state.preview) throw new Error('Generate and review a preview first.'); await api(`/v1/plans/${state.displayedRevision}/approve`, {method: 'POST', body: {actor: 'dashboard', apply: true}}); await saveStage(7); status('setup-status', `Displayed revision ${state.displayedRevision} was confirmed and setup is complete. Refreshing current state.`); state.preview = null; byId('approve-preview').disabled = true; await Promise.all([loadSetup(), refreshToday()]); }
+async function previewPlan() {
+  const button = byId('preview-plan'); button.disabled = true;
+  try { if (await savePreferences({setupComplete: true})) await preview(); } finally { button.disabled = false; }
+}
+async function confirmPreview() {
+  if (!state.preview) throw new Error('Generate and review a preview first.');
+  const button = byId('approve-preview'); button.disabled = true;
+  try {
+    await api(`/v1/plans/${state.displayedRevision}/approve`, {method: 'POST', body: {actor: 'dashboard', apply: true}}); await saveStage(7); status('setup-status', `Displayed revision ${state.displayedRevision} was confirmed and setup is complete. Refreshing current state.`); state.preview = null; await Promise.all([loadSetup(), refreshToday()]);
+  } catch (error) { button.disabled = false; throw error; }
+}
 
 async function loadAuthorized() { await Promise.all([loadSetup(), refreshToday()]); status('service-status', 'Connected to the authenticated loopback service.'); }
 async function connect() { state.token = byId('api-token').value; byId('api-token').value = ''; if (!state.token) { status('service-status', 'Enter a temporary bearer only for local troubleshooting.'); return; } try { await loadAuthorized(); } catch (error) { state.token = ''; status('service-status', `${error.message} Disconnected; the troubleshooting bearer was cleared. Run the installed CLI dashboard command for a fresh one-time local session link.`); } }

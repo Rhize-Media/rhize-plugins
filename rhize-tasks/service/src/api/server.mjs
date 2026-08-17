@@ -24,7 +24,13 @@ export function createServer(context) {
   const route = createRouter(context);
   return http.createServer(async (request, response) => {
     const remote = request.socket.remoteAddress;
-    if (remote && !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote)) return send(response, 403, {error: {kind: 'loopback_required', status: 403}});
+    // Fail closed: a missing remote address is not proof of a loopback peer, it just means we
+    // don't know — the previous `if (remote && ...)` let an unknown remote skip the check.
+    if (!remote || !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(remote)) return send(response, 403, {error: {kind: 'loopback_required', status: 403}});
+    // Validate Host against the actual port this connection was accepted on (not a config
+    // value) so DNS rebinding or a crafted Host header can't reach the router under a
+    // different name, while staying correct for tests that bind an ephemeral port.
+    if (request.headers.host !== `127.0.0.1:${request.socket.localPort}`) return send(response, 403, {error: {kind: 'invalid_host', status: 403}});
     try { const rawPath = request.url?.split('?')[0] ?? ''; if (assets.has(rawPath)) { await sendAsset(response, rawPath, context.dashboardRoot ?? dashboardRoot); return; } const result = await route(request); send(response, result.status, result.body, result.headers); } catch (error) { const result = publicError(error); if (!response.headersSent) send(response, result.status, result.body); else response.destroy(); }
   });
 }

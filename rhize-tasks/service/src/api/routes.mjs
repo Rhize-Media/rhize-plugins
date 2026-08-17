@@ -41,7 +41,18 @@ export function createRouter(context) {
     if (method === 'GET' && pathname === '/v1/preferences') return response(200, {planRevision: currentRevision(context), profile: context.repositories.preferences.get('profile'), connectorConfig: context.repositories.preferences.get('connector_config')});
     if (method === 'GET' && pathname === '/v1/audit') return response(200, {entries: context.repositories.audit.list(Number(url.searchParams.get('limit') ?? 100))});
     if (method === 'GET' && pathname === '/v1/doctor') return response(200, await context.doctor());
-    if (method === 'GET' && pathname === '/v1/setup/status') return response(200, {planRevision: currentRevision(context), stages: context.repositories.preferences.get('setup_stages') ?? {}, scopePreviews: Object.values(context.repositories.preferences.get('setup_scope_previews') ?? {}).map(item => ({operation: item.operation, scope: item.scope})), approvedScopes: context.repositories.preferences.get('approved_setup_scopes') ?? {}});
+    if (method === 'GET' && pathname === '/v1/setup/status') {
+      const pendingScopeChangeRaw = context.repositories.preferences.get('pending_scope_change');
+      const pendingSetupProbeRaw = context.repositories.preferences.get('pending_setup_probe');
+      return response(200, {
+        planRevision: currentRevision(context), stages: context.repositories.preferences.get('setup_stages') ?? {}, scopePreviews: Object.values(context.repositories.preferences.get('setup_scope_previews') ?? {}).map(item => ({operation: item.operation, scope: item.scope})), approvedScopes: context.repositories.preferences.get('approved_setup_scopes') ?? {},
+        // Redacted so a previously-abandoned scope proposal or setup probe is rediscoverable
+        // and retryable from the dashboard, rather than only visible as a raw error detail on
+        // the request that first triggered it.
+        pendingScopeChange: pendingScopeChangeRaw ? {operations: pendingScopeChangeRaw.operations.map(operation => ({id: operation.id, connector: operation.connector, resourceIds: operation.resourceIds, approval: operation.approval})), material: pendingScopeChangeRaw.material} : null,
+        pendingSetupProbe: pendingSetupProbeRaw ? {probeId: pendingSetupProbeRaw.probeId, state: pendingSetupProbeRaw.state, planRevision: pendingSetupProbeRaw.planRevision, exact: pendingSetupProbeRaw.exact} : null,
+      });
+    }
     if (method === 'GET' && pathname === '/v1/opportunities') return response(200, {planRevision: currentRevision(context), opportunities: (await context.today()).opportunities});
 
     const discover = /^\/v1\/setup\/discover\/(jira|calendar|reminders|slack)$/.exec(pathname);
@@ -62,7 +73,7 @@ export function createRouter(context) {
       const body = await jsonBody(request, ['planRevision', 'connector', 'scope', 'apply']); revision(body.planRevision, context);
       if (body.connector !== 'slack' || body.apply !== true) throw new ApiError('invalid_connector_config');
       const result = await context.settings.proposeConnectorConfig({slack: body.scope});
-      return response(200, {planRevision: body.planRevision, saved: result.status === 'saved', connector: 'slack', scope: body.scope});
+      return response(result.status === 'approval_required' ? 202 : 200, {planRevision: body.planRevision, saved: result.status === 'saved', approvalRequired: result.status === 'approval_required', operationIds: result.operations.map(operation => operation.id), connector: 'slack', scope: body.scope});
     }
 
     if (method === 'POST' && pathname === '/v1/setup/probe') {
@@ -85,8 +96,15 @@ export function createRouter(context) {
 
     const operationApproval = /^\/v1\/operations\/([^/]+)\/approve$/.exec(pathname);
     if (method === 'POST' && operationApproval) {
-      const body = await jsonBody(request, ['planRevision', 'actor']); revision(body.planRevision, context); const approvedBy = actor(body.actor); const id = decodeURIComponent(operationApproval[1]); let operation = context.repositories.operations.get(id); if (!operation) { const setup = await context.settings.approveSetupScope(id, approvedBy); if (setup) return response(200, setup); throw new ApiError('operation_not_found', 404); }
-      if (operation.kind === 'scope_expand') return response(200, await context.settings.approveScope(id, approvedBy));
+      const body = await jsonBody(request, ['planRevision', 'actor']); revision(body.planRevision, context); const approvedBy = actor(body.actor); const id = decodeURIComponent(operationApproval[1]); let operation = context.repositories.operations.get(id);
+      // Neither setup-scope-preview nor pending-scope-change proposals ever live in the
+      // operations table (see proposeSettings/previewSetupScope in context.mjs), so a miss
+      // here tries both preferences-backed stores before a real 404.
+      if (!operation) {
+        const setup = await context.settings.approveSetupScope(id, approvedBy); if (setup) return response(200, setup);
+        const scope = await context.settings.approveScope(id, approvedBy); if (scope) return response(200, scope);
+        throw new ApiError('operation_not_found', 404);
+      }
       if (operation.approval === 'required') operation = context.repositories.operations.setApproval(id, 'approved', approvedBy);
       context.repositories.audit.append('operation_approved_via_api', 'operation', id, {actor: body.actor, planRevision: body.planRevision});
       if (await context.pause.isPaused()) return response(202, {operationId: id, state: 'approved_deferred', reason: 'paused'});
@@ -117,7 +135,15 @@ export function createRouter(context) {
     if (method === 'POST' && claim) {
       const body = await jsonBody(request, ['planRevision', 'actor', 'accountId']); revision(body.planRevision, context); actor(body.actor); if (typeof body.accountId !== 'string' || !body.accountId) throw new ApiError('invalid_account');
       const task = context.repositories.tasks.get(decodeURIComponent(claim[1])); if (!task || task.lane !== 'opportunity' || !task.jiraKey) throw new ApiError('opportunity_not_found', 404);
-      const payload = {accountId: body.accountId}; const key = operationKey(body.planRevision, 'jira_assign', task.jiraKey, payload); const value = {schemaVersion: 1, id: `claim:${key.slice(0, 24)}`, planRevision: body.planRevision, kind: 'jira_assign', targetSystem: 'jira', targetId: task.jiraKey, payload, idempotencyKey: key, approval: 'required', preconditionRevision: task.sourceRevision, retryState: 'pending', createdAt: context.now().toISOString()}; context.repositories.operations.save(value); context.repositories.operations.setApproval(value.id, 'approved', body.actor); context.repositories.audit.append('opportunity_claim_approved', 'task', task.id, {operationId: value.id, actor: body.actor});
+      const payload = {accountId: body.accountId}; const key = operationKey(body.planRevision, 'jira_assign', task.jiraKey, payload); const value = {schemaVersion: 1, id: `claim:${key.slice(0, 24)}`, planRevision: body.planRevision, kind: 'jira_assign', targetSystem: 'jira', targetId: task.jiraKey, payload, idempotencyKey: key, approval: 'required', preconditionRevision: task.sourceRevision, retryState: 'pending', createdAt: context.now().toISOString()};
+      // save() is idempotent by id/idempotencyKey, so an exact repeat claim (same plan
+      // revision, same accountId) returns the ALREADY-approved persisted record rather than a
+      // fresh 'required' one. Only transition required->approved; a repeat claim is a genuine
+      // conflict (already claimed), not the internal-error-shaped exception setApproval throws
+      // when asked to re-approve an already-approved operation.
+      const saved = context.repositories.operations.save(value);
+      if (saved.approval !== 'required') throw new ApiError('opportunity_already_claimed', 409);
+      context.repositories.operations.setApproval(saved.id, 'approved', body.actor); context.repositories.audit.append('opportunity_claim_approved', 'task', task.id, {operationId: value.id, actor: body.actor});
       if (await context.pause.isPaused()) return response(202, {operationId: value.id, state: 'approved_deferred'});
       const {applyApprovedOperations} = await import('../reconciliation/operations.mjs'); const [result] = await applyApprovedOperations({repository: context.repositories.operations, connectors: await context.connectorRegistry.get(), currentRevision: body.planRevision}, [{...value, approval: 'approved'}]); return response(200, result);
     }

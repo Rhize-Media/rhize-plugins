@@ -1,8 +1,8 @@
 const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_BYTES = 1_000_000;
 
-export function connectorError(kind = 'connector_error', {retryable = false, ambiguous = false, status = null} = {}) {
-  return {kind, retryable, ambiguous, status: Number.isInteger(status) ? status : null};
+export function connectorError(kind = 'connector_error', {retryable = false, ambiguous = false, status = null, body = null, retryAfterMs = null} = {}) {
+  return {kind, retryable, ambiguous, status: Number.isInteger(status) ? status : null, body: body ?? null, retryAfterMs: Number.isFinite(retryAfterMs) && retryAfterMs >= 0 ? retryAfterMs : null};
 }
 
 export function normalizeError(error, {afterWrite = false} = {}) {
@@ -32,7 +32,20 @@ export function createHttpTransport({fetch: fetchImpl = globalThis.fetch, timeou
         text = new TextDecoder().decode(Buffer.concat(chunks));
       } else { text = await response.text(); if (Buffer.byteLength(text) > maxBytes) throw connectorError('response_too_large', {status: response.status}); }
       const contentType = response.headers?.get?.('content-type') ?? '';
-      if (!response.ok) throw connectorError(response.status === 401 || response.status === 403 ? 'authorization' : response.status === 429 ? 'rate_limited' : 'http', {retryable: response.status >= 500 || response.status === 429, status: response.status});
+      if (!response.ok) {
+        let errorBody = null;
+        if (text) { try { errorBody = JSON.parse(text); } catch { /* best-effort diagnostic only */ } }
+        let retryAfterMs = null;
+        if (response.status === 429) {
+          const header = response.headers?.get?.('retry-after');
+          if (header !== null && header !== undefined) {
+            const seconds = Number(header);
+            if (Number.isFinite(seconds) && seconds >= 0) retryAfterMs = seconds * 1000;
+            else { const at = Date.parse(header); if (Number.isFinite(at)) retryAfterMs = Math.max(0, at - Date.now()); }
+          }
+        }
+        throw connectorError(response.status === 401 || response.status === 403 ? 'authorization' : response.status === 429 ? 'rate_limited' : 'http', {retryable: response.status >= 500 || response.status === 429, status: response.status, body: errorBody, retryAfterMs});
+      }
       let parsed = text;
       if (expectJson && !/application\/json/i.test(contentType)) throw connectorError('invalid_content_type', {status: response.status});
       if (expectJson && !text) parsed = null;

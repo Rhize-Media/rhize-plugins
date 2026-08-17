@@ -49,6 +49,12 @@
     <section id="setup" aria-labelledby="setup-heading">
       <span class="eyebrow">Resumable setup</span><h2 id="setup-heading">Seven stages</h2>
       <p>Each stage saves independently. Credentials go straight to the authenticated local Keychain route and are never included in stage data.</p>
+      <section id="pending-approvals" aria-labelledby="pending-approvals-heading">
+        <h3 id="pending-approvals-heading">Pending from a previous session</h3>
+        <p class="hint">Scope changes and reversible probes that were proposed but never approved stay here so they can be resumed instead of lost.</p>
+        <h4>Pending scope changes</h4><ul id="pending-scope-changes"><li class="muted">None</li></ul>
+        <div id="pending-probe" hidden><h4>Pending reversible probe</h4><p id="pending-probe-status" class="status" aria-live="polite"></p></div>
+      </section>
       <ol class="stages">
         <li><section data-stage="1" aria-labelledby="stage-1-title"><h3 id="stage-1-title">1. Safety and control</h3><p>Confirm global awareness, Rhize-only writes, approval-required setup, audit, pause, and revocation.</p><label><input id="safety-confirmed" type="checkbox"> I understand and accept these boundaries</label><button type="button" data-save-stage="1">Save stage</button></section></li>
         <li><section data-stage="2" aria-labelledby="stage-2-title">

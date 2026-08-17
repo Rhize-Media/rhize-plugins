@@ -69,6 +69,18 @@ class UpdatePluginManifestsTests(unittest.TestCase):
         self.assertIn("<string>0.1.0</string>", (repo / "rhize-tasks/native/reminders-helper/Resources/Info.plist").read_text(encoding="utf-8"))
         self.assertEqual(load(repo / ".claude-plugin/marketplace.json")["version"], "2.28.0")
 
+    def test_accepts_runtime_version_derived_from_package_json(self) -> None:
+        repo = seed_repo(Path(self.temp_dir.name), "rhize-tasks", dual=True)
+        bump_version.REPO = repo
+        context = repo / "rhize-tasks/service/src/api/context.mjs"
+        derived = "const VERSION = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version;\n"
+        context.write_text(derived, encoding="utf-8")
+
+        bump_version.apply_bumps({"rhize-tasks": "0.2.0"}, "2.28.0")
+
+        self.assertEqual(load(repo / "rhize-tasks/package.json")["version"], "0.2.0")
+        self.assertEqual(context.read_text(encoding="utf-8"), derived)
+
     def test_keeps_single_manifest_plugins_supported(self) -> None:
         repo = seed_repo(Path(self.temp_dir.name), "legacy-plugin", dual=False)
         bump_version.REPO = repo

@@ -78,9 +78,17 @@ test('scope expansion stays pending, narrowing is immediate, and material planni
   await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 0, planningDate: '2026-08-17'}});
   await request('/v1/plans/1/approve', {method: 'POST', body: {actor: 'tom', apply: false}}); assert.equal(await context.activation.canActivate(), true);
   const expanded = profile({jira: {...profile().jira, issueTypes: ['Task', 'Bug']}});
-  assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 1, profile: expanded}})).status, 409); assert.equal(context.repositories.preferences.get('profile').jira.issueTypes.includes('Bug'), false);
-  const pending = await request('/v1/setup/connectors', {method: 'POST', body: {planRevision: 1, connector: 'jira', scope: {projectKeys: ['R'], issueTypes: ['Task', 'Bug']}}}); assert.equal(pending.status, 201);
-  assert.equal((await request(`/v1/operations/${pending.body.operation.id}/approve`, {method: 'POST', body: {planRevision: 1, actor: 'tom'}})).status, 200); assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 1, profile: expanded}})).status, 200); assert.deepEqual(context.repositories.preferences.get('profile').jira.issueTypes, ['Task', 'Bug']); assert.equal(await context.activation.canActivate(), false);
+  // Expanding an established profile's scope now stages a scope_expand operation and comes
+  // back pending (202/approvalRequired) instead of a bare 409 — the scope-expansion approval
+  // path (settings.approveScope / routes.mjs `kind === 'scope_expand'` / this exact PUT
+  // response shape) used to be dead code (nothing ever wrote `pending_scope_change`); it is
+  // now reachable end to end, so the profile stays unchanged until that operation is approved.
+  const proposed = await request('/v1/preferences', {method: 'PUT', body: {planRevision: 1, profile: expanded}});
+  assert.equal(proposed.status, 202); assert.equal(proposed.body.approvalRequired, true); assert.equal(proposed.body.operationIds.length, 1);
+  assert.equal(context.repositories.preferences.get('profile').jira.issueTypes.includes('Bug'), false);
+  const approved = await request(`/v1/operations/${encodeURIComponent(proposed.body.operationIds[0])}/approve`, {method: 'POST', body: {planRevision: 1, actor: 'tom'}});
+  assert.equal(approved.status, 200); assert.equal(approved.body.state, 'applied'); assert.equal(approved.body.scopeApplied, true);
+  assert.deepEqual(context.repositories.preferences.get('profile').jira.issueTypes, ['Task', 'Bug']); assert.equal(await context.activation.canActivate(), false);
   await request('/v1/plans/preview', {method: 'POST', body: {planRevision: 1, planningDate: '2026-08-17'}}); await request('/v1/plans/2/approve', {method: 'POST', body: {actor: 'tom', apply: false}}); assert.equal(await context.activation.canActivate(), true);
   const narrowed = await request('/v1/preferences', {method: 'PUT', body: {planRevision: 2, profile: profile()}}); assert.equal(narrowed.status, 200); assert.deepEqual(context.repositories.preferences.get('profile').jira.issueTypes, ['Task']);
   const material = profile({capacity: {bufferPercent: 30, maxDailyMinutes: 480}}); assert.equal((await request('/v1/preferences', {method: 'PUT', body: {planRevision: 2, profile: material}})).status, 200); assert.equal(context.repositories.preferences.get('profile').approval.firstPlanApproved, false); assert.equal(await context.activation.canActivate(), false);
@@ -162,6 +170,6 @@ test('dashboard assets are allowlisted and a short-lived nonce is single-use wit
   assert.equal((await fixture.request('/', {auth: false})).status, 200); assert.equal((await fixture.request('/app.js', {auth: false})).status, 200); assert.equal((await fixture.request('/v1/preferences', {auth: false})).status, 401);
   const traversalStatus = await new Promise((resolve, reject) => { const request = http.request({host: '127.0.0.1', port: fixture.server.address().port, path: '/../app.js'}, response => { response.resume(); response.on('end', () => resolve(response.statusCode)); }); request.on('error', reject); request.end(); }); assert.equal(traversalStatus, 404);
   const issued = fixture.context.sessions.issue(); const exchange = await fixture.request(`/session?nonce=${encodeURIComponent(issued.nonce)}`, {auth: false, redirect: 'manual'}); assert.equal(exchange.status, 303); const cookie = exchange.headers.get('set-cookie'); assert.match(cookie, /HttpOnly/); assert.match(cookie, /SameSite=Strict/); assert.equal((await fixture.request(`/session?nonce=${encodeURIComponent(issued.nonce)}`, {auth: false, redirect: 'manual'})).status, 401);
-  assert.equal((await fixture.request('/v1/preferences', {auth: false, headers: {cookie}})).status, 200); assert.equal((await fixture.request('/v1/pause', {method: 'POST', auth: false, headers: {cookie}, body: {planRevision: 0, paused: true}})).status, 401);
+  assert.equal((await fixture.request('/v1/preferences', {auth: false, headers: {cookie, 'x-rhize-tasks-dashboard': '1'}})).status, 200); assert.equal((await fixture.request('/v1/pause', {method: 'POST', auth: false, headers: {cookie}, body: {planRevision: 0, paused: true}})).status, 401);
   const expired = fixture.context.sessions.issue(); current = new Date(Date.parse(instant) + 61_000); assert.equal((await fixture.request(`/session?nonce=${encodeURIComponent(expired.nonce)}`, {auth: false, redirect: 'manual'})).status, 401); assert.doesNotMatch(JSON.stringify(fixture.context.repositories.audit.list()), new RegExp(expired.nonce));
 });
