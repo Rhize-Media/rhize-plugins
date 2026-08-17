@@ -17,6 +17,15 @@ and interprets the result.
 - **Capabilities degrade independently.** A missing dependency (e.g. no Chrome DevTools MCP)
   is reported as that one capability degraded — never rolled up into a plugin-wide failure.
   Report each degraded capability by name.
+- **MCP server detection checks more than the repo's own `.mcp.json`.** By default it scans,
+  in order: the repo-local `.mcp.json`; `~/.claude.json` (its top-level `mcpServers` map plus
+  the per-project `projects.<repo path>.mcpServers` entry for the inspected repo); and
+  `~/.codex/config.toml`'s `mcp_servers` table (best-effort — skipped silently if absent or
+  unparsable). Only server *names* are ever read from the user-level files — never configs or
+  credential values — and `--json` output never contains an absolute path to either file, only
+  which source category matched (`repo` / `claude-user` / `codex-user`). Set
+  `DEVFLOW_MCP_CONFIG_PATHS` (an `os.pathsep`-separated list of JSON config files) to replace
+  this default search entirely.
 
 ## Run
 

@@ -79,6 +79,11 @@ import sys
 from pathlib import Path
 from typing import Any, Optional
 
+try:
+    import tomllib
+except ImportError:  # pragma: no cover — stdlib since Python 3.11; guarded for portability.
+    tomllib = None  # type: ignore[assignment]
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
@@ -358,33 +363,119 @@ def _slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def _configured_mcp_server_names(plugin_root: Path) -> set[str]:
-    """Best-effort, deterministic-for-tests set of MCP server names this environment has
-    configured. Controlled entirely by explicit config files so results never depend on
-    machine-specific ambient state unless the caller opts in via env override."""
+def _mcp_names_from_json_tree(node: Any) -> set[str]:
+    """Recursively collect every `mcpServers` dict's keys found anywhere in a JSON tree.
+    Used for repo-local `.mcp.json` and env-override files, which are small and fully
+    controlled — unlike `~/.claude.json`, there's no risk of pulling in unrelated projects."""
     names: set[str] = set()
-    override = os.environ.get("DEVFLOW_MCP_CONFIG_PATHS")
-    candidate_paths: list[Path]
-    if override:
-        candidate_paths = [Path(p) for p in override.split(os.pathsep) if p]
-    else:
-        candidate_paths = [plugin_root.parent / ".mcp.json"]
 
-    def collect(node: Any) -> None:
-        if isinstance(node, dict):
-            servers = node.get("mcpServers")
+    def _walk(n: Any) -> None:
+        if isinstance(n, dict):
+            servers = n.get("mcpServers")
             if isinstance(servers, dict):
                 names.update(servers.keys())
-            for value in node.values():
-                collect(value)
+            for value in n.values():
+                _walk(value)
 
-    for config_path in candidate_paths:
-        try:
-            if config_path.is_file():
-                collect(json.loads(_read_text(config_path)))
-        except (json.JSONDecodeError, OSError):
-            continue
+    _walk(node)
     return names
+
+
+def _mcp_names_from_claude_user_config(data: dict, repo_root: Path) -> set[str]:
+    """Extract MCP server names from a `~/.claude.json`-shaped dict: the top-level
+    `mcpServers` map plus the per-project `projects.<repo_root>.mcpServers` entry for this
+    repo, if present. Deliberately does NOT walk the rest of the document (e.g. other
+    projects' entries) — `~/.claude.json` carries inline MCP credentials, and only server
+    NAMES for sources relevant to this repo may ever be extracted from it."""
+    names: set[str] = set()
+    top = data.get("mcpServers")
+    if isinstance(top, dict):
+        names.update(top.keys())
+    projects = data.get("projects")
+    if isinstance(projects, dict):
+        project_entry = projects.get(str(repo_root.resolve()))
+        if isinstance(project_entry, dict):
+            project_servers = project_entry.get("mcpServers")
+            if isinstance(project_servers, dict):
+                names.update(project_servers.keys())
+    return names
+
+
+def _mcp_names_from_codex_config(data: dict) -> set[str]:
+    """Extract MCP server names from a `~/.codex/config.toml`-shaped dict: the top-level
+    `mcp_servers` table only."""
+    servers = data.get("mcp_servers")
+    if isinstance(servers, dict):
+        return set(servers.keys())
+    return set()
+
+
+def _configured_mcp_server_names(plugin_root: Path) -> dict[str, set[str]]:
+    """Best-effort, deterministic-for-tests mapping of {server_name: {source_categories}}
+    this environment has configured. Controlled entirely by explicit config files so results
+    never depend on machine-specific ambient state unless the caller opts in via env override.
+
+    Default sources, in priority order, when DEVFLOW_MCP_CONFIG_PATHS is unset:
+      (a) repo-local `.mcp.json`                    -> source "repo"
+      (b) `~/.claude.json`                           -> source "claude-user" (top-level
+          `mcpServers` plus `projects.<repo path>.mcpServers` for this repo)
+      (c) `~/.codex/config.toml`                     -> source "codex-user" (`mcp_servers`
+          table, best-effort — missing file, missing `tomllib`, or a parse error is skipped
+          silently, never raised)
+    Setting DEVFLOW_MCP_CONFIG_PATHS replaces ALL of the above with the given
+    os.pathsep-separated JSON file list (source "override") — existing semantics unchanged.
+
+    Only server NAMES are ever extracted from any source — never configs/values. Read or
+    parse errors on any individual source are treated as that source being absent."""
+    result: dict[str, set[str]] = {}
+
+    def add(names: set[str], source: str) -> None:
+        for name in names:
+            result.setdefault(name, set()).add(source)
+
+    override = os.environ.get("DEVFLOW_MCP_CONFIG_PATHS")
+    if override:
+        for raw_path in override.split(os.pathsep):
+            if not raw_path:
+                continue
+            try:
+                path = Path(raw_path)
+                if path.is_file():
+                    add(_mcp_names_from_json_tree(json.loads(_read_text(path))), "override")
+            except (json.JSONDecodeError, OSError):
+                continue
+        return result
+
+    # (a) repo-local .mcp.json
+    try:
+        repo_mcp_json = plugin_root.parent / ".mcp.json"
+        if repo_mcp_json.is_file():
+            add(_mcp_names_from_json_tree(json.loads(_read_text(repo_mcp_json))), "repo")
+    except (json.JSONDecodeError, OSError):
+        pass
+
+    # (b) ~/.claude.json — carries inline MCP credentials; only names are ever read.
+    try:
+        claude_user_json = Path.home() / ".claude.json"
+        if claude_user_json.is_file():
+            data = json.loads(_read_text(claude_user_json))
+            if isinstance(data, dict):
+                add(_mcp_names_from_claude_user_config(data, plugin_root.parent), "claude-user")
+    except (json.JSONDecodeError, OSError, ValueError):
+        pass
+
+    # (c) ~/.codex/config.toml — best-effort; no tomllib, missing file, or bad TOML -> skip.
+    if tomllib is not None:
+        try:
+            codex_toml = Path.home() / ".codex" / "config.toml"
+            if codex_toml.is_file():
+                with codex_toml.open("rb") as fh:
+                    data = tomllib.load(fh)
+                add(_mcp_names_from_codex_config(data), "codex-user")
+        except (tomllib.TOMLDecodeError, OSError, ValueError):
+            pass
+
+    return result
 
 
 def _check_capability_dependencies(plugin_root: Path, findings: list[dict]) -> dict:
@@ -418,13 +509,15 @@ def _check_capability_dependencies(plugin_root: Path, findings: list[dict]) -> d
         else:
             if configured_mcp_names is None:
                 configured_mcp_names = _configured_mcp_server_names(plugin_root)
-            available = any(
-                _slugify(name) in _slugify(configured) or _slugify(configured) in _slugify(name)
-                for configured in configured_mcp_names
-            )
-            detail = (
-                "found in configured mcpServers" if available else "not found in any configured mcpServers"
-            )
+            matched_sources: set[str] = set()
+            for configured, sources in configured_mcp_names.items():
+                if _slugify(name) in _slugify(configured) or _slugify(configured) in _slugify(name):
+                    matched_sources.update(sources)
+            available = bool(matched_sources)
+            if available:
+                detail = "found in configured mcpServers (source: " + ", ".join(sorted(matched_sources)) + ")"
+            else:
+                detail = "not found in any configured mcpServers"
 
         capabilities[capability] = {
             "status": "ok" if available else "degraded",

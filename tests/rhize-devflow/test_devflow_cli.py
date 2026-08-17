@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -41,11 +42,12 @@ _spec.loader.exec_module(devflow)  # type: ignore[union-attr]
 # ---------------------------------------------------------------------------
 
 
-def run_cli(*args: str) -> subprocess.CompletedProcess:
+def run_cli(*args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, str(DEVFLOW_SCRIPT), *args],
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -237,6 +239,224 @@ def test_doctor_real_plugin_manifest_dependencies_are_optional() -> None:
     for dep in deps:
         assert dep["required"] is False, dep["name"]
         assert dep.get("capability") == expected_capabilities[dep["name"]]
+
+
+# ---------------------------------------------------------------------------
+# MCP server detection — repo-local .mcp.json, ~/.claude.json, ~/.codex/config.toml
+# ---------------------------------------------------------------------------
+
+
+def _make_plugin_root(tmp_path: Path, name: str = "myplugin") -> Path:
+    """A bare plugin dir under a fake repo root, matching the (plugin_root, plugin_root.parent)
+    relationship devflow.py assumes: plugin_root.parent is the repo root that owns the
+    repo-local .mcp.json and is the key devflow looks up in ~/.claude.json's `projects`."""
+    repo_root = tmp_path / "repo"
+    plugin_root = repo_root / name
+    plugin_root.mkdir(parents=True)
+    return plugin_root
+
+
+def test_mcp_names_default_sources_empty_when_nothing_configured(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    assert devflow._configured_mcp_server_names(plugin_root) == {}
+
+
+def test_mcp_names_repo_local_mcp_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    (plugin_root.parent / ".mcp.json").write_text(json.dumps({"mcpServers": {"repo-server": {}}}))
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    assert names == {"repo-server": {"repo"}}
+
+
+def test_mcp_names_claude_user_top_level(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {"fake-mcp-server": {"command": "should-not-leak", "env": {"TOKEN": "secret"}}},
+                "projects": {},
+            }
+        )
+    )
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    assert names == {"fake-mcp-server": {"claude-user"}}
+
+
+def test_mcp_names_claude_user_per_project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    repo_root = plugin_root.parent
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {},
+                "projects": {
+                    str(repo_root.resolve()): {"mcpServers": {"project-scoped-server": {}}},
+                    str(tmp_path / "some-other-repo"): {"mcpServers": {"other-repo-server": {}}},
+                },
+            }
+        )
+    )
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    # Only the entry for THIS repo's path is read — other projects' servers must not leak in.
+    assert names == {"project-scoped-server": {"claude-user"}}
+
+
+def test_mcp_names_codex_user_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    codex_dir = fake_home / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text('[mcp_servers.codex-server]\ncommand = "should-not-leak"\n')
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    assert names == {"codex-server": {"codex-user"}}
+
+
+def test_mcp_names_combines_all_default_sources(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    (plugin_root.parent / ".mcp.json").write_text(json.dumps({"mcpServers": {"repo-server": {}}}))
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(json.dumps({"mcpServers": {"claude-server": {}}, "projects": {}}))
+    codex_dir = fake_home / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text('[mcp_servers.codex-server]\ncommand = "x"\n')
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    assert names == {
+        "repo-server": {"repo"},
+        "claude-server": {"claude-user"},
+        "codex-server": {"codex-user"},
+    }
+
+
+def test_mcp_names_malformed_files_are_skipped_not_crashed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text("{not valid json")
+    codex_dir = fake_home / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text("this = is [ not valid toml")
+    monkeypatch.delenv("DEVFLOW_MCP_CONFIG_PATHS", raising=False)
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    # Must not raise — malformed sources are treated as absent.
+    names = devflow._configured_mcp_server_names(plugin_root)
+    assert names == {}
+
+
+def test_mcp_names_env_override_replaces_defaults_entirely(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plugin_root = _make_plugin_root(tmp_path)
+    (plugin_root.parent / ".mcp.json").write_text(json.dumps({"mcpServers": {"repo-server": {}}}))
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(json.dumps({"mcpServers": {"claude-server": {}}, "projects": {}}))
+    override_file = tmp_path / "override.json"
+    override_file.write_text(json.dumps({"mcpServers": {"override-server": {}}}))
+    monkeypatch.setenv("DEVFLOW_MCP_CONFIG_PATHS", str(override_file))
+    monkeypatch.setattr(devflow.Path, "home", lambda: fake_home)
+    names = devflow._configured_mcp_server_names(plugin_root)
+    # Only the override file's names appear — repo-local and claude-user are NOT merged in.
+    assert names == {"override-server": {"override"}}
+
+
+def test_doctor_mcp_capability_degraded_with_no_sources_configured(tmp_path: Path) -> None:
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    env = dict(os.environ, HOME=str(fake_home))
+    env.pop("DEVFLOW_MCP_CONFIG_PATHS", None)
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_mcp_dependency"), "--json", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    assert doc["capabilities"]["fake-mcp-capability"]["status"] == "degraded"
+
+
+def test_doctor_mcp_capability_ok_from_claude_user_config(tmp_path: Path) -> None:
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(
+        json.dumps(
+            {
+                "mcpServers": {"fake-mcp-server": {"command": "leaked-command-should-not-appear"}},
+                "projects": {},
+            }
+        )
+    )
+    env = dict(os.environ, HOME=str(fake_home))
+    env.pop("DEVFLOW_MCP_CONFIG_PATHS", None)
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_mcp_dependency"), "--json", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    cap = doc["capabilities"]["fake-mcp-capability"]
+    assert cap["status"] == "ok"
+    assert cap["detail"] == "found in configured mcpServers (source: claude-user)"
+    # Redaction: no absolute path to the user config file, and no config VALUES, in JSON output.
+    raw = json.dumps(doc)
+    assert str(fake_home) not in raw
+    assert ".claude.json" not in raw
+    assert "leaked-command-should-not-appear" not in raw
+
+
+def test_doctor_mcp_capability_redacts_codex_config_path_and_values(tmp_path: Path) -> None:
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    codex_dir = fake_home / ".codex"
+    codex_dir.mkdir()
+    (codex_dir / "config.toml").write_text(
+        '[mcp_servers.fake-mcp-server]\ncommand = "leaked-codex-command-should-not-appear"\n'
+    )
+    env = dict(os.environ, HOME=str(fake_home))
+    env.pop("DEVFLOW_MCP_CONFIG_PATHS", None)
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_mcp_dependency"), "--json", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    cap = doc["capabilities"]["fake-mcp-capability"]
+    assert cap["status"] == "ok"
+    assert cap["detail"] == "found in configured mcpServers (source: codex-user)"
+    raw = json.dumps(doc)
+    assert str(fake_home) not in raw
+    assert "config.toml" not in raw
+    assert "leaked-codex-command-should-not-appear" not in raw
+
+
+def test_doctor_mcp_env_override_still_wins_over_home_configs(tmp_path: Path) -> None:
+    fake_home = tmp_path / "fake-home"
+    fake_home.mkdir()
+    (fake_home / ".claude.json").write_text(json.dumps({"mcpServers": {"fake-mcp-server": {}}, "projects": {}}))
+    override_file = tmp_path / "override.json"
+    override_file.write_text(json.dumps({"mcpServers": {"unrelated-server": {}}}))
+    env = dict(os.environ, HOME=str(fake_home), DEVFLOW_MCP_CONFIG_PATHS=str(override_file))
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_mcp_dependency"), "--json", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    # ~/.claude.json WOULD match, but the override replaces defaults entirely and doesn't
+    # contain a matching server name, so the capability stays degraded.
+    assert doc["capabilities"]["fake-mcp-capability"]["status"] == "degraded"
 
 
 # ---------------------------------------------------------------------------

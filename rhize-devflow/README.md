@@ -142,6 +142,11 @@ enables, so a missing tool degrades only that capability:
 Full purpose/degraded-behavior/replacement text for each entry lives in `setup/manifest.json`,
 read by the `/rhize-setup` wizard (in the `rhize-ops` plugin).
 
+MCP-kind dependencies are detected across the repo-local `.mcp.json`, `~/.claude.json`
+(top-level `mcpServers` plus the per-project entry for the inspected repo), and
+`~/.codex/config.toml`'s `mcp_servers` table — see `/rhize-devflow:doctor`'s command doc for
+the full source list, redaction rules, and the `DEVFLOW_MCP_CONFIG_PATHS` override.
+
 ## Install
 
 For the complete CodeGraph + semantic impact-map workflow, install both this plugin and
