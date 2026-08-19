@@ -94,14 +94,44 @@ schema](../rhize-ops/README.md#setup-manifest-schema).
 
 The plugin bundles an `obsidian-mcp-server` connector via `.mcp.json`. This provides read, write, search, tag management, and frontmatter operations through the Obsidian REST API.
 
-**Required env var:**
+The server connects to `https://127.0.0.1:27124/` (Obsidian's local REST API). Obsidian must be running.
+
+**Credential delivery:** `.mcp.json` does not put `OBSIDIAN_API_KEY` directly in the server's
+`env` block. `${VAR}` substitution in an MCP config only works when the variable happens to be
+present in whatever environment Claude Code was launched from — when it's absent, Claude Code
+passes the literal string `${OBSIDIAN_API_KEY}` through to the server, which then fails
+authentication with a confusing 401/403 even though a valid key may already be sitting in the
+macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
+
+```json
+"command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh",
+"args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server"]
+```
+
+`scripts/mcp-secret-launcher.sh` resolves `OBSIDIAN_API_KEY` in this order:
+1. **macOS keychain**, via the `mcp-secret-launcher` helper (installed on PATH, or at
+   `~/.local/bin/mcp-secret-launcher`) — reads the value from the login keychain at service
+   `claude-code:OBSIDIAN_API_KEY` and exports it into the server's process only.
+2. **Plain environment inheritance** — if `OBSIDIAN_API_KEY` is already exported in the shell
+   Claude Code inherits from, the server runs with it. This is the path that makes the plugin
+   work on Linux, in Claude Cowork, or on a teammate's machine without the keychain helper.
+3. **Neither available** — the shim refuses to start the server and exits 78, printing a
+   message naming the missing variable and both remedies below. It never launches a server it
+   knows cannot authenticate.
+
+**Supplying the key — two supported ways:**
+
+macOS with the keychain helper installed:
+```bash
+security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -w '<your-api-key>' -U
+```
+
+Anywhere (plain env var, no keychain):
 ```bash
 export OBSIDIAN_API_KEY=your_api_key_here
 ```
 
 Get your API key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key.
-
-The server connects to `https://127.0.0.1:27124/` (Obsidian's local REST API). Obsidian must be running.
 
 ### Obsidian CLI
 
@@ -142,7 +172,8 @@ Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-con
 ### Prerequisites
 
 - **Obsidian** running with Local REST API plugin enabled (for MCP server)
-- **`$OBSIDIAN_API_KEY`** env var set (from Local REST API plugin)
+- **`OBSIDIAN_API_KEY`** available to the MCP server — via the macOS keychain (see Connectors
+  above) or as a plain exported env var
 - **Obsidian CLI** (v1.12.4+) registered and on PATH
 - **Defuddle** (`npm install -g defuddle`) for the web clipping skill
 - **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
@@ -156,7 +187,9 @@ Accept the plugin when presented in chat, or install the `.plugin` file from you
 ```
 obsidian-second-brain/
 ├── .claude-plugin/plugin.json
-├── .mcp.json                          # Obsidian MCP server connector
+├── .mcp.json                          # Obsidian MCP server connector (via mcp-secret-launcher.sh)
+├── scripts/
+│   └── mcp-secret-launcher.sh         # Resolves OBSIDIAN_API_KEY (keychain, then env fallback)
 ├── commands/                          # 9 slash commands
 │   ├── vault-research.md              # Research pipeline
 │   ├── vault-connect.md               # Connection discovery

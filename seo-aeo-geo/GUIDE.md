@@ -257,6 +257,12 @@ Audits a Next.js + Sanity codebase against the `nextjs-sanity-seo` checklist —
 
 **Commands return no data or fail silently:** `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD` aren't set, or are set in a shell session Claude isn't inheriting. Confirm both are exported and re-run — every data skill and command depends on them.
 
+**MCP server won't start, exit code 78, "cannot start this MCP server":** The bundled launcher script (`scripts/mcp-secret-launcher.sh`) couldn't find `DATAFORSEO_USERNAME` and/or `DATAFORSEO_PASSWORD` anywhere — not in the macOS keychain, and not as plain exported environment variables — so it refused to start the server rather than let it fail later with a confusing 401/403. The exit message names the missing variable(s). Fix it either way:
+- macOS: `security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -w '<your-username>' -U` (and the same for `DATAFORSEO_PASSWORD`)
+- Anywhere: `export DATAFORSEO_USERNAME=your_username` and `export DATAFORSEO_PASSWORD=your_password` in the shell Claude Code is launched from
+
+Get credentials at [dataforseo.com](https://dataforseo.com). See the README's Credential Delivery section for the full resolution order.
+
 **"Authentication failed" or 401 errors from DataForSEO calls:** Credentials are wrong, expired, or the account doesn't have access to the API module being called (SERP, Labs, Backlinks, AI Optimization, etc. are billed/enabled separately on some plans). Check your DataForSEO dashboard for account status and enabled APIs.
 
 **Crawl results look incomplete for a JS-heavy site:** Confirm the audit is running with `enable_javascript` and `enable_browser_rendering` enabled — without them, React/Next.js/SPA content that renders client-side won't show up in the crawl. This is on by default in the plugin's workflows, but worth confirming if a page looks "empty" in results.

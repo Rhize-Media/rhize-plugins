@@ -8,6 +8,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-19_ version bump — **seo-aeo-geo** 1.3.1 → 1.4.0 (minor); marketplace 2.33.0 → 2.34.0.
+- _2026-08-19_ version bump — **obsidian-second-brain** 1.3.2 → 1.4.0 (minor); marketplace 2.32.0 → 2.33.0.
+- _2026-08-19_ **obsidian-second-brain 1.4.0 + seo-aeo-geo 1.4.0 — portable credential delivery
+  via a committed shim; `${VAR}` removed from both `.mcp.json` files.** Both plugins previously
+  passed their API credential as `"env": { "X": "${X}" }`. Claude Code expands `${VAR}` from its
+  own process environment at config load — correctly when the variable is present, but passing
+  the **literal** string `${X}` through when it is absent, at which point the server authenticates
+  with those characters and returns an opaque 401/403. Presence depends on how Claude Code was
+  launched (`launchctl setenv` reaches GUI-launched processes; a terminal-launched `claude` gets
+  nothing once ambient shell exports are removed), so the same committed config worked in one
+  context and failed in another. Verified empirically against Claude Code 2.1.233 with a probe
+  MCP server that reported its own environment. Both plugins now ship
+  `scripts/mcp-secret-launcher.sh` (POSIX sh — macOS, Linux, Claude Cowork) invoked as
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh"`, so no absolute machine-specific path
+  is committed. Resolution order: `mcp-secret-launcher` on PATH or `~/.local/bin` (reads the
+  macOS login keychain at `claude-code:<VAR>`, exports into that child process only) → plain
+  environment inheritance if the variables are already exported → otherwise exit 78 naming the
+  missing variables and both remedies. It never starts a server it knows cannot authenticate.
+  No secret is written to any plugin file. New reference: `docs/mcp-secret-launcher.md`, including
+  a detector for `${VAR}` regressions across all MCP config locations. **Requires a session
+  restart to take effect.**
 - _2026-08-17_ version bump — **rhize-tasks** 0.2.0 → 0.3.0 (minor); marketplace 2.31.0 → 2.32.0.
 - _2026-08-17_ version bump — **rhize-tasks** 0.1.0 → 0.2.0 (minor); marketplace 2.30.1 → 2.31.0.
 - _2026-08-17_ **rhize-tasks 0.3.0 — Reminders TCC redesign, persisted Slack watermark, signing

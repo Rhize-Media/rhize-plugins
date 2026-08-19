@@ -55,3 +55,6 @@ squirrel.toml
 # Headroom CLAUDE.md backups + local scratch
 CLAUDE.md.headroom-bak.*
 .rndtest.b
+
+# Timestamped backups written before in-place config edits (local safety net only)
+*.bak

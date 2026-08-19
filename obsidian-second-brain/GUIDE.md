@@ -274,6 +274,12 @@ The Obsidian CLI can enable and disable these plugins but cannot install them. W
 
 **Commands fail with "tool not found":** The Obsidian MCP Server isn't connected. Install it and ensure it appears in your MCP connections.
 
+**MCP server won't start, exit code 78, "cannot start this MCP server":** The bundled launcher script (`scripts/mcp-secret-launcher.sh`) couldn't find `OBSIDIAN_API_KEY` anywhere — not in the macOS keychain, and not as a plain exported environment variable — so it refused to start the server rather than let it fail later with a confusing 401/403. The exit message names the missing variable. Fix it either way:
+- macOS: `security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -w '<your-api-key>' -U`
+- Anywhere: `export OBSIDIAN_API_KEY=your_api_key_here` in the shell Claude Code is launched from
+
+Get the key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key. See the README's Connectors section for the full resolution order.
+
 **CLI commands return "command not found":** The CLI hasn't been registered. Open Obsidian → Settings → General → CLI → Register. Then restart your terminal.
 
 **CLI commands hang or return nothing:** Obsidian isn't running in the background. The CLI needs a running Obsidian instance to communicate with.

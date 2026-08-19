@@ -4,8 +4,42 @@ Comprehensive search optimization plugin powered by DataForSEO API. Covers tradi
 
 ## Setup
 
+### Credential Delivery
+
+`.mcp.json` does not put `DATAFORSEO_USERNAME`/`DATAFORSEO_PASSWORD` directly in the server's
+`env` block. `${VAR}` substitution in an MCP config only works when the variable happens to be
+present in whatever environment Claude Code was launched from — when it's absent, Claude Code
+passes the literal string `${DATAFORSEO_USERNAME}` through to the server, which then fails
+authentication with a confusing 401/403 even though valid credentials may already be sitting in
+the macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
+
+```json
+"command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh",
+"args": ["DATAFORSEO_USERNAME", "DATAFORSEO_PASSWORD", "--", "npx", "dataforseo-mcp-server"]
+```
+
+`scripts/mcp-secret-launcher.sh` resolves each variable in this order:
+1. **macOS keychain**, via the `mcp-secret-launcher` helper (installed on PATH, or at
+   `~/.local/bin/mcp-secret-launcher`) — reads the value from the login keychain at service
+   `claude-code:<VAR>` and exports it into the server's process only.
+2. **Plain environment inheritance** — if both variables are already exported in the shell
+   Claude Code inherits from, the server runs with them. This is the path that makes the plugin
+   work on Linux, in Claude Cowork, or on a teammate's machine without the keychain helper.
+3. **Neither available** — the shim refuses to start the server and exits 78, printing a
+   message naming the missing variables and both remedies below. It never launches a server it
+   knows cannot authenticate.
+
 ### Required Environment Variables
 
+Supply credentials one of two ways:
+
+**macOS with the keychain helper installed:**
+```bash
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -w '<your-username>' -U
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -w '<your-password>' -U
+```
+
+**Anywhere (plain env vars, no keychain):**
 ```bash
 export DATAFORSEO_USERNAME=your_username
 export DATAFORSEO_PASSWORD=your_password
@@ -144,7 +178,9 @@ schema](../rhize-ops/README.md#setup-manifest-schema).
 ```
 seo-aeo-geo/
 ├── .claude-plugin/plugin.json
-├── .mcp.json                          # DataForSEO MCP server config
+├── .mcp.json                          # DataForSEO MCP server config (via mcp-secret-launcher.sh)
+├── scripts/
+│   └── mcp-secret-launcher.sh         # Resolves DATAFORSEO_USERNAME/PASSWORD (keychain, then env fallback)
 ├── commands/                          # 10 slash commands
 ├── skills/
 │   ├── seo-site-audit/               # + 3 reference files
