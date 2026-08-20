@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""JSON-stdin and macOS-portability tests for rhize-devflow's opt-in hooks
+"""JSON-stdin and macOS-portability tests for rhize-devflow's hooks
 (`rhize-devflow/hooks/`), per the plan's Planned File Map
 (`tests/rhize-devflow/test_hooks.py — JSON stdin/macOS portability tests`) and Task 7's
 scope note: hooks are test-only in this task — fix a hook only if a test here exposes a
 genuine *portability* bug, otherwise report it.
 
-Covers, for each of the 4 hooks (3 data-mutation-consistency hooks + protect-files.sh):
+Covers the 4 opt-in hooks (3 data-mutation-consistency hooks + protect-files.sh) plus the
+auto-wired refactor-evidence commands referenced by hooks.json:
   1. Delivery mechanism: Claude Code feeds hooks their payload as JSON on stdin
      (UserPromptSubmit: {"prompt": ...}; PreToolUse: {"tool_input": {...}}) — every case
      below drives the hook that way, never via a positional argument.
@@ -29,6 +30,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import stat
 import subprocess
 import sys
@@ -248,9 +250,11 @@ def test_every_hook_file_referenced_by_hooks_json_exists_and_is_executable() -> 
     referenced_commands = list(walk(data.get("hooks", {})))
     for command in referenced_commands:
         resolved = command.replace("${CLAUDE_PLUGIN_ROOT}", str(REPO_ROOT / "rhize-devflow"))
-        path = Path(resolved)
-        assert path.exists(), f"hooks.json references missing hook file: {command}"
-        assert os.access(path, os.X_OK), f"hooks.json references non-executable hook file: {command}"
+        candidates = [Path(token) for token in shlex.split(resolved) if "/" in token]
+        paths = [path for path in candidates if path.exists()]
+        assert paths, f"hooks.json references missing hook file: {command}"
+        for path in paths:
+            assert os.access(path, os.X_OK), f"hooks.json references non-executable hook file: {command}"
 
 
 def test_all_shipped_hook_files_are_executable() -> None:

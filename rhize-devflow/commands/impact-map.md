@@ -138,6 +138,24 @@ session boundary. Otherwise, keep it in the response or active plan. Do not crea
 
 ## Phase 4: Execute From the Map
 
+### Record the enforcement receipt
+
+Persist the map in the repository's required plan location, then run the gate CLI before the
+first production/source edit. Use the installed script path printed by the refactor gate's prompt
+hook. In Claude installations that expose the plugin root, the equivalent command is:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare \
+  --workspace "<workspace-root>" \
+  --plan "<workspace-root>/.claude/plans/<descriptive-name>.md" \
+  --query "<entry points, symbols, behavior, callers, and tests>"
+```
+
+The receipt command performs the structural preflight for every discovered Git root, reads and
+hashes any component registry, and records explicit `rg` fallback evidence where CodeGraph is
+absent or unhealthy. It never initializes CodeGraph. Do not bypass the gate merely because a
+repository lacks one of the optional artifacts.
+
 1. Start with a failing acceptance or contract test.
 2. Implement the smallest source-system change satisfying the semantic delta.
 3. Preserve every must-not-change boundary.
@@ -184,6 +202,22 @@ Report one **Reconciliation verdict**:
 - `OUT_OF_SYNC` — missing consumer, unexplained diff, stale graph, or unverified invariant remains.
 
 Do not declare completion while the verdict is `OUT_OF_SYNC`.
+
+Record that verdict in the enforcement receipt before commit or completion:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile \
+  --workspace "<workspace-root>"
+```
+
+If the map changed, run `prepare` again before further source edits. If the task was classified as
+a material change incorrectly, record the false positive rather than silently bypassing it:
+
+```bash
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" dismiss \
+  --workspace "<workspace-root>" \
+  --reason "<specific non-implementation reason>"
+```
 
 ## Common Failure Modes
 

@@ -543,6 +543,30 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-95242299",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-d45b5937",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-ea6a756f",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-f095e19f",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/mutation-detector",
       "type": "contains"
     },
@@ -2552,6 +2576,50 @@
       "status": "opt-in"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",
+      "event": "Stop",
+      "id": "hook:rhize-devflow/inline-95242299",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-95242299",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-d45b5937",
+      "kind": "hook",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-d45b5937",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-devflow/inline-ea6a756f",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-ea6a756f",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-f095e19f",
+      "kind": "hook",
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch",
+      "name": "inline-f095e19f",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/data-mutation-consistency__mutation-detector.sh",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-devflow/mutation-detector",
@@ -2985,7 +3053,7 @@
       "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
     },
     {
-      "contentHash": "ca7d1d80bf8ad0d34e6f45e638d97dfc864d9dd69f562975cea687ddd94c603d",
+      "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
       "description": "Review and update Rhize Tasks planning preferences through the authenticated local dashboard. Use to change working hours, buffers, routines, reconciliation, or bounded-replanning rules.",
       "id": "skill:rhize-tasks/manage-task-preferences",
       "kind": "skill",
@@ -2993,7 +3061,7 @@
       "path": "rhize-tasks/skills/manage-task-preferences/SKILL.md"
     },
     {
-      "contentHash": "720c06fc37d806905337eda3b9359f3e1d2c7f4c15433358495c0ee68d688300",
+      "contentHash": "e5c739b528e468211f90d88447dff1ba351a493890434e2be3460f7cc9f6b2c0",
       "description": "Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. Use for morning planning, catch-up after sleep, carryover review, or deciding what to work on next.",
       "id": "skill:rhize-tasks/plan-my-day",
       "kind": "skill",
@@ -3001,7 +3069,7 @@
       "path": "rhize-tasks/skills/plan-my-day/SKILL.md"
     },
     {
-      "contentHash": "252c7acc171480d3b58f2396f8398729916cba33250a475aedeae74d9c95ea3a",
+      "contentHash": "ce44997fe984fe1d024d729d2a6bc0f599d32990c8b0ed5fef4d70a83dd637fd",
       "description": "Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. Use for stale data, carryover mismatches, duplicate suspicion, or source recovery.",
       "id": "skill:rhize-tasks/reconcile-rhize-tasks",
       "kind": "skill",
@@ -3009,7 +3077,7 @@
       "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md"
     },
     {
-      "contentHash": "9d33c6060a1fdb248fb17c4d69aae701ad180ecc1d3c92b1a5a89a566ec1031e",
+      "contentHash": "b304232d7ed06d66c7943fc1e6ce40e587021f4777b0c9397ee1f6e781868028",
       "description": "Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
       "id": "skill:rhize-tasks/review-task-opportunities",
       "kind": "skill",
@@ -3017,7 +3085,7 @@
       "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md"
     },
     {
-      "contentHash": "01567549f67c6301b95b312ed5e19335ad2b6694d82c497233a4c9daf37dc97d",
+      "contentHash": "3160f0f32ebee0286a3f2f4ff1dd06fc9fb684d17d2a346eddfd6df3588b7baa",
       "description": "Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. Use when the dashboard is unavailable, stale, degraded, paused, or failing routines.",
       "id": "skill:rhize-tasks/rhize-tasks-doctor",
       "kind": "skill",
@@ -3025,7 +3093,7 @@
       "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
     },
     {
-      "contentHash": "aab3ef64947010b8e2c83d8d82199ebe6b359b03c706931c037079d5ee910f57",
+      "contentHash": "8f804e111ae5260fb801bae600b7acf7f123e13555b15c1d1750548db75a885c",
       "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
       "id": "skill:rhize-tasks/rhize-tasks-setup",
       "kind": "skill",

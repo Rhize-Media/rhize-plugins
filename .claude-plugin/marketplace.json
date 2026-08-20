@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.34.1",
+  "version": "2.35.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -72,7 +72,7 @@
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
       "description": "Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
-      "version": "2.12.1",
+      "version": "2.13.0",
       "author": {
         "name": "Rhize Media"
       },

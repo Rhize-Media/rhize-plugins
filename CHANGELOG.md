@@ -30,6 +30,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   No upstream patch or local workaround needed — the trailing slash was our misconfiguration —
   though the package would be more robust joining with `new URL(path, base)` or stripping
   `/+$` in the schema.
+- _2026-08-20_ version bump — **rhize-devflow** 2.12.1 → 2.13.0 (minor); marketplace 2.34.1 → 2.35.0.
+- _2026-08-20_ **rhize-devflow — global refactor-evidence enforcement for Claude and Codex.**
+  Material implementation/refactor prompts now create a shared workspace receipt. Source writes
+  block until the canonical impact-map workflow has validated a persisted semantic map, queried
+  every existing healthy nested-root CodeGraph index (or recorded an explicit `rg` fallback), and
+  read/hashed any component registry. Commit, push, merge, and completion block after source edits
+  until post-change reconciliation reports `IN_SYNC` or `IN_SYNC_WITH_EXCEPTIONS`. The gate never
+  initializes CodeGraph or requires a registry where none exists; false positives use a recorded
+  dismissal and `RHIZE_REFACTOR_GATE=off` remains an explicit emergency bypass. A reconciled
+  receipt closes as `completed` at the successful Stop boundary, so late same-turn writes still
+  invalidate it without letting the old map contaminate a later task. Codex patch text carried
+  through `functions.exec` is validated by the command hook, not assumed to arrive as a direct
+  write event. Includes 16 lifecycle behavior cases plus updated hook and impact-map contracts.
 - _2026-08-19_ version bump — **seo-aeo-geo** 1.3.1 → 1.4.0 (minor); marketplace 2.33.0 → 2.34.0.
 - _2026-08-19_ version bump — **obsidian-second-brain** 1.3.2 → 1.4.0 (minor); marketplace 2.32.0 → 2.33.0.
 - _2026-08-19_ **obsidian-second-brain 1.4.0 + seo-aeo-geo 1.4.0 — portable credential delivery

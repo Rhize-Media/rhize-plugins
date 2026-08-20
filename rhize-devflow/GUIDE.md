@@ -76,6 +76,7 @@ Session lifecycle (`/start`, `/done`, `/context-hygiene`) is owned by the paired
 **How to use it effectively:**
 - Run `/rhize-devflow:impact-map` before implementing or materially changing a feature, bug fix, refactor, schema, migration, cache path, authorization rule, or cross-repository contract — it uses CodeGraph for the current call/dependency surface, then records only the semantic delta, invariants, risks, and acceptance tests a graph cannot express.
 - After implementation, the same command reconciles the completed graph and diff against the map (`IN_SYNC` / `IN_SYNC_WITH_EXCEPTIONS` / blocking `OUT_OF_SYNC`). A stale pre-change map is not completion evidence.
+- The Stop hook closes a successfully reconciled receipt as `completed`. A same-turn late source write still invalidates reconciliation, while an unrelated later task cannot inherit the old map; a new material prompt starts a new pending receipt.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
 - This is the reference layer behind the executable command, not a command surface itself — `/rhize-devflow:impact-map` (this plugin) implements the Dependency Graph foundation directly; `error-lifecycle-management` implements the Regression Prevention foundation as its triage workflow.
 
@@ -157,6 +158,13 @@ structural truth — symbols, callers, tests, dependency paths. The map itself i
 for intended change — business behavior, invariants, planned symbols, operational effects, risks,
 acceptance criteria. Requires a post-implementation `IN_SYNC`, `IN_SYNC_WITH_EXCEPTIONS`, or
 blocking `OUT_OF_SYNC` verdict.
+
+For material implementation/refactor prompts, the installed plugin now enforces this sequence.
+It allows the plan to be written, then blocks source edits until the command's `prepare` step has
+validated the persisted map, queried every existing healthy CodeGraph index (or recorded the
+fallback), and read any component registry. After source changes begin, commit/push/merge and
+normal completion remain blocked until `reconcile` returns `IN_SYNC` or
+`IN_SYNC_WITH_EXCEPTIONS`. The receipt is shared between Claude and Codex.
 
 **Examples:**
 - "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
@@ -284,9 +292,10 @@ applies automatically when you're adding error tracking.
 
 ## Tips for Getting the Best Results
 
-**Run `/rhize-devflow:impact-map` before touching code on anything non-trivial.** Skipping it on
-"small" changes is how an unmapped consumer gets broken silently — the reconciliation step at the
-end is what catches a stale map, but only if one was made in the first place.
+**Run `/rhize-devflow:impact-map` before touching code on anything non-trivial.** The default-on
+gate now enforces that rule for explicit material-change prompts. If it classifies a genuinely
+read-only task incorrectly, use the printed `dismiss --reason` command so the exception remains
+reviewable; do not disable the gate silently.
 
 **Use `/rhize-devflow:check` as a habit, not a one-time gate.** It's fast enough — evidence-driven,
 no arbitrary command execution — to run every time a meaningful unit of change lands, not just

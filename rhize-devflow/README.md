@@ -98,7 +98,7 @@ command's own doc (`commands/devflow-setup.md`) for what the convention is and h
 works. `rhize-devflow/.claude/error-patterns.local.md` is a filled-in example (not tracked in
 this repo — gitignored, as the convention requires).
 
-## Doctor and evidence CLI (`scripts/devflow.py`)
+## Doctor, evidence, and refactor-gate CLIs
 
 Stdlib-only, installed-root-safe (works identically from a source checkout and an installed
 plugin cache):
@@ -106,6 +106,9 @@ plugin cache):
 ```bash
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor [--json] [--plugin-root PATH]
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" evidence [--json] [--repo PATH] [--base REF]
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" status --workspace PATH [--json]
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare --workspace PATH --plan PATH --query TEXT
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace PATH
 ```
 
 - **`doctor`** validates plugin health — manifests, canonical commands, referenced assets,
@@ -119,6 +122,16 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" evidence [--json] [--repo PATH]
   repository instruction-file presence, and existing-CodeGraph-index presence/health. `/check` and
   `/review` treat this output as facts, not permission: it never executes anything (no package
   script, no shell text parsed from prose) on its own.
+- **`refactor_gate.py`** is the stateful Claude/Codex enforcement runtime. A material-change prompt
+  creates pending workspace state; `prepare` validates and hashes the semantic map, discovers
+  nested Git roots, runs an existing healthy CodeGraph index (or records the `rg` fallback), and
+  reads/hashes any component registry. `reconcile` repeats the same structural branch and refuses
+  `OUT_OF_SYNC` changed files. Receipts live under
+  `~/.claude/rhize-devflow/refactor-gate/`, keyed by canonical workspace path, so both harnesses
+  share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
+  for the remainder of the turn so a late source write invalidates it; the successful Stop boundary
+  closes it as `completed`, preventing an old receipt from locking an unrelated future task. A
+  later material prompt always starts a fresh pending receipt.
 
 `evidence --json`'s output contract is `schemas/devflow-evidence-v1.schema.json`
 (`devflow-evidence-v1`); `doctor --json`'s shape is documented in the CLI module's own docstring
@@ -221,10 +234,23 @@ you verify it. After any install or update:
 
 ## Hooks
 
-This plugin auto-wires no hooks (`hooks/hooks.json` is `{"hooks": {}}`). Four heavier guard
-scripts ship bundled under `hooks/` but are **deliberately opt-in** — wire the ones you want
-into a project's `.claude/settings.json`, so nothing untested fires automatically on every
-session:
+The refactor-evidence workflow is auto-wired for every project that installs this plugin. Its
+state is shared by Claude and Codex:
+
+| Runtime | Event | Matcher | Tier | Behavior |
+|--------|-------|---------|------|----------|
+| `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor prompts and creates a pending receipt. Review, audit, investigation, and plan-only prompts remain read-only. |
+| `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts but blocks source writes until `prepare`; invalidates reconciliation after later edits. |
+| `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation. |
+| `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |
+
+The hook output prints the installed gate-script path. `/rhize-devflow:impact-map` provides the
+exact `prepare`/`reconcile` commands. Missing CodeGraph or component-registry artifacts are not
+errors: the receipt records the documented fallback. False positives are released with `dismiss
+--reason "..."`; `RHIZE_REFACTOR_GATE=off` is the explicit operator emergency bypass.
+
+Four heavier specialist guards still ship bundled under `hooks/` and remain **deliberately
+opt-in** through `setup/manifest.json`:
 
 | Script | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
@@ -233,7 +259,7 @@ session:
 | `data-mutation-consistency__sentry-stale-data.sh` | UserPromptSubmit | — | T3 | Prints a stale-data investigation checklist on Sentry URLs or stale-data phrasing. |
 | `protect-files.sh` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit` | T4 (blocks) | Blocks edits to CI workflows/`.env*`/billing paths and leaked `NEXT_PUBLIC_*` secrets or client-side Supabase service-role keys. Local copy of the same gate the global `~/.claude/hooks/protect-files.sh` already runs for every session — wire this one in only for environments without that global hook installed. |
 
-Full metadata (id, exact command, description) for the four hooks above lives in
+Full metadata (id, exact command, description) for the four opt-in hooks above lives in
 **`setup/manifest.json`**, read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a
 project can pick which guard hooks to wire in without hand-editing `.claude/settings.json`. The
 manifest also declares the capability-scoped `dependencies` array documented above.
