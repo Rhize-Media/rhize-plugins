@@ -318,6 +318,45 @@ def test_plan_hash_change_relocks_source_writes(tmp_path: Path) -> None:
     assert "impact map changed" in result.stderr
 
 
+def test_reprepare_after_map_change_preserves_original_git_baseline(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    assert run_gate(
+        state_dir,
+        "prepare",
+        "--workspace",
+        str(workspace),
+        "--plan",
+        str(plan),
+        "--query",
+        "example refactor",
+    ).returncode == 0
+
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    plan.write_text(plan.read_text() + "\n- Expanded acceptance evidence.\n")
+
+    prepared_again = run_gate(
+        state_dir,
+        "prepare",
+        "--workspace",
+        str(workspace),
+        "--plan",
+        str(plan),
+        "--query",
+        "example refactor",
+    )
+    assert prepared_again.returncode == 0, prepared_again.stderr
+    receipt = json.loads(prepared_again.stdout)
+    assert "src/example.ts" not in receipt["repositories"][0]["dirty"]
+
+    reconciled = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert reconciled.returncode == 0, reconciled.stderr
+    assert "src/example.ts" in json.loads(reconciled.stdout)["reconciliation"]["changed_files"]
+
+
 def test_reconcile_requires_actual_changed_files_in_map_and_unblocks_commit(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     init_repo(workspace)

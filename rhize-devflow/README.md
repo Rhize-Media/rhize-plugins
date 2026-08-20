@@ -126,7 +126,9 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace PAT
   creates pending workspace state; `prepare` validates and hashes the semantic map, discovers
   nested Git roots, runs an existing healthy CodeGraph index (or records the `rg` fallback), and
   reads/hashes any component registry. `reconcile` repeats the same structural branch and refuses
-  `OUT_OF_SYNC` changed files. Receipts live under
+  `OUT_OF_SYNC` changed files. Re-preparing after an impact-map correction preserves the original
+  Git/dirty baseline, so already-written implementation cannot be silently blessed as pre-existing.
+  Receipts live under
   `~/.claude/rhize-devflow/refactor-gate/`, keyed by canonical workspace path, so both harnesses
   share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
   for the remainder of the turn so a late source write invalidates it; the successful Stop boundary

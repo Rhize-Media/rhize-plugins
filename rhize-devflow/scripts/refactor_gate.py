@@ -473,6 +473,13 @@ def prepare(workspace: Path, plan: Path, query: str) -> int:
         sys.stderr.write("BLOCKED: no Git repository roots were found in the workspace\n")
         return 2
     previous = read_state(workspace) or {}
+    previous_repositories = previous.get("repositories")
+    preserve_baseline = (
+        previous.get("phase") in {"prepared", "implementation"}
+        and isinstance(previous_repositories, list)
+        and {canonical(item["root"]) for item in previous_repositories}
+        == set(repositories)
+    )
     state: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "workspace": str(workspace),
@@ -485,7 +492,14 @@ def prepare(workspace: Path, plan: Path, query: str) -> int:
             "path": str(plan),
             "sha256": hashlib.sha256(plan_text.encode()).hexdigest(),
         },
-        "repositories": [baseline_repository(workspace, repo, query) for repo in repositories],
+        # Re-preparing after an impact-map correction must not bless an already
+        # dirty implementation as the new baseline. Preserve the original
+        # repository snapshots until reconciliation succeeds.
+        "repositories": (
+            previous_repositories
+            if preserve_baseline
+            else [baseline_repository(workspace, repo, query) for repo in repositories]
+        ),
         "registries": discover_registries(workspace, repositories, query),
         "reconciliation": None,
     }
