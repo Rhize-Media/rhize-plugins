@@ -56,7 +56,7 @@ Rhize plugins invoke a committed POSIX-sh shim instead of the server directly:
       "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh",
       "args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server"],
       "env": {
-        "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124/"
+        "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124"
       }
     }
   }
