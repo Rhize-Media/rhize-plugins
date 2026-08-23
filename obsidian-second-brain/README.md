@@ -94,7 +94,14 @@ schema](../rhize-ops/README.md#setup-manifest-schema).
 
 The plugin bundles an `obsidian-mcp-server` connector via `.mcp.json`. This provides read, write, search, tag management, and frontmatter operations through the Obsidian REST API.
 
-The server connects to `https://127.0.0.1:27124/` (Obsidian's local REST API). Obsidian must be running.
+The server connects to `https://127.0.0.1:27124` (Obsidian's local REST API). Obsidian must be running.
+
+> **`OBSIDIAN_BASE_URL` must not end in a trailing slash.** `obsidian-mcp-server` builds every
+> request by plain string concatenation (`${baseUrl}${path}`, `dist/services/obsidian/obsidian-service.js`)
+> and does not normalize the base URL, so a trailing slash produces `https://127.0.0.1:27124//tags/`.
+> The Local REST API answers a doubled path with `404`, and the server reports it as
+> `Not found: /tags/` — the *un-doubled* path, which makes the error look like a missing
+> resource rather than a malformed URL. Every endpoint is affected, not just tags.
 
 **Credential delivery:** `.mcp.json` does not put `OBSIDIAN_API_KEY` directly in the server's
 `env` block. `${VAR}` substitution in an MCP config only works when the variable happens to be

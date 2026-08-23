@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.0 → 1.4.1 (patch); marketplace 2.34.0 → 2.34.1.
+- _2026-08-23_ **obsidian-second-brain 1.4.1 — every Obsidian MCP tool was 404ing because
+  `OBSIDIAN_BASE_URL` ended in a trailing slash.** `obsidian_list_tags` returned
+  `Not found: /tags/` and `obsidian_search_notes` (text mode) returned
+  `Not found: /search/simple/`, while `curl -k -H "Authorization: Bearer $KEY"
+  https://127.0.0.1:27124/tags/` returned `200` — so it looked like an auth or upstream problem
+  and was neither. `obsidian-mcp-server` builds every request as
+  `` `${this.#config.baseUrl}${pathAndQuery}` `` (`dist/services/obsidian/obsidian-service.js`,
+  `#request`) and its config schema validates `baseUrl` with `.url()` only — no trailing-slash
+  normalization (`dist/config/server-config.js`). The configured
+  `"https://127.0.0.1:27124/"` therefore emitted `https://127.0.0.1:27124//tags/`. The Local REST
+  API 404s a doubled path, and the server's 404 handler formats the message from the
+  *un-doubled* `pathAndQuery`, so the diagnostic actively pointed away from the cause.
+  Measured: `//tags/`, `//vault/`, `//commands/`, `//search/simple/` and `//` all return `404`;
+  their single-slash forms all return `200`. **Every endpoint was affected, not just the two
+  tools that happened to be exercised.** Fix is one character — `OBSIDIAN_BASE_URL` is now
+  `https://127.0.0.1:27124`, matching the package's own documented default. Verified end-to-end
+  by driving `npx obsidian-mcp-server` over stdio JSON-RPC with each value: the trailing-slash
+  run reproduced both error strings exactly, the fixed run returned 200 tags and 573 search hits.
+  No upstream patch or local workaround needed — the trailing slash was our misconfiguration —
+  though the package would be more robust joining with `new URL(path, base)` or stripping
+  `/+$` in the schema.
 - _2026-08-19_ version bump — **seo-aeo-geo** 1.3.1 → 1.4.0 (minor); marketplace 2.33.0 → 2.34.0.
 - _2026-08-19_ version bump — **obsidian-second-brain** 1.3.2 → 1.4.0 (minor); marketplace 2.32.0 → 2.33.0.
 - _2026-08-19_ **obsidian-second-brain 1.4.0 + seo-aeo-geo 1.4.0 — portable credential delivery

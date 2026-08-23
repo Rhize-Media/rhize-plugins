@@ -280,6 +280,8 @@ The Obsidian CLI can enable and disable these plugins but cannot install them. W
 
 Get the key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key. See the README's Connectors section for the full resolution order.
 
+**Every MCP tool returns `Not found: /<something>/` even though the API is up:** `OBSIDIAN_BASE_URL` has a trailing slash. `obsidian-mcp-server` joins the base URL and the path by plain string concatenation, so `https://127.0.0.1:27124/` + `/tags/` becomes `https://127.0.0.1:27124//tags/`, and the Local REST API returns `404` for the doubled path. The error message prints the *single-slash* path, so it reads like a missing note rather than a malformed URL. Fixed in the bundled `.mcp.json` as of 1.4.1 — if you overrode `OBSIDIAN_BASE_URL` yourself, drop the trailing slash. Quick check: `curl -k -H "Authorization: Bearer $KEY" https://127.0.0.1:27124//tags/` returns 404 while `.../tags/` returns 200.
+
 **CLI commands return "command not found":** The CLI hasn't been registered. Open Obsidian → Settings → General → CLI → Register. Then restart your terminal.
 
 **CLI commands hang or return nothing:** Obsidian isn't running in the background. The CLI needs a running Obsidian instance to communicate with.
