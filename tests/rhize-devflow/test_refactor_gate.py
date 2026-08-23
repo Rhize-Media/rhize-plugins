@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -205,7 +206,11 @@ def test_prepare_requires_complete_plan_and_records_registry_fallback(tmp_path: 
     assert good.returncode == 0, good.stderr
     receipt = json.loads(good.stdout)
     assert receipt["phase"] == "prepared"
-    assert receipt["repositories"][0]["structural_evidence"]["mode"] == "rg-fallback"
+    # refactor_gate resolves rg via shutil.which, so the fallback mode depends on whether an
+    # rg BINARY exists (a shell function/alias is invisible to which). Assert the exact mode
+    # this environment should produce rather than assuming ripgrep is installed.
+    expected_mode = "rg-fallback" if shutil.which("rg") else "python-fallback"
+    assert receipt["repositories"][0]["structural_evidence"]["mode"] == expected_mode
     assert receipt["registries"][0]["path"].endswith("COMPONENT_REGISTRY.md")
 
 
