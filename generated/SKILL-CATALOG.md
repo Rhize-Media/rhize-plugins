@@ -84,4 +84,10 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 | `review-task-opportunities` | Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. | project-planning, search |
 | `rhize-tasks-doctor` | Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. | automation, observability |
 | `rhize-tasks-setup` | Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, a… | automation, project-planning, workflow-patterns |
+
+## rhize-cowork
+
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `project-kickoff` | Scaffold the four standard Cowork client-context files — CLAUDE.md (operating manual), BUSINESS.md (the business/offer/market), PERSONALITY… | content-authoring, knowledge-management, project-planning |
 <!-- SKILL-MAP:END -->

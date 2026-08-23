@@ -463,6 +463,12 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-cowork",
+      "source": "marketplace",
+      "to": "skill:rhize-cowork/project-kickoff",
+      "type": "contains"
+    },
+    {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "command:rhize-devflow/browser-debug",
@@ -1365,6 +1371,24 @@
       "from": "skill:rhize-context-manager/tool-design",
       "source": "frontmatter",
       "to": "tag:topic/tool-design",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
       "type": "topic-tag"
     },
     {
@@ -2762,6 +2786,13 @@
       "path": "rhize-context-manager"
     },
     {
+      "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
+      "id": "plugin:rhize-cowork",
+      "kind": "plugin",
+      "name": "rhize-cowork",
+      "path": "rhize-cowork"
+    },
+    {
       "description": "Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
@@ -2987,6 +3018,14 @@
       "kind": "skill",
       "name": "tool-design",
       "path": "rhize-context-manager/skills/tool-design/SKILL.md"
+    },
+    {
+      "contentHash": "3d14f04c5f4f0bdcd8fe092bf9826c7f9270203985e77ee3fe56cfb95e50bf0b",
+      "description": "Scaffold the four standard Cowork client-context files — CLAUDE.md (operating manual),\nBUSINESS.md (the business/offer/market), PERSONALITY.md (brand voice & tone), and INFO.md\n(links, tools, people). Use when onboarding a client or business into a Cowork workspace, when\nthe user asks to \"create the project context files\" or \"build CLAUDE.md\", or when they drop a\nwebsite or strategy doc and want business context extracted. Works from a website, from strategy\ndocs, or from nothing via a guided interview. Trigger even if the user only names one file —\nbuild the full set unless told otherwise. Not for software projects; a new app, PRD, or code\nscaffold belongs to project-launcher instead.",
+      "id": "skill:rhize-cowork/project-kickoff",
+      "kind": "skill",
+      "name": "project-kickoff",
+      "path": "rhize-cowork/skills/project-kickoff/SKILL.md"
     },
     {
       "contentHash": "d96305ea8157ab5f60ff5698a97d9df2b26fdeae472c8d263442bef1952259a5",

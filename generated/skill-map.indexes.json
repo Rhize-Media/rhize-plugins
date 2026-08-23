@@ -746,6 +746,28 @@
           "weight": 2
         }
       ],
+      "skill:rhize-cowork/project-kickoff": [
+        {
+          "kind": "name",
+          "label": "project-kickoff",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        }
+      ],
       "skill:rhize-devflow/chrome-devtools-mcp": [
         {
           "kind": "name",

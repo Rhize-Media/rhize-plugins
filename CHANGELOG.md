@@ -8,6 +8,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-23_ version bump — **rhize-cowork** 0.1.0 (new plugin); marketplace 2.35.0 → 2.36.0.
+- _2026-08-23_ **rhize-cowork 0.1.0 — `project-kickoff`, scaffolding the four Cowork client-context
+  files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) from a website, strategy docs, or a guided
+  interview.** Recovered from the long-stale `add-rhize-cowork-plugin` branch (87 commits behind main)
+  and re-cut onto current main. Two changes were required before it could land: the skill carried no
+  `tier`/`domain`/`maturity` frontmatter, unlike the other 27 skills in the marketplace; and its
+  description claimed the bare trigger "starts a new project", which collides head-on with
+  project-launcher's "ALWAYS invoke this skill for any request to start a new project". The two are
+  genuinely distinct capabilities — kickoff produces business-context files, launcher produces a PRD
+  and a code scaffold — so the description was narrowed to client/business onboarding and now says
+  explicitly that software projects belong to project-launcher, rather than leaving two skills
+  competing for one invocation.
 - _2026-08-23_ version bump — **obsidian-second-brain** 1.4.0 → 1.4.1 (patch); marketplace 2.34.0 → 2.34.1.
 - _2026-08-23_ **obsidian-second-brain 1.4.1 — every Obsidian MCP tool was 404ing because
   `OBSIDIAN_BASE_URL` ended in a trailing slash.** `obsidian_list_tags` returned
