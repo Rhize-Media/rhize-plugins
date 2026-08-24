@@ -190,6 +190,44 @@ plugin's commands report those refusals verbatim rather than working around them
 command's `.md` file and the skill's "trust/health gate is not optional" section. Full model:
 the registry's own `README.md` and `STATE.md` at `Rhize-Media/procedural-memory`.
 
+## Governance & integrations
+
+Three facts worth stating precisely, since an earlier handoff for this plugin got them wrong
+or left them undocumented — this section is the corrected, plugin-facing record; the engine
+repo's `STATE.md` carries the fuller evidence for each.
+
+**The skill-forge dedupe gate is already built — nothing here needs it added.**
+`/procedural-memory:promote` (`rhize-skill promote`) runs the skill-forge dedupe gate
+(`@rhize/skill-forge`'s `scan`/`add` gate pipeline) before writing provenance, and it *blocks*
+a near-duplicate promotion rather than merely flagging one. Confirmed live in the registry:
+`sanity-upsert-draft`'s first promote attempt was refused this way (lexical-overlap score
+0.497 against `sanity-upload-asset`, above the 0.45 strong-match threshold) and only promoted
+after its description was trimmed to cut the shared boilerplate. There is no separate dedupe
+mechanism for this plugin to add on top — `promote` already has one, and it has already fired
+for real.
+
+**`skill-monitor` cannot write success rates back to an artifact's provenance — this is a
+structural limitation, not a missing feature.** `rhize-ops/skill-monitor/monitor.py` works by
+scanning session transcripts for **Skill-tool invocations**. A registry artifact's `scripts/`
+runs as a plain Bash subprocess when `/procedural-memory:run` executes it — it never appears
+in a transcript as a Skill-tool call, so skill-monitor structurally cannot see it, score it,
+or write anything back about it. Success rates come from the registry CLI's own `runs` table
+(what `/procedural-memory:recall` and `rhize-skill digest` read from), which is authoritative
+on that question already and needs no help from skill-monitor. **What plugin-ization DOES
+newly enable:** now that `/procedural-memory:recall` and `/procedural-memory:promote` are
+themselves Skill-tool calls (this plugin's own commands, not the registry artifacts they
+invoke), skill-monitor's transcript scan sees *those* two invocations — usage telemetry on
+this plugin's commands, never on what the artifacts they execute actually do, and never a
+success/fail correlation written into any artifact's provenance. Don't conflate the two when
+reading a skill-monitor snapshot that mentions this plugin.
+
+**The `ai-stack-version-drift` blast-radius integration is live, not proposed.** The scheduled
+routine (`~/Documents/Claude/Scheduled/ai-stack-version-drift/SKILL.md`) calls
+`scripts/blast-radius-check.sh <pkg>` in the registry repo after every safe CLI/library bump
+and folds its `BLAST_RADIUS_OK`/`BLAST_RADIUS_BROKEN`/`BLAST_RADIUS_SKIPPED` verdict into the
+same drift report — real, exact function names that broke, not a guess. Full diff and rollback
+record: `docs/integrations/ai-stack-drift.patch.md` in `Rhize-Media/procedural-memory`.
+
 ## Eval coverage
 
 Authored (`evals/`: a sandbox-reachability probe, a fixture-mode happy path, one trigger case,

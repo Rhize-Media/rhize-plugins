@@ -67,6 +67,11 @@ It also doesn't implement pruning or deletion. `rhize-skill stale` (a read-only 
 reachable directly through the launcher script if you want it; see
 `docs/decisions/0001-no-prune-command.md` for why a `/prune` command was deliberately not built.
 
+It doesn't dedupe promotions itself (that's already inside `rhize-skill promote` via the
+skill-forge gate), and it can't make `skill-monitor` score what an artifact's script actually
+does (that requires a Skill-tool call, and artifacts run as Bash subprocesses) — see the
+README's "Governance & integrations" section if you need the detail behind either of those.
+
 ## Tips
 
 - Trust the refusal messages. When `/run` or `/promote` refuses, the CLI names the exact field
