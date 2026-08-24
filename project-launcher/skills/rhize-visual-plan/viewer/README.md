@@ -102,31 +102,30 @@ verb tinting), `DataModel`, `ApiEndpoint`, `Wireframe`/`Screen` (sandboxed ifram
 
 ## Dependency security posture (reviewed 2026-08-24)
 
-`npm audit` on a fresh install went from **14 findings (9 moderate, 5 high) to 2 (1 moderate, 1 high)**
-by bumping two exact pins. Both bumps are non-major and the build was re-verified afterward (a real
-`plan.mdx` rendered to a 3.5 MB self-contained HTML, 59 mermaid/SVG matches, zero external references).
+`npm audit` on a fresh install reports **0 vulnerabilities**, down from **14 (9 moderate, 5 high)**.
+The dependency tree also shrank from 334 packages to 299.
 
 | Change | Why |
 |---|---|
-| `vite` 5.4.11 → **5.4.21** | Clears 12 advisories, most of them `server.fs.deny` bypasses plus *"websites were able to send any requests to the development server and read the response"* — genuinely reachable, because `rhize-plan serve` **is** a dev server |
-| `mermaid` 11.4.1 → **11.17.1** | Clears the `lodash-es` code-injection / prototype-pollution chain via `chevrotain` |
-| `vite-plugin-singlefile` 2.0.3 → **2.3.3** | Non-major, clears one moderate |
+| `vite` 5.4.11 → **8.2.2** | Clears every remaining advisory, most of them `server.fs.deny` bypasses plus *"websites were able to send any requests to the development server and read the response"* — genuinely reachable, because `rhize-plan serve` **is** a dev server |
+| `@vitejs/plugin-react` 4.3.4 → **6.1.0** | Required: 4.x peers `vite ^4 \|\| ^5`, so it was the single thing blocking vite 8. 6.x peers `vite ^8.0.0` |
+| `mermaid` 11.4.1 → **11.17.1** | Clears the `lodash-es` code-injection / prototype-pollution chain reached via `chevrotain` |
+| `vite-plugin-singlefile` 2.0.3 → **2.3.3** | Already peers `^8.0.0`; no further change needed |
+| `@mdx-js/react`, `@mdx-js/rollup` 3.1.0 → **3.1.1**, `remark-mdx-frontmatter` 5.0.0 → **5.2.0** | Patch/minor housekeeping taken in the same pass |
 
-**Why the pins had to move at all:** dependencies here are pinned to *exact* versions and
-`package-lock.json` is gitignored, so `npm audit fix` only ever touches untracked files. It fixes the
-local tree and reaches **no installer**. For a skill distributed through the marketplace, only a
-`package.json` bump actually propagates.
+`vite` 5 → 8 is a three-major jump and was trialled in an isolated copy first. It installs cleanly and
+the build still verifies: a real `plan.mdx` renders to a 3.5 MB self-contained HTML with 58 mermaid/SVG
+matches and **zero** external references.
 
-### Accepted residual — 1 high, 1 moderate
+**`react` stays at 18.3.1 deliberately** — no advisory requires 19, `@vitejs/plugin-react@6` works with
+18, and React 19 carries real behavioral change for no security benefit here.
 
-`vite` (high) and its bundled `esbuild` (moderate) are only fixed by **vite 8.2.2, a three-major jump**.
-Attempted in an isolated copy: it fails `ERESOLVE` against `@vitejs/plugin-react@4.3.4` and the other
-plugins' peer ranges, so taking it would cascade into further major upgrades of a tool that currently
-works.
+### Why the pins had to move at all
 
-**Accepted, with scope stated honestly:** this is a *local dev tool*, not a hosted service. The residual
-advisories are reachable only while `rhize-plan serve` is running — a `build` never starts a server. The
-one Windows-specific advisory (`launch-editor` NTLMv2 disclosure via UNC paths) does not apply here.
+Dependencies are pinned to *exact* versions and `package-lock.json` is gitignored, so `npm audit fix`
+only ever rewrites untracked files. It cleans the local tree and reaches **no installer**. For a skill
+distributed through the marketplace, only a `package.json` bump actually propagates — which is why the
+audit had to end in changed pins rather than a successful `audit fix`.
 
-**Re-evaluate when** `@vitejs/plugin-react` ships a release whose peer range admits vite 8 — at that
-point the whole set can move together. `ai-stack-version-drift` is the routine that should surface it.
+**Re-check on any future advisory** with `npm audit` after a *fresh* install (`rm -rf node_modules
+package-lock.json && npm install`) — an existing tree understates the count a new user would see.
