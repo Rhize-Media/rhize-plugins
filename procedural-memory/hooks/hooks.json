@@ -1,0 +1,4 @@
+{
+  "description": "Scaffold only — no hooks are wired yet. Candidate future wiring (not built in this change): a PreToolUse guard on Bash that catches a raw `rhize-skill`/venv-path invocation and redirects to scripts/rhize-skill-launcher.sh, or a PostToolUse nudge after a Write/Edit that looks like a reusable script pattern, suggesting `/procedural-memory:promote`. Both are deliberately deferred to a follow-up task rather than guessed at here.",
+  "hooks": {}
+}

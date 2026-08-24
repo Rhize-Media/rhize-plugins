@@ -229,6 +229,36 @@
       "type": "contains"
     },
     {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/promote",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/recall",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/run",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/verify",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "skill:procedural-memory/procedural-memory",
+      "type": "contains"
+    },
+    {
       "from": "plugin:project-launcher",
       "source": "marketplace",
       "to": "command:project-launcher/grill-prd",
@@ -1024,6 +1054,18 @@
       "from": "skill:obsidian-second-brain/vault-templates",
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -1997,6 +2039,34 @@
       "path": "obsidian-second-brain/commands/vault-setup.md"
     },
     {
+      "description": "Verify, classify trust, write provenance, commit, and index a staged artifact into the procedural-memory registry",
+      "id": "command:procedural-memory/promote",
+      "kind": "command",
+      "name": "promote",
+      "path": "procedural-memory/commands/promote.md"
+    },
+    {
+      "description": "Find the closest-matching proven artifact in the procedural-memory registry for a task, ranked by semantic similarity plus trust/health signals",
+      "id": "command:procedural-memory/recall",
+      "kind": "command",
+      "name": "recall",
+      "path": "procedural-memory/commands/recall.md"
+    },
+    {
+      "description": "Execute a promoted procedural-memory registry artifact by name — registry-only resolution, content-digest check, trust gate, health gate",
+      "id": "command:procedural-memory/run",
+      "kind": "command",
+      "name": "run",
+      "path": "procedural-memory/commands/run.md"
+    },
+    {
+      "description": "Re-run a promoted artifact's sandboxed smoke test (or every function under a CLI namespace) and refresh its health state",
+      "id": "command:procedural-memory/verify",
+      "kind": "command",
+      "name": "verify",
+      "path": "procedural-memory/commands/verify.md"
+    },
+    {
       "description": "Critically analyze a PRD for architectural and technical gaps",
       "id": "command:project-launcher/grill-prd",
       "kind": "command",
@@ -2772,6 +2842,13 @@
       "path": "obsidian-second-brain"
     },
     {
+      "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
+      "id": "plugin:procedural-memory",
+      "kind": "plugin",
+      "name": "procedural-memory",
+      "path": "procedural-memory"
+    },
+    {
       "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
       "id": "plugin:project-launcher",
       "kind": "plugin",
@@ -2891,6 +2968,14 @@
       "kind": "skill",
       "name": "vault-templates",
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
+    },
+    {
+      "contentHash": "9a821e5d034a9200fca78447aef725111a7999a1d0d3532dd08827ee008fb090",
+      "description": "Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a task from scratch. Use when a task looks like something the registry may already have solved: recall() finds the closest match by semantic similarity over Postgres/pgvector (ranked with trust tier, health, and success rate), and run() executes it registry-only, content-digest-checked, and trust/health-gated — never a caller-supplied path, never a silently bypassed gate. Also covers promoting a newly captured script into the registry (verify -> classify trust -> write provenance -> commit -> index) and re-running an artifact's sandboxed smoke test to refresh its health state. This skill is about EXECUTING proven code with a provenance contract, not retrieving past conversation or session history — for \"what did we discuss/decide/do before\" use claude-mem's search/recall skills instead, and for a knowledge graph over an Obsidian vault use graphify. Trigger on \"is there already a tool for this\", \"run the registry version of X\", \"promote this script to the registry\", \"recall a proven artifact for <task>\", \"re-verify <artifact-name>\", or \"has this been automated before\".",
+      "id": "skill:procedural-memory/procedural-memory",
+      "kind": "skill",
+      "name": "procedural-memory",
+      "path": "procedural-memory/skills/procedural-memory/SKILL.md"
     },
     {
       "contentHash": "8cf53d110301420043a5eb6300f6540d288724a5827e0c26d3549f1a7a46c629",

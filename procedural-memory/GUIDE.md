@@ -1,0 +1,77 @@
+# procedural-memory — User Guide
+
+## What problem does this solve?
+
+An agent re-solving a task from scratch every time it comes up is slow and inconsistent — the
+same n8n deploy guard, the same vault tagging script, the same PDF-to-markdown conversion, each
+recomposed fresh instead of reused. The `procedural-memory` registry keeps proven, working code
+for tasks like these, each one carrying a real safety contract (what it needs, what it touches,
+how it's been verified). This plugin is how you reach that registry from a Claude Code session:
+find the right artifact, run it with the registry's trust/health gates intact, or add a new one
+once you've captured working code worth reusing.
+
+## When to reach for what
+
+- **"Has this been automated before?" / "is there already a tool for X?"**
+  → `/procedural-memory:recall "<task description>"`. Returns ranked hits with similarity
+  score, trust tier, health, and success rate — not just a name. A hit that's `unreviewed` or
+  `degraded` is flagged, not silently offered as safe to run.
+  *Example: "Recall a proven artifact for deploying an n8n workflow safely."*
+
+- **"Run the registry version of X"**
+  → `/procedural-memory:run <name> [args]`. Registry-only — never a caller-supplied path.
+  Refuses if the artifact's content digest, trust tier, or health don't clear the gate; the
+  refusal names the exact reason and how to fix it. This plugin will never quietly add a
+  bypass flag on your behalf — that decision is yours.
+  *Example: "Run vault-tag-merger with --dry-run first."*
+
+- **"I just wrote something reusable — add it to the registry"**
+  → `/procedural-memory:promote <path>`. Verifies the artifact's provenance shape (no hardcoded
+  paths, no literal secrets), classifies its trust tier statically, commits, and indexes it.
+  Does **not** run the smoke test — the artifact lands `unverified`, not `ok`.
+  *Example: "Promote registry/skills/apply-client-tags into the registry."*
+
+- **"Is this artifact actually still healthy?" / recovering a self-quarantined artifact**
+  → `/procedural-memory:verify <name>`. Re-runs the sandboxed smoke test and every declared
+  assertion, and is the only command that ever sets a real `health=ok`/`health=degraded` with
+  a fresh `last_verified` date. Add `--offline` to recover an artifact that self-quarantined
+  during an offline run, without needing a live Postgres connection.
+  *Example: "Verify n8n-safe-deploy — I think it self-quarantined."*
+
+## What this plugin is not
+
+It doesn't retrieve past conversations or session history — that's claude-mem's job (its
+search/recall skills). It doesn't build a knowledge graph over notes — that's `graphify`
+(rhize-context-manager). If the request is "what did we decide last week," you want claude-mem.
+If it's "is there working code for this, and can I just run it," you want this plugin.
+
+It also doesn't implement pruning or deletion. `rhize-skill stale` (a read-only decay report) is
+reachable directly through the launcher script if you want it; see
+`docs/decisions/0001-no-prune-command.md` for why a `/prune` command was deliberately not built.
+
+## Tips
+
+- Trust the refusal messages. When `/run` or `/promote` refuses, the CLI names the exact field
+  or check that failed and the remediation command — read it rather than asking this plugin to
+  work around it.
+- `/recall`'s similarity score is not a safety signal by itself. Always look at trust and health
+  together with it before treating a hit as "the answer."
+- If a command errors with a message starting `rhize-skill-launcher.sh: cannot find the
+  rhize-skill CLI`, the registry CLI isn't built/discoverable on this machine yet — follow the
+  remediation it prints (build it, or set `RHIZE_SKILL_BIN`). See this plugin's `README.md`
+  ("How the CLI is resolved") for the full story.
+
+## Troubleshooting
+
+**"rhize-skill CLI is older than this plugin expects"** — the plugin was built against a newer
+`rhize-skill` command surface than what's installed. Update the registry checkout
+(`git pull` + reinstall) or point `RHIZE_SKILL_BIN` at a build that already meets the minimum.
+
+**A refusal names "trust: ... was approved for digest X but the current digest is Y"** — the
+artifact's code or provenance changed since it was approved. That's the registry working as
+designed (an approval is bound to specific bytes, not a name/version forever) — someone with
+context needs to re-review and re-approve; this plugin won't do that silently.
+
+**Nothing meaningful comes back from `/recall`** — the registry may genuinely not have anything
+close to the task yet. That's a real answer, not a failure; consider whether the task is worth
+capturing and promoting once you've solved it by hand.

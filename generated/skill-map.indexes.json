@@ -451,6 +451,23 @@
           "weight": 2
         }
       ],
+      "skill:procedural-memory/procedural-memory": [
+        {
+          "kind": "name",
+          "label": "procedural-memory",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
       "skill:project-launcher/project-launcher": [
         {
           "kind": "name",
