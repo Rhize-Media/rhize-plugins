@@ -179,6 +179,10 @@ class PluginContractCheckTests(unittest.TestCase):
                     str(ROOT / "scripts/validate_skill_map.py"),
                     "--check-stale",
                 ],
+                [
+                    bump_version.sys.executable,
+                    str(ROOT / "scripts/validate_plugin_configs.py"),
+                ],
             ],
         )
 
@@ -195,6 +199,7 @@ class PluginContractCheckTests(unittest.TestCase):
                 "CodeGraph + impact-map contract failed",
                 "Dev Flow test suite failed",
                 "skill-map freshness failed",
+                "Plugin config lint failed",
             ],
         )
 

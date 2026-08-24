@@ -130,7 +130,7 @@ macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
 
 macOS with the keychain helper installed:
 ```bash
-security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -w '<your-api-key>' -U
+security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -U -w
 ```
 
 Anywhere (plain env var, no keychain):

@@ -102,7 +102,7 @@ fi
     echo "  (b) macOS - store them in the login keychain and install the launcher"
     echo "      (see docs/mcp-secret-launcher.md in the rhize-plugins repo):"
     for _var in $MISSING; do
-        echo "        security add-generic-password -a \"\$USER\" -s \"claude-code:$_var\" -l \"$_var\" -w '<value>' -U"
+        echo "        security add-generic-password -a \"\$USER\" -s \"claude-code:$_var\" -l \"$_var\" -U -w"
     done
     echo
     echo "  Never paste a secret into .mcp.json or any other file in this plugin."

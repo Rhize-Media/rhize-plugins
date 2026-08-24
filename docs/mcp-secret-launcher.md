@@ -97,7 +97,7 @@ whole mechanism exists to eliminate.
 Store each credential in the login keychain:
 
 ```bash
-security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -w '<value>' -U
+security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -U -w
 ```
 
 Confirm an item exists **without printing its value**:
@@ -165,8 +165,18 @@ by default. Track them; do not paper over them with a workaround.
 
 ## Detecting regressions
 
-This finds every `${...}` still present in an MCP config across all
-config locations:
+**In this repo:** `python3 scripts/validate_plugin_configs.py` runs on every
+version bump (see `REPOSITORY_CONTRACTS` in `scripts/bump_version.py`) and
+catches the stdio case below with severity, key-name false-positive guarding
+(`SLACK_TEAM_ID`, `KEY_FILE_PATH` don't match; a bare `USERNAME` is capped at
+warning), plus two related footguns: an unquoted `${CLAUDE_PLUGIN_ROOT}` in a
+hook command, and a trailing slash on a `*_BASE_URL` env value. Prefer it over
+the snippet below for anything committed here.
+
+**Machine-wide (any installed plugin, any repo):** the script above only
+scans this repo. This finds every `${...}` still present in an MCP config
+across every plugin install and every `~/dev-local` repo on this machine —
+useful when troubleshooting a specific 401/403, not something to run in CI:
 
 ```bash
 python3 - <<'PY'

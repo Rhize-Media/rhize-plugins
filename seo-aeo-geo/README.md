@@ -35,8 +35,8 @@ Supply credentials one of two ways:
 
 **macOS with the keychain helper installed:**
 ```bash
-security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -w '<your-username>' -U
-security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -w '<your-password>' -U
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -U -w
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -U -w
 ```
 
 **Anywhere (plain env vars, no keychain):**

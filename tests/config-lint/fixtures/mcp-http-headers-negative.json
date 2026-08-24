@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "seo-utils": {
+      "url": "http://localhost:19515/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SEO_UTILS_TOKEN}"
+      }
+    }
+  }
+}
