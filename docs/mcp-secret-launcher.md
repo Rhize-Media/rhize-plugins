@@ -171,37 +171,21 @@ catches the stdio case below with severity, key-name false-positive guarding
 (`SLACK_TEAM_ID`, `KEY_FILE_PATH` don't match; a bare `USERNAME` is capped at
 warning), plus two related footguns: an unquoted `${CLAUDE_PLUGIN_ROOT}` in a
 hook command, and a trailing slash on a `*_BASE_URL` env value. Prefer it over
-the snippet below for anything committed here.
+the script below for anything committed here.
 
 **Machine-wide (any installed plugin, any repo):** the script above only
-scans this repo. This finds every `${...}` still present in an MCP config
-across every plugin install and every `~/dev-local` repo on this machine —
-useful when troubleshooting a specific 401/403, not something to run in CI:
+scans this repo. `python3 scripts/audit_mcp_secrets.py` finds every `${...}`
+still present in an MCP config across every plugin install and every
+`~/dev-local` repo on this machine, **and** flags credential-shaped env keys
+holding an inline plaintext value with no `${` at all — the gap that let
+`~/.claude.json` read as clean on 2026-08-19 while it held DataForSEO
+credentials as literals. Useful when troubleshooting a specific 401/403;
+deliberately not wired into any release gate.
 
 ```bash
-python3 - <<'PY'
-import json, os, re, glob
-pat = re.compile(r"\$\{[^}]+\}")
-files  = glob.glob(os.path.expanduser("~/.claude/plugins/**/.mcp.json"), recursive=True)
-files += glob.glob(os.path.expanduser("~/dev-local/**/.mcp.json"), recursive=True)
-files += [os.path.expanduser("~/.claude.json")]
-for p in files:
-    if "/node_modules/" in p or "/test/fixtures/" in p:
-        continue
-    try:
-        d = json.load(open(p))
-    except Exception:
-        continue
-    for name, cfg in (d.get("mcpServers") or {}).items():
-        if not isinstance(cfg, dict):
-            continue
-        for block in ("env", "headers"):
-            for k, v in (cfg.get(block) or {}).items():
-                if isinstance(v, str) and pat.search(v):
-                    kind = "HTTP" if ("url" in cfg or "headers" in cfg) else "stdio"
-                    print(f"{kind:5}  {name:22} {block}.{k:24} {p}")
-PY
+python3 scripts/audit_mcp_secrets.py
 ```
 
-`stdio` rows are actionable — migrate them to the shim. `HTTP` rows are the
-known gap above.
+`stdio` `${VAR}` rows are actionable — migrate them to the shim. `HTTP` rows
+are the known gap above. Inline-plaintext findings print only the key name
+and value length, never the value.
