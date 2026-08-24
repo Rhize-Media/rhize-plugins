@@ -8,6 +8,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-23_ version bump — **seo-aeo-geo** 1.4.1 → 1.4.2 (patch); marketplace 2.36.4 → 2.36.5.
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.2 → 1.4.3 (patch); marketplace 2.36.3 → 2.36.4.
 - _2026-08-23_ version bump — **seo-aeo-geo** 1.4.0 → 1.4.1 (patch); marketplace 2.36.2 → 2.36.3.
 - _2026-08-23_ version bump — **project-launcher** 1.7.1 → 1.7.2 (patch); marketplace 2.36.1 → 2.36.2.
 - _2026-08-23_ version bump — **obsidian-second-brain** 1.4.1 → 1.4.2 (patch); marketplace 2.36.0 → 2.36.1.
