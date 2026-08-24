@@ -1,7 +1,7 @@
 {
   "name": "rhize-devflow",
-  "version": "2.9.0",
-  "description": "Rhize Media's development-workflow skill set: compounding persistence layer (verifier subagent, STATE.md contract, protected-file gate), production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, and dev-flow foundations.",
+  "version": "2.13.0",
+  "description": "Rhize Media's engineering control-plane plugin: compounding persistence layer (verifier subagent, STATE.md contract, protected-file gate), production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, and dev-flow foundations — the base for an impact-map → check → review → release workflow.",
   "author": {
     "name": "Rhize Media"
   },
@@ -17,6 +17,7 @@
     "payload-cms",
     "supabase",
     "chrome-devtools",
+    "control-plane",
     "rhize"
   ]
 }

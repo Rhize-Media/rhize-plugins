@@ -19,8 +19,20 @@ __pycache__/
 # Eval results (regenerated on each run)
 evals/results/
 
+# Skill-map eval mined datasets (machine-local, contain raw user prompt text —
+# see docs/superpowers/specs/2026-08-10-skill-graph-evals-design.md's "Privacy
+# precedent": miners/runners are committed, mined data never is)
+evals/skill-map/data/
+
 # Claude Code local config
 .claude/
+
+# Exception: fixture data for test_mutation_analysis.py's malformed-config fail-closed
+# case. analyze_mutations.py hardcodes .claude/mutation-patterns.yaml as its config path,
+# so the fixture must live at exactly that relative location to exercise the real code
+# path — both the directory and its contents need unignoring for git to descend into it.
+!tests/rhize-devflow/fixtures/mutation/malformed_config_project/.claude/
+!tests/rhize-devflow/fixtures/mutation/malformed_config_project/.claude/**
 
 # Local scripts (not part of plugin distribution) — exceptions below
 scripts/*
@@ -28,6 +40,14 @@ scripts/*
 !scripts/build_skill_map.py
 !scripts/validate_skill_map.py
 !scripts/build_local_skill_map.py
+!scripts/render_skill_map_docs.py
+!scripts/publish_skill_map_vault.py
+!scripts/baseline_upstreams.py
+!scripts/sources_md.py
+!scripts/query_skill_map.py
+!scripts/suggestion_log_report.py
+!scripts/harvest_noise_filter.py
+!scripts/viewer/
 
 # Squirrel config
 squirrel.toml
@@ -35,3 +55,6 @@ squirrel.toml
 # Headroom CLAUDE.md backups + local scratch
 CLAUDE.md.headroom-bak.*
 .rndtest.b
+
+# Timestamped backups written before in-place config edits (local safety net only)
+*.bak

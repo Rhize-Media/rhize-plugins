@@ -4,7 +4,7 @@ description: "Use for any question about a codebase, its architecture, file rela
 metadata:
   rhize:
     topics: [knowledge-graph, search, memory-systems]
-    stacks: []
+    stacks: [obsidian]
 
 ---
 

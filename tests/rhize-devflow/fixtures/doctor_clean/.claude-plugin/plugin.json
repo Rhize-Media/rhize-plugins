@@ -1,0 +1,5 @@
+{
+  "name": "fixture-clean",
+  "version": "1.0.0",
+  "description": "Hermetic doctor fixture: a well-formed plugin with no findings."
+}

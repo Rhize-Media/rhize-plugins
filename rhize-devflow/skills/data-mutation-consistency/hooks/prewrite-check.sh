@@ -104,7 +104,7 @@ if echo "$CONTENT" | grep -qE "supabase.*\.(insert|update|delete|upsert)"; then
 🔍 Mutation pattern check for: $(basename "$FILE_PATH")
 $WARNINGS
 
-Consider running \`@check-mutation $FILE_PATH\` after editing.
+Consider running \`/rhize-devflow:mutation-check $FILE_PATH\` after editing.
 </pre-tool-use-hook>
 EOF
     fi
@@ -136,7 +136,7 @@ if echo "$CONTENT" | grep -qE "useMutation\s*\("; then
 🔍 React Query mutation check for: $(basename "$FILE_PATH")
 $WARNINGS
 
-Run \`@check-mutation $FILE_PATH\` for detailed analysis.
+Run \`/rhize-devflow:mutation-check $FILE_PATH\` for detailed analysis.
 </pre-tool-use-hook>
 EOF
     fi
@@ -168,7 +168,7 @@ if echo "$CONTENT" | grep -qE "CollectionConfig\s*="; then
 🔍 Payload collection check for: $(basename "$FILE_PATH")
 $WARNINGS
 
-Run \`@check-mutation $FILE_PATH\` for detailed analysis.
+Run \`/rhize-devflow:mutation-check $FILE_PATH\` for detailed analysis.
 </pre-tool-use-hook>
 EOF
     fi

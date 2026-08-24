@@ -19,6 +19,7 @@ metadata:
   rhize:
     topics: [content-optimization, seo-audit]
     stacks: [seo]
+    augments: [content-authoring]
 
 ---
 

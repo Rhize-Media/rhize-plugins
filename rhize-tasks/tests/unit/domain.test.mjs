@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import test from 'node:test';
+
+import {assertOperation, assertTask, operationKey, validateProfile} from '../../service/src/domain.mjs';
+
+const profile = {
+  schemaVersion: 1,
+  identity: {name: 'Tom Cassidy', timezone: 'America/New_York', locale: 'en-US'},
+  jira: {
+    accountId: 'tom-1', baseUrl: 'https://rhize.atlassian.net', projects: ['RHIZE'],
+    issueTypes: ['Task'], excludedIssueTypes: [], projectImportance: {RHIZE: 5},
+    opportunityUrgencyThreshold: 'high', maxDailySuggestions: 3,
+    competencies: [{name: 'marketing', confidence: 0.9, excluded: false}],
+  },
+  calendar: {readCalendarIds: ['primary'], focusCalendarId: 'focus', focusCalendarName: 'Rhize Focus', redactOutsideTitles: true},
+  reminders: {awarenessLists: [{id: 'personal', protectedDurationMinutes: 30, showTitles: false}], tasksListId: 'tasks', tasksListName: 'Rhize Tasks'},
+  workingIntervals: [{dayOfWeek: 1, start: '09:00', end: '17:00'}],
+  breaks: [],
+  capacity: {bufferPercent: 20, maxDailyMinutes: 480},
+  planning: {focusBlockMinutes: 90, minimumBlockMinutes: 30, allowSplitting: true, meetingBufferMinutes: 15, freezeWindowMinutes: 30},
+  routines: {replanningMode: 'bounded', reconciliationMode: 'prompted', morningTime: '09:00', middayTime: '12:00', eveningTime: '17:00'},
+  approval: {setupComplete: true, firstPlanApproved: true, automationPaused: false},
+  privacy: {showOutsideTitles: false},
+};
+
+const task = {
+  schemaVersion: 1, id: 'task-1', sourceType: 'jira', lane: 'owned', title: 'Audit paid search',
+  projectKey: 'RHIZE', issueType: 'Task', assigneeAccountId: 'tom-1', priority: 'high',
+  dueDate: '2026-08-17', status: 'Open', terminal: false, blocked: false, dependencyRisk: 1,
+  remainingMinutes: 60, explicitEstimateMinutes: null, competencies: ['marketing'], manualLock: false,
+  carryoverCount: 0, createdAt: '2026-08-01T09:00:00.000Z', reserved: false, sourceRevision: '42', jiraKey: 'RHIZE-42',
+  estimate: {minutes: 60, source: 'jira_remaining', confidence: 'high', rationale: 'Jira estimate', confirmedAt: '2026-08-14T12:00:00.000Z', requiresApproval: false},
+};
+
+test('validates the complete v1 profile and task contracts', () => {
+  assert.equal(validateProfile(profile), profile);
+  assert.equal(assertTask(task), task);
+});
+
+test('rejects unknown properties, invalid enums, impossible dates, unsafe URLs, negative durations, and unsupported versions', () => {
+  assert.throws(() => validateProfile({...profile, extra: true}), TypeError);
+  assert.throws(() => validateProfile({...profile, jira: {...profile.jira, opportunityUrgencyThreshold: 'now'}}), TypeError);
+  assert.throws(() => validateProfile({...profile, jira: {...profile.jira, baseUrl: 'http://rhize.atlassian.net'}}), TypeError);
+  assert.throws(() => validateProfile({...profile, workingIntervals: [{dayOfWeek: 1, start: '17:00', end: '09:00'}]}), TypeError);
+  assert.throws(() => validateProfile({...profile, schemaVersion: 2}), TypeError);
+  assert.throws(() => assertTask({...task, dueDate: '2026-02-30'}), TypeError);
+  assert.throws(() => assertTask((({createdAt, ...rest}) => rest)(task)), TypeError);
+  assert.throws(() => assertTask({...task, reserved: 'false'}), TypeError);
+  assert.throws(() => assertTask({...task, remainingMinutes: -1}), TypeError);
+  assert.throws(() => assertTask({...task, jiraUrl: 'javascript:alert(1)'}), TypeError);
+});
+
+test('enforces task source cross-fields and JSON-only operation keys', () => {
+  assert.throws(() => assertTask({...task, jiraKey: undefined, jiraUrl: undefined}), TypeError);
+  assert.throws(() => assertTask({...task, sourceType: 'delegation', delegationId: undefined}), TypeError);
+  assert.equal(operationKey(4, 'reminder_upsert', 'task-1', {title: 'Audit', tags: ['paid']}), operationKey(4, 'reminder_upsert', 'task-1', {tags: ['paid'], title: 'Audit'}));
+  assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', {bad: undefined}), TypeError);
+  const cyclic = {}; cyclic.self = cyclic;
+  assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', cyclic), TypeError);
+  assert.throws(() => operationKey(4, 'reminder_upsert', 'task-1', new Array(2)), TypeError);
+});
+
+test('validates closed operation payloads and their target systems', () => {
+  const payloads = {
+    reminder_upsert: {listId: 'tasks', title: 'Audit', dueAt: null, notes: '', externalId: 'reminder-1'},
+    reminder_complete: {completedAt: '2026-08-14T09:00:00Z'}, reminder_delete: {},
+    calendar_upsert: {calendarId: 'focus', title: 'Audit', start: '2026-08-14T09:00:00Z', end: '2026-08-14T10:00:00Z', description: '', externalId: 'event-1'}, calendar_delete: {},
+    jira_assign: {accountId: 'account-1'}, jira_transition: {transitionId: '31', comment: null}, jira_comment: {body: 'Ready for review'},
+    jira_create: {projectKey: 'RHIZE', issueType: 'Task', title: 'Audit', description: '', dueDate: null, priority: 'normal'},
+    provisional_link: {delegationId: '123e4567-e89b-42d3-a456-426614174000', jiraKey: 'RHIZE-1', jiraUrl: 'https://rhize.atlassian.net/browse/RHIZE-1'},
+    urgent_displacement: {displacedBlockIds: ['3:task:1'], replacementTaskId: 'urgent-task'}, scope_expand: {connector: 'jira', resourceIds: ['RHIZE']},
+  };
+  const systems = {reminder_upsert: 'reminders', reminder_complete: 'reminders', reminder_delete: 'reminders', calendar_upsert: 'calendar', calendar_delete: 'calendar', jira_assign: 'jira', jira_transition: 'jira', jira_comment: 'jira', jira_create: 'jira', provisional_link: 'local', urgent_displacement: 'local', scope_expand: 'local'};
+  for (const [kind, payload] of Object.entries(payloads)) {
+    const value = {schemaVersion: 1, id: `${kind}-1`, planRevision: 1, kind, targetSystem: systems[kind], targetId: 'task-1', payload, idempotencyKey: operationKey(1, kind, 'task-1', payload), approval: 'required', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'};
+    assert.equal(assertOperation(value), value, kind);
+  }
+  const calendar = payloads.calendar_upsert;
+  assert.throws(() => assertOperation({schemaVersion: 1, id: 'bad', planRevision: 1, kind: 'calendar_upsert', targetSystem: 'calendar', targetId: 'task-1', payload: {...calendar, start: calendar.end}, idempotencyKey: operationKey(1, 'calendar_upsert', 'task-1', calendar), approval: 'required', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'}), TypeError);
+  assert.throws(() => assertOperation({schemaVersion: 1, id: 'bad', planRevision: 1, kind: 'reminder_delete', targetSystem: 'jira', targetId: 'task-1', payload: {surprise: true}, idempotencyKey: 'a'.repeat(64), approval: 'required', preconditionRevision: null, retryState: 'pending', createdAt: '2026-08-14T09:00:00Z'}), TypeError);
+});
+
+test('schema files are strict v1 JSON schemas', async () => {
+  for (const name of ['profile', 'task', 'today-view', 'operation', 'delegation-v1']) {
+    const schema = JSON.parse(await readFile(new URL(`../../schemas/${name}.schema.json`, import.meta.url), 'utf8'));
+    assert.equal(schema.additionalProperties, false);
+    assert.equal(schema.properties.schemaVersion.const, 1);
+  }
+});

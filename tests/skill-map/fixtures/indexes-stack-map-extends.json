@@ -1,0 +1,19 @@
+{
+  "disclosure": {
+    "nextjs": [
+      {
+        "deeper": [
+          "skill:rhize-context-manager/context-compression"
+        ],
+        "skillId": "skill:rhize-context-manager/context-fundamentals"
+      }
+    ]
+  },
+  "remediation": {},
+  "router": {
+    "extendsBases": {},
+    "signals": {}
+  },
+  "schemaVersion": "1.1.0",
+  "succession": {}
+}

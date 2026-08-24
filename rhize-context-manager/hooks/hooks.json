@@ -1,5 +1,5 @@
 {
-  "description": "rhize-context-manager — context-window monitor + stack-aware session disclosure. The monitor replaces ECC's `pre:edit-write:suggest-compact`, which sized the window by sniffing the model id for a `[1m]` marker and so reported 97% usage on a 1M-window Opus 5 session that was really at 20%. This hook resolves the window from a verified known-model table first. Scoped to Edit|Write for parity with the hook it replaces, keeping the node spawn off every Read/Bash call. Disable ECC's version (ECC_DISABLED_HOOKS=pre:edit-write:suggest-compact) or the two will both fire. session-disclosure.js (SessionStart) replaces the four per-plugin SessionStart banners (seo-aeo-geo, obsidian-second-brain, project-launcher, rhize-devflow) retired 2026-08-09 in Phase 3 of the skill-map plan — see docs/skill-map.md. This directory also bundles two opt-in refinement-pipeline hooks, neither wired below — moved from rhize-devflow, see CHANGELOG 2026-08-09; enable via README.md's Hooks section.",
+  "description": "rhize-context-manager — context-window monitor + stack-aware session disclosure. The monitor replaces ECC's `pre:edit-write:suggest-compact`, which sized the window by sniffing the model id for a `[1m]` marker and so reported 97% usage on a 1M-window Opus 5 session that was really at 20%. This hook resolves the window from a verified known-model table first. Scoped to Edit|Write for parity with the hook it replaces, keeping the node spawn off every Read/Bash call. Disable ECC's version (ECC_DISABLED_HOOKS=pre:edit-write:suggest-compact) or the two will both fire. session-disclosure.js (SessionStart) replaces the four per-plugin SessionStart banners (seo-aeo-geo, obsidian-second-brain, project-launcher, rhize-devflow) retired 2026-08-09 in Phase 3 of the skill-map plan — see docs/skill-map.md. remediation-suggester.js (PostToolUse, matcher Bash) and next-step-suggester.js (PostToolUse, matcher Skill) are the relationships-v2 consumers added 2026-08-09 (design doc section 7) — both auto-wired here like session-disclosure.js, not opt-in via setup/manifest.json. This directory also bundles two opt-in refinement-pipeline hooks, neither wired below — moved from rhize-devflow, see CHANGELOG 2026-08-09; enable via README.md's Hooks section.",
   "hooks": {
     "PreToolUse": [
       {
@@ -20,6 +20,28 @@
           {
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-disclosure.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/remediation-suggester.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/next-step-suggester.js\"",
             "timeout": 5
           }
         ]

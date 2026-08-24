@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "nodes": [
     {
       "id": "external:ecc-suggest-compact",
@@ -12,6 +12,100 @@
       "kind": "external",
       "name": "@rhize/skill-forge",
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on."
+    },
+    {
+      "id": "external:humanizer-humanizer",
+      "kind": "external",
+      "name": "humanizer (humanizer plugin)",
+      "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally."
+    },
+    {
+      "id": "external:ecc-react-build-resolver",
+      "kind": "external",
+      "name": "ecc:react-build-resolver (agent)",
+      "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures."
+    },
+    {
+      "id": "external:ecc-go-build-resolver",
+      "kind": "external",
+      "name": "ecc:go-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Go build/vet failures."
+    },
+    {
+      "id": "external:ecc-rust-build-resolver",
+      "kind": "external",
+      "name": "ecc:rust-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes cargo build/borrow-checker failures."
+    },
+    {
+      "id": "external:ecc-kotlin-build-resolver",
+      "kind": "external",
+      "name": "ecc:kotlin-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Kotlin/Gradle build failures."
+    },
+    {
+      "id": "external:ecc-java-build-resolver",
+      "kind": "external",
+      "name": "ecc:java-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Java/Maven/Gradle build failures."
+    },
+    {
+      "id": "external:ecc-swift-build-resolver",
+      "kind": "external",
+      "name": "ecc:swift-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Swift/Xcode build failures."
+    },
+    {
+      "id": "external:ecc-dart-build-resolver",
+      "kind": "external",
+      "name": "ecc:dart-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Dart/Flutter build/analysis failures."
+    },
+    {
+      "id": "external:ecc-django-build-resolver",
+      "kind": "external",
+      "name": "ecc:django-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes Django/Python build and migration failures."
+    },
+    {
+      "id": "external:ecc-cpp-build-resolver",
+      "kind": "external",
+      "name": "ecc:cpp-build-resolver (agent)",
+      "description": "everything-claude-code agent; fixes C++/CMake build and linker failures."
+    },
+    {
+      "id": "external:ecc-build-error-resolver",
+      "kind": "external",
+      "name": "ecc:build-error-resolver (agent)",
+      "description": "everything-claude-code general build/TypeScript error resolution agent."
+    },
+    {
+      "id": "tag:condition/build-failure",
+      "kind": "tag",
+      "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)"
+    },
+    {
+      "id": "tag:condition/type-error",
+      "kind": "tag",
+      "description": "A static type check failed (tsc, mypy, or equivalent)"
+    },
+    {
+      "id": "external:sentry-plugin",
+      "kind": "external",
+      "name": "sentry (sentry-plugin-marketplace)",
+      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it."
+    },
+    {
+      "id": "external:sanity-plugin",
+      "kind": "external",
+      "name": "sanity (sanity-agent-toolkit)",
+      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it."
+    },
+    {
+      "id": "external:ecc-browser-qa",
+      "kind": "external",
+      "name": "ecc:browser-qa (skill)",
+      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls."
     }
   ],
   "edges": [
@@ -24,6 +118,132 @@
     {
       "from": "skill:rhize-context-manager/refinement-pipeline",
       "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/write-prd",
+      "to": "command:project-launcher/grill-prd",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/grill-prd",
+      "to": "command:project-launcher/scaffold-gsd",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "to": "command:rhize-context-manager/impact-map",
+      "type": "replaces",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:humanizer-humanizer",
+      "to": "tag:topic/content-authoring",
+      "type": "augments",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-react-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-go-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-rust-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-kotlin-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-java-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-swift-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-dart-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-django-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-cpp-build-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-build-error-resolver",
+      "to": "tag:condition/build-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-build-error-resolver",
+      "to": "tag:condition/type-error",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/skill-refine",
+      "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "to": "external:sentry-plugin",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "to": "external:sanity-plugin",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "to": "external:ecc-browser-qa",
       "type": "depends-on",
       "source": "relations-catalog"
     }

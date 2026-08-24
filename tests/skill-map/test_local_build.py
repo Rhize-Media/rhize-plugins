@@ -4,11 +4,14 @@
 
 Covers:
   1. Full-input build: a fixture monitor co-occurrence snapshot + a fake
-     HOME (installed_plugins.json, stack.config.json) produce a
-     skill-map.local.json overlay and a skill-map.resolved.json that
-     validates against the schema, with the expected usage-cooccurs edge
-     resolved from the fixture pair.
-  2. Degradation path: with all three optional inputs absent, the resolved
+     HOME (installed_plugins.json, stack.config.json) + a fake third-party
+     cached plugin produce a skill-map.local.json overlay and a
+     skill-map.resolved.json that validates against the schema, with the
+     expected usage-cooccurs edge resolved from the fixture pair AND the
+     fixture third-party plugin/skill/command nodes tagged
+     "origin": "third-party" — while the committed static artifact stays
+     byte-identical.
+  2. Degradation path: with all optional inputs absent, the resolved
      artifact is content-equal to the committed static artifact (never
      fails).
 
@@ -50,7 +53,8 @@ def run_build(*extra_args: str) -> subprocess.CompletedProcess:
 
 
 def test_full_inputs() -> None:
-    static_doc = json.loads(STATIC_PATH.read_text())
+    static_doc_before = STATIC_PATH.read_bytes()
+    static_doc = json.loads(static_doc_before)
     a_id = f"skill:{FIXTURE_PLUGIN}/{FIXTURE_SKILL_A}"
     b_id = f"skill:{FIXTURE_PLUGIN}/{FIXTURE_SKILL_B}"
     static_skill_ids = {n["id"] for n in static_doc["nodes"] if n["kind"] == "skill"}
@@ -76,17 +80,52 @@ def test_full_inputs() -> None:
             "totals": {a_name: 5, b_name: 4},
         }))
 
-        # Fixture installed_plugins.json — enable this repo's plugins at
-        # user scope (mirrors the real v2 shape).
-        installed_path = tmp_path / "installed_plugins.json"
+        # Fixture third-party cached plugin — mirrors the real
+        # ~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/ layout:
+        # a .claude-plugin/plugin.json, one skills/*/SKILL.md, one
+        # commands/*.md.
         marketplace = json.loads((REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text())
-        installed_path.write_text(json.dumps({
-            "version": 2,
-            "plugins": {
-                f"{p['name']}@{marketplace['name']}": [{"scope": "user"}]
-                for p in marketplace["plugins"]
-            },
+        tp_marketplace, tp_plugin = "acme-marketplace", "acme-plugin"
+        tp_root = tmp_path / "cache" / tp_marketplace / tp_plugin / "1.0.0"
+        (tp_root / ".claude-plugin").mkdir(parents=True)
+        (tp_root / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps({"description": "Acme plugin for widgets."})
+        )
+        (tp_root / "skills" / "widget-builder").mkdir(parents=True)
+        (tp_root / "skills" / "widget-builder" / "SKILL.md").write_text(
+            "---\nname: widget-builder\ndescription: Builds widgets fast.\n---\n\nBody.\n"
+        )
+        (tp_root / "commands").mkdir()
+        (tp_root / "commands" / "build-widget.md").write_text(
+            "---\ndescription: Build a widget via command.\n---\n\nDo it.\n"
+        )
+        tp_plugin_id = f"plugin:{tp_marketplace}/{tp_plugin}"
+        tp_skill_id = f"skill:{tp_marketplace}/{tp_plugin}/widget-builder"
+        tp_command_id = f"command:{tp_marketplace}/{tp_plugin}/build-widget"
+
+        # Fixture installed_plugins.json — enable this repo's plugins at
+        # user scope (mirrors the real v2 shape), plus the fixture
+        # third-party plugin pointed at its cached install path above.
+        installed_path = tmp_path / "installed_plugins.json"
+        installed_plugins = {
+            f"{p['name']}@{marketplace['name']}": [{"scope": "user"}]
+            for p in marketplace["plugins"]
+        }
+        installed_plugins[f"{tp_plugin}@{tp_marketplace}"] = [
+            {"scope": "user", "installPath": str(tp_root), "version": "1.0.0"}
+        ]
+        installed_path.write_text(json.dumps({"version": 2, "plugins": installed_plugins}))
+
+        # Fixture global settings.json — the third-party plugin must be
+        # "enabled" via the enabledPlugins map (installed_plugins.json alone
+        # doesn't carry an enabled bit).
+        global_settings_path = tmp_path / "global-settings.json"
+        global_settings_path.write_text(json.dumps({
+            "enabledPlugins": {f"{tp_plugin}@{tp_marketplace}": True}
         }))
+        # No local settings override in this fixture — missing is fine
+        # (degrades cleanly, same contract as the other optional inputs).
+        local_settings_path = tmp_path / "local-settings.json"
 
         # Fixture stack.config.json — schemaVersion 2, minimal valid shape.
         stack_path = tmp_path / "stack.config.json"
@@ -100,6 +139,8 @@ def test_full_inputs() -> None:
             "--cooccurrence", str(cooc_path),
             "--installed-plugins", str(installed_path),
             "--stack-config", str(stack_path),
+            "--global-settings", str(global_settings_path),
+            "--local-settings", str(local_settings_path),
         )
         if result.returncode != 0:
             raise AssertionError(f"build_local_skill_map.py failed:\n{result.stdout}\n{result.stderr}")
@@ -124,11 +165,51 @@ def test_full_inputs() -> None:
         if edge["usageWeight"]["sessions"] != 3:
             raise AssertionError(f"expected sessions=3, got {edge['usageWeight']}")
 
-        # resolved = static + the one usage-cooccurs edge, nodes untouched.
-        if resolved_doc["nodes"] != static_doc["nodes"]:
-            raise AssertionError("resolved nodes must equal static nodes verbatim")
-        if len(resolved_doc["edges"]) != len(static_doc["edges"]) + 1:
-            raise AssertionError("resolved edges must be static edges + 1 usage-cooccurs edge")
+        # Third-party inventory: exactly the one fixture plugin/skill/command.
+        tp_summary = local_doc["thirdParty"]["summary"]
+        if (tp_summary["plugins"], tp_summary["skills"], tp_summary["commands"]) != (1, 1, 1):
+            raise AssertionError(f"unexpected third-party summary: {tp_summary}")
+        if tp_summary["skippedPlugins"] != 0 or tp_summary["skippedEntries"] != 0:
+            raise AssertionError(f"unexpected skips in third-party summary: {tp_summary}")
+
+        tp_nodes_by_id = {n["id"]: n for n in local_doc["thirdParty"]["nodes"]}
+        for node_id, kind in (
+            (tp_plugin_id, "plugin"), (tp_skill_id, "skill"), (tp_command_id, "command")
+        ):
+            node = tp_nodes_by_id.get(node_id)
+            if node is None:
+                raise AssertionError(f"expected third-party node {node_id!r} in local overlay")
+            if node["kind"] != kind or node.get("origin") != "third-party":
+                raise AssertionError(f"third-party node {node_id!r} has unexpected shape: {node}")
+        if tp_nodes_by_id[tp_skill_id]["description"] != "Builds widgets fast.":
+            raise AssertionError(
+                f"unexpected skill description: {tp_nodes_by_id[tp_skill_id]['description']!r}"
+            )
+
+        tp_edge_pairs = {(e["from"], e["to"]) for e in local_doc["thirdParty"]["edges"]}
+        if {(tp_plugin_id, tp_skill_id), (tp_plugin_id, tp_command_id)} != tp_edge_pairs:
+            raise AssertionError(f"unexpected third-party contains edges: {tp_edge_pairs}")
+
+        # resolved = static nodes/edges (verbatim, in order) + the overlay's
+        # usage-cooccurs edge + the third-party nodes/edges above.
+        n_static = len(static_doc["nodes"])
+        if resolved_doc["nodes"][:n_static] != static_doc["nodes"]:
+            raise AssertionError("resolved nodes must start with static nodes verbatim")
+        resolved_tp_node_ids = {n["id"] for n in resolved_doc["nodes"][n_static:]}
+        if {tp_plugin_id, tp_skill_id, tp_command_id} - resolved_tp_node_ids:
+            raise AssertionError(
+                f"resolved.nodes missing third-party fixture ids: {resolved_tp_node_ids}"
+            )
+        if len(resolved_doc["edges"]) != len(static_doc["edges"]) + 1 + 2:
+            raise AssertionError(
+                "resolved edges must be static edges + 1 usage-cooccurs edge + "
+                "2 third-party contains edges"
+            )
+
+        # The committed static artifact must stay byte-identical — the
+        # third-party inventory is local-overlay/resolved only.
+        if STATIC_PATH.read_bytes() != static_doc_before:
+            raise AssertionError("committed static artifact was modified by the local build")
 
         validate_mod = load_module(VALIDATE_SCRIPT, "validate_skill_map")
         if not validate_mod.validate_document(resolved_doc, "skill-map.resolved.json (fixture)"):
@@ -148,6 +229,8 @@ def test_degradation_no_inputs() -> None:
             "--cooccurrence", str(tmp_path / "no-cooccurrence.json"),
             "--installed-plugins", str(tmp_path / "no-installed-plugins.json"),
             "--stack-config", str(tmp_path / "no-stack-config.json"),
+            "--global-settings", str(tmp_path / "no-global-settings.json"),
+            "--local-settings", str(tmp_path / "no-local-settings.json"),
         )
         if result.returncode != 0:
             raise AssertionError(f"build_local_skill_map.py failed:\n{result.stdout}\n{result.stderr}")
@@ -166,6 +249,13 @@ def test_degradation_no_inputs() -> None:
             raise AssertionError("missing stack config should degrade to stack=None")
         if local_doc["usageCooccursEdges"] != []:
             raise AssertionError("missing cooccurrence snapshot should degrade to no edges")
+
+        tp_summary = local_doc["thirdParty"]["summary"]
+        if (tp_summary["plugins"], tp_summary["skills"], tp_summary["commands"]) != (0, 0, 0):
+            raise AssertionError(
+                f"missing installed_plugins.json should degrade to zero third-party "
+                f"inventory, got {tp_summary}"
+            )
 
         if resolved_doc["nodes"] != static_doc["nodes"]:
             raise AssertionError("degraded resolved.nodes must equal static.nodes")

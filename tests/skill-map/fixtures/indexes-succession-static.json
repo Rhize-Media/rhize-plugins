@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "1.1.0",
+  "router": {
+    "signals": {},
+    "extendsBases": {}
+  },
+  "disclosure": {},
+  "remediation": {},
+  "succession": {
+    "skill:project-launcher/write-prd": {
+      "precedes": ["skill:project-launcher/grill-prd"],
+      "follows": []
+    },
+    "skill:project-launcher/grill-prd": {
+      "precedes": [],
+      "follows": []
+    }
+  }
+}

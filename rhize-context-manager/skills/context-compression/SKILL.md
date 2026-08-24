@@ -5,6 +5,7 @@ metadata:
   rhize:
     topics: [context-compression, context-engineering]
     stacks: []
+    extends: [context-fundamentals]
 
 ---
 

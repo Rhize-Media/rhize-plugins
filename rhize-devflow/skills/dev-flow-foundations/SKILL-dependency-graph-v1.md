@@ -1,367 +1,203 @@
-# Dependency Graph & Impact Mapping Skill
+# Dependency Graph and Semantic Impact Mapping
 
-> **Status:** Foundation Draft v1
-> **Last Updated:** 2024-12-01
-> **Dependencies:** TypeScript AST parsing, Git MCP, [TO-DO] Graphiti MCP
+> **Status:** Stable foundation v2
+> **Last Updated:** 2026-08-16
+> **Runtime owner:** `rhize-context-manager/commands/impact-map.md`
+> **Optional dependency:** CodeGraph CLI or MCP
 
----
+## Purpose
 
-## Overview
+Impact analysis answers two different questions that should not be collapsed into one artifact:
 
-This skill enforces mandatory impact analysis before any implementation begins. It creates a comprehensive dependency graph that tracks not just file imports, but **data flow** through the application - identifying what data types are consumed and produced at each point.
+1. **What does the code depend on today?**
+2. **What behavior should this change, preserve, or introduce?**
+
+CodeGraph answers the first question efficiently. A semantic impact map answers the second. The
+workflow is reliable only when both are used for their own purpose and reconciled after the code
+changes.
+
+## Authority Boundary
+
+- **CodeGraph is authoritative for current structural truth:** existing symbols, imports, callers,
+  callees, references, test links, and supported dynamic-dispatch paths.
+- **The impact map is authoritative for intended change:** product behavior, data meaning, scope,
+  invariants, new symbols, operational effects, risks, and acceptance tests.
+- Tests and runtime evidence remain authoritative for correctness. Neither a graph nor a plan
+  proves authorization, transaction ordering, cache timing, concurrency, or external behavior.
+
+This avoids two common failures:
+
+- A hand-written dependency dump immediately drifts and adds little beyond CodeGraph.
+- A graph-only plan misses business semantics, planned code, migrations, deployment order, and
+  must-not-change boundaries.
 
 ## Trigger Conditions
 
-Activate this skill when:
-- User requests a new feature implementation
-- User requests modification to existing functionality
-- User requests a bug fix that involves code changes
-- Keywords: "implement", "add", "create", "modify", "fix", "refactor", "update"
+Apply this foundation before implementing or materially changing:
 
-## Core Workflow
+- features, fixes, or refactors;
+- schemas, migrations, or data ownership;
+- cache or query-key behavior;
+- authorization or lifecycle transitions;
+- jobs, events, APIs, or cross-repository contracts.
 
-### Phase 1: Static Dependency Analysis
+Small documentation-only or formatting changes do not need a full map unless repository rules say
+otherwise.
 
-```
-1. Identify the entry point file(s) for the change
-2. Run import/export analysis
-3. Generate file dependency tree
-4. Extract data type dependencies (see Phase 2)
-5. Create IMPACT_MAP.md
-6. Present map and get confirmation BEFORE writing code
-```
+## CodeGraph-first Discovery
 
-### Phase 2: Data Dependency Extraction
+For each repository root:
 
-**This is the key enhancement over simple file-based impact mapping.**
+1. Check whether `.codegraph/` exists.
+2. When it exists, prefer the CodeGraph MCP interface. Use exposed health/status metadata; if the
+   interface only explores, a successful indexed query is availability evidence. A missing, stale,
+   corrupt, or failed MCP response triggers the fallback.
+3. Otherwise use the CLI only after `command -v codegraph` succeeds. Require a zero-exit
+   `codegraph status` before shell graph queries. Synchronize a stale existing index and repeat
+   status before trusting it.
+4. If neither interface is available, status or synchronization fails, or the index is missing or
+   corrupt, record the exact condition and use `rg` plus targeted reads. Do not require a shell
+   preflight when MCP is the active interface.
+5. When `.codegraph/` does not exist, do not initialize it without the repository owner's decision;
+   use the same fallback.
+6. Treat separate frontend/backend/service repositories as separate graphs joined by an explicitly
+   mapped API, event, schema, or data contract.
 
-For each file in the dependency tree, extract:
+Useful structural queries include:
 
-```typescript
-// Example analysis output for a page component
-
-{
-  "file": "app/players/[id]/page.tsx",
-  "imports": {
-    "functions": [
-      {
-        "name": "getPlayerById",
-        "from": "@/lib/api/players",
-        "returnType": "Promise<Player | null>",
-        "params": ["id: string"]
-      },
-      {
-        "name": "getPlayerStats",
-        "from": "@/lib/api/stats", 
-        "returnType": "Promise<PlayerStats[]>",
-        "params": ["playerId: string", "seasonId?: string"]
-      }
-    ],
-    "components": [
-      {
-        "name": "PlayerCard",
-        "from": "@/components/players/PlayerCard",
-        "props": "PlayerCardProps",
-        "requiredData": ["Player"]
-      }
-    ],
-    "types": ["Player", "PlayerStats", "PlayerCardProps"]
-  },
-  "dataFlow": {
-    "fetches": ["Player", "PlayerStats[]"],
-    "renders": ["PlayerCard(Player)", "StatsTable(PlayerStats[])"],
-    "passes": {
-      "PlayerCard": ["player: Player"],
-      "StatsTable": ["stats: PlayerStats[]", "playerId: string"]
-    }
-  }
-}
+```bash
+codegraph status
+codegraph explore "<behavior, symbols, callers, and tests>"
+codegraph impact <symbol>
+codegraph affected <files>
 ```
 
-### Phase 3: Optimization Insights
+CodeGraph output is evidence, not the impact map itself. Capture the relevant entry points and
+relationships without pasting the complete graph.
 
-Using the data dependency map, identify:
+## Semantic Analysis
 
-#### Fetch Optimization Opportunities
-```markdown
-## Fetch Analysis for app/players/[id]/page.tsx
+After structural discovery, describe the intended delta across these dimensions:
 
-### Current Data Requirements
-- Player (single fetch by ID)
-- PlayerStats[] (array fetch by playerId)
+### Behavior and data meaning
 
-### Optimization Recommendations
-1. **Parallel Fetching:** Both fetches are independent - use Promise.all()
-2. **Waterfall Risk:** If PlayerStats depends on Player.id from fetch, 
-   consider passing id directly from route params
-3. **Overfetching:** Player type has 15 fields, PlayerCard only uses 5
-   - Consider: PlayerSummary type for list views
-```
+- What user-visible or system behavior changes?
+- What is the correct data scope: tenant, season, account, team, order, time range, or lifecycle?
+- Does historical attribution differ from current ownership?
+- Which source system owns the truth?
 
-#### Query Optimization Insights
-```markdown
-## Database Query Analysis
+### Invariants
 
-### Data Access Pattern
-- getPlayerById: Single row lookup (indexed by PK) ✅
-- getPlayerStats: Range query by playerId
-  - Check: Is playerId indexed in stats table?
-  - Check: Are we fetching all seasons when only current needed?
+- What must always be true before and after the change?
+- Which state transitions require dedicated commands?
+- What must be atomic, idempotent, serialized, or fail closed?
+- Which authorization boundary controls the transition?
 
-### Suggested Optimizations
-- Add composite index on (playerId, seasonId) if filtering by season
-- Consider select() to limit fields if full PlayerStats not needed
-```
+### Operational effects
 
----
+- Are migrations, backfills, repair scripts, queues, caches, search indexes, analytics, or
+  deployments involved?
+- Is deployment order significant across repositories?
+- Which external systems or environment settings are invisible to the source graph?
 
-## Impact Map Format
+### Explicit non-effects
 
-Generate `IMPACT_MAP.md` in the working directory:
+- Which nearby path must retain its existing scope or behavior?
+- Which historical data must not be rewritten?
+- Which unrelated files, migrations, or customer records are out of scope?
 
-```markdown
-# Impact Map: [Feature/Fix Name]
-Generated: [timestamp]
+## Minimal Impact Map Contract
 
-## Change Summary
-[Brief description of intended changes]
+A useful map contains:
 
-## Entry Points
-- [ ] `app/players/[id]/page.tsx` - Primary modification target
+1. **Current behavior and evidence** — observed behavior plus concise graph/source evidence.
+2. **Intended semantic delta** — what changes for users, data, or system behavior.
+3. **Invariants and must-not-change boundaries** — correctness and scope constraints.
+4. **Current structural touchpoints** — relevant repositories, entry points, owners, callers, and
+   tests.
+5. **Planned additions and deletions** — code that cannot appear in the pre-change graph.
+6. **External and operational effects** — data, cache, jobs, deployment, or repair work.
+7. **Reuse opportunities** — component registry or an existing implementation.
+8. **Acceptance tests** — observable success, boundary, failure, and concurrency cases.
+9. **Explicitly unaffected paths** — nearby behavior protected from scope creep.
+10. **Unknowns and confidence** — graph blind spots, assumptions, and verification method.
+11. **Implementation order** — test-first steps organized by real dependency.
 
-## File Dependencies
+Do not require a repository-root `IMPACT_MAP.md`. Persist the map in the project's prescribed plan
+location only when instructions require it or the work must survive a session boundary; otherwise
+the active plan or response is sufficient.
 
-### Direct Dependencies (imports from entry points)
-| File | Type | Data Types | Modification Needed |
-|------|------|------------|---------------------|
-| `lib/api/players.ts` | API | `Player` | ⚠️ Yes - add field |
-| `components/PlayerCard.tsx` | Component | `PlayerCardProps` | ⚠️ Yes - new prop |
-| `types/player.ts` | Types | `Player`, `PlayerCardProps` | ⚠️ Yes - extend type |
+## Execution and Reconciliation
 
-### Indirect Dependencies (files that import the above)
-| File | Imports | Risk Level |
-|------|---------|------------|
-| `app/teams/[id]/roster/page.tsx` | `PlayerCard` | 🟡 Medium - uses same component |
-| `app/admin/players/page.tsx` | `getPlayerById` | 🟢 Low - different usage pattern |
+1. Write the smallest failing contract or acceptance test.
+2. Implement the source-system change.
+3. Update integrations, cache invalidation, and UI only as required by the semantic delta.
+4. Run focused and repository-required validation.
+5. For every repository root, repeat the same discovery branch used before implementation.
+6. For a healthy existing CodeGraph index, synchronize it and repeat the original structural
+   queries against the completed source. Use MCP synchronization/health operations when exposed,
+   otherwise the available CLI; if the index cannot be refreshed, record it as stale and take the
+   fallback branch.
+7. For a fallback root, repeat the original `rg` queries and targeted reads; map the actual changed
+   files, their consumers, and tests. Absence of a graph is not evidence of synchronization.
+8. Compare the structural evidence, actual diff, tests, and impact map.
+9. Update the map when implementation evidence changed the plan.
 
-## Data Flow Impact
+The final verdict is:
 
-### Types Being Modified
-```typescript
-// Current
-interface Player {
-  id: string;
-  name: string;
-  // ... existing fields
-}
+- `IN_SYNC` — structural evidence (CodeGraph or fallback), diff, tests, and semantic map agree.
+- `IN_SYNC_WITH_EXCEPTIONS` — named generated, dynamic, or external edges use manual evidence.
+- `OUT_OF_SYNC` — an unexplained change, missing consumer, stale graph, or unverified invariant
+  remains.
 
-// Proposed Addition
-interface Player {
-  // ... existing fields
-  newField: string; // <- Adding this
-}
-```
+Completion requires resolving `OUT_OF_SYNC`; it is not a documentation warning.
 
-### Cascade Effects
-1. `PlayerCard` - Will receive new field via props ✅
-2. `PlayerListItem` - Uses `Player` type, may need UI update ⚠️
-3. `getPlayerById` - Return type changes, callers unaffected if typed ✅
-4. Supabase query in `lib/api/players.ts` - Must include new field ⚠️
+## Known Graph Blind Spots
 
-## Test Coverage
-- [ ] `__tests__/api/players.test.ts` - Update mock data
-- [ ] `__tests__/components/PlayerCard.test.tsx` - Add prop test
+Manually verify:
 
-## Pre-Implementation Checklist
-- [ ] All affected files identified
-- [ ] Data type changes mapped
-- [ ] Test files identified
-- [ ] No circular dependency introduced
-- [ ] Confirmed with user before proceeding
-```
+- dynamic imports, reflection, dependency injection, and runtime registries;
+- generated files and schema-derived clients;
+- SQL triggers, database constraints, and migrations;
+- environment-dependent behavior and feature flags;
+- cache invalidation timing and transaction boundaries;
+- remote APIs, queues, webhooks, analytics, and deployment configuration;
+- data semantics such as historical attribution versus current ownership.
 
----
+## Anti-Patterns
 
-## [TO-DO] Graphiti MCP Integration
+- Manually recreating the full current caller graph in Markdown.
+- Installing or initializing CodeGraph without user/project authorization.
+- Using `grep -r` instead of CodeGraph or `rg`.
+- Assuming a pre-change graph can contain a planned route, migration, or symbol.
+- Treating graph completeness as proof of runtime correctness.
+- Mapping only one repository in a multi-service change.
+- Leaving the map unreconciled after implementation.
 
-### Planned Enhancement
-Use Graphiti MCP server to persist dependency graphs in a queryable format.
+## Relationship to Other Rhize Workflows
 
-```python
-# Conceptual integration
+- **Runtime command:** `/rhize-devflow:impact-map` executes this protocol (Dev Flow owns the
+  canonical implementation; `rhize-context-manager`'s `/impact-map` is a deprecation adapter
+  pointing here for the 2.12.0 compatibility window only).
+- **Component Registry:** identifies existing code to reuse after structural discovery.
+- **Regression Prevention:** turns affected behavior and invariants into required tests.
+- **Data Mutation Consistency:** deepens cache, query-key, transaction, and lifecycle analysis.
+- **Error Lifecycle Management:** adds production evidence before mapping a defect fix.
+- **Done/Review:** verifies the reconciliation verdict before release.
 
-# Store dependency relationship
-graphiti.add_edge(
-    source="app/players/[id]/page.tsx",
-    target="lib/api/players.ts",
-    relationship="imports",
-    properties={
-        "functions": ["getPlayerById"],
-        "types": ["Player"],
-        "data_flow": "fetches"
-    }
-)
+## Effectiveness Measures
 
-# Query for impact analysis
-affected = graphiti.query("""
-    MATCH (modified)-[:imports|:exports*1..3]-(affected)
-    WHERE modified.path = 'lib/api/players.ts'
-    RETURN affected.path, affected.type
-""")
-```
+Measure outcomes rather than map length:
 
-### Comparison: Graph vs Markdown Retrieval
-
-| Aspect | Markdown (Current) | Graphiti (Planned) |
-|--------|-------------------|-------------------|
-| Query Speed | O(n) file scan | O(1) graph traversal |
-| Relationship Depth | Manual tracking | Native multi-hop |
-| Update Complexity | Regenerate file | Incremental updates |
-| Context Window | Full file loaded | Query results only |
-| Offline Use | ✅ Always available | Requires server |
-| Setup Complexity | Low | Medium |
-
-**Recommendation:** Start with markdown, migrate to Graphiti when:
-- Project exceeds 200+ files
-- Dependency queries become frequent (5+/session)
-- Multi-hop analysis needed regularly
-
----
-
-## Implementation Script (AST-based)
-
-```typescript
-// scripts/analyze-dependencies.ts
-// Run: npx ts-node scripts/analyze-dependencies.ts <entry-file>
-
-import * as ts from 'typescript';
-import * as path from 'path';
-import * as fs from 'fs';
-
-interface FunctionImport {
-  name: string;
-  from: string;
-  returnType: string | null;
-  params: string[];
-}
-
-interface DataDependency {
-  file: string;
-  functions: FunctionImport[];
-  types: string[];
-  components: string[];
-}
-
-function analyzeFile(filePath: string): DataDependency {
-  const sourceCode = fs.readFileSync(filePath, 'utf-8');
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    sourceCode,
-    ts.ScriptTarget.Latest,
-    true
-  );
-
-  const result: DataDependency = {
-    file: filePath,
-    functions: [],
-    types: [],
-    components: []
-  };
-
-  // Walk AST to extract imports and their types
-  ts.forEachChild(sourceFile, (node) => {
-    if (ts.isImportDeclaration(node)) {
-      const moduleSpecifier = node.moduleSpecifier.getText().replace(/['"]/g, '');
-      const importClause = node.importClause;
-      
-      if (importClause?.namedBindings && ts.isNamedImports(importClause.namedBindings)) {
-        importClause.namedBindings.elements.forEach((element) => {
-          const importName = element.name.getText();
-          
-          // Heuristic: PascalCase = Component/Type, camelCase = function
-          if (/^[A-Z]/.test(importName)) {
-            if (importName.endsWith('Props') || importName.endsWith('Type')) {
-              result.types.push(importName);
-            } else {
-              result.components.push(importName);
-            }
-          } else {
-            result.functions.push({
-              name: importName,
-              from: moduleSpecifier,
-              returnType: null, // Requires type resolution
-              params: []
-            });
-          }
-        });
-      }
-    }
-  });
-
-  return result;
-}
-
-// Entry point
-const entryFile = process.argv[2];
-if (!entryFile) {
-  console.error('Usage: npx ts-node analyze-dependencies.ts <file-path>');
-  process.exit(1);
-}
-
-const analysis = analyzeFile(entryFile);
-console.log(JSON.stringify(analysis, null, 2));
-```
-
----
-
-## Integration with Other Skills
-
-### → Component Registry Skill
-After generating impact map, cross-reference with component registry to:
-- Verify no duplicate components being created
-- Check if existing components can be extended
-
-### → Regression Prevention Skill
-Impact map feeds into regression analysis:
-- Affected files = required test coverage
-- Data type changes = type-checking priority
-
-### ← Skill Refinement Skill
-When impact mapping reveals new patterns:
-- Document in PATTERNS.md
-- Consider creating reusable analysis scripts
-
----
-
-## Success Metrics
-
-Track these to measure skill effectiveness:
-
-1. **Implementation Completeness Rate**
-   - Before skill: % of PRs requiring follow-up commits
-   - After skill: Target <10% follow-up rate
-
-2. **Cascade Bug Rate**
-   - Changes in file A breaking file B unexpectedly
-   - Target: 0 cascade bugs from mapped changes
-
-3. **Time to Impact Analysis**
-   - Target: <2 minutes for typical feature
-   - Target: <5 minutes for cross-cutting changes
-
----
-
-## Open Questions
-
-1. Should impact maps be committed to git or treated as ephemeral?
-2. How to handle dynamic imports and lazy-loaded components?
-3. Integration with Payload CMS field dependencies?
-4. Should we track CSS/style dependencies for UI changes?
-
----
+- unexplained production files in the final diff;
+- consumers discovered only after implementation;
+- map-to-diff deviations without recorded rationale;
+- follow-up fixes caused by missed scope or invariants;
+- time spent regenerating dependency lists already available from CodeGraph.
 
 ## Changelog
 
 | Version | Date | Changes |
-|---------|------|---------|
-| v1 | 2024-12-01 | Initial foundation with data dependency concept |
+|---|---|---|
+| v2 | 2026-08-16 | Made CodeGraph the current-structure source, impact maps the semantic-delta source, and added post-implementation reconciliation. |
+| v1 | 2024-12-01 | Initial file and data dependency concept. |

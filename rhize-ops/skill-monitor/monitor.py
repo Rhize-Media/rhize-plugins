@@ -277,6 +277,111 @@ def extract_command_events(
             }
 
 
+_DEVFLOW_DOCTOR_CMD_RE = re.compile(r"devflow\.py[^\n]*\bdoctor\b")
+
+
+def extract_devflow_doctor_events(jsonl_path: Path, source_type: str) -> Iterator[dict]:
+    """Yield one dict per `devflow.py doctor` invocation found in `jsonl_path`,
+    carrying only a redacted healthy/degraded/unknown flag — never the
+    command's full text, the inspected plugin/repo path, or any other file
+    content (Task 9: "doctor degradation events ... without ... client
+    paths").
+
+    Correlates a Bash `tool_use` block whose `command` input mentions
+    `devflow.py ... doctor` with the `tool_result` block that answers it
+    (matched by `tool_use_id`, the standard Anthropic Messages tool_result
+    schema). Looks for the literal `"healthy": true`/`"healthy": false`
+    substring that `devflow.py doctor --json`'s `json.dumps(..., indent=2)`
+    always emits (schemas/devflow-evidence-v1.schema.json documents the
+    `evidence` contract; `doctor`'s own JSON shape is documented in
+    devflow.py's module docstring) — deliberately a substring check, not a
+    JSON parse, so this can never fail on unrelated tool output.
+
+    Fails closed throughout: any parse error, missing field, or unrecognized
+    shape is skipped rather than raised, so transcript-format drift can't
+    break the wider scan this function is called from.
+    """
+    try:
+        fp = jsonl_path.open("r", encoding="utf-8", errors="replace")
+    except OSError as e:
+        print(f"  ! cannot open {jsonl_path}: {e}", file=sys.stderr)
+        return
+
+    cowork_local_id = _cowork_local_id_from_path(jsonl_path)
+    pending: dict[str, dict] = {}  # tool_use_id -> partial event (outcome not yet known)
+    with fp:
+        for line_no, raw in enumerate(fp, 1):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                continue
+
+            msg = obj.get("message") or {}
+            content = msg.get("content")
+            if not isinstance(content, list):
+                continue
+
+            for block in content:
+                if not isinstance(block, dict):
+                    continue
+
+                if block.get("type") == "tool_use" and block.get("name") == "Bash":
+                    inp = block.get("input") or {}
+                    command = inp.get("command")
+                    tool_use_id = block.get("id")
+                    if not (isinstance(command, str) and tool_use_id):
+                        continue
+                    if not _DEVFLOW_DOCTOR_CMD_RE.search(command):
+                        continue
+                    if source_type == "main":
+                        project_dir = jsonl_path.parent.name
+                    else:  # subagent: .../<proj>/<session>/subagents/<agent>.jsonl
+                        project_dir = jsonl_path.parents[2].name
+                    pending[tool_use_id] = {
+                        "channel": "devflow_doctor",
+                        "source_type": source_type,
+                        "session_id": obj.get("sessionId"),
+                        "timestamp": obj.get("timestamp"),
+                        "project_dir_encoded": project_dir,
+                        "project_dir_decoded": decode_project_path(project_dir),
+                        "cowork_local_id": cowork_local_id,
+                        "transcript_file": str(jsonl_path),
+                        "transcript_line": line_no,
+                        "healthy": None,  # filled in below once its tool_result lands
+                    }
+
+                elif block.get("type") == "tool_result":
+                    tool_use_id = block.get("tool_use_id")
+                    event = pending.pop(tool_use_id, None) if tool_use_id else None
+                    if event is None:
+                        continue
+                    result_content = block.get("content")
+                    text = ""
+                    if isinstance(result_content, str):
+                        text = result_content
+                    elif isinstance(result_content, list):
+                        text = " ".join(
+                            part.get("text", "")
+                            for part in result_content
+                            if isinstance(part, dict) and part.get("type") == "text"
+                        )
+                    if '"healthy": true' in text:
+                        event["healthy"] = True
+                    elif '"healthy": false' in text:
+                        event["healthy"] = False
+                    yield event
+
+    # Any tool_use left pending (no matching tool_result observed in this
+    # file, e.g. a transcript truncated mid-call) is reported as an
+    # invocation with unknown outcome — never silently dropped or counted as
+    # healthy.
+    for event in pending.values():
+        yield event
+
+
 def extract_skill_events_from_audit(jsonl_path: Path) -> Iterator[dict]:
     """Cowork audit.jsonl uses a snake_case schema (session_id, parent_tool_use_id)
     and `system`-typed lines have content at the top level rather than under
@@ -524,6 +629,66 @@ def canonical_skill(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Dev Flow control-plane observability (Task 9,
+# .claude/plans/rhize-devflow-v3-engineering-control-plane.md). Deprecated ->
+# canonical command mapping for the 2.12.0 compatibility window's six browser/
+# mutation adapters plus the Context Manager impact-map adapter. Used only to
+# LABEL already-counted invocations as canonical vs. deprecated in the report
+# — it does not change how events are extracted or counted.
+# ---------------------------------------------------------------------------
+DEVFLOW_DEPRECATED_TO_CANONICAL: dict[str, str] = {
+    "rhize-devflow:browser-debug": "rhize-devflow:browser-qa",
+    "rhize-devflow:browser-help": "rhize-devflow:browser-qa",
+    "rhize-devflow:browser-perf": "rhize-devflow:browser-qa",
+    "rhize-devflow:browser-test": "rhize-devflow:browser-qa",
+    "rhize-devflow:mutation-analyze": "rhize-devflow:mutation-check --all",
+    "rhize-devflow:mutation-fix": "rhize-devflow:mutation-check --fix-plan",
+    "rhize-context-manager:impact-map": "rhize-devflow:impact-map",
+}
+
+
+def build_devflow_control_plane_section(
+    totals: "Counter", doctor_events: list[dict] | None = None
+) -> dict:
+    """Dev Flow 2.12.0 compatibility-window observability (Task 9): label each
+    already-counted command invocation as canonical or deprecated, and
+    summarize `devflow.py doctor` degradation from `doctor_events` (see
+    `extract_devflow_doctor_events`). A name this run's transcripts never
+    mentioned is reported as "no data", never as zero usage — the plan's
+    explicit requirement (Observation window: "do not interpret missing
+    telemetry as zero usage").
+    """
+    doctor_events = doctor_events or []
+
+    deprecated: dict[str, dict] = {}
+    for old_name, canonical_name in DEVFLOW_DEPRECATED_TO_CANONICAL.items():
+        count = totals.get(old_name)
+        deprecated[old_name] = {
+            "canonical": canonical_name,
+            "invocations": count if count is not None else "no data",
+        }
+
+    canonical: dict[str, "int | str"] = {}
+    canonical_names = sorted(set(DEVFLOW_DEPRECATED_TO_CANONICAL.values()) | {"rhize-devflow:doctor"})
+    for full_name in canonical_names:
+        base_name = full_name.split(" ", 1)[0]  # strip a "--all"/"--fix-plan" flag suffix
+        count = totals.get(base_name)
+        canonical[full_name] = count if count is not None else "no data"
+
+    healthy = sum(1 for e in doctor_events if e.get("healthy") is True)
+    degraded = sum(1 for e in doctor_events if e.get("healthy") is False)
+    unknown = sum(1 for e in doctor_events if e.get("healthy") is None)
+    doctor_summary = {
+        "invocations": len(doctor_events) if doctor_events else "no data",
+        "healthy": healthy,
+        "degraded": degraded,
+        "unknown_outcome": unknown,
+    }
+
+    return {"deprecated": deprecated, "canonical": canonical, "doctor": doctor_summary}
+
+
+# ---------------------------------------------------------------------------
 # Aggregation
 # ---------------------------------------------------------------------------
 
@@ -531,6 +696,7 @@ def build_report(
     events: list[dict],
     since_days: int | None = None,
     cowork_origin_map: dict[str, str] | None = None,
+    doctor_events: list[dict] | None = None,
 ) -> dict:
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days) if since_days else None
@@ -653,12 +819,22 @@ def build_report(
                 key=lambda kv: -sum(kv[1].values()),
             )
         },
+        "devflow_control_plane": build_devflow_control_plane_section(totals, doctor_events),
     }
+
+
+#  minimum distinct sessions an ordered (A then B) adjacency must appear in
+# before it's considered a real "follows" signal rather than noise — same
+# threshold the skill-map-relationships-v2 design pins for the `follows`
+# edge (skill-map-relationships-v2 design doc, decision 1).
+MIN_FOLLOWS_SESSIONS = 2
 
 
 def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dict:
     """Aggregate session-level skill co-occurrence for the skill-map local
-    overlay (skill-map-graph-substrate plan, Phase 3).
+    overlay (skill-map-graph-substrate plan, Phase 3), plus ordered
+    time-adjacent pairs for the `follows` edge (skill-map-relationships-v2
+    design, decision 1).
 
     A skill "co-occurs" with another when both were invoked (Skill tool_use
     or slash command, main or subagent — same channel reconciliation the
@@ -666,6 +842,13 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
     empirically (2026-08-09) that subagent transcripts share their parent's
     session_id, so this genuinely captures cross-invocation co-occurrence,
     not just same-transcript co-occurrence.
+
+    "Follows" mining: within each session, skill invocations are sorted by
+    timestamp and walked in order; each time-adjacent (A, B) pair of
+    DISTINCT skills (immediate neighbors only, not every later skill) is
+    recorded once per session. A pair is only emitted in `orderedPairs` once
+    it has occurred in at least MIN_FOLLOWS_SESSIONS distinct sessions —
+    below that it's noise, not a real "commonly invoked after" signal.
 
     PRIVACY CONTRACT — this function's output must never carry:
       - prompt text
@@ -675,13 +858,14 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
     (an opaque UUID, carrying no path/prompt information) is used solely as
     an internal grouping key and is discarded before returning.
 
-    Returns {windowDays, totalSessions, pairs, totals} — see
+    Returns {windowDays, totalSessions, pairs, totals, orderedPairs} — see
     scripts/build_local_skill_map.py for how this snapshot is consumed.
     """
     now = datetime.now(timezone.utc)
     cutoff = now - timedelta(days=since_days) if since_days else None
 
     sessions: dict[str, set[str]] = defaultdict(set)
+    session_seq: dict[str, list[tuple[str, str]]] = defaultdict(list)  # sid -> [(ts, skill), ...]
     for e in events:
         ts = e.get("timestamp")
         if cutoff is not None and ts:
@@ -696,6 +880,7 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
         if not sid or not skill:
             continue
         sessions[sid].add(skill)
+        session_seq[sid].append((ts or "", skill))
 
     totals: Counter = Counter()
     pair_counts: Counter = Counter()
@@ -714,11 +899,32 @@ def build_cooccurrence(events: list[dict], since_days: int | None = None) -> dic
         )
     ]
 
+    follows_session_counts: Counter = Counter()  # (a, b) ordered -> distinct session count
+    for seq in session_seq.values():
+        seq_sorted = sorted(seq, key=lambda t: t[0])
+        seen_this_session: set[tuple[str, str]] = set()
+        prev_skill = None
+        for _ts, skill in seq_sorted:
+            if prev_skill is not None and skill != prev_skill:
+                seen_this_session.add((prev_skill, skill))
+            prev_skill = skill
+        for pair in seen_this_session:
+            follows_session_counts[pair] += 1
+
+    ordered_pairs = [
+        {"a": a, "b": b, "sessions": n}
+        for (a, b), n in sorted(
+            follows_session_counts.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1])
+        )
+        if n >= MIN_FOLLOWS_SESSIONS
+    ]
+
     return {
         "windowDays": since_days or 0,
         "totalSessions": len(sessions),
         "pairs": pairs,
         "totals": dict(sorted(totals.items())),
+        "orderedPairs": ordered_pairs,
     }
 
 
@@ -936,6 +1142,39 @@ def render_markdown(report: dict, files_scanned: int) -> str:
     )
     lines.append("")
 
+    devflow = report.get("devflow_control_plane")
+    if devflow:
+        lines.append("## Dev Flow Control-Plane Usage")
+        lines.append("")
+        lines.append(
+            "Compatibility-window observability for the rhize-devflow 2.12.0 release "
+            "(Task 9, `.claude/plans/rhize-devflow-v3-engineering-control-plane.md`). "
+            "`no data` means this window's transcripts never mentioned the name — "
+            "**not** zero usage; see that plan's Observation window section."
+        )
+        lines.append("")
+        lines.append("### Deprecated adapters (2.12.0 compatibility window)")
+        lines.append("")
+        lines.append("| Deprecated command | Canonical replacement | Invocations |")
+        lines.append("|---|---|---|")
+        for old_name, info in sorted(devflow["deprecated"].items()):
+            lines.append(f"| `{old_name}` | `{info['canonical']}` | {info['invocations']} |")
+        lines.append("")
+        lines.append("### Canonical commands")
+        lines.append("")
+        lines.append("| Canonical command | Invocations |")
+        lines.append("|---|---|")
+        for name, count in sorted(devflow["canonical"].items()):
+            lines.append(f"| `{name}` | {count} |")
+        lines.append("")
+        doctor = devflow["doctor"]
+        lines.append(
+            f"### `devflow.py doctor` outcomes — invocations: {doctor['invocations']}, "
+            f"healthy: {doctor['healthy']}, degraded: {doctor['degraded']}, "
+            f"unknown outcome: {doctor['unknown_outcome']}"
+        )
+        lines.append("")
+
     return "\n".join(lines)
 
 
@@ -997,6 +1236,7 @@ def main() -> int:
         walks.append(walk_cowork_projects(cowork_root, mtime_cutoff=mtime_cutoff))
 
     all_events: list[dict] = []
+    doctor_events: list[dict] = []
     agent_type_map: dict[str, str] = {}
     files_scanned = 0
     for walk in walks:
@@ -1012,6 +1252,13 @@ def main() -> int:
                 # channel that usually fires no Skill tool_use).
                 for ev in extract_command_events(jsonl_path, source_type):
                     all_events.append(ev)
+                # Dev Flow control-plane observability (Task 9): a fully
+                # separate collection, never merged into all_events — it
+                # carries only a redacted healthy/degraded flag, never
+                # command text or paths, and cannot affect the dedup/report
+                # pipeline above.
+                for ev in extract_devflow_doctor_events(jsonl_path, source_type):
+                    doctor_events.append(ev)
                 # Main jsonls additionally contribute (agentId -> agentType)
                 # mappings via toolUseResult — only useful source of subagent
                 # type attribution.
@@ -1026,36 +1273,49 @@ def main() -> int:
 
     # Defensive dedup on (uuid, session_id).
     #
-    # Two distinct dedup cases exist:
-    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
-    #       transcripts (especially `acompact-*` context-compaction agents)
-    #       re-embed parent main events so the subagent has continuity. The
-    #       same (uuid, session_id) appears in both the main jsonl and a
-    #       subagent jsonl. Dropping the subagent copy is correct, and we
-    #       silence this case because it would otherwise warn on every run.
-    #   (b) two main events or two subagent events sharing a key — UNEXPECTED.
-    #       Would indicate an actual ingestion bug (host/Cowork uuid collision,
-    #       audit-file double-walk, etc.). We warn loudly for this case so it
-    #       doesn't go unnoticed.
-    # Two distinct dedup cases exist:
-    #   (a) main + subagent overlap within one session — EXPECTED. Subagent
-    #       transcripts (especially `acompact-*` context-compaction agents)
-    #       re-embed parent main events so the subagent has continuity. The
-    #       same (uuid, session_id) appears in both the main jsonl and a
-    #       subagent jsonl. Dropping the subagent copy is correct.
-    #   (b) acompact-* subagents replaying each other — also EXPECTED. When
-    #       the main jsonl has been rotated/deleted, multiple compaction
-    #       snapshots for one session can each independently preserve the
-    #       same parent event. All compaction copies are dropped except one.
-    #   (c) anything else (e.g. two main events sharing a key, host/Cowork
-    #       uuid collision, audit-file double-walk) — UNEXPECTED. We warn so
-    #       it can't go unnoticed.
+    # Three dedup cases are known and EXPECTED (all harness replay, not an
+    # ingestion bug):
+    #   (a) main + subagent overlap within one session. Subagent transcripts
+    #       (especially `acompact-*` context-compaction agents) re-embed
+    #       parent main events so the subagent has continuity. The same
+    #       (uuid, session_id) appears in both the main jsonl and a subagent
+    #       jsonl. Dropping the subagent copy is correct.
+    #   (b) acompact-* subagents replaying each other. When the main jsonl
+    #       has been rotated/deleted, multiple compaction snapshots for one
+    #       session can each independently preserve the same parent event.
+    #       All compaction copies are dropped except one.
+    #   (c) main + main replay from the Claude Desktop (Cowork) app. Verified
+    #       2026-08-09: for `entrypoint == "claude-desktop"`, an assistant
+    #       turn recorded early in a session's main jsonl can reappear later
+    #       in the SAME file, byte-identical on uuid/requestId/parentUuid/
+    #       timestamp/message content, differing only in `cwd` (resolved
+    #       against whatever root the desktop app has active at replay time)
+    #       and sometimes gaining a `slug` field once the session is
+    #       auto-named. This is the desktop app re-serializing session state
+    #       into the transcript, not a reader double-counting a file — 22/22
+    #       inspected instances on 2026-08-09 shared this exact shape. Kept
+    #       as its own category (rather than folded into "any main+main is
+    #       fine") so a same-source_type duplicate from the CLI, which has no
+    #       known replay mechanism, still trips the loud warning below.
+    #
+    # Anything else (e.g. two host-CLI main events sharing a key, a
+    # host/Cowork uuid collision, an audit-file double-walk) is UNEXPECTED
+    # and warned on loudly so it can't go unnoticed.
     def _is_compaction(ev: dict) -> bool:
         return (ev.get("agent_id") or "").startswith("acompact-")
+
+    def _is_desktop_main_replay(prior: dict, ev: dict) -> bool:
+        return (
+            prior.get("source_type") == "main"
+            and ev.get("source_type") == "main"
+            and prior.get("entrypoint") == "claude-desktop"
+            and ev.get("entrypoint") == "claude-desktop"
+        )
 
     seen: dict = {}  # key -> first event seen (for category check)
     deduped: list[dict] = []
     unexpected_dups = 0
+    desktop_replay_dups = 0
     for ev in all_events:
         uuid = ev.get("uuid")
         if uuid is None:
@@ -1066,16 +1326,24 @@ def main() -> int:
             prior = seen[key]
             this_src = ev.get("source_type")
             prior_src = prior.get("source_type")
-            expected = (
-                {prior_src, this_src} == {"main", "subagent"}
-                or (prior_src == "subagent" and this_src == "subagent"
-                    and (_is_compaction(prior) or _is_compaction(ev)))
-            )
-            if not expected:
+            if {prior_src, this_src} == {"main", "subagent"} or (
+                prior_src == "subagent" and this_src == "subagent"
+                and (_is_compaction(prior) or _is_compaction(ev))
+            ):
+                pass  # (a)/(b) — expected, silent
+            elif _is_desktop_main_replay(prior, ev):
+                desktop_replay_dups += 1  # (c) — expected, informational
+            else:
                 unexpected_dups += 1
             continue
         seen[key] = ev
         deduped.append(ev)
+    if desktop_replay_dups:
+        print(
+            f"  · collapsed {desktop_replay_dups} duplicate events from Claude "
+            f"Desktop session-transcript replay (expected; see dedup comment "
+            f"in monitor.py)",
+        )
     if unexpected_dups:
         print(
             f"  ! warning: dropped {unexpected_dups} unexpected duplicate events "
@@ -1090,6 +1358,7 @@ def main() -> int:
         all_events,
         since_days=since,
         cowork_origin_map=cowork_origin_map,
+        doctor_events=doctor_events,
     )
     md = render_markdown(report, files_scanned=files_scanned)
 
@@ -1141,7 +1410,9 @@ def main() -> int:
     print(f"  ✓ Markdown report → {md_path}")
     print(
         f"  ✓ Co-occurrence  → {cooccurrence_out} "
-        f"({len(cooccurrence['pairs'])} pairs, {cooccurrence['totalSessions']} sessions)"
+        f"({len(cooccurrence['pairs'])} pairs, "
+        f"{len(cooccurrence['orderedPairs'])} follows-candidates, "
+        f"{cooccurrence['totalSessions']} sessions)"
     )
     print(
         f"\nSummary: {files_scanned} files scanned, "

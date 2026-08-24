@@ -122,7 +122,7 @@ def analyze_issue_for_stale_data(
                 confidence=0.6,
                 context="Issue tagged with cache-related label",
                 suggested_tables=extract_table_names(full_text),
-                suggested_action="Run @analyze-mutations to check cache revalidation coverage"
+                suggested_action="Run /rhize-devflow:mutation-check --all to check cache revalidation coverage"
             ))
 
     return signals
@@ -157,18 +157,18 @@ def get_suggested_action(indicator: StaleDataIndicator, tables: list[str]) -> st
 
     actions = {
         StaleDataIndicator.CACHE_MISMATCH:
-            f"Run @analyze-mutations {table_focus} to check cache revalidation patterns",
+            f"Run /rhize-devflow:mutation-check --all {table_focus} to check cache revalidation patterns",
         StaleDataIndicator.OUTDATED_DISPLAY:
-            f"Run @analyze-mutations {table_focus} and verify query key factories match cache tags",
+            f"Run /rhize-devflow:mutation-check --all {table_focus} and verify query key factories match cache tags",
         StaleDataIndicator.SYNC_FAILURE:
-            f"Run @analyze-mutations {table_focus} to check error handling and rollback patterns",
+            f"Run /rhize-devflow:mutation-check --all {table_focus} to check error handling and rollback patterns",
         StaleDataIndicator.REVALIDATION_MISSING:
-            f"Run @analyze-mutations {table_focus} - likely missing revalidateTag/revalidatePath calls",
+            f"Run /rhize-devflow:mutation-check --all {table_focus} - likely missing revalidateTag/revalidatePath calls",
         StaleDataIndicator.OPTIMISTIC_ROLLBACK:
-            f"Run @check-mutation on affected hooks - check rollback context implementation",
+            f"Run /rhize-devflow:mutation-check on affected hooks - check rollback context implementation",
     }
 
-    return actions.get(indicator, f"Run @analyze-mutations {table_focus}")
+    return actions.get(indicator, f"Run /rhize-devflow:mutation-check --all {table_focus}")
 
 
 def format_signals_for_claude(signals: list[StaleDataSignal]) -> str:
@@ -200,12 +200,12 @@ def format_signals_for_claude(signals: list[StaleDataSignal]) -> str:
         if all_tables:
             output.append(f"### Recommended Next Step")
             output.append(f"```")
-            output.append(f"@analyze-mutations --focus={','.join(all_tables)}")
+            output.append(f"/rhize-devflow:mutation-check --all --focus={','.join(all_tables)}")
             output.append(f"```")
         else:
             output.append(f"### Recommended Next Step")
             output.append(f"```")
-            output.append(f"@analyze-mutations")
+            output.append(f"/rhize-devflow:mutation-check --all")
             output.append(f"```")
 
     return "\n".join(output)
@@ -230,7 +230,7 @@ ISSUE_MESSAGE="$2"
 if echo "$ISSUE_TITLE $ISSUE_MESSAGE" | grep -iE "(stale|cache|outdated|not updated|out of sync)" > /dev/null; then
     echo "🔍 Stale data pattern detected in Sentry issue."
     echo ""
-    echo "Suggested action: Run @analyze-mutations to check mutation consistency."
+    echo "Suggested action: Run /rhize-devflow:mutation-check --all to check mutation consistency."
     echo ""
     echo "This issue may be related to:"
     echo "  • Missing cache revalidation (revalidateTag/revalidatePath)"

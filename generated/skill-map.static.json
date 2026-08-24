@@ -1,6 +1,108 @@
 {
   "edges": [
     {
+      "from": "command:project-launcher/grill-prd",
+      "source": "relations-catalog",
+      "to": "command:project-launcher/scaffold-gsd",
+      "type": "precedes"
+    },
+    {
+      "from": "command:project-launcher/write-prd",
+      "source": "relations-catalog",
+      "to": "command:project-launcher/grill-prd",
+      "type": "precedes"
+    },
+    {
+      "from": "command:rhize-context-manager/skill-refine",
+      "source": "relations-catalog",
+      "to": "external:skill-forge",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "source": "relations-catalog",
+      "to": "command:rhize-context-manager/impact-map",
+      "type": "replaces"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "depends-on"
+    },
+    {
+      "from": "external:ecc-build-error-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-build-error-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/type-error",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-cpp-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-dart-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-django-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-go-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-java-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-kotlin-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-react-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-rust-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:ecc-swift-build-resolver",
+      "source": "relations-catalog",
+      "to": "tag:condition/build-failure",
+      "type": "remediates"
+    },
+    {
+      "from": "external:humanizer-humanizer",
+      "source": "relations-catalog",
+      "to": "tag:topic/content-authoring",
+      "type": "augments"
+    },
+    {
       "from": "hook:rhize-context-manager/context-window-monitor",
       "source": "relations-catalog",
       "to": "external:ecc-suggest-compact",
@@ -58,12 +160,6 @@
       "from": "plugin:obsidian-second-brain",
       "source": "marketplace",
       "to": "command:obsidian-second-brain/vault-setup",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:obsidian-second-brain",
-      "source": "marketplace",
-      "to": "hook:obsidian-second-brain/inline-f66f8d34",
       "type": "contains"
     },
     {
@@ -165,12 +261,6 @@
     {
       "from": "plugin:project-launcher",
       "source": "marketplace",
-      "to": "hook:project-launcher/inline-b4ccdbc6",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:project-launcher",
-      "source": "marketplace",
       "to": "hook:project-launcher/launcher-vault-hint",
       "type": "contains"
     },
@@ -249,6 +339,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/next-step-suggester",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/pre-commit-guard",
       "type": "contains"
     },
@@ -262,6 +358,18 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/refinement-session-end",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/remediation-suggester",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/session-disclosure",
       "type": "contains"
     },
     {
@@ -355,6 +463,12 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-cowork",
+      "source": "marketplace",
+      "to": "skill:rhize-cowork/project-kickoff",
+      "type": "contains"
+    },
+    {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "command:rhize-devflow/browser-debug",
@@ -375,13 +489,37 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/browser-qa",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "command:rhize-devflow/browser-test",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "command:rhize-devflow/devflow-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "command:rhize-devflow/impact-map",
       "type": "contains"
     },
     {
@@ -405,7 +543,31 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
-      "to": "hook:rhize-devflow/inline-466ded0c",
+      "to": "command:rhize-devflow/review",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-95242299",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-d45b5937",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-ea6a756f",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-f095e19f",
       "type": "contains"
     },
     {
@@ -499,6 +661,78 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/preferences",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/reconcile",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/review-opportunities",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "command:rhize-tasks/today",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/manage-task-preferences",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/plan-my-day",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/review-task-opportunities",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/rhize-tasks-doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-tasks",
+      "source": "marketplace",
+      "to": "skill:rhize-tasks/rhize-tasks-setup",
+      "type": "contains"
+    },
+    {
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
       "to": "command:seo-aeo-geo/ai-visibility",
@@ -556,12 +790,6 @@
       "from": "plugin:seo-aeo-geo",
       "source": "marketplace",
       "to": "command:seo-aeo-geo/technical-audit",
-      "type": "contains"
-    },
-    {
-      "from": "plugin:seo-aeo-geo",
-      "source": "marketplace",
-      "to": "hook:seo-aeo-geo/inline-8cef06f6",
       "type": "contains"
     },
     {
@@ -639,6 +867,12 @@
     {
       "from": "skill:obsidian-second-brain/json-canvas",
       "source": "frontmatter",
+      "to": "skill:obsidian-second-brain/obsidian-markdown",
+      "type": "extends"
+    },
+    {
+      "from": "skill:obsidian-second-brain/json-canvas",
+      "source": "frontmatter",
       "to": "tag:stack/obsidian",
       "type": "stack-tag"
     },
@@ -653,6 +887,12 @@
       "source": "frontmatter",
       "to": "tag:topic/visualization",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-bases",
+      "source": "frontmatter",
+      "to": "skill:obsidian-second-brain/obsidian-markdown",
+      "type": "extends"
     },
     {
       "from": "skill:obsidian-second-brain/obsidian-bases",
@@ -707,6 +947,12 @@
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/qmd-search",
+      "source": "frontmatter",
+      "to": "mcp:qmd",
+      "type": "depends-on"
     },
     {
       "from": "skill:obsidian-second-brain/qmd-search",
@@ -782,6 +1028,24 @@
     },
     {
       "from": "skill:project-launcher/project-launcher",
+      "source": "relations-catalog",
+      "to": "external:skill-forge",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "mcp:obsidian-mcp-server",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -797,6 +1061,12 @@
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
     },
     {
       "from": "skill:project-launcher/rhize-visual-plan",
@@ -818,14 +1088,20 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "context-compression",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-compression",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-compression",
       "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-compression",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-compression",
@@ -841,14 +1117,20 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "context-degradation",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-degradation",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-degradation",
       "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-degradation",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-degradation",
@@ -882,13 +1164,13 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "context-fundamentals",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-fundamentals",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-fundamentals",
       "type": "fork-of"
     },
     {
@@ -905,14 +1187,20 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "context-optimization",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/context-optimization",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-optimization",
       "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-optimization",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/context-fundamentals",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-optimization",
@@ -929,7 +1217,7 @@
     {
       "from": "skill:rhize-context-manager/context-stack",
       "source": "frontmatter",
-      "to": "tag:stack/context",
+      "to": "tag:stack/obsidian",
       "type": "stack-tag"
     },
     {
@@ -946,13 +1234,13 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "filesystem-context",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/filesystem-context",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/filesystem-context",
       "type": "fork-of"
     },
     {
@@ -966,6 +1254,12 @@
       "source": "frontmatter",
       "to": "tag:topic/memory-systems",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphify",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
     },
     {
       "from": "skill:rhize-context-manager/graphify",
@@ -984,6 +1278,12 @@
       "source": "frontmatter",
       "to": "tag:topic/search",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
+      "source": "frontmatter",
+      "to": "mcp:graphiti",
+      "type": "depends-on"
     },
     {
       "from": "skill:rhize-context-manager/graphiti-memory",
@@ -1011,13 +1311,13 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "memory-systems",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/memory-systems",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/memory-systems",
       "type": "fork-of"
     },
     {
@@ -1041,12 +1341,6 @@
     {
       "from": "skill:rhize-context-manager/refinement-pipeline",
       "source": "frontmatter",
-      "to": "tag:stack/refinement",
-      "type": "stack-tag"
-    },
-    {
-      "from": "skill:rhize-context-manager/refinement-pipeline",
-      "source": "frontmatter",
       "to": "tag:topic/learning-curation",
       "type": "topic-tag"
     },
@@ -1058,13 +1352,13 @@
     },
     {
       "driftCheck": {
-        "method": "manual",
+        "method": "content-hash",
         "upstreamPath": "tool-design",
-        "upstreamRepo": "context-engineering-marketplace"
+        "upstreamRepo": "muratcankoylan/Agent-Skills-for-Context-Engineering"
       },
       "from": "skill:rhize-context-manager/tool-design",
       "source": "sources-md",
-      "to": "external:context-engineering-marketplace",
+      "to": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/tool-design",
       "type": "fork-of"
     },
     {
@@ -1078,6 +1372,36 @@
       "source": "frontmatter",
       "to": "tag:topic/tool-design",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-cowork/project-kickoff",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "relations-catalog",
+      "to": "external:ecc-browser-qa",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/chrome-devtools-mcp",
+      "source": "frontmatter",
+      "to": "mcp:chrome-devtools",
+      "type": "depends-on"
     },
     {
       "from": "skill:rhize-devflow/chrome-devtools-mcp",
@@ -1106,6 +1430,18 @@
     {
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
+      "to": "mcp:sentry",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
       "to": "tag:stack/nextjs",
       "type": "stack-tag"
     },
@@ -1113,6 +1449,18 @@
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "tag:stack/sanity",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/vercel",
       "type": "stack-tag"
     },
     {
@@ -1138,6 +1486,30 @@
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "mcp:github",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "mcp:sentry",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "mcp:vercel",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/error-lifecycle-management",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-devflow/error-lifecycle-management",
@@ -1171,6 +1543,12 @@
     },
     {
       "from": "skill:rhize-devflow/sanity-development",
+      "source": "relations-catalog",
+      "to": "external:sanity-plugin",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
       "source": "frontmatter",
       "to": "tag:stack/nextjs",
       "type": "stack-tag"
@@ -1184,6 +1562,12 @@
     {
       "from": "skill:rhize-devflow/sanity-development",
       "source": "frontmatter",
+      "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sanity-development",
+      "source": "frontmatter",
       "to": "tag:topic/cms-development",
       "type": "topic-tag"
     },
@@ -1192,6 +1576,18 @@
       "source": "frontmatter",
       "to": "tag:topic/content-authoring",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "relations-catalog",
+      "to": "external:sentry-plugin",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/sentry-instrumentation",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-devflow/sentry-instrumentation",
@@ -1220,6 +1616,36 @@
     {
       "from": "skill:rhize-ops/delegate-to-teammate",
       "source": "frontmatter",
+      "to": "mcp:atlassian",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "mcp:fireflies",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "mcp:obsidian-mcp-server",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "mcp:slack",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-ops/delegate-to-teammate",
+      "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
     },
@@ -1232,6 +1658,12 @@
     {
       "from": "skill:rhize-ops/skill-dashboard",
       "source": "frontmatter",
+      "to": "mcp:chrome-devtools",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/skill-dashboard",
+      "source": "frontmatter",
       "to": "tag:topic/observability",
       "type": "topic-tag"
     },
@@ -1240,6 +1672,90 @@
       "source": "frontmatter",
       "to": "tag:topic/visualization",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/manage-task-preferences",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/manage-task-preferences",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "source": "frontmatter",
+      "to": "tag:topic/data-consistency",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/aeo-geo-optimization",
@@ -1258,6 +1774,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/backlink-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/backlink-intelligence",
@@ -1286,6 +1808,12 @@
     {
       "from": "skill:seo-aeo-geo/content-seo",
       "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "augments"
+    },
+    {
+      "from": "skill:seo-aeo-geo/content-seo",
+      "source": "frontmatter",
       "to": "tag:topic/content-optimization",
       "type": "topic-tag"
     },
@@ -1294,6 +1822,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/keyword-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/keyword-intelligence",
@@ -1352,6 +1886,12 @@
     {
       "from": "skill:seo-aeo-geo/seo-site-audit",
       "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:seo-aeo-geo/seo-site-audit",
+      "source": "frontmatter",
       "to": "tag:stack/seo",
       "type": "stack-tag"
     },
@@ -1366,6 +1906,12 @@
       "source": "frontmatter",
       "to": "tag:topic/seo-audit",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/serp-intelligence",
+      "source": "frontmatter",
+      "to": "mcp:dataforseo",
+      "type": "depends-on"
     },
     {
       "from": "skill:seo-aeo-geo/serp-intelligence",
@@ -1514,7 +2060,7 @@
       "path": "rhize-context-manager/commands/done.md"
     },
     {
-      "description": "Pre-feature impact mapping — map dependencies against the component registry before implementing changes",
+      "description": "Deprecated — use /rhize-devflow:impact-map instead.",
       "id": "command:rhize-context-manager/impact-map",
       "kind": "command",
       "name": "impact-map",
@@ -1542,32 +2088,46 @@
       "path": "rhize-context-manager/commands/start.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-debug",
       "kind": "command",
       "name": "browser-debug",
       "path": "rhize-devflow/commands/browser-debug.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-help",
       "kind": "command",
       "name": "browser-help",
       "path": "rhize-devflow/commands/browser-help.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-perf",
       "kind": "command",
       "name": "browser-perf",
       "path": "rhize-devflow/commands/browser-perf.md"
     },
     {
-      "description": "",
+      "description": "Scenario-driven browser acceptance check — functional path, console/network errors, accessibility smoke, responsive layout, and performance on request — against whichever browser tool is actually available",
+      "id": "command:rhize-devflow/browser-qa",
+      "kind": "command",
+      "name": "browser-qa",
+      "path": "rhize-devflow/commands/browser-qa.md"
+    },
+    {
+      "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-test",
       "kind": "command",
       "name": "browser-test",
       "path": "rhize-devflow/commands/browser-test.md"
+    },
+    {
+      "description": "Evidence-driven mid-implementation validation — selects and runs the right focused tests and repository-mandated gates from deterministic facts, never from prose",
+      "id": "command:rhize-devflow/check",
+      "kind": "command",
+      "name": "check",
+      "path": "rhize-devflow/commands/check.md"
     },
     {
       "description": "",
@@ -1577,25 +2137,46 @@
       "path": "rhize-devflow/commands/devflow-setup.md"
     },
     {
-      "description": "",
+      "description": "Read-only plugin/install health check — manifests, canonical commands, referenced assets, duplicate bodies, stale tokens, script/hook integrity, and capability dependencies",
+      "id": "command:rhize-devflow/doctor",
+      "kind": "command",
+      "name": "doctor",
+      "path": "rhize-devflow/commands/doctor.md"
+    },
+    {
+      "description": "CodeGraph-first impact mapping that separates current dependency truth from the intended semantic change",
+      "id": "command:rhize-devflow/impact-map",
+      "kind": "command",
+      "name": "impact-map",
+      "path": "rhize-devflow/commands/impact-map.md"
+    },
+    {
+      "description": "Deprecated — use /rhize-devflow:mutation-check --all instead.",
       "id": "command:rhize-devflow/mutation-analyze",
       "kind": "command",
       "name": "mutation-analyze",
       "path": "rhize-devflow/commands/mutation-analyze.md"
     },
     {
-      "description": "",
+      "description": "Read-only data-mutation consistency check — scoped file(s), whole codebase, or a proposed fix plan — never edits source or adds TODOs",
       "id": "command:rhize-devflow/mutation-check",
       "kind": "command",
       "name": "mutation-check",
       "path": "rhize-devflow/commands/mutation-check.md"
     },
     {
-      "description": "",
+      "description": "Deprecated — use /rhize-devflow:mutation-check --fix-plan instead.",
       "id": "command:rhize-devflow/mutation-fix",
       "kind": "command",
       "name": "mutation-fix",
       "path": "rhize-devflow/commands/mutation-fix.md"
+    },
+    {
+      "description": "Read-only production merge/release gate — resolves the exact comparison range, builds a risk map from actual diff evidence, routes only relevant specialist reviews, and returns one merge verdict backed by an independent skeptical reviewer",
+      "id": "command:rhize-devflow/review",
+      "kind": "command",
+      "name": "review",
+      "path": "rhize-devflow/commands/review.md"
     },
     {
       "description": "",
@@ -1617,6 +2198,48 @@
       "kind": "command",
       "name": "rhize-setup",
       "path": "rhize-ops/commands/rhize-setup.md"
+    },
+    {
+      "description": "Diagnose the local Rhize Tasks service safely",
+      "id": "command:rhize-tasks/doctor",
+      "kind": "command",
+      "name": "doctor",
+      "path": "rhize-tasks/commands/doctor.md"
+    },
+    {
+      "description": "Review or change Rhize Tasks planning preferences",
+      "id": "command:rhize-tasks/preferences",
+      "kind": "command",
+      "name": "preferences",
+      "path": "rhize-tasks/commands/preferences.md"
+    },
+    {
+      "description": "Preview and reconcile local Rhize task drift",
+      "id": "command:rhize-tasks/reconcile",
+      "kind": "command",
+      "name": "reconcile",
+      "path": "rhize-tasks/commands/reconcile.md"
+    },
+    {
+      "description": "Review urgent high-fit unassigned Rhize work",
+      "id": "command:rhize-tasks/review-opportunities",
+      "kind": "command",
+      "name": "review-opportunities",
+      "path": "rhize-tasks/commands/review-opportunities.md"
+    },
+    {
+      "description": "Run or resume the safe local Rhize Tasks setup wizard",
+      "id": "command:rhize-tasks/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "rhize-tasks/commands/setup.md"
+    },
+    {
+      "description": "Build and review today's bounded Rhize Tasks plan",
+      "id": "command:rhize-tasks/today",
+      "kind": "command",
+      "name": "today",
+      "path": "rhize-tasks/commands/today.md"
     },
     {
       "description": "Check AI/LLM visibility and AEO/GEO optimization status",
@@ -1689,9 +2312,64 @@
       "path": "seo-aeo-geo/commands/technical-audit.md"
     },
     {
-      "id": "external:context-engineering-marketplace",
+      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls.",
+      "id": "external:ecc-browser-qa",
       "kind": "external",
-      "name": "context-engineering-marketplace"
+      "name": "ecc:browser-qa (skill)"
+    },
+    {
+      "description": "everything-claude-code general build/TypeScript error resolution agent.",
+      "id": "external:ecc-build-error-resolver",
+      "kind": "external",
+      "name": "ecc:build-error-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes C++/CMake build and linker failures.",
+      "id": "external:ecc-cpp-build-resolver",
+      "kind": "external",
+      "name": "ecc:cpp-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Dart/Flutter build/analysis failures.",
+      "id": "external:ecc-dart-build-resolver",
+      "kind": "external",
+      "name": "ecc:dart-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Django/Python build and migration failures.",
+      "id": "external:ecc-django-build-resolver",
+      "kind": "external",
+      "name": "ecc:django-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Go build/vet failures.",
+      "id": "external:ecc-go-build-resolver",
+      "kind": "external",
+      "name": "ecc:go-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Java/Maven/Gradle build failures.",
+      "id": "external:ecc-java-build-resolver",
+      "kind": "external",
+      "name": "ecc:java-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes Kotlin/Gradle build failures.",
+      "id": "external:ecc-kotlin-build-resolver",
+      "kind": "external",
+      "name": "ecc:kotlin-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
+      "id": "external:ecc-react-build-resolver",
+      "kind": "external",
+      "name": "ecc:react-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code agent; fixes cargo build/borrow-checker failures.",
+      "id": "external:ecc-rust-build-resolver",
+      "kind": "external",
+      "name": "ecc:rust-build-resolver (agent)"
     },
     {
       "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker.",
@@ -1700,24 +2378,86 @@
       "name": "ecc pre:edit-write:suggest-compact hook"
     },
     {
+      "description": "everything-claude-code agent; fixes Swift/Xcode build failures.",
+      "id": "external:ecc-swift-build-resolver",
+      "kind": "external",
+      "name": "ecc:swift-build-resolver (agent)"
+    },
+    {
+      "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally.",
+      "id": "external:humanizer-humanizer",
+      "kind": "external",
+      "name": "humanizer (humanizer plugin)"
+    },
+    {
+      "baselineHash": "c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-compression",
+      "kind": "external",
+      "name": "context-compression",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-compression/SKILL.md"
+    },
+    {
+      "baselineHash": "4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-degradation",
+      "kind": "external",
+      "name": "context-degradation",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-degradation/SKILL.md"
+    },
+    {
+      "baselineHash": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-fundamentals",
+      "kind": "external",
+      "name": "context-fundamentals",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-fundamentals/SKILL.md"
+    },
+    {
+      "baselineHash": "8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/context-optimization",
+      "kind": "external",
+      "name": "context-optimization",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/context-optimization/SKILL.md"
+    },
+    {
+      "baselineHash": "bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/filesystem-context",
+      "kind": "external",
+      "name": "filesystem-context",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/filesystem-context/SKILL.md"
+    },
+    {
+      "baselineHash": "9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/memory-systems",
+      "kind": "external",
+      "name": "memory-systems",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/memory-systems/SKILL.md"
+    },
+    {
+      "baselineHash": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
+      "id": "external:muratcankoylan/Agent-Skills-for-Context-Engineering/tool-design",
+      "kind": "external",
+      "name": "tool-design",
+      "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
+    },
+    {
+      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
+      "id": "external:sanity-plugin",
+      "kind": "external",
+      "name": "sanity (sanity-agent-toolkit)"
+    },
+    {
+      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it.",
+      "id": "external:sentry-plugin",
+      "kind": "external",
+      "name": "sentry (sentry-plugin-marketplace)"
+    },
+    {
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on.",
       "id": "external:skill-forge",
       "kind": "external",
       "name": "@rhize/skill-forge"
     },
     {
-      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/obsidian-context.md 2>/dev/null || echo '## Obsidian Skills Active\\nUse /vault-search, /vault-capture, /vault-daily, /vault-recall, /vault-research, /vault-connect, /vault-review, /vault-align, or /vault-setup.'",
-      "event": "SessionStart",
-      "id": "hook:obsidian-second-brain/inline-f66f8d34",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-f66f8d34",
-      "owner": "obsidian-second-brain",
-      "path": "obsidian-second-brain/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py\"",
       "event": "PostToolUse",
       "id": "hook:obsidian-second-brain/vault-read-hint",
       "kind": "hook",
@@ -1728,7 +2468,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-write-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-write-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:obsidian-second-brain/vault-write-hint",
       "kind": "hook",
@@ -1739,18 +2479,7 @@
       "status": "wired"
     },
     {
-      "command": "cat ${CLAUDE_PLUGIN_ROOT}/hooks/launcher-context.md 2>/dev/null || echo '## Project Launcher Active\\nUse /launch-project, /write-prd, /grill-prd, or /scaffold-gsd.'",
-      "event": "SessionStart",
-      "id": "hook:project-launcher/inline-b4ccdbc6",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-b4ccdbc6",
-      "owner": "project-launcher",
-      "path": "project-launcher/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:project-launcher/launcher-vault-hint",
       "kind": "hook",
@@ -1781,6 +2510,17 @@
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/setup/manifest.json",
       "status": "opt-in"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/next-step-suggester.js\"",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/next-step-suggester",
+      "kind": "hook",
+      "matcher": "Skill",
+      "name": "next-step-suggester",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
     },
     {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/pre-commit-guard.sh",
@@ -1816,6 +2556,28 @@
       "status": "opt-in"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/remediation-suggester.js\"",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/remediation-suggester",
+      "kind": "hook",
+      "matcher": "Bash",
+      "name": "remediation-suggester",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/session-disclosure.js\"",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/session-disclosure",
+      "kind": "hook",
+      "matcher": "",
+      "name": "session-disclosure",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/session-init.sh",
       "event": "SessionStart",
       "id": "hook:rhize-context-manager/session-init",
@@ -1838,12 +2600,45 @@
       "status": "opt-in"
     },
     {
-      "command": "DEV=false; { [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] || [ -f sanity.config.ts ] || [ -f package.json ]; } && DEV=true; if [ \"$DEV\" = true ]; then echo '## rhize-devflow active — error-lifecycle, data-mutation, sentry, chrome-devtools, sanity. Commands: /rhize-devflow:*'; else echo ''; fi",
-      "event": "SessionStart",
-      "id": "hook:rhize-devflow/inline-466ded0c",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",
+      "event": "Stop",
+      "id": "hook:rhize-devflow/inline-95242299",
       "kind": "hook",
       "matcher": "",
-      "name": "inline-466ded0c",
+      "name": "inline-95242299",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-d45b5937",
+      "kind": "hook",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-d45b5937",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-devflow/inline-ea6a756f",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-ea6a756f",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write",
+      "event": "PreToolUse",
+      "id": "hook:rhize-devflow/inline-f095e19f",
+      "kind": "hook",
+      "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch",
+      "name": "inline-f095e19f",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"
@@ -1893,18 +2688,7 @@
       "status": "opt-in"
     },
     {
-      "command": "SEO_RELEVANT=false; [ -n \"$DATAFORSEO_USERNAME\" ] && SEO_RELEVANT=true; [ -f sitemap.xml ] || [ -f sitemap.ts ] || [ -f app/sitemap.ts ] || [ -f robots.txt ] || [ -f robots.ts ] || [ -f app/robots.ts ] && SEO_RELEVANT=true; [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ] && SEO_RELEVANT=true; [ -f sanity.config.ts ] || [ -f sanity.cli.ts ] && SEO_RELEVANT=true; [ -f CLAUDE.md ] && grep -qiE 'seo|dataforseo|structured.data|aeo|geo' CLAUDE.md 2>/dev/null && SEO_RELEVANT=true; [ -f .planning/ROADMAP.md ] && grep -qi 'seo' .planning/ROADMAP.md 2>/dev/null && SEO_RELEVANT=true; if [ \"$SEO_RELEVANT\" = true ]; then cat ${CLAUDE_PLUGIN_ROOT}/hooks/seo-context.md 2>/dev/null || echo '## SEO/AEO/GEO Plugin Active'; else echo ''; fi",
-      "event": "SessionStart",
-      "id": "hook:seo-aeo-geo/inline-8cef06f6",
-      "kind": "hook",
-      "matcher": "",
-      "name": "inline-8cef06f6",
-      "owner": "seo-aeo-geo",
-      "path": "seo-aeo-geo/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:seo-aeo-geo/seo-edit-hint",
       "kind": "hook",
@@ -1915,7 +2699,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-read-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-read-hint.py\"",
       "event": "PostToolUse",
       "id": "hook:seo-aeo-geo/seo-read-hint",
       "kind": "hook",
@@ -1924,6 +2708,61 @@
       "owner": "seo-aeo-geo",
       "path": "seo-aeo-geo/hooks/hooks.json",
       "status": "wired"
+    },
+    {
+      "id": "mcp:atlassian",
+      "kind": "mcp-server",
+      "name": "atlassian"
+    },
+    {
+      "id": "mcp:chrome-devtools",
+      "kind": "mcp-server",
+      "name": "chrome-devtools"
+    },
+    {
+      "id": "mcp:dataforseo",
+      "kind": "mcp-server",
+      "name": "dataforseo"
+    },
+    {
+      "id": "mcp:fireflies",
+      "kind": "mcp-server",
+      "name": "fireflies"
+    },
+    {
+      "id": "mcp:github",
+      "kind": "mcp-server",
+      "name": "github"
+    },
+    {
+      "id": "mcp:graphiti",
+      "kind": "mcp-server",
+      "name": "graphiti"
+    },
+    {
+      "id": "mcp:obsidian-mcp-server",
+      "kind": "mcp-server",
+      "name": "obsidian-mcp-server"
+    },
+    {
+      "id": "mcp:qmd",
+      "kind": "mcp-server",
+      "name": "qmd"
+    },
+    {
+      "id": "mcp:sentry",
+      "kind": "mcp-server",
+      "name": "sentry"
+    },
+    {
+      "id": "mcp:slack",
+      "kind": "mcp-server",
+      "name": "slack"
+    },
+    {
+      "id": "mcp:vercel",
+      "kind": "mcp-server",
+      "name": "vercel"
     },
     {
       "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
@@ -1940,14 +2779,21 @@
       "path": "project-launcher"
     },
     {
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /impact-map, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them.",
+      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. /done delegates code-change review to rhize-devflow's /review when installed. /impact-map is a deprecation adapter to rhize-devflow, which owns the executable command.",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",
       "path": "rhize-context-manager"
     },
     {
-      "description": "Rhize development-workflow skill set — production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools debugging, Sanity house style, and dev-flow foundations. Context/session engineering moved to rhize-context-manager.",
+      "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
+      "id": "plugin:rhize-cowork",
+      "kind": "plugin",
+      "name": "rhize-cowork",
+      "path": "rhize-cowork"
+    },
+    {
+      "description": "Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
@@ -1959,6 +2805,13 @@
       "kind": "plugin",
       "name": "rhize-ops",
       "path": "rhize-ops"
+    },
+    {
+      "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
+      "id": "plugin:rhize-tasks",
+      "kind": "plugin",
+      "name": "rhize-tasks",
+      "path": "rhize-tasks"
     },
     {
       "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
@@ -1976,7 +2829,7 @@
       "path": "obsidian-second-brain/skills/defuddle/SKILL.md"
     },
     {
-      "contentHash": "b3ac193bc78db86cc5f8e8d17eda0f12fa6bf585094582b2dc01df66b0de341c",
+      "contentHash": "1b213bae1c64cfcb9e63c678dd01319472488109c577744f7646e6f5c299877e",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0 with nodes, edges, groups, and visual connections. Use this skill when someone asks about creating or editing Obsidian canvases, building visual knowledge maps, node diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas files. Also triggers on \"JSON Canvas\", \"canvas file\", \"visual board\", \"Obsidian whiteboard\", or requests to create visual note connections.",
       "id": "skill:obsidian-second-brain/json-canvas",
       "kind": "skill",
@@ -1984,7 +2837,7 @@
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
     },
     {
-      "contentHash": "c580a1ebb0f422a2a97257054ae17c5761085d4257be4441b6ef1edd787ccda2",
+      "contentHash": "44e4c6e099153a9f79b36c645c152dddc4567c855ad9a294d60e1ff3bc3fdac8",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. Create and edit Obsidian Base files (.base) for database-like views, filters, formulas, and data summaries within your vault. Use this skill whenever someone asks about Obsidian Bases, creating database views, filtering notes by properties, building task trackers, reading lists, project dashboards, or any structured data view in Obsidian. Also triggers on \".base files\", \"Obsidian database\", \"note database\", \"vault database\", or questions about filters, formulas, and summaries in the context of Obsidian.",
       "id": "skill:obsidian-second-brain/obsidian-bases",
       "kind": "skill",
@@ -2008,7 +2861,7 @@
       "path": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md"
     },
     {
-      "contentHash": "564f1f7b296177b1bf5e257cd4b7f52c2ceb94972079f449d8c8d0b1bfef7221",
+      "contentHash": "038311f827b9e3ff43bbf8ed5273db6ed4492a5c9fbe3d65c25e56c218951855",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text, vector semantic search, and LLM re-ranking. Use this skill when someone asks about setting up qmd, configuring vault indexing, choosing between search modes (BM25 vs vector vs hybrid), connecting qmd's MCP server to Claude, troubleshooting search quality, or understanding how qmd works. Also triggers on \"semantic search\", \"vector search\", \"qmd\", \"embed vault\", \"vault indexing\", \"search my notes by meaning\", \"find similar notes\", or \"natural language vault search\".",
       "id": "skill:obsidian-second-brain/qmd-search",
       "kind": "skill",
@@ -2040,7 +2893,7 @@
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
     },
     {
-      "contentHash": "8337ed6cb520b879ce7d5e92de616b6f96b405652feee8a589ba2e2471cbc262",
+      "contentHash": "8cf53d110301420043a5eb6300f6540d288724a5827e0c26d3549f1a7a46c629",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
       "id": "skill:project-launcher/project-launcher",
       "kind": "skill",
@@ -2048,7 +2901,7 @@
       "path": "project-launcher/skills/project-launcher/SKILL.md"
     },
     {
-      "contentHash": "28e6f49edad3895b9675606fef60e7e75c322a2c407efbfedba9dd2a5fcebf2b",
+      "contentHash": "9fa58d64a4d38fd00b93678abb3e19a76740c40592434cb7e7f780129b92db75",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
       "id": "skill:project-launcher/rhize-visual-plan",
       "kind": "skill",
@@ -2056,7 +2909,8 @@
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md"
     },
     {
-      "contentHash": "ab17b73f59b8619432213b71fbd648904ff881b35a66d74a2e0763711be06123",
+      "contentHash": "9de885deef334253d4f2927d2341d64145c8b7d52edd74f53a1f18f7d1d4d220",
+      "contentHashNormalized": "c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
@@ -2064,7 +2918,8 @@
       "path": "rhize-context-manager/skills/context-compression/SKILL.md"
     },
     {
-      "contentHash": "6ecf2fe07c51ea54df5b7af10c30c98e8d3207ae3a42c7078ccadf8cf74ee378",
+      "contentHash": "b1318638f8106efa097e56e7ac7cc4835f8fe614d45dd63a773eff8028f2e1dd",
+      "contentHashNormalized": "4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928",
       "description": "This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, context confusion, attention-pattern issues, and agent performance degradation caused by accumulated or conflicting context.",
       "id": "skill:rhize-context-manager/context-degradation",
       "kind": "skill",
@@ -2072,7 +2927,7 @@
       "path": "rhize-context-manager/skills/context-degradation/SKILL.md"
     },
     {
-      "contentHash": "30ca6c44fdf76094e1066283e59356b1add1a78d7c1e3f83f77c280d9cda51a4",
+      "contentHash": "8c0d339d2edebb80187d274ee5bf53755898db78764e65caa26f46bead5b2098",
       "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
       "id": "skill:rhize-context-manager/context-engineering",
       "kind": "skill",
@@ -2081,6 +2936,7 @@
     },
     {
       "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
+      "contentHashNormalized": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
       "description": "This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a context window, how attention mechanics work, the U-shaped attention curve, why context quality matters more than quantity, and the mental models needed to interpret every other context-engineering decision. Use this for conceptual explanation, onboarding, and background reading. Route operational work to the specialized skills: debugging attention failures goes to context-degradation, token-efficiency work goes to context-optimization, conversation summarization goes to context-compression, and project-shape decisions go to project-development.",
       "id": "skill:rhize-context-manager/context-fundamentals",
       "kind": "skill",
@@ -2088,7 +2944,8 @@
       "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md"
     },
     {
-      "contentHash": "8005848a5b32cc8559ba3fede33754d26a30bab5283cb83e8a84d1bbe33600de",
+      "contentHash": "83bb3053e5b9f175672550e91838d1fbf9ba94b42569c134c69246b402d7f754",
+      "contentHashNormalized": "8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "id": "skill:rhize-context-manager/context-optimization",
       "kind": "skill",
@@ -2096,7 +2953,7 @@
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
     },
     {
-      "contentHash": "eeda745293b712580404cdb02c744d39f4ae8931368fe0a353b5a17237409201",
+      "contentHash": "7667d998748bee8ece409ec14f97b8c22435236019e750542fe3f24c596cd75f",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Graphiti, Obsidian), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
@@ -2105,6 +2962,7 @@
     },
     {
       "contentHash": "5acd70b0aab1bc078f27af8c0d663d8070a14b98d7d3011526029d41d0207713",
+      "contentHashNormalized": "bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94",
       "description": "This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, cross-agent handoff files, filesystem memory, or cleanup policies for context stored outside the prompt.",
       "id": "skill:rhize-context-manager/filesystem-context",
       "kind": "skill",
@@ -2112,7 +2970,7 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "9c522dad0f1a883bcf0c8441bf206517d55b4e22c68acc4a94542a93d4eeb49d",
+      "contentHash": "5c5794249270b5879d2408d18c9bb90e34981d7ed60d8cea62bc194630010c7a",
       "description": "Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, where the question should be treated as a graphify query first. Turns any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools.",
       "id": "skill:rhize-context-manager/graphify",
       "kind": "skill",
@@ -2120,7 +2978,7 @@
       "path": "rhize-context-manager/skills/graphify/SKILL.md"
     },
     {
-      "contentHash": "3e2ba47e8de73d090633232a233395dd39736dc7c1caa8505ef9c5434fb571d1",
+      "contentHash": "848f0974f5b0d5c33678c1ed18485b2f92e46387370e6f9d961b5c47f53f9a29",
       "description": "Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. Use when the user wants queryable long-term agent memory with entities, relationships, and time-awareness (beyond claude-mem's observation stream), when setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem, graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this plugin documents the wiring but does not install or require it.",
       "id": "skill:rhize-context-manager/graphiti-memory",
       "kind": "skill",
@@ -2137,6 +2995,7 @@
     },
     {
       "contentHash": "e05050d3e4314939fc62558992e85abc2d90b8921343a2083634a04653807a89",
+      "contentHashNormalized": "9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f",
       "description": "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization.",
       "id": "skill:rhize-context-manager/memory-systems",
       "kind": "skill",
@@ -2144,7 +3003,7 @@
       "path": "rhize-context-manager/skills/memory-systems/SKILL.md"
     },
     {
-      "contentHash": "955b0801f243939546af5b8d3d60bc6188d1b1add113bba0de6522d141b69870",
+      "contentHash": "b3ff7b97ec69c85a82a4fb07365fedfc052ede86ac31a6091d2ed3430613d608",
       "description": "Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged queue, then skill-forge evolve (SkillOpt-Sleep + safety re-gate) refines target skills with auto-promote for gate-passing SKILL.md edits. Use when the user says \"harvest learnings\", \"refine skills\", \"drain the refinement queue\", asks where headroom learn output should go, or when a scheduled refinement pass needs its rules.",
       "id": "skill:rhize-context-manager/refinement-pipeline",
       "kind": "skill",
@@ -2153,6 +3012,7 @@
     },
     {
       "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
+      "contentHashNormalized": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
       "description": "This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, designing tool schemas and response formats, naming conventions, actionable error recovery messages, MCP server design, tool-set consolidation, and deciding when to add or remove an individual tool. Use this when the unit of work is a single tool or a set of tools. Route project-shape, pipeline architecture, and task-model-fit decisions to project-development; route deciding whether to introduce sub-agents to multi-agent-patterns.",
       "id": "skill:rhize-context-manager/tool-design",
       "kind": "skill",
@@ -2160,31 +3020,39 @@
       "path": "rhize-context-manager/skills/tool-design/SKILL.md"
     },
     {
-      "contentHash": "a20655541f64b00060c3ca39629e0608415aad6c247624168422ee7f734734af",
-      "description": "Browser automation, debugging, and performance analysis via the official Google Chrome DevTools MCP server (Puppeteer-backed, wait-aware). Use when the user wants to \"test in browser\", \"check performance\", \"debug network\", \"take a screenshot\", \"fill a form\", inspect \"console errors\", \"inspect the page\", \"automate the browser\", diagnose \"CORS issues\", or run a \"lighthouse audit\" — including Core Web Vitals traces, network waterfalls, and visual checks on Next.js/Sanity/Payload preview URLs. Pairs with gsd-browser-harness; prefer this for DevTools-protocol performance and network introspection.",
+      "contentHash": "3d14f04c5f4f0bdcd8fe092bf9826c7f9270203985e77ee3fe56cfb95e50bf0b",
+      "description": "Scaffold the four standard Cowork client-context files — CLAUDE.md (operating manual),\nBUSINESS.md (the business/offer/market), PERSONALITY.md (brand voice & tone), and INFO.md\n(links, tools, people). Use when onboarding a client or business into a Cowork workspace, when\nthe user asks to \"create the project context files\" or \"build CLAUDE.md\", or when they drop a\nwebsite or strategy doc and want business context extracted. Works from a website, from strategy\ndocs, or from nothing via a guided interview. Trigger even if the user only names one file —\nbuild the full set unless told otherwise. Not for software projects; a new app, PRD, or code\nscaffold belongs to project-launcher instead.",
+      "id": "skill:rhize-cowork/project-kickoff",
+      "kind": "skill",
+      "name": "project-kickoff",
+      "path": "rhize-cowork/skills/project-kickoff/SKILL.md"
+    },
+    {
+      "contentHash": "d96305ea8157ab5f60ff5698a97d9df2b26fdeae472c8d263442bef1952259a5",
+      "description": "DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the active browser capability. Use when the user asks specifically about Chrome DevTools MCP tool names/parameters, connecting to a running Chrome instance, or MCP-level configuration/troubleshooting for that server — not for general \"test in the browser\" requests, which should go through `/rhize-devflow:browser-qa` instead.",
       "id": "skill:rhize-devflow/chrome-devtools-mcp",
       "kind": "skill",
       "name": "chrome-devtools-mcp",
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
     },
     {
-      "contentHash": "315457b6cd69f7bae642f8528e558d4d67d7a8c457bba439aaf9f5612699ae9a",
-      "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via /rhize-devflow:mutation-analyze, mutation-check, and mutation-fix.",
+      "contentHash": "a35de9fe6e547ceaa959ae21ec40c6ca421c12aea230f12e30e6535bcab6474d",
+      "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "6a7a1b17e7650312741a77a2908d9d5a5ee2061f740bf04028114b55c03c36f5",
-      "description": "Foundational workflow patterns for large-codebase development — dependency-graph impact mapping, component/function registry to prevent duplication, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"component registry\", \"why did this break again\", or wants to set up durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
+      "contentHash": "a7934d5dcf7b48c0f0c55425934fe43844293c632ede5cdd9b0556d86b46347e",
+      "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
       "name": "dev-flow-foundations",
       "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md"
     },
     {
-      "contentHash": "8a5c88335c027f6f8b47c9aa897909c8b308ef7b244aed87efe2e90b4e29498b",
+      "contentHash": "734f8034733f676e5775580509634afa584b7009f5f4d57b3364de4166fceb24",
       "description": "End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use whenever the user mentions an \"error\", \"bug\", \"crash\", \"exception\", \"stack trace\", \"500/404\", \"timeout\", \"failed deployment\", \"production issue/incident\", \"memory leak\", \"bundle size\", or something is \"slow\" or \"broken\" — and when correlating an error spike to a recent deploy or commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident protocol); complements the official engineering:* and sentry:* skills.",
       "id": "skill:rhize-devflow/error-lifecycle-management",
       "kind": "skill",
@@ -2192,7 +3060,7 @@
       "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md"
     },
     {
-      "contentHash": "b2a47cdfed5f4482b2baa5e4be6a92e4de7db6bc3ce843dbfab55ac9f2697bd9",
+      "contentHash": "875ff69e56b8a58cb7fbb1e890aa7bbcbed3054e8e5e278f292dc2a2ed7bbeb9",
       "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
       "id": "skill:rhize-devflow/sanity-development",
       "kind": "skill",
@@ -2200,7 +3068,7 @@
       "path": "rhize-devflow/skills/sanity-development/SKILL.md"
     },
     {
-      "contentHash": "3af264ec73552a21daca07dc408152a2988e9ec63ea03890ae9d347e3d60cb3d",
+      "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",
       "description": "Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (startSpan), and structured logging (logger.fmt). Use when the user wants to \"add Sentry\", \"capture exception\", \"add tracing/spans\", \"instrument\" an API call or user interaction, or \"set up structured logging\" in app code. This is the write-the-code companion to error-lifecycle-management (which handles triage/RCA); for full per-framework SDK setup defer to the official sentry:* developer-kit skills and keep this for Rhize house patterns.",
       "id": "skill:rhize-devflow/sentry-instrumentation",
       "kind": "skill",
@@ -2208,7 +3076,7 @@
       "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md"
     },
     {
-      "contentHash": "2166a2b8abcf33e8987cce32a22dd2865514c7682c9613440ce53f008c33fa94",
+      "contentHash": "b07a5da9cc65f6b4041ed943e5c92b3904178a5751e954226da867832361a112",
       "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"[name] should handle this\", \"send this to [name]\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json (run `/rhize-ops:delegate-setup` first if no config exists). This skill handles the full delegation pipeline: context gathering, optional meeting-transcript enrichment, task formatting, Jira issue creation, and Slack notification with a mention — gracefully skipping the Jira and/or Slack steps if those integrations aren't marked ready in the config.",
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
@@ -2216,7 +3084,7 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "5df2589a7ea106ded41f75a8e003a36cb93606734ff485f3d512641ee58da06e",
+      "contentHash": "8c33b15f947bc9aebe6b638fa431acc49e2ef658d12b22e8a57734e64791cb4f",
       "description": "Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in ${CLAUDE_PLUGIN_ROOT}/skill-monitor/data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says \"show the skill dashboard\", \"render the audit dashboard\", \"skill usage dashboard\", \"/skill-dashboard\", or asks to visualize skill-monitor data.",
       "id": "skill:rhize-ops/skill-dashboard",
       "kind": "skill",
@@ -2224,7 +3092,55 @@
       "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
     },
     {
-      "contentHash": "bd9d5a862833073ea8fe0a511e2d8bd3cc34ced2d2ace8778d505c8b1b5db00c",
+      "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
+      "description": "Review and update Rhize Tasks planning preferences through the authenticated local dashboard. Use to change working hours, buffers, routines, reconciliation, or bounded-replanning rules.",
+      "id": "skill:rhize-tasks/manage-task-preferences",
+      "kind": "skill",
+      "name": "manage-task-preferences",
+      "path": "rhize-tasks/skills/manage-task-preferences/SKILL.md"
+    },
+    {
+      "contentHash": "e5c739b528e468211f90d88447dff1ba351a493890434e2be3460f7cc9f6b2c0",
+      "description": "Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. Use for morning planning, catch-up after sleep, carryover review, or deciding what to work on next.",
+      "id": "skill:rhize-tasks/plan-my-day",
+      "kind": "skill",
+      "name": "plan-my-day",
+      "path": "rhize-tasks/skills/plan-my-day/SKILL.md"
+    },
+    {
+      "contentHash": "ce44997fe984fe1d024d729d2a6bc0f599d32990c8b0ed5fef4d70a83dd637fd",
+      "description": "Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. Use for stale data, carryover mismatches, duplicate suspicion, or source recovery.",
+      "id": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "kind": "skill",
+      "name": "reconcile-rhize-tasks",
+      "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md"
+    },
+    {
+      "contentHash": "b304232d7ed06d66c7943fc1e6ce40e587021f4777b0c9397ee1f6e781868028",
+      "description": "Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
+      "id": "skill:rhize-tasks/review-task-opportunities",
+      "kind": "skill",
+      "name": "review-task-opportunities",
+      "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md"
+    },
+    {
+      "contentHash": "3160f0f32ebee0286a3f2f4ff1dd06fc9fb684d17d2a346eddfd6df3588b7baa",
+      "description": "Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. Use when the dashboard is unavailable, stale, degraded, paused, or failing routines.",
+      "id": "skill:rhize-tasks/rhize-tasks-doctor",
+      "kind": "skill",
+      "name": "rhize-tasks-doctor",
+      "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
+    },
+    {
+      "contentHash": "8f804e111ae5260fb801bae600b7acf7f123e13555b15c1d1750548db75a885c",
+      "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
+      "id": "skill:rhize-tasks/rhize-tasks-setup",
+      "kind": "skill",
+      "name": "rhize-tasks-setup",
+      "path": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md"
+    },
+    {
+      "contentHash": "ff4cdfdc84d6ce821a6b50f887742f958094482d3fc08b78e5043d3f5357e5cc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/aeo-geo-optimization",
       "kind": "skill",
@@ -2232,7 +3148,7 @@
       "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md"
     },
     {
-      "contentHash": "b1bedba2a7ccf0e0c14c79a95c0ddff2750dc2e25d3c6fe70d515c7c8873255e",
+      "contentHash": "49f903718ab2c788b19a60c9517a0c85b123bbc00a94557876bda13801d1841c",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/backlink-intelligence",
       "kind": "skill",
@@ -2240,7 +3156,7 @@
       "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md"
     },
     {
-      "contentHash": "85c12f7fa0a24db826bdff231814b15da3c00c9db2c4f9199c709cc0ab36872b",
+      "contentHash": "d556438bf9f864a79e05cb9f711c51b7e403a5742ff7291d33e82574fbdd6a83",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
       "id": "skill:seo-aeo-geo/content-seo",
       "kind": "skill",
@@ -2248,7 +3164,7 @@
       "path": "seo-aeo-geo/skills/content-seo/SKILL.md"
     },
     {
-      "contentHash": "54ff370b1e388c1b2af684aac391487f4f70721833073880fa2e7d19fd9253cf",
+      "contentHash": "b8ef7e46de4e9fa43ea099c8ebf0651803f974c58df16af738e6280b46be86f6",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data and Labs APIs. Triggers on: \"find keywords\", \"keyword research\", \"keyword analysis\", \"keyword gap analysis\", \"keyword clustering\", \"find search terms\", \"what keywords should I target\", \"competitor keyword analysis\", \"keyword difficulty check\", \"search volume data\", \"long-tail keywords\", \"question keywords\", \"People Also Ask keywords\", \"keyword opportunities\", \"content gap analysis\", \"what are people searching for\", \"keyword cannibalization check\", \"keyword mapping\", or any request involving discovering, analyzing, or prioritizing keywords for SEO or content strategy. Also triggers on \"decision-stage keywords\", \"commercial intent keywords\", \"informational keywords\", \"compare keywords\", \"keyword trends\", or \"seasonal keywords\". Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/keyword-intelligence",
       "kind": "skill",
@@ -2264,7 +3180,7 @@
       "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md"
     },
     {
-      "contentHash": "41dff8b0f59ea24149ee8d4ada0104be518204435ab618ed60a8c9d99d31d2a7",
+      "contentHash": "3452c6a4add62acebc6744a8a1b7d93dfc53587790e282c0a6a27919f515a302",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on: \"audit a website for SEO\", \"run an SEO audit\", \"check SEO health\", \"find SEO issues\", \"crawl my site for problems\", \"what's wrong with my SEO\", \"technical SEO check\", \"on-page SEO analysis\", \"check my meta tags\", \"find broken links\", \"check my Core Web Vitals\", \"page speed analysis\", \"crawlability check\", \"indexation issues\", or any request involving diagnosing or improving a website's search engine optimization. Also triggers when the user shares a URL and asks about its SEO performance or ranking potential. Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/seo-site-audit",
       "kind": "skill",
@@ -2272,7 +3188,7 @@
       "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md"
     },
     {
-      "contentHash": "74db85b179a0778b6198609e7a685f55c2264b44ca75e9fe76a3ed4c9bb5a2fa",
+      "contentHash": "4561f390dc2b5f13c72f0a1e6013ef956c2ca6a5bb5217d7c8708130f2dedba1",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/serp-intelligence",
       "kind": "skill",
@@ -2280,10 +3196,14 @@
       "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md"
     },
     {
-      "description": "The named Claude Code context-tooling landscape (Headroom, claude-mem, OpenWolf, ...)",
-      "id": "tag:stack/context",
-      "kind": "tag",
-      "name": "context"
+      "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",
+      "id": "tag:condition/build-failure",
+      "kind": "tag"
+    },
+    {
+      "description": "A static type check failed (tsc, mypy, or equivalent)",
+      "id": "tag:condition/type-error",
+      "kind": "tag"
     },
     {
       "description": "Next.js codebases",
@@ -2296,12 +3216,6 @@
       "id": "tag:stack/obsidian",
       "kind": "tag",
       "name": "obsidian"
-    },
-    {
-      "description": "The skill-forge refinement pipeline",
-      "id": "tag:stack/refinement",
-      "kind": "tag",
-      "name": "refinement"
     },
     {
       "description": "Sanity Studio/CMS",
@@ -2484,5 +3398,5 @@
       "name": "workflow-patterns"
     }
   ],
-  "schemaVersion": "1.0.0"
+  "schemaVersion": "1.1.0"
 }

@@ -9,6 +9,7 @@ metadata:
   rhize:
     topics: [observability, visualization]
     stacks: []
+    dependsOn: ["mcp:chrome-devtools"]
 
 ---
 

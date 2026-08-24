@@ -238,7 +238,7 @@ Mutation in 'seasons' → Invalidate: seasons, games, divisions
 │  □ Frontend has refetch strategy (polling/SWR/websocket)        │
 ├─────────────────────────────────────────────────────────────────┤
 │  DETECTION:                                                      │
-│  Run @analyze-mutations to check alignment                       │
+│  Run /rhize-devflow:mutation-check --all to check alignment      │
 │  Misaligned tags appear in "Cross-Layer Validation" section     │
 └─────────────────────────────────────────────────────────────────┘
 ```

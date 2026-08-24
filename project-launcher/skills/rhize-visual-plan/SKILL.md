@@ -18,7 +18,7 @@ description: >
 metadata:
   rhize:
     topics: [visualization, project-planning]
-    stacks: [obsidian]
+    stacks: [obsidian, nextjs]
 
 ---
 

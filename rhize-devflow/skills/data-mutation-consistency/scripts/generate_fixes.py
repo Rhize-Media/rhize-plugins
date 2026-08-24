@@ -6,7 +6,6 @@ Generates fix plans and code patches for mutation issues.
 
 Usage:
     python3 scripts/generate_fixes.py --root /path/to/project --priority P1
-    python3 scripts/generate_fixes.py --root . --priority P0 --apply
     python3 scripts/generate_fixes.py --root . --file path/to/file.ts
 """
 
@@ -203,20 +202,8 @@ def generate_fix_plan(
     lines.extend([
         "## How to Apply",
         "",
-        "### Option 1: Manual Review",
-        "Review each fix above and apply changes manually.",
-        "",
-        "### Option 2: TODO Comments",
-        "Run the following to add TODO comments to your code:",
-        "```",
-        f"python3 scripts/generate_fixes.py --root {project_root} --priority {priority} --add-todos",
-        "```",
-        "",
-        "### Option 3: Apply Fixes",
-        "After reviewing, apply fixes with:",
-        "```",
-        "@apply-fixes",
-        "```",
+        "Review each fix above and apply changes manually. This is a plan only — nothing",
+        "in this report has touched source files.",
         "",
         "---",
         "",
@@ -224,64 +211,13 @@ def generate_fix_plan(
         "",
         "After applying fixes, run:",
         "```",
-        "@analyze-mutations",
+        "/rhize-devflow:mutation-check --all",
         "```",
         "",
         "Expected: All affected mutations should now score ≥ 9.0",
     ])
 
     return "\n".join(lines)
-
-
-def add_todo_comments(project_root: Path, priority: str) -> int:
-    """Add TODO comments to files with issues."""
-    issues = run_fresh_analysis(project_root)
-    filtered = filter_by_priority(issues, priority)
-
-    if not filtered:
-        print("No issues found to add TODOs for.")
-        return 0
-
-    # Group by file
-    by_file = {}
-    for issue in filtered:
-        file_key = str(issue.mutation.file_path)
-        if file_key not in by_file:
-            by_file[file_key] = []
-        by_file[file_key].append(issue)
-
-    modified_count = 0
-
-    for file_path, file_issues in by_file.items():
-        try:
-            path = Path(file_path)
-            content = path.read_text()
-            lines = content.split("\n")
-
-            # Sort by line number descending to avoid offset issues
-            file_issues.sort(key=lambda x: x.mutation.line_number, reverse=True)
-
-            for issue in file_issues:
-                line_idx = issue.mutation.line_number - 1
-                if 0 <= line_idx < len(lines):
-                    indent = len(lines[line_idx]) - len(lines[line_idx].lstrip())
-                    todo_comment = (
-                        f"{' ' * indent}// TODO(mutation-consistency): "
-                        f"{issue.fix_suggestion} - {issue.element}"
-                    )
-
-                    # Insert TODO above the line
-                    lines.insert(line_idx, todo_comment)
-
-            # Write back
-            path.write_text("\n".join(lines))
-            modified_count += 1
-            print(f"Added TODOs to: {file_path}")
-
-        except Exception as e:
-            print(f"Error modifying {file_path}: {e}", file=sys.stderr)
-
-    return modified_count
 
 
 def main():
@@ -314,22 +250,12 @@ def main():
         help="Output file (default: .claude/analysis/fix-plan-{timestamp}.md)",
     )
     parser.add_argument(
-        "--add-todos",
-        action="store_true",
-        help="Add TODO comments to source files instead of generating plan",
-    )
-    parser.add_argument(
         "--json",
         action="store_true",
         help="Output as JSON",
     )
 
     args = parser.parse_args()
-
-    if args.add_todos:
-        count = add_todo_comments(args.root, args.priority)
-        print(f"\nAdded TODO comments to {count} files.")
-        return
 
     # Generate fix plan
     plan = generate_fix_plan(args.root, args.priority, args.file)

@@ -1,4 +1,49 @@
 {
-  "description": "rhize-devflow — this plugin auto-wires no hooks. The conditional SessionStart banner (dev-file signals -> command menu) moved to rhize-context-manager/hooks/session-disclosure.js (2026-08-09, Phase 3 banner consolidation) — stack detection there covers the same signal via the skill map's stack tags. Heavier guard hooks (prewrite mutation check, rca-enforcer, regression-guard, protect-files) ship bundled under this directory and inside each skill but remain OPT-IN: wire them into your project's .claude/settings.json when you want them. The context-engineering and skill-refinement hooks moved to rhize-context-manager — see CHANGELOG 2026-08-09.",
-  "hooks": {}
+  "description": "rhize-devflow auto-wires one cross-harness workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits, and reconciliation before commit/completion. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-prompt",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-write",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|exec_command|functions.exec",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
 }

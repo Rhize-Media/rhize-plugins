@@ -31,6 +31,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = REPO_ROOT / "schemas" / "skill-map.schema.json"
 DEFAULT_ARTIFACT = REPO_ROOT / "generated" / "skill-map.static.json"
+DEFAULT_INDEXES = REPO_ROOT / "generated" / "skill-map.indexes.json"
 BUILD_SCRIPT = REPO_ROOT / "scripts" / "build_skill_map.py"
 
 
@@ -66,8 +67,9 @@ def schema_valid_via_stdlib_fallback(doc, schema):
     node_kinds, edge_types, edge_sources = enums_from_schema(schema)
     errors = []
 
-    if doc.get("schemaVersion") != "1.0.0":
-        errors.append("schemaVersion must be '1.0.0'")
+    expected_version = schema.get("properties", {}).get("schemaVersion", {}).get("const")
+    if doc.get("schemaVersion") != expected_version:
+        errors.append(f"schemaVersion must be {expected_version!r}")
 
     nodes = doc.get("nodes")
     if not isinstance(nodes, list):
@@ -102,6 +104,8 @@ def schema_valid_via_stdlib_fallback(doc, schema):
             errors.append(f"edges[{i}]: invalid source '{edge['source']}'")
         if edge.get("type") == "usage-cooccurs" and "usageWeight" not in edge:
             errors.append(f"edges[{i}]: usage-cooccurs edge missing required 'usageWeight'")
+        if edge.get("type") == "follows" and "followWeight" not in edge:
+            errors.append(f"edges[{i}]: follows edge missing required 'followWeight'")
 
     if errors:
         return False, "; ".join(errors)
@@ -146,11 +150,20 @@ def check_stale() -> int:
     if not DEFAULT_ARTIFACT.is_file():
         print(f"FAIL --check-stale: committed artifact not found at {DEFAULT_ARTIFACT}")
         return 1
+    if not DEFAULT_INDEXES.is_file():
+        print(f"FAIL --check-stale: committed indexes not found at {DEFAULT_INDEXES}")
+        return 1
     committed = DEFAULT_ARTIFACT.read_bytes()
+    committed_indexes = DEFAULT_INDEXES.read_bytes()
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp) / "skill-map.static.json"
+        tmp_indexes_path = Path(tmp) / "skill-map.indexes.json"
         result = subprocess.run(
-            [sys.executable, str(BUILD_SCRIPT), "--out", str(tmp_path)],
+            [
+                sys.executable, str(BUILD_SCRIPT),
+                "--out", str(tmp_path),
+                "--indexes-out", str(tmp_indexes_path),
+            ],
             cwd=REPO_ROOT,
             capture_output=True,
             text=True,
@@ -161,6 +174,7 @@ def check_stale() -> int:
             print(result.stderr, file=sys.stderr)
             return 1
         fresh = tmp_path.read_bytes()
+        fresh_indexes = tmp_indexes_path.read_bytes()
     if fresh != committed:
         print(
             "FAIL --check-stale: rebuilt artifact differs from committed "
@@ -168,7 +182,17 @@ def check_stale() -> int:
             "'python3 scripts/build_skill_map.py' and commit the result."
         )
         return 1
-    print(f"PASS --check-stale: {DEFAULT_ARTIFACT.relative_to(REPO_ROOT)} is up to date.")
+    if fresh_indexes != committed_indexes:
+        print(
+            "FAIL --check-stale: rebuilt indexes differ from committed "
+            f"{DEFAULT_INDEXES.relative_to(REPO_ROOT)} — run "
+            "'python3 scripts/build_skill_map.py' and commit the result."
+        )
+        return 1
+    print(
+        f"PASS --check-stale: {DEFAULT_ARTIFACT.relative_to(REPO_ROOT)} and "
+        f"{DEFAULT_INDEXES.relative_to(REPO_ROOT)} are up to date."
+    )
     return 0
 
 

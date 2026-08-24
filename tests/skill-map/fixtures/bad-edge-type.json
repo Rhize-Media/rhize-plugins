@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "1.1.0",
   "nodes": [
     { "id": "plugin:rhize-context-manager", "kind": "plugin", "name": "rhize-context-manager" },
     {
@@ -15,7 +15,7 @@
     {
       "from": "plugin:rhize-context-manager",
       "to": "skill:rhize-context-manager/graphify",
-      "type": "extends",
+      "type": "bogus-edge-type",
       "source": "marketplace"
     }
   ]

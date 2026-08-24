@@ -81,8 +81,8 @@ if [ -n "$DETECTED_KEYWORDS" ]; then
         cat << 'EOF'
 <user-prompt-submit-hook>
 🔍 Mutation-related issue detected. Consider running:
-  • `@analyze-mutations` - Full codebase mutation analysis
-  • `@check-mutation [file]` - Check specific file
+  • `/rhize-devflow:mutation-check --all` - Full codebase mutation analysis (formerly @analyze-mutations)
+  • `/rhize-devflow:mutation-check [file]` - Check specific file (formerly @check-mutation)
 
 This will help identify missing cache revalidation, error handling, or optimistic update patterns.
 </user-prompt-submit-hook>

@@ -19,6 +19,7 @@ metadata:
   rhize:
     topics: [rank-tracking, seo-audit]
     stacks: [seo]
+    dependsOn: ["mcp:dataforseo"]
 
 ---
 

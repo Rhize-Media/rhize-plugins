@@ -19,6 +19,7 @@ metadata:
   rhize:
     topics: [keyword-research, content-optimization]
     stacks: [seo]
+    dependsOn: ["mcp:dataforseo"]
 
 ---
 

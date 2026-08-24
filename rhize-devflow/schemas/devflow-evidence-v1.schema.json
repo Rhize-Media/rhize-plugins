@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rhize.media/schemas/devflow-evidence-v1.schema.json",
+  "title": "Dev Flow evidence CLI output (v1)",
+  "description": "Stable output contract for `python3 rhize-devflow/scripts/devflow.py evidence --json`. The doctor subcommand's JSON shape is documented in the CLI module docstring (rhize-devflow/scripts/devflow.py), not here, since it describes plugin health rather than repository evidence. Every path in this document is relative to `repo_root` except `repo_root` itself, which names the explicitly inspected repository root.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "repo_root",
+    "git",
+    "protected_matches",
+    "instruction_files",
+    "package_manager",
+    "package_scripts",
+    "codegraph",
+    "findings",
+    "healthy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "devflow-evidence-v1"
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp the packet was generated at."
+    },
+    "repo_root": {
+      "type": "string",
+      "description": "Absolute path to the git top-level directory that was inspected. The only absolute, non-repo-relative path this document contains."
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["is_git_repo", "head", "branch", "detached", "status", "base", "changed_files"],
+      "properties": {
+        "is_git_repo": {
+          "const": true,
+          "description": "Always true — the CLI exits 2 before producing this document if --repo is not a git repository."
+        },
+        "head": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha", "short_sha"],
+          "properties": {
+            "sha": { "type": ["string", "null"] },
+            "short_sha": { "type": ["string", "null"] }
+          },
+          "description": "null when the repository has no commits yet."
+        },
+        "branch": {
+          "type": ["string", "null"],
+          "description": "null when HEAD is detached."
+        },
+        "detached": { "type": "boolean" },
+        "status": {
+          "enum": ["clean", "dirty"]
+        },
+        "base": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["ref", "sha", "resolved_via"],
+          "properties": {
+            "ref": { "type": ["string", "null"] },
+            "sha": { "type": ["string", "null"] },
+            "resolved_via": {
+              "enum": ["explicit", "explicit-unresolved", "upstream", "default-branch", "local-fallback", "unresolved"],
+              "description": "How --base was resolved: an explicit --base that verified; an explicit --base that failed to verify; the tracked upstream (@{u}); origin/HEAD's default branch; a local main/master fallback; or fully unresolved."
+            }
+          }
+        },
+        "changed_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "status", "origin"],
+            "properties": {
+              "path": { "type": "string" },
+              "status": {
+                "type": "string",
+                "description": "Git status code — name-status letters (A/M/D/R100/...) for committed, or porcelain XY codes (M/A/D/??/...) for working_tree."
+              },
+              "origin": {
+                "enum": ["committed", "working_tree"],
+                "description": "committed = diff between base and HEAD; working_tree = uncommitted/staged changes from `git status --porcelain`."
+              }
+            }
+          }
+        }
+      }
+    },
+    "protected_matches": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Deduplicated, sorted changed-file paths matching a protected pattern: .github/workflows/*, .env*, or a billing/payment path segment."
+    },
+    "instruction_files": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["CLAUDE.md", "AGENTS.md", "settings.json_glob"],
+      "properties": {
+        "CLAUDE.md": { "type": "boolean" },
+        "AGENTS.md": { "type": "boolean" },
+        "settings.json_glob": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Repo-relative paths matching .claude/settings*.json, if any."
+        }
+      }
+    },
+    "package_manager": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lockfiles", "python"],
+      "properties": {
+        "lockfiles": {
+          "type": "array",
+          "items": { "enum": ["npm", "pnpm", "yarn", "bun"] },
+          "description": "Package manager(s) whose lockfile is present at repo_root."
+        },
+        "python": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pyproject_toml", "requirements_txt"],
+          "properties": {
+            "pyproject_toml": { "type": "boolean" },
+            "requirements_txt": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "package_scripts": {
+      "type": ["object", "null"],
+      "additionalProperties": { "type": "string" },
+      "description": "package.json `scripts` names and their literal command text, verbatim and unexecuted. null when there is no package.json at repo_root."
+    },
+    "codegraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exists", "db_present", "db_path", "db_mtime", "newest_source_mtime", "stale"],
+      "properties": {
+        "exists": {
+          "type": "boolean",
+          "description": "Whether a .codegraph/ directory exists. This CLI never creates or initializes one."
+        },
+        "db_present": { "type": "boolean" },
+        "db_path": { "type": ["string", "null"] },
+        "db_mtime": { "type": ["number", "null"] },
+        "newest_source_mtime": { "type": ["number", "null"] },
+        "stale": {
+          "type": ["boolean", "null"],
+          "description": "true when db_mtime < newest_source_mtime. null when either mtime is unavailable."
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "message", "path"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "enum": ["error", "warning", "info"] },
+          "message": { "type": "string" },
+          "path": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "healthy": {
+      "type": "boolean",
+      "description": "true iff every finding has severity \"info\". Mirrors the process exit code: 0 when true, 1 when false."
+    }
+  }
+}

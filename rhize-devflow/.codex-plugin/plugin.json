@@ -1,0 +1,43 @@
+{
+  "name": "rhize-devflow",
+  "version": "2.13.0",
+  "description": "Rhize Media's development-workflow skill set: compounding persistence layer (verifier subagent, STATE.md contract, protected-file gate), production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, and dev-flow foundations.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "development-workflow",
+    "error-lifecycle",
+    "sentry",
+    "vercel",
+    "data-mutation",
+    "next-js",
+    "sanity-cms",
+    "payload-cms",
+    "supabase",
+    "chrome-devtools",
+    "control-plane",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Dev Flow",
+    "shortDescription": "Mutation consistency, browser debugging, Sentry instrumentation, and Sanity house style for Rhize engineering.",
+    "longDescription": "Rhize Media's engineering workflow plugin for Next.js/Sanity/Payload/Supabase projects deployed on Vercel: mutation-consistency analysis that catches cache tags drifting from frontend query keys, Chrome DevTools-backed browser debugging and performance tracing, Rhize's in-code Sentry instrumentation conventions, Sanity house style for schemas and GROQ, and the per-repo local tenant-file setup convention. This is the foundation Rhize is building into a full impact-map -> check -> review -> release engineering control plane.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Check this mutation for cache/query-key consistency: <file>",
+      "Debug console and network errors on <url> with Chrome DevTools.",
+      "Set up the local tenant-file convention for this repo."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#2563EB"
+  }
+}

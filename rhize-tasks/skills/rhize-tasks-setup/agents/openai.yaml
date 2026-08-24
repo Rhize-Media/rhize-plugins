@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rhize Tasks Setup"
+  short_description: "Set up Rhize Tasks safely on this Mac"
+  default_prompt: "Use $rhize-tasks-setup to guide me through the local seven-stage Rhize Tasks setup."

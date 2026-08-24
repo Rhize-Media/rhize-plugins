@@ -3,15 +3,16 @@ name: dev-flow-foundations
 tier: custom
 domain: dev-flow
 maturity: stable
-version: 1.0.0
+version: 2.0.0
 description: >-
-  Foundational workflow patterns for large-codebase development — dependency-graph impact mapping,
-  component/function registry to prevent duplication, context hygiene, regression prevention,
-  anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks
-  about "design patterns", "workflow optimization", "prevent regression", "anti-patterns",
-  "dependency mapping", "component registry", "why did this break again", or wants to set up
-  durable development guardrails. Reference layer that informs context-engineering and
-  error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.
+  Foundational workflow patterns for large-codebase development — CodeGraph-first structural
+  discovery paired with semantic impact mapping, component/function registry reuse, context
+  hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement
+  meta-patterns. Use when the user asks about "design patterns", "workflow optimization",
+  "prevent regression", "anti-patterns", "dependency mapping", "impact map", "CodeGraph",
+  "component registry", "why did this break again", or wants durable development guardrails.
+  Reference layer that informs context-engineering and error-lifecycle-management; also encodes
+  Boris Cherny's verify-first and worktree practices.
 metadata:
   rhize:
     topics: [workflow-patterns, project-planning]
@@ -47,11 +48,12 @@ These foundation documents address six core development workflow challenges:
 **Problem:** Changes to one file break unexpected others.
 
 **Solution:** 
-- Map data type dependencies (not just imports)
-- Analyze impact before implementation
-- Track fetch optimization opportunities
+- Use CodeGraph-first discovery for current symbols, callers, tests, and dependency paths
+- Keep the impact map focused on semantic intent, invariants, operational risk, and acceptance
+- Reconcile the completed graph and diff against the map before declaring completion
 
-**Key Pattern:** "What uses this?" before "How do I change this?"
+**Key Pattern:** CodeGraph tells you what exists; the impact map tells you what must change and
+what must not.
 
 ---
 
@@ -160,12 +162,35 @@ These foundation documents address six core development workflow challenges:
 
 These foundations inform practical implementations:
 
+The executable `/rhize-devflow:impact-map` command is owned by this plugin
+(`commands/impact-map.md`), implementing the Dependency Graph foundation directly. A short
+compatibility adapter remains at `rhize-context-manager`'s `commands/impact-map.md` for the
+2.12.0 release window, pointing back to the fully qualified Dev Flow command.
+
+`/rhize-devflow:check` (`commands/check.md`) is the mid-implementation validation step that
+follows impact mapping: it builds a deterministic evidence packet with
+`devflow.py evidence --json`, selects checks only from repository instructions and
+known-safe declared package scripts, and returns `PASS`, `PASS_WITH_WARNINGS`, or `BLOCKED`.
+
+`/rhize-devflow:review` (`commands/review.md`) is the read-only production merge/release
+gate that follows `check`: it resolves the exact base/head comparison range (never assuming
+the default branch is the merge target), builds a risk map from actual diff evidence across
+deployment, data, security, authorization, billing, migration, cache, and external-write
+risk, routes only the specialist reviews that risk map calls for, and requires an
+independent skeptical reviewer for non-trivial work. It returns exactly one of `PASS`,
+`FAIL_WITH_FIXABLE_GAPS`, or `FAIL_REQUIRES_HUMAN` and never commits, pushes, merges, or
+deploys itself.
+
+The control-plane sequence is `/rhize-devflow:impact-map` → `/rhize-devflow:check` →
+`/rhize-devflow:review` → release: map the change, validate it evidence-first while
+implementing, then gate the merge.
+
 | Foundation | Implemented In |
 |------------|----------------|
 | Context Hygiene | context-engineering (hooks, commands) |
-| Dependency Graph | context-engineering (/impact-map command) |
+| Dependency Graph | `/rhize-devflow:impact-map` (CodeGraph-first discovery + semantic reconciliation, this plugin) |
 | Component Registry | context-engineering (duplicate-check hook) |
-| Regression Prevention | error-lifecycle-management (triage workflow) |
+| Regression Prevention | error-lifecycle-management (triage workflow); `/rhize-devflow:check` (evidence-driven implementation validation, this plugin); `/rhize-devflow:review` (independent merge/release gate, this plugin) |
 | Anti-Pattern Agent | error-lifecycle-management (validation scripts) |
 
 ---

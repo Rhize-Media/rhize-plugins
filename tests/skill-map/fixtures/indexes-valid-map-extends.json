@@ -1,0 +1,49 @@
+{
+  "disclosure": {},
+  "remediation": {},
+  "router": {
+    "extendsBases": {
+      "skill:rhize-context-manager/context-optimization": [
+        "skill:rhize-context-manager/context-fundamentals"
+      ]
+    },
+    "signals": {
+      "skill:rhize-context-manager/context-fundamentals": [
+        {
+          "kind": "name",
+          "label": "context-fundamentals",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "git",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-optimization": [
+        {
+          "kind": "name",
+          "label": "context-optimization",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "git",
+          "weight": 2
+        }
+      ]
+    }
+  },
+  "schemaVersion": "1.1.0",
+  "succession": {}
+}

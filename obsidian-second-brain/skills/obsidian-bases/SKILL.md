@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [knowledge-management, content-authoring]
     stacks: [obsidian]
+    extends: [obsidian-markdown]
 
 ---
 

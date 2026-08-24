@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "plugin": "fixture-mcp-dependency",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "Fake Mcp Server",
+      "kind": "mcp",
+      "capability": "fake-mcp-capability",
+      "purpose": "Exercises MCP server-name detection across repo-local, ~/.claude.json, and ~/.codex/config.toml sources.",
+      "required": false,
+      "degradedBehavior": "fake-mcp-capability is unavailable.",
+      "replacement": {"suggestion": "n/a", "warning": "n/a"}
+    }
+  ]
+}

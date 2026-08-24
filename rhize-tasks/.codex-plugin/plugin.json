@@ -1,0 +1,37 @@
+{
+  "name": "rhize-tasks",
+  "version": "0.3.0",
+  "description": "Local-first planning for Rhize Jira work across Calendar and Reminders",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "tasks",
+    "jira",
+    "calendar",
+    "reminders",
+    "planning",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Tasks",
+    "shortDescription": "Plan Jira work across Calendar and Apple Reminders",
+    "longDescription": "Turn approved Rhize and client Jira work into a realistic daily plan across Google Calendar and Apple Reminders, with local-first storage, bounded replanning, and human approval controls.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Help me set up Rhize Tasks on this Mac.",
+      "Plan my Rhize work around today's commitments.",
+      "Show urgent Jira opportunities that fit my skills."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#9333EA"
+  }
+}

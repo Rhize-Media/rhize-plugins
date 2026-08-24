@@ -11,6 +11,7 @@ metadata:
   rhize:
     topics: [knowledge-graph, memory-systems]
     stacks: []
+    dependsOn: ["mcp:graphiti"]
 
 ---
 

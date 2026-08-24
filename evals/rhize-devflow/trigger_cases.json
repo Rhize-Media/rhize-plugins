@@ -1,0 +1,204 @@
+[
+  {
+    "id": "trigger-dev-flow-foundations-pos",
+    "target": "skill:dev-flow-foundations",
+    "prompt": "I keep hitting the same anti-patterns every sprint on this large codebase -- can you help with dependency mapping and workflow optimization before I touch it?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-dev-flow-foundations-neg-generic-design-pattern",
+    "target": "skill:dev-flow-foundations",
+    "prompt": "What's a good design pattern for a singleton in Java?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-dev-flow-foundations-neg-big-o",
+    "target": "skill:dev-flow-foundations",
+    "prompt": "Can you explain what Big-O notation means?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-data-mutation-consistency-pos",
+    "target": "skill:data-mutation-consistency",
+    "prompt": "Our dashboard shows stale data after a Server Action mutation and I had to hard-refresh to see the update -- can you check the cache and revalidate logic?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-data-mutation-consistency-neg-db-migration",
+    "target": "skill:data-mutation-consistency",
+    "prompt": "Can you write a database migration to add a new column to the users table?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-data-mutation-consistency-neg-sql-joins",
+    "target": "skill:data-mutation-consistency",
+    "prompt": "What's the difference between INNER JOIN and LEFT JOIN in SQL?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-error-lifecycle-management-pos",
+    "target": "skill:error-lifecycle-management",
+    "prompt": "Production is throwing a stack trace after the last deployment, looks like a memory leak -- can you correlate this failed deployment with the incident?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-error-lifecycle-management-neg-generic-error-work",
+    "target": "skill:error-lifecycle-management",
+    "prompt": "How do I use try/except in Python to catch a ValueError in my script?",
+    "should_trigger": false,
+    "note": "plan concern case: generic error work must not route to Dev Flow"
+  },
+  {
+    "id": "trigger-error-lifecycle-management-neg-code-review",
+    "target": "skill:error-lifecycle-management",
+    "prompt": "Can you review this function for readability?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-sentry-instrumentation-pos",
+    "target": "skill:sentry-instrumentation",
+    "prompt": "I want to add Sentry and capture exception details for this API route, plus set up structured logging.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-sentry-instrumentation-neg-jest-unit-test",
+    "target": "skill:sentry-instrumentation",
+    "prompt": "How do I write a unit test for this function using Jest?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-sentry-instrumentation-neg-console-log",
+    "target": "skill:sentry-instrumentation",
+    "prompt": "What's the best way to log to the console in Node.js?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-sanity-development-pos",
+    "target": "skill:sanity-development",
+    "prompt": "I'm writing a defineType schema in Sanity Studio and need a GROQ query using defineQuery -- also want to use Portable Text for the body field.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-sanity-development-neg-generic-sanity-word",
+    "target": "skill:sanity-development",
+    "prompt": "Can you sanity check that my math homework answer of 42 is correct?",
+    "should_trigger": false,
+    "note": "plan concern case: generic Sanity work (the English word 'sanity') must not route to Dev Flow"
+  },
+  {
+    "id": "trigger-sanity-development-neg-postgres-schema",
+    "target": "skill:sanity-development",
+    "prompt": "How do I set up a PostgreSQL database schema for a blog?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-chrome-devtools-mcp-pos",
+    "target": "skill:chrome-devtools-mcp",
+    "prompt": "I need to connect to a running Chrome instance using the Chrome DevTools MCP tool -- what are the DevTools-protocol parameters for network requests?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-chrome-devtools-mcp-neg-generic-browser-work",
+    "target": "skill:chrome-devtools-mcp",
+    "prompt": "How do I add a click event listener to a button in vanilla JavaScript?",
+    "should_trigger": false,
+    "note": "plan concern case: generic browser work must not route to Dev Flow"
+  },
+  {
+    "id": "trigger-chrome-devtools-mcp-neg-css-flexbox",
+    "target": "skill:chrome-devtools-mcp",
+    "prompt": "What's the CSS flexbox property for centering a div?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-impact-map-pos",
+    "target": "command:impact-map",
+    "prompt": "Before I refactor this module, can you run a CodeGraph-first impact mapping to show me the dependency truth and the intended semantic change?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-impact-map-neg-summarize-function",
+    "target": "command:impact-map",
+    "prompt": "Can you summarize what this function does in plain English?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-impact-map-neg-write-readme",
+    "target": "command:impact-map",
+    "prompt": "Draft a README for this new utility library.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-check-pos",
+    "target": "command:check",
+    "prompt": "I just finished this feature -- can you do an evidence-driven mid-implementation validation and run the focused tests before I move on?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-check-neg-write-new-test",
+    "target": "command:check",
+    "prompt": "Can you write a new test case for this edge case?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-check-neg-testing-theory",
+    "target": "command:check",
+    "prompt": "Explain what a focused test even means in general testing theory.",
+    "should_trigger": false,
+    "note": "singular 'a focused test' does not match the plural keyword phrase 'focused tests' -- documents the heuristic's exact-phrase brittleness"
+  },
+  {
+    "id": "trigger-review-pos",
+    "target": "command:review",
+    "prompt": "I'm about to push to production -- can you run the production merge/release gate and build a risk map from actual diff evidence with an independent skeptical reviewer?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-review-neg-resume-feedback",
+    "target": "command:review",
+    "prompt": "Can you give me general feedback on my resume?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-review-neg-what-is-code-review",
+    "target": "command:review",
+    "prompt": "What does 'code review' mean as a general engineering practice?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-mutation-check-pos",
+    "target": "command:mutation-check",
+    "prompt": "Can you run a data-mutation consistency check across the whole codebase and give me a proposed fix plan, without editing source?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-mutation-check-neg-graphql-resolver",
+    "target": "command:mutation-check",
+    "prompt": "Can you add a new database mutation resolver for GraphQL?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-mutation-check-neg-genetics",
+    "target": "command:mutation-check",
+    "prompt": "What is a mutation in genetics?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-browser-qa-pos",
+    "target": "command:browser-qa",
+    "prompt": "Can you run a browser acceptance check on the new signup flow, including console/network errors and an accessibility smoke pass?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-browser-qa-neg-responsive-css",
+    "target": "command:browser-qa",
+    "prompt": "How do I make a website responsive using CSS media queries?",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-browser-qa-neg-rendering-engines",
+    "target": "command:browser-qa",
+    "prompt": "What's the difference between Chrome and Firefox rendering engines?",
+    "should_trigger": false
+  }
+]

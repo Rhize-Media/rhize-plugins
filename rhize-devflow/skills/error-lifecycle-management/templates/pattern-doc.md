@@ -48,7 +48,7 @@ Use this template when extracting error patterns from resolved Sentry issues.
 
 - [ ] Added to validation rules
 - [ ] Updated error-patterns.md
-- [ ] Created Serena memory
+- [ ] Persisted to STATE.md via `/rhize-context-manager:done`
 - [ ] Tested detection with `yarn validate`
 
 ### Related

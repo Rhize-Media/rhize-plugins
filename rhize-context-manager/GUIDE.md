@@ -36,6 +36,29 @@ the right one, and health-checks the whole thing.
   → the `context-engineering` skill (sessions, memory extraction, hygiene). This moved
   here from rhize-devflow; all triggers work as before.
 
+- **"Done / finished / ready to commit / wrap up"**
+  → `/done` — the session-closure bookend. If this session changed code **and**
+  `rhize-devflow` is installed with its `/review` command available, `/done` delegates to
+  the fully qualified `/rhize-devflow:review` (Dev Flow's production merge/release gate,
+  which routes to its independent verifier subagent for non-trivial changes) rather than
+  grading its own work. Without Dev Flow installed, or when no code changed this session,
+  `/done` runs — and explicitly discloses — a minimal local fallback checklist instead; it
+  never silently skips review or blocks session closure on Dev Flow's absence. Either path
+  ends with a `STATE.md` update before commit.
+  *Example: "I'm done with this fix — wrap up the session."*
+
+- **"What will this change affect?" / "map this before implementing"**
+  → `/rhize-devflow:impact-map` (Dev Flow owns this command; install `rhize-devflow` alongside
+  this plugin) — when the repository already has CodeGraph, it queries that first for current
+  symbols, callers, tests, and dependency paths. It then creates a semantic impact map for the
+  intended behavior, invariants, planned code, operational effects, acceptance tests, and
+  explicitly unaffected paths. After implementation it syncs CodeGraph and reports whether the
+  graph, diff, and map are in sync. Without `.codegraph/`, it falls back to `rg`; it never indexes
+  a repository without the owner's decision. This plugin's own `/impact-map` is a deprecation
+  adapter that points here for the 2.12.0 compatibility window only.
+  *Example: "Run /rhize-devflow:impact-map for this sponsor lifecycle change, then reconcile it
+  after the fix."*
+
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 
@@ -55,7 +78,21 @@ the right one, and health-checks the whole thing.
   is your triage pass; `/skill-refine run` drains triaged entries through skill-forge
   `evolve` — gate-passing SKILL.md edits auto-promote, anything touching scripts/hooks
   HOLDs. The `refinement-pipeline` skill documents the trust model.
-  *Example: "Run /learn-harvest across all projects, then let's review the queue."*
+  *Example: "Run /learn-harvest across all sources, then let's review the queue."*
+  (The `all` argument means all three **sources** above. Headroom stays scoped to the
+  current project — it is never passed `--all`, which would sweep every discovered
+  project and take minutes instead of seconds.)
+
+  **Why the queue doesn't fill up with the same lesson twice.** Entries are de-duped by a
+  hash of their text, so a fact reworded slightly used to sail through as "new" — on
+  2026-08-14, 3 of 5 headroom findings were restatements of things already written into
+  CLAUDE.md. `/learn-harvest` now runs a content filter before it appends: anything whose
+  substance is already in CLAUDE.md or in an existing queue entry gets dropped, and
+  anything that *looks* like a repackaging of known facts is kept but tagged so you see it
+  at triage. Every decision it makes is written to
+  `~/.claude/context-manager/harvest-logs/<date>-filter.txt`, so a quiet harvest is never
+  ambiguous — you can always read back exactly what was dropped and why.
+  *Example: "Why was today's harvest only two entries?" → open that day's filter report.*
 
 ## Tips
 
@@ -80,6 +117,20 @@ the right one, and health-checks the whole thing.
   `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up to 8 skills
   tagged for that stack — silent in repos with none of those markers, same map
   dependency as `skill-router`.
+- `remediation-suggester` and `next-step-suggester` (`hooks/remediation-suggester.js`,
+  `hooks/next-step-suggester.js`, both auto-wired — not opt-in) landed 2026-08-09 as the
+  runtime layer for relationships v2. After a failing `Bash` command, the first hook
+  matches the output against the skill map's `remediates`/`condition` data and suggests a
+  fix (e.g. "the ecc:build-error-resolver agent remediates build-failure"). After any
+  `Skill` invocation, the second hook suggests the usual next step from that skill's
+  `precedes` (or, absent one, a mined `follows`) edge — e.g. after `write-prd`, "the usual
+  next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at
+  least once, same as `skill-router`; with no artifact present they fail silently.
+- All four map hooks log each fired suggestion (2026-08-10) to
+  `~/.claude/context-manager/suggestion-log.jsonl` — ids and hashes only, never prompt
+  text — so "was this suggestion actually followed?" is finally measurable. Run
+  `python3 scripts/suggestion_log_report.py` (repo root) for per-hook acceptance/ignore
+  rates; the skill-graph eval suite (`evals/skill-map/`) builds on the same log.
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
@@ -94,6 +145,9 @@ the right one, and health-checks the whole thing.
 
 ## Troubleshooting
 
+- **`/impact-map` is unknown, or only shows a deprecation notice** → the executable command is
+  `/rhize-devflow:impact-map`; install/update the `rhize-devflow` plugin, then start a new session.
+  This plugin's own `/impact-map` is a deprecation adapter for the 2.12.0 compatibility window.
 - **/graphify fires twice or behaves oddly** → you still have the old user-level skill;
   delete `~/.claude/skills/graphify`.
 - **Doctor says a layer is "dead" that you expect alive** → check the tool's own logs

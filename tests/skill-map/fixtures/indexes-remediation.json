@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.1.0",
+  "router": {
+    "signals": {},
+    "extendsBases": {}
+  },
+  "disclosure": {},
+  "remediation": {
+    "build-failure": {
+      "patterns": [
+        "(?i)\\bbuild failed\\b",
+        "(?i)\\bfailed to compile\\b"
+      ],
+      "skills": [
+        "external:ecc-build-error-resolver",
+        "external:ecc-react-build-resolver"
+      ]
+    },
+    "type-error": {
+      "patterns": [
+        "\\berror TS\\d+\\b"
+      ],
+      "skills": []
+    }
+  },
+  "succession": {}
+}

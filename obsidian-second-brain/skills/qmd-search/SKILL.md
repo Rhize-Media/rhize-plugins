@@ -16,6 +16,7 @@ metadata:
   rhize:
     topics: [search, knowledge-management]
     stacks: [obsidian]
+    dependsOn: ["mcp:qmd"]
 
 ---
 

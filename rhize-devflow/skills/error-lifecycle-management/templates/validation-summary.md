@@ -1,6 +1,7 @@
 # Validation Summary Template
 
-Use this template to document validation runs for Serena memory persistence.
+Use this template to document validation runs for STATE.md persistence via
+`/rhize-context-manager`.
 
 ---
 
@@ -64,15 +65,11 @@ Use this template to document validation runs for Serena memory persistence.
 
 ---
 
-## Serena Memory Format
+## STATE.md Persistence
 
-Save to memory with:
-```
-mcp__serena__write_memory(
-    memory_name="validation_[YYYY-MM-DD]",
-    content="<this-summary>"
-)
-```
+Save this summary via `/rhize-context-manager:done`, under an entry named
+`validation-[YYYY-MM-DD]` in STATE.md's Verified facts or Open failures section, as
+appropriate.
 
 ## Quick Reference
 

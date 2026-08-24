@@ -8,6 +8,509 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-23_ version bump — **seo-aeo-geo** 1.4.1 → 1.4.2 (patch); marketplace 2.36.4 → 2.36.5.
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.2 → 1.4.3 (patch); marketplace 2.36.3 → 2.36.4.
+- _2026-08-23_ version bump — **seo-aeo-geo** 1.4.0 → 1.4.1 (patch); marketplace 2.36.2 → 2.36.3.
+- _2026-08-23_ version bump — **project-launcher** 1.7.1 → 1.7.2 (patch); marketplace 2.36.1 → 2.36.2.
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.1 → 1.4.2 (patch); marketplace 2.36.0 → 2.36.1.
+- _2026-08-23_ version bump — **rhize-cowork** 0.1.0 (new plugin); marketplace 2.35.0 → 2.36.0.
+- _2026-08-23_ **rhize-cowork 0.1.0 — `project-kickoff`, scaffolding the four Cowork client-context
+  files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) from a website, strategy docs, or a guided
+  interview.** Recovered from the long-stale `add-rhize-cowork-plugin` branch (87 commits behind main)
+  and re-cut onto current main. Two changes were required before it could land: the skill carried no
+  `tier`/`domain`/`maturity` frontmatter, unlike the other 27 skills in the marketplace; and its
+  description claimed the bare trigger "starts a new project", which collides head-on with
+  project-launcher's "ALWAYS invoke this skill for any request to start a new project". The two are
+  genuinely distinct capabilities — kickoff produces business-context files, launcher produces a PRD
+  and a code scaffold — so the description was narrowed to client/business onboarding and now says
+  explicitly that software projects belong to project-launcher, rather than leaving two skills
+  competing for one invocation.
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.0 → 1.4.1 (patch); marketplace 2.34.0 → 2.34.1.
+- _2026-08-23_ **obsidian-second-brain 1.4.1 — every Obsidian MCP tool was 404ing because
+  `OBSIDIAN_BASE_URL` ended in a trailing slash.** `obsidian_list_tags` returned
+  `Not found: /tags/` and `obsidian_search_notes` (text mode) returned
+  `Not found: /search/simple/`, while `curl -k -H "Authorization: Bearer $KEY"
+  https://127.0.0.1:27124/tags/` returned `200` — so it looked like an auth or upstream problem
+  and was neither. `obsidian-mcp-server` builds every request as
+  `` `${this.#config.baseUrl}${pathAndQuery}` `` (`dist/services/obsidian/obsidian-service.js`,
+  `#request`) and its config schema validates `baseUrl` with `.url()` only — no trailing-slash
+  normalization (`dist/config/server-config.js`). The configured
+  `"https://127.0.0.1:27124/"` therefore emitted `https://127.0.0.1:27124//tags/`. The Local REST
+  API 404s a doubled path, and the server's 404 handler formats the message from the
+  *un-doubled* `pathAndQuery`, so the diagnostic actively pointed away from the cause.
+  Measured: `//tags/`, `//vault/`, `//commands/`, `//search/simple/` and `//` all return `404`;
+  their single-slash forms all return `200`. **Every endpoint was affected, not just the two
+  tools that happened to be exercised.** Fix is one character — `OBSIDIAN_BASE_URL` is now
+  `https://127.0.0.1:27124`, matching the package's own documented default. Verified end-to-end
+  by driving `npx obsidian-mcp-server` over stdio JSON-RPC with each value: the trailing-slash
+  run reproduced both error strings exactly, the fixed run returned 200 tags and 573 search hits.
+  No upstream patch or local workaround needed — the trailing slash was our misconfiguration —
+  though the package would be more robust joining with `new URL(path, base)` or stripping
+  `/+$` in the schema.
+- _2026-08-20_ version bump — **rhize-devflow** 2.12.1 → 2.13.0 (minor); marketplace 2.34.1 → 2.35.0.
+- _2026-08-20_ **rhize-devflow — global refactor-evidence enforcement for Claude and Codex.**
+  Material implementation/refactor prompts now create a shared workspace receipt. Source writes
+  block until the canonical impact-map workflow has validated a persisted semantic map, queried
+  every existing healthy nested-root CodeGraph index (or recorded an explicit `rg` fallback), and
+  read/hashed any component registry. Commit, push, merge, and completion block after source edits
+  until post-change reconciliation reports `IN_SYNC` or `IN_SYNC_WITH_EXCEPTIONS`. The gate never
+  initializes CodeGraph or requires a registry where none exists; false positives use a recorded
+  dismissal and `RHIZE_REFACTOR_GATE=off` remains an explicit emergency bypass. A reconciled
+  receipt closes as `completed` at the successful Stop boundary, so late same-turn writes still
+  invalidate it without letting the old map contaminate a later task. Codex patch text carried
+  through `functions.exec` is validated by the command hook, not assumed to arrive as a direct
+  write event. Includes 16 lifecycle behavior cases plus updated hook and impact-map contracts.
+- _2026-08-19_ version bump — **seo-aeo-geo** 1.3.1 → 1.4.0 (minor); marketplace 2.33.0 → 2.34.0.
+- _2026-08-19_ version bump — **obsidian-second-brain** 1.3.2 → 1.4.0 (minor); marketplace 2.32.0 → 2.33.0.
+- _2026-08-19_ **obsidian-second-brain 1.4.0 + seo-aeo-geo 1.4.0 — portable credential delivery
+  via a committed shim; `${VAR}` removed from both `.mcp.json` files.** Both plugins previously
+  passed their API credential as `"env": { "X": "${X}" }`. Claude Code expands `${VAR}` from its
+  own process environment at config load — correctly when the variable is present, but passing
+  the **literal** string `${X}` through when it is absent, at which point the server authenticates
+  with those characters and returns an opaque 401/403. Presence depends on how Claude Code was
+  launched (`launchctl setenv` reaches GUI-launched processes; a terminal-launched `claude` gets
+  nothing once ambient shell exports are removed), so the same committed config worked in one
+  context and failed in another. Verified empirically against Claude Code 2.1.233 with a probe
+  MCP server that reported its own environment. Both plugins now ship
+  `scripts/mcp-secret-launcher.sh` (POSIX sh — macOS, Linux, Claude Cowork) invoked as
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh"`, so no absolute machine-specific path
+  is committed. Resolution order: `mcp-secret-launcher` on PATH or `~/.local/bin` (reads the
+  macOS login keychain at `claude-code:<VAR>`, exports into that child process only) → plain
+  environment inheritance if the variables are already exported → otherwise exit 78 naming the
+  missing variables and both remedies. It never starts a server it knows cannot authenticate.
+  No secret is written to any plugin file. New reference: `docs/mcp-secret-launcher.md`, including
+  a detector for `${VAR}` regressions across all MCP config locations. **Requires a session
+  restart to take effect.**
+- _2026-08-17_ version bump — **rhize-tasks** 0.2.0 → 0.3.0 (minor); marketplace 2.31.0 → 2.32.0.
+- _2026-08-17_ version bump — **rhize-tasks** 0.1.0 → 0.2.0 (minor); marketplace 2.30.1 → 2.31.0.
+- _2026-08-17_ **rhize-tasks 0.3.0 — Reminders TCC redesign, persisted Slack watermark, signing
+  auto-detect.** Closes the items 0.2.0 had deferred, per Jim's direction. The Swift EventKit
+  helper now runs as its own gui-domain LaunchAgent (`media.rhize.tasks.reminders-helper`)
+  serving one JSON request per connection over a 0600 Unix socket at a stable bundle path —
+  making the helper its own TCC-responsible process so Reminders prompts/grants work under the
+  background agent (reviewer finding #2, fix option 2). Scope stays caller-supplied per request
+  (`allowedListId` in each socket request; env for the stdin/dev path). Hardened per a second
+  Codex adversarial pass: routine-before-helper stop ordering, helper socket-readiness gating
+  before routine bootstrap, `sun_path` length guard, split-brain socket protection (live-probe
+  before unlink, inode-checked shutdown cleanup), per-connection read deadlines, write-ambiguity
+  classification on socket transport failures with a 1MB response cap, and uninstall item-cleanup
+  running through the live helper socket before bootout. Slack syncs now persist a watermark:
+  parents always scan the full lookback window, reply pagination is gated on
+  `latest_reply` vs watermark (24h grace), and the watermark advances only on untruncated syncs.
+  Installer auto-detects a Developer ID Application identity by certificate hash (ad-hoc
+  fallback; `RHIZE_TASKS_SIGN_IDENTITY` overrides). Doctor reports the resolved helper
+  transport/paths. README known-limitations section removed — remaining operational caveats
+  (ad-hoc re-prompt after updates until a signing cert exists; OAuth app must be in Production
+  publishing status) are documented as requirements/install notes, not open questions.
+  Tests 277 → 328 node + 16 Swift.
+- _2026-08-17_ **rhize-tasks 0.2.0 — external-review remediation (Tom Cassidy's 0.1.0 review,
+  25 findings + plugin wiring), hardened by a second adversarial pass.** First-run path now works:
+  `dashboard` starts the local server itself (pidfile-managed; installer/uninstaller stop it
+  cleanly, reinstall no longer conflicts with its own port). Installer: stable Node path
+  resolution with capability probing (fails closed on ephemeral fnm/nvm paths), tri-state
+  launchctl detection with label-form bootout fallback, bootout-before-swap reinstall ordering,
+  rollback gated on verified agent stop (`manual_recovery_required` instead of unsafe mutation),
+  process-group kill with SIGTERM forwarding, stderr surfaced from failed `swift build`/`codesign`
+  through the CLI JSON boundary, corrupt Keychain token self-heal, stale artifact sweep, scoped
+  secret scanner, `--no-warnings` in the LaunchAgent. Connectors: Google `invalid_grant` and
+  denied Reminders access now surface as `revoked` (previously indistinguishable from `offline`),
+  in-memory Google token cache with shared in-flight refresh + 401 invalidation, `Retry-After`
+  honoring backoff, bounded Slack pagination with mrkdwn un-escaping (Jira URLs from real Slack
+  now parse) and real channel verification at discovery. API/dashboard: scope-expansion approval
+  path wired up end-to-end (preferences-backed, transactional approval), setup-probe orphan
+  recovery + concurrency guards, artifact `$`-replacement corruption fixed, discovery-path HTTPS
+  enforcement, nonce burn-after-validate, Origin/Host/`x-rhize-tasks-dashboard` header enforcement
+  on every cookie-authenticated request, SQLite WAL + 5s busy timeout, doctor now reports
+  `agentLoaded`/`plistNodePathExists`/`runtimeVersionMatch`/`lastRoutineRun`. Claude wiring: all
+  six commands now invoke their skills via the Skill tool (`allowed-tools` includes `Skill`);
+  skills carry a non-macOS (Claude Cowork) platform guard. Tests 181 → 277. Known limitations
+  documented in README: Reminders TCC under launchd, ad-hoc signing grant resets, Google
+  OAuth Testing-status token expiry, per-run Slack lookback.
+- _2026-08-16_ version bump — **rhize-devflow** 2.12.0 → 2.12.1 (patch); marketplace 2.30.0 → 2.30.1.
+- _2026-08-16_ version bump — **rhize-context-manager** 0.13.0 → 0.14.0 (minor); **rhize-devflow** 2.11.0 → 2.12.0 (minor); **rhize-ops** 0.9.0 → 0.10.0 (minor); marketplace 2.29.0 → 2.30.0.
+- _2026-08-16_ **Rhize Dev Flow becomes the engineering control plane —
+  `impact-map → check → review → release`.** Dev Flow now owns the full change lifecycle, not
+  just impact mapping: canonical `/rhize-devflow:check` (evidence-driven mid-implementation
+  validation — builds a deterministic evidence packet via the new `scripts/devflow.py evidence`
+  CLI, selects checks only from repository instructions and known-safe declared package scripts,
+  never executes shell text parsed from prose, returns `PASS`/`PASS_WITH_WARNINGS`/`BLOCKED`) and
+  `/rhize-devflow:review` (read-only production merge/release gate — resolves the exact base/head
+  range from explicit intent, builds a risk map from actual diff evidence across
+  deployment/data/security/authorization/billing/migration/cache/external-write categories, routes
+  only relevant specialists, requires an independent skeptical reviewer for non-trivial work,
+  returns `PASS`/`FAIL_WITH_FIXABLE_GAPS`/`FAIL_REQUIRES_HUMAN`, and is the executable successor to
+  the retired `rhize-review` workflow). `/rhize-devflow:mutation-check` and
+  `/rhize-devflow:browser-qa` consolidate the former `mutation-analyze`/`mutation-check`/
+  `mutation-fix` and `browser-debug`/`browser-help`/`browser-perf`/`browser-test` command sprawl
+  into one read-only, scenario-driven command apiece; the six retired commands become one-line
+  `> **Deprecated:**` adapters (no duplicated workflow text) for the 2.12.0 compatibility window.
+  `scripts/devflow.py doctor` (also reachable as the thin `/rhize-devflow:doctor` slash-command
+  adapter) validates plugin health — manifests, canonical commands, referenced assets, duplicate
+  bodies, stale tokens, script importability, and capability dependencies — from both a source
+  checkout and an installed plugin cache; `schemas/devflow-evidence-v1.schema.json` is the stable output contract
+  for `evidence --json`. `setup/manifest.json`'s Sentry/Vercel/GitHub/Chrome DevTools MCP
+  dependencies are now capability-scoped and optional at the plugin level (a missing tool degrades
+  only the capability it gates, e.g. `browser-qa`, not the whole plugin). A new
+  `.codex-plugin/plugin.json` gives Dev Flow a Codex identity that routes through the same
+  `skills/dev-flow-foundations` command bodies Claude uses, rather than forking a second workflow.
+  Dev Flow's five overlay skills (`chrome-devtools-mcp`, `data-mutation-consistency`,
+  `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`) are narrowed to
+  Rhize-specific policy and convention only — stale Zen/Serena/Graphiti requirements and legacy
+  `@...` command aliases are removed, `error-lifecycle-management`'s
+  `ARCHITECTURE-PROPOSAL.md` is archived outside the plugin, and `chrome-devtools-mcp` shrinks to
+  DevTools-protocol mechanics used by `/rhize-devflow:browser-qa` rather than general browser
+  guidance. `rhize-context-manager`'s `/impact-map` is now a one-line deprecation adapter to
+  `/rhize-devflow:impact-map` (the canonical body moved to Dev Flow), and `/done` truthfully
+  delegates code-change review to `/rhize-devflow:review` when Dev Flow is installed and code
+  changed this session, disclosing its local fallback checklist otherwise instead of silently
+  running it or claiming a bundled verifier that only ever existed in Dev Flow. New
+  `evals/rhize-devflow/` trigger/quality/false-positive fixtures and an extended
+  `tests/rhize-devflow/` integrity suite (asset-existence, no-unresolved-placeholder,
+  no-unjustified-duplicate-command-body, single-canonical-owner, no-stale-dependency-term
+  contracts) are wired into the existing unconditional version/CI gate via
+  `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS`, so a regression on any of these claims
+  fails the same gate a version bump already runs. This is a compatibility release: no public
+  command name is removed yet — see both plugins' README migration tables for the full old→new
+  command mapping, and the plan at
+  `.claude/plans/rhize-devflow-v3-engineering-control-plane.md` for the full task list and the
+  30-day/two-release-cycle observation window before Dev Flow 3.0.0 removes the adapters.
+- _2026-08-16_ version bump — **rhize-context-manager** 0.12.0 → 0.13.0 (minor); **rhize-devflow** 2.10.3 → 2.11.0 (minor); marketplace 2.28.0 → 2.29.0.
+- _2026-08-16_ **CodeGraph-first semantic impact mapping across Rhize Dev Flow and Context
+  Manager.** `dev-flow-foundations` now defines a strict authority split: CodeGraph owns current
+  structural evidence, while the impact map owns intended behavior, invariants, planned code,
+  operational effects, acceptance tests, and explicitly unaffected paths. The single executable
+  `/rhize-context-manager:impact-map` command checks each repository root independently, uses an
+  existing CodeGraph index before text search, refuses to initialize one implicitly, falls back to
+  `rg` when absent or stale, and requires post-implementation graph/diff/map reconciliation with an
+  `IN_SYNC`, `IN_SYNC_WITH_EXCEPTIONS`, or blocking `OUT_OF_SYNC` verdict. A cross-plugin contract
+  test prevents ownership duplication and workflow drift; the existing version check invokes it
+  automatically whenever either owning plugin changes, so CI and configured pre-push gates enforce
+  the same contract.
+- _2026-08-14_ version bump — **rhize-ops** 0.8.1 → 0.9.0 (minor); **rhize-tasks** 0.0.0 → 0.1.0 (minor); marketplace 2.27.0 → 2.28.0.
+- _2026-08-14_ **Rhize Tasks — a local-first unified planning authority for Tom's Rhize and client work.** The new cross-client planning plugin combines approved Jira tasks and structured `#tom-tasks` delegations with Google Calendar and Apple Reminders awareness, then produces a today-first, capacity-aware plan. Assigned Jira work remains first; urgent unassigned work appears only as an approval-required competency-fit opportunity. A seven-stage local wizard preserves Tom's working intervals, breaks, buffers, exclusions, bounded-replanning preference, and prompted-reconciliation preference. The loopback-only service stores state in SQLite and secrets in macOS Keychain, writes only to the exact approved focus calendar and `Rhize Tasks` list, protects manually moved blocks, carries unfinished work forward once per evening evaluation, and turns exact reminder completion into an approval-required Jira reconciliation note. Six shared Claude/Codex skills, six Claude command wrappers, an accessible dashboard, and a read-only Claude artifact provide one consistent control surface. The transactional installer ships a signed Swift EventKit helper and a versioned runtime; uninstall requires explicit and independent local-data/item-retention choices and deletes items only after exact ownership verification. Automated release acceptance uses disposable fakes only—Tom-Mac TCC/OAuth/Jira acceptance is still required before live writes.
+- _2026-08-14_ version bump — **rhize-context-manager** 0.11.0 → 0.12.0 (minor); marketplace 2.26.0 → 2.27.0.
+- _2026-08-14_ **Harvest noise filter — the queue stops collecting the same lesson twice.**
+  New `scripts/harvest_noise_filter.py`, wired as step 7 of `/learn-harvest`. Queue ids are
+  `sha1-12(source + pattern)`, so any rewording of a known fact produced a new id and evaded
+  id-dedupe; measured on 2026-08-14, 3 of 5 headroom entries restated facts folded into
+  CLAUDE.md two days earlier, and the two largest `est_savings` claims (235k, 45k) were the
+  two most duplicative — ~30% of a day's yield. The filter scores candidates by greedy
+  set-cover against existing queue patterns (any status) and CLAUDE.md blocks, then
+  suppresses (≥0.75), flags-but-keeps (≥0.45), or drops as thin (<6 content tokens).
+  Thresholds are calibrated against that day's 44 human-labeled dispositions, where real
+  signals topped out at 0.70 and fully-covered restatements started at 0.80; `--self-audit`
+  reproduces it. Composite entries (`Topic — Fact1. Fact2. Fact3.`) land at 0.46–0.56 and are
+  deliberately flagged rather than suppressed — no threshold separates them from genuine
+  signals, so the filter declines to guess. Every decision is teed to
+  `harvest-logs/<date>-filter.txt`, so a filtered run stays distinguishable from a collector
+  that never ran. Stdlib only, deterministic, no network.
+- _2026-08-14_ **`/skill-refine review` gains two measured triage facts** — `est_savings` is
+  anti-correlated with entry quality (never rank or threshold on it), and `evolve` requires a
+  skill *directory*, so bare `~/.claude/skills/learned/*.md` targets can only receive the
+  step-3 text fold-in. Triage now also surfaces any `filter_note` set by the harvest filter.
+- _2026-08-10_ version bump — **rhize-context-manager** 0.10.1 → 0.11.0 (minor); marketplace 2.25.5 → 2.26.0.
+- _2026-08-10_ **Suggestion log — routing suggestions are now measurable.** All four skill-map
+  hooks (`skill-router`, `session-disclosure`, `remediation-suggester`, `next-step-suggester`)
+  append one JSON line per fired suggestion to `~/.claude/context-manager/suggestion-log.jsonl`
+  (`ts`/`session_id`/`hook`/`suggested`/`context_hash` — ids and truncated hashes only, never
+  prompt text; fail-silent, sub-millisecond). The router also samples 1-in-20 no-suggestion
+  prompts so silence precision has a denominator. New `scripts/suggestion_log_report.py` joins
+  the log against skill-monitor usage for per-hook acceptance/ignore rates. Env overrides for
+  tests/evals: `RHIZE_SUGGESTION_LOG`, `RHIZE_CONTEXT_MANAGER_DIR` (hooks' map/indexes dir).
+- _2026-08-10_ **Skill-graph eval suite** (`evals/skill-map/`, per
+  `docs/superpowers/specs/2026-08-10-skill-graph-evals-design.md`): golden-set miner
+  (contamination-guarded to pre-router sessions; mined data gitignored — contains user prompt
+  text), routing-accuracy eval with the retired grep suggester vendored as baseline (first run:
+  router 57.1% top-1 / 76.2% silence precision vs baseline 0.0% / 20.2%), disclosure
+  cost/benefit eval (~490 bytes per matching repo vs 5,187-byte banner baseline, silence
+  honored), remediation-pattern precision eval with failure-corpus miner, and a weekly-audit
+  metrics line (`~/.claude/context-manager/audit-metrics.jsonl`). Curation-gate regression
+  fixtures (the four retired ECC forks + graphify must always be flagged) live in
+  `@rhize/skill-forge` 0.13.0, which also fixes a real gate bug this work surfaced: `--skill-map`
+  read a `type` field no real artifact sets (`kind`) and silently matched nothing.
+- _2026-08-10_ **tests/skill-map hardening**: `conftest.py` supplies the previously missing `doc`
+  fixture (two artifact-validity tests were silently ERRORing since introduction), and
+  `test_stale_gate.py` exercises the weekly audit's step-0 negative branch — seed real drift in
+  a scratch clone, assert `--check-stale` FAILs, rebuild, assert PASS, assert the diff confines
+  to `generated/*` + the seed, commit. The docstring maps each audit-prose sentence to its
+  assertion and names the two honestly untestable residues.
+- _2026-08-10_ **Skill-map viewer tooling committed** (`scripts/viewer/`): the interactive
+  force-directed skill-graph viewer's template (`viewer-template.html`) and build script
+  (`build_viewer.py`) moved into the repo from an ephemeral session scratchpad so the published
+  viewer artifact can be regenerated. Builds from the machine-local resolved map when present
+  (includes the third-party ecosystem overlay), falling back to the committed static map.
+  Default view renders cross-plugin "bridge tags" (tags spanning ≥2 plugins) even with the full
+  topic/stack tag layers toggled off. See the Consumers table in `docs/skill-map.md`.
+- _2026-08-10_ **`scripts/query_skill_map.py` actually committed.** The two-tier query layer's
+  CLI (shipped conceptually in the relationships-v2 change and referenced 5 times by
+  `docs/skill-map.md`) had never been tracked — `.gitignore`'s `scripts/*` allowlist silently
+  excluded it, the same trap that would have swallowed `scripts/viewer/`. Both are now
+  allowlisted; a fresh clone regains the query CLI.
+
+- _2026-08-10_ version bump — **obsidian-second-brain** 1.3.1 → 1.3.2 (patch); marketplace 2.25.4 → 2.25.5.
+- _2026-08-10_ version bump — **rhize-devflow** 2.10.2 → 2.10.3 (patch); marketplace 2.25.3 → 2.25.4.
+- _2026-08-10_ version bump — **project-launcher** 1.7.0 → 1.7.1 (patch); marketplace 2.25.2 → 2.25.3.
+- _2026-08-10_ version bump — **rhize-ops** 0.8.0 → 0.8.1 (patch); marketplace 2.25.1 → 2.25.2.
+- _2026-08-10_ version bump — **rhize-context-manager** 0.10.0 → 0.10.1 (patch); marketplace 2.25.0 → 2.25.1.
+
+### Fixed
+
+- _2026-08-10_ **Skill-map connectivity audit: under-declared tags/dependencies corrected.**
+  A prior audit verified 12 skills' `SKILL.md` frontmatter against their actual behavior and
+  found gaps between what a skill does and what its `metadata.rhize` tags/dependencies claim:
+  - **Missing `stacks: [obsidian]`**: `graphify` (ships `graphify export obsidian`),
+    `context-stack` (the vault is a named layer of the stack it routes), `delegate-to-teammate`
+    and `project-launcher` (both drive the Obsidian MCP). `context-stack`'s bogus `[context]`
+    self-reference and `refinement-pipeline`'s bogus `[refinement]` self-reference are removed —
+    a skill about a stack isn't itself a member of that stack. The now-unused `context` and
+    `refinement` stack tag slugs are removed from `catalog/tags.json`.
+  - **Missing `stacks` for platform coverage**: `rhize-visual-plan` gains `nextjs` (ships a
+    Next.js viewer app); `data-mutation-consistency` gains `sentry`+`vercel` and
+    `sanity-development` gains `sentry` (both instrument Sentry / are Vercel-scoped).
+  - **Missing `dependsOn`**: `delegate-to-teammate` now declares all four MCPs it drives
+    (`mcp:obsidian-mcp-server`, `mcp:slack`, `mcp:atlassian`, `mcp:fireflies`);
+    `skill-dashboard` declares `mcp:chrome-devtools`; `project-launcher` declares
+    `mcp:obsidian-mcp-server`; `data-mutation-consistency` declares `mcp:sentry`+`mcp:zen`;
+    `error-lifecycle-management` declares `mcp:sentry`+`mcp:vercel`+`mcp:github`;
+    `chrome-devtools-mcp` declares `mcp:chrome-devtools`; `qmd-search` declares `mcp:qmd`.
+  - **Missing `depends-on` edges** in `catalog/skill-relations.json`: `project-launcher` →
+    `external:skill-forge` (runs `npx @rhize/skill-forge find/audit/add`) and
+    `command:rhize-context-manager/skill-refine` → `external:skill-forge` (runs
+    `npx @rhize/skill-forge evolve`).
+  Rebuilt `generated/skill-map.static.json` + `.indexes.json` and re-rendered the managed
+  README/`SKILL-CATALOG.md` sections from the corrected map; verified deterministic (identical
+  output on a second build) and that all 12 declared MCP servers now resolve as
+  `mcp-server` nodes.
+
+- _2026-08-10_ **`/learn-harvest`: stop the collector producing false "source unavailable"
+  no-ops.** The 2026-08-10 daily harvest returned 0 entries and marked 2 of 3 sources
+  unavailable; both verdicts were wrong, and the corrected run collected 9 entries (queue
+  69 → 78). Because "all sources unavailable" and "no new signals" both render as an empty
+  table, the failure was invisible while starving the weekly `/skill-refine run` drain.
+  Three fixes in `rhize-context-manager/commands/learn-harvest.md`:
+  - **Step 2 instructed an unrunnable command.** It said to run `headroom learn --project
+    <cwd>` and "add `--all` when invoked with the `all` argument" — but those flags are
+    mutually exclusive (exit 2), and `--all` means all ~17 discovered *projects*, not the
+    command's three *sources*. The collector followed the spec verbatim, turning a
+    seconds-long run into ~13 minutes. Step 2 is now explicit that `all` scopes sources
+    only, and that headroom takes neither `--all` nor `--apply`.
+  - **Step 2 now requires `timeout: 600000`** on the headroom Bash call — `headroom learn`
+    runs an LLM over conversation history and exceeds the tool's 120s *default*, which is
+    not a limit. A timeout alone is never grounds to report headroom unavailable.
+  - **Step 3 now preloads the deferred claude-mem tools via `ToolSearch`.** Calling one
+    directly fails with `InputValidationError`, which reads like an auth error — the
+    search server is not auth-gated. Already disproven on 2026-08-09 (claude-mem
+    observation #45554); it recurred because nothing in the procedure recorded it.
+  - Step 2 also tees headroom stdout to `~/.claude/context-manager/harvest-logs/`;
+    `headroom learn` writes nothing to disk itself, so the 2026-08-10 run's output died
+    with its shell and the LLM spend was unrecoverable.
+  - New **Source-availability rule**: prove a source dead before recording it so
+    (`headroom learn --help` exits 0 in <1s), distinguish "the probe failed" from "my call
+    failed", and report a 2+-unavailable run loudly rather than as a clean empty table.
+  The scheduled routine at `~/Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md`
+  (not in this repo) carries the same directives, and now requires them to be copied
+  verbatim into its Haiku collector's spawn prompt — every 2026-08-10 failure happened
+  inside that subagent, which never reads the routine file.
+
+### Added
+
+- _2026-08-10_ **Skill map: three-way drift — baseline hashes + normalized local hash, so a
+  fork's own tagging never reads as drift.** The two-way compare (local-now vs upstream-now) had a
+  permanent false positive: Rhize's `metadata.rhize` frontmatter makes every one of the 7 forks'
+  raw `contentHash` differ from upstream forever, with zero real divergence. Design:
+  `docs/superpowers/specs/2026-08-10-three-way-drift-design.md`.
+  - New `scripts/baseline_upstreams.py`: fetches each SOURCES.md entry's http(s) `Source`, hashes
+    it, and writes/updates a `- **Upstream baseline:** sha256:<hex> (recorded YYYY-MM-DD)` bullet —
+    the deliberate "I reviewed upstream, accept its state" action. Idempotent (unchanged upstream →
+    no diff, not even a date bump); `--skill <name>` scopes to one entry; non-URL `Source` entries
+    are skipped with a report.
+  - `scripts/build_skill_map.py` gains `strip_rhize_metadata_block()` — the ONE normalization
+    implementation (textual removal of the `metadata.rhize` frontmatter subtree; removes the whole
+    `metadata:` block iff `rhize` is its only key, else just the `rhize:` subtree). The compiler
+    copies `SOURCES.md`'s baseline onto the per-skill `external` node as `baselineHash` (never onto
+    the display-only `fork-of` edge `driftCheck`), and emits `contentHashNormalized` on every
+    `fork-of` skill node. skill-forge compares the hashes it's handed and never re-implements the
+    stripping (the duplicated-validator lesson from the retired `strategic-compact` fork).
+  - `schemas/skill-map.schema.json`: documented the two new optional node fields
+    (`baselineHash` on `external` nodes, `contentHashNormalized` on `skill` nodes), both sha256-hex
+    patterned like `contentHash`.
+  - Ran `baseline_upstreams.py` for real against all 7 `muratcankoylan/Agent-Skills-for-Context-Engineering`
+    forks and committed the recorded hashes; rebuilt+installed the artifact and indexes.
+  - New `tests/skill-map/test_baseline_upstreams.py`: normalization unit cases (block present,
+    rhize-among-other-keys, no metadata key, no frontmatter), baseline idempotency + selective
+    skip + skill-filter tests (fake fetcher, no network dependency), and a compiler test proving
+    `baselineHash`/`contentHashNormalized` are emitted only where SOURCES.md actually supplies
+    them — never unconditionally.
+  - `docs/skill-map.md`: new "Three-way drift" section documenting the baseline field, the
+    normalization rule, the four-state verdict matrix (`in-sync`/`local-only`/`upstream-moved`/
+    `diverged`, computed by skill-forge's `watch`), and the re-baseline workflow.
+  - `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md` (outside this repo): step 0 now
+    queues only the actionable verdicts (`upstream-moved`/`diverged`/`unreachable`, plus legacy
+    `drifted` for un-baselined edges) into the refinement queue; `in-sync`/`local-only` are counted
+    in the report line only, never queued; added the re-baseline instruction.
+- _2026-08-10_ **Skill map: remote upstream URLs in `SOURCES.md` — machine-independent drift
+  checks.** `rhize-context-manager/skills/SOURCES.md`'s 7 `context-engineering-marketplace` forks
+  (context-fundamentals, context-degradation, context-compression, context-optimization,
+  memory-systems, filesystem-context, tool-design) had `Source` entries pointing at that
+  marketplace's local plugin-cache path — resolvable only on a machine that still has it
+  installed, so every fork-of drift check reported `upstream-unreachable` everywhere else.
+  Identified the real upstream (`muratcankoylan/Agent-Skills-for-Context-Engineering` on GitHub,
+  via the plugin's ingestion commit) and repointed all 7 `Source` fields to verified
+  `raw.githubusercontent.com` URLs (each checked with `curl` for HTTP 200 + real SKILL.md
+  frontmatter before being recorded). `scripts/build_skill_map.py`'s `SOURCES.md` ingestion now
+  detects an `http(s)` `Source` and emits `url` (instead of `path`) on the per-skill `external`
+  node — skill-forge's drift checker already reads `node.url ?? node.path`, so no other code
+  needed to change. Local-path `Source` entries (the 4 retired `everything-claude-code` forks)
+  are unaffected. `npx @rhize/skill-forge watch` now resolves all 7 forks over HTTPS and reports
+  genuine `drifted`/`in-sync` verdicts instead of `upstream-unreachable`.
+- _2026-08-09_ version bump — **rhize-context-manager** 0.9.1 → 0.10.0 (minor); marketplace 2.24.3 → 2.25.0.
+- **Skill map: relationships v2 consumer layer — remediation + next-step suggester hooks, router/
+  disclosure hooks read materialized indexes.** Completes the follow-up lane named in the CORE
+  entry below (design doc section 7).
+  - New `rhize-context-manager/hooks/remediation-suggester.js` (PostToolUse, matcher `Bash`):
+    on a failing Bash command, matches `stdout`+`stderr` against the `remediation` index's
+    condition patterns and suggests the top-listed remediator for the first matching condition.
+    Patterns in `catalog/tags.json` are authored as Python `re` (they use the `(?i)` inline
+    case-insensitivity flag, which JS `RegExp` has no equivalent for and throws "Invalid group"
+    on) — the hook strips a leading `(?i)` into the JS `i` flag before compiling. An `external:`
+    remediator id (a third-party capability with no proper skill-map node, e.g. an `ecc`
+    build-resolver *agent*) is phrased as an agent suggestion, not a skill invocation.
+  - New `rhize-context-manager/hooks/next-step-suggester.js` (PostToolUse, matcher `Skill`):
+    after a skill invocation, looks up the invoked skill in the `succession` index and suggests
+    its declared `precedes` successor, falling back to a mined `follows` successor — `precedes`'s
+    first runtime consumer.
+  - Both auto-wired in `hooks/hooks.json` (like `session-disclosure.js`, not opt-in via
+    `setup/manifest.json`). Warm timing for all four hooks in this directory measured <100ms,
+    within the <150ms budget.
+  - `skill-router.js`/`session-disclosure.js` refactored to read the materialized `router`/
+    `disclosure` index sections first (`routeFromIndex()`/`relevantSkillsFromIndex()`), falling
+    back to the original map-scanning path (`route()`/`relevantSkills()`) only when no indexes
+    file is present/parseable, so an older install degrades gracefully. Behavior is unchanged on
+    the existing test suite; one known gap on the index-only path is documented in
+    `docs/skill-map.md`'s Tier 1 note (disclosure's extends-folding is computed per stack slug,
+    not across the union of all detected stacks — a cross-stack base/extender pair won't fold on
+    the index path the way the map-scan fallback would; not exercised by any shipped fixture).
+  - `scripts/build_skill_map.py --install`/`scripts/build_local_skill_map.py` already covered the
+    indexes files (confirmed, no build-script change needed this round).
+  - Tests: `tests/skill-map/test_remediation.js`, `tests/skill-map/test_next_step.js` (new); wired
+    fixture-index files for `test_router.js`/`test_disclosure.js` so the index path is what's
+    exercised by default, plus one explicit `[fallback]`-labeled map-scan test each.
+- **Skill map: relationships v2 core — `follows`/`augments`/`remediates` edges, condition tags,
+  `mcp-server` nodes, materialized indexes, query CLI (schema 1.1.0).** Implements the CORE layer
+  of `docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` (router/disclosure
+  hook refactor and the two new PostToolUse suggester hooks are a follow-up lane).
+  - Schema: new edge types `follows` (directional, requires `followWeight: {sessions,
+    windowDays}`), `augments` (skill → topic tag), `remediates` (skill → condition tag); new tag
+    kind `condition` (closed at 5: `build-failure`, `type-error`, `test-failure`, `lint-failure`,
+    `merge-conflict`, each with failure-detection `patterns` in `catalog/tags.json`); new node
+    kind `mcp-server` (id form `mcp:<name>`). `schemaVersion` bumped `1.0.0` → `1.1.0`.
+  - Compiler (`scripts/build_skill_map.py`): parses `metadata.rhize.augments`,
+    `metadata.rhize.remediates`, and `metadata.rhize.dependsOn` (accepting `mcp:<name>` targets,
+    which mint an `mcp-server` node, alongside ordinary skill targets using `extends`'s
+    resolution) — each with the same BuildError-on-unknown-slug/unresolved-target discipline as
+    `extends`. `catalog/skill-relations.json` continues to carry third-party-owned edges,
+    including from `external:` nodes representing third-party capabilities that aren't proper
+    skill nodes (e.g. `everything-claude-code` build-resolver *agents*, which have no skill-map
+    node kind).
+  - Materialized indexes: the build now also emits `generated/skill-map.indexes.json`
+    (`router`/`disclosure`/`remediation`/`succession` sections), mirroring
+    `skill-router.js`/`session-disclosure.js`'s exact matching semantics so a future hook refactor
+    to read this file is a pure data swap. Covered by `validate_skill_map.py --check-stale`.
+    `scripts/build_local_skill_map.py` emits a resolved layer
+    (`~/.claude/context-manager/skill-map.indexes.resolved.json`) merging mined `follows` edges
+    into `succession`.
+  - `follows` mining: `rhize-ops/skill-monitor/monitor.py`'s co-occurrence pass now also emits
+    ordered, time-adjacent skill pairs (`orderedPairs`, ≥2 distinct sessions) into its snapshot;
+    `build_local_skill_map.py` turns them into local-overlay-only `follows` edges (source:
+    `monitor`).
+  - Query CLI: `catalog/queries.json` (declarative walk specs) + `scripts/query_skill_map.py`
+    (one Python walker), seeded with 7 named queries (`what-extends`, `what-augments`,
+    `what-remediates`, `what-follows`, `overlap-candidates`, `unroutable-skills`,
+    `mcp-dependents`); runnable against the static or resolved map (`--resolved`).
+  - Seed data: `seo-aeo-geo/content-seo` augments `content-authoring`; 5 `seo-aeo-geo` skills
+    (`aeo-geo-optimization`, `backlink-intelligence`, `keyword-intelligence`, `seo-site-audit`,
+    `serp-intelligence`) declare `dependsOn: ["mcp:dataforseo"]` (verified against their SKILL.md
+    bodies); `rhize-context-manager/graphiti-memory` declares `dependsOn: ["mcp:graphiti"]`;
+    third-party `humanizer` augments `content-authoring` and the `ecc` build-resolver family
+    remediates `build-failure`/`type-error`, both via `external:` catalog nodes. Skipped (with
+    reason, per the design doc's "verify wording against the skill before tagging"):
+    `rhize-devflow/error-lifecycle-management` → `test-failure` — its SKILL.md scope is
+    build/deployment/runtime errors; no test-failure vocabulary found in the file.
+  - Tests: `tests/skill-map/test_v2_relationships.py` — condition pattern matching against
+    fixture failing/passing output, augments/remediates/dependsOn parsing incl. BuildError cases,
+    index emission/determinism/staleness, and all 7 query CLI seed queries.
+
+- _2026-08-09_ version bump — **rhize-context-manager** 0.9.0 → 0.9.1 (patch); marketplace 2.24.2 → 2.24.3.
+- _2026-08-09_ version bump — **rhize-devflow** 2.10.1 → 2.10.2 (patch); marketplace 2.24.1 → 2.24.2.
+- _2026-08-09_ version bump — **seo-aeo-geo** 1.3.0 → 1.3.1 (patch); marketplace 2.24.0 → 2.24.1.
+- _2026-08-09_ version bump — **rhize-ops** 0.7.0 → 0.8.0 (minor); marketplace 2.23.2 → 2.24.0.
+- **Skill map: third-party plugin/skill inventory in the local overlay (origin-aware resolved
+  map).** `scripts/build_local_skill_map.py` now scans every plugin installed on the machine and
+  enabled (via the merge of `~/.claude/settings.json`'s `enabledPlugins` map with this repo's
+  `.claude/settings.local.json` override) whose marketplace is not this repo's own — e.g. `ecc`,
+  `sanity`, `humanizer` — and emits `origin: "third-party"` `plugin`/`skill`/`command` nodes plus
+  `contains` edges into `skill-map.local.json` and `skill-map.resolved.json` only. Lets Rhize
+  plugins be checked for overlap/complementarity against what's actually installed alongside them,
+  not just against each other. Id convention: `plugin:<marketplace>/<name>`,
+  `skill:<marketplace>/<plugin>/<skill-dir>`, `command:<marketplace>/<plugin>/<command-stem>` —
+  collision-proof against this repo's own bare `plugin:<name>` ids. Descriptions are truncated to
+  ~200 chars; a plugin whose cached install path is missing, or a source file that can't be read,
+  is skipped and counted (never a build failure) in `local.json`'s `thirdParty.summary`. The
+  committed `generated/skill-map.static.json` is untouched — this inventory is local-overlay/
+  resolved only, since the installed set is machine-specific. See "Third-party ecosystem
+  inventory" in `docs/skill-map.md`.
+
+- **Skill map: `extends` + `precedes` edge types (schema 1.1).** `extends` records deliberate
+  layering — a specialized skill deepening a base skill's domain (directional, specialized→base;
+  not duplication, not a runtime dependency) — parsed from a new `metadata.rhize.extends`
+  frontmatter field and capped at chain depth 2 (a BuildError past that, and on any cycle).
+  `precedes` records real ordered-workflow sequencing, hand-declared in
+  `catalog/skill-relations.json`. Also adds an optional node `origin: "rhize" | "third-party"`
+  property (nodes without it are implicitly `"rhize"`) for a later lane to populate in the local
+  overlay only.
+  - Tagged: `rhize-context-manager`'s `context-compression`/`context-degradation`/
+    `context-optimization` each extend `context-fundamentals`; `rhize-devflow`'s
+    `error-lifecycle-management`/`data-mutation-consistency`/`sentry-instrumentation` each extend
+    `dev-flow-foundations`; `obsidian-second-brain`'s `obsidian-bases`/`json-canvas` each extend
+    `obsidian-markdown`.
+  - `catalog/skill-relations.json` gained `precedes` edges for `project-launcher`'s command
+    pipeline: `write-prd` → `grill-prd` → `scaffold-gsd`.
+  - Consumers: `session-disclosure.js` compacts a matched base and its matched extenders into one
+    line (`- plugin:base — matches ... (+N deeper: name, name)`) instead of a line per extender.
+    `skill-router.js` breaks a base/extender scoring tie in the extender's favor (the more specific
+    skill) whenever the extender's score is at least the base's — max-one-suggestion and the
+    2-signal threshold are unchanged.
+- _2026-08-09_ version bump — **obsidian-second-brain** 1.3.0 → 1.3.1 (patch); marketplace 2.23.1 → 2.23.2.
+- _2026-08-09_ version bump — **rhize-devflow** 2.10.0 → 2.10.1 (patch); marketplace 2.23.0 → 2.23.1.
+- _2026-08-09_ version bump — **rhize-context-manager** 0.8.0 → 0.9.0 (minor); marketplace 2.22.0 → 2.23.0.
+- **Skill-map phases 3–5 release (all six plugins bumped, 2026-08-09).**
+  - *Phase 3a — local overlay (rhize-ops 0.7.0).* `skill-monitor/monitor.py` now aggregates
+    session-level skill co-occurrence (counts only — no prompt text, no project paths) into
+    `data/skill-cooccurrence.json`; new `scripts/build_local_skill_map.py` joins that snapshot,
+    the enabled-plugin set, and the stack config into `~/.claude/context-manager/skill-map.{local,resolved}.json`,
+    degrading to the static map when any input is absent.
+  - *Phase 3b — stack-aware disclosure (rhize-context-manager 0.8.0; seo-aeo-geo 1.3.0,
+    obsidian-second-brain 1.3.0, project-launcher 1.7.0, rhize-devflow 2.10.0).* New auto-wired
+    `session-disclosure.js` SessionStart hook fingerprints the repo's stack and surfaces up to 8
+    map-relevant skills — silent when no stack is detected. The four per-plugin unconditional
+    SessionStart banners were removed (hint hooks preserved); the now-orphaned
+    `{seo,obsidian,launcher}-context.md` banner files were deleted in this release. `/start` and
+    `context-stack` now name the skill map as their routing substrate.
+  - *Phase 4b — governance wiring.* weekly-skill-audit gained step 0 (map rebuild +
+    `--check-stale` gate — audit commits the fix then stops on staleness — and skill-forge drift
+    checks over `fork-of` edges); `/learn-harvest` gained a `routing-miss` signal (skills used but
+    structurally unroutable) feeding the refinement queue with map/tag-targeted fixes.
+  - *Phase 5 — generated docs + vault.* `scripts/render_skill_map_docs.py` manages
+    `<!-- SKILL-MAP -->` sections in all plugin READMEs, the root Plugin Catalog, and
+    `generated/SKILL-CATALOG.md` (idempotent; refuses on missing markers);
+    `scripts/publish_skill_map_vault.py` publishes 39 per-skill notes plus `Skill Map.base` and
+    `Skill Map.canvas` to the Obsidian vault (path resolved locally, never committed).
+- _2026-08-09_ version bump — **rhize-ops** 0.6.0 → 0.7.0 (minor); marketplace 2.21.0 → 2.22.0.
+- _2026-08-09_ version bump — **project-launcher** 1.6.0 → 1.7.0 (minor); marketplace 2.20.0 → 2.21.0.
+- _2026-08-09_ version bump — **obsidian-second-brain** 1.2.0 → 1.3.0 (minor); marketplace 2.19.0 → 2.20.0.
+- _2026-08-09_ version bump — **seo-aeo-geo** 1.2.0 → 1.3.0 (minor); marketplace 2.18.0 → 2.19.0.
+- _2026-08-09_ version bump — **rhize-devflow** 2.9.0 → 2.10.0 (minor); marketplace 2.17.0 → 2.18.0.
+- _2026-08-09_ version bump — **rhize-context-manager** 0.7.0 → 0.8.0 (minor); marketplace 2.16.0 → 2.17.0.
 - _2026-08-09_ version bump — **rhize-context-manager** 0.6.0 → 0.7.0 (minor); marketplace 2.15.0 → 2.16.0.
 - **Phase 2 (items 2-3), map-driven skill router (rhize-context-manager).** `hooks/skill-router.js`
   (Node, no deps) replaces the keyword-grep `skill-suggester.sh` on `UserPromptSubmit`: it reads
@@ -25,7 +528,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `rhize-context-manager/{README,GUIDE}.md`, `skills/context-engineering/SKILL.md`,
   `docs/skill-map.md`, `generated/README.md`. New test: `tests/skill-map/test_router.js`
   (matched/unmatched/corrupt-map/missing-map cases, isolated via a temp `HOME`).
-- **Phase 2.1 hook-ownership cleanup (rhize-devflow 2.9.0 / rhize-context-manager 0.6.0).** The plan premise ("6 hooks left behind by the 2.5.0 migration, all move to `rhize-context-manager/hooks/`") only held for 2 of 6 — verified before executing: `context-engineering__duplicate-check.sh`, `pre-commit-guard.sh`, `session-init.sh`, and `skill-suggester.sh` already had live, fully-wired counterparts at `rhize-context-manager/skills/context-engineering/hooks/*.sh` (declared in that plugin's `setup/manifest.json`, documented in its README/GUIDE/SKILL.md) — two byte-identical, two strictly newer there. Relocating the devflow copies would have created a third, unwired duplicate of each, which the marketplace's own Curation Rule exists to prevent. Retired (`git rm`) rather than relocated; rhize-devflow's README/GUIDE/hooks.json now redirect to the context-manager copies instead of documenting a file that no longer lives there. The other two, `skill-refinement__refinement-detector.sh` and `skill-refinement__session-end.sh`, were genuine orphans with no counterpart anywhere — moved+renamed to `rhize-context-manager/hooks/refinement-pipeline__{refinement-detector,session-end}.sh` (matching the `refinement-pipeline` skill that now owns the design), documented as opt-in (not wired) in that plugin's README/GUIDE/hooks.json. Both hooks' suggestion text updated from a bare `npx @rhize/skill-forge refine` to `/rhize-context-manager:learn-harvest` → `/skill-refine review`, matching the gated queue/re-gate trust model the `refinement-pipeline` skill actually documents; `session-end.sh`'s stale in-file comment pointing at `rhize-devflow/setup/manifest.json` was corrected. Known gap left for a follow-up (out of this task's file scope): the two moved hooks aren't yet declared in `rhize-context-manager/setup/manifest.json`, and `rhize-devflow/setup/manifest.json` still lists all 6 original entries with now-dead `command` paths — both files need a manifest-only pass.
+- **Phase 2.1 hook-ownership cleanup (rhize-devflow 2.9.0 / rhize-context-manager 0.6.0).** The plan premise ("6 hooks left behind by the 2.5.0 migration, all move to `rhize-context-manager/hooks/`") only held for 2 of 6 — verified before executing: `context-engineering__duplicate-check.sh`, `pre-commit-guard.sh`, `session-init.sh`, and `skill-suggester.sh` already had live, fully-wired counterparts at `rhize-context-manager/skills/context-engineering/hooks/*.sh` (declared in that plugin's `setup/manifest.json`, documented in its README/GUIDE/SKILL.md) — two byte-identical, two strictly newer there. Relocating the devflow copies would have created a third, unwired duplicate of each, which the marketplace's own Curation Rule exists to prevent. Retired (`git rm`) rather than relocated; rhize-devflow's README/GUIDE/hooks.json now redirect to the context-manager copies instead of documenting a file that no longer lives there. The other two, `skill-refinement__refinement-detector.sh` and `skill-refinement__session-end.sh`, were genuine orphans with no counterpart anywhere — moved+renamed to `rhize-context-manager/hooks/refinement-pipeline__{refinement-detector,session-end}.sh` (matching the `refinement-pipeline` skill that now owns the design), documented as opt-in (not wired) in that plugin's README/GUIDE/hooks.json. Both hooks' suggestion text updated from a bare `npx @rhize/skill-forge refine` to `/rhize-context-manager:learn-harvest` → `/skill-refine review`, matching the gated queue/re-gate trust model the `refinement-pipeline` skill actually documents; `session-end.sh`'s stale in-file comment pointing at `rhize-devflow/setup/manifest.json` was corrected. The manifest gap this originally left open was closed in the same release: `rhize-devflow/setup/manifest.json` dropped the 6 dead entries (10 → 4 items, plus the orphaned `@rhize/skill-forge` dependency block), and `rhize-context-manager/setup/manifest.json` gained opt-in entries for the two arrived hooks (4 → 6 items), so `/rhize-setup` offers exactly the hooks that exist.
 - _2026-08-09_ version bump — **rhize-context-manager** 0.5.0 → 0.6.0 (minor); marketplace 2.14.0 → 2.15.0.
 - _2026-08-09_ version bump — **rhize-devflow** 2.8.0 → 2.9.0 (minor); marketplace 2.13.0 → 2.14.0.
 - _2026-08-04_ version bump — **rhize-ops** 0.5.0 → 0.6.0 (minor); marketplace 2.12.0 → 2.13.0.
@@ -70,6 +573,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- **rhize-ops (skill-monitor):** `monitor.py`'s defensive `(uuid, session_id)` dedup no longer
+  flags Claude Desktop's own session-transcript replay as an "investigate"-worthy anomaly.
+  Root-caused 2026-08-09: for `entrypoint: claude-desktop` sessions, an assistant turn recorded
+  early in a session's main `.jsonl` can reappear later in the *same file* — identical on
+  uuid/requestId/parentUuid/timestamp/content, differing only in `cwd` (re-resolved against
+  whichever root is active at replay time) and sometimes gaining a `slug` field once the session
+  is auto-named — because the desktop app re-serializes session state into the transcript. All 22
+  duplicates in a `--days 7` run were confirmed to share this exact shape. Added a third expected
+  category (`_is_desktop_main_replay`) alongside the existing main+subagent and
+  acompact+acompact cases; a run that hits it now prints an informational
+  `· collapsed N duplicate events from Claude Desktop session-transcript replay` line instead of
+  `! warning: ... — investigate`. Host-CLI main+main duplicates (no known replay mechanism) still
+  trip the loud warning. No change to what gets deduped or to reconciled event counts — only to
+  classification and messaging. Documented in `rhize-ops/skill-monitor/README.md`'s new
+  "Duplicate-event dedup" subsection.
+- **skill-map:** `fork-of` edges no longer share one marketplace-level `external` node with no
+  `path`/`url` — every one of `rhize-context-manager`'s 7 non-retired `SOURCES.md` entries
+  (context-fundamentals, context-degradation, context-compression, context-optimization,
+  memory-systems, filesystem-context, tool-design) reported `upstream-unreachable` from
+  `@rhize/skill-forge watch`, because its drift checker resolves the upstream file from
+  `node.url ?? node.path`, and a single node representing the whole marketplace can't carry a
+  resolvable path for 7 distinct upstream files. `scripts/build_skill_map.py`'s `load_sources_md()`
+  now mints one `external:<marketplace-name>/<upstream-skill-path>` node **per fork**, each
+  carrying `path` = the ledger's recorded `Source` value with `/SKILL.md` appended and the home
+  directory rewritten to `~` for portability. No schema change was needed (`path` was already a
+  generic node property, and the `external:<name>` id pattern already allows `/`). Verified against
+  a synthetic fixture that the drift checker now genuinely resolves and hashes an upstream file
+  (`in-sync` when content matches); on this machine all 7 real edges still report
+  `upstream-unreachable` because the `context-engineering-marketplace` plugin has since been
+  uninstalled locally — that is now correct, honest reporting of a missing upstream copy, not the
+  structural bug this fixes.
 - **obsidian-second-brain (1.1.4):** removed the hard `"dependencies": ["qmd@qmd"]` declaration from `plugin.json` — it made the plugin refuse to load ("Dependency qmd@qmd is not installed") on any machine without the `qmd` binary, even though qmd is optional everywhere else in the plugin: the README and every affected command already document graceful fallback to keyword/MCP search when qmd isn't present. The plugin.json schema (`schemas/plugin.schema.json` in `everything-claude-code`) has no optional-dependency field, so there was no declarative alternative — the field is simply removed. README's "qmd Semantic Search" section reworded from "dependency" to "optional" to match.
 
 ### Removed

@@ -10,7 +10,7 @@
     "schemaVersion": {
       "type": "string",
       "description": "Semantic version of this schema that the artifact was produced against.",
-      "const": "1.0.0"
+      "const": "1.1.0"
     },
     "generatedAt": {
       "type": "string",
@@ -29,8 +29,8 @@
   "$defs": {
     "nodeId": {
       "type": "string",
-      "description": "String ID of the form '<kind>:<qualifier>'. Examples: skill:<plugin>/<name>, plugin:<name>, command:<plugin>/<name>, hook:<plugin>/<file>, tag:topic/<slug>, tag:stack/<slug>, external:<name>.",
-      "pattern": "^(plugin|skill|command|hook|tag|external):[A-Za-z0-9_.\\-/]+$"
+      "description": "String ID of the form '<kind>:<qualifier>'. Examples: skill:<plugin>/<name>, plugin:<name>, command:<plugin>/<name>, hook:<plugin>/<file>, tag:topic/<slug>, tag:stack/<slug>, tag:condition/<slug>, external:<name>, mcp:<server-name> (node kind mcp-server).",
+      "pattern": "^(plugin|skill|command|hook|tag|external|mcp):[A-Za-z0-9_.\\-/]+$"
     },
     "node": {
       "type": "object",
@@ -39,7 +39,8 @@
         "id": { "$ref": "#/$defs/nodeId" },
         "kind": {
           "type": "string",
-          "enum": ["plugin", "skill", "command", "hook", "tag", "external"]
+          "description": "mcp-server: an MCP server, minted from a `metadata.rhize.dependsOn` declaration naming `mcp:<name>` or a relations-catalog entry. Id form is `mcp:<name>` (not `mcp-server:<name>`).",
+          "enum": ["plugin", "skill", "command", "hook", "tag", "external", "mcp-server"]
         },
         "name": {
           "type": "string",
@@ -57,6 +58,21 @@
           "type": "string",
           "description": "sha256 hex digest of the node's source content (e.g. SKILL.md) — the drift-detection anchor. Required for skill nodes.",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "contentHashNormalized": {
+          "type": "string",
+          "description": "sha256 hex digest of a `fork-of` skill node's SKILL.md with the Rhize-injected `metadata.rhize` frontmatter subtree textually removed — see scripts/sources_md.py's strip_rhize_metadata_block() (the canonical, single implementation) for the exact rule. Present only on skill nodes that are the `from` side of a `fork-of` edge — the local half of the three-way drift verdict (see docs/skill-map.md).",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "baselineHash": {
+          "type": "string",
+          "description": "sha256 hex digest of the upstream file as of the last human review (ingestion or re-baseline via scripts/baseline_upstreams.py), copied from SOURCES.md's '- **Upstream baseline:**' bullet. Present only on `external` nodes that have been baselined — the reviewed-state anchor for the three-way drift verdict (see docs/skill-map.md).",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Where this node originates from. Optional — a node without this property is implicitly \"rhize\". Third-party nodes are populated only in the machine-local overlay (skill-map.local.json / skill-map.resolved.json), never in the committed static artifact.",
+          "enum": ["rhize", "third-party"]
         }
       },
       "allOf": [
@@ -79,6 +95,7 @@
     },
     "edgeType": {
       "type": "string",
+      "description": "Edge relationship type. `extends`: A deliberately deepens/specializes B's domain — directional, specialized-to-base, an intended layering relationship. This is NOT duplication (see overlaps-with) and NOT a runtime dependency (see depends-on); chains are capped at depth 2 by the compiler. `precedes`: A comes before B in a real ordered workflow (e.g. a command pipeline). `follows`: mined — B is commonly invoked after A in the same session (time-adjacent, >=2 distinct sessions); local-overlay only, source `monitor`, never hand-authored. Complements `precedes` (curated intent) with observed behavior. `augments`: A (a skill) should run alongside/after anything tagged with topic B to improve its output — a cross-cutting modifier, deliberately distinct from `extends` (no lexical overlap with targets, no gate exemption, no depth semantics, target is a category not a skill). `remediates`: A (a skill) should be surfaced when condition B (a `tag:condition/<slug>` node) is detected in failed tool output.",
       "enum": [
         "contains",
         "topic-tag",
@@ -88,7 +105,12 @@
         "overlaps-with",
         "depends-on",
         "replaces",
-        "usage-cooccurs"
+        "usage-cooccurs",
+        "extends",
+        "precedes",
+        "follows",
+        "augments",
+        "remediates"
       ]
     },
     "driftCheck": {
@@ -144,6 +166,24 @@
         }
       }
     },
+    "followWeight": {
+      "type": "object",
+      "description": "Structured weight for a mined `follows` edge — simpler than usageWeight (no jaccard/lift: `follows` is directional and doesn't need a symmetric-similarity measure).",
+      "required": ["sessions", "windowDays"],
+      "additionalProperties": false,
+      "properties": {
+        "sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of distinct sessions in which B was invoked after A (time-adjacent)."
+        },
+        "windowDays": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Size in days of the rolling window this weight was computed over."
+        }
+      }
+    },
     "edge": {
       "type": "object",
       "description": "A typed, directed edge between two node ids. Endpoints are 'from'/'to' (not 'source'/'target') so that 'source' is free to mean edge provenance, per the skill-map plan's schema definition.",
@@ -154,7 +194,8 @@
         "type": { "$ref": "#/$defs/edgeType" },
         "source": { "$ref": "#/$defs/provenanceSource" },
         "driftCheck": { "$ref": "#/$defs/driftCheck" },
-        "usageWeight": { "$ref": "#/$defs/usageWeight" }
+        "usageWeight": { "$ref": "#/$defs/usageWeight" },
+        "followWeight": { "$ref": "#/$defs/followWeight" }
       },
       "allOf": [
         {
@@ -163,6 +204,13 @@
             "required": ["type"]
           },
           "then": { "required": ["usageWeight"] }
+        },
+        {
+          "if": {
+            "properties": { "type": { "const": "follows" } },
+            "required": ["type"]
+          },
+          "then": { "required": ["followWeight"] }
         }
       ],
       "additionalProperties": true

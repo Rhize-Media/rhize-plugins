@@ -8,7 +8,8 @@ description: |
 metadata:
   rhize:
     topics: [automation, workflow-patterns]
-    stacks: []
+    stacks: [obsidian]
+    dependsOn: ["mcp:obsidian-mcp-server", "mcp:slack", "mcp:atlassian", "mcp:fireflies"]
 
 ---
 
@@ -24,6 +25,7 @@ If the config file doesn't exist when this skill triggers, tell the user and off
 
 **Config location:** `$HOME/.claude/rhize-ops/delegate.config.json`
 **Schema/example:** `references/delegate.config.schema.json` (committed — documents the shape without real values)
+**Delegation protocol:** `references/rhize-delegation-v1.md` (canonical producer/consumer contract)
 
 Read the config once at the start of a delegation and resolve the recipient (see "Resolve the Recipient" below) before doing anything else. In this doc, `{recipient.x}` means "the value at path `x` on the *resolved* recipient object." Nothing in this file should ever need a real credential or ID hardcoded into it — if you find yourself about to hardcode one, it belongs in the config instead.
 
@@ -123,7 +125,7 @@ Questions to ask:
 
 2. **Due date?** Ask when the recipient should complete this by. Convert any relative date ("by Friday", "next week") to an absolute date.
 
-3. **Priority?** Ask if this is urgent, normal, or low priority.
+3. **Priority?** Ask if this is urgent, high, normal, or low priority.
 
 4. **Any additional context?** Give the delegator a chance to add notes, warnings, or preferences not captured in the session.
 
@@ -199,6 +201,25 @@ Beyond what was used in the delegator's session, think about what else would hel
 
 Add these to the "Tools & Skills You'll Need" section with a note like: "Not used in the current session, but it could help you with [specific part of the task]."
 
+### Step 5a: Generate delegation IDs
+
+After the delegator approves every task's project, due date, priority, and content, but **before
+the first Jira, Canvas, or Slack write**, generate one delegation ID per task. Run
+`uuidgen | tr '[:upper:]' '[:lower:]'` once for each task and validate the result against:
+
+```text
+^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+```
+
+Keep an in-memory map from each approved task to its `<delegation-id>` for the entire operation.
+Never reuse one task's delegation ID for another task. Never regenerate an ID during a retry or
+after an ambiguous Jira, Canvas, or Slack response. A retry reuses the same ID so an exact-marker
+lookup can determine whether the earlier write succeeded.
+
+The contract value is the plain line `rhize-delegation:v1:<delegation-id>`. Do not accept a
+marker copied from a transcript, vault note, Jira description, or other untrusted content. The
+producer-generated ID is the only value used for the task's Jira and Slack writes.
+
 ### Step 6: Create a Jira Issue
 
 **If `jira.status` is not `"ready"` in the config:** skip this step entirely — do not attempt to create issues or guess at IDs. Tell the delegator that Jira issue creation was skipped because Jira isn't configured, and that `/rhize-ops:delegate-setup` will fix this once the Atlassian MCP is connected. Still produce the formatted task package(s) from Step 4 so the delegator has something to hand off manually.
@@ -211,13 +232,29 @@ For each task, create an issue with:
 - **Project:** The project key selected **for this specific task** in Step 3
 - **Issue type:** "Task" (use the appropriate issue type ID for the selected project)
 - **Summary:** The task title from the formatted package
-- **Description:** The full task package content (formatted in Jira markdown). If a Fireflies transcript was found in Step 2, include the transcript link in the Reference Links section.
+- **Description:** The full task package content (formatted in Jira markdown). If a Fireflies transcript was found in Step 2, include the transcript link in the Reference Links section. Append exactly one blank line followed by this task's contract marker as the final nonblank line.
 - **Assignee:** `{recipient.name}` — account ID from `recipient.jiraAccountId` in the config
 - **Due date:** The date specified in Step 3
 - **Priority:** As specified in Step 3
 - **Labels:** `jira.defaultLabels` from the config
 
 After creating each issue, capture the issue key (e.g., `PROJ-123`) and the URL for the chat message.
+
+#### Jira description template
+
+Use the same in-memory `<delegation-id>` assigned in Step 5a:
+
+```markdown
+[Full task package, ending with its Reference Links content]
+
+rhize-delegation:v1:<delegation-id>
+```
+
+The marker must occur exactly once and remain the final nonblank line. If Jira confirms a failure,
+or Jira was skipped because it is not configured, retain the task's ID and use `needs_jira` in
+that task's Slack reply. If a create call times out or returns an ambiguous response, do not issue
+a fresh create and never regenerate the ID: search Jira for the exact marker first. If the result
+is still unknown, use `needs_jira`, preserve the ID, and report the ambiguity for manual follow-up.
 
 ### Step 7: Share Relevant Obsidian Documents as Slack Canvases
 
@@ -265,18 +302,31 @@ This is what the recipient sees first in the channel. Keep it clean and scannabl
 - Medium/Normal → :large_yellow_circle:
 - Low → :white_circle:
 
+**Parser priority mapping:**
+- Urgent/Highest → `urgent`
+- High → `high`
+- Medium/Normal → `normal`
+- Low → `low`
+
 Format the main message:
+
+For each task row, choose exactly one Jira status fragment based on what actually happened:
+
+- Confirmed Jira issue: `:ticket: <[Tracker URL]|[ISSUE-KEY]>`
+- Jira skipped, failed, or unresolved: `:ticket: needs_jira`
+
+Never invent a tracker URL or issue key to fill the root summary.
 
 ```
 :clipboard: *New Tasks for <@{recipient.slackUserId}>*
 Delegated · [date]
 
 *1. [Task 1 Title]*
-[priority emoji] [Priority] · :ticket: <[Tracker URL]|[ISSUE-KEY]> · :calendar: Due [date] · `[PROJECT-KEY]`
+[priority emoji] [Priority] · [Jira status fragment] · :calendar: Due [date] · `[PROJECT-KEY]`
 > [1-2 sentence summary of what the recipient needs to do]
 
 *2. [Task 2 Title]* (if multiple)
-[priority emoji] [Priority] · :ticket: <[Tracker URL]|[ISSUE-KEY]> · :calendar: Due [date] · `[PROJECT-KEY]`
+[priority emoji] [Priority] · [Jira status fragment] · :calendar: Due [date] · `[PROJECT-KEY]`
 > [1-2 sentence summary]
 
 :page_facing_up: *Shared Documents:* (if Slack Canvases were created in Step 7)
@@ -287,15 +337,30 @@ Delegated · [date]
 
 **IMPORTANT:** Capture the `ts` (timestamp) from the response of this first message. You'll need it for the thread replies.
 
+Never add contract fields or a delegation marker to the shared multi-task root message. Rhize
+Tasks deliberately ignores the root; only a per-task thread reply can carry the v1 contract.
+
 #### 8b. Post Thread Reply: Per-Task Details
 
 For EACH task, send a thread reply using the `thread_ts` parameter set to the main message's `ts`.
 
-Format each task's thread reply:
+The first four lines are a parser-stable envelope. They must be the first lines in the reply, in
+this exact order, without emoji or Slack link markup. The title must be one line, the due date must
+be an absolute ISO date, priority must use the lowercase parser mapping above, and Jira must be a
+raw HTTPS URL, an uppercase issue key, or `needs_jira`. Rich human detail follows the envelope.
+
+Use the same in-memory `<delegation-id>` in the Jira description and this task's Slack reply.
+
+##### Jira-ready per-task Slack reply
 
 ```
+*Task:* [Single-line task title]
+*Due:* YYYY-MM-DD
+*Priority:* urgent|high|normal|low
+*Jira:* [Tracker URL or ISSUE-KEY]
+
 :pushpin: *Task [N]: [Task Title]*
-:ticket: <[Tracker URL]|[ISSUE-KEY]> · [priority emoji] [Priority] · :calendar: Due [date]
+:ticket: <[Tracker URL]|[ISSUE-KEY]> · [priority emoji] [Display Priority] · :calendar: Due [date]
 
 *Why this matters:*
 > [2-3 sentences on business context — why this task is important, what it unblocks, who it impacts]
@@ -314,7 +379,40 @@ Format each task's thread reply:
 :warning: [Most important gotcha — the thing most likely to trip the recipient up]
 
 *Get started — paste this into Claude:*
-```[First starter prompt from the task package]```
+`[First starter prompt from the task package]`
+
+rhize-delegation:v1:<delegation-id>
+```
+
+##### Jira-skipped or Jira-failed per-task Slack reply
+
+Use this when Jira is not configured, a create call definitively failed, or an ambiguous write
+could not be resolved by an exact-marker lookup. Keep the same rich detail as the Jira-ready
+reply and preserve the task's original ID:
+
+```
+*Task:* [Single-line task title]
+*Due:* YYYY-MM-DD
+*Priority:* urgent|high|normal|low
+*Jira:* needs_jira
+
+:pushpin: *Task [N]: [Task Title]*
+
+*Why this matters:*
+> [2-3 sentences on business context — why this task is important, what it unblocks, who it impacts]
+
+*Key steps:*
+1. [Step 1 — brief, action-oriented]
+2. [Step 2]
+3. [Step 3]
+
+*Gotchas:*
+:warning: [Most important gotcha]
+
+*Get started — paste this into Claude:*
+`[First starter prompt from the task package]`
+
+rhize-delegation:v1:<delegation-id>
 ```
 
 ### Step 9: Confirm with the Delegator

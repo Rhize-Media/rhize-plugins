@@ -11,18 +11,46 @@ tools with their own release cycles. This plugin owns the *decision layer* — w
 to use when, how they coexist, and how to health-check the stack — while the binaries
 and their own hook plugins stay externally installed and updated.
 
+## Install
+
+Install `rhize-devflow` alongside this plugin. Dev Flow owns the executable `/impact-map` command
+(`/rhize-devflow:impact-map`); this plugin keeps a deprecation adapter at `/impact-map` for the
+2.12.0 compatibility window only.
+
+**Claude Code / Cowork:**
+
+```text
+/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+/plugin install rhize-devflow@rhize-plugins
+/plugin install rhize-context-manager@rhize-plugins
+```
+
+**Codex:**
+
+```bash
+codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+codex plugin add rhize-devflow@rhize-plugins
+codex plugin add rhize-context-manager@rhize-plugins
+```
+
+Start a new session after an install or update. CodeGraph itself remains optional:
+`/rhize-devflow:impact-map` uses an existing healthy index when available and otherwise falls
+back to `rg`.
+
 ## Skills
 
 ### Rhize-authored (orchestration layer)
 
-| Skill | Purpose |
-|---|---|
-| `context-stack` | Routing + coexistence brain for the whole stack; encodes the Headroom / claude-mem / OpenWolf overlap watch policy |
-| `context-engineering` | Session/memory/hygiene workflow (moved here from rhize-devflow v2.4.x) |
-| `graphify` | Any input → knowledge graph (promoted from user-level skill) |
-| `graphiti-memory` | Opt-in Graphiti temporal knowledge-graph memory: adoption guide + MCP wiring (NOT a dependency) |
-| `refinement-pipeline` | Gated skill-refinement loop: headroom learn / claude-mem / skill-monitor signals → human-triaged queue → skill-forge evolve with auto-promote rules |
-| `learning-curation` | Decide whether a session learning deserves persistence and where it should live |
+<!-- SKILL-MAP:BEGIN -->
+| Skill | Description | Topics |
+| --- | --- | --- |
+| `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
+| `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
+| `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
+| `graphiti-memory` | Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. | knowledge-graph, memory-systems |
+| `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
+| `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | learning-curation, workflow-patterns |
+<!-- SKILL-MAP:END -->
 
 ### Curated third-party (ingested via skill-forge, safety-gated, provenance in [skills/SOURCES.md](skills/SOURCES.md))
 
@@ -44,10 +72,10 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags. Persists each run to `~/.claude/context-manager/doctor/<YYYY-MM-DD-HHMM>.json`, prints a delta against the previous run, and — if the `ecc` plugin's `harness-audit` skill is available — chains into it as a final deeper pass (graceful one-line skip otherwise). |
 | `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
-| `/done` | Session bookend — verifier PASS + `STATE.md` update before commit (moved from rhize-devflow) |
+| `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
-| `/impact-map` | Pre-feature impact mapping against the component registry (moved from rhize-devflow) |
-| `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md |
+| `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
+| `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
@@ -56,20 +84,70 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 subagent step in `/done`, and a `STATE.md` update step that the skill-side copies
 lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` originals.
 
+### Harvest noise filter (`scripts/harvest_noise_filter.py`)
+
+Queue entry ids are `sha1-12(source + pattern)`, so **a rephrasing of an already-known
+fact produces a new id and walks past id-dedupe**. Measured on 2026-08-14: 3 of 5
+headroom entries restated facts folded into CLAUDE.md on 2026-08-12, and the two largest
+`est_savings` claims (235k, 45k) were the two most duplicative — roughly 30% of a day's
+yield spent re-litigating settled facts.
+
+Step 7 of `/learn-harvest` runs this filter, which matches on content instead of hash.
+Each candidate is scored by greedy set-cover: what fraction of its normalized content
+tokens are covered by up to `--max-blocks` (default 3) reference blocks, drawn from
+existing queue patterns (**any** status) and the CLAUDE.md files passed via `--reference`.
+
+| Outcome | Coverage | Action |
+|---|---|---|
+| `suppressed` | ≥ `--threshold` (0.75) | dropped — a restatement |
+| `flagged` | ≥ `--flag-threshold` (0.45) | **kept**, tagged with `filter_note` for triage |
+| `thin` | < 6 content tokens | dropped — a bare heading is not a signal |
+| `kept` | otherwise | appended normally |
+
+Thresholds are calibrated against the 44 human-labeled dispositions of 2026-08-14, where
+the populations separated as: real signals ≤ 0.70, fully-covered restatements ≥ 0.80.
+Reproduce with `--self-audit`. Composite entries (`Topic — Fact1. Fact2. Fact3.`) sit in
+the 0.46–0.56 band — each fact known, the bundle still part-novel — which is why that band
+flags for a human rather than auto-suppressing; no threshold separates them from genuine
+signals, so the filter declines to guess.
+
+Stdlib only (system `python3` has no `jsonschema`), deterministic, no network. The report
+is teed to `~/.claude/context-manager/harvest-logs/<date>-filter.txt`: suppression must
+leave a disk artifact, or "few new entries" becomes indistinguishable from a collector
+that never ran.
+
 ## Hooks
 
 | Hook | Event | Purpose |
 |---|---|---|
 | `context-window-monitor.js` | `PreToolUse` (`Edit\|Write`) | Warns once per 10% band past 75% of the **real** context window |
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
+| `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
+| `next-step-suggester.js` | `PostToolUse` (`Skill`) | After a skill invocation, looks up the invoked skill's succession entry and suggests exactly one next step — the declared `precedes` successor, or the mined `follows` successor if no `precedes` exists. Silent when there's no successor. |
 
-Both hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
+All four hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
 `session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
 obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
-`.claude/plans/skill-map-graph-substrate.md`. Like `skill-router.js`, it resolves
-`~/.claude/context-manager/skill-map.resolved.json`, falling back to
-`skill-map.static.json`, and fails silently (exit 0, no output) on any missing or corrupt
-map. See `docs/skill-map.md` for the artifact/tagging conventions it depends on.
+`.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
+`next-step-suggester.js` were added 2026-08-09 as the runtime consumers for relationships v2
+(`docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` section 7) — the
+first runtime consumer of `precedes`, and the first consumer of the `remediates`/`condition`
+data. All four resolve the compiled skill-map artifact the same way: the materialized indexes
+first (`~/.claude/context-manager/skill-map.indexes.resolved.json`, falling back to
+`skill-map.indexes.json`), and — for `skill-router.js`/`session-disclosure.js` only — a further
+fallback to the older `skill-map.resolved.json`/`skill-map.static.json` map-scan path when no
+indexes file exists at all. All four fail silently (exit 0, no output) on any missing or corrupt
+input. See `docs/skill-map.md` for the artifact/tagging conventions they depend on.
+
+All four hooks also write a **suggestion log** — one JSON line per fired suggestion, appended
+fail-silent to `~/.claude/context-manager/suggestion-log.jsonl`:
+`{"ts", "session_id", "hook", "suggested", "context_hash"}`. No prompt text, paths, or tool
+output is ever logged — ids and truncated sha256 hashes only, matching skill-monitor's privacy
+precedent. `skill-router.js` additionally logs a 1-in-20 sample of no-suggestion prompts
+(`"suggested": null`) so silence precision has a denominator. `scripts/suggestion_log_report.py`
+(repo root) joins the log against skill-monitor usage data to report per-hook acceptance and
+ignore rates. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file path)
+and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
 
 ### Opt-in hooks (`setup/manifest.json`)
 
@@ -188,6 +266,43 @@ Verify any change with the built-in self-test (9 cases, including the exact
 ```bash
 node hooks/context-window-monitor.js --self-test
 ```
+
+## Skill-map frontmatter conventions
+
+Every Rhize-authored skill in `skills/*/SKILL.md` declares its skill-map identity under a
+`metadata.rhize` block in frontmatter, e.g.:
+
+```yaml
+metadata:
+  rhize:
+    topics: [context-compression, context-engineering]
+    stacks: []
+    extends: [context-fundamentals]
+```
+
+| Field | Meaning |
+|---|---|
+| `topics` | Topic tags — what the skill is about; drives `skill-router.js`/`session-disclosure.js` topic-tag matching. |
+| `stacks` | Stack tags — which detected project stack (nextjs, sanity, vercel, obsidian, …) the skill is relevant to; drives `session-disclosure.js`'s stack fingerprint match. |
+| `extends` | Names an existing skill this one deliberately deepens/specializes (chains capped at depth 2 by the compiler). Also the declaration `skill-forge`'s `--skill-map` overlap gate checks for its exemption. |
+| `augments` | Names a topic (not a skill) this skill should run alongside/after — a cross-cutting modifier, distinct from `extends`. |
+| `remediates` | Names a `tag:condition/<slug>` this skill fixes when detected in failed tool output — feeds `remediation-suggester.js`. |
+| `dependsOn` | Runtime dependencies, e.g. `["mcp:graphiti"]` — mints an `mcp-server` node in the compiled map. |
+
+`docs/skill-map.md` (repo root) is the authoritative schema/tagging reference; this table
+is the quick-lookup version for anyone editing a `SKILL.md` here.
+
+## Querying the compiled map
+
+`python3 scripts/query_skill_map.py --list` (run from the `rhize-plugins` repo root)
+prints the named, declarative queries available over `catalog/queries.json` — the
+second tier of the two-tier query layer (the first tier is the materialized
+`generated/skill-map.indexes.json` the hooks above read directly). Use it instead of
+hand-writing a traversal when you need something the hooks don't already answer, e.g.
+`python3 scripts/query_skill_map.py what-follows context-engineering --resolved` (the
+`--resolved` flag reads the installed, third-party-merged
+`~/.claude/context-manager/skill-map.resolved.json` instead of the repo-local static
+artifact — required for anything touching `follows` edges or third-party nodes).
 
 ## The stack this plugin orchestrates
 

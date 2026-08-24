@@ -1,6 +1,7 @@
 # Triage Summary Template
 
-Use this template to document error triage sessions for Serena memory persistence.
+Use this template to document error triage sessions for STATE.md persistence via
+`/rhize-context-manager`.
 
 ---
 
@@ -63,12 +64,8 @@ Use this template to document error triage sessions for Serena memory persistenc
 
 ---
 
-## Serena Memory Format
+## STATE.md Persistence
 
-Save to memory with:
-```
-mcp__serena__write_memory(
-    memory_name="triage_[YYYY-MM-DD]",
-    content="<this-summary>"
-)
-```
+Save this summary via `/rhize-context-manager:done`, under an entry named
+`triage-[YYYY-MM-DD]` in the appropriate STATE.md section (Open failures for
+in-progress/blocked issues, Lessons learned for resolved ones with an extracted pattern).

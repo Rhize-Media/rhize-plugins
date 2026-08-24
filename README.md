@@ -1,6 +1,6 @@
 # Rhize Plugins
 
-A curated collection of Claude plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, and internal operations tooling for Claude Code and Cowork.
+A curated collection of Claude and Codex plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, local-first planning, and internal operations tooling.
 
 ## Quick Start
 
@@ -14,14 +14,18 @@ All plugins below will become available for installation. Each plugin may need i
 
 ## Plugin Catalog
 
-| Plugin | What it's for | Docs |
-| --- | --- | --- |
-| [seo-aeo-geo](./seo-aeo-geo) | SEO, AEO, and GEO auditing/optimization powered by DataForSEO, plus Next.js + Sanity SEO code review | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, semantic search | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
-| [project-launcher](./project-launcher) | End-to-end project launcher — research, PRD, gap analysis, visual plan review, scaffolding, GSD v2 handoff | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | Development-workflow skill set — production error lifecycle, data-mutation consistency, Sentry, Chrome DevTools, Sanity house style | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | Context engineering & optimization — compression, management, retrieval, storage; orchestrates Headroom/claude-mem/OpenWolf/Serena/CodeGraph/graphify (+ opt-in Graphiti), session-lifecycle commands, curated gated skill library | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | Internal operations — session hand-offs (Jira/Slack/Fireflies), skill-usage health monitoring, and fleet setup | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+<!-- SKILL-MAP:BEGIN -->
+| Plugin | Version | Skill Count | Description | Docs |
+| --- | --- | --- | --- | --- |
+| [seo-aeo-geo](./seo-aeo-geo) | 1.4.2 | 7 | Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.4.3 | 9 | Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [project-launcher](./project-launcher) | 1.7.2 | 2 | End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.13.0 | 6 | Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.14.0 | 13 | Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. /done delegates code-change review to rhize-devflow's /review when installed. /impact-map is a deprecation adapter to rhize-devflow, which owns the executable command. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.10.0 | 2 | Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-tasks](./rhize-tasks) | 0.3.0 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
+| [rhize-cowork](./rhize-cowork) | 0.1.0 | 1 | Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging). | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
+<!-- SKILL-MAP:END -->
 
 **Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
 plugin's opt-in `setup/manifest.json` hooks and dependencies into a project — without it those
@@ -40,6 +44,8 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
+**rhize-tasks** is a macOS-local service and requires macOS 14+, Node.js 22+, a compatible Swift/Xcode toolchain, Apple Reminders permission, and credentials for the connector scopes Tom approves. It stores secrets only in Keychain and keeps Calendar/Reminders writes inside dedicated approved containers. See its [technical README](./rhize-tasks/README.md) and [Tom-facing guide](./rhize-tasks/GUIDE.md).
+
 The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
 
 ### Dependency matrix
@@ -57,10 +63,10 @@ full list including optional numerator/orchestration sources.
 | obsidian-second-brain | Obsidian CLI (v1.12.4+) | cli | Yes | CLI-backed commands fail; only overlapping MCP ops still work |
 | obsidian-second-brain | Defuddle | cli | No | The web-clipping skill can't extract articles; nothing else affected |
 | obsidian-second-brain | qmd (+ `qmd@qmd` plugin) | plugin | No | Falls back to MCP/CLI keyword search (documented, automatic) |
-| rhize-devflow | Sentry MCP server | mcp | Yes | `error-lifecycle-management` can't fetch issues/events/perf data |
-| rhize-devflow | Vercel MCP server | mcp | Yes | Can't correlate an error with its causing deployment |
-| rhize-devflow | GitHub MCP server | mcp | Yes | Can't identify the causing commit/PR or auto-file a ticket |
-| rhize-devflow | Chrome DevTools MCP server | mcp | Yes | `chrome-devtools-mcp` skill can't run at all |
+| rhize-devflow | Sentry MCP server | mcp | No | `error-lifecycle-management` can't fetch issues/events/perf data (capability: `error-lifecycle`) |
+| rhize-devflow | Vercel MCP server | mcp | No | Can't correlate an error with its causing deployment (capability: `deploy-correlation`) |
+| rhize-devflow | GitHub MCP server | mcp | No | Can't identify the causing commit/PR or auto-file a ticket (capability: `commit-pr-correlation`) |
+| rhize-devflow | Chrome DevTools MCP server | mcp | No | `chrome-devtools-mcp` skill can't run at all (capability: `browser-qa`; `/rhize-devflow:browser-qa` itself still degrades gracefully across whichever browser tool is connected) |
 | rhize-devflow | `@rhize/skill-forge` (npm) | cli | No | Opt-in refinement hooks still fire; the suggested command fails |
 | rhize-context-manager | `@rhize/skill-forge` (npm) | cli | Yes | `/skill-refine run` cannot execute |
 | rhize-context-manager | headroom (CLI) | cli | Yes | `/learn-harvest`'s headroom-learn source step fails |
@@ -70,6 +76,9 @@ full list including optional numerator/orchestration sources.
 | project-launcher | 12 integrated external skills (obsidian-second-brain, grill-me, write-a-prd, seo-aeo-geo, brand-voice, n8n-automation, engineering, tdd, prd-to-issues, simplify) | plugin | No | That phase's step is skipped or done with generic prompting |
 | rhize-ops | ecc (cost-tracker Stop hook → `costs.jsonl`) | plugin | No | Scorecard/ROI reports lose their measured-spend denominator |
 | rhize-ops | rtk, Headroom, claude-mem, OpenWolf | cli/plugin | No | Each is one numerator source in the scorecard; missing ones show "no data" |
+| rhize-tasks | macOS 14+, Node.js 22+, Swift/Xcode toolchain | platform/runtime | Yes | The local service and signed EventKit helper cannot be installed |
+| rhize-tasks | Jira, Google Calendar, Apple Reminders | direct connector | Yes | The affected source remains offline and its writes stay paused |
+| rhize-tasks | Slack bot in approved `#tom-tasks` scope | direct connector | No | Structured delegation fallback is disabled; Jira planning continues |
 
 ## Documentation Hierarchy
 
@@ -88,6 +97,22 @@ This repo uses one convention consistently across every plugin — know it once,
 
 **Local/personal config:** a skill should never hardcode a real name, credential, ID, or other installer-specific value. Two patterns are used depending on lifetime: durable personal config that must survive plugin reinstalls (e.g. `rhize-ops`'s `delegate-to-teammate` recipient/credentials) lives in `$HOME/.claude/<plugin>/...`, generated by a setup wizard, with a committed JSON Schema documenting the shape; disposable repo-local reference material that's just extracted example content (e.g. `rhize-devflow`'s `.claude/*.local.md` files) lives inside the repo under `.claude/`, already covered by the root `.gitignore`. Pick based on whether the data needs to outlive this git checkout.
 
+## Skill Map
+
+This repo compiles a graph of every skill, plugin, MCP server, and their relationships
+(`follows`, `extends`, `augments`, `remediates`, `precedes`, third-party `fork-of` edges)
+into `generated/skill-map.static.json`, installed per-machine to
+`~/.claude/context-manager/`. Four `rhize-context-manager` hooks read it at runtime
+(session-start disclosure, failure remediation, next-step suggestion, and — opt-in —
+prompt routing); `skill-forge`'s `--skill-map` flag reads it for overlap-gating and
+upstream drift checks. See **[`docs/skill-map.md`](./docs/skill-map.md)** for the full
+artifact/schema/tagging reference, and query it directly with
+`python3 scripts/query_skill_map.py --list` (declarative named queries over
+`catalog/queries.json`) rather than re-deriving a traversal by hand. For a visual view,
+`scripts/publish_skill_map_vault.py` renders the same map into an Obsidian `Skill Map.base`
+and `Skill Map.canvas` — regenerate rather than hand-edit either. Design specs for major
+skill-map changes live under [`docs/superpowers/specs/`](./docs/superpowers/specs/).
+
 ## Repository Tooling
 
 - **[`evals/`](./evals/README.md)** — a Python eval harness that measures trigger accuracy (does the right skill fire on the right prompt) and output quality for plugins. Coverage is currently partial: `seo-aeo-geo` and `obsidian-second-brain` have eval suites; the other plugins don't yet (see `ROADMAP.md`).
@@ -105,6 +130,7 @@ rhize-plugins/
 ├── rhize-devflow/                 # Plugin: dev workflow
 ├── rhize-context-manager/         # Plugin: context engineering & optimization
 ├── rhize-ops/                     # Plugin: internal ops
+├── rhize-tasks/                   # Plugin: local-first unified task planning
 ├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
 ├── evals/                         # Trigger/quality eval harness
 ├── scripts/                       # Maintainer scripts (e.g. version bump)

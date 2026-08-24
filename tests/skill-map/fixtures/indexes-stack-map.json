@@ -1,0 +1,27 @@
+{
+  "disclosure": {
+    "nextjs": [
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
+      }
+    ],
+    "sanity": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow:sanity-development"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
+      }
+    ]
+  },
+  "remediation": {},
+  "router": {
+    "extendsBases": {},
+    "signals": {}
+  },
+  "schemaVersion": "1.1.0",
+  "succession": {}
+}

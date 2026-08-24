@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """bump_version.py — coordinated semver bumps for the rhize-plugins marketplace.
 
-Keeps each plugin's `.claude-plugin/plugin.json` version, the marketplace manifest's per-plugin
-entry + top-level version, and the CHANGELOG in sync. Plugins are auto-discovered (any top-level
-dir with `.claude-plugin/plugin.json`), so new plugins need zero config.
+Keeps each plugin's Claude and optional Codex manifest versions, the marketplace manifest's
+per-plugin entry + top-level version, and the CHANGELOG in sync. Plugins are auto-discovered (any
+top-level dir with `.claude-plugin/plugin.json`), so new plugins need zero config.
 
 Modes:
   --plugin NAME --level {major,minor,patch}   explicit single bump
@@ -30,6 +30,11 @@ from pathlib import Path
 
 LEVELS = {None: 0, "patch": 1, "minor": 2, "major": 3}
 ORDER = {1: "patch", 2: "minor", 3: "major"}
+REPOSITORY_CONTRACTS = (
+    ("CodeGraph + impact-map contract", "tests/rhize-devflow/test_impact_map_contract.py"),
+    ("Dev Flow test suite", "tests/rhize-devflow", "-q"),
+    ("skill-map freshness", "scripts/validate_skill_map.py", "--check-stale"),
+)
 
 
 def fail(msg: str) -> "None":
@@ -82,7 +87,10 @@ def bump_semver(ver: str, level: str) -> str:
 def last_release_ref(since: str | None) -> str:
     if since:
         return since
-    ref = git("log", "-1", "--format=%H", "--", ".claude-plugin/marketplace.json")
+    # Key the release base on the last commit that CHANGED a version line in the
+    # marketplace manifest, not merely touched the file — a commit that edits only
+    # descriptions (or other non-version fields) must not be mistaken for a release.
+    ref = git("log", "-1", "--format=%H", "-G\"version\"", "--", ".claude-plugin/marketplace.json")
     return ref or git("rev-list", "--max-parents=0", "HEAD")
 
 
@@ -114,14 +122,84 @@ def infer_level(base: str, plug_name: str) -> str:
     return best or "patch"
 
 
-# ---------- writers (text-level for plugin.json; JSON for marketplace) ----------
+def run_repository_contract_checks() -> list[str]:
+    """Run repository contracts even when the current commit is itself the release base.
 
-def set_plugin_version(manifest: Path, old: str, new: str) -> None:
-    t = manifest.read_text(encoding="utf-8")
-    t2, n = re.subn(r'("version"\s*:\s*)"' + re.escape(old) + '"', r'\1"' + new + '"', t, count=1)
-    if n != 1:
-        fail(f"could not rewrite version in {manifest}")
-    manifest.write_text(t2, encoding="utf-8")
+    A contract entry naming a `.py` file is run directly as a script (its own
+    `if __name__ == "__main__":` guard is the pytest-independent entry point,
+    e.g. test_impact_map_contract.py, validate_skill_map.py). A contract entry
+    naming anything else (a directory, e.g. "tests/rhize-devflow") is run via
+    `python3 -m pytest <target> <arguments>` instead, so a whole test suite's
+    actual test functions execute and fail the gate on any regression — a
+    plain `python3 <dir>` would not run pytest's test_* functions at all.
+    """
+    errors = []
+    for label, relative_path, *arguments in REPOSITORY_CONTRACTS:
+        target = REPO / relative_path
+        if target.suffix == ".py":
+            command = [sys.executable, str(target), *arguments]
+        else:
+            command = [sys.executable, "-m", "pytest", str(target), *arguments]
+        result = subprocess.run(
+            command,
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout:
+            print(result.stdout, end="")
+        if result.stderr:
+            print(result.stderr, end="", file=sys.stderr)
+        if result.returncode != 0:
+            errors.append(f"{label} failed")
+    return errors
+
+
+# ---------- writers ----------
+
+def update_plugin_manifests(plugin: str, version: str) -> None:
+    """Update host manifests and any runtime metadata shipped by a plugin together."""
+    paths = [REPO / plugin / ".claude-plugin" / "plugin.json"]
+    codex = REPO / plugin / ".codex-plugin" / "plugin.json"
+    if codex.exists():
+        paths.append(codex)
+    for path in paths:
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["version"] = version
+        path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    package = REPO / plugin / "package.json"
+    if package.exists():
+        document = json.loads(package.read_text(encoding="utf-8"))
+        document["version"] = version
+        package.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    runtime = REPO / plugin / "service" / "src" / "api" / "context.mjs"
+    if runtime.exists():
+        text = runtime.read_text(encoding="utf-8")
+        updated, count = re.subn(r"^const VERSION = '[^']+';$", f"const VERSION = '{version}';", text, count=1, flags=re.MULTILINE)
+        if count == 1:
+            runtime.write_text(updated, encoding="utf-8")
+        elif re.search(r"^const VERSION = JSON\.parse\(.*package\.json.*\)\.version;$", text, flags=re.MULTILINE):
+            pass  # runtime derives its version from package.json; nothing to patch
+        else:
+            fail(f"could not update runtime version in {runtime.relative_to(REPO)}")
+
+    info_plist = REPO / plugin / "native" / "reminders-helper" / "Resources" / "Info.plist"
+    if info_plist.exists():
+        text = info_plist.read_text(encoding="utf-8")
+        pattern = r"(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)"
+        updated, count = re.subn(pattern, rf"\g<1>{version}\g<2>", text, count=1)
+        if count != 1:
+            fail(f"could not update helper version in {info_plist.relative_to(REPO)}")
+        info_plist.write_text(updated, encoding="utf-8")
+
+
+def apply_bumps(plug_new: dict, mkt_new: str) -> None:
+    """Apply one release's plugin-manifest and marketplace version updates."""
+    for plugin, version in plug_new.items():
+        update_plugin_manifests(plugin, version)
+    update_marketplace(plug_new, mkt_new)
 
 
 def update_marketplace(plug_new: dict, mkt_new: str) -> None:
@@ -162,15 +240,12 @@ def plan_rows(plugins: dict, levels: dict) -> list:
 
 def apply(plugins: dict, levels: dict) -> None:
     rows = plan_rows(plugins, levels)
-    plug_new = {}
-    for name, old, new, _lvl in rows:
-        set_plugin_version(plugin_manifest(plugins[name]), old, new)
-        plug_new[name] = new
+    plug_new = {name: new for name, _old, new, _lvl in rows}
     mkt_mf = REPO / ".claude-plugin" / "marketplace.json"
     mkt_old = json.loads(mkt_mf.read_text(encoding="utf-8"))["version"]
     mkt_level = ORDER[max(LEVELS[l] for l in levels.values())]
     mkt_new = bump_semver(mkt_old, mkt_level)
-    update_marketplace(plug_new, mkt_new)
+    apply_bumps(plug_new, mkt_new)
     today = dt.date.today().isoformat()
     bullets = [f"**{n}** {o} → {nv} ({l})" for n, o, nv, l in rows]
     changelog_insert([f"_{today}_ version bump — " + "; ".join(bullets)
@@ -211,10 +286,15 @@ def cmd_plugin(args, plugins: dict) -> int:
 def cmd_check(args, plugins: dict) -> int:
     base = last_release_ref(args.since)
     dirty = changed_dirs(base, plugins)
+    errors = run_repository_contract_checks()
     if not dirty:
+        if errors:
+            print("✗ check failed — repository contract errors:", file=sys.stderr)
+            for error in errors:
+                print(f"    - {error}", file=sys.stderr)
+            return 1
         print("✓ check: no plugin changes since last release.")
         return 0
-    errors = []
     for name in sorted(dirty):
         cur = read_version(plugin_manifest(plugins[name]))
         based = git("show", f"{base}:{name}/.claude-plugin/plugin.json")
@@ -229,7 +309,7 @@ def cmd_check(args, plugins: dict) -> int:
     if not git("diff", "--name-only", f"{base}..HEAD", "--", "CHANGELOG.md"):
         print("  note: CHANGELOG.md not updated since last release.", file=sys.stderr)
     if errors:
-        print("✗ check failed — stale versions:", file=sys.stderr)
+        print("✗ check failed — validation errors:", file=sys.stderr)
         for e in errors:
             print(f"    - {e}", file=sys.stderr)
         print("  run: python3 scripts/bump_version.py --auto --yes", file=sys.stderr)

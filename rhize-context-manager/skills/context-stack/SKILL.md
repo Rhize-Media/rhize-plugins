@@ -11,7 +11,7 @@ description: >-
 metadata:
   rhize:
     topics: [context-engineering, workflow-patterns]
-    stacks: [context]
+    stacks: [obsidian]
 
 ---
 

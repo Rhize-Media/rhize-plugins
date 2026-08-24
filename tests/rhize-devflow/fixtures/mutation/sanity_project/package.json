@@ -1,0 +1,6 @@
+{
+  "name": "sanity-fixture",
+  "dependencies": {
+    "@sanity/client": "^6.0.0"
+  }
+}

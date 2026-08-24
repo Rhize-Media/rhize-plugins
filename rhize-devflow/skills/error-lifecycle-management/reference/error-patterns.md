@@ -47,7 +47,7 @@ export async function handler(req: NextApiRequest, res: NextApiResponse) {
 **Pattern:** "new row violates row-level security policy"
 **Diagnosis Steps:**
 1. Check current user context: `supabase.auth.getUser()`
-2. Review RLS policies: `scripts/check_rls_policies.sql`
+2. Review RLS policies directly in the Supabase dashboard or via `supabase db diff`
 3. Test with service role key (bypasses RLS)
 
 ### Connection Pool Exhaustion
@@ -83,7 +83,8 @@ export default buildConfig({
 
 ### Memory Leaks in Hooks
 **Pattern:** "JavaScript heap out of memory"
-**Detection:** Use `scripts/detect_memory_leak.js`
+**Detection:** Use `node --inspect` with Chrome DevTools' heap snapshot profiler, or
+`--max-old-space-size` with `--trace-gc` to isolate the growing allocation.
 **Common Causes:**
 1. Infinite loops in afterRead hooks
 2. Large data transformations without cleanup

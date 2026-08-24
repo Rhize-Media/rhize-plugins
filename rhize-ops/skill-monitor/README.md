@@ -108,6 +108,33 @@ A skill invocation looks like this in the transcript JSONL:
 - **Indirect (real subagent work)** = line appears in `<projects>/<proj>/<sessionId>/subagents/<agent>.jsonl` and the agent is *not* an `acompact-*` background compaction agent
 - **Indirect (auto-compaction)** = same path but `agentId` starts with `acompact-`. Bucketed separately so background context-compaction noise doesn't pollute the real subagent-delegation signal.
 
+### Duplicate-event dedup
+
+`monitor.py` defensively dedupes on `(uuid, session_id)` before aggregating. Three
+replay patterns are known and expected (silently or quietly dropped, no code
+change needed):
+
+1. **main + subagent overlap** — a subagent transcript re-embeds its parent's
+   events for continuity; the subagent copy is dropped.
+2. **acompact-\* replaying acompact-\*** — multiple compaction snapshots for one
+   session can each independently preserve the same parent event after the
+   main jsonl is rotated/deleted.
+3. **main + main replay from Claude Desktop (Cowork)** — verified 2026-08-09:
+   for sessions with `entrypoint: claude-desktop`, an assistant turn recorded
+   early in a session's main jsonl can reappear later in the *same file*,
+   identical on uuid/requestId/parentUuid/timestamp/content, differing only
+   in `cwd` (re-resolved against whichever root is active at replay time) and
+   sometimes gaining a `slug` field once the session is auto-named. This is
+   the desktop app re-serializing session state into the transcript, not a
+   double-read by the monitor — a run that hits this prints an informational
+   `· collapsed N duplicate events from Claude Desktop session-transcript
+   replay` line, not a warning.
+
+Anything else that shares a `(uuid, session_id)` key — e.g. two host-CLI main
+events, or a genuine uuid collision — is still flagged loudly
+(`! warning: dropped N unexpected duplicate events ... — investigate`)
+because it isn't explained by any known harness behavior.
+
 ## Scheduled runs
 
 Wired into the `scheduled-tasks` MCP (skill: `weekly-skill-audit`). Fires Monday mornings. See `/Users/jamesdeola/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`.

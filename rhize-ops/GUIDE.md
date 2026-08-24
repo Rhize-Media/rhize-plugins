@@ -23,6 +23,8 @@ Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate
 
 **What it produces:** A full delegation package, not just a note. The skill gathers context from your current session, the Obsidian vault, and (optionally) a relevant Fireflies meeting transcript; asks you a few quick questions (tracker project per task, due date, priority); then creates a tracker issue per task, shares any relevant vault documents as Slack Canvases, and posts to your configured channel with a scannable main message plus a threaded reply per task — tagging the recipient so they get notified. Each task package includes step-by-step instructions, gotchas, starter prompts they can paste straight into Claude, and validation criteria so they know when they're done.
 
+Every approved task's Jira description and Slack thread reply also share a stable [`rhize-delegation:v1` ID](./skills/delegate-to-teammate/references/rhize-delegation-v1.md). If Jira is missing or its result is uncertain, the thread reply is clearly marked `needs_jira`; Rhize Tasks can surface that one recognized delegation for approval and merge it later when Jira contains the exact same ID. The shared root message is never marked, and arbitrary Slack messages are ignored even when they look task-like.
+
 **Example prompt:**
 > "Delegate the sitemap cleanup to Alex — there's a client call transcript from Tuesday that has the details."
 

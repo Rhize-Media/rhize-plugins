@@ -1,0 +1,1279 @@
+{
+  "disclosure": {
+    "nextjs": [
+      {
+        "deeper": [],
+        "skillId": "skill:project-launcher/rhize-visual-plan"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/chrome-devtools-mcp"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/error-lifecycle-management"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sanity-development"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sentry-instrumentation"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
+      }
+    ],
+    "obsidian": [
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/defuddle"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/obsidian-cli"
+      },
+      {
+        "deeper": [
+          "skill:obsidian-second-brain/json-canvas",
+          "skill:obsidian-second-brain/obsidian-bases"
+        ],
+        "skillId": "skill:obsidian-second-brain/obsidian-markdown"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/qmd-search"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/second-brain"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/vault-alignment"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/vault-templates"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:project-launcher/project-launcher"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:project-launcher/rhize-visual-plan"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-context-manager/context-stack"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-context-manager/graphify"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-ops/delegate-to-teammate"
+      }
+    ],
+    "sanity": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sanity-development"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
+      }
+    ],
+    "sentry": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/error-lifecycle-management"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sanity-development"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/sentry-instrumentation"
+      }
+    ],
+    "seo": [
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/aeo-geo-optimization"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/backlink-intelligence"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/content-seo"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/keyword-intelligence"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/seo-site-audit"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:seo-aeo-geo/serp-intelligence"
+      }
+    ],
+    "testing": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/chrome-devtools-mcp"
+      }
+    ],
+    "vercel": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/error-lifecycle-management"
+      }
+    ]
+  },
+  "remediation": {
+    "build-failure": {
+      "patterns": [
+        "(?i)\\bbuild failed\\b",
+        "(?i)\\bfailed to compile\\b",
+        "(?i)\\bcompilation failed\\b",
+        "(?i)\\bmodule not found\\b",
+        "(?i)\\bwebpack\\b.*\\berror\\b"
+      ],
+      "skills": [
+        "external:ecc-build-error-resolver",
+        "external:ecc-cpp-build-resolver",
+        "external:ecc-dart-build-resolver",
+        "external:ecc-django-build-resolver",
+        "external:ecc-go-build-resolver",
+        "external:ecc-java-build-resolver",
+        "external:ecc-kotlin-build-resolver",
+        "external:ecc-react-build-resolver",
+        "external:ecc-rust-build-resolver",
+        "external:ecc-swift-build-resolver"
+      ]
+    },
+    "lint-failure": {
+      "patterns": [
+        "(?i)\\b\\d+ problems? \\(\\d+ errors?",
+        "(?i)\\beslint\\b.*\\berror\\b",
+        "(?i)code style issues found",
+        "(?i)\\bruff\\b.*\\berror\\b"
+      ],
+      "skills": []
+    },
+    "merge-conflict": {
+      "patterns": [
+        "(?i)\\bCONFLICT \\(.*\\):",
+        "(?i)\\bautomatic merge failed\\b",
+        "^<<<<<<< ",
+        "(?i)\\bfix conflicts and then commit\\b"
+      ],
+      "skills": []
+    },
+    "test-failure": {
+      "patterns": [
+        "(?i)\\b\\d+ (failing|failed)\\b",
+        "(?i)^\\s*FAIL\\b",
+        "\\bAssertionError\\b",
+        "(?i)\\btests? failed\\b",
+        "(?i)\\bexpect\\(received\\)\\b"
+      ],
+      "skills": []
+    },
+    "type-error": {
+      "patterns": [
+        "\\berror TS\\d+\\b",
+        "(?i)\\btype error\\b",
+        "(?i)\\bcannot find name '",
+        "(?i)\\bis not assignable to type\\b",
+        "\\bmypy\\b.*\\berror\\b"
+      ],
+      "skills": [
+        "external:ecc-build-error-resolver"
+      ]
+    }
+  },
+  "router": {
+    "extendsBases": {
+      "skill:obsidian-second-brain/json-canvas": [
+        "skill:obsidian-second-brain/obsidian-markdown"
+      ],
+      "skill:obsidian-second-brain/obsidian-bases": [
+        "skill:obsidian-second-brain/obsidian-markdown"
+      ],
+      "skill:rhize-context-manager/context-compression": [
+        "skill:rhize-context-manager/context-fundamentals"
+      ],
+      "skill:rhize-context-manager/context-degradation": [
+        "skill:rhize-context-manager/context-fundamentals"
+      ],
+      "skill:rhize-context-manager/context-optimization": [
+        "skill:rhize-context-manager/context-fundamentals"
+      ],
+      "skill:rhize-devflow/data-mutation-consistency": [
+        "skill:rhize-devflow/dev-flow-foundations"
+      ],
+      "skill:rhize-devflow/error-lifecycle-management": [
+        "skill:rhize-devflow/dev-flow-foundations"
+      ],
+      "skill:rhize-devflow/sentry-instrumentation": [
+        "skill:rhize-devflow/dev-flow-foundations"
+      ]
+    },
+    "signals": {
+      "skill:obsidian-second-brain/defuddle": [
+        {
+          "kind": "name",
+          "label": "defuddle",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "web-clipping",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/json-canvas": [
+        {
+          "kind": "name",
+          "label": "json-canvas",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/obsidian-bases": [
+        {
+          "kind": "name",
+          "label": "obsidian-bases",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/obsidian-cli": [
+        {
+          "kind": "name",
+          "label": "obsidian-cli",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/obsidian-markdown": [
+        {
+          "kind": "name",
+          "label": "obsidian-markdown",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/qmd-search": [
+        {
+          "kind": "name",
+          "label": "qmd-search",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/second-brain": [
+        {
+          "kind": "name",
+          "label": "second-brain",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/vault-alignment": [
+        {
+          "kind": "name",
+          "label": "vault-alignment",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/vault-templates": [
+        {
+          "kind": "name",
+          "label": "vault-templates",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:project-launcher/project-launcher": [
+        {
+          "kind": "name",
+          "label": "project-launcher",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:project-launcher/rhize-visual-plan": [
+        {
+          "kind": "name",
+          "label": "rhize-visual-plan",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-compression": [
+        {
+          "kind": "name",
+          "label": "context-compression",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-compression",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-degradation": [
+        {
+          "kind": "name",
+          "label": "context-degradation",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-degradation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-engineering": [
+        {
+          "kind": "name",
+          "label": "context-engineering",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-fundamentals": [
+        {
+          "kind": "name",
+          "label": "context-fundamentals",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "context-optimization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-optimization": [
+        {
+          "kind": "name",
+          "label": "context-optimization",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "context-optimization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/context-stack": [
+        {
+          "kind": "name",
+          "label": "context-stack",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/filesystem-context": [
+        {
+          "kind": "name",
+          "label": "filesystem-context",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/graphify": [
+        {
+          "kind": "name",
+          "label": "graphify",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-graph",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/graphiti-memory": [
+        {
+          "kind": "name",
+          "label": "graphiti-memory",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-graph",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/learning-curation": [
+        {
+          "kind": "name",
+          "label": "learning-curation",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "learning-curation",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/memory-systems": [
+        {
+          "kind": "name",
+          "label": "memory-systems",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-graph",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/refinement-pipeline": [
+        {
+          "kind": "name",
+          "label": "refinement-pipeline",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "learning-curation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/tool-design": [
+        {
+          "kind": "name",
+          "label": "tool-design",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "tool-design",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-cowork/project-kickoff": [
+        {
+          "kind": "name",
+          "label": "project-kickoff",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/chrome-devtools-mcp": [
+        {
+          "kind": "name",
+          "label": "chrome-devtools-mcp",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/data-mutation-consistency": [
+        {
+          "kind": "name",
+          "label": "data-mutation-consistency",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "data-consistency",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sanity",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "vercel",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/dev-flow-foundations": [
+        {
+          "kind": "name",
+          "label": "dev-flow-foundations",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/error-lifecycle-management": [
+        {
+          "kind": "name",
+          "label": "error-lifecycle-management",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "vercel",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/sanity-development": [
+        {
+          "kind": "name",
+          "label": "sanity-development",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "cms-development",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sanity",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/sentry-instrumentation": [
+        {
+          "kind": "name",
+          "label": "sentry-instrumentation",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/delegate-to-teammate": [
+        {
+          "kind": "name",
+          "label": "delegate-to-teammate",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/skill-dashboard": [
+        {
+          "kind": "name",
+          "label": "skill-dashboard",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/manage-task-preferences": [
+        {
+          "kind": "name",
+          "label": "manage-task-preferences",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/plan-my-day": [
+        {
+          "kind": "name",
+          "label": "plan-my-day",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/reconcile-rhize-tasks": [
+        {
+          "kind": "name",
+          "label": "reconcile-rhize-tasks",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "data-consistency",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/review-task-opportunities": [
+        {
+          "kind": "name",
+          "label": "review-task-opportunities",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/rhize-tasks-doctor": [
+        {
+          "kind": "name",
+          "label": "rhize-tasks-doctor",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-tasks/rhize-tasks-setup": [
+        {
+          "kind": "name",
+          "label": "rhize-tasks-setup",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "project-planning",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/aeo-geo-optimization": [
+        {
+          "kind": "name",
+          "label": "aeo-geo-optimization",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "ai-visibility",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/backlink-intelligence": [
+        {
+          "kind": "name",
+          "label": "backlink-intelligence",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "backlink-analysis",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/content-seo": [
+        {
+          "kind": "name",
+          "label": "content-seo",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-optimization",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/keyword-intelligence": [
+        {
+          "kind": "name",
+          "label": "keyword-intelligence",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-optimization",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "keyword-research",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/nextjs-sanity-seo": [
+        {
+          "kind": "name",
+          "label": "nextjs-sanity-seo",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "cms-development",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "content-optimization",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "sanity",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/seo-site-audit": [
+        {
+          "kind": "name",
+          "label": "seo-site-audit",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ],
+      "skill:seo-aeo-geo/serp-intelligence": [
+        {
+          "kind": "name",
+          "label": "serp-intelligence",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "rank-tracking",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        }
+      ]
+    }
+  },
+  "schemaVersion": "1.1.0",
+  "succession": {
+    "command:project-launcher/grill-prd": {
+      "follows": [],
+      "precedes": [
+        "command:project-launcher/scaffold-gsd"
+      ]
+    },
+    "command:project-launcher/scaffold-gsd": {
+      "follows": [],
+      "precedes": []
+    },
+    "command:project-launcher/write-prd": {
+      "follows": [],
+      "precedes": [
+        "command:project-launcher/grill-prd"
+      ]
+    }
+  }
+}

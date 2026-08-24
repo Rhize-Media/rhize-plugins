@@ -2,7 +2,7 @@
 
 > **Status:** Foundation Draft v1
 > **Last Updated:** 2024-12-01
-> **Dependencies:** Sentry MCP, Vercel MCP, Git MCP, Zen MCP
+> **Dependencies:** Sentry MCP, Vercel MCP, Git MCP
 
 ---
 
@@ -145,9 +145,10 @@ Look for:
 - Related changes in same commits
 - Author (for additional context)
 
-### Step 4: Zen Deep Think (Complex Cases)
-Use: zen thinkdeep with max thinking mode
-Prompt: "Analyze this bug with the following context: [symptoms], [hypotheses], [evidence]. What is the most likely root cause and why?"
+### Step 4: Deep Reasoning (Complex Cases)
+Use extended/deep-thinking mode on the root cause question directly: "Analyze this bug with
+the following context: [symptoms], [hypotheses], [evidence]. What is the most likely root
+cause and why?"
 ```
 
 ---
@@ -288,8 +289,8 @@ if (!players || players.length === 0) {
 - [ ] Test on different screen sizes (if UI)
 - [ ] Test with different data states (empty, full, error)
 
-### Zen Precommit (Recommended)
-Use: zen precommit
+### Pre-Commit Evidence Check (Recommended)
+Use: `/rhize-devflow:check`
 Validates changes against:
 - Potential regressions
 - Code quality issues
@@ -307,12 +308,12 @@ For fixes that:
 - Involve concurrency/timing
 - Have unclear root cause
 
-### Zen Consensus Validation
+### Independent Skeptical Review
 
 ```markdown
-## Multi-Model Validation
+## Multi-Perspective Validation
 
-Use: zen consensus with pro and o3
+Use: `/rhize-devflow:review`'s independent skeptical reviewer (required for non-trivial fixes)
 
 Prompt template:
 "Review this bug fix for potential issues:
@@ -386,12 +387,11 @@ If we've attempted 3+ fixes without success:
 1. STOP making changes
 2. Revert to last known good state
 3. Document everything tried so far
-4. Use zen to save context: "regression-debug-[issue]"
+4. Persist the debug context via `/rhize-context-manager:done` (STATE.md open-failures entry)
 5. Start fresh session
-6. Restore context from zen
-7. Request multi-model RCA:
-   "Use zen thinkdeep with max thinking to analyze this 
-    regression loop: [summary of attempts]"
+6. Restore context via `/rhize-context-manager:start` (reads STATE.md)
+7. Request a deep-reasoning RCA pass:
+   "Analyze this regression loop with extended thinking: [summary of attempts]"
 ```
 
 ### When Context Window Exhausted
@@ -425,7 +425,7 @@ Before session ends, create:
 - [Important discoveries]
 ```
 
-Save to zen: "bug-fix-[issue]-context"
+Persist to STATE.md via `/rhize-context-manager:done` under a `bug-fix-[issue]` entry.
 ```
 
 ---

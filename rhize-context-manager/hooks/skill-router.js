@@ -20,9 +20,20 @@
 // hookSpecificOutput.additionalContext to reach Claude; a top-level field or
 // systemMessage alone would not.
 //
-// MAP RESOLUTION: an installed plugin cannot see this repo's `generated/`
-// directory, so resolution always goes through the machine-local
-// ~/.claude/context-manager/ install location, in preference order:
+// INDEX RESOLUTION (relationships v2, section 7 of the design doc): the
+// primary data source is now the materialized `router` index, precomputed
+// by build_skill_map.py/build_local_skill_map.py so this hook never walks
+// doc.edges itself. Preference order, all under
+// ~/.claude/context-manager/:
+//   1. skill-map.indexes.resolved.json (static + local-overlay follows merge)
+//   2. skill-map.indexes.json          (installed by `build_skill_map.py --install`)
+// Neither present/parseable/missing a `router` section -> FALL BACK to the
+// original map-scanning path below (readMap/route), so an older install that
+// only shipped skill-map.{resolved,static}.json (no indexes file yet)
+// degrades gracefully instead of going silent. Behavior is identical either
+// way — the index only saves re-deriving signals from doc.edges per call.
+//
+// MAP RESOLUTION (fallback only):
 //   1. skill-map.resolved.json (static + local overlay, once Phase 3 lands)
 //   2. skill-map.static.json   (installed by `build_skill_map.py --install`)
 // Neither present or parseable -> exit 0, no output.
@@ -40,12 +51,47 @@
 // BUDGET: <150ms warm. No network, no child processes; the map is read
 // synchronously once per invocation.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Suggestion logging (append-only, local-machine JSONL; see
+// scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
+// text, file paths, or tool output — only ids/hashes, matching
+// skill-monitor's privacy precedent. Fully fail-silent: a logging failure
+// must never affect the suggestion path or exit code.
+// RHIZE_SUGGESTION_LOG overrides the path for testability.
+function resolveContextManagerDir() {
+  if (typeof process.env.RHIZE_CONTEXT_MANAGER_DIR === 'string' && process.env.RHIZE_CONTEXT_MANAGER_DIR) {
+    return process.env.RHIZE_CONTEXT_MANAGER_DIR;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager');
+}
+
+function resolveLogPath() {
+  if (typeof process.env.RHIZE_SUGGESTION_LOG === 'string' && process.env.RHIZE_SUGGESTION_LOG) {
+    return process.env.RHIZE_SUGGESTION_LOG;
+  }
+  return path.join(os.homedir(), '.claude', 'context-manager', 'suggestion-log.jsonl');
+}
+
+function contextHash(value) {
+  return crypto.createHash('sha256').update(String(value || '')).digest('hex').slice(0, 16);
+}
+
+function logSuggestion(entry) {
+  try {
+    const logPath = resolveLogPath();
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    fs.appendFileSync(logPath, JSON.stringify(entry) + '\n');
+  } catch (_err) {
+    // fail-silent: logging must never affect the suggestion path or exit code
+  }
+}
+
 function readMap() {
-  const dir = path.join(os.homedir(), '.claude', 'context-manager');
+  const dir = resolveContextManagerDir();
   const candidates = [
     path.join(dir, 'skill-map.resolved.json'),
     path.join(dir, 'skill-map.static.json'),
@@ -71,6 +117,31 @@ function readMap() {
   return null;
 }
 
+function readIndexes() {
+  const dir = resolveContextManagerDir();
+  const candidates = [
+    path.join(dir, 'skill-map.indexes.resolved.json'),
+    path.join(dir, 'skill-map.indexes.json'),
+  ];
+  for (const candidate of candidates) {
+    let text;
+    try {
+      text = fs.readFileSync(candidate, 'utf8');
+    } catch (_err) {
+      continue; // missing or unreadable — try the next candidate
+    }
+    try {
+      const doc = JSON.parse(text);
+      if (doc && doc.router && typeof doc.router === 'object') {
+        return doc.router;
+      }
+    } catch (_err) {
+      // corrupt JSON at this path — try the next candidate
+    }
+  }
+  return null;
+}
+
 function wordsOf(value) {
   return String(value || '')
     .toLowerCase()
@@ -82,12 +153,70 @@ function tokenize(prompt) {
   return new Set(wordsOf(prompt));
 }
 
+// Index-backed equivalent of route() below: identical scoring/tie-break
+// rules, sourced from the router index's precomputed per-skill signal lists
+// (build_skill_map.py's build_router_index()) instead of walking
+// doc.nodes/doc.edges. See route()'s docstring for the shared semantics.
+function routeFromIndex(routerIndex, promptTokens) {
+  const signalsBySkill = routerIndex.signals || {};
+  const extendsBases = routerIndex.extendsBases || {};
+
+  const scored = new Map(); // skillId -> { score, signals }
+
+  for (const [skillId, signals] of Object.entries(signalsBySkill)) {
+    const matched = [];
+    for (const sig of signals) {
+      const words = wordsOf(sig.label);
+      if (words.length > 0 && words.every((w) => promptTokens.has(w))) {
+        matched.push(sig);
+      }
+    }
+    if (matched.length < 2) continue; // single weak match must not emit
+    const score = matched.reduce((sum, s) => sum + s.weight, 0);
+    scored.set(skillId, { score, signals: matched });
+  }
+
+  // Same extends tie-break as route(): a qualifying extender scoring >= its
+  // base drops the base from consideration.
+  for (const [extenderId, bases] of Object.entries(extendsBases)) {
+    const extenderResult = scored.get(extenderId);
+    if (!extenderResult) continue;
+    for (const baseId of bases) {
+      const baseResult = scored.get(baseId);
+      if (!baseResult) continue;
+      if (extenderResult.score >= baseResult.score) {
+        scored.delete(baseId);
+      }
+    }
+  }
+
+  let best = null; // { skillId, score, signals }
+  for (const [skillId, result] of scored) {
+    if (
+      !best ||
+      result.score > best.score ||
+      (result.score === best.score && skillId < best.skillId)
+    ) {
+      best = { skillId, score: result.score, signals: result.signals };
+    }
+  }
+
+  return best;
+}
+
 // Returns the single best-matching skill, or null if none qualifies.
 //
 // Single pass over doc.nodes to collect skill nodes and pre-tokenize every
 // tag node's name once, plus edges bucketed by their `from` id, so the ranking
 // loop below only ever touches each skill's own topic-tag/stack-tag edges
 // instead of rescanning doc.edges per skill (was O(skills * edges)).
+//
+// EXTENDS TIE-BREAK: when both a base skill and one of its extenders
+// (an `extends` edge from extender -> base) qualify (2+ signals), and the
+// extender's score is >= the base's, the extender wins — it's the more
+// specific skill. Otherwise the base wins, same as ordinary score
+// comparison. This only ever affects a base/extender pair directly; it does
+// not change max-one-suggestion or the 2-signal qualifying threshold.
 function route(doc, promptTokens) {
   const skills = [];
   const tagsById = new Map(); // tagId -> { name, words }
@@ -100,17 +229,26 @@ function route(doc, promptTokens) {
   }
 
   const tagEdgesByFrom = new Map(); // skillId -> [topic-tag/stack-tag edge, ...]
+  const extendsBasesByFrom = new Map(); // extenderId -> Set(baseId)
   for (const edge of doc.edges) {
-    if (edge.type !== 'topic-tag' && edge.type !== 'stack-tag') continue;
-    let bucket = tagEdgesByFrom.get(edge.from);
-    if (!bucket) {
-      bucket = [];
-      tagEdgesByFrom.set(edge.from, bucket);
+    if (edge.type === 'topic-tag' || edge.type === 'stack-tag') {
+      let bucket = tagEdgesByFrom.get(edge.from);
+      if (!bucket) {
+        bucket = [];
+        tagEdgesByFrom.set(edge.from, bucket);
+      }
+      bucket.push(edge);
+    } else if (edge.type === 'extends') {
+      let bases = extendsBasesByFrom.get(edge.from);
+      if (!bases) {
+        bases = new Set();
+        extendsBasesByFrom.set(edge.from, bases);
+      }
+      bases.add(edge.to);
     }
-    bucket.push(edge);
   }
 
-  let best = null; // { skillId, score, signals }
+  const scored = new Map(); // skillId -> { score, signals }
 
   for (const skill of skills) {
     const signals = [];
@@ -131,33 +269,40 @@ function route(doc, promptTokens) {
     if (signals.length < 2) continue; // single weak match must not emit
 
     const score = signals.reduce((sum, s) => sum + s.weight, 0);
+    scored.set(skill.id, { score, signals });
+  }
+
+  // Drop a base from consideration whenever a qualifying extender of it
+  // scores at least as well — the extender is more specific and should win
+  // the tie instead of falling back to alphabetical skill-id order.
+  for (const [extenderId, bases] of extendsBasesByFrom) {
+    const extenderResult = scored.get(extenderId);
+    if (!extenderResult) continue;
+    for (const baseId of bases) {
+      const baseResult = scored.get(baseId);
+      if (!baseResult) continue;
+      if (extenderResult.score >= baseResult.score) {
+        scored.delete(baseId);
+      }
+    }
+  }
+
+  let best = null; // { skillId, score, signals }
+  for (const [skillId, result] of scored) {
     if (
       !best ||
-      score > best.score ||
-      (score === best.score && skill.id < best.skillId)
+      result.score > best.score ||
+      (result.score === best.score && skillId < best.skillId)
     ) {
-      best = { skillId: skill.id, score, signals };
+      best = { skillId, score: result.score, signals: result.signals };
     }
   }
 
   return best;
 }
 
-// Reads stdin, ranks the prompt against the map, and returns the suggestion
-// message, or null if nothing qualifies. Throws on any unreadable/corrupt
-// input; main()'s try/catch turns that into the same silent no-op.
-function computeMessage() {
-  const raw = fs.readFileSync(0, 'utf8');
-  const data = JSON.parse(raw);
-  const prompt = typeof data.prompt === 'string' ? data.prompt : '';
-  if (!prompt) return null;
-
-  const doc = readMap();
-  if (!doc) return null;
-
-  const match = route(doc, tokenize(prompt));
+function formatMatch(match) {
   if (!match) return null;
-
   const idMatch = /^skill:([^/]+)\/(.+)$/.exec(match.skillId);
   if (!idMatch) return null;
   const [, plugin, skillName] = idMatch;
@@ -165,18 +310,71 @@ function computeMessage() {
   return `Consider the ${plugin}:${skillName} skill (matches ${why})`;
 }
 
+// Reads stdin, ranks the prompt against the map, and returns the suggestion
+// message, or null if nothing qualifies. Throws on any unreadable/corrupt
+// input; main()'s try/catch turns that into the same silent no-op.
+//
+// Tries the materialized router index first (routeFromIndex); only when no
+// indexes file is present/parseable does this fall back to the original
+// map-scanning path (readMap/route) — see the INDEX RESOLUTION note above.
+// Returns null (nothing to do), or an object describing the outcome for
+// main() to emit and log: { message, sessionId, suggested, contextHash } when
+// a suggestion fires, or { message: null, sessionId, sampled, contextHash }
+// when the prompt qualified for consideration but nothing matched (sampled is
+// true 1-in-20 times, so silence precision has a denominator — see
+// scripts/suggestion_log_report.py).
+function computeMessage() {
+  const raw = fs.readFileSync(0, 'utf8');
+  const data = JSON.parse(raw);
+  const prompt = typeof data.prompt === 'string' ? data.prompt : '';
+  const sessionId = typeof data.session_id === 'string' ? data.session_id : null;
+  if (!prompt) return null;
+
+  const promptTokens = tokenize(prompt);
+  const ctxHash = contextHash(prompt);
+
+  const routerIndex = readIndexes();
+  const match = routerIndex
+    ? routeFromIndex(routerIndex, promptTokens)
+    : (() => {
+        const doc = readMap();
+        return doc ? route(doc, promptTokens) : null;
+      })();
+
+  const message = formatMatch(match);
+  if (message) {
+    return { message, sessionId, suggested: match.skillId, contextHash: ctxHash };
+  }
+  return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash };
+}
+
 function main() {
   try {
-    const message = computeMessage();
-    if (message) {
+    const result = computeMessage();
+    if (result && result.message) {
       process.stdout.write(
         JSON.stringify({
           hookSpecificOutput: {
             hookEventName: 'UserPromptSubmit',
-            additionalContext: message,
+            additionalContext: result.message,
           },
         }) + '\n'
       );
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'router',
+        suggested: result.suggested,
+        context_hash: result.contextHash,
+      });
+    } else if (result && result.sampled) {
+      logSuggestion({
+        ts: new Date().toISOString(),
+        session_id: result.sessionId,
+        hook: 'router',
+        suggested: null,
+        context_hash: result.contextHash,
+      });
     }
   } catch (_err) {
     // fail-silent contract: never surface an error to the user or Claude
