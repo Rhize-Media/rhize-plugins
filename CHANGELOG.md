@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-23_ version bump — **seo-aeo-geo** 1.4.0 → 1.4.1 (patch); marketplace 2.36.2 → 2.36.3.
+- _2026-08-23_ version bump — **project-launcher** 1.7.1 → 1.7.2 (patch); marketplace 2.36.1 → 2.36.2.
+- _2026-08-23_ version bump — **obsidian-second-brain** 1.4.1 → 1.4.2 (patch); marketplace 2.36.0 → 2.36.1.
 - _2026-08-23_ version bump — **rhize-cowork** 0.1.0 (new plugin); marketplace 2.35.0 → 2.36.0.
 - _2026-08-23_ **rhize-cowork 0.1.0 — `project-kickoff`, scaffolding the four Cowork client-context
   files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) from a website, strategy docs, or a guided
