@@ -17,7 +17,7 @@ import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 
@@ -40,6 +40,48 @@ PLANNING_FILES = {
     "CLAUDE.md",
     "CURRENT_SPRINT.md",
     "STATE.md",
+}
+CONFIG_EXTENSIONS = {".json", ".yaml", ".yml", ".toml", ".ini", ".properties", ".cfg", ".conf"}
+CONFIG_BASENAMES = {
+    ".npmrc",
+    ".nvmrc",
+    ".yarnrc",
+    ".gitignore",
+    ".gitattributes",
+    ".dockerignore",
+    ".prettierignore",
+    ".eslintignore",
+    ".editorconfig",
+    "yarn.lock",
+    "bun.lockb",
+    "Gemfile.lock",
+    "poetry.lock",
+    "Cargo.lock",
+}
+CODE_EXTENSIONS = {
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".mjs",
+    ".cjs",
+    ".mts",
+    ".cts",
+    ".py",
+    ".rb",
+    ".go",
+    ".rs",
+    ".sh",
+    ".zsh",
+    ".bash",
+    ".swift",
+    ".java",
+    ".kt",
+    ".php",
+    ".sql",
+    ".vue",
+    ".svelte",
+    ".astro",
 }
 SKIP_DISCOVERY_DIRS = {
     ".git",
@@ -79,6 +121,7 @@ RELEASE_COMMAND = re.compile(
     r"(?:\bgit(?:\s+-C\s+\S+)?\s+(?:commit|push|merge)\b|\bgh\s+pr\s+merge\b)",
     re.IGNORECASE,
 )
+GIT_DASH_C_PATH = re.compile(r"\bgit\s+-C\s+(\"([^\"]+)\"|'([^']+)'|(\S+))")
 
 
 def utc_now() -> str:
@@ -571,7 +614,9 @@ def reconcile(workspace: Path) -> int:
     unmapped = [
         path
         for path in changed
-        if path.lower() not in plan_text and Path(path).name.lower() not in plan_text
+        if not is_config_path(path)
+        and path.lower() not in plan_text
+        and Path(path).name.lower() not in plan_text
     ]
     if unmapped:
         state["phase"] = "implementation"
@@ -653,6 +698,24 @@ def is_planning_path(path: str) -> bool:
     return normalized in PLANNING_FILES or any(normalized.startswith(prefix) for prefix in PLANNING_PATHS)
 
 
+def is_config_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    posix = PurePosixPath(normalized)
+    basename = posix.name
+    suffix = posix.suffix
+    # Extension precedence is deliberate: a dotfile-shaped config path that is
+    # actually executable code (e.g. `.eslintrc.js`) must stay gated.
+    if suffix in CODE_EXTENSIONS:
+        return False
+    if suffix in CONFIG_EXTENSIONS:
+        return True
+    if basename in CONFIG_BASENAMES:
+        return True
+    if basename.startswith(".env"):
+        return True
+    return False
+
+
 def hook_prompt() -> int:
     if gate_disabled():
         return 0
@@ -701,6 +764,7 @@ def enforce_write_payload(payload: dict[str, Any]) -> int:
         for path in paths
         if (relative := normalized_relative_path(path, workspace)) is not None
         and not is_planning_path(relative)
+        and not is_config_path(relative)
     ]
     if not relevant or not state or state.get("phase") == "dismissed":
         return 0
@@ -740,6 +804,33 @@ def hook_write() -> int:
     return enforce_write_payload(payload)
 
 
+def release_command_repo_hint(command: str, cwd: Path) -> Path:
+    """Resolve the directory a release command targets: honor `git -C <path>` if present."""
+    match = GIT_DASH_C_PATH.search(command)
+    if not match:
+        return cwd
+    raw = match.group(2) or match.group(3) or match.group(4)
+    return canonical(raw) if os.path.isabs(raw) else canonical(cwd / raw)
+
+
+def release_targets_only_exempt_changes(hint: Path) -> bool | None:
+    """True if every dirty path in the repo rooted at/above `hint` is config or planning.
+
+    None means the repo toplevel could not be resolved, so the caller should fall back
+    to the existing unconditional block rather than guess.
+    """
+    top = run(["git", "rev-parse", "--show-toplevel"], hint)
+    if top.returncode != 0 or not top.stdout.strip():
+        return None
+    repo = canonical(top.stdout.strip())
+    dirty = git_status_snapshot(repo)
+    if not dirty:
+        # A pending/prepared receipt with nothing actually edited is a pure false
+        # positive for this gate — allow it.
+        return True
+    return all(is_config_path(path) or is_planning_path(path) for path in dirty)
+
+
 def hook_command() -> int:
     if gate_disabled():
         return 0
@@ -764,10 +855,24 @@ def hook_command() -> int:
     if not isinstance(command, str) or not RELEASE_COMMAND.search(command):
         return 0
     cwd = payload_workspace(payload)
-    _workspace, state = find_state_for_path(cwd)
-    if state and state.get("phase") not in {"reconciled", "completed", "dismissed"}:
+    # A `git -C <path>` command targets a different repo than the payload's own cwd;
+    # resolve that target once and use it for both the receipt lookup and the dirty
+    # check below, so a receipt under the -C target is not missed.
+    hint = release_command_repo_hint(command, cwd)
+    _workspace, state = find_state_for_path(hint)
+    phase = state.get("phase") if state else None
+    if phase not in {None, "reconciled", "completed", "dismissed"}:
+        if phase in {"pending", "prepared"}:
+            # No gated source write has happened yet in either phase. Rather than
+            # block on the receipt's existence alone, check whether the release
+            # command's own repo is actually dirty with anything other than
+            # config/planning changes — that is the real false-positive case.
+            only_exempt = release_targets_only_exempt_changes(hint)
+            if only_exempt is True:
+                return 0
         sys.stderr.write(
             "BLOCKED: commit/push/merge requires a reconciled refactor-evidence receipt. "
+            "Only config/planning-only changes are exempt from this gate. "
             "Run refactor_gate.py reconcile first.\n"
         )
         return 2

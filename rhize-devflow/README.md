@@ -242,14 +242,46 @@ state is shared by Claude and Codex:
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
 | `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor prompts and creates a pending receipt. Review, audit, investigation, and plan-only prompts remain read-only. |
-| `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts but blocks source writes until `prepare`; invalidates reconciliation after later edits. |
-| `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation. |
+| `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts **and config-only paths** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
+| `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. |
 | `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |
 
 The hook output prints the installed gate-script path. `/rhize-devflow:impact-map` provides the
 exact `prepare`/`reconcile` commands. Missing CodeGraph or component-registry artifacts are not
 errors: the receipt records the documented fallback. False positives are released with `dismiss
 --reason "..."`; `RHIZE_REFACTOR_GATE=off` is the explicit operator emergency bypass.
+
+### Config-only exemption
+
+Config-only changes are excluded from the write/commit enforcement above — a rename in
+`pnpm-workspace.yaml` or a new `.npmrc` line should never need an impact map. A path counts
+as "config" (`is_config_path()` in `refactor_gate.py`) when, in order:
+
+1. **A code extension wins first.** If the file's extension is one of the recognized code
+   extensions (`.js`, `.ts`, `.py`, `.sh`, `.rb`, `.go`, `.rs`, …), it stays gated even if the
+   basename looks like a dotfile — `.eslintrc.js` is config-shaped but is executable code, so
+   it is never exempt.
+2. Otherwise, a recognized config extension (`.json`, `.yaml`, `.yml`, `.toml`, `.ini`,
+   `.properties`, `.cfg`, `.conf`) is config.
+3. Otherwise, a known config basename (`.npmrc`, `.nvmrc`, `.yarnrc`, `.gitignore`,
+   `.gitattributes`, `.dockerignore`, `.prettierignore`, `.eslintignore`, `.editorconfig`,
+   `yarn.lock`, `bun.lockb`, `Gemfile.lock`, `poetry.lock`, `Cargo.lock`) is config.
+4. Otherwise, a basename starting with `.env` is config.
+
+There is no generic "any dotfile is config" rule — only the explicit list above.
+
+`.github/workflows/*.yml` falls under the YAML exemption here because workflow files are
+separately guarded by `hooks/protect-files.sh` — that dependency is deliberate; this gate does
+not need to double-guard a path another hook already blocks.
+
+The exemption reaches three places: `hook-write` never blocks a config-only write and never
+advances a `prepared` receipt into `implementation` for one; `hook-command` treats a
+`pending`/`prepared` receipt as a false positive when every dirty path in the release
+command's target repo is config or planning (including the vacuous case of a clean tree);
+and `reconcile` never lets a config path force an `OUT_OF_SYNC` verdict, though it still
+appears in the receipt's `changed_files` for the record. A material prompt about a config
+change can still print the evidence-gate banner (`hook-prompt` is unchanged) — a prompt
+can't know file scope ahead of time — but no config-only write or commit is actually blocked.
 
 Four heavier specialist guards still ship bundled under `hooks/` and remain **deliberately
 opt-in** through `setup/manifest.json`:
