@@ -255,6 +255,18 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "hook:procedural-memory/post-bash-candidate-queue",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "hook:procedural-memory/session-end-scan",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "skill:procedural-memory/procedural-memory",
       "type": "contains"
     },
@@ -2546,6 +2558,28 @@
       "name": "vault-write-hint",
       "owner": "obsidian-second-brain",
       "path": "obsidian-second-brain/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/post-bash-candidate-queue.sh\"",
+      "event": "PostToolUse",
+      "id": "hook:procedural-memory/post-bash-candidate-queue",
+      "kind": "hook",
+      "matcher": "Bash",
+      "name": "post-bash-candidate-queue",
+      "owner": "procedural-memory",
+      "path": "procedural-memory/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session-end-scan.py\"",
+      "event": "Stop",
+      "id": "hook:procedural-memory/session-end-scan",
+      "kind": "hook",
+      "matcher": "",
+      "name": "session-end-scan",
+      "owner": "procedural-memory",
+      "path": "procedural-memory/hooks/hooks.json",
       "status": "wired"
     },
     {
