@@ -99,3 +99,34 @@ auto-resize bridge.
 verb tinting), `DataModel`, `ApiEndpoint`, `Wireframe`/`Screen` (sandboxed iframe,
 8 surface presets, auto-resize), `Canvas`, `Annotation`, `Decision`, `Diff`,
 `AnnotatedCode`, and a single bottom `OpenQuestions`.
+
+## Dependency security posture (reviewed 2026-08-24)
+
+`npm audit` on a fresh install went from **14 findings (9 moderate, 5 high) to 2 (1 moderate, 1 high)**
+by bumping two exact pins. Both bumps are non-major and the build was re-verified afterward (a real
+`plan.mdx` rendered to a 3.5 MB self-contained HTML, 59 mermaid/SVG matches, zero external references).
+
+| Change | Why |
+|---|---|
+| `vite` 5.4.11 → **5.4.21** | Clears 12 advisories, most of them `server.fs.deny` bypasses plus *"websites were able to send any requests to the development server and read the response"* — genuinely reachable, because `rhize-plan serve` **is** a dev server |
+| `mermaid` 11.4.1 → **11.17.1** | Clears the `lodash-es` code-injection / prototype-pollution chain via `chevrotain` |
+| `vite-plugin-singlefile` 2.0.3 → **2.3.3** | Non-major, clears one moderate |
+
+**Why the pins had to move at all:** dependencies here are pinned to *exact* versions and
+`package-lock.json` is gitignored, so `npm audit fix` only ever touches untracked files. It fixes the
+local tree and reaches **no installer**. For a skill distributed through the marketplace, only a
+`package.json` bump actually propagates.
+
+### Accepted residual — 1 high, 1 moderate
+
+`vite` (high) and its bundled `esbuild` (moderate) are only fixed by **vite 8.2.2, a three-major jump**.
+Attempted in an isolated copy: it fails `ERESOLVE` against `@vitejs/plugin-react@4.3.4` and the other
+plugins' peer ranges, so taking it would cascade into further major upgrades of a tool that currently
+works.
+
+**Accepted, with scope stated honestly:** this is a *local dev tool*, not a hosted service. The residual
+advisories are reachable only while `rhize-plan serve` is running — a `build` never starts a server. The
+one Windows-specific advisory (`launch-editor` NTLMv2 disclosure via UNC paths) does not apply here.
+
+**Re-evaluate when** `@vitejs/plugin-react` ships a release whose peer range admits vite 8 — at that
+point the whole set can move together. `ai-stack-version-drift` is the routine that should surface it.
