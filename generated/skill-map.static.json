@@ -2457,7 +2457,7 @@
       "name": "@rhize/skill-forge"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py\"",
       "event": "PostToolUse",
       "id": "hook:obsidian-second-brain/vault-read-hint",
       "kind": "hook",
@@ -2468,7 +2468,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-write-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-write-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:obsidian-second-brain/vault-write-hint",
       "kind": "hook",
@@ -2479,7 +2479,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:project-launcher/launcher-vault-hint",
       "kind": "hook",
@@ -2688,7 +2688,7 @@
       "status": "opt-in"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-edit-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:seo-aeo-geo/seo-edit-hint",
       "kind": "hook",
@@ -2699,7 +2699,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-read-hint.py",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/seo-read-hint.py\"",
       "event": "PostToolUse",
       "id": "hook:seo-aeo-geo/seo-read-hint",
       "kind": "hook",
