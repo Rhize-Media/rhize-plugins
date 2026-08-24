@@ -118,11 +118,67 @@ procedural-memory/
 ├── commands/{promote,recall,run,verify}.md   # thin wrappers — no reimplemented logic
 ├── skills/procedural-memory/SKILL.md         # natural-language trigger, same 4 verbs
 ├── scripts/rhize-skill-launcher.sh           # portable CLI resolver + version gate
-├── hooks/hooks.json                          # scaffold only — no hooks wired yet
+├── hooks/
+│   ├── hooks.json                            # PostToolUse/Bash + Stop, wired
+│   ├── post-bash-candidate-queue.sh          # Tier 1 — cheap, every Bash call
+│   └── session-end-scan.py                   # Tier 2 — heavier, on Stop
 ├── docs/decisions/                           # recorded scope decisions (e.g. no /prune)
+├── tests/test-launcher.sh                    # launcher resolution/version-gate tests, real+runnable
+├── evals/                                    # claude plugin eval suite — authored, org-gated (see evals/README.md)
 ├── README.md                                 # this file
 └── GUIDE.md                                  # user-facing walkthrough
 ```
+
+## Hooks: capturing promotion candidates during a session
+
+Two hooks, deliberately split by cost, both advisory-only (never block, never write to the
+registry):
+
+**`post-bash-candidate-queue.sh`** (PostToolUse, matcher `Bash`) fires on *every* Bash call in
+*every* session. It pattern-matches `tool_input.command` against known test/build invocations
+(`pytest`, `npm test`/`npm run build`, `yarn`/`pnpm` test/build, `cargo test`, `go test`/`go
+build`, `vitest`, `jest`, `tsc`) and, on a match, appends one JSONL line to
+`~/.claude/procedural-memory/candidate-queue.jsonl` (override with
+`PROCEDURAL_MEMORY_CANDIDATE_QUEUE`). It never reads or derives an exit code — see "What was
+wrong in the brief" below for why that's correct, not a shortcut. Pure POSIX shell, no
+`rhize-skill`/CLI invocation, no network. Real measured latency on this machine (macOS, `/bin/sh`
+= bash 3.2.57): **~6ms** for a non-matching command (the overwhelming majority of Bash calls —
+essentially the platform's fork/exec floor, since this hook adds zero extra subprocess forks on
+that path), **~15ms** for a matching command (one `grep`, one `date`), and a bounded ~120ms on a
+pathological ~1MB-stdout command (still fast, no hang — see the script's own "SUBPROCESS BUDGET"
+comment for why that distinction took real debugging to get right).
+
+**`session-end-scan.py`** (Stop) is the heavier half. It fast-exits immediately unless the queue
+has `pending` entries for the current `session_id` — most Stops in most sessions never touch a
+transcript read at all. When there are pending entries, it reads the transcript once, confirms
+each one's tool call really did complete without error (cross-referencing `tool_use_id` against
+the transcript's `tool_result.is_error`), flips matched entries to `surfaced`, and prints an
+advisory naming what passed its test/build command this session — plus any files the session
+wrote or edited — with a pointer to `/procedural-memory:promote`. It never says "verified"; that
+word is reserved for `/procedural-memory:verify`, the only thing that ever sets a real
+`health=ok`.
+
+**Queue file, not `rhize-context-manager`'s.** `~/.claude/procedural-memory/candidate-queue.jsonl`
+follows the same JSONL shape as `~/.claude/context-manager/refinement-queue.jsonl`
+(`id`/`ts`/`source`/`repo`/`pattern` fields, a `status` lifecycle) but is a separate file — that
+queue is scoped to skill-refinement signals and triaged by `/skill-refine`, the wrong tool for
+"code that passed a test this session, maybe worth promoting to this registry."
+
+**Append safety.** A single `printf ... >>` is one `write(2)` syscall for a line this short,
+which POSIX guarantees atomic on a local filesystem opened `O_APPEND` — concurrent sessions
+interleave whole lines, never corrupt one. (`flock(1)` doesn't exist on macOS/BSD, so this is the
+portable equivalent, not a fallback.) Verified directly: 60 concurrent invocations against the
+same queue file produced exactly 60 valid, distinct JSON lines, zero corruption.
+
+**What was wrong in the brief.** The original wiring brief assumed the post-Bash hook could
+check whether a command "exited 0." Empirically, two things are true instead: the Bash
+`tool_response` payload delivered to hooks carries no exit-code field at all (`{stdout, stderr,
+interrupted, isImage, noOutputExpected}`, confirmed against the shipped `sdk-tools.d.ts` and real
+transcript data), and — the more load-bearing fact — **PostToolUse for Bash does not fire at all
+when the tool result is an error**, confirmed with a live probe (a 3-command pass/fail/pass
+sequence in an isolated scratch session produced exactly two PostToolUse events, for the two
+passing commands). So by the time this hook runs, the command has already succeeded; there was
+never anything to check. Full writeup: `docs/decisions/0002-post-bash-hook-exit-code.md`.
 
 ## Trust model this plugin never bypasses
 
@@ -136,10 +192,16 @@ the registry's own `README.md` and `STATE.md` at `Rhize-Media/procedural-memory`
 
 ## Eval coverage
 
-Not yet added. A `claude plugin eval` reachability spike (done alongside this scaffold) found
-the sandbox's filesystem-exec and network-access policies for reaching a home-directory binary
-and a local Postgres are **undocumented** in the current reference material — neither confirmed
-reachable nor confirmed blocked. A future eval suite for this plugin should default to a
-fixture/mock mode rather than assuming it can reach the real CLI and a live Postgres, and treat
-a real-CLI/real-DB path as something to verify empirically per environment, not assume from this
-note.
+Authored (`evals/`: a sandbox-reachability probe, a fixture-mode happy path, one trigger case,
+two negative/routing cases), but `claude plugin eval` itself is **organization-gated
+early-access** on this install — confirmed blocked on both `claude plugin eval init` and the
+actual run path (`claude plugin eval . --case ...`), not just one. Enablement is per-org via an
+onboarding-provided env var; whether to pursue it is Jim's call, not resolved here.
+
+What's real instead: `tests/test-launcher.sh` runs the launcher's resolution-order and
+version-gate logic directly (no Claude session needed) and includes a proven
+deliberately-broken-case-that-goes-red. Separately, every trigger/negative/happy-path case was
+manually run once through a real Claude Code session (`claude --plugin-dir <this-plugin>`) —
+including a genuine end-to-end hit against this developer's live registry (recall found a real
+degraded/unreviewed artifact; run correctly refused it; `--approve-unreviewed` was never added).
+Full detail, including exactly what fixture-mode does and doesn't cover: `evals/README.md`.

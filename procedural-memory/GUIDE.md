@@ -38,6 +38,24 @@ once you've captured working code worth reusing.
   during an offline run, without needing a live Postgres connection.
   *Example: "Verify n8n-safe-deploy — I think it self-quarantined."*
 
+## The session automatically notices when you might have something to promote
+
+You don't have to remember to run `/procedural-memory:promote` right after writing something
+reusable. Two hooks run in the background:
+
+- Every time a Bash call in your session matches a known test/build command (`pytest`, `npm
+  test`, `cargo test`, `go test`, `vitest`, `tsc`, and a few others) and completes, it's quietly
+  noted.
+- When the session ends (or a turn finishes with nothing else pending), if anything was noted
+  *this session*, you'll see a short summary: which commands passed, which files you wrote or
+  edited alongside them, and a reminder that `/procedural-memory:promote <path>` is there if you
+  want to capture it.
+
+This is a nudge, not an automation — nothing gets promoted, committed, or indexed on your
+behalf. "Passed its test command this session" is not the same claim as "registry-verified";
+only `/procedural-memory:verify` (or a fresh `/procedural-memory:promote`) ever makes the latter
+claim. If you don't want to capture something, just ignore the nudge — nothing else happens.
+
 ## What this plugin is not
 
 It doesn't retrieve past conversations or session history — that's claude-mem's job (its

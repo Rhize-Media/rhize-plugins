@@ -1,4 +1,28 @@
 {
-  "description": "Scaffold only — no hooks are wired yet. Candidate future wiring (not built in this change): a PreToolUse guard on Bash that catches a raw `rhize-skill`/venv-path invocation and redirects to scripts/rhize-skill-launcher.sh, or a PostToolUse nudge after a Write/Edit that looks like a reusable script pattern, suggesting `/procedural-memory:promote`. Both are deliberately deferred to a follow-up task rather than guessed at here.",
-  "hooks": {}
+  "description": "Two-tier candidate-capture wiring (2026-08-24). PostToolUse/Bash runs post-bash-candidate-queue.sh — pure POSIX shell, no subprocess heavier than `date`/`cut`, appends a JSONL line to ~/.claude/procedural-memory/candidate-queue.jsonl when a Bash call matches a known test/build invocation. It never checks an exit code: PostToolUse for Bash was found empirically NOT to fire at all when the tool result is an error (see the script's own header), so any invocation reaching this hook already succeeded. Stop runs session-end-scan.py — the heavier scan: fast-exits unless the queue has pending entries for this session_id, then cross-checks the transcript and surfaces promotion candidates. Deferred from the original scaffold note (still not built): a PreToolUse guard on Bash for a raw `rhize-skill`/venv-path invocation, and a PostToolUse nudge after Write/Edit. Both remain out of scope for this change.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/post-bash-candidate-queue.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/session-end-scan.py\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
 }
