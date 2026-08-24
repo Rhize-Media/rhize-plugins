@@ -174,7 +174,7 @@ hook command, and a trailing slash on a `*_BASE_URL` env value. Prefer it over
 the script below for anything committed here.
 
 **Machine-wide (any installed plugin, any repo):** the script above only
-scans this repo. `python3 scripts/audit_mcp_secrets.py` finds every `${...}`
+scans this repo. `python3 scripts/audit_machine_mcp_configs.py` finds every `${...}`
 still present in an MCP config across every plugin install and every
 `~/dev-local` repo on this machine, **and** flags credential-shaped env keys
 holding an inline plaintext value with no `${` at all — the gap that let
@@ -183,7 +183,7 @@ credentials as literals. Useful when troubleshooting a specific 401/403;
 deliberately not wired into any release gate.
 
 ```bash
-python3 scripts/audit_mcp_secrets.py
+python3 scripts/audit_machine_mcp_configs.py
 ```
 
 `stdio` `${VAR}` rows are actionable — migrate them to the shim. `HTTP` rows

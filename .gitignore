@@ -40,7 +40,7 @@ scripts/*
 !scripts/build_skill_map.py
 !scripts/validate_skill_map.py
 !scripts/validate_plugin_configs.py
-!scripts/audit_mcp_secrets.py
+!scripts/audit_machine_mcp_configs.py
 !scripts/build_local_skill_map.py
 !scripts/render_skill_map_docs.py
 !scripts/publish_skill_map_vault.py

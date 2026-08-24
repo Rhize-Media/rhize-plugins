@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""audit_mcp_secrets.py — machine-wide diagnostic scan for MCP secret-delivery footguns.
+"""audit_machine_mcp_configs.py — machine-wide diagnostic scan for MCP secret-delivery footguns.
 
 Extracted from the `python3 - <<'PY'` heredoc that used to live inline in
 docs/mcp-secret-launcher.md ("## Detecting regressions") — see that section's
@@ -53,7 +53,7 @@ Design:
   - Exit 0 unless at least one ERROR-severity finding is present.
 
 Usage:
-  python3 scripts/audit_mcp_secrets.py [--root PATH]
+  python3 scripts/audit_machine_mcp_configs.py [--root PATH]
 
   --root overrides the three default machine locations with a single
   directory, globbed recursively for `**/.mcp.json` — used to point the scan
