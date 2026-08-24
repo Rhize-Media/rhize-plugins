@@ -21,7 +21,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pytest
+      # PyYAML too: ubuntu's SYSTEM python3 ships it, but actions/setup-python
+      # provides a clean interpreter that does not. build_skill_map.py needs it to
+      # parse SKILL.md frontmatter — without it no topic-tag nodes are emitted and
+      # the map build dies on a dangling edge, failing --check-stale.
+      - run: pip install pytest pyyaml
       - name: Validate version bumps
         run: |
           python3 scripts/bump_version.py --check --since "origin/${{ github.base_ref }}"
