@@ -48,6 +48,7 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
+| `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 
 ## rhize-context-manager
 

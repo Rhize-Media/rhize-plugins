@@ -756,3 +756,71 @@ def test_accepted_product_constraint_evidence_shows_instruction_file_present(
     text = read(REVIEW).lower()
     assert "accepted product decision" in text
     assert "not relitigate scope" in text
+
+
+# ---------------------------------------------------------------------------
+# `/rhize-devflow:simplify` — thin command adapter over one Claude/Codex skill contract
+# ---------------------------------------------------------------------------
+
+SIMPLIFY_COMMAND = DEVFLOW / "commands" / "simplify.md"
+SIMPLIFY_SKILL = DEVFLOW / "skills" / "simplify" / "SKILL.md"
+SIMPLIFY_MARKER = "<!-- canonical: rhize-devflow:simplify -->"
+
+
+def test_simplify_command_and_skill_exist() -> None:
+    assert SIMPLIFY_COMMAND.is_file()
+    assert SIMPLIFY_SKILL.is_file()
+
+
+def test_simplify_command_carries_its_canonical_marker() -> None:
+    assert _canonical_marker_immediately_after_frontmatter(
+        read(SIMPLIFY_COMMAND), SIMPLIFY_MARKER
+    )
+
+
+def test_simplify_command_is_a_thin_adapter_to_one_skill_contract() -> None:
+    command = read(SIMPLIFY_COMMAND)
+    assert "Invoke the `rhize-devflow:simplify` skill (Skill tool)" in command
+    assert "Pass `$ARGUMENTS`" in command
+    assert len(command.splitlines()) < 30, "command should not duplicate the canonical skill body"
+
+
+def test_simplify_skill_resolves_exact_scope_and_accepts_a_verified_no_op() -> None:
+    skill = " ".join(read(SIMPLIFY_SKILL).lower().split())
+    assert "resolve the exact boundary first" in skill
+    assert "never silently treat the whole repository as \"recent work.\"" in skill
+    assert "well-supported no-op is a valid result" in skill
+
+
+def test_simplify_skill_requires_behavior_preservation_before_editing() -> None:
+    skill = read(SIMPLIFY_SKILL).lower()
+    assert "apply a candidate only when every condition holds" in skill
+    for contract in (
+        "authorization",
+        "tenancy",
+        "audit",
+        "concurrency",
+        "accessibility",
+        "error contracts",
+    ):
+        assert contract in skill
+
+
+def test_simplify_skill_has_react_nextjs_gold_standard_checks() -> None:
+    skill = " ".join(read(SIMPLIFY_SKILL).split())
+    for expected in (
+        "Derive render values directly from props and state",
+        "Use Effects to synchronize with external systems",
+        'place `"use client"` at the narrowest practical interactive boundary',
+        "Use `useMemo`, `useCallback`, and `memo` only",
+        "authoritative refreshed data",
+    ):
+        assert expected in skill
+
+
+def test_simplify_skill_preserves_applied_migrations_and_release_authority() -> None:
+    skill = read(SIMPLIFY_SKILL).lower()
+    assert "never rewrite an applied migration" in skill
+    assert "no extra release authority" in skill
+    for operation in ("commit", "push", "merge", "deploy", "migrate data"):
+        assert operation in skill

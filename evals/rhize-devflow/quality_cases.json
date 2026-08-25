@@ -70,5 +70,37 @@
       {"type": "contains", "value": "Preserve accepted product decisions as constraints", "name": "Preserves accepted product decisions as constraints"},
       {"type": "contains", "value": "do not relitigate scope", "name": "Reviewers do not relitigate scope"}
     ]
+  },
+  {
+    "id": "quality-simplify-exact-boundary-and-no-op",
+    "target_file": "rhize-devflow/skills/simplify/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Resolve the exact boundary first", "name": "Resolves exact review boundary"},
+      {"type": "contains", "value": "well-supported no-op", "name": "Accepts evidence-backed no-op"}
+    ]
+  },
+  {
+    "id": "quality-simplify-candidate-gate",
+    "target_file": "rhize-devflow/skills/simplify/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Apply a candidate only when every condition holds", "name": "Declares all-of candidate gate"},
+      {"type": "contains", "value": "Authorization, tenancy, audit, concurrency, accessibility, and error contracts", "name": "Preserves critical contracts"}
+    ]
+  },
+  {
+    "id": "quality-simplify-react-contract",
+    "target_file": "rhize-devflow/skills/simplify/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Derive render values directly from props and state", "name": "Forbids mirrored render state"},
+      {"type": "contains", "value": "Use Effects to synchronize with external systems", "name": "Uses Effects only for external synchronization"}
+    ]
+  },
+  {
+    "id": "quality-simplify-authority-boundary",
+    "target_file": "rhize-devflow/skills/simplify/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "No extra release authority", "name": "Separates simplification from release authority"},
+      {"type": "contains", "value": "commit, push, merge, deploy, migrate data", "name": "Names prohibited release mutations"}
+    ]
   }
 ]

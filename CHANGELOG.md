@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-24_ version bump — **rhize-devflow** 2.14.0 → 2.15.0 (minor); marketplace 2.38.0 → 2.39.0.
+- _2026-08-24_ **rhize-devflow — new `/rhize-devflow:simplify` command and `simplify` skill for
+  Claude/Codex parity, adapted beyond Claude Code's built-in three-pass command.** The canonical
+  skill resolves the exact task diff (including clean-tree committed work), protects unrelated
+  dirty work, reviews reuse/quality/efficiency, and applies a candidate only when observable
+  behavior plus authorization, tenancy, audit, concurrency, accessibility, error, schema, and
+  external-side-effect contracts remain intact. Adds React/Next.js guidance for derived state,
+  Effects, Server/Client boundaries, mutation refresh lifecycle, accessibility, and evidence-based
+  memoization; applied migrations stay immutable. A verified no-op is explicitly successful, and
+  invoking the command grants no additional edit or release authority. The slash command is a thin
+  qualified Skill-tool adapter that forwards `$ARGUMENTS` into one shared contract to avoid
+  Claude/Codex drift. Simplify/consolidate/deduplicate edit intent participates in the existing
+  impact-map prepare/reconcile receipt gate, while explicit read-only and non-code simplification
+  remain ungated. The Claude built-in fork and its version-based drift procedure are recorded in
+  the central provenance ledger. Includes deterministic trigger fixtures, command/skill contracts,
+  and focused refactor-gate boundary tests.
 - _2026-08-24_ **`scripts/audit_machine_mcp_configs.py` — extracted the machine-wide MCP-secret audit out of a `python3 - <<'PY'` heredoc embedded in `docs/mcp-secret-launcher.md`** (this repo's standing "no prose-functions" rule; the doc now calls the script by path instead of embedding code). Distinct from `scripts/validate_plugin_configs.py`, which is repo-scoped and gates version bumps — this one scans `~/.claude/plugins/**/.mcp.json`, `~/dev-local/**/.mcp.json`, and `~/.claude.json`, is stdlib-only, and is deliberately not wired into any release gate. Reuses `validate_plugin_configs.py`'s existing key-shape guard (`secret_key_severity`/`_last_component`) via `importlib` rather than duplicating it, so `SLACK_TEAM_ID`/`KEY_FILE_PATH` stay non-findings there too. Closes a real blind spot the old heredoc had: it only matched `${VAR}` references, so on 2026-08-19 `~/.claude.json` held DataForSEO credentials as inline plaintext literals (no `${` anywhere) and the scan reported it clean. Added inline-plaintext-credential detection (credential-shaped key name, no `${` in the value) alongside the original `${VAR}`-classification (stdio = actionable error, HTTP = informational known gap) — prints only key names and value lengths, never values. Verified against real machine state (only known HTTP-transport `${VAR}` rows, zero inline-plaintext findings) and against adversarial `/tmp` fixtures proving both true positives (stdio `${VAR}`, inline plaintext) and true negatives (HTTP `headers` `${VAR}`, `SLACK_TEAM_ID`, `KEY_FILE_PATH`). Repo tooling + docs only — no plugin shipped, no version bump.
 - _2026-08-24_ version bump — **procedural-memory** 0.1.0 → 0.2.0 (minor); marketplace 2.37.3 → 2.38.0.
 - _2026-08-24_ version bump — **project-launcher** 1.7.2 → 1.7.3 (patch); marketplace 2.37.2 → 2.37.3.

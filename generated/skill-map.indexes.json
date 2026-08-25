@@ -27,6 +27,10 @@
       },
       {
         "deeper": [],
+        "skillId": "skill:rhize-devflow/simplify"
+      },
+      {
+        "deeper": [],
         "skillId": "skill:seo-aeo-geo/nextjs-sanity-seo"
       }
     ],
@@ -149,6 +153,10 @@
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/chrome-devtools-mcp"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/simplify"
       }
     ],
     "vercel": [
@@ -249,6 +257,9 @@
         "skill:rhize-devflow/dev-flow-foundations"
       ],
       "skill:rhize-devflow/sentry-instrumentation": [
+        "skill:rhize-devflow/dev-flow-foundations"
+      ],
+      "skill:rhize-devflow/simplify": [
         "skill:rhize-devflow/dev-flow-foundations"
       ]
     },
@@ -949,6 +960,28 @@
         {
           "kind": "tag",
           "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/simplify": [
+        {
+          "kind": "name",
+          "label": "simplify",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "nextjs",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
           "weight": 2
         },
         {

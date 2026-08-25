@@ -18,6 +18,24 @@
     "should_trigger": false
   },
   {
+    "id": "trigger-simplify-skill-pos",
+    "target": "skill:simplify",
+    "prompt": "Please simplify and consolidate the React code from this task, remove redundant state, and preserve behavior.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-simplify-skill-neg-explain-react-state",
+    "target": "skill:simplify",
+    "prompt": "Explain what React state is to a beginner.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-simplify-skill-neg-simplify-fraction",
+    "target": "skill:simplify",
+    "prompt": "Reduce the fraction 12/18 to lowest terms.",
+    "should_trigger": false
+  },
+  {
     "id": "trigger-data-mutation-consistency-pos",
     "target": "skill:data-mutation-consistency",
     "prompt": "Our dashboard shows stale data after a Server Action mutation and I had to hard-refresh to see the update -- can you check the cache and revalidate logic?",
@@ -146,6 +164,24 @@
     "prompt": "Explain what a focused test even means in general testing theory.",
     "should_trigger": false,
     "note": "singular 'a focused test' does not match the plural keyword phrase 'focused tests' -- documents the heuristic's exact-phrase brittleness"
+  },
+  {
+    "id": "trigger-simplify-command-pos",
+    "target": "command:simplify",
+    "prompt": "Run a safe simplification pass over this diff for reuse, correctness, and efficiency; a verified no-op is fine.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-simplify-command-neg-product-copy",
+    "target": "command:simplify",
+    "prompt": "Rewrite this product copy so a fifth grader can understand it.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-simplify-command-neg-performance-theory",
+    "target": "command:simplify",
+    "prompt": "What is algorithmic efficiency in computer science?",
+    "should_trigger": false
   },
   {
     "id": "trigger-review-pos",

@@ -11,6 +11,14 @@
     "component registry",
     "why did this break again"
   ],
+  "skill:simplify": [
+    "simplify",
+    "consolidate",
+    "deduplicate",
+    "reduce complexity",
+    "react best practices",
+    "redundant state"
+  ],
   "skill:data-mutation-consistency": [
     "stale data",
     "not updating",
@@ -64,6 +72,13 @@
     "focused tests",
     "repository-mandated gates",
     "deterministic facts"
+  ],
+  "command:simplify": [
+    "safely simplify",
+    "reuse",
+    "correctness",
+    "react/next.js checks",
+    "verified no-op"
   ],
   "command:review": [
     "production merge/release gate",
