@@ -1,6 +1,7 @@
 ---
 name: trigger-recall
 tags: [trigger, routing]
+plugins: ["../.."]
 runs: 3
 max_turns: 6
 timeout_seconds: 120

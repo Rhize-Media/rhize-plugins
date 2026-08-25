@@ -124,7 +124,7 @@ procedural-memory/
 │   └── session-end-scan.py                   # Tier 2 — heavier, on Stop
 ├── docs/decisions/                           # recorded scope decisions (e.g. no /prune)
 ├── tests/test-launcher.sh                    # launcher resolution/version-gate tests, real+runnable
-├── evals/                                    # claude plugin eval suite — authored, org-gated (see evals/README.md)
+├── evals/                                    # claude plugin eval suite + validate-suite.py (see evals/README.md)
 ├── README.md                                 # this file
 └── GUIDE.md                                  # user-facing walkthrough
 ```
@@ -233,8 +233,26 @@ record: `docs/integrations/ai-stack-drift.patch.md` in `Rhize-Media/procedural-m
 Authored (`evals/`: a sandbox-reachability probe, a fixture-mode happy path, one trigger case,
 two negative/routing cases), but `claude plugin eval` itself is **organization-gated
 early-access** on this install — confirmed blocked on both `claude plugin eval init` and the
-actual run path (`claude plugin eval . --case ...`), not just one. Enablement is per-org via an
-onboarding-provided env var; whether to pursue it is Jim's call, not resolved here.
+actual run path (`claude plugin eval . --case ...`), not just one.
+
+**Corrected 2026-08-25.** This section previously said enablement was "per-org via an
+onboarding-provided env var." That conflated two different mechanisms. Enablement is
+**server-side, per organization**, and an enabled first-party client picks it up automatically
+after `claude update` and a fresh session — no local setting at all. The env var exists only for
+clients that can *never* receive server-side flags (Bedrock/Vertex/Foundry, an LLM gateway or
+custom `ANTHROPIC_BASE_URL`, or `DISABLE_TELEMETRY` / `DO_NOT_TRACK` /
+`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK` set). Measured on this machine:
+none of those apply, the GrowthBook flag cache refreshed the same day and holds 544 flags, and
+**none of them is eval-related** — so the flag fetch is healthy and the entitlement is simply
+absent. The only unblock is an Anthropic-side grant for the org. See `evals/README.md`.
+
+**Pre-gate check that does work now:** `python3 evals/validate-suite.py` statically validates
+every case and grader against the real schema (exit 1 on any error). It caught three defects
+that would have made the first real run worthless — a `tool_used` grader with `max: 0` and no
+`min: 0` (can never pass, `min` defaults to 1), execution fields at the top level of a
+`case.yaml` where unknown keys are silently ignored, and free-text strings in `focus:` where
+only an enum is valid. It proves schema conformance only: it runs no agent, so trigger accuracy
+stays unmeasured until the gate opens.
 
 What's real instead: `tests/test-launcher.sh` runs the launcher's resolution-order and
 version-gate logic directly (no Claude session needed) and includes a proven

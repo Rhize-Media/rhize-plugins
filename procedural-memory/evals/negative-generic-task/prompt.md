@@ -1,6 +1,7 @@
 ---
 name: negative-generic-task
 tags: [negative, routing]
+plugins: ["../.."]
 runs: 3
 max_turns: 6
 timeout_seconds: 60

@@ -3,7 +3,9 @@ name: skill-not-invoked
 type: tool_used
 tool: Skill
 input_match: 'procedural-memory'
+min: 0
 max: 0
+arm: both
 ---
 
 "What did we discuss last week" is a past-conversation recall question — claude-mem's job, per

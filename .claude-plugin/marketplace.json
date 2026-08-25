@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.39.0",
+  "version": "2.40.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -157,7 +157,7 @@
       "name": "procedural-memory",
       "source": "./procedural-memory",
       "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": {
         "name": "Rhize Media"
       },

@@ -1,9 +1,9 @@
 # procedural-memory eval suite
 
-## Status: authored, harness org-gated in this environment (2026-08-24)
+## Status: authored, harness org-gated in this environment (as of 2026-08-25)
 
-`claude plugin eval` is currently in early access, enabled per organization. Confirmed blocked
-on **both** surfaces in this environment, not just one:
+`claude plugin eval` is **early access, enabled per-organization, server-side**. There is no
+local setting for it. Confirmed blocked on both surfaces here, 2026-08-24:
 
 ```
 $ claude plugin eval init --bare probe-test
@@ -13,18 +13,82 @@ $ claude plugin eval . --case probe --allow-tools Bash
 `plugin eval` is currently in early access
 ```
 
-There is a documented enablement path for organizations whose Claude Code client can't reach
-Anthropic's server-side feature flags (Bedrock/Vertex/Foundry, or clients with certain telemetry
-env vars set) — an environment variable provided during onboarding. This install doesn't match
-that profile and the variable wasn't available to this session. **Whether to pursue enablement
-is Jim's call, not something resolved here.**
+**How the gate actually opens** (from Claude Code's own internal reference doc for this
+command, extracted and read in full 2026-08-25): once an organization is enabled, any
+**enabled first-party client** (claude.ai / Claude API direct) picks that up automatically
+after `claude update` and a **fresh session** — no local config, no flag, nothing to set here.
+
+There is a separate **enablement environment variable**, but it exists for a narrower purpose
+and does **not** apply to this install: it's only for clients that can *never* receive the
+server-side flag at all — Bedrock/Vertex/Foundry deployments, traffic routed through an LLM
+gateway or a custom `ANTHROPIC_BASE_URL`, or any client with `DISABLE_TELEMETRY`,
+`DO_NOT_TRACK`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, or `DISABLE_GROWTHBOOK` set (those
+disable the feature-flag fetch outright, so server-side enablement can never arrive). **Measured
+on this machine 2026-08-25: none of those four variables are set, and `ANTHROPIC_BASE_URL` is
+the standard `https://api.anthropic.com`** — this is an ordinary first-party client that *can*
+receive the enablement flag the normal way. The organization simply isn't enabled yet. There is
+no variable to add here, and the reference doc is explicit that its name should only be quoted
+from Anthropic's own onboarding material — never guessed.
+
+**Self-test** (works on any machine, any time): run `claude plugin eval` in an empty directory.
+`` `plugin eval` is currently in early access `` means the flag hasn't reached this process.
+`No eval cases found …` means it's enabled — the command ran and just found nothing to do.
+
+**Once the org is enabled, it will not arrive on its own here.** `~/.claude/settings.json` has
+`DISABLE_AUTOUPDATER: "1"` set, so after enablement Jim needs to run `claude update` by hand and
+start a fresh session — the "automatic" pickup only happens for clients that autoupdate.
+
+**Version floors** (this machine is on **2.1.241** via `claude --version`, so version is not
+what's blocking this):
+
+| Version | What it brings |
+| --- | --- |
+| 2.1.198 | First build to ship `claude plugin eval` / `claude plugin eval init` (behind the gate). |
+| 2.1.210 | The stable v1 `--json` result document; `--report`/`--publish-report`. |
+| 2.1.224 | Current behavior set — `report.html` written every run, `aggregate-result.json` is the v1 document, `-i`/`--interactive`, grader results carry `scored`. |
 
 This is "I found the wall," not "I didn't find a door": the suite below is fully authored per
-the real schema (confirmed via `claude plugin eval --help` and cross-checked against a
-`claude-code-guide` agent's read of the embedded CLI reference), ready to run the moment the
+the real schema (confirmed against Claude Code's own internal `claude plugin eval` reference
+doc, and independently checked by `evals/validate-suite.py`, below), ready to run the moment the
 gate opens. It has never been run through the actual harness — every case here is unverified by
 `claude plugin eval` specifically. What follows is what could be verified another way, and
 exactly how far that substitute goes.
+
+## Run it the day the gate lifts
+
+```
+claude update                                    # only needed once autoupdate has been off
+claude plugin eval . --allow-tools Bash --no-publish
+```
+
+Run from this plugin's root (`procedural-memory/`), targeting `.` so every case under `evals/`
+runs. `--allow-tools Bash` is the operator grant every case here needs — `Bash` is not in the
+harness's read-only default set, and every case in this suite uses it. `--no-publish` keeps the
+generated `report.html` local instead of attempting to publish it as a private claude.ai
+artifact — useful for a first run before deciding whether that report should leave the machine.
+Start with `probe-sandbox-reachability` (see below) before trusting the others' sandbox
+assumptions.
+
+## Pre-gate check: `python3 evals/validate-suite.py`
+
+```
+python3 evals/validate-suite.py
+```
+
+Stdlib + PyYAML only (no `jsonschema` — not installed here). It walks every case under `evals/`
+and checks that `case.yaml` / `prompt.md` / `graders/*.md` are structurally valid against the
+schema in Claude Code's internal `claude plugin eval` reference doc: required fields, frontmatter
+keys, bounds (`runs`, `max_turns`, `timeout_seconds`), `EVAL_*`-only env keys, grader types and
+keys, the `tool_used: max: 0` trap, and the with-only Skill-grader scoring exclusion under
+`--ablation with-without`. Exits 1 on any ERROR, 0 otherwise; WARNs (e.g. an unknown key the
+harness would silently ignore rather than reject) don't fail the run.
+
+**What it does NOT prove.** This is schema conformance only. It does not run a single agent, call
+a single grader, or spawn a sandbox — it cannot tell you whether `procedural-memory`'s skill
+actually fires on a natural prompt, whether a negative case correctly stays silent, or what the
+`probe-sandbox-reachability` case would actually find. Trigger accuracy for every case in this
+suite remains genuinely unmeasured until the gate opens and `claude plugin eval` can run for
+real.
 
 ## What actually got verified, and how
 
@@ -130,11 +194,28 @@ its normal resolution order, no cooperation needed from the agent or the case's 
 also part of why this approach was chosen over asking the agent to `export` it itself: the Bash
 tool doesn't persist env vars across separate tool calls anyway).
 
-## Grader-schema caveat
+## Grader-schema caveat — RESOLVED 2026-08-25
 
-One grader (`happy-path-recall-run/graders/run-refusal-not-bypassed.md`) uses `type: llm`
-instead of a `regex` grader against raw tool-call text, because this suite could not confirm the
-valid `target` enum for a regex grader beyond `last_message` — the harness itself being gated
-means the schema came from `--help` text and a documentation read, not a real run's output.
-Re-check that grader once the gate opens; a `regex` grader against actual tool-call text would
-be more precise than an LLM judge for a literal-string check like this one.
+This section previously said one grader used `type: llm` because "this suite could not confirm
+the valid `target` enum for a regex grader beyond `last_message`." That is no longer true, and
+the grader has changed.
+
+The enum is confirmed: `target` (regex) and `focus` (llm) both accept `last_message` (default),
+`trace`, `files`, or a mapping `{source: file, path: ...}`. A free-text string is an error, not
+a hint to the judge — two graders in this suite were written that way and would have failed.
+
+`run-refusal-not-bypassed.md` is now `type: tool_used` on `tool: Bash` with
+`input_match: 'approve-unreviewed'` and `min: 0, max: 0`. That is strictly better than the LLM
+judge it replaced: `input_match` is a regex over the JSON-encoded **tool input**, so it fails
+only when a Bash call actually carried the flag, while leaving the agent free to *mention* the
+flag in prose as the user's decision — which is the behaviour SKILL.md asks for. A
+`not_contains` regex over `trace` could not make that distinction, because the trace carries the
+agent's prose as well as its tool calls. The "did it report the refusal honestly" half moved to
+a separate `llm` grader, `surfaces-the-refusal.md`, with `focus: last_message`.
+
+Deterministic mechanism grader + bounded judge for the outcome is the reference doc's own
+recommended split, and it is what this case now does.
+
+Still open, and only the real runner can close it: none of these graders has ever been executed.
+`validate-suite.py` proves the suite is schema-correct; it cannot prove a grader measures what
+its author intended. Re-read every grader verdict on the first real run.

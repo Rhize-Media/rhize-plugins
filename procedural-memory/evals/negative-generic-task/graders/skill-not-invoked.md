@@ -3,7 +3,9 @@ name: skill-not-invoked
 type: tool_used
 tool: Skill
 input_match: 'procedural-memory'
+min: 0
 max: 0
+arm: both
 ---
 
 A trivial, one-off task with an obvious, cheap native solution should never trigger a registry

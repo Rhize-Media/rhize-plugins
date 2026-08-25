@@ -3,14 +3,15 @@ name: happy-path-recall-run
 tags: [happy-path, fixture]
 plugins: ["../.."]
 runs: 2
-max_turns: 8
-timeout_seconds: 120
-allowed_tools: [Bash, Skill]
-prompt: |
-  Is there already a proven artifact in the procedural-memory registry for "a fixture task used
-  by this plugin's own eval suite"? If you find one, tell me whether it's safe to run and why
-  (including its trust tier, health, and success rate — not just its name), then try running it.
 context:
   scaffold_script: scripts/setup-stub-cli.sh
-env:
-  EVAL_FIXTURE_MODE: "true"
+execution:
+  prompt: |
+    Is there already a proven artifact in the procedural-memory registry for "a fixture task used
+    by this plugin's own eval suite"? If you find one, tell me whether it's safe to run and why
+    (including its trust tier, health, and success rate — not just its name), then try running it.
+  max_turns: 8
+  timeout_seconds: 120
+  allowed_tools: [Bash, Skill]
+  env:
+    EVAL_FIXTURE_MODE: "true"

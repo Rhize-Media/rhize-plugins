@@ -1,6 +1,7 @@
 ---
 name: probe-sandbox-reachability
 tags: [probe, infra]
+plugins: ["../.."]
 runs: 1
 max_turns: 3
 timeout_seconds: 60

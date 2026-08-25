@@ -8,6 +8,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-25_ version bump — **procedural-memory** 0.2.0 → 0.3.0 (minor); marketplace 2.39.0 → 2.40.0.
+- _2026-08-25_ **procedural-memory — `evals/validate-suite.py`, a static schema validator for the
+  eval suite, plus three genuine defect fixes it caught.** `claude plugin eval` is org-gated on
+  this install, so the authored suite had never been executed or schema-checked. The real schema
+  came from the reference doc Claude Code compiles into its own binary. Three defects would have
+  made the first real run worthless: two `tool_used` graders used `max: 0` with no `min: 0`
+  (**can never pass** — `min` defaults to 1, so both routing cases would have failed every run);
+  `happy-path-recall-run/case.yaml` carried its execution fields at the top level, where unknown
+  keys are *silently ignored*, leaving the case with no `execution.prompt` at all; and two `llm`
+  graders passed a free-text sentence as `focus:`, which takes an enum. Also hardened the negative
+  Skill graders with `arm: both`, and converted the `--approve-unreviewed` check from an LLM judge
+  to a deterministic `tool_used` grader on Bash inputs — which fails only if a call actually
+  carried the flag, leaving the agent free to mention it as the user's decision. Each fix was
+  proven by reverting it and confirming the validator goes red. Corrected the README's claim that
+  enablement comes "via an onboarding-provided env var": it is server-side per-organization, and
+  the env var applies only to clients that cannot receive server-side flags — which this one can.
 - _2026-08-24_ version bump — **rhize-devflow** 2.14.0 → 2.15.0 (minor); marketplace 2.38.0 → 2.39.0.
 - _2026-08-24_ **rhize-devflow — new `/rhize-devflow:simplify` command and `simplify` skill for
   Claude/Codex parity, adapted beyond Claude Code's built-in three-pass command.** The canonical
