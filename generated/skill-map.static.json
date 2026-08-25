@@ -591,6 +591,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/simplify",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/inline-95242299",
       "type": "contains"
     },
@@ -670,6 +676,12 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "skill:rhize-devflow/sentry-instrumentation",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/simplify",
       "type": "contains"
     },
     {
@@ -1668,6 +1680,41 @@
       "type": "topic-tag"
     },
     {
+      "driftCheck": {
+        "method": "content-hash",
+        "upstreamPath": "en/docs/claude-code/cli-usage",
+        "upstreamRepo": "docs.anthropic.com"
+      },
+      "from": "skill:rhize-devflow/simplify",
+      "source": "sources-md",
+      "to": "external:docs.anthropic.com/en/docs/claude-code/cli-usage",
+      "type": "fork-of"
+    },
+    {
+      "from": "skill:rhize-devflow/simplify",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-devflow/simplify",
+      "source": "frontmatter",
+      "to": "tag:stack/nextjs",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/simplify",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/simplify",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-ops/delegate-to-teammate",
       "source": "frontmatter",
       "to": "mcp:atlassian",
@@ -2261,6 +2308,13 @@
       "path": "rhize-devflow/commands/review.md"
     },
     {
+      "description": "Safely simplify recent or explicitly scoped code changes through reuse, correctness, efficiency, and React/Next.js checks with regression evidence; a verified no-op is valid",
+      "id": "command:rhize-devflow/simplify",
+      "kind": "command",
+      "name": "simplify",
+      "path": "rhize-devflow/commands/simplify.md"
+    },
+    {
       "description": "",
       "id": "command:rhize-ops/bump-version",
       "kind": "command",
@@ -2392,6 +2446,12 @@
       "kind": "command",
       "name": "technical-audit",
       "path": "seo-aeo-geo/commands/technical-audit.md"
+    },
+    {
+      "id": "external:docs.anthropic.com/en/docs/claude-code/cli-usage",
+      "kind": "external",
+      "name": "simplify",
+      "url": "https://docs.anthropic.com/en/docs/claude-code/cli-usage"
     },
     {
       "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls.",
@@ -2904,7 +2964,7 @@
       "path": "rhize-cowork"
     },
     {
-      "description": "Rhize Media's engineering control-plane plugin — impact-map → check → review → release. Change impact analysis, evidence-driven implementation validation, and a read-only production merge/release gate, plus production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation, Chrome DevTools browser QA, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
+      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
@@ -3193,6 +3253,15 @@
       "kind": "skill",
       "name": "sentry-instrumentation",
       "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md"
+    },
+    {
+      "contentHash": "b2b3b29fd036a85ab18048404f454657e1f538f2556a0e5b582e4b900922b25f",
+      "contentHashNormalized": "a58122598ec461f39b57f3448400a816e3a8fbe2b4b48898561d1864df1c8e2b",
+      "description": "Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminating unnecessary work without changing behavior. Use after implementation or before delivery when the user asks to simplify, consolidate, deduplicate, reduce complexity, apply React best practices, remove redundant state/effects, or review recent code for a cleaner solution. A verified no-op is valid; never expand into broad redesign or unrelated cleanup.",
+      "id": "skill:rhize-devflow/simplify",
+      "kind": "skill",
+      "name": "simplify",
+      "path": "rhize-devflow/skills/simplify/SKILL.md"
     },
     {
       "contentHash": "b07a5da9cc65f6b4041ed943e5c92b3904178a5751e954226da867832361a112",

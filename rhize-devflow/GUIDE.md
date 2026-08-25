@@ -8,7 +8,7 @@ rhize-devflow is Rhize's engineering control plane: the executable workflow that
 from "what will this touch" through "does it pass" to "is it safe to ship" —
 
 ```text
-impact-map → check → review → release
+impact-map → implement → simplify → check → review → release
 ```
 
 — plus the production-grade development discipline Rhize expects around that spine: triaging and
@@ -24,7 +24,7 @@ Every command and skill here exists to prevent one of those failure modes.
 
 The plugin has two kinds of components:
 
-**Skills** are reference knowledge Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output. All five overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
+**Skills** are reference knowledge Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All six overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
 
 **Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
@@ -41,19 +41,20 @@ section](./README.md#install) for the exact commands — the short version:
 
 Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
 start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
-confirm you see `impact-map`, `check`, `review`, `mutation-check`, `browser-qa`, `doctor`, and
-`devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
+confirm you see `impact-map`, `simplify`, `check`, `review`, `mutation-check`, `browser-qa`,
+`doctor`, and `devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
 missing after an update, run `/rhize-devflow:doctor` (or
 `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` directly) — it names exactly what's
 missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
-The control-plane sequence is the spine; five overlay skills feed it or run alongside it:
+The control-plane sequence is the spine; six overlay skills feed it or run alongside it:
 
 | Stage/Cluster | Command or skills | Question it answers |
 |---------|--------|----------------------|
 | **1. Map** | `/rhize-devflow:impact-map` (backed by `dev-flow-foundations`) | "What already touches this area, and what's the intended change?" |
+| **Post-implementation** | `/rhize-devflow:simplify` (backed by `simplify`) | "Can this exact change have fewer sources of truth or less duplication without changing behavior?" |
 | **2. Validate** | `/rhize-devflow:check` | "Does this pass the tests and gates that actually apply to what changed?" |
 | **3. Gate** | `/rhize-devflow:review` | "Is this safe to merge, and has someone other than me actually checked?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
@@ -79,6 +80,29 @@ Session lifecycle (`/start`, `/done`, `/context-hygiene`) is owned by the paired
 - The Stop hook closes a successfully reconciled receipt as `completed`. A same-turn late source write still invalidates reconciliation, while an unrelated later task cannot inherit the old map; a new material prompt starts a new pending receipt.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
 - This is the reference layer behind the executable command, not a command surface itself — `/rhize-devflow:impact-map` (this plugin) implements the Dependency Graph foundation directly; `error-lifecycle-management` implements the Regression Prevention foundation as its triage workflow.
+
+### simplify
+
+**When it activates:** You ask to simplify, consolidate, deduplicate, reduce complexity, apply
+React best practices, remove redundant state/Effects, or check whether recent work has a cleaner
+behavior-preserving form.
+
+**What it knows:** How to resolve the exact task diff, protect unrelated dirty work, review through
+reuse/quality/efficiency lenses, and reject changes that weaken product behavior, authorization,
+tenancy, audit, concurrency, accessibility, schemas, errors, or external side effects. Its
+React/Next.js checks cover derived state, external-system Effects, Server/Client boundaries,
+mutation refresh lifecycle, semantic controls, and evidence-backed memoization. It treats an
+evidence-backed no-op as success and never rewrites an applied migration for cleanup.
+
+**How to use it effectively:**
+- Ask for edits when you want safe candidates applied and validated.
+- Add "read-only" when you want a candidate report without source changes.
+- Name a range or files when the task boundary is broader than the current session's changes.
+- Run `/rhize-devflow:check` after applied simplifications and `/rhize-devflow:review` before a
+  production release.
+
+**Key insight:** Simplification is a behavior-preserving reduction, not a license for redesign.
+Fewer lines are useful only when the resulting ownership and safeguards are at least as clear.
 
 ### error-lifecycle-management
 
@@ -159,7 +183,7 @@ for intended change — business behavior, invariants, planned symbols, operatio
 acceptance criteria. Requires a post-implementation `IN_SYNC`, `IN_SYNC_WITH_EXCEPTIONS`, or
 blocking `OUT_OF_SYNC` verdict.
 
-For material implementation/refactor prompts, the installed plugin now enforces this sequence.
+For material implementation/refactor/simplification prompts, the installed plugin now enforces this sequence.
 It allows the plan to be written, then blocks source edits until the command's `prepare` step has
 validated the persisted map, queried every existing healthy CodeGraph index (or recorded the
 fallback), and read any component registry. After source changes begin, commit/push/merge and
@@ -185,6 +209,25 @@ report. Runs focused tests first, then repository-mandated broader gates. Return
 **Examples:**
 - "Run check — the failing test for refund calculation just started passing."
 - "Check this before I pause for the day."
+
+#### /rhize-devflow:simplify
+
+**Usage:** `/rhize-devflow:simplify` followed by an optional range, file list, focus, or read-only
+instruction. Run it after implementation and before the final `check`/`review` gates.
+
+Reviews the exact task diff through reuse/consolidation, quality/correctness, and efficiency
+lenses. A candidate lands only when it preserves product behavior and keeps authorization,
+tenancy, audit, concurrency, accessibility, error, schema, and external-side-effect contracts at
+least as strong. React/Next.js checks favor derived render values over mirrored state, Effects only
+for external synchronization, narrow client boundaries, and evidence-backed memoization. It may
+edit only when the surrounding request already authorizes edits; it never grants commit, push,
+merge, deploy, migration, or external-write authority. A verified no-op is a successful outcome.
+
+**Examples:**
+- "Simplify the code from this task, apply only behavior-preserving improvements, and rerun the
+  relevant tests."
+- "Review `origin/dev..HEAD` for consolidation opportunities, but don't edit anything."
+- "Check these React changes for redundant state or Effects before review."
 
 #### /rhize-devflow:review
 

@@ -24,7 +24,7 @@ tests must not make live paid-service calls**. This directory is fully offline i
   decision — see "Method and limits" below.
 - **Quality evals** re-run the same assertion engine the house harness uses
   (`evals/assertions.py`'s `evaluate_all`), but against the **static contract text** of
-  `check.md`/`review.md` instead of live command output.
+  `check.md`, `review.md`, and the canonical `simplify` skill instead of live command output.
 
 Consequently the fixture files here are named `trigger_cases.json` / `quality_cases.json`,
 **not** `trigger_evals.json` / `quality_evals.json`. That's deliberate: `evals/run_evals.py`
@@ -101,9 +101,10 @@ session transcripts, not this synthetic heuristic.
 ## Method and limits — quality assertions
 
 `quality_cases.json` runs `evals/assertions.py`'s `contains`/`regex` assertion types against
-the raw text of `rhize-devflow/commands/check.md` and `review.md`, covering the four buckets
-the plan names: exact-verdict vocabulary, evidence-table presence, safety rules (no external
-mutation), and scope preservation. This deliberately overlaps with (and is a lighter-weight
+the raw text of `rhize-devflow/commands/check.md`, `review.md`, and
+`rhize-devflow/skills/simplify/SKILL.md`, covering the original four gate buckets plus exact
+simplification scope, behavior preservation, React conventions, and authority boundaries.
+This deliberately overlaps with (and is a lighter-weight
 mirror of) the much more exhaustive pytest coverage in
 `tests/rhize-devflow/test_command_contracts.py` — that file is the actual enforcement
 mechanism (e.g. it also asserts there is no *rogue* verdict token outside the stable
@@ -139,7 +140,7 @@ Task 11 (3.0 cleanup) has a single checklist to work from:
 |---|---|
 | `run_evals.py` | Standalone runner. `python3 run_evals.py` exits 0/1. |
 | `keywords.json` | Curated trigger-phrase keyword sets, one list per `skill:<name>`/`command:<name>` id. |
-| `trigger_cases.json` | Should-trigger / should-not-trigger prompt fixtures (33 cases: 3 per target × 11 targets — 6 skills, 5 canonical commands). |
-| `quality_cases.json` | Assertion fixtures against `check.md`/`review.md` (8 cases covering verdict vocabulary, evidence tables, safety, scope preservation). |
+| `trigger_cases.json` | Should-trigger / should-not-trigger prompt fixtures (39 cases: 3 per target × 13 targets — 7 skills, 6 canonical commands). |
+| `quality_cases.json` | Assertion fixtures against `check.md`, `review.md`, and `simplify/SKILL.md` (12 cases covering verdict vocabulary, evidence tables, safety, scope preservation, simplification gates, React conventions, and authority boundaries). |
 
 `evals/results/rhize-devflow-*.json` (gitignored) holds one timestamped snapshot per run.

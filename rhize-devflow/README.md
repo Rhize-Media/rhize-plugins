@@ -4,7 +4,7 @@ Rhize Media's engineering control-plane plugin. It makes Rhize engineering polic
 and enforceable across the whole lifecycle of a change:
 
 ```text
-impact-map → check → review → release
+impact-map → implement → simplify → check → review → release
 ```
 
 Everything namespaces as `rhize-devflow:<skill>` and `/rhize-devflow:<command>`.
@@ -29,6 +29,7 @@ the session-lifecycle side of this boundary.
 | Command | Stage | Purpose |
 |---|---|---|
 | `/rhize-devflow:impact-map` | 1 — map | CodeGraph-first structural discovery paired with a semantic impact map (intended behavior, invariants, planned code, operational effects, acceptance tests, unaffected paths); reconciles graph/diff/map after implementation. |
+| `/rhize-devflow:simplify` | post-implementation | Safely reduces duplication, accidental complexity, redundant React state/effects, and unnecessary work within the exact task diff. Uses a behavior-preservation candidate gate, validates applied changes, and treats a verified no-op as success. The command is a thin adapter over the canonical `simplify` skill so Claude and Codex share one contract. |
 | `/rhize-devflow:check` | 2 — validate | Evidence-driven mid-implementation validation. Builds a deterministic evidence packet (`devflow.py evidence`), selects checks only from repository instructions and known-safe declared package scripts, runs focused tests then repository-mandated gates, returns `PASS` / `PASS_WITH_WARNINGS` / `BLOCKED`. Never executes shell text parsed from prose. |
 | `/rhize-devflow:review` | 3 — gate | Read-only production merge/release gate. Resolves the exact base/head comparison range, builds a risk map from actual diff evidence (deployment, data, security, authorization, billing, migration, cache, external-write), routes only relevant specialists, requires an independent skeptical reviewer for non-trivial work, returns `PASS` / `FAIL_WITH_FIXABLE_GAPS` / `FAIL_REQUIRES_HUMAN`. Never commits, pushes, merges, or deploys. |
 | `/rhize-devflow:mutation-check` | overlay | Read-only data-mutation consistency check — `PATH...` (scoped file(s)), `--all` (whole codebase), or `--fix-plan` (proposed changes only, never edits source). |
@@ -64,6 +65,7 @@ mutation-analyze · mutation-fix
 | `/rhize-devflow:browser-perf` | `/rhize-devflow:browser-qa` | Performance scenario (on request or when relevant, not run by default). |
 | `/rhize-devflow:browser-test` | `/rhize-devflow:browser-qa` | Functional/responsive/accessibility scenarios. |
 | *(new, no predecessor)* | `/rhize-devflow:check` | Mid-implementation evidence-driven validation. |
+| Claude Code's built-in `/simplify` | `/rhize-devflow:simplify` | Additive Rhize/Codex adaptation: exact diff resolution, dirty-worktree protection, verified no-op results, React/Next.js checks, migration/external-contract safety, regression evidence, and explicit authority boundaries. |
 | *(new, no predecessor)* | `/rhize-devflow:review` | Production merge/release gate — the executable successor to the retired `rhize-review` skill workflow. |
 | *(new, no predecessor)* | `/rhize-devflow:doctor` | Thin slash-command adapter over `scripts/devflow.py doctor` — plugin/install health. |
 
@@ -78,14 +80,16 @@ mutation-analyze · mutation-fix
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
+| `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
-Each of these five overlay skills carries only Rhize-specific policy or convention, not
+Each of these six overlay skills carries only Rhize-specific policy or convention, not
 platform API reference — `sentry-instrumentation` and `sanity-development` explicitly defer to
 the official `sentry:*`/`sanity:*` plugins for SDK setup and exhaustive API docs, and
 `chrome-devtools-mcp` shrinks to DevTools-protocol mechanics for `/rhize-devflow:browser-qa`
-rather than general browser automation guidance. `dev-flow-foundations` is the reference layer
-behind `/rhize-devflow:impact-map`/`check`/`review` — not a command surface itself.
+rather than general browser automation guidance. `simplify` is an additive adaptation of Claude
+Code's built-in command for one shared Claude/Codex contract. `dev-flow-foundations` is the
+reference layer behind `/rhize-devflow:impact-map`/`check`/`review` — not a command surface itself.
 
 > The `skill-refinement` meta-skill moved to the `rhize-meta` plugin (2026-06-15), then on to the
 > `@rhize/skill-forge` npm package as `skill-forge refine` (2026-07-20); external-skill vetting made
@@ -218,11 +222,12 @@ Plugin caches only refresh on session start, so an update can silently fail to t
 you verify it. After any install or update:
 
 1. Start a **fresh** Claude Code session (not a resumed one).
-2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`impact-map`, `check`,
-   `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six deprecated adapters) —
+2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`impact-map`,
+   `simplify`, `check`, `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six
+   deprecated adapters) —
    or run `claude plugin details rhize-devflow` for a non-interactive check of the installed
    component inventory.
-3. Confirm the six skills above (`dev-flow-foundations`, `data-mutation-consistency`,
+3. Confirm the seven skills above (`simplify`, `dev-flow-foundations`, `data-mutation-consistency`,
    `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
    `chrome-devtools-mcp`) are discoverable in that session.
 4. Start a **fresh** Codex session and confirm the same skills load from
@@ -241,7 +246,7 @@ state is shared by Claude and Codex:
 
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
-| `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor prompts and creates a pending receipt. Review, audit, investigation, and plan-only prompts remain read-only. |
+| `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor/simplification prompts and creates a pending receipt. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated. |
 | `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts **and config-only paths** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
 | `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. |
 | `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |

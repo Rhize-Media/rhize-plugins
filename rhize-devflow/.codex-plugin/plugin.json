@@ -1,7 +1,7 @@
 {
   "name": "rhize-devflow",
-  "version": "2.14.0",
-  "description": "Rhize Media's development-workflow skill set: compounding persistence layer (verifier subagent, STATE.md contract, protected-file gate), production error lifecycle (Sentry + Vercel), data-mutation consistency across Next.js/Sanity/Payload/Supabase, Sentry instrumentation conventions, Chrome DevTools browser debugging, Sanity house style, and dev-flow foundations.",
+  "version": "2.15.0",
+  "description": "Rhize Media's engineering control-plane skills for impact mapping, behavior-preserving simplification, validation, independent production review, error lifecycle, mutation consistency, browser QA, Sentry instrumentation, and Sanity house style.",
   "author": {
     "name": "Rhize Media"
   },
@@ -18,13 +18,15 @@
     "supabase",
     "chrome-devtools",
     "control-plane",
+    "simplification",
+    "react",
     "rhize"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Rhize Dev Flow",
-    "shortDescription": "Mutation consistency, browser debugging, Sentry instrumentation, and Sanity house style for Rhize engineering.",
-    "longDescription": "Rhize Media's engineering workflow plugin for Next.js/Sanity/Payload/Supabase projects deployed on Vercel: mutation-consistency analysis that catches cache tags drifting from frontend query keys, Chrome DevTools-backed browser debugging and performance tracing, Rhize's in-code Sentry instrumentation conventions, Sanity house style for schemas and GROQ, and the per-repo local tenant-file setup convention. This is the foundation Rhize is building into a full impact-map -> check -> review -> release engineering control plane.",
+    "shortDescription": "Impact mapping, safe simplification, validation, review, and specialist safeguards for Rhize engineering.",
+    "longDescription": "Rhize Media's engineering workflow plugin for Next.js/React/Sanity/Payload/Supabase projects deployed on Vercel: exact-diff impact mapping, behavior-preserving simplification with React and regression checks, deterministic validation, independent production review, mutation-consistency analysis, browser QA, Sentry conventions, and Sanity house style. The control plane is impact-map -> implement -> simplify -> check -> review -> release.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [
@@ -34,6 +36,7 @@
     ],
     "defaultPrompt": [
       "Check this mutation for cache/query-key consistency: <file>",
+      "Simplify the recent code changes without changing behavior, then verify them.",
       "Debug console and network errors on <url> with Chrome DevTools.",
       "Set up the local tenant-file convention for this repo."
     ],

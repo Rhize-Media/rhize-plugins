@@ -95,7 +95,9 @@ SKIP_DISCOVERY_DIRS = {
 }
 MATERIAL_VERBS = re.compile(
     r"\b(implement|refactor|restructure|rewrite|migrate|fix|repair|modify|change|"
-    r"update|add|remove|delete|replace|build|create)\b",
+    r"update|add|remove|delete|replace|build|create|reduce|"
+    r"simplif(?:y|ies|ied|ication)|consolidat(?:e|es|ed|ing|ion)|"
+    r"deduplicat(?:e|es|ed|ing|ion))\b",
     re.IGNORECASE,
 )
 CODE_CONTEXT = re.compile(
@@ -114,8 +116,17 @@ PLAN_ONLY = re.compile(
     re.IGNORECASE,
 )
 EXECUTION_AFTER_REVIEW = re.compile(
-    r"\b(then|and)\b.{0,80}\b(implement|refactor|fix|repair|modify|change|update|add|remove)\b",
+    r"\b(then|and)\b.{0,80}\b(implement|refactor|fix|repair|modify|change|update|add|remove|"
+    r"reduce|simplif(?:y|ies|ied)|consolidat(?:e|es|ed|ing)|"
+    r"deduplicat(?:e|es|ed|ing))\b",
     re.IGNORECASE | re.DOTALL,
+)
+READ_ONLY_REQUEST = re.compile(
+    r"(?:^\s*(?:please\s+)?(?:do\s+(?:an?|the)\s+)?read[- ]only\b|"
+    r"\b(?:do not|don't)\s+(?:edit|change|modify)\b|"
+    r"\bwithout\s+(?:editing|changing|modifying)\b|"
+    r"\bno\s+(?:source\s+)?edits\b)",
+    re.IGNORECASE,
 )
 RELEASE_COMMAND = re.compile(
     r"(?:\bgit(?:\s+-C\s+\S+)?\s+(?:commit|push|merge)\b|\bgh\s+pr\s+merge\b)",
@@ -254,6 +265,8 @@ def run(command: list[str], cwd: Path, timeout: int = 30) -> subprocess.Complete
 
 def is_material_prompt(prompt: str) -> bool:
     if not MATERIAL_VERBS.search(prompt) or not CODE_CONTEXT.search(prompt):
+        return False
+    if READ_ONLY_REQUEST.search(prompt) and not EXECUTION_AFTER_REVIEW.search(prompt):
         return False
     if REVIEW_ONLY_LEAD.search(prompt) and not EXECUTION_AFTER_REVIEW.search(prompt):
         return False

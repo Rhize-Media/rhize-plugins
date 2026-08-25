@@ -123,6 +123,44 @@ def test_material_prompt_creates_pending_gate_but_review_prompt_does_not(tmp_pat
     assert json.loads(status.stdout)["phase"] == "pending"
 
 
+@pytest.mark.parametrize(
+    ("prompt", "should_gate"),
+    [
+        ("Simplify and consolidate this React component code", True),
+        ("Deduplicate this repository function", True),
+        ("Reduce complexity in this app code", True),
+        ("Review this code for simplification opportunities and report findings", False),
+        ("Simplify this component code, but do not edit anything", False),
+        ("Simplify the fraction 12/18", False),
+        ("Review this code and then simplify the implementation", True),
+        ("Change the read-only field in this schema", True),
+    ],
+)
+def test_simplify_prompts_respect_material_and_read_only_boundaries(
+    tmp_path: Path, prompt: str, should_gate: bool
+) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+
+    result = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, prompt),
+    )
+
+    assert result.returncode == 0
+    if should_gate:
+        assert "impact-map evidence is required" in result.stdout
+        status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+        assert json.loads(status.stdout)["phase"] == "pending"
+    else:
+        assert result.stdout == ""
+        status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+        assert status.returncode == 0
+        assert json.loads(status.stdout)["phase"] == "none"
+
+
 def test_pending_gate_blocks_claude_write_and_codex_patch_but_allows_plan(tmp_path: Path) -> None:
     workspace = tmp_path / "workspace"
     init_repo(workspace)
