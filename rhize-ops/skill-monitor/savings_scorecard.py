@@ -36,7 +36,10 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import benchmark_status
 import cost_metrics
+import stack_metrics
+from stack_metrics import TrustClass
 
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -76,6 +79,40 @@ def parse_iso(ts: str) -> datetime:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def _tag(trust: TrustClass) -> str:
+    """Inline trust-class tag, reusing stack_metrics.py's canonical
+    vocabulary rather than inventing a second one. Every rendered figure
+    below carries one of these next to the number itself — not as a
+    footnote or a legend a reader has to scroll to find."""
+    return f"[{trust.value}]"
+
+
+# ---------------------------------------------------------------------------
+# Procedural memory — imported from benchmark_status.py, not re-parsed here
+# ---------------------------------------------------------------------------
+
+def load_procedural_memory_status(path: Path | None = None) -> dict:
+    """Reads benchmark_status.py's pre-generated JSON snapshot
+    (data/benchmark-status.json) rather than re-parsing the vault notes'
+    markdown tables — that parsing already lives in benchmark_status.py.
+    Never raises: a missing/malformed snapshot is reported as unavailable
+    with a reason, same defensive style as every other loader here."""
+    p = path if path is not None else benchmark_status.OUTPUT_PATH
+    if not p.exists():
+        return {"available": False, "error": f"not found: {p}", "notes": {}, "liveness": {}}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8", errors="replace"))
+    except (json.JSONDecodeError, OSError) as e:
+        return {"available": False, "error": str(e), "notes": {}, "liveness": {}}
+    return {
+        "available": True,
+        "error": None,
+        "generated_at": data.get("generated_at"),
+        "notes": data.get("notes", {}),
+        "liveness": data.get("liveness", {}),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -408,6 +445,7 @@ def render_markdown(days: int, data: dict) -> str:
     claude_mem = data["claude_mem"]
     openwolf = data["openwolf"]
     learn_digest = data["learn_digest"]
+    procedural_memory = data["procedural_memory"]
 
     lines: list[str] = []
     lines.append("---")
@@ -435,10 +473,25 @@ def render_markdown(days: int, data: dict) -> str:
     lines.append(
         f"> Spent **{headline_tokens}** tokens (**{headline_cost}**) over the last {days} "
         f"day(s) across **{spend.get('session_count', 'n/a') if spend['available'] else 'n/a'}** "
-        f"sessions; measured avoided: **{_fmt_int(rtk_saved)}** (rtk) + "
-        f"**{_fmt_int(hr_saved)}** (headroom)."
+        f"sessions; avoided: **{_fmt_int(rtk_saved)}** (rtk, {_tag(TrustClass.MEASURED_CAVEATED)}) + "
+        f"**{_fmt_int(hr_saved)}** (headroom, {_tag(TrustClass.MEASURED)})."
     )
     lines.append("")
+
+    # A row_missing verdict must be unmissable, not a table cell among
+    # others among the Procedural Memory section's own table further down —
+    # it means a routine ran and its measurement silently vanished.
+    if procedural_memory.get("available"):
+        missing = [
+            name for name, v in procedural_memory["liveness"].items()
+            if v.get("status") == "row_missing"
+        ]
+        if missing:
+            lines.append(
+                f"> **PROCEDURAL MEMORY ROW_MISSING** — {', '.join(missing)}: a scheduled "
+                'run happened and no benchmark row landed. See "## Procedural Memory" below.'
+            )
+            lines.append("")
 
     # --- Measured -----------------------------------------------------
     lines.append("## Measured")
@@ -453,8 +506,8 @@ def render_markdown(days: int, data: dict) -> str:
     lines.append("")
     if spend["available"]:
         lines.append(f"- Sessions in window: **{_fmt_int(spend['session_count'])}**")
-        lines.append(f"- Total cost: **{_fmt_usd(spend['total_cost_usd'])}**")
-        lines.append(f"- Total tokens: **{_fmt_int(spend['total_tokens'])}**")
+        lines.append(f"- Total cost: **{_fmt_usd(spend['total_cost_usd'])}** {_tag(TrustClass.MEASURED)}")
+        lines.append(f"- Total tokens: **{_fmt_int(spend['total_tokens'])}** {_tag(TrustClass.MEASURED)}")
         lines.append(
             f"  - input: {_fmt_int(spend['total_input_tokens'])} · "
             f"output: {_fmt_int(spend['total_output_tokens'])} · "
@@ -465,15 +518,19 @@ def render_markdown(days: int, data: dict) -> str:
         lines.append(f"- **unavailable** — {spend.get('error')}")
     lines.append("")
 
-    lines.append("### rtk (`rtk gain --daily --format json`)")
+    lines.append(f"### rtk (`rtk gain --daily --format json`) — {_tag(TrustClass.MEASURED_CAVEATED)}")
     lines.append("")
     if rtk.get("available"):
         lines.append(f"- Commands in window: {_fmt_int(rtk['window_commands'])}")
-        lines.append(f"- Tokens saved in window: **{_fmt_int(rtk['window_saved_tokens'])}**")
+        lines.append(
+            f"- Tokens saved in window: **{_fmt_int(rtk['window_saved_tokens'])}** "
+            f"{_tag(TrustClass.MEASURED_CAVEATED)}"
+        )
         lines.append(
             f"- Input/output tokens in window: {_fmt_int(rtk['window_input_tokens'])} / "
-            f"{_fmt_int(rtk['window_output_tokens'])}"
+            f"{_fmt_int(rtk['window_output_tokens'])} {_tag(TrustClass.MEASURED_CAVEATED)}"
         )
+        lines.append(f"  - *{stack_metrics.RTK_CAVEAT}*")
         ls = rtk.get("lifetime_summary", {})
         lines.append(
             f"- *Lifetime (not window-scoped): {_fmt_int(ls.get('total_saved'))} tokens saved, "
@@ -492,7 +549,7 @@ def render_markdown(days: int, data: dict) -> str:
             f"- `proxy_savings.json` history, window: {_fmt_int(ph['window_tokens_saved'])} "
             f"tokens saved, {_fmt_usd(ph['window_compression_usd'])} compression + "
             f"{_fmt_usd(ph['window_cache_usd'])} cache savings "
-            f"({ph['window_event_count']} events)"
+            f"({ph['window_event_count']} events) {_tag(TrustClass.MEASURED)}"
         )
         lt = ph.get("lifetime", {})
         lines.append(
@@ -507,7 +564,7 @@ def render_markdown(days: int, data: dict) -> str:
         lines.append(
             f"- `savings_events.jsonl`, window: {_fmt_int(ev['window_saved_tokens'])} "
             f"tokens saved, {_fmt_usd(ev['window_cost_usd'])} "
-            f"({ev['window_event_count']} events)"
+            f"({ev['window_event_count']} events) {_tag(TrustClass.MEASURED)}"
         )
     else:
         lines.append(f"- `savings_events.jsonl` **unavailable** — {ev.get('error')}")
@@ -523,7 +580,8 @@ def render_markdown(days: int, data: dict) -> str:
     lines.append("")
 
     lines.append(
-        "### claude-mem (label: LLM-guess numerator / chars÷4 denominator)"
+        f"### claude-mem (label: LLM-guess numerator / chars÷4 denominator) — "
+        f"{_tag(TrustClass.INDICATIVE)}"
     )
     lines.append("")
     if claude_mem.get("available"):
@@ -532,18 +590,22 @@ def render_markdown(days: int, data: dict) -> str:
         )
         lines.append(
             f"- Claimed `discovery_tokens` sum in window: "
-            f"**{_fmt_int(claude_mem['window_discovery_tokens_sum'])}** (estimated)"
+            f"**{_fmt_int(claude_mem['window_discovery_tokens_sum'])}** {_tag(TrustClass.INDICATIVE)}"
         )
     else:
         lines.append(f"- **unavailable** — {claude_mem.get('error')}")
     lines.append("")
 
     lines.append(
-        "### OpenWolf per-repo (label: heuristic anatomy_hits×200 + chars÷4)"
+        f"### OpenWolf per-repo (label: heuristic anatomy_hits×200 + chars÷4) — "
+        f"{_tag(TrustClass.SELF_REPORTED)}"
     )
     lines.append("")
     if openwolf:
-        lines.append("| Repo | Lifetime est. savings (tokens) | Sessions in window | Sessions (all-time) |")
+        lines.append(
+            f"| Repo | Lifetime est. savings (tokens) {_tag(TrustClass.SELF_REPORTED)} | "
+            "Sessions in window | Sessions (all-time) |"
+        )
         lines.append("| --- | ---: | ---: | ---: |")
         for repo, d in sorted(openwolf.items()):
             if not d.get("available"):
@@ -557,12 +619,15 @@ def render_markdown(days: int, data: dict) -> str:
         lines.append("- No `.wolf/token-ledger.json` found under `~/dev-local/RHIZE/*`.")
     lines.append("")
 
-    lines.append("### headroom-learn digest (count only, never summed)")
+    lines.append(
+        f"### headroom-learn digest (count only, never summed) — {_tag(TrustClass.SELF_REPORTED)}"
+    )
     lines.append("")
     if learn_digest.get("available"):
         wc = learn_digest.get("window_annotation_count")
         lines.append(
-            f"- Savings annotations in window: **{_fmt_int(wc) if wc is not None else 'n/a'}**"
+            f"- Savings annotations in window: **{_fmt_int(wc) if wc is not None else 'n/a'}** "
+            f"{_tag(TrustClass.SELF_REPORTED)}"
         )
         lines.append(
             f"- Savings annotations all-time: {_fmt_int(learn_digest['all_time_annotation_count'])}"
@@ -635,6 +700,52 @@ def render_markdown(days: int, data: dict) -> str:
     )
     lines.append("")
 
+    # --- Procedural Memory --------------------------------------------------
+    # New section, appended at the bottom per this project's "add new
+    # sections at the bottom, never reorder existing ones" convention
+    # (downstream readers parse markdown reports positionally).
+    lines.append("## Procedural Memory")
+    lines.append("")
+    lines.append(
+        f"*Per-note row counts by arm and the liveness verdict from "
+        f"benchmark_status.py — did each benchmark-instrumented routine's capture "
+        f"step actually land a row this run? Row counts and dates come directly "
+        f"from the vault notes' own markdown tables {_tag(TrustClass.MEASURED)}; "
+        f"the liveness verdict itself is a computed classification, not a "
+        f"separate measurement.*"
+    )
+    lines.append("")
+    if procedural_memory.get("available"):
+        missing = [
+            name for name, v in procedural_memory["liveness"].items()
+            if v.get("status") == "row_missing"
+        ]
+        if missing:
+            lines.append("> **ROW_MISSING** — a run happened and no row landed:")
+            for name in missing:
+                lines.append(f"> - **{name}**: {procedural_memory['liveness'][name]['reason']}")
+            lines.append("")
+        lines.append("| Routine | Liveness | Rows (by arm) | Newest row |")
+        lines.append("| --- | --- | --- | --- |")
+        for name in sorted(procedural_memory["notes"]):
+            note = procedural_memory["notes"][name]
+            verdict = procedural_memory["liveness"].get(name, {})
+            status = verdict.get("status", "unknown")
+            status_cell = f"**{status.upper()}**" if status == "row_missing" else status
+            if note.get("error"):
+                lines.append(f"| {name} | {status_cell} | ERROR: {note['error']} | — |")
+                continue
+            by_arm = ", ".join(
+                f"{arm}={n}" for arm, n in sorted(note.get("rows_by_arm", {}).items())
+            ) or "none"
+            lines.append(
+                f"| {name} | {status_cell} | {by_arm} ({_fmt_int(note.get('total_rows', 0))} total) | "
+                f"{note.get('newest_row_date') or 'n/a'} |"
+            )
+    else:
+        lines.append(f"- **unavailable** — {procedural_memory.get('error')}")
+    lines.append("")
+
     return "\n".join(lines)
 
 
@@ -667,6 +778,7 @@ def main() -> int:
         "claude_mem": load_claude_mem(days),
         "openwolf": load_openwolf(days),
         "learn_digest": load_learn_digest(days),
+        "procedural_memory": load_procedural_memory_status(),
     }
 
     md = render_markdown(days, data)

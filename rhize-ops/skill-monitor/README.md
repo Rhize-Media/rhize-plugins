@@ -29,7 +29,7 @@ Aggregates:
 - By project (cwd-based), by entrypoint, week-by-week
 - Indirect skill use grouped by `subagent_type` (resolved from each main session's `toolUseResult.agentType`)
 - Writes a timestamped markdown report into the Obsidian vault at
-  `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`. Only
+  `Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`. Only
   the canonical `--days 7` weekly keeps that plain name; any other window self-suffixes
   (e.g. `YYYY-MM-DD-skill-usage-28d.md`, `-0d` for all-time), mirroring the snapshot
   naming so a same-day `--days 28` run can't overwrite the weekly report.
@@ -75,7 +75,7 @@ sandboxed iframes that block external `<script src>`. Pass `--online` to keep re
 
 ```bash
 # Render to the default vault path (offline, CDN inlined):
-#   <vault>/Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/dashboard.html
+#   <vault>/Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/dashboard.html
 python3 dashboard.py --out html
 
 # Keep remote CDN tags instead of inlining (smaller, needs network to view)
@@ -90,6 +90,29 @@ python3 dashboard.py --out artifact > /tmp/dashboard-payload.json
 ```
 
 The HTML file is ~500 KB, opens in any browser, and pulls React + Recharts + Tailwind from public CDNs (no install). `keep-list.yaml` (one skill name per line) seeds the prune-candidates filter.
+
+## Trust classes — how to read a number here
+
+`stack_metrics.py` collects from nine sources of wildly different evidential quality, so every
+metric is tagged with one of four classes and the class is rendered with the number:
+
+- **`measured`** — a real counter from a real event (Claude Code spend, session transcripts,
+  Headroom's proxy-measured before/after, procedural-memory run records). Safe to sum.
+- **`measured_caveated`** — a real counter from a tool with a known defect. RTK is the case:
+  its token counters are deterministic, but its printed summary text has open upstream bugs
+  where it reports success against failing checks. Use the numbers; never quote its summaries.
+- **`indicative`** — LLM-estimated or heuristic (claude-mem's `discovery_tokens`). Display only.
+- **`self_reported`** — the tool's own uncross-checked claim about its own benefit (OpenWolf's
+  `anatomy_hits×200 + chars÷4`). Never a headline figure.
+
+The split is enforced, not merely documented: `sum_measured()` raises a `TrustClassError` if
+handed anything below the top class. Most savings figures available on a developer machine are
+self-reported by the tool that benefits from looking good; adding them together produces an
+impressive number that means nothing.
+
+One limit worth knowing: the class describes **evidence quality, not semantic compatibility**.
+Two `measured` figures can still be meaningless to add — billed tokens and raw transcript tokens
+cover the same turns. That is a separate check.
 
 ## Data model
 

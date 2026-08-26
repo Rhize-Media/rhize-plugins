@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-26_ version bump — **rhize-ops** 0.10.0 → 0.11.0 (minor); marketplace 2.40.1 → 2.41.0.
+- _2026-08-26_ **rhize-ops/skill-monitor — stack observability with an enforced trust taxonomy,
+  plus a benchmark-capture watchdog.** Two new stdlib-only modules. `stack_metrics.py` collects
+  from nine sources (Claude Code spend, session transcripts, Headroom, RTK, claude-mem, OpenWolf,
+  procedural-memory runs, skill usage, the Codex trial log) and tags every metric with a **trust
+  class** — `measured` / `measured_caveated` / `indicative` / `self_reported`. The split is
+  enforced, not documented: `sum_measured()` raises on anything below the top class, including
+  the caveated tier. RTK is the worked example — its token counters are deterministic and usable,
+  while its printed summary text has open upstream bugs reporting success against failing checks,
+  so the numbers are cited and the summaries never are. `benchmark_status.py` parses all four
+  benchmark notes (which have four different column schemas) and implements a watchdog for
+  "the routine ran but no benchmark row landed" — it caught a real `row_missing` on its first
+  live run: Daily Completed Summary, where a seeder fired 2026-08-23 and the table is still empty.
+- _2026-08-26_ **A second, orthogonal guard: semantic basis.** The trust taxonomy governs evidence
+  quality, not semantic compatibility — so the collector was emitting a `measured_tokens` total of
+  10.7B by adding billed tokens, raw transcript tokens (which re-cover the same turns via cache
+  reads), and a savings figure. Every input was legitimately `measured`, so the trust guard
+  permitted it. Added a `Basis` axis (`billed_consumption`/`raw_consumption`/`savings`) and
+  `BasisMismatchError`; the ambiguous total is replaced by three within-basis totals. Also
+  rewrote the live-vault test from hard-coded row counts to structural invariants — the old form
+  broke within hours when a peer session legitimately appended a benchmark row, and a test that
+  fails because the system worked correctly only trains people to deselect it.
 - _2026-08-26_ version bump — **procedural-memory** 0.3.0 → 0.3.1 (patch); marketplace 2.40.0 → 2.40.1.
 - _2026-08-26_ **procedural-memory — the eval validator was accepting graders that can never run.**
   An adversarial review proved the validator shipped in 0.3.0 passed a `type: regex` grader with

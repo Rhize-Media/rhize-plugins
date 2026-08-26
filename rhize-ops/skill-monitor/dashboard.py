@@ -23,6 +23,7 @@ Stdlib only.
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import re
 import sys
@@ -32,6 +33,9 @@ from urllib.parse import quote
 from datetime import datetime
 from pathlib import Path
 
+import benchmark_status
+import stack_metrics
+
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
 SNAPSHOTS_DIR = SCRIPT_DIR / "data" / "snapshots"
@@ -39,6 +43,13 @@ COMPONENT_PATH = SCRIPT_DIR / "SkillDashboard.jsx"
 TEMPLATE_PATH = SCRIPT_DIR / "dashboard-template.html"
 KEEP_LIST_PATH = SCRIPT_DIR / "keep-list.yaml"
 CDN_CACHE_DIR = SCRIPT_DIR / "data" / "cdn-cache"
+
+# stack_metrics.py / benchmark_status.py write these pre-computed snapshots;
+# dashboard.py reads them (imported path constants, not a re-parse of their
+# sources) the same way it already reads data/snapshots/*.json rather than
+# re-running monitor.py's own scan.
+STACK_METRICS_PATH = stack_metrics.DEFAULT_OUT_PATH
+BENCHMARK_STATUS_PATH = benchmark_status.OUTPUT_PATH
 
 # Cowork live-artifact panel (id "skill-audit-live"). The weekly-skill-audit
 # task renders this and calls update_artifact to keep the in-chat panel fresh.
@@ -147,6 +158,168 @@ def load_keep_list(keep_list_path: Path) -> list[str]:
     return out
 
 
+def _load_json_snapshot(path: Path) -> dict | None:
+    """Read a single pre-computed JSON snapshot file. Never raises — a
+    missing or malformed snapshot renders as "unavailable" in the Stack
+    Trust section rather than crashing the whole dashboard build."""
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def load_stack_metrics_snapshot(path: Path = STACK_METRICS_PATH) -> dict | None:
+    return _load_json_snapshot(path)
+
+
+def load_benchmark_status_snapshot(path: Path = BENCHMARK_STATUS_PATH) -> dict | None:
+    return _load_json_snapshot(path)
+
+
+_TRUST_BADGE_STYLE = {
+    "measured": "background:#dcfce7;color:#166534;",
+    "measured_caveated": "background:#fef3c7;color:#92400e;",
+    "indicative": "background:#e0e7ff;color:#3730a3;",
+    "self_reported": "background:#fee2e2;color:#991b1b;",
+}
+
+
+def _badge(label: str) -> str:
+    style = _TRUST_BADGE_STYLE.get(label, "background:#e5e7eb;color:#374151;")
+    return (
+        f'<span style="display:inline-block;padding:1px 8px;border-radius:9999px;'
+        f'font:600 11px ui-monospace,monospace;{style}">{html.escape(label)}</span>'
+    )
+
+
+def render_trust_section_html(
+    stack_metrics_snapshot: dict | None,
+    benchmark_status_snapshot: dict | None,
+) -> str:
+    """Server-rendered (no React/Recharts — stdlib string templating only)
+    HTML fragment surfacing stack_metrics.py's trust-tagged metrics and
+    benchmark_status.py's procedural-memory liveness. Every figure carries
+    its trust class as a badge next to the number, not as a legend a reader
+    has to scroll to find; a row_missing verdict gets its own banner, not
+    just a table cell.
+
+    Deterministic: renders only fields already frozen inside the source
+    JSON snapshots, so re-running dashboard.py against unchanged inputs
+    reproduces byte-identical output (see CLAUDE.md's idempotency
+    expectation).
+    """
+    parts: list[str] = []
+    parts.append('<section style="max-width:1100px;margin:32px auto;padding:0 16px;'
+                 'font-family:ui-sans-serif,system-ui,sans-serif;">')
+    parts.append('<h2 style="font-size:20px;font-weight:700;margin-bottom:4px;">Stack Trust</h2>')
+    parts.append(
+        '<p style="color:#6b7280;font-size:13px;margin-top:0;">'
+        "Every figure below carries its trust class inline — "
+        f"{_badge('measured')} {_badge('measured_caveated')} "
+        f"{_badge('indicative')} {_badge('self_reported')} — "
+        "so a measured saving is never confused with a self-reported one."
+        "</p>"
+    )
+
+    # --- Procedural memory liveness (row_missing unmissable) --------------
+    if benchmark_status_snapshot is None:
+        parts.append(
+            '<p style="color:#991b1b;">Procedural memory status unavailable — '
+            f"no snapshot at {html.escape(str(BENCHMARK_STATUS_PATH))}.</p>"
+        )
+    else:
+        liveness = benchmark_status_snapshot.get("liveness", {})
+        missing = [name for name, v in liveness.items() if v.get("status") == "row_missing"]
+        if missing:
+            parts.append(
+                '<div style="background:#fee2e2;border:2px solid #991b1b;border-radius:8px;'
+                'padding:12px 16px;margin:12px 0;">'
+                '<strong style="color:#991b1b;">ROW_MISSING — a run happened and no row landed</strong>'
+                '<ul style="margin:6px 0 0;padding-left:20px;color:#7f1d1d;">'
+            )
+            for name in missing:
+                reason = html.escape(str(liveness[name].get("reason") or ""))
+                parts.append(f"<li><strong>{html.escape(name)}</strong>: {reason}</li>")
+            parts.append("</ul></div>")
+
+        parts.append('<h3 style="font-size:15px;font-weight:600;margin:16px 0 6px;">Procedural memory liveness</h3>')
+        parts.append(
+            '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+            "<thead><tr style=\"text-align:left;border-bottom:1px solid #e5e7eb;\">"
+            "<th style=\"padding:4px 8px;\">Routine</th><th style=\"padding:4px 8px;\">Status</th>"
+            "<th style=\"padding:4px 8px;\">Reason</th></tr></thead><tbody>"
+        )
+        for name in sorted(liveness):
+            v = liveness[name]
+            status = v.get("status", "unknown")
+            row_bg = "background:#fee2e2;" if status == "row_missing" else ""
+            parts.append(
+                f'<tr style="border-bottom:1px solid #f3f4f6;{row_bg}">'
+                f'<td style="padding:4px 8px;">{html.escape(name)}</td>'
+                f'<td style="padding:4px 8px;">{html.escape(status)}</td>'
+                f'<td style="padding:4px 8px;color:#6b7280;">{html.escape(str(v.get("reason") or ""))}</td>'
+                "</tr>"
+            )
+        parts.append("</tbody></table>")
+
+    # --- Trust-tagged metrics -----------------------------------------------
+    parts.append('<h3 style="font-size:15px;font-weight:600;margin:20px 0 6px;">Trust-tagged metrics</h3>')
+    if stack_metrics_snapshot is None:
+        parts.append(
+            '<p style="color:#991b1b;">Stack metrics unavailable — '
+            f"no snapshot at {html.escape(str(STACK_METRICS_PATH))}.</p>"
+        )
+    else:
+        parts.append(
+            '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+            "<thead><tr style=\"text-align:left;border-bottom:1px solid #e5e7eb;\">"
+            "<th style=\"padding:4px 8px;\">Metric</th><th style=\"padding:4px 8px;\">Value</th>"
+            "<th style=\"padding:4px 8px;\">Trust</th><th style=\"padding:4px 8px;\">Basis</th>"
+            "<th style=\"padding:4px 8px;\">Source</th></tr></thead><tbody>"
+        )
+        for m in stack_metrics_snapshot.get("metrics", []):
+            value = m.get("value")
+            value_str = f"{value:,}" if isinstance(value, (int, float)) else "n/a"
+            basis = m.get("basis") or "—"
+            parts.append(
+                "<tr style=\"border-bottom:1px solid #f3f4f6;\">"
+                f'<td style="padding:4px 8px;"><code>{html.escape(m.get("name", ""))}</code></td>'
+                f'<td style="padding:4px 8px;text-align:right;">{html.escape(value_str)} {html.escape(m.get("unit", ""))}</td>'
+                f'<td style="padding:4px 8px;">{_badge(m.get("trust", ""))}</td>'
+                f'<td style="padding:4px 8px;color:#6b7280;">{html.escape(str(basis))}</td>'
+                f'<td style="padding:4px 8px;color:#6b7280;">{html.escape(m.get("source", ""))}</td>'
+                "</tr>"
+            )
+        parts.append("</tbody></table>")
+
+        totals = stack_metrics_snapshot.get("totals") or {}
+        if totals:
+            parts.append('<h3 style="font-size:15px;font-weight:600;margin:20px 0 6px;">Totals (same-basis only)</h3>')
+            parts.append(
+                '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                "<thead><tr style=\"text-align:left;border-bottom:1px solid #e5e7eb;\">"
+                "<th style=\"padding:4px 8px;\">Total</th><th style=\"padding:4px 8px;\">Value</th>"
+                "<th style=\"padding:4px 8px;\">Basis</th><th style=\"padding:4px 8px;\">From</th></tr></thead><tbody>"
+            )
+            for name, t in totals.items():
+                value = t.get("value")
+                value_str = f"{value:,}" if isinstance(value, (int, float)) else "n/a"
+                parts.append(
+                    "<tr style=\"border-bottom:1px solid #f3f4f6;\">"
+                    f'<td style="padding:4px 8px;"><code>{html.escape(name)}</code></td>'
+                    f'<td style="padding:4px 8px;text-align:right;">{html.escape(value_str)} {html.escape(t.get("unit", ""))}</td>'
+                    f'<td style="padding:4px 8px;color:#6b7280;">{html.escape(str(t.get("basis") or "—"))}</td>'
+                    f'<td style="padding:4px 8px;color:#6b7280;">{html.escape(", ".join(t.get("from_metrics", [])))}</td>'
+                    "</tr>"
+                )
+            parts.append("</tbody></table>")
+
+    parts.append("</section>")
+    return "".join(parts)
+
+
 def _cache_path_for(url: str) -> Path:
     """Map a CDN URL to a deterministic local cache filename."""
     # Strip protocol, replace '/' so the URL becomes a flat filename.
@@ -202,12 +375,23 @@ def _inline_cdn(template_html: str) -> str:
     return out
 
 
-def render_html(snapshots: list[dict], keep_list: list[str], offline: bool = True) -> str:
+def render_html(
+    snapshots: list[dict],
+    keep_list: list[str],
+    offline: bool = True,
+    stack_metrics_snapshot: dict | None = None,
+    benchmark_status_snapshot: dict | None = None,
+) -> str:
     """Inline snapshots + keep-list + JSX component into the HTML template.
 
     When `offline=True` (default), also inlines the CDN bundles so the file
     renders in sandboxed previews (e.g. Obsidian's HTML embed) that block
     external <script src> requests. Bundles are cached under data/cdn-cache/.
+
+    `stack_metrics_snapshot` / `benchmark_status_snapshot` feed a separate,
+    server-rendered "Stack Trust" section (plain HTML, not part of the React
+    component tree) — see render_trust_section_html(). Passing None for
+    either renders that section as "unavailable" rather than omitting it.
     """
     template = TEMPLATE_PATH.read_text()
     component_src = COMPONENT_PATH.read_text()
@@ -217,6 +401,7 @@ def render_html(snapshots: list[dict], keep_list: list[str], offline: bool = Tru
 
     snap_json = json.dumps(snapshots, default=str)
     keep_json = json.dumps(keep_list)
+    trust_html = render_trust_section_html(stack_metrics_snapshot, benchmark_status_snapshot)
 
     # Substitution markers are wrapped in JS comments inside the template so
     # the template itself remains valid (and openable for editing) on its own.
@@ -229,6 +414,9 @@ def render_html(snapshots: list[dict], keep_list: list[str], offline: bool = Tru
     ).replace(
         "/*__COMPONENT_SOURCE__*/",
         component_src,
+    ).replace(
+        "<!--__TRUST_SECTION_PLACEHOLDER__-->",
+        trust_html,
     )
     return out
 
@@ -431,15 +619,21 @@ def main() -> int:
         return 1
 
     if args.out == "html":
-        html = render_html(snapshots, keep_list, offline=not args.online)
+        dashboard_html = render_html(
+            snapshots,
+            keep_list,
+            offline=not args.online,
+            stack_metrics_snapshot=load_stack_metrics_snapshot(),
+            benchmark_status_snapshot=load_benchmark_status_snapshot(),
+        )
         out_path = Path(args.html_path).expanduser()
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(html)
+        out_path.write_text(dashboard_html)
         print(f"  ✓ HTML dashboard → {out_path}")
         print(
             f"    {len(snapshots)} snapshot(s), "
             f"{len(keep_list)} keep-list entries, "
-            f"{len(html) // 1024} KB"
+            f"{len(dashboard_html) // 1024} KB"
         )
     else:  # artifact
         source = render_artifact_source(snapshots, keep_list)

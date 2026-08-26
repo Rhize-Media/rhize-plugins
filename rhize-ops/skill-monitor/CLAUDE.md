@@ -6,9 +6,9 @@ Project-level instructions for Claude (and other coding agents) working on this 
 
 A small audit tool that walks every Claude Code transcript on the user's Mac, extracts `Skill` `tool_use` events, and produces:
 
-1. A weekly **markdown report** in the user's Obsidian vault at `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`
+1. A weekly **markdown report** in the user's Obsidian vault at `Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/weekly-reports/YYYY-MM-DD-skill-usage.md`
 2. A **JSON snapshot** at `data/snapshots/YYYY-MM-DD-skill-usage.json` (immutable per-run history)
-3. A **live HTML dashboard** at `<vault>/Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/dashboard.html` aggregating every snapshot into one interactive view
+3. A **live HTML dashboard** at `<vault>/Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/dashboard.html` aggregating every snapshot into one interactive view
 
 The thesis: skill libraries obey a power law (Anthropic data: ~300 skills installed, ~12 run weekly). You can't prune what you don't measure. This is the measurement.
 
@@ -42,6 +42,42 @@ The thesis: skill libraries obey a power law (Anthropic data: ~300 skills instal
   scheduled run itself (Phase 1.2/4.1 of the config consolidation plan) — that is
   deterministic script behavior, not an agent's git command, so it's out of scope for
   this rule.
+
+## The trust taxonomy (BINDING — added 2026-08-26)
+
+Every metric this project emits carries a **trust class**. It is not presentation metadata; it
+is the thing that makes the numbers safe to publish. Defined in `stack_metrics.py` as
+`TrustClass`, on the `Metric` dataclass:
+
+| Class | Means | Rule |
+|---|---|---|
+| `measured` | A real counter from a real event | Safe to sum and compare |
+| `measured_caveated` | A real counter from a tool with a known reliability defect | Usable — the caveat travels with the number |
+| `indicative` | LLM-estimated or heuristic | Display, never sum |
+| `self_reported` | The tool's own uncross-checked claim about its own benefit | Display with provenance, never headline |
+
+**Rules that bind any change here:**
+
+1. **`sum_measured()` raises on anything not exactly `measured`** — including `measured_caveated`.
+   Do not relax this to make a total bigger or a report tidier. The refusal is the feature.
+2. **Never render a figure without its class.** A reader skimming one line must be able to tell a
+   measured saving from a self-reported one without scrolling to a legend.
+3. **Never place a self-reported figure adjacent to a measured one as if they were comparable.**
+   That launders a guess into a fact, which is the specific failure this taxonomy exists to prevent.
+4. **Classing is per-source and argued, not per-tool by reputation.** RTK is the worked example:
+   its numeric token counters are deterministic and usable (`measured_caveated`), while its printed
+   *summary text* has open upstream bugs that report success against failing checks — so the numbers
+   are cited and **the summary sentences never are**.
+5. **Trust class is about evidence quality, NOT semantic compatibility.** Two metrics can both be
+   `measured` and still be meaningless to add — billed tokens, raw transcript tokens (which
+   re-cover the same turns via cache reads), and a savings figure are three different quantities.
+   That is a separate axis with its own guard; passing the trust check is not permission to sum.
+
+**Why this exists:** a stack-benefit dashboard's default failure is flattering the stack. Most of
+the savings numbers available on this machine are self-reported by the tool that benefits from
+looking good. A page that sums them produces an impressive, meaningless total. The taxonomy is
+enforced in code precisely because a documented-only convention gets violated the first time
+someone wants a bigger headline.
 
 ## How to run
 
@@ -109,8 +145,8 @@ Source: `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`. That file li
 
 The conceptual home for the project is in the user's Obsidian vault:
 
-- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/README.md` — the *why* (power-law thesis, tier strategy, 90-day prune plan)
-- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/Skill Audit and Monitoring System.md` — the *how* (technical design, data model, components)
-- `Projects/Scheduled Maintenance/Skill-Audit-and-Monitoring/Live Dashboard.md` — what `dashboard.html` is, when it refreshes, what each section means
+- `Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/README.md` — the *why* (power-law thesis, tier strategy, 90-day prune plan)
+- `Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/Skill Audit and Monitoring System.md` — the *how* (technical design, data model, components)
+- `Projects/Rhize Media/Rhize Tools/Scheduled Agent Routines & Automations/Skill-Audit-and-Monitoring/Live Dashboard.md` — what `dashboard.html` is, when it refreshes, what each section means
 
 When meaningful behavior changes here, update the vault System doc to match. When the dashboard's section list changes, update the vault Live Dashboard note too.
