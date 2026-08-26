@@ -143,7 +143,7 @@ input. See `docs/skill-map.md` for the artifact/tagging conventions they depend 
 `skill-router.js` and `agent-brief-router.js` below, both opt-in — also write a **suggestion
 log**, one JSON line per fired event, appended fail-silent to
 `~/.claude/context-manager/suggestion-log.jsonl`. Two row shapes share that file: the legacy
-`{"ts", "session_id", "hook", "suggested", "context_hash"}` shape these five hooks write, and
+`{"ts", "session_id", "hook", "suggested", "context_hash"}` shape the first four of these hooks write, and
 `agent-brief-router.js`'s `{"ts", "source": "agent-dispatch", "agentType", "briefHash",
 "briefLength", "namedSkills", "suggestedSkills", "advisoryEmitted"}` shape (no `hook` key —
 see below). No prompt/brief text, paths, or tool output is ever logged — ids, lengths, and
