@@ -480,6 +480,22 @@ hook entirely — they're spawned by other runtimes, so PreToolUse on `Agent` ne
 For those paths, the CLAUDE.md skill-explicit dispatch rule (Task 1, `~/.claude/CLAUDE.md`) is the
 only enforcement, by design; no hook will be built for them.
 
+### Forward contract: graph-node skill declarations (deferred to the graph-determinism plan)
+
+When workflow graphs land (graph-based determinism direction, 2026-08-26), each
+node that dispatches an agent declares its skills in the node schema:
+
+    skills: ["skill:<plugin>/<name>", ...]   # canonical skill-map node ids (docs/skill-map.md's id form), validated against the map at graph-build time
+
+The brief compiler — not the executor — resolves the declaration at dispatch:
+for a Skill-capable agent roster it emits one `Invoke <plugin>:<name> first.`
+line per entry; for a Skill-less roster it inlines the skill's operative
+content (never the whole SKILL.md). Unresolvable ids are graph-BUILD errors,
+not runtime warnings — same stance as the compiler's dangling-edge rule. This
+replaces per-brief manual injection (the CLAUDE.md dispatch rule) with a
+declared, validated, compounding structure: the declaration lives in the graph,
+not in an orchestrator's context window.
+
 ## Consumers
 
 Everything downstream reads the static artifact, the resolved map, or both — never `SOURCES.md`,
