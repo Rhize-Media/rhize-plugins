@@ -80,8 +80,14 @@ and checks that `case.yaml` / `prompt.md` / `graders/*.md` are structurally vali
 schema in Claude Code's internal `claude plugin eval` reference doc: required fields, frontmatter
 keys, bounds (`runs`, `max_turns`, `timeout_seconds`), `EVAL_*`-only env keys, grader types and
 keys, the `tool_used: max: 0` trap, and the with-only Skill-grader scoring exclusion under
-`--ablation with-without`. Exits 1 on any ERROR, 0 otherwise; WARNs (e.g. an unknown key the
-harness would silently ignore rather than reject) don't fail the run.
+`--ablation with-without`. It also rejects a grader that could never work: a missing type-specific
+field the grader cannot function without (`regex`'s `pattern`, `tool_used`'s `tool`, `tool_order`'s
+`before`/`after`, `file_exists`'s `path`, `llm`'s `criteria`, `baseline`'s `baseline_file` and
+`criteria` — a prose grader file's body may satisfy `pattern`/`criteria` instead of frontmatter,
+per the doc's "body -> criteria (llm/baseline) or pattern (regex)"), and an uncompilable regex in
+any of `regex`'s `pattern`, `tool_used`'s `input_match`, or `tool_order`'s `before`/`after`
+`input_match`. Exits 1 on any ERROR, 0 otherwise; WARNs (e.g. an unknown key the harness would
+silently ignore rather than reject) don't fail the run.
 
 **What it does NOT prove.** This is schema conformance only. It does not run a single agent, call
 a single grader, or spawn a sandbox — it cannot tell you whether `procedural-memory`'s skill

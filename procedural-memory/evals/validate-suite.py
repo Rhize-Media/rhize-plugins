@@ -91,6 +91,31 @@ GRADER_TYPE_KEYS = {
     "baseline": {"baseline_file", "criteria"},
 }
 
+# The keys a grader of this type cannot function without, per the reference
+# doc's Graders table (§ Graders, the type/keys/"passes when" table). Every
+# key here is documented with no default value — contrast `tool_used`'s
+# required `tool` with its explicitly-"optional" `input_match`, or
+# `file_exists`'s required `path` with its `exists` (default `true`).
+GRADER_REQUIRED_KEYS: dict[str, set[str]] = {
+    "regex": {"pattern"},
+    "tool_used": {"tool"},
+    "tool_order": {"before", "after"},
+    "file_exists": {"path"},
+    "llm": {"criteria"},
+    "baseline": {"baseline_file", "criteria"},
+}
+
+# For a PROSE grader file (graders/<name>.md) only, exactly one required
+# field per type may be satisfied by the file's body instead of frontmatter
+# — "### Prose layout": "<grader>.md  frontmatter -> grader fields; body ->
+# criteria (llm/baseline) or pattern (regex)". This is not hypothetical:
+# this suite's own graders/surfaces-the-refusal.md (type: llm) has no
+# `criteria:` in frontmatter and relies entirely on its body. case.yaml
+# graders are YAML list entries with no body, so for them the key must
+# always be given explicitly (see the full case.yaml example, which spells
+# out `pattern:`/`criteria:` for every regex/llm/baseline grader).
+GRADER_BODY_FALLBACK_FIELD = {"regex": "pattern", "llm": "criteria", "baseline": "criteria"}
+
 VALID_TARGET_FOCUS_LITERALS = {"last_message", "trace", "files"}
 
 # "env: Keys must match EVAL_[A-Z0-9_]*; any other key fails the run"
@@ -250,7 +275,24 @@ class GraderInfo:
         self.loc = loc
 
 
-def validate_grader_config(cfg: dict, gtype: str, r: Reporter, loc: str) -> None:
+def check_regex_field(pattern, r: Reporter, loc: str, field: str) -> None:
+    """Compiles a regex-bearing field with `re.compile`; ERROR if it can't.
+
+    Silent when `pattern` is None — a missing required field is already
+    reported by the required-key check; this only judges a *present* value.
+    """
+    if pattern is None:
+        return
+    if not isinstance(pattern, str):
+        r.error(loc, f"'{field}' must be a string regex source, got {type(pattern).__name__}")
+        return
+    try:
+        re.compile(pattern)
+    except re.error as e:
+        r.error(loc, f"'{field}' is not a valid regex — it can never compile, so the grader can never run: {e}")
+
+
+def validate_grader_config(cfg: dict, gtype: str, r: Reporter, loc: str, body: str | None = None) -> None:
     if gtype not in GRADER_TYPE_KEYS:
         return  # unknown type already reported by the caller
     allowed = GRADER_COMMON_KEYS | GRADER_TYPE_KEYS[gtype]
@@ -281,6 +323,38 @@ def validate_grader_config(cfg: dict, gtype: str, r: Reporter, loc: str) -> None
             valid = True
         if not valid:
             r.error(loc, f"'{target_key}' must be one of {sorted(VALID_TARGET_FOCUS_LITERALS)} or a mapping {{source: file, path: ...}} — got {val!r} (a free-text string is an error)")
+
+    # Type-specific required fields the grader cannot function without.
+    body_fallback_field = GRADER_BODY_FALLBACK_FIELD.get(gtype)
+    body_has_content = bool(body) and body.strip() != ""
+    for req_key in sorted(GRADER_REQUIRED_KEYS.get(gtype, ())):
+        if cfg.get(req_key):
+            continue
+        if req_key == body_fallback_field and body_has_content:
+            continue  # satisfied by the prose grader file's body
+        via_body = " (or a non-empty body, for a prose grader file)" if req_key == body_fallback_field else ""
+        r.error(loc, f"'{gtype}' grader is missing required '{req_key}'{via_body} — it cannot function without it")
+
+    # tool_order: `before`/`after`, when given as a mapping, need `tool`.
+    if gtype == "tool_order":
+        for key in ("before", "after"):
+            val = cfg.get(key)
+            if isinstance(val, dict) and not val.get("tool"):
+                r.error(loc, f"tool_order '{key}' is a mapping but has no 'tool' key — expected a tool name or {{ tool, input_match }}")
+
+    # Compile every regex-bearing field this grader type can hold.
+    if gtype == "regex":
+        pattern = cfg.get("pattern")
+        if pattern is None and body_fallback_field == "pattern" and body_has_content:
+            pattern = body.strip()
+        check_regex_field(pattern, r, loc, "pattern")
+    if gtype == "tool_used" and "input_match" in cfg:
+        check_regex_field(cfg.get("input_match"), r, loc, "input_match")
+    if gtype == "tool_order":
+        for key in ("before", "after"):
+            val = cfg.get(key)
+            if isinstance(val, dict) and "input_match" in val:
+                check_regex_field(val.get("input_match"), r, loc, f"{key}.input_match")
 
 
 def make_grader_info(name, cfg: dict, gtype, loc: str) -> GraderInfo:
@@ -320,7 +394,7 @@ def validate_prose_grader(path: Path, case_name: str, r: Reporter) -> GraderInfo
     text = read_file(path, r, rel)
     if text is None:
         return None
-    fm, _body, had_block = load_frontmatter(text, r, rel)
+    fm, body, had_block = load_frontmatter(text, r, rel)
     if not had_block:
         r.warn(rel, "file has no frontmatter block — the harness ignores it entirely (it is inert, not a grader). Add frontmatter with at least 'type:', or delete the file if it's meant as a note.")
         return None
@@ -334,7 +408,7 @@ def validate_prose_grader(path: Path, case_name: str, r: Reporter) -> GraderInfo
         r.error(rel, f"unknown grader type '{gtype}' — valid types: {sorted(GRADER_TYPES)}")
         return None
     name = fm.get("name") or path.stem
-    validate_grader_config(fm, gtype, r, rel)
+    validate_grader_config(fm, gtype, r, rel, body=body)
     return GraderInfo(name=name, gtype=gtype, tool=fm.get("tool"), has_arm=("arm" in fm), arm_value=fm.get("arm"), loc=rel)
 
 

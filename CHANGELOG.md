@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-26_ version bump — **procedural-memory** 0.3.0 → 0.3.1 (patch); marketplace 2.40.0 → 2.40.1.
+- _2026-08-26_ **procedural-memory — the eval validator was accepting graders that can never run.**
+  An adversarial review proved the validator shipped in 0.3.0 passed a `type: regex` grader with
+  **no `pattern` at all**, and one with `pattern: "["` which cannot compile — both `0 errors,
+  exit 0`. It checked structure but never asked whether a grader could actually function. Now
+  enforces the per-type required fields derived from the reference doc (`regex.pattern`,
+  `tool_used.tool`, `tool_order.before`/`after`, `file_exists.path`, `llm.criteria`,
+  `baseline.baseline_file`+`criteria`) and compiles every regex-bearing field (`pattern`,
+  `input_match`), reporting `re.error` as an ERROR. Correctly exempts **prose graders**, where
+  the doc lets a non-empty body supply `pattern`/`criteria` in place of a frontmatter key — this
+  suite's own `surfaces-the-refusal.md` relies on that, so a naive required-key rule would have
+  gone red on a valid case. Every rule verified in both directions: fires on the invalid form,
+  stays silent on the valid one.
 - _2026-08-25_ version bump — **procedural-memory** 0.2.0 → 0.3.0 (minor); marketplace 2.39.0 → 2.40.0.
 - _2026-08-25_ **procedural-memory — `evals/validate-suite.py`, a static schema validator for the
   eval suite, plus three genuine defect fixes it caught.** `claude plugin eval` is org-gated on
