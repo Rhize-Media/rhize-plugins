@@ -126,11 +126,27 @@ the right one, and health-checks the whole thing.
   `precedes` (or, absent one, a mined `follows`) edge — e.g. after `write-prd`, "the usual
   next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at
   least once, same as `skill-router`; with no artifact present they fail silently.
-- All four map hooks log each fired suggestion (2026-08-10) to
-  `~/.claude/context-manager/suggestion-log.jsonl` — ids and hashes only, never prompt
-  text — so "was this suggestion actually followed?" is finally measurable. Run
-  `python3 scripts/suggestion_log_report.py` (repo root) for per-hook acceptance/ignore
-  rates; the skill-graph eval suite (`evals/skill-map/`) builds on the same log.
+- All five map hooks (`skill-router`, `session-disclosure`, `remediation-suggester`,
+  `next-step-suggester`, `agent-brief-router`) log each fired event (2026-08-10, extended
+  2026-08-26) to `~/.claude/context-manager/suggestion-log.jsonl` — ids/hashes/lengths only,
+  never prompt or brief text — so "was this suggestion actually followed?" is finally
+  measurable. The first four share one row shape (`{hook, suggested, ...}`);
+  `agent-brief-router` logs a different one (`source: "agent-dispatch"`, no `hook` key — see
+  below). Run `python3 scripts/suggestion_log_report.py` (repo root) for per-hook
+  acceptance/ignore rates plus the agent-dispatch section (named-rate, candidate-present,
+  candidate-miss rate); the skill-graph eval suite (`evals/skill-map/`) builds on the same log.
+- `agent-brief-router` (`hooks/agent-brief-router.js`, opt-in via `setup/manifest.json`,
+  matcher `^(Agent)$`) measures, per outgoing subagent dispatch, whether the brief already
+  named a skill (via "Invoke `<plugin:skill>` first") that the router index would also have
+  suggested for its content. It's a measurement instrument, not a router — a PreToolUse hook
+  fires only after the brief is written, so it can't fix the dispatch it's observing, only
+  inform the next one. Read the numbers via `suggestion_log_report.py`'s agent-dispatch
+  section (above). Enable it the same way as `skill-router`, via `/rhize-setup` or a manual
+  `.claude/settings.json` entry keyed `agent-brief-router`; a one-line next-dispatch advisory
+  exists behind `RHIZE_AGENT_BRIEF_ADVISORY=1` but stays off until the logged data has been
+  reviewed. See `docs/skill-map.md`'s "Agent-dispatch surface" section for the spike verdicts
+  and known limitations (Workflow `agent()` calls and scheduled tasks bypass this hook
+  entirely — by design, no hook covers them).
 - Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).

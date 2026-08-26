@@ -139,20 +139,26 @@ fallback to the older `skill-map.resolved.json`/`skill-map.static.json` map-scan
 indexes file exists at all. All four fail silently (exit 0, no output) on any missing or corrupt
 input. See `docs/skill-map.md` for the artifact/tagging conventions they depend on.
 
-All four hooks also write a **suggestion log** — one JSON line per fired suggestion, appended
-fail-silent to `~/.claude/context-manager/suggestion-log.jsonl`:
-`{"ts", "session_id", "hook", "suggested", "context_hash"}`. No prompt text, paths, or tool
-output is ever logged — ids and truncated sha256 hashes only, matching skill-monitor's privacy
-precedent. `skill-router.js` additionally logs a 1-in-20 sample of no-suggestion prompts
-(`"suggested": null`) so silence precision has a denominator. `scripts/suggestion_log_report.py`
-(repo root) joins the log against skill-monitor usage data to report per-hook acceptance and
-ignore rates. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file path)
-and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
+`session-disclosure.js`, `remediation-suggester.js`, and `next-step-suggester.js` — plus
+`skill-router.js` and `agent-brief-router.js` below, both opt-in — also write a **suggestion
+log**, one JSON line per fired event, appended fail-silent to
+`~/.claude/context-manager/suggestion-log.jsonl`. Two row shapes share that file: the legacy
+`{"ts", "session_id", "hook", "suggested", "context_hash"}` shape these five hooks write, and
+`agent-brief-router.js`'s `{"ts", "source": "agent-dispatch", "agentType", "briefHash",
+"briefLength", "namedSkills", "suggestedSkills", "advisoryEmitted"}` shape (no `hook` key —
+see below). No prompt/brief text, paths, or tool output is ever logged — ids, lengths, and
+truncated sha256 hashes only, matching skill-monitor's privacy precedent. `skill-router.js`
+additionally logs a 1-in-20 sample of no-suggestion prompts (`"suggested": null`) so silence
+precision has a denominator. `scripts/suggestion_log_report.py` (repo root) joins the legacy
+rows against skill-monitor usage data to report per-hook acceptance and ignore rates, and
+reports the agent-dispatch rows' named-rate/candidate-present/candidate-miss-rate in a
+separate section. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file
+path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
 
 ### Opt-in hooks (`setup/manifest.json`)
 
-Six hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
-`/rhize-setup` (rhize-ops) to wire per-repo — none of the six are in `hooks/hooks.json`
+Seven hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
+`/rhize-setup` (rhize-ops) to wire per-repo — none of the seven are in `hooks/hooks.json`
 and none do anything until enabled. Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
@@ -164,16 +170,24 @@ every repo would be noise:
 | `duplicate-check` | `PreToolUse` (`Write`) | T4 (blocking, exit 2) | Blocks creating a new component/hook/utility whose name closely matches an existing `COMPONENT_REGISTRY.md` entry |
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
+| `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
 
-`skill-router` (`hooks/skill-router.js`, plugin root — not under
-`skills/context-engineering/hooks/` like the other three) replaced the keyword-grep
-`skill-suggester.sh` on 2026-08-09 (Phase 2 of `.claude/plans/skill-map-graph-substrate.md`):
-it reads the compiled skill-map artifact (`~/.claude/context-manager/skill-map.resolved.json`,
-falling back to `skill-map.static.json` — installed via `scripts/build_skill_map.py
---install`) instead of a fixed keyword list, so newly tagged skills route automatically.
-It requires 2+ distinct matching signals (topic/stack tag or skill-name word match) to
-fire at all, and fails silently — exit 0, no output — if the map is missing or corrupt.
-See `docs/skill-map.md` for the artifact/tagging conventions it depends on.
+`skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
+`hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
+like the other three) both read the compiled skill-map artifact rather than a fixed keyword
+list. `skill-router` replaced the keyword-grep `skill-suggester.sh` on 2026-08-09 (Phase 2 of
+`.claude/plans/skill-map-graph-substrate.md`): it reads
+`~/.claude/context-manager/skill-map.resolved.json` (falling back to `skill-map.static.json`
+— installed via `scripts/build_skill_map.py --install`), requires 2+ distinct matching
+signals (topic/stack tag or skill-name word match) to fire at all, and fails silently — exit
+0, no output — if the map is missing or corrupt. `agent-brief-router` (2026-08-26) is a
+**measurement instrument, not a router** — a PreToolUse hook fires only after the brief is
+already written, so it cannot fix the dispatch it observes; it exists to measure, session over
+session, whether outgoing subagent briefs already name the skill route-core's scoring would
+suggest for their content. See `docs/skill-map.md`'s "Agent-dispatch surface" section for the
+spike verdicts, scoring details, and known limitations (Workflow `agent()` calls and
+scheduled-task sessions bypass this hook entirely — the CLAUDE.md dispatch rule is the only
+enforcement there, by design).
 
 `tier` follows the shared convention: T3 = advisory (never blocks, exits 0, must use
 `hookSpecificOutput.additionalContext` to reach Claude on events where plain stdout
@@ -196,9 +210,9 @@ schema](../rhize-ops/README.md#setup-manifest-schema).
 
 ### Refinement-pipeline hooks (also in `setup/manifest.json`)
 
-The other two of the six live under `hooks/` directly. They arrived on 2026-08-09, moved
+The other two of the seven live under `hooks/` directly. They arrived on 2026-08-09, moved
 here from `rhize-devflow` (they predate this plugin and were stranded there by the 2.5.0
-command migration). Like the four above they are **not** wired in `hooks/hooks.json`, but
+command migration). Like the five above they are **not** wired in `hooks/hooks.json`, but
 `/rhize-setup` can now offer them per-repo the same way (ids `refinement-detector` and
 `refinement-session-end`) — no manual `.claude/settings.json` edit required unless you're
 wiring without `rhize-ops`.

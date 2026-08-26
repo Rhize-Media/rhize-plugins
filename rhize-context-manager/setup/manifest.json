@@ -50,6 +50,16 @@
       "default": false
     },
     {
+      "id": "agent-brief-router",
+      "title": "Measure skill coverage of outgoing subagent briefs (map-driven)",
+      "tier": "T3",
+      "event": "PreToolUse",
+      "matcher": "^(Agent)$",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-brief-router.js\"",
+      "description": "Logs, per Agent-tool dispatch, which skills the brief names (\"Invoke <plugin:skill> first\") vs. which the skill-map router index suggests the brief's content maps to — source \"agent-dispatch\" rows in the suggestion log, read by suggestion_log_report.py. Measurement instrument for the skill-explicit dispatch rule: PreToolUse fires after the brief is written, so it cannot fix the dispatch it observes. Advisory emission (one line, next-dispatch guidance) exists only behind RHIZE_AGENT_BRIEF_ADVISORY=1 and stays off until log calibration is reviewed. Fail-silent T3; never blocks.",
+      "default": false
+    },
+    {
       "id": "refinement-session-end",
       "title": "Prompt for refinements after a substantial session",
       "tier": "T3",

@@ -2,16 +2,25 @@
 """suggestion_log_report.py — acceptance-rate report for the skill-map hooks'
 suggestion log.
 
-The four map-driven hooks (rhize-context-manager/hooks/{skill-router,
-session-disclosure,remediation-suggester,next-step-suggester}.js) each append
-one JSON line per suggestion fired to a local, machine-only log (default
-~/.claude/context-manager/suggestion-log.jsonl; NEVER committed to the repo).
-This script joins that log against skill-monitor's usage data
-(rhize-ops/skill-monitor/data/skill-usage.json) to answer the previously
-unmeasurable question: of the suggestions the hooks fired, how many were
-actually acted on ("suggested-but-ignored", the routing-miss metric)?
+Five map-driven hooks append to a shared, local, machine-only suggestion log
+(default ~/.claude/context-manager/suggestion-log.jsonl; NEVER committed to
+the repo), but they write TWO different row shapes:
 
-PINNED LOG SCHEMA (one JSON object per line):
+  - The four legacy hooks (rhize-context-manager/hooks/{skill-router,
+    session-disclosure,remediation-suggester,next-step-suggester}.js) each
+    append one JSON line per suggestion fired, keyed by `hook`. This script
+    joins those rows against skill-monitor's usage data
+    (rhize-ops/skill-monitor/data/skill-usage.json) to answer the previously
+    unmeasurable question: of the suggestions the hooks fired, how many were
+    actually acted on ("suggested-but-ignored", the routing-miss metric)?
+
+  - The fifth hook (agent-brief-router.js) appends one JSON line per Agent-tool
+    dispatch, keyed by `source: "agent-dispatch"` — a different shape (see
+    AGENT-DISPATCH SCHEMA below), with no session-usage join: it measures
+    skill-map coverage of the outgoing brief text itself, not downstream
+    acceptance.
+
+PINNED LEGACY LOG SCHEMA (one JSON object per line):
     {
       "ts": "<ISO8601>",
       "session_id": "<str|null>",
@@ -24,8 +33,26 @@ lines — everything else logged is a real suggestion. `suggested` is an array
 only for the disclosure hook (its multi-skill surface); every other hook logs
 a single id string.
 
-JOIN METHODOLOGY AND ITS LIMITATION (read before trusting the acceptance
-numbers):
+AGENT-DISPATCH LOG SCHEMA (one JSON object per line, no `hook` key):
+    {
+      "ts": "<ISO8601>",
+      "source": "agent-dispatch",
+      "agentType": "<subagent_type str>",
+      "briefHash": "<16 hex chars>",
+      "briefLength": <int>,
+      "namedSkills": ["<skill id>", ...],
+      "suggestedSkills": ["<skill id>"] | [],
+      "advisoryEmitted": <bool>
+    }
+`namedSkills` are ids the brief explicitly named via the "Invoke <plugin:skill>
+first" directive (Task 1's convention); `suggestedSkills` is the (at most one)
+id route-core's scoring would suggest for the brief's content. This script
+routes these rows to a separate `agent_dispatch` report section — they carry
+no `hook` field and are never counted by the legacy per-hook logic.
+
+JOIN METHODOLOGY AND ITS LIMITATION (read before trusting the LEGACY
+acceptance numbers — does not apply to the agent-dispatch section, which has
+no session-usage join):
     skill-monitor's skill-usage.json records one event per Skill-tool
     invocation, each carrying a bare `skill` name (e.g. "graphify") and a
     `session_id` — it does NOT record plugin-qualified ids, ordering relative
@@ -72,6 +99,8 @@ DEFAULT_USAGE_PATH = (
 )
 
 HOOKS = ("router", "disclosure", "remediation", "next-step")
+
+AGENT_DISPATCH_SOURCE = "agent-dispatch"
 
 _ID_PATTERN = re.compile(r"^(skill|command):(?:([^/]+)/)?(.+)$")
 
@@ -135,10 +164,72 @@ def load_session_skills(usage_path: Path) -> dict[str, set[str]]:
     return dict(by_session)
 
 
+def compute_agent_dispatch_report(entries: list[dict]) -> dict:
+    """Computes the agent-dispatch coverage stats from `source: "agent-dispatch"`
+    rows (see module docstring's AGENT-DISPATCH LOG SCHEMA). No session-usage
+    join here — this measures whether the outgoing brief named a skill the
+    router would have suggested for it, not downstream acceptance.
+
+    - named_rate: share of dispatches whose brief named >=1 skill.
+    - candidate_present: count of dispatches with a non-empty suggestion.
+    - candidate_miss_rate: of the candidate-present dispatches, the share
+      whose suggestion was fully disjoint from the named skills — i.e. a
+      dispatch with no candidate can't miss, so it's excluded from the
+      denominator.
+    - top_unnamed_suggested: the suggested skill ids from miss rows, ranked
+      by how often they were suggested-but-not-named.
+    """
+    total = 0
+    named_count = 0
+    candidate_present = 0
+    candidate_miss = 0
+    unnamed_but_suggested_counts: dict[str, int] = defaultdict(int)
+
+    for entry in entries:
+        total += 1
+        named_skills = entry.get("namedSkills")
+        suggested_skills = entry.get("suggestedSkills")
+        named_skills = named_skills if isinstance(named_skills, list) else []
+        suggested_skills = suggested_skills if isinstance(suggested_skills, list) else []
+
+        if named_skills:
+            named_count += 1
+
+        if suggested_skills:
+            candidate_present += 1
+            if set(suggested_skills).isdisjoint(named_skills):
+                candidate_miss += 1
+                for skill_id in suggested_skills:
+                    unnamed_but_suggested_counts[skill_id] += 1
+
+    named_rate = (named_count / total) if total else 0.0
+    candidate_miss_rate = (candidate_miss / candidate_present) if candidate_present else 0.0
+    top_unnamed_suggested = [
+        {"skill_id": skill_id, "count": count}
+        for skill_id, count in sorted(
+            unnamed_but_suggested_counts.items(), key=lambda kv: (-kv[1], kv[0])
+        )[:5]
+    ]
+
+    return {
+        "total": total,
+        "named_rate": named_rate,
+        "candidate_present": candidate_present,
+        "candidate_miss_rate": candidate_miss_rate,
+        "top_unnamed_suggested": top_unnamed_suggested,
+    }
+
+
 def compute_report(entries: list[dict], session_skills: dict[str, set[str]]) -> dict:
     """Computes per-hook suggestion/acceptance/ignore counts plus the
-    router's silence-sample counts. See module docstring for the acceptance
-    proxy's methodology and limitation."""
+    router's silence-sample counts, and the agent-dispatch coverage section.
+    See module docstring for the acceptance proxy's methodology and
+    limitation, and compute_agent_dispatch_report for the agent-dispatch
+    metrics' definitions.
+
+    Branches on `entry.get("source")` FIRST: agent-dispatch rows carry no
+    `hook` key and are routed to their own section below; every other row
+    flows through the legacy per-hook logic byte-for-byte unchanged."""
     per_hook = {
         hook: {
             "suggestions": 0,
@@ -149,8 +240,13 @@ def compute_report(entries: list[dict], session_skills: dict[str, set[str]]) -> 
         for hook in HOOKS
     }
     router_silence_samples = 0
+    agent_dispatch_entries: list[dict] = []
 
     for entry in entries:
+        if entry.get("source") == AGENT_DISPATCH_SOURCE:
+            agent_dispatch_entries.append(entry)
+            continue
+
         hook = entry.get("hook")
         if hook not in per_hook:
             continue  # unknown hook value — ignore rather than crash
@@ -180,7 +276,11 @@ def compute_report(entries: list[dict], session_skills: dict[str, set[str]]) -> 
         else:
             per_hook[hook]["ignored"] += 1
 
-    return {"per_hook": per_hook, "router_silence_samples": router_silence_samples}
+    return {
+        "per_hook": per_hook,
+        "router_silence_samples": router_silence_samples,
+        "agent_dispatch": compute_agent_dispatch_report(agent_dispatch_entries),
+    }
 
 
 def format_table(report: dict) -> str:
@@ -205,6 +305,22 @@ def format_table(report: dict) -> str:
         "suggestion, and 'ext-unjoin' suggestions (agent ids) are excluded from\n"
         "accept% because skill-usage.json has no record of agent invocations."
     )
+    lines.append("")
+    lines.append("agent-dispatch (source: \"agent-dispatch\" rows — no session-usage join)")
+    lines.append("-" * 72)
+    ad = report["agent_dispatch"]
+    lines.append(f"total dispatches logged: {ad['total']}")
+    named_pct = f"{(100 * ad['named_rate']):.1f}%"
+    lines.append(f"named-rate (brief named >=1 skill): {named_pct}")
+    lines.append(f"candidate-present (router had a suggestion): {ad['candidate_present']}")
+    miss_pct = f"{(100 * ad['candidate_miss_rate']):.1f}%" if ad["candidate_present"] else "n/a"
+    lines.append(f"candidate-miss rate (of candidate-present): {miss_pct}")
+    if ad["top_unnamed_suggested"]:
+        lines.append("top unnamed-but-suggested skill ids:")
+        for row in ad["top_unnamed_suggested"]:
+            lines.append(f"  {row['skill_id']}: {row['count']}")
+    else:
+        lines.append("top unnamed-but-suggested skill ids: (none)")
     return "\n".join(lines)
 
 

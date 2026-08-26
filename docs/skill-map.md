@@ -443,6 +443,43 @@ python3 scripts/query_skill_map.py what-follows seo-aeo-geo/content-seo --resolv
 python3 scripts/query_skill_map.py --list
 ```
 
+## Agent-dispatch surface (2026-08-26)
+
+The Agent tool has no skills parameter, so a dispatching orchestrator's only levers are picking a
+skill-shaped agent type, naming a skill in the brief ("Invoke `<plugin:skill>` first"), or inlining
+its content — and in practice neither happens on its own: a Skill-capable subagent inherits the
+same skill roster but none of the parent transcript (every dispatch is a cold start), and zero of
+~15 observed subagent reports in the originating session invoked a skill unprompted. Because a
+PreToolUse hook fires only after the brief is already written, it cannot fix the dispatch it
+observes — it can only measure, across sessions, whether outgoing briefs already name the skill the
+router index would otherwise suggest for their content.
+
+**Spike verdicts** (`.claude/plans/subagent-skill-injection.md`, Task 3 Step 5, 2026-08-26):
+
+```
+V1 fired: yes · tool_name(s) observed: Agent  → SPIKE_MATCHER = "^(Agent)$"
+V2 additionalContext reached model: yes (result=True, stderr-clean=True, control-clean=True)
+Consequence for Task 5: log + flag-gated advisory (V2 yes)
+```
+
+**What it measures:** `rhize-context-manager/hooks/agent-brief-router.js` (PreToolUse, matcher
+`^(Agent)$`, tier T3, opt-in via `setup/manifest.json`, `default: false`) is a **measurement
+instrument, not a router** — default behavior is log-only. Each Agent-tool dispatch that reaches
+it (non-empty brief, usable map/index data) logs one `source: "agent-dispatch"` row to the shared
+suggestion log: which skills the brief named via the directive `Invoke <plugin:skill> first`
+(Task 1's convention) versus the single best-scoring candidate the router index would suggest for
+the brief's content. `scripts/suggestion_log_report.py`'s `agent_dispatch` section reports the
+named-rate, candidate-present count, and candidate-miss rate computed from that log. A one-line
+advisory (`hookSpecificOutput.additionalContext`, next-dispatch guidance only — it cannot retract
+the dispatch already in flight) exists behind `RHIZE_AGENT_BRIEF_ADVISORY=1` and stays off until
+the logged data has been reviewed; briefs are long, multi-paragraph documents and over-match the
+prompt-calibrated thresholds `skill-router.js` uses for short user prompts.
+
+**Known limitations:** Workflow `agent()` calls and scheduled-task sessions bypass the Agent-tool
+hook entirely — they're spawned by other runtimes, so PreToolUse on `Agent` never fires for them.
+For those paths, the CLAUDE.md skill-explicit dispatch rule (Task 1, `~/.claude/CLAUDE.md`) is the
+only enforcement, by design; no hook will be built for them.
+
 ## Consumers
 
 Everything downstream reads the static artifact, the resolved map, or both — never `SOURCES.md`,

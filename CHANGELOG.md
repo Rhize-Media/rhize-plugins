@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-26_ version bump — **rhize-context-manager** 0.14.0 → 0.15.0 (minor); marketplace 2.41.0 → 2.42.0.
+- _2026-08-26_ **rhize-context-manager — wire `agent-brief-router` (opt-in) + source-split
+  suggestion report.** New opt-in `PreToolUse` hook (matcher `^(Agent)$`, `setup/manifest.json`,
+  `default: false`) measures whether outgoing subagent briefs already name (via the "Invoke
+  `<plugin:skill>` first" convention) the skill the router index would suggest for their
+  content — a measurement instrument, not a router, since a `PreToolUse` hook fires only after
+  the brief is already written. Logs `source: "agent-dispatch"` rows (no `hook` key) to the
+  shared suggestion log; a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) stays off until
+  the log has been reviewed. `scripts/suggestion_log_report.py` now branches on
+  `entry.get("source")` first and reports a new `agent_dispatch` section (named-rate,
+  candidate-present, candidate-miss rate, top unnamed-but-suggested skill ids) alongside the
+  unchanged legacy per-hook numbers; see `docs/skill-map.md`'s "Agent-dispatch surface" section
+  for the spike verdicts and known limitations.
 - _2026-08-26_ version bump — **rhize-ops** 0.10.0 → 0.11.0 (minor); marketplace 2.40.1 → 2.41.0.
 - _2026-08-26_ **rhize-ops/skill-monitor — stack observability with an enforced trust taxonomy,
   plus a benchmark-capture watchdog.** Two new stdlib-only modules. `stack_metrics.py` collects
