@@ -50,6 +50,14 @@ id route-core's scoring would suggest for the brief's content. This script
 routes these rows to a separate `agent_dispatch` report section — they carry
 no `hook` field and are never counted by the legacy per-hook logic.
 
+CAVEAT ON THE PER-AGENTTYPE BREAKDOWN: Skill-capable agent rosters are briefed
+to NAME a skill ("Invoke <plugin:skill> first"), while Skill-less rosters
+(verifier, Explore, Plan) are briefed to INLINE the skill's operative content
+instead, without naming it. A high candidate-miss rate for a Skill-less
+agentType therefore reflects a policy-compliant inlined brief whose content
+still matches a topic-scoring candidate — not non-compliance — so the two
+roster kinds' miss-rates must not be conflated when reading `by_agent_type`.
+
 JOIN METHODOLOGY AND ITS LIMITATION (read before trusting the LEGACY
 acceptance numbers — does not apply to the agent-dispatch section, which has
 no session-usage join):
@@ -178,27 +186,43 @@ def compute_agent_dispatch_report(entries: list[dict]) -> dict:
       denominator.
     - top_unnamed_suggested: the suggested skill ids from miss rows, ranked
       by how often they were suggested-but-not-named.
+    - by_agent_type: the same four counters (dispatches/named_rate/
+      candidate_present/candidate_miss_rate), grouped by the logged
+      `agentType` field. See the module docstring's CAVEAT ON THE
+      PER-AGENTTYPE BREAKDOWN — a high miss-rate for a Skill-less agentType
+      (verifier, Explore, Plan) is not evidence of non-compliance, since those
+      rosters are briefed to inline content rather than name a skill.
     """
     total = 0
     named_count = 0
     candidate_present = 0
     candidate_miss = 0
     unnamed_but_suggested_counts: dict[str, int] = defaultdict(int)
+    by_type_totals: dict[str, dict[str, int]] = defaultdict(
+        lambda: {"total": 0, "named_count": 0, "candidate_present": 0, "candidate_miss": 0}
+    )
 
     for entry in entries:
         total += 1
+        agent_type = entry.get("agentType")
+        agent_type = agent_type if isinstance(agent_type, str) and agent_type else "(unknown)"
         named_skills = entry.get("namedSkills")
         suggested_skills = entry.get("suggestedSkills")
         named_skills = named_skills if isinstance(named_skills, list) else []
         suggested_skills = suggested_skills if isinstance(suggested_skills, list) else []
+        type_stats = by_type_totals[agent_type]
+        type_stats["total"] += 1
 
         if named_skills:
             named_count += 1
+            type_stats["named_count"] += 1
 
         if suggested_skills:
             candidate_present += 1
+            type_stats["candidate_present"] += 1
             if set(suggested_skills).isdisjoint(named_skills):
                 candidate_miss += 1
+                type_stats["candidate_miss"] += 1
                 for skill_id in suggested_skills:
                     unnamed_but_suggested_counts[skill_id] += 1
 
@@ -211,12 +235,24 @@ def compute_agent_dispatch_report(entries: list[dict]) -> dict:
         )[:5]
     ]
 
+    by_agent_type = {}
+    for agent_type, stats in by_type_totals.items():
+        t = stats["total"]
+        cp = stats["candidate_present"]
+        by_agent_type[agent_type] = {
+            "total": t,
+            "named_rate": (stats["named_count"] / t) if t else 0.0,
+            "candidate_present": cp,
+            "candidate_miss_rate": (stats["candidate_miss"] / cp) if cp else 0.0,
+        }
+
     return {
         "total": total,
         "named_rate": named_rate,
         "candidate_present": candidate_present,
         "candidate_miss_rate": candidate_miss_rate,
         "top_unnamed_suggested": top_unnamed_suggested,
+        "by_agent_type": by_agent_type,
     }
 
 
@@ -310,7 +346,7 @@ def format_table(report: dict) -> str:
     lines.append("-" * 72)
     ad = report["agent_dispatch"]
     lines.append(f"total dispatches logged: {ad['total']}")
-    named_pct = f"{(100 * ad['named_rate']):.1f}%"
+    named_pct = f"{(100 * ad['named_rate']):.1f}%" if ad["total"] else "n/a"
     lines.append(f"named-rate (brief named >=1 skill): {named_pct}")
     lines.append(f"candidate-present (router had a suggestion): {ad['candidate_present']}")
     miss_pct = f"{(100 * ad['candidate_miss_rate']):.1f}%" if ad["candidate_present"] else "n/a"
@@ -321,6 +357,35 @@ def format_table(report: dict) -> str:
             lines.append(f"  {row['skill_id']}: {row['count']}")
     else:
         lines.append("top unnamed-but-suggested skill ids: (none)")
+    if ad["by_agent_type"]:
+        lines.append("")
+        lines.append("by agentType:")
+        type_header = (
+            f"{'agentType':<20} {'dispatches':>10} {'named-rate':>10} "
+            f"{'cand-present':>12} {'miss-rate':>9}"
+        )
+        lines.append(type_header)
+        lines.append("-" * len(type_header))
+        for agent_type in sorted(ad["by_agent_type"]):
+            stats = ad["by_agent_type"][agent_type]
+            t_named_pct = f"{(100 * stats['named_rate']):.1f}%" if stats["total"] else "n/a"
+            t_miss_pct = (
+                f"{(100 * stats['candidate_miss_rate']):.1f}%" if stats["candidate_present"] else "n/a"
+            )
+            lines.append(
+                f"{agent_type:<20} {stats['total']:>10} {t_named_pct:>10} "
+                f"{stats['candidate_present']:>12} {t_miss_pct:>9}"
+            )
+    lines.append("")
+    lines.append(
+        "CAVEAT: Skill-capable agentTypes (e.g. executor) are briefed to NAME a\n"
+        "skill (\"Invoke <plugin:skill> first\"); Skill-less agentTypes (verifier,\n"
+        "Explore, Plan) are briefed to INLINE the operative content instead and\n"
+        "never name one. A high miss-rate for a Skill-less agentType therefore\n"
+        "reflects a policy-compliant inlined brief, not non-compliance — do not\n"
+        "compare miss-rates across the two roster kinds as if they measured the\n"
+        "same behavior."
+    )
     return "\n".join(lines)
 
 

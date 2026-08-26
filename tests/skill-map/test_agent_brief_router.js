@@ -62,12 +62,14 @@ function writeIndexes(tmpHome, contents) {
 
 // Runs the hook with a well-formed PreToolUse Agent-dispatch stdin payload.
 // extraEnv is applied last so a test can opt into RHIZE_AGENT_BRIEF_ADVISORY
-// or RHIZE_SUGGESTION_LOG; the advisory flag is always deleted first so an
-// ambient value in the outer shell can never leak into a case that expects it
-// unset.
+// or RHIZE_SUGGESTION_LOG; both are always deleted first so an ambient value
+// in the outer shell can never leak into a case that expects it unset — an
+// ambient RHIZE_SUGGESTION_LOG would otherwise let a case silently append a
+// row to a real measurement log instead of its own temp file.
 function runHook(tmpHome, prompt, subagentType, extraEnv) {
   const env = { ...process.env, HOME: tmpHome };
   delete env.RHIZE_AGENT_BRIEF_ADVISORY;
+  delete env.RHIZE_SUGGESTION_LOG;
   Object.assign(env, extraEnv || {});
   return spawnSync(process.execPath, [HOOK_PATH], {
     input: JSON.stringify({
@@ -84,6 +86,7 @@ function runHook(tmpHome, prompt, subagentType, extraEnv) {
 function runHookRaw(tmpHome, rawInput, extraEnv) {
   const env = { ...process.env, HOME: tmpHome };
   delete env.RHIZE_AGENT_BRIEF_ADVISORY;
+  delete env.RHIZE_SUGGESTION_LOG;
   Object.assign(env, extraEnv || {});
   return spawnSync(process.execPath, [HOOK_PATH], {
     input: rawInput,

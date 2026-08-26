@@ -8,6 +8,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-26_ version bump — **rhize-context-manager** 0.15.0 → 0.15.1 (patch); marketplace 2.42.0 → 2.42.1.
+- _2026-08-26_ **rhize-context-manager — final-review fix wave: segment the agent-dispatch
+  report by agentType, fix two stale docs claims.** `scripts/suggestion_log_report.py`'s
+  aggregate agent-dispatch numbers conflated two compliant behaviors: Skill-capable rosters
+  are briefed to NAME a skill ("Invoke `<plugin:skill>` first"), while Skill-less rosters
+  (verifier, Explore, Plan) are briefed to INLINE operative content without naming one, so a
+  policy-compliant Skill-less brief logged as a "miss" indistinguishable from real
+  non-compliance. `compute_agent_dispatch_report` now also returns a `by_agent_type`
+  breakdown (dispatches, named-rate, candidate-present, miss-rate per `agentType`), rendered
+  as its own table with a caveat explaining the two roster kinds' miss-rates cannot be
+  compared — the same caveat was added to the module docstring and to `docs/skill-map.md`'s
+  "Agent-dispatch surface" section. Also fixed: `format_table`'s named-rate rendered `0.0%`
+  on an empty log instead of `n/a` (miss-rate already handled this correctly); a stale
+  README paragraph claimed the index-then-map-scan fallback exists for "`skill-router.js`/
+  `session-disclosure.js` only" and that "four" hooks resolve the compiled skill-map artifact
+  — both wrong since `agent-brief-router.js` shipped with the identical fallback and
+  fail-silent contract, now "five"; and `docs/skill-map.md`'s Consumers table was missing an
+  `agent-brief-router.js` row. `tests/skill-map/test_agent_brief_router.js`'s two run helpers
+  now also scrub `RHIZE_SUGGESTION_LOG` from the child env (alongside the existing
+  `RHIZE_AGENT_BRIEF_ADVISORY` scrub) so an ambient export can't let a case append junk rows
+  to a real measurement log. `tests/skill-map/test_suggestion_log_report.py` extended with a
+  third test asserting the per-agentType breakdown against hand-computed values.
 - _2026-08-26_ version bump — **rhize-context-manager** 0.14.0 → 0.15.0 (minor); marketplace 2.41.0 → 2.42.0.
 - _2026-08-26_ **rhize-context-manager — wire `agent-brief-router` (opt-in) + source-split
   suggestion report.** New opt-in `PreToolUse` hook (matcher `^(Agent)$`, `setup/manifest.json`,

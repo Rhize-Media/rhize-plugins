@@ -469,11 +469,19 @@ it (non-empty brief, usable map/index data) logs one `source: "agent-dispatch"` 
 suggestion log: which skills the brief named via the directive `Invoke <plugin:skill> first`
 (Task 1's convention) versus the single best-scoring candidate the router index would suggest for
 the brief's content. `scripts/suggestion_log_report.py`'s `agent_dispatch` section reports the
-named-rate, candidate-present count, and candidate-miss rate computed from that log. A one-line
-advisory (`hookSpecificOutput.additionalContext`, next-dispatch guidance only — it cannot retract
-the dispatch already in flight) exists behind `RHIZE_AGENT_BRIEF_ADVISORY=1` and stays off until
-the logged data has been reviewed; briefs are long, multi-paragraph documents and over-match the
+named-rate, candidate-present count, and candidate-miss rate computed from that log, plus the
+same four numbers broken out per `agentType`. A one-line advisory
+(`hookSpecificOutput.additionalContext`, next-dispatch guidance only — it cannot retract the
+dispatch already in flight) exists behind `RHIZE_AGENT_BRIEF_ADVISORY=1` and stays off until the
+logged data has been reviewed; briefs are long, multi-paragraph documents and over-match the
 prompt-calibrated thresholds `skill-router.js` uses for short user prompts.
+
+**Reading the per-agentType breakdown:** Skill-capable rosters are briefed to NAME a skill
+("Invoke `<plugin:skill>` first"), while Skill-less rosters (verifier, Explore, Plan) are
+briefed to INLINE the skill's operative content instead, without naming it — so a high
+candidate-miss rate for a Skill-less `agentType` reflects a policy-compliant inlined brief
+whose content still matches a topic-scoring candidate, not non-compliance. Do not compare
+miss-rates across the two roster kinds as if they measured the same behavior.
 
 **Known limitations:** Workflow `agent()` calls and scheduled-task sessions bypass the Agent-tool
 hook entirely — they're spawned by other runtimes, so PreToolUse on `Agent` never fires for them.
@@ -508,6 +516,7 @@ consumer's data source needs to change:
 | `rhize-context-manager/hooks/session-disclosure.js` | `skill-map.indexes.{resolved,}.json` (the `disclosure` section); falls back to `skill-map.{resolved,static}.json` if no indexes file exists | Stack-fingerprinted SessionStart skill disclosure (Phase 3), replacing the per-plugin banners named in the "Moved"/"removed" notes in `rhize-devflow`'s and `obsidian-second-brain`'s READMEs. |
 | `rhize-context-manager/hooks/remediation-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `remediation` section) | PostToolUse (matcher `Bash`) — on a failing Bash command, suggests the top remediating skill/agent for the matched condition (relationships v2, design doc section 7). |
 | `rhize-context-manager/hooks/next-step-suggester.js` | `skill-map.indexes.{resolved,}.json` (the `succession` section) | PostToolUse (matcher `Skill`) — after a skill invocation, suggests the declared `precedes` (or mined `follows`) successor (relationships v2, design doc section 7). |
+| `rhize-context-manager/hooks/agent-brief-router.js` | `skill-map.indexes.{resolved,}.json` (the `router` section) via route-core; falls back to `skill-map.{resolved,static}.json` if no indexes file exists | PreToolUse (matcher `^(Agent)$`) — agent-dispatch skill-coverage measurement: whether an outgoing subagent brief already named the skill route-core's scoring would suggest for its content (see "Agent-dispatch surface" above). |
 | `/start` (rhize-context-manager) | `skill-map.resolved.json` | Session-context skill surfacing. |
 | `weekly-skill-audit` (scheduled task, rhize-ops) | Rebuilds `skill-map.static.json` + `skill-map.local.json`, runs `validate_skill_map.py --check-stale`, runs `npx @rhize/skill-forge watch` | Staleness gate + four-state drift verdicts (`in-sync`/`local-only`/`upstream-moved`/`diverged`/`unreachable`) + refinement-queue writes for the actionable ones (Phase 4/4b; see "Three-way drift" above). |
 | `scripts/render_skill_map_docs.py` (Phase 5) | `generated/skill-map.static.json`, `.claude-plugin/marketplace.json` | Managed doc sections — see below. |

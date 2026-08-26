@@ -18,6 +18,13 @@ Covers:
          disjoint from its named skills — a dispatch with no candidate, like
          row 3, can't miss and is excluded from the denominator)
        - top unnamed-but-suggested skill ids: the one id from row 2's miss.
+  3. The per-agentType breakdown (`by_agent_type`): the fixture's rows 1-2 are
+     agentType "executor" (Skill-capable) and row 3 is agentType "verifier"
+     (Skill-less), hand-computed as:
+       - executor: total=2, named_rate=1/2 (row 1 only), candidate_present=2
+         (rows 1-2), candidate_miss_rate=1/2 (row 2 only)
+       - verifier: total=1, named_rate=0.0 (row 3 named nothing),
+         candidate_present=0, candidate_miss_rate=0.0 (no candidate to miss)
 
 Does not use pytest (matches this repo's other skill-map tests) — runs with
 a bare `python3 tests/skill-map/test_suggestion_log_report.py`.
@@ -56,10 +63,14 @@ LEGACY_ROWS = [
 # Row 1: named+suggested-same — brief named the exact skill route-core would
 #   also have suggested. Not a miss (overlap), so it does not contribute to
 #   candidate_miss or top_unnamed_suggested, but it IS candidate_present.
+#   agentType "executor" — a Skill-capable roster (briefed to NAME a skill).
 # Row 2: suggested-disjoint — brief named nothing, but route-core suggested a
 #   skill. candidate_present + candidate_miss (fully disjoint from named=[]).
+#   Also agentType "executor", so rows 1-2 together form the executor group.
 # Row 3: no-candidate — brief named nothing and route-core had no candidate
-#   above BRIEF_MIN_SCORE. Neither named nor candidate_present.
+#   above BRIEF_MIN_SCORE. Neither named nor candidate_present. agentType
+#   "verifier" — a Skill-less roster (briefed to INLINE content, never name
+#   a skill), kept in its own group to exercise the by_agent_type split.
 AGENT_DISPATCH_ROWS = [
     {
         "ts": "2026-08-26T00:02:00Z",
@@ -84,7 +95,7 @@ AGENT_DISPATCH_ROWS = [
     {
         "ts": "2026-08-26T00:04:00Z",
         "source": "agent-dispatch",
-        "agentType": "executor",
+        "agentType": "verifier",
         "briefHash": "c3c3c3c3c3c3c3c3",
         "briefLength": 50,
         "namedSkills": [],
@@ -164,10 +175,56 @@ def test_agent_dispatch_metrics_match_hand_computed_values() -> None:
         shutil.rmtree(tmpdir)
 
 
+def test_agent_dispatch_by_agent_type_breakdown_matches_hand_computed_values() -> None:
+    mod = load_module(SCRIPT_PATH, "suggestion_log_report")
+    tmpdir = Path(tempfile.mkdtemp())
+    try:
+        log_path = tmpdir / "mixed.jsonl"
+        _write_jsonl(log_path, LEGACY_ROWS + AGENT_DISPATCH_ROWS)
+
+        report = mod.compute_report(mod.load_log(log_path), {})
+        by_type = report["agent_dispatch"]["by_agent_type"]
+
+        if set(by_type.keys()) != {"executor", "verifier"}:
+            raise AssertionError(f"expected agentTypes {{'executor', 'verifier'}}, got {set(by_type.keys())!r}")
+
+        executor = by_type["executor"]
+        if executor["total"] != 2:
+            raise AssertionError(f"expected executor total=2, got {executor['total']!r}")
+        if abs(executor["named_rate"] - 0.5) > 1e-9:
+            raise AssertionError(f"expected executor named_rate=1/2, got {executor['named_rate']!r}")
+        if executor["candidate_present"] != 2:
+            raise AssertionError(
+                f"expected executor candidate_present=2, got {executor['candidate_present']!r}"
+            )
+        if abs(executor["candidate_miss_rate"] - 0.5) > 1e-9:
+            raise AssertionError(
+                f"expected executor candidate_miss_rate=1/2, got {executor['candidate_miss_rate']!r}"
+            )
+
+        verifier = by_type["verifier"]
+        if verifier["total"] != 1:
+            raise AssertionError(f"expected verifier total=1, got {verifier['total']!r}")
+        if abs(verifier["named_rate"] - 0.0) > 1e-9:
+            raise AssertionError(f"expected verifier named_rate=0.0, got {verifier['named_rate']!r}")
+        if verifier["candidate_present"] != 0:
+            raise AssertionError(
+                f"expected verifier candidate_present=0, got {verifier['candidate_present']!r}"
+            )
+        if abs(verifier["candidate_miss_rate"] - 0.0) > 1e-9:
+            raise AssertionError(
+                f"expected verifier candidate_miss_rate=0.0, got {verifier['candidate_miss_rate']!r}"
+            )
+        print("PASS test_agent_dispatch_by_agent_type_breakdown_matches_hand_computed_values")
+    finally:
+        shutil.rmtree(tmpdir)
+
+
 def main() -> int:
     tests = [
         test_legacy_numbers_identical_with_and_without_agent_dispatch_rows,
         test_agent_dispatch_metrics_match_hand_computed_values,
+        test_agent_dispatch_by_agent_type_breakdown_matches_hand_computed_values,
     ]
     failures = 0
     for test in tests:

@@ -132,12 +132,13 @@ obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 
 `next-step-suggester.js` were added 2026-08-09 as the runtime consumers for relationships v2
 (`docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` section 7) — the
 first runtime consumer of `precedes`, and the first consumer of the `remediates`/`condition`
-data. All four resolve the compiled skill-map artifact the same way: the materialized indexes
+data. All five resolve the compiled skill-map artifact the same way: the materialized indexes
 first (`~/.claude/context-manager/skill-map.indexes.resolved.json`, falling back to
-`skill-map.indexes.json`), and — for `skill-router.js`/`session-disclosure.js` only — a further
-fallback to the older `skill-map.resolved.json`/`skill-map.static.json` map-scan path when no
-indexes file exists at all. All four fail silently (exit 0, no output) on any missing or corrupt
-input. See `docs/skill-map.md` for the artifact/tagging conventions they depend on.
+`skill-map.indexes.json`), and — for `skill-router.js`/`session-disclosure.js`/
+`agent-brief-router.js` only — a further fallback to the older
+`skill-map.resolved.json`/`skill-map.static.json` map-scan path when no indexes file exists at
+all. All five fail silently (exit 0, no output) on any missing or corrupt input. See
+`docs/skill-map.md` for the artifact/tagging conventions they depend on.
 
 `session-disclosure.js`, `remediation-suggester.js`, and `next-step-suggester.js` — plus
 `skill-router.js` and `agent-brief-router.js` below, both opt-in — also write a **suggestion
