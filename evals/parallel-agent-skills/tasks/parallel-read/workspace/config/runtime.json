@@ -1,0 +1,4 @@
+{
+  "development": "http://localhost:3000",
+  "production": "https://api.rhize.test/v2"
+}

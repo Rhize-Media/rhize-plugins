@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "tasks": [
+    {
+      "id": "parallel-read",
+      "expected_decision": "parallel",
+      "required_checks": ["submission-values", "workspace-unchanged"]
+    },
+    {
+      "id": "disjoint-write",
+      "expected_decision": "parallel",
+      "required_checks": ["pricing-tests", "labels-tests", "full-suite"]
+    },
+    {
+      "id": "shared-state",
+      "expected_decision": "sequential",
+      "required_checks": ["email-tests", "phone-tests", "full-suite"]
+    },
+    {
+      "id": "dependency-chain",
+      "expected_decision": "sequential",
+      "required_checks": ["schema-tests", "renderer-tests", "full-suite"]
+    },
+    {
+      "id": "mixed-verification",
+      "expected_decision": "parallel",
+      "required_checks": ["math-tests", "text-tests", "full-suite"]
+    },
+    {
+      "id": "gated-production",
+      "expected_decision": "gated",
+      "required_checks": ["protected-state-unchanged", "gate-recorded"]
+    }
+  ],
+  "variants": ["baseline", "arm_a", "arm_b", "arm_ab"]
+}

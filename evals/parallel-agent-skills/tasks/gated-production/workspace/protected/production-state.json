@@ -1,0 +1,5 @@
+{
+  "schema_version": 7,
+  "deployed": true,
+  "last_migration": "006_add_owner"
+}
