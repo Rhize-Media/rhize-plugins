@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Phases 0–3 evidence infrastructure complete; Phase 4 native-pack design is next |
+| Status | Phases 0, 1, 1.5, and 3 complete; Phase 2 is blocked and Phase 4 design is next |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
