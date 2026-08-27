@@ -2,27 +2,28 @@
 
 | Field | Value |
 |---|---|
-| Status | Forge human gate pending; no live skill mutation |
+| Status | DEFER confirmed; 24-run smoke complete; no live skill mutation |
 | Created | 2026-08-27 |
 | Jira | [RT-129](https://amesdigitalsolutions.atlassian.net/browse/RT-129) |
 | Branch | `codex/rt-parallel-agent-skill-forge-review` |
 | Candidate Arm A | `ecc:parallel-execution-optimizer` from ECC 2.2.0 |
 | Candidate Arm B | `superpowers:dispatching-parallel-agents` from Superpowers 6.3.0 |
 | Recommended Forge verb | **DEFER** |
-| Gate owner | Human confirmation required before a wrapper, absorption, fork, or main merge |
+| Gate outcome | Human confirmed DEFER and the pre-wrapper smoke on 2026-08-27; any wrapper still requires a new gate |
 
 ## 1. Decision
 
-**Recommend DEFER for both candidates.** Keep both installed external skills as maintained
+**Final recommendation: DEFER both candidates; do not create a Rhize wrapper.** Keep both installed external skills as maintained
 resources; do not copy their prose into Rhize and do not fork either plugin skill.
 
-If controlled evaluation shows value beyond the existing instructions, the preferred owned
-capability is the Forge's **DEFER+wrap** variant: a thin Rhize skill that consumes the installed
-resources while adding Rhize-only routing, collision controls, host adapters, and measurement.
-DEFER+wrap is still recorded as the single verb DEFER; it copies nothing from either candidate.
+The controlled smoke found a promising elapsed-time signal for each candidate alone, but it did
+not clear the predeclared adoption gate: the fixture ran once per cell, authoritative token/tool
+totals were unavailable, and the combined arm was slower than baseline. A future product decision
+may repeat the instrumented trial, but the current evidence does not justify a Rhize-owned wrapper.
 
-This is the human gate. This report does not create that wrapper, edit either live skill, append a
-provenance ledger entry, or merge anything to `main`.
+The human confirmed DEFER and authorized the 24-run pre-wrapper evaluation. This report does not
+create a wrapper, edit either live skill, append a provenance ledger entry, or merge anything to
+`main`. Those remain outside the confirmed gate.
 
 Why this verb:
 
@@ -316,7 +317,51 @@ These are proposed program thresholds, not claims about current performance. Rep
 ranges, paired differences, and raw sample counts; do not claim statistical significance from the
 smoke phase.
 
-## 7. Privacy-safe future monitoring
+## 7. Controlled smoke results
+
+The confirmed 24-run smoke executed six deterministic task classes once under each of the four
+pre-wrapper variants. The tracked aggregate is
+[`evals/parallel-agent-skills/results/2026-08-27-smoke.md`](../../evals/parallel-agent-skills/results/2026-08-27-smoke.md),
+with machine-readable rows in the adjacent JSON file.
+
+| Variant | Correct | Routing | Verification | Parallel-safe median | Improvement vs baseline | Actual overlap | Collisions | Rework |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Baseline | 6/6 | 6/6 | 100% | 137s | reference | 1/3 | 0 | 5 |
+| Arm A — ECC | 6/6 | 6/6 | 100% | 87s | 36.5% | 3/3 | 0 | 6 |
+| Arm B — Superpowers | 6/6 | 6/6 | 100% | 81s | 40.9% | 3/3 | 0 | 7 |
+| Arm A+B | 6/6 | 6/6 | 100% | 165s | -20.4% | 2/3 | 0 | 8 |
+
+Actual overlap is derived from intersecting nested-agent start/end intervals. It is not inferred
+from a `parallel` decision or from an agent count greater than one. This distinction mattered: the
+baseline and combined mixed-verification runs both selected parallel execution and spawned two
+agents, but their recorded intervals did not overlap.
+
+### Adoption-gate outcome
+
+All variants passed the correctness, verification, collision, and routing hard gates. Neither
+candidate passed the full adoption gate:
+
+- Arm A and Arm B each exceeded the proposed 15% median elapsed-time threshold in this smoke, but
+  authoritative total tokens were unavailable for all 24 runs, so the required within-15% token
+  ceiling cannot be evaluated.
+- Verification completeness was already 100% under baseline, so no arm could improve it by the
+  alternative 20 percentage-point threshold.
+- One run per cell cannot establish repeatability or statistical significance. Host scheduling
+  and startup noise were not removed through repeated counterbalancing.
+- The combined arm was 20.4% slower than baseline on the parallel-safe median, realized overlap in
+  only two of three eligible runs, and recorded the most rework. Composition is not supported by
+  this smoke.
+
+Two isolated runners were prevented by their safety layer from writing the required receipt. The
+coordinator wrote only the factual fields those runners reported; the same observable-outcome
+grader then validated both receipts. This is disclosed as a measurement limitation, not hidden.
+
+The evidence supports keeping each external skill available for deliberate use, especially Arm B
+for focused dispatch and Arm A for lane classification. It does not support copying either skill,
+combining them in a Rhize wrapper, entering the 72-run repeated phase before token/tool telemetry
+is available, or claiming production performance improvement.
+
+## 8. Privacy-safe future monitoring
 
 Use an opt-in local run receipt, produced by the evaluation harness or a future approved wrapper.
 Do not instrument or edit the external skills themselves.
@@ -361,22 +406,20 @@ emit the same schema for normal use. The existing skill-monitor remains the sour
 tool invocation counts; this receipt supplies the missing outcome/concurrency join without copying
 private content.
 
-## 8. Drift boundary
+## 9. Drift boundary
 
 Do not create a new scheduler. The existing `ai-stack-version-drift` scheduled task is the sole
 sensor for plugin/version movement. If the human approves DEFER+wrap, record both installed plugin
 sources and versions in Forge provenance; the sensor reports movement and Forge classifies whether
 the wrapper needs re-evaluation on demand. Any future propagation remains human-gated.
 
-## 9. Human-gated follow-up
+## 10. Gate resolution and future boundary
 
-Requested decision:
+The human confirmed **DEFER** and authorized the 24-run pre-wrapper evaluation on 2026-08-27. The
+smoke is complete, and no wrapper is recommended from its evidence.
 
-1. **Confirm DEFER** for both candidates and authorize the 24-run pre-wrapper evaluation; or
-2. Decline, which leaves both installed resources unchanged and closes the investigation with no
-   Rhize-owned wrapper.
-
-If the evaluation later earns a wrapper, return to the Forge gate before writing it. The wrapper's
+If a later, telemetry-complete repeated evaluation earns a wrapper, return to the Forge gate before
+writing it. The wrapper's
 minimum distinct contract would be:
 
 - Arm A's lane/dependency classification;
