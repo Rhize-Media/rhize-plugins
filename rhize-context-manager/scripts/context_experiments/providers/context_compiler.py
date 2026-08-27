@@ -158,6 +158,17 @@ class ContextCompilerProvider:
             rejection_reasons.append("compiled_context_is_not_selective")
         if manifest["diagnostics"]["nameCollisionCount"] > DEFAULT_MAX_NAME_COLLISIONS:
             rejection_reasons.append("name_collision_budget_exceeded")
+        warning_rejections = {
+            "dynamic_dispatch_may_hide_dependencies": "dynamic_dispatch_requires_fallback",
+            "decorator_registration_may_hide_dependencies": "decorator_registration_requires_fallback",
+            "callback_registration_may_hide_dependencies": "callback_registration_requires_fallback",
+            "unsupported_python_syntax_may_hide_dependencies": "unsupported_python_syntax_requires_fallback",
+        }
+        rejection_reasons.extend(
+            reason
+            for warning, reason in warning_rejections.items()
+            if warning in manifest["warnings"]
+        )
         manifest.update(
             {
                 "repoId": hashlib.sha256(str(repo).encode()).hexdigest()[:16],
@@ -174,6 +185,7 @@ class ContextCompilerProvider:
             }
         )
         manifest["warnings"] = [*manifest["warnings"], *rejection_reasons]
+        manifest["packId"] = stable_pack_id(manifest)
         return CompiledPack(manifest=manifest, prompt=value["prompt"])
 
     def write_pack(self, pack: CompiledPack, directory: Path) -> tuple[Path, Path]:
@@ -182,9 +194,23 @@ class ContextCompilerProvider:
         pack_id = pack.manifest["packId"]
         manifest_path = directory / f"{pack_id}.json"
         prompt_path = directory / f"{pack_id}.md"
+        manifest_payload = json.dumps(pack.manifest, indent=2, sort_keys=True) + "\n"
         if manifest_path.exists() or prompt_path.exists():
-            raise FileExistsError(f"compiled pack already exists: {pack_id}")
-        _write_private(manifest_path, json.dumps(pack.manifest, indent=2, sort_keys=True) + "\n")
+            try:
+                existing_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                existing_manifest = None
+            if (
+                manifest_path.is_file()
+                and prompt_path.is_file()
+                and isinstance(existing_manifest, dict)
+                and _pack_identity_manifest(existing_manifest)
+                == _pack_identity_manifest(pack.manifest)
+                and prompt_path.read_text(encoding="utf-8") == pack.prompt
+            ):
+                return manifest_path, prompt_path
+            raise FileExistsError(f"compiled pack id collides with different content: {pack_id}")
+        _write_private(manifest_path, manifest_payload)
         try:
             _write_private(prompt_path, pack.prompt)
         except Exception:
@@ -211,6 +237,25 @@ def _write_private(path: Path, content: str) -> None:
 
 def _sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
+
+
+def stable_pack_id(manifest: dict[str, Any]) -> str:
+    """Bind pack identity to stable source, policy, and provenance fields."""
+
+    payload = json.dumps(
+        _pack_identity_manifest(manifest),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode()
+    return f"pack-{hashlib.sha256(payload).hexdigest()[:32]}"
+
+
+def _pack_identity_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in manifest.items()
+        if key not in {"packId", "buildMilliseconds"}
+    }
 
 
 def validate_context_pack_manifest(manifest: dict[str, Any]) -> None:
@@ -271,6 +316,22 @@ def validate_context_pack_manifest(manifest: dict[str, Any]) -> None:
         policy.get("acceptedForInjection"), bool
     ):
         raise ValueError("context pack policy verdict is invalid")
+    diagnostics = manifest["diagnostics"]
+    expected_diagnostics = {
+        "unresolvedCallCount",
+        "dynamicDispatchFileCount",
+        "decoratorHintFileCount",
+        "callbackRegistrationFileCount",
+        "syntaxErrorFileCount",
+        "nameCollisionCount",
+    }
+    if not isinstance(diagnostics, dict) or set(diagnostics) != expected_diagnostics:
+        raise ValueError("context pack diagnostics have an invalid shape")
+    if any(
+        isinstance(value, bool) or not isinstance(value, int) or value < 0
+        for value in diagnostics.values()
+    ):
+        raise ValueError("context pack diagnostics must be non-negative integers")
 
 
 def _require_relative_path(value: str) -> None:

@@ -339,6 +339,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "command:rhize-context-manager/context-pack",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "command:rhize-context-manager/context-setup",
       "type": "contains"
     },
@@ -2204,6 +2210,13 @@
       "kind": "command",
       "name": "context-hygiene",
       "path": "rhize-context-manager/commands/context-hygiene.md"
+    },
+    {
+      "description": "Build and inspect a private Context Compiler pack without injecting it into a task",
+      "id": "command:rhize-context-manager/context-pack",
+      "kind": "command",
+      "name": "context-pack",
+      "path": "rhize-context-manager/commands/context-pack.md"
     },
     {
       "description": "Repo-level setup wizard — scan the repo, probe the active context stack, propose a tailored per-repo config, and write it on confirmation",

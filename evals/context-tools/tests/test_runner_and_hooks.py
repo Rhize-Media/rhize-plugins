@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -10,8 +11,10 @@ import pytest
 from context_experiments.config import arm_capability, load_config, write_config
 from context_experiments.models import Capability, ExperimentConfig
 from context_experiments.runner import (
+    build_context_pack_preview,
     claim_hook_selection,
     finalize_hook_selection,
+    git_snapshot,
     run_context_compiler_experiment,
     select_next,
 )
@@ -163,6 +166,66 @@ def test_real_context_compiler_writes_pack_and_receipt_before_consuming_arm(
             checkout=checkout,
             config_path=config_path,
             data_dir=data_dir,
+        )
+
+
+def test_real_context_pack_preview_is_reproducible_and_source_bound(
+    tmp_path: Path,
+) -> None:
+    checkout_value = os.environ.get("RHIZE_CONTEXT_COMPILER_TEST_CHECKOUT")
+    if not checkout_value:
+        pytest.skip("set RHIZE_CONTEXT_COMPILER_TEST_CHECKOUT for the real-provider test")
+    repo = tmp_path / "repo"
+    shutil.copytree(
+        REPO_ROOT / "evals" / "context-tools" / "fixtures" / "context-compiler" / "static-alias",
+        repo,
+    )
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-C",
+            str(repo),
+            "-c",
+            "user.name=Rhize Tests",
+            "-c",
+            "user.email=tests@rhize.media",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        check=True,
+    )
+    snapshot = git_snapshot(repo)
+    assert snapshot is not None
+
+    first = build_context_pack_preview(
+        repo,
+        repo / "app.py",
+        snapshot,
+        checkout=Path(checkout_value),
+        data_dir=tmp_path / "data",
+    )
+    second = build_context_pack_preview(
+        repo,
+        repo / "app.py",
+        snapshot,
+        checkout=Path(checkout_value),
+        data_dir=tmp_path / "data",
+    )
+    assert first[0]["policy"]["acceptedForInjection"] is True
+    assert first[0]["packId"] == second[0]["packId"]
+    assert first[1:] == second[1:]
+
+    (repo / "app.py").write_text("from service import run\nrun(2)\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="snapshot mismatch"):
+        build_context_pack_preview(
+            repo,
+            repo / "app.py",
+            snapshot,
+            checkout=Path(checkout_value),
+            data_dir=tmp_path / "data",
         )
 
 

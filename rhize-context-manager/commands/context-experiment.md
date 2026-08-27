@@ -32,6 +32,10 @@ Supported operations:
   --snapshot <git-snapshot>` — run the real upstream compiler, write a private prompt pack,
   and record Arm A naive-context versus Arm B compiled-context metrics. The checkout must
   be at revision `4edb163911f9a6bc869f35970fa77acb3dd88b8f` with the expected source checksums.
+- `pack --provider upstream-python --repo <absolute-path> --target <absolute-python-file>
+  [--snapshot <git-snapshot>]`
+  — build a deterministic private preview without arming, injection, or a receipt. This is the
+  runner behind `/context-pack`; a rejected pack is a successful conservative preview.
 - `mgrep-preflight --repo <absolute-path> --store rhize-dogfood-<name>` — write an
   independent, private file/hash inventory and invoke real `mgrep watch --dry-run`. It never
   uploads content and never counts as a completed semantic-search benchmark.
@@ -48,6 +52,9 @@ show the exact command and ask for confirmation. For mgrep, confirmation must ex
 cover network indexing of the exact allowlisted repository and name the isolated store.
 Do not infer upload approval from installation, login, a dry-run, or approval in a prior
 session.
+
+Use `/context-pack` for explicit Phase 3 inspection. Reserve `compile` for an armed paired
+experiment; do not treat a preview pack as a completed Arm B run.
 
 `localRetrieval` is currently a measured-but-paused capability. Its first real offline run
 failed the relevant-file non-inferiority gate, and grepai 0.35.0 cannot safely scope its

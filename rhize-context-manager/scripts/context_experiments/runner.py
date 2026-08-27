@@ -454,6 +454,49 @@ def run_context_compiler_experiment(
         lease_store.release(lease)
 
 
+def build_context_pack_preview(
+    repo_root: Path,
+    target_file: Path,
+    snapshot: str,
+    checkout: Path | None = None,
+    max_hops: int = 2,
+    max_tokens: int = 40_000,
+    data_dir: Path | None = None,
+) -> tuple[dict[str, Any], Path, Path]:
+    """Build a private pack without arming, injecting, or recording an experiment."""
+
+    repo = repo_root.expanduser().resolve(strict=True)
+    target = target_file.expanduser().resolve(strict=True)
+    current_snapshot = git_snapshot(repo)
+    if current_snapshot is None:
+        raise ValueError("context-pack preview requires a Git repository")
+    if current_snapshot != snapshot:
+        raise ValueError(
+            f"snapshot mismatch: requested {snapshot}, current repository is {current_snapshot}"
+        )
+    try:
+        relative_target = target.relative_to(repo).as_posix()
+    except ValueError as error:
+        raise ValueError("target must be inside the repository root") from error
+    repo_id = repository_fingerprint(repo)
+    task_hash = digest(
+        f"context-pack:{repo_id}:{snapshot}:{relative_target}",
+        64,
+    )
+    provider = ContextCompilerProvider(checkout)
+    pack = provider.compile(
+        repo,
+        target,
+        snapshot=snapshot,
+        task_hash=task_hash,
+        max_hops=max_hops,
+        max_tokens=max_tokens,
+    )
+    storage_root = data_dir or default_data_dir()
+    manifest_path, prompt_path = provider.write_pack(pack, storage_root / "packs")
+    return pack.manifest, manifest_path, prompt_path
+
+
 def run_mgrep_preflight(
     repo_root: Path,
     store: str,
@@ -667,6 +710,57 @@ def command_compile(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_pack(args: argparse.Namespace) -> int:
+    repo = Path(args.repo).expanduser().resolve(strict=True)
+    snapshot = args.snapshot or git_snapshot(repo)
+    if snapshot is None:
+        raise ValueError("context-pack preview requires a Git repository")
+    manifest, manifest_path, prompt_path = build_context_pack_preview(
+        repo_root=repo,
+        target_file=Path(args.target),
+        snapshot=snapshot,
+        checkout=Path(args.checkout) if args.checkout else None,
+        max_hops=args.max_hops,
+        max_tokens=args.max_tokens,
+    )
+    print(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "mode": "preview_only",
+                "provider": "upstream-python",
+                "injected": False,
+                "receiptRecorded": False,
+                "packId": manifest["packId"],
+                "targetPath": manifest["targetPath"],
+                "snapshot": manifest["snapshot"],
+                "acceptedForInjection": manifest["policy"]["acceptedForInjection"],
+                "rejectionReasons": manifest["policy"]["rejectionReasons"],
+                "warnings": manifest["warnings"],
+                "metrics": {
+                    "armA": {
+                        "variant": "baseline-naive-repository",
+                        "contextTokens": manifest["naiveDumpTokens"],
+                        "filesPresented": manifest["totalRepoFiles"],
+                    },
+                    "armB": {
+                        "variant": "context-compiler-pack",
+                        "contextTokens": manifest["compiledTokens"],
+                        "filesPresented": len(manifest["entries"]),
+                        "buildMilliseconds": manifest["buildMilliseconds"],
+                    },
+                    "reductionPercent": manifest["reductionPercent"],
+                },
+                "manifestPath": str(manifest_path),
+                "promptPath": str(prompt_path),
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    return 0
+
+
 def command_mgrep_preflight(args: argparse.Namespace) -> int:
     result = run_mgrep_preflight(Path(args.repo).resolve(strict=False), args.store)
     print(json.dumps(result, indent=2, sort_keys=True))
@@ -713,6 +807,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     compile_command.add_argument("--snapshot", required=True)
 
+    pack = subparsers.add_parser("pack")
+    pack.add_argument("--provider", choices=["upstream-python"], default="upstream-python")
+    pack.add_argument("--repo", required=True)
+    pack.add_argument("--target", required=True)
+    pack.add_argument("--checkout")
+    pack.add_argument("--max-hops", type=int, default=2)
+    pack.add_argument("--max-tokens", type=int, default=40_000)
+    pack.add_argument("--snapshot")
+
     preflight = subparsers.add_parser("mgrep-preflight")
     preflight.add_argument("--repo", required=True)
     preflight.add_argument("--store", required=True)
@@ -730,6 +833,7 @@ def main(argv: list[str] | None = None) -> int:
         "arm": lambda: command_arm(args),
         "disarm": lambda: command_disarm(args),
         "compile": lambda: command_compile(args),
+        "pack": lambda: command_pack(args),
         "mgrep-preflight": lambda: command_mgrep_preflight(args),
         "report": command_report,
     }

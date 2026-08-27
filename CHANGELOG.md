@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-context-manager** 0.17.0 → 0.18.0 (minor); marketplace 2.45.0 → 2.46.0.
+- _2026-08-27_ **rhize-context-manager — Context Compiler Phase 3 evidence gate.**
+  Added `/context-pack` as a real-provider, source-bound preview that never arms or injects;
+  deterministic private pack IDs; repository-wide fail-closed diagnostics for dynamic dispatch,
+  event decorators, callback registration, and unsupported Python syntax; and a nine-case
+  supported/adversarial corpus. The pinned upstream provider passed the behavior gate, permitting
+  Phase 4 provider-neutral design while automatic compiled-context injection remains disabled.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.16.0 → 0.17.0 (minor); marketplace 2.44.0 → 2.45.0.
 - _2026-08-27_ **rhize-context-manager — real local semantic-retrieval spike and stop
   decision.** Added a separate fail-closed `localRetrieval` capability, pinned grepai 0.35.0

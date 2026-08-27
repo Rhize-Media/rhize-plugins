@@ -44,19 +44,30 @@ experiment.
 
 ## Context Compiler
 
-Run both current cases against the checksum-verified upstream checkout:
+Run the nine-case Phase 3 corpus against the checksum-verified upstream checkout:
 
 ```bash
 python3 evals/context-tools/run_context_evals.py \
   --checkout /path/to/context-compiler \
-  --output evals/results/context-tools/context-compiler.json
+  --output evals/results/context-tools/context-compiler-phase-3-real.json
 ```
 
-The upstream self-case is the supported static-import control. The Rhize runner case is a
-real collision-pressure case from this repository; it must retain its required local
-dependencies while the injection policy rejects an over-broad or over-budget pack.
+The corpus uses the real provider over seven committed Python fixture repositories, the pinned
+upstream repository, and this Rhize repository. It covers static aliases, duplicate-name
+widening, dynamic dispatch, event decorators, callback registration, upstream self-analysis,
+unsupported syntax, and real collision pressure. Each case runs twice in independent provider
+processes and requires the same source-bound pack ID, stable manifest, and prompt content.
 
-Passing these cases proves adapter and guardrail behavior, not improved coding outcomes.
+The `context-compiler-phase-3-v1` gate passed 9/9 cases on 2026-08-27. Both supported static
+cases were accepted; the alias chain used 57 estimated Arm B tokens versus 87 for Arm A.
+Duplicate names were accepted only after including both candidates and emitting a collision
+warning. Dynamic, decorator, and callback fixtures omitted their hidden dependency but were
+rejected to baseline with explicit reason codes; a repository containing invalid Python syntax
+also failed closed. The real Rhize runner pack retained its required dependencies but was rejected after exceeding the
+token, coverage, and collision budgets while detecting all three dynamic-edge classes.
+
+Passing this gate permits Phase 4 provider-neutral design only. It proves adapter and guardrail
+behavior, not improved coding outcomes.
 Live-task receipts must separately measure correctness, follow-up reads, context tokens,
 latency, and whether the compiled pack actually influenced the task.
 

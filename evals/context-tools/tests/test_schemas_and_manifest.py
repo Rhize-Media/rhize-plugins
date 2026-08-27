@@ -55,6 +55,13 @@ def test_context_pack_schema_matches_upstream_adapter_contract() -> None:
     )
     entry = schema["properties"]["entries"]["items"]
     assert {"path", "tier", "hopDistance", "contentHash"}.issubset(entry["required"])
+    diagnostics = set(schema["properties"]["diagnostics"]["required"])
+    assert {
+        "dynamicDispatchFileCount",
+        "decoratorHintFileCount",
+        "callbackRegistrationFileCount",
+        "syntaxErrorFileCount",
+    }.issubset(diagnostics)
 
 
 def test_opt_in_manifest_wires_both_fail_silent_hooks() -> None:

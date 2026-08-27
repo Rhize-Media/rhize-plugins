@@ -78,6 +78,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 | `/context-experiment` | Opt-in local retrieval, mgrep, and Context Compiler dogfood control: provider health, bounded arming, real dry-run/eval/compile execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
+| `/context-pack` | Explicitly build and inspect a deterministic, private Context Compiler pack. It never arms, injects, or records a completed experiment; unsupported dependency patterns fail closed to baseline retrieval. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -241,9 +242,11 @@ or configuration. See [`evals/context-tools`](../evals/context-tools/README.md).
 
 The Context Compiler adapter runs an unmodified checkout pinned to revision
 `4edb163911f9a6bc869f35970fa77acb3dd88b8f`, verifies the MIT license and source-file
-checksums, and emits repository-relative private prompt packs. Its 40,000-token, 50%-coverage,
-and 10-name-collision limits are preliminary injection guardrails, not evidence that a pack
-improves a coding task. The default checkout is
+checksums, and emits deterministic, repository-relative private prompt packs. `/context-pack`
+is the explicit preview path and never injects its output. Repository-wide dynamic dispatch,
+event decorators, callback registration, or unsupported Python syntax force a baseline fallback;
+the 40,000-token, 50%-coverage, and 10-name-collision limits remain preliminary guardrails, not
+evidence that a pack improves a coding task. The default checkout is
 `~/.claude/rhize-context-manager/providers/context-compiler`; override it with
 `RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
 [`evals/context-tools`](../evals/context-tools/README.md).

@@ -3,20 +3,161 @@
   "contextCompiler": [
     {
       "id": "upstream-self-static",
+      "kind": "adversarial",
       "repository": "upstream",
+      "fixture": null,
       "target": "compiler.py",
       "maxHops": 2,
       "maxTokens": 40000,
-      "expectAccepted": true,
+      "expectAccepted": false,
       "requiredEntries": [
         "compiler.py",
         "skeletonizer.py",
         "symbol_resolver.py"
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": [
+        "dynamic_dispatch_may_hide_dependencies",
+        "dynamic_dispatch_requires_fallback"
+      ]
+    },
+    {
+      "id": "fixture-static-alias-chain",
+      "kind": "supported",
+      "repository": "fixture",
+      "fixture": "static-alias",
+      "target": "app.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": true,
+      "requiredEntries": [
+        "app.py",
+        "service.py",
+        "math_utils.py"
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": []
+    },
+    {
+      "id": "fixture-static-direct-import",
+      "kind": "supported",
+      "repository": "fixture",
+      "fixture": "static-direct",
+      "target": "app.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": true,
+      "requiredEntries": [
+        "app.py",
+        "service.py"
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": []
+    },
+    {
+      "id": "fixture-duplicate-name-widening",
+      "kind": "adversarial",
+      "repository": "fixture",
+      "fixture": "duplicate-names",
+      "target": "app.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": true,
+      "requiredEntries": [
+        "app.py",
+        "email_norm.py",
+        "phone_norm.py"
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": [
+        "name_only_resolution_included_collisions"
+      ]
+    },
+    {
+      "id": "fixture-dynamic-dispatch-fallback",
+      "kind": "adversarial",
+      "repository": "fixture",
+      "fixture": "dynamic-dispatch",
+      "target": "app.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": false,
+      "requiredEntries": [
+        "app.py"
+      ],
+      "criticalEntries": [
+        "email_handler.py",
+        "sms_handler.py"
+      ],
+      "requiredWarnings": [
+        "dynamic_dispatch_may_hide_dependencies",
+        "dynamic_dispatch_requires_fallback"
+      ]
+    },
+    {
+      "id": "fixture-decorator-event-fallback",
+      "kind": "adversarial",
+      "repository": "fixture",
+      "fixture": "decorator-event",
+      "target": "dispatcher.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": false,
+      "requiredEntries": [
+        "dispatcher.py"
+      ],
+      "criticalEntries": [
+        "handlers.py"
+      ],
+      "requiredWarnings": [
+        "decorator_registration_may_hide_dependencies",
+        "decorator_registration_requires_fallback"
+      ]
+    },
+    {
+      "id": "fixture-callback-registration-fallback",
+      "kind": "adversarial",
+      "repository": "fixture",
+      "fixture": "callback-registration",
+      "target": "dispatcher.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": false,
+      "requiredEntries": [
+        "dispatcher.py"
+      ],
+      "criticalEntries": [
+        "handlers.py"
+      ],
+      "requiredWarnings": [
+        "callback_registration_may_hide_dependencies",
+        "callback_registration_requires_fallback"
+      ]
+    },
+    {
+      "id": "fixture-unsupported-syntax-fallback",
+      "kind": "adversarial",
+      "repository": "fixture",
+      "fixture": "unsupported-syntax",
+      "target": "app.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": false,
+      "requiredEntries": [
+        "app.py",
+        "service.py"
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": [
+        "unsupported_python_syntax_may_hide_dependencies",
+        "unsupported_python_syntax_requires_fallback"
       ]
     },
     {
       "id": "rhize-runner-collision-pressure",
+      "kind": "adversarial",
       "repository": "rhize",
+      "fixture": null,
       "target": "rhize-context-manager/scripts/context_experiments/runner.py",
       "maxHops": 2,
       "maxTokens": 40000,
@@ -25,7 +166,9 @@
         "rhize-context-manager/scripts/context_experiments/runner.py",
         "rhize-context-manager/scripts/context_experiments/models.py",
         "rhize-context-manager/scripts/context_experiments/eligibility.py"
-      ]
+      ],
+      "criticalEntries": [],
+      "requiredWarnings": []
     }
   ]
 }

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import copy
 import stat
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from context_experiments.providers.context_compiler import (
+    CompiledPack,
     ContextCompilerProvider,
     UPSTREAM_REVISION,
+    stable_pack_id,
     validate_context_pack_manifest,
 )
 from context_experiments.providers.mgrep import MgrepProvider, PINNED_MGREP_VERSION
@@ -70,6 +75,84 @@ def test_mgrep_inventory_blocks_vendor_dry_run_for_symlinks(tmp_path: Path) -> N
 def test_real_provider_pins_are_explicit() -> None:
     assert PINNED_MGREP_VERSION == "0.1.13"
     assert len(UPSTREAM_REVISION) == 40
+
+
+def valid_context_pack_manifest() -> dict[str, object]:
+    return {
+        "schemaVersion": 1,
+        "packId": "pack-" + "0" * 32,
+        "repoId": "b" * 16,
+        "snapshot": "snapshot",
+        "taskHash": "c" * 64,
+        "targetPath": "target.py",
+        "compiler": {
+            "name": "context-compiler",
+            "revision": UPSTREAM_REVISION,
+            "maxHops": 2,
+        },
+        "entries": [
+            {
+                "path": "target.py",
+                "tier": 1,
+                "hopDistance": 0,
+                "contentHash": "d" * 64,
+                "estimatedTokens": 10,
+            }
+        ],
+        "excludedCount": 1,
+        "totalRepoFiles": 2,
+        "naiveDumpTokens": 20,
+        "compiledTokens": 10,
+        "reductionPercent": 50.0,
+        "buildMilliseconds": 1.0,
+        "diagnostics": {
+            "unresolvedCallCount": 0,
+            "dynamicDispatchFileCount": 0,
+            "decoratorHintFileCount": 0,
+            "callbackRegistrationFileCount": 0,
+            "syntaxErrorFileCount": 0,
+            "nameCollisionCount": 0,
+        },
+        "policy": {
+            "acceptedForInjection": True,
+            "maximumTokens": 40_000,
+            "maximumEntryCoverage": 0.5,
+            "maximumNameCollisions": 10,
+            "observedEntryCoverage": 0.5,
+            "rejectionReasons": [],
+        },
+        "warnings": [],
+    }
+
+
+def test_context_pack_id_is_source_bound_but_ignores_build_duration() -> None:
+    first = valid_context_pack_manifest()
+    second = copy.deepcopy(first)
+    second["buildMilliseconds"] = 99.0
+    assert stable_pack_id(first) == stable_pack_id(second)
+
+    changed = copy.deepcopy(first)
+    changed["entries"][0]["contentHash"] = "e" * 64  # type: ignore[index]
+    assert stable_pack_id(first) != stable_pack_id(changed)
+
+
+def test_context_pack_write_is_idempotent_but_rejects_content_collision(
+    tmp_path: Path,
+) -> None:
+    manifest = valid_context_pack_manifest()
+    manifest["packId"] = stable_pack_id(manifest)
+    provider = ContextCompilerProvider(tmp_path / "unused-checkout")
+    pack = CompiledPack(manifest=manifest, prompt="# source\n")
+
+    first_paths = provider.write_pack(pack, tmp_path / "packs")
+    assert provider.write_pack(pack, tmp_path / "packs") == first_paths
+    assert all(stat.S_IMODE(path.stat().st_mode) == 0o600 for path in first_paths)
+
+    with pytest.raises(FileExistsError, match="collides with different content"):
+        provider.write_pack(
+            CompiledPack(manifest=manifest, prompt="# different source\n"),
+            tmp_path / "packs",
+        )
 
 
 def test_context_pack_manifest_validator_rejects_absolute_paths() -> None:

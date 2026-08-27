@@ -51,11 +51,16 @@
     "diagnostics": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["unresolvedCallCount", "dynamicDispatchFileCount", "decoratorHintFileCount", "nameCollisionCount"],
+      "required": [
+        "unresolvedCallCount", "dynamicDispatchFileCount", "decoratorHintFileCount",
+        "callbackRegistrationFileCount", "syntaxErrorFileCount", "nameCollisionCount"
+      ],
       "properties": {
         "unresolvedCallCount": { "type": "integer", "minimum": 0 },
         "dynamicDispatchFileCount": { "type": "integer", "minimum": 0 },
         "decoratorHintFileCount": { "type": "integer", "minimum": 0 },
+        "callbackRegistrationFileCount": { "type": "integer", "minimum": 0 },
+        "syntaxErrorFileCount": { "type": "integer", "minimum": 0 },
         "nameCollisionCount": { "type": "integer", "minimum": 0 }
       }
     },

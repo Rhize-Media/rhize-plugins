@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Implementation in progress; first real-provider smoke/eval run complete |
+| Status | Phases 0–3 evidence infrastructure complete; Phase 4 native-pack design is next |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
@@ -35,13 +35,18 @@ This is a staged evaluation, not a commitment to make either dependency part of 
   (5,494,819 bytes), excludes 39, and reports that mgrep's unconditional hidden-path policy
   omits `.claude-plugin`/`.codex-plugin` metadata. Upload remains blocked on device login plus
   approval for the exact `rhize-plugins` manifest and `rhize-dogfood-rhize-plugins` store.
-- The pinned upstream Context Compiler ran against two real repositories. Its own static
-  self-case produced 2,867 estimated tokens versus 9,379 for the naive scan (69.4% smaller,
-  3/7 files, 0 name collisions). The Rhize runner case produced 87,785 versus 369,675
-  estimated tokens (76.2% smaller) but selected 101/126 Python files and reported 59 name
-  collisions. The adapter therefore rejected the Rhize pack for injection despite the nominal
-  token reduction. This is useful negative evidence: compression percentage alone is not a
-  sufficient adoption signal.
+- The pinned upstream Context Compiler now runs a nine-case Phase 3 corpus through the real
+  provider. All nine cases passed the versioned `context-compiler-phase-3-v1` behavior gate:
+  static aliases were accepted; duplicate names widened with an explicit collision warning;
+  dynamic dispatch, event decorators, and callback registration failed closed; the upstream
+  self-case was rejected for dynamic dispatch; and the Rhize runner case was rejected for
+  breadth, token budget, collisions, and dynamic edges. Independent processes produced the same
+  source-bound pack IDs and prompt content. The gate permits Phase 4 design only, not injection.
+- `/context-pack` is now an explicit, non-injecting preview. Its first real invocation on the
+  Rhize runner produced 92,783 estimated Arm B tokens versus 394,372 for Arm A (76.5% smaller)
+  but rejected the pack because it selected 110/162 Python files and exposed 66 name collisions
+  plus dynamic, decorator, and callback risks. This confirms that reduction alone is not an
+  adoption signal.
 - No mock, synthetic, or fake provider output is retained as dogfood evidence. Test-local
   doubles may still cover failure/concurrency branches, but benchmark rows must name and verify
   the real provider revision.
@@ -788,6 +793,11 @@ Verify:
 
 **Goal:** establish where the upstream library works and where it fails before designing around it.
 
+**Current disposition (2026-08-27):** complete. The real pinned provider passed all nine
+behavior cases and the versioned gate records `continue_to_phase_4`. This means the adapter is
+reproducible and conservative enough to inform Phase 4; it does not demonstrate better coding
+outcomes and remains ineligible for automatic injection.
+
 Tasks:
 
 - Pin the upstream source revision, checksum, license, Python version, and dependencies.
@@ -921,15 +931,15 @@ Verify:
 | Hooks | valid payloads, malformed payload, unarmed no-op, unsupported host, provider unavailable, finalizer after failure |
 | E2E | isolated Python, TypeScript, dynamic, and mixed-plugin fixtures with fixed validation commands |
 
-Planned command interfaces, to be implemented and documented rather than assumed to exist now:
+Current executable interfaces:
 
 ```bash
 python3 -m pytest evals/context-tools/tests
-python3 evals/context-tools/run_context_evals.py --experiment mgrep --mode offline --runs 3
-python3 evals/context-tools/run_context_evals.py --experiment compiled-context --mode offline --runs 3
-python3 evals/context-tools/run_context_evals.py --experiment combined --mode offline --runs 3
+python3 evals/context-tools/run_retrieval_evals.py --output /private/report.json
+python3 evals/context-tools/run_context_evals.py --checkout /path/to/context-compiler --output /private/report.json
 python3 rhize-context-manager/scripts/context_experiments/runner.py doctor
-python3 rhize-context-manager/scripts/context_experiments/runner.py report --redacted
+python3 rhize-context-manager/scripts/context_experiments/runner.py pack --provider upstream-python --repo /absolute/repo --target /absolute/repo/file.py
+python3 rhize-context-manager/scripts/context_experiments/runner.py report
 ```
 
 Implementation must also run the repository's existing validation suite and plugin checks before each commit or release gate.
