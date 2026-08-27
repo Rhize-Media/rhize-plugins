@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-context-manager** 0.15.1 → 0.16.0 (minor); marketplace 2.43.1 → 2.44.0.
+- _2026-08-27_ **rhize-context-manager — real-provider context-tool dogfood spine.** Added
+  opt-in, fail-silent selection/finalization hooks; strict local configuration, atomic leases,
+  append-only redaction-safe Arm A/B receipts, and compatible-metric aggregation. The mgrep
+  adapter pins CLI 0.1.13, independently inventories and hashes the upload set, enforces a
+  repository `.mgrepignore` plus a hard secret denylist, and treats the CLI's unauthenticated
+  exit-0 login prompt as a failed dry-run. The Context Compiler adapter runs an unmodified,
+  revision/checksum/license-verified upstream checkout and emits private relative-path packs;
+  explicit token, selectivity, and name-collision guardrails reject over-broad packs. New
+  real-repository evals retain both the supported upstream self-case and a Rhize collision-
+  pressure case. No fake provider ships and test doubles cannot produce benchmark evidence.
 - _2026-08-27_ version bump — **rhize-ops** 0.12.0 → 0.12.1 (patch); marketplace 2.43.0 → 2.43.1.
 - _2026-08-27_ **rhize-ops/skill-monitor — hardened `cost_metrics.load_latest_costs_per_session`'s
   fixture-injection idiom, and fixed the actual cause of 12 red tests in `test_stack_metrics.py`.**

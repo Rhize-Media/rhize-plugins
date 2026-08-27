@@ -77,6 +77,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
+| `/context-experiment` | Opt-in mgrep and Context Compiler dogfood control: provider health, bounded arming, real dry-run/compile execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -158,8 +159,8 @@ path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map
 
 ### Opt-in hooks (`setup/manifest.json`)
 
-Seven hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
-`/rhize-setup` (rhize-ops) to wire per-repo — none of the seven are in `hooks/hooks.json`
+Nine hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
+`/rhize-setup` (rhize-ops) to wire per-repo — none of the nine are in `hooks/hooks.json`
 and none do anything until enabled. Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
@@ -172,6 +173,8 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed mgrep or compiled-context experiment only when the pinned real provider is healthy. |
+| `context-experiment-finalizer` | `Stop` | T3 (advisory) | Finalizes durable execution evidence; interrupted runs receive an incomplete receipt and do not consume the armed run. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
 `hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
@@ -209,9 +212,36 @@ wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.addi
 per the snippet in [rhize-ops/README.md § Setup manifest
 schema](../rhize-ops/README.md#setup-manifest-schema).
 
+### Context-tool dogfood providers
+
+The experiment selector does not install the official mgrep agent instructions or replace
+CodeGraph/`rg`. The tested CLI is pinned to `@mixedbread/mgrep@0.1.13`; install and remove it
+explicitly with `npm install -g @mixedbread/mgrep@0.1.13` and
+`npm uninstall -g @mixedbread/mgrep`. `mgrep login` uses the vendor's device flow and writes
+its token to `~/.mgrep/token.json`; `/context-experiment doctor` refuses that login when the
+file is broader than mode `0600`. A dry-run may create or retrieve the named remote store but
+does not upload files. Actual repository indexing always requires a separately reviewed local
+manifest and explicit approval for the exact repository and `rhize-dogfood-*` store.
+
+The current dogfood gate is stricter: do not create a Mixedbread account, run `mgrep login`, or
+create a store until the dated provider-economics/privacy review in
+[`mgrep-context-compiler-dogfood.md`](../.claude/plans/mgrep-context-compiler-dogfood.md)
+passes. Mixedbread's published free-tier data-use language is contradictory, so the plan tests a
+pinned local semantic-retrieval candidate first and keeps managed mgrep as a separately measured,
+explicitly approved arm.
+
+The Context Compiler adapter runs an unmodified checkout pinned to revision
+`4edb163911f9a6bc869f35970fa77acb3dd88b8f`, verifies the MIT license and source-file
+checksums, and emits repository-relative private prompt packs. Its 40,000-token, 50%-coverage,
+and 10-name-collision limits are preliminary injection guardrails, not evidence that a pack
+improves a coding task. The default checkout is
+`~/.claude/rhize-context-manager/providers/context-compiler`; override it with
+`RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
+[`evals/context-tools`](../evals/context-tools/README.md).
+
 ### Refinement-pipeline hooks (also in `setup/manifest.json`)
 
-The other two of the seven live under `hooks/` directly. They arrived on 2026-08-09, moved
+Two of the nine live under `hooks/` directly as refinement-pipeline hooks. They arrived on 2026-08-09, moved
 here from `rhize-devflow` (they predate this plugin and were stranded there by the 2.5.0
 command migration). Like the five above they are **not** wired in `hooks/hooks.json`, but
 `/rhize-setup` can now offer them per-repo the same way (ids `refinement-detector` and

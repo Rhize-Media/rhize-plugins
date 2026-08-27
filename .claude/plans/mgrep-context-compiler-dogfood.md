@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Approved for implementation planning; no experiment has run yet |
+| Status | Implementation in progress; first real-provider smoke/eval run complete |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
@@ -26,6 +26,69 @@ The program must answer four questions with evidence:
 
 This is a staged evaluation, not a commitment to make either dependency part of the default stack.
 
+### 1.1 Implementation checkpoint — 2026-08-27
+
+- Jira tracking lives in Rhize Tools at `RT-128`; the misplaced `RHIZE-181` is closed with a
+  redirect.
+- mgrep 0.1.13 is installed, but the authenticated vendor dry-run and repository upload have
+  not happened. The latest independent reviewed inventory contains 652 eligible files
+  (5,494,819 bytes), excludes 39, and reports that mgrep's unconditional hidden-path policy
+  omits `.claude-plugin`/`.codex-plugin` metadata. Upload remains blocked on device login plus
+  approval for the exact `rhize-plugins` manifest and `rhize-dogfood-rhize-plugins` store.
+- The pinned upstream Context Compiler ran against two real repositories. Its own static
+  self-case produced 2,867 estimated tokens versus 9,379 for the naive scan (69.4% smaller,
+  3/7 files, 0 name collisions). The Rhize runner case produced 87,785 versus 369,675
+  estimated tokens (76.2% smaller) but selected 101/126 Python files and reported 59 name
+  collisions. The adapter therefore rejected the Rhize pack for injection despite the nominal
+  token reduction. This is useful negative evidence: compression percentage alone is not a
+  sufficient adoption signal.
+- No mock, synthetic, or fake provider output is retained as dogfood evidence. Test-local
+  doubles may still cover failure/concurrency branches, but benchmark rows must name and verify
+  the real provider revision.
+
+### 1.2 Provider economics and data-handling checkpoint — 2026-08-27
+
+**Decision:** do not create a Mixedbread account, authenticate mgrep, create a remote store, or
+upload repository content until Phase 1.5 passes. The local mgrep CLI installation is inert and
+may remain only for source/behavior inspection.
+
+Current vendor facts, captured from the published pages on 2026-08-27:
+
+- Mixedbread Starter is a no-card plan with **$5 in one-time credits**, 3 users, and 10 stores.
+  Scale is **$20/month** with $20/month in included credits. Usage is priced separately for
+  indexing, searching, and storage.
+- Text is estimated by Mixedbread at roughly 1.4 content tokens per word. The reviewed
+  `rhize-plugins` upload manifest contains 592,253 whitespace-delimited words, or approximately
+  829,154 billable content tokens under that approximation. That implies about **$1.24** for a
+  Fast initial index, **$2.49** for High Quality, and **$0.41/month** for storage before searches.
+  These are planning estimates; the vendor receipt is authoritative if a managed pilot runs.
+- The pricing page currently renders both launch and regular semantic-search/rerank rates. Until
+  billing output removes the ambiguity, budget the upper advertised combination rather than the
+  promotional rate and record actual per-query charges in receipts.
+- The published Privacy Policy says free-tier native queries and model logs are retained
+  indefinitely, used for service improvement/analytics/research, and not used for model training.
+  The published Terms separately say free-tier usage data may be retained indefinitely and used
+  for model training. This contradiction makes the free tier unacceptable for proprietary source
+  until Mixedbread resolves it in writing. Paid-tier language is materially safer, but still
+  requires the normal repository upload approval and verified purge procedure.
+- mgrep is Apache-2.0, but its supported runtime pushes every indexed file to a cloud-backed
+  Mixedbread Store. It does not expose a supported pluggable local store/embedding backend, so
+  “self-hosting mgrep” would mean maintaining a fork or replacement rather than changing config.
+
+The first no-signup alternative is **grepai with local Ollama embeddings and its file-based GOB
+store**. grepai is MIT-licensed, exposes CLI/JSON/MCP surfaces, respects Git ignore rules, and can
+run without source leaving the machine. Its costs are local model download, disk/RAM/CPU, indexing
+time, watcher reliability, version maintenance, and single-machine limitations. Team sharing would
+add PostgreSQL/pgvector or Qdrant operations and is explicitly outside the first spike.
+
+Sources: Mixedbread [pricing](https://www.mixedbread.com/pricing),
+[Privacy Policy](https://www.mixedbread.com/pages/privacy),
+[Terms](https://www.mixedbread.com/pages/terms), and
+[mgrep repository](https://github.com/mixedbread-ai/mgrep); grepai
+[repository](https://github.com/yoanbernabeu/grepai),
+[embedders](https://yoanbernabeu.github.io/grepai/backends/embedders/), and
+[stores](https://yoanbernabeu.github.io/grepai/backends/stores/).
+
 ## 2. Findings that govern the design
 
 ### 2.1 mgrep
@@ -38,7 +101,8 @@ Constraints that shape the pilot:
 - The official plugin's broad instruction to replace grep, glob, and web search conflicts with Rhize's CodeGraph-first policy and with the need to verify exact claims. Rhize will call the CLI through its own provider adapter instead of installing that instruction layer.
 - Results are candidates, not evidence. Exact claims must be verified with CodeGraph, `rg`, or direct source reads.
 - Automatic background synchronization is unnecessary for the first phase. The pilot starts with explicit, one-shot indexing against a fixed Git snapshot.
-- mgrep is not currently installed on the evaluation machine. Installation, authentication, store creation, and deletion must be explicit setup and rollback actions.
+- mgrep 0.1.13 is installed on the evaluation machine but is not authenticated. Authentication,
+  account/store creation, upload, and deletion remain explicit gated actions.
 
 ### 2.2 Context Compiler
 
@@ -74,7 +138,8 @@ The thresholds below are **proposed program gates**, not vendor claims. Phase 0 
 
 | Capability | Continue to broader pilot | Bundle candidate | Pause or reject |
 |---|---|---|---|
-| mgrep retrieval | No critical relevant-file misses and no security event in the first 5 eligible tasks | At least 20% median reduction in retrieval tokens or time-to-first-relevant-file over at least 20 eligible tasks, with relevant-file recall no worse than baseline | Any unauthorized upload, repeated stale-index failure, a critical dependency miss attributable to retrieval, or no material efficiency gain after 20 eligible tasks |
+| Local semantic retrieval | No critical relevant-file misses, no source egress, and acceptable local resource use in the paired offline corpus and first 5 eligible tasks | At least 20% median reduction in retrieval tokens or time-to-first-relevant-file over at least 20 eligible tasks, with relevant-file recall no worse than baseline | Critical dependency miss, repeated stale-index failure, unacceptable host impact, or no material efficiency gain after 20 eligible tasks |
+| Managed mgrep retrieval | Phase 1.5 legal/pricing gates pass; no critical relevant-file misses or security event in the first 5 eligible tasks | Beats baseline by the retrieval gate and either materially beats the local candidate or demonstrates lower measured total cost of ownership | Unresolved free-tier terms, unapproved recurring cost/upload, unauthorized upload, critical miss, repeated stale index, or no material advantage over baseline/local candidate |
 | Compiled context | Packs are reproducible, warnings are visible, and no supported task performs worse in the first 5 eligible tasks | At least 25% median reduction in context input tokens on supported tasks, no correctness regression, and zero silent stale-pack use over at least 20 eligible tasks | A critical dependency is omitted without a warning, stale content is injected, or savings remain immaterial after 20 eligible tasks |
 | Combined path | Both independent experiments have passed their continue gates | A later 2x2 test shows additive value or a simpler combined workflow without correctness loss | Interaction makes results less reliable or increases total cost/latency beyond either independent winner |
 
@@ -92,6 +157,7 @@ Small samples will be reported as medians, ranges, and paired differences. The r
 ### In scope
 
 - An opt-in mgrep CLI adapter with explicit repository allowlisting.
+- A bounded local semantic-retrieval adapter/spike that can be measured independently from mgrep.
 - An adapter around a pinned upstream Context Compiler revision for Python fixture evaluation.
 - A native, provider-neutral compiled-context contract suitable for mixed-language Rhize work.
 - Automatic selection of the next eligible engineering task once an experiment is armed.
@@ -108,6 +174,7 @@ Small samples will be reported as medians, ranges, and paired differences. The r
 - Uploading client repositories, credentials, customer exports, logs, or production data.
 - Running two write-capable agents against the same live working tree.
 - Using prompt-size reduction alone as proof of improved engineering performance.
+- Counting a mock, synthetic, or fake provider run as dogfood or benchmark evidence.
 - Vendoring or forking either upstream project before its value is demonstrated.
 - Enabling a network provider silently through an automatic hook.
 - Bundling setup in all Rhize plugins before the decision gate.
@@ -178,7 +245,8 @@ Add an opt-in setup item that writes local, gitignored configuration under the c
       "eligibleRepos": ["/absolute/path/to/rhize-plugins"],
       "liveAssignment": "alternate",
       "shadow": true,
-      "networkApproved": true
+      "networkApproved": true,
+      "store": "rhize-dogfood-rhize-plugins"
     },
     "compiledContext": {
       "enabled": true,
@@ -575,7 +643,9 @@ Verify:
 Tasks:
 
 - Implement typed models, eligibility, atomic leases, arm assignment, budgets, receipts, and aggregation.
-- Add fake baseline providers and a read-only shadow runner.
+- Add minimal in-test provider doubles for failure/concurrency coverage and a read-only
+  shadow runner. Test doubles must not ship as a user-facing simulator or contribute
+  benchmark evidence.
 - Add thin selector/finalizer hooks through opt-in `setup/manifest.json` entries.
 - Add `/context-experiment status|arm|disarm|doctor|report` documentation and command handling.
 - Make the hook a no-op unless explicitly armed.
@@ -587,10 +657,63 @@ Verify:
 - Concurrency tests prove only one session claims a run.
 - Arm A and Arm B receipts never misstate which variant ran.
 - Hook tests cover supported Claude/Codex payload shapes and malformed input.
-- A fake live/shadow run produces a redacted aggregate without modifying the repository.
+- An isolated contract test proves live/shadow accounting, followed by a real-provider
+  smoke run in Phase 2 or 3 before this work is released.
 
 - Dependencies: Phase 0 schemas and policy.
 - Executor: Terra; Sol cold review.
+
+### Phase 1.5 — Retrieval provider economics, privacy, and local-first spike
+
+**Goal:** determine whether a managed account is justified before sending source to a vendor.
+
+Run three separately identified paths against the same reviewed retrieval corpus; never aggregate
+the two candidate providers into one Arm B result:
+
+- **Arm A:** the current CodeGraph/`rg`/direct-read routing stack;
+- **Arm B-local:** pinned grepai + pinned local Ollama embedding model + local GOB store;
+- **Arm B-managed:** pinned mgrep + Mixedbread Store, permitted only after its legal, cost, and
+  upload gates pass.
+
+Tasks:
+
+- Freeze a dated pricing, terms, and privacy snapshot with source links and note any ambiguity.
+- Add a provider-specific cost model: initial and incremental indexing, storage, query/rerank,
+  subscription minimum, host resource use, setup/maintenance interventions, and failure recovery.
+- Pin and checksum-review grepai and one local embedding model before installation. Start with the
+  zero-service GOB backend; do not add Qdrant/PostgreSQL or an automatic watcher to the first run.
+- Reuse the independent Rhize manifest/denylist. Treat `.grepaiignore` as additive only: its
+  negation support must never re-include a hard-denied path.
+- Run the paired offline retrieval corpus with provider, model, snapshot, and arm recorded in every
+  row. Then use the winning eligible path as Arm B for the next explicitly armed live task.
+- Measure relevant-file recall/precision, time to first relevant file, search/read calls, result
+  tokens, index/query latency, peak resident memory, model/index disk bytes, and manual
+  interventions. Record local resource use even when direct vendor cost is zero.
+- Before any Mixedbread signup, obtain written clarification of the conflicting free-tier data-use
+  language, confirm current rates/credit behavior, approve any recurring commitment, and verify a
+  complete store purge path. If those gates fail, mark Arm B-managed skipped with reason rather
+  than weakening them.
+
+Decision rules:
+
+- Prefer the local candidate when it passes correctness/non-inferiority and meets the existing
+  efficiency gate without unacceptable host or maintenance cost.
+- Pay for managed mgrep only if it passes data handling and demonstrates incremental value over the
+  local candidate or a lower measured total cost of ownership. A small API bill alone is not proof
+  of lower total cost.
+- Reject both candidates if deterministic routing remains as accurate and the semantic paths do not
+  recover enough task time/token cost to cover their measured burden.
+
+Verify:
+
+- No account, token, remote store, or source upload exists before the managed gate is signed off.
+- Offline reports keep baseline, local, and managed providers separate and identify which arm ran.
+- The local candidate can be removed completely by deleting its tool/model/index artifacts, and no
+  repository source appears in network receipts.
+- The chosen next-task provider has a reviewed install, ignore, staleness, and rollback procedure.
+
+- Dependencies: Phase 1; independent of the Context Compiler Phase 3 smoke path.
+- Executor: Terra; Sol economics, privacy, and decision review.
 
 ### Phase 2 — mgrep provider and first automatic live run
 
@@ -616,7 +739,8 @@ Verify:
 - Exact claims from mgrep candidates are backed by CodeGraph, `rg`, or direct reads.
 - Store deletion instructions are tested before broader rollout.
 
-- Dependencies: Phase 1; explicit network/data approval at arming time.
+- Dependencies: Phase 1.5 must approve managed mgrep; explicit network/data and recurring-cost
+  approval at arming time.
 - Executor: Terra; Sol security and first-run review.
 
 ### Phase 3 — Upstream Context Compiler dogfood
@@ -804,7 +928,9 @@ The Jira Task should contain these milestones as checkboxes:
 
 - Phase 0 policy, schemas, and baseline complete.
 - Phase 1 experiment spine complete.
-- First mgrep preflight/index and automatic live receipt reviewed.
+- Phase 1.5 provider economics/privacy review and local semantic-retrieval report complete.
+- First mgrep preflight/index and automatic live receipt reviewed if the managed gate passes;
+  otherwise the exact legal/economic stop reason is recorded.
 - Upstream Context Compiler fixture benchmark complete.
 - Native compiled-context pack complete.
 - First compiled-context live receipt reviewed.
@@ -815,6 +941,8 @@ The Jira Task should contain these milestones as checkboxes:
 
 Required Jira updates:
 
+- Comment at the Phase 1.5 gate with the pricing date, repository-specific estimate, privacy/terms
+  disposition, and local-first decision.
 - Comment after each first live run with receipt/report link and outcome.
 - Comment at the 5-task/14-day gate with continue/change/stop decision.
 - Comment at the 20-task adoption gate with mgrep, compiled-context, and any combined results separated.
@@ -826,7 +954,10 @@ Jira is the coordination surface; raw experiment data stays in the controlled lo
 
 The program is complete only when:
 
-- The next-viable-task selector has automatically executed at least one mgrep experiment and one compiled-context experiment after explicit arming.
+- The next-viable-task selector has automatically executed at least one approved semantic-retrieval
+  experiment and one compiled-context experiment after explicit arming. Managed mgrep must either
+  have a real receipt or a documented stop decision at the economics/privacy gate; a simulated run
+  cannot satisfy this condition.
 - Receipts prove exactly which live and shadow arms ran.
 - Privacy, eligibility, snapshot, and concurrency gates are covered by automated tests.
 - The offline paired corpus and minimum live sample are complete or a stop condition has been reached and documented.
@@ -839,19 +970,31 @@ The program is complete only when:
 
 ## 16. Immediate implementation sequence
 
-The first implementation session should stop after a reviewable Phase 0/1 slice:
+The first implementation session should establish a reviewable Phase 0/1 slice and then
+continue to at least one real-provider smoke path before releasing or presenting dogfood
+results:
 
 1. Add the schemas and redaction-safe receipt model.
-2. Add eligibility, atomic claim, deterministic arm assignment, and fake providers.
+2. Add eligibility, atomic claim, deterministic arm assignment, and test-local provider doubles.
 3. Add unit tests proving Arm A/Arm B accounting and unarmed no-op behavior.
-4. Add the opt-in setup entries and doctor/status surfaces without installing mgrep.
-5. Run the existing plugin validations and a cold scope/security review.
+4. Add the opt-in setup entries and doctor/status surfaces without authenticating mgrep.
+5. Implement a real mgrep or upstream Context Compiler adapter, run its non-destructive
+   preflight/smoke path, then run the existing plugin validations and a cold scope/security
+   review.
+6. Run Phase 1.5 before any Mixedbread signup: add the local provider spike, execute the paired
+   offline retrieval cases, and publish the managed-vs-local economics/privacy decision.
 
-The second session may install and configure mgrep only after the dry-run index manifest is reviewed. Context Compiler fixture work can proceed independently once the shared receipt/provider contracts are stable.
+The current session may keep the inert mgrep CLI for inspection, but no later session may
+authenticate, create a Mixedbread store, or upload source until Phase 1.5 is approved. Context
+Compiler work proceeds independently once the shared receipt/provider contracts are stable.
 
 ## 17. Source references
 
 - mgrep: <https://www.mgrep.dev/>
+- Mixedbread pricing: <https://www.mixedbread.com/pricing>
+- Mixedbread Privacy Policy: <https://www.mixedbread.com/pages/privacy>
+- Mixedbread Terms: <https://www.mixedbread.com/pages/terms>
+- Local comparison candidate: <https://github.com/yoanbernabeu/grepai>
 - Context Compiler article: <https://towardsdatascience.com/coding-agents-dont-need-bigger-context-windows-they-need-a-context-compiler/>
 
 The referenced article's Markdown clipping in the Obsidian Vault was reviewed during planning. Published reduction figures are treated as hypotheses to reproduce, not as Rhize performance evidence.

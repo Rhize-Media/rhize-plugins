@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "contextCompiler": [
+    {
+      "id": "upstream-self-static",
+      "repository": "upstream",
+      "target": "compiler.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": true,
+      "requiredEntries": [
+        "compiler.py",
+        "skeletonizer.py",
+        "symbol_resolver.py"
+      ]
+    },
+    {
+      "id": "rhize-runner-collision-pressure",
+      "repository": "rhize",
+      "target": "rhize-context-manager/scripts/context_experiments/runner.py",
+      "maxHops": 2,
+      "maxTokens": 40000,
+      "expectAccepted": false,
+      "requiredEntries": [
+        "rhize-context-manager/scripts/context_experiments/runner.py",
+        "rhize-context-manager/scripts/context_experiments/models.py",
+        "rhize-context-manager/scripts/context_experiments/eligibility.py"
+      ]
+    }
+  ]
+}

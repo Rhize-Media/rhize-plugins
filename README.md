@@ -118,7 +118,7 @@ skill-map changes live under [`docs/superpowers/specs/`](./docs/superpowers/spec
 
 ## Repository Tooling
 
-- **[`evals/`](./evals/README.md)** — a Python eval harness that measures trigger accuracy (does the right skill fire on the right prompt) and output quality for plugins. Coverage is currently partial: `seo-aeo-geo` and `obsidian-second-brain` have eval suites; the other plugins don't yet (see `ROADMAP.md`).
+- **[`evals/`](./evals/README.md)** — Python eval harnesses for trigger/output quality plus real-provider context-tool dogfood. Coverage remains partial; `evals/context-tools` keeps real benchmark rows separate from test-local failure doubles.
 - **[`skills/rhize-review/SKILL.md`](./skills/rhize-review/SKILL.md)** — a standalone merge-gate review skill that lives at the repo root, outside any plugin. It isn't installed through the marketplace and isn't listed in `marketplace.json`; it's a repo-local tool that dispatches specialist reviewer subagents before a production merge.
 - **`scripts/validate_plugin_configs.py`** — dependency-free lint over every plugin's `hooks/hooks.json` and `.mcp.json`, written after three separate 2026-08 incidents (unquoted `${CLAUDE_PLUGIN_ROOT}` word-splitting a hook command, a secret-shaped `${VAR}` left in a stdio MCP server's `env` block, a trailing-slash `*_BASE_URL` doubling every request path). Registered in `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` in default (warning) mode — only genuine errors block a release; run with `--strict` to promote warnings, or see the script's docstring for the per-finding suppression mechanism.
 

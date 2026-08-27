@@ -1,0 +1,9 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SCRIPTS = REPO_ROOT / "rhize-context-manager" / "scripts"
+sys.path.insert(0, str(SCRIPTS))

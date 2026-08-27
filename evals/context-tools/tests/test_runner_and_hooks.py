@@ -1,0 +1,176 @@
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from context_experiments.config import arm_capability, load_config, write_config
+from context_experiments.models import Capability, ExperimentConfig
+from context_experiments.runner import (
+    claim_hook_selection,
+    finalize_hook_selection,
+    run_context_compiler_experiment,
+    select_next,
+)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+PLUGIN_ROOT = REPO_ROOT / "rhize-context-manager"
+SELECTOR = PLUGIN_ROOT / "hooks" / "context-experiment-selector.js"
+FINALIZER = PLUGIN_ROOT / "hooks" / "context-experiment-finalizer.js"
+
+
+def armed_mgrep(repo: Path) -> ExperimentConfig:
+    return arm_capability(
+        ExperimentConfig(),
+        Capability.MGREP,
+        repo,
+        1,
+        network_approved=True,
+        store="rhize-dogfood-test",
+    )
+
+
+def test_unavailable_real_provider_keeps_selection_inert() -> None:
+    selection = select_next(
+        {
+            "prompt": "Implement a new context experiment feature",
+            "cwd": str(REPO_ROOT),
+            "session_id": "session-real-unavailable",
+        },
+        armed_mgrep(REPO_ROOT),
+        {Capability.MGREP: (False, False, "provider-unavailable")},
+    )
+    assert selection is None
+
+
+def test_claim_is_atomic_and_interrupted_finalization_does_not_consume_run(
+    tmp_path: Path,
+) -> None:
+    config = armed_mgrep(REPO_ROOT)
+    payload = {
+        "prompt": "Implement a new context experiment feature",
+        "cwd": str(REPO_ROOT),
+        "session_id": "session-claim",
+    }
+    provider_status = {Capability.MGREP: (True, True, "test-provider")}
+    claimed = claim_hook_selection(payload, config, provider_status, tmp_path)
+    assert claimed is not None
+    assert claimed["assignment"].live_variant.value == "B"
+    assert "prompt" not in claimed["pending"]
+    assert "promptHash" in claimed["pending"]
+    assert claim_hook_selection(payload, config, provider_status, tmp_path) is None
+
+    assert finalize_hook_selection(payload, tmp_path) is True
+    documents = list((tmp_path / "receipts").glob("*.json"))
+    assert len(documents) == 1
+    receipt = json.loads(documents[0].read_text())
+    assert receipt["status"] == "incomplete"
+    assert receipt["armsExecuted"] == []
+    assert {item["reason"] for item in receipt["armsSkipped"]} == {
+        "no_execution_evidence"
+    }
+    assert finalize_hook_selection(payload, tmp_path) is False
+
+
+def test_real_context_compiler_writes_pack_and_receipt_before_consuming_arm(
+    tmp_path: Path,
+) -> None:
+    checkout_value = os.environ.get("RHIZE_CONTEXT_COMPILER_TEST_CHECKOUT")
+    if not checkout_value:
+        pytest.skip("set RHIZE_CONTEXT_COMPILER_TEST_CHECKOUT for the real-provider test")
+    checkout = Path(checkout_value)
+    target = PLUGIN_ROOT / "scripts" / "context_experiments" / "runner.py"
+    config_path = tmp_path / "config.json"
+    data_dir = tmp_path / "data"
+    config = arm_capability(
+        ExperimentConfig(),
+        Capability.COMPILED_CONTEXT,
+        REPO_ROOT,
+        1,
+        smoke_approved=True,
+    )
+    write_config(config, config_path)
+
+    result, receipt_path, manifest_path, prompt_path = run_context_compiler_experiment(
+        REPO_ROOT,
+        target,
+        "implementation",
+        "real-checkout-test",
+        checkout=checkout,
+        config_path=config_path,
+        data_dir=data_dir,
+    )
+    assert receipt_path.exists()
+    assert manifest_path.exists()
+    assert prompt_path.exists()
+    assert "runner.py" in prompt_path.read_text()
+    assert str(REPO_ROOT) not in prompt_path.read_text()
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["snapshot"] == "real-checkout-test"
+    assert isinstance(manifest["policy"]["acceptedForInjection"], bool)
+    assert result.live_variant.value == "B"
+    assert result.shadow_variant is not None and result.shadow_variant.value == "A"
+    assert {metric.role for metric in result.metrics} == {"live", "shadow"}
+    updated = load_config(config_path)
+    assert updated.compiled_context.armed_runs == 0
+    assert updated.compiled_context.completed_runs == 1
+    assert list((data_dir / "leases").glob("*.lease")) == []
+    with pytest.raises(ValueError, match="no_armed_runs"):
+        run_context_compiler_experiment(
+            REPO_ROOT,
+            target,
+            "implementation",
+            "real-checkout-test-2",
+            checkout=checkout,
+            config_path=config_path,
+            data_dir=data_dir,
+        )
+
+
+def run_hook(hook: Path, payload: str, tmp_path: Path) -> subprocess.CompletedProcess[str]:
+    environment = {
+        **os.environ,
+        "HOME": str(tmp_path / "home"),
+        "CLAUDE_PLUGIN_ROOT": str(PLUGIN_ROOT),
+        "RHIZE_CONTEXT_EXPERIMENT_CONFIG": str(tmp_path / "config.json"),
+        "RHIZE_CONTEXT_EXPERIMENT_DATA_DIR": str(tmp_path / "data"),
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
+    return subprocess.run(
+        ["node", str(hook)],
+        input=payload,
+        capture_output=True,
+        text=True,
+        env=environment,
+        timeout=10,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize("hook", [SELECTOR, FINALIZER])
+def test_hooks_fail_silent_on_malformed_input(hook: Path, tmp_path: Path) -> None:
+    result = run_hook(hook, "{not-json", tmp_path)
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert result.stderr == ""
+
+
+def test_unconfigured_selector_is_a_noop(tmp_path: Path) -> None:
+    result = run_hook(
+        SELECTOR,
+        json.dumps(
+            {
+                "prompt": "Implement a new context experiment feature",
+                "cwd": str(REPO_ROOT),
+                "session_id": "hook-noop",
+            }
+        ),
+        tmp_path,
+    )
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert not (tmp_path / "data").exists()

@@ -1,0 +1,48 @@
+---
+description: Arm, inspect, run, report, or disarm opt-in mgrep and Context Compiler dogfood experiments
+model: sonnet
+---
+
+# /context-experiment
+
+Operate the controlled context-tool experiment defined in
+`.claude/plans/mgrep-context-compiler-dogfood.md`. The implementation is off by default.
+Only real providers count as dogfood evidence. The command supports the pinned mgrep CLI
+and an unmodified, pinned upstream Context Compiler checkout. Unit-test doubles never
+produce receipts or benchmark rows.
+
+Resolve the runner from the installed plugin root:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" status
+```
+
+Supported operations:
+
+- `status` — print validated local configuration and provider readiness.
+- `doctor` — report invalid config, pinned mgrep readiness, and upstream checkout integrity.
+- `arm --capability <mgrep|compiledContext> --repo <absolute-path> --runs 1` — opt in
+  to a bounded automatic run. mgrep additionally requires `--network-approved` and
+  `--store rhize-dogfood-<repo>`; compiled
+  context requires `--smoke-approved`. Never infer either approval from a prior session.
+- `disarm --capability <mgrep|compiledContext>` — set `enabled=false` and `armedRuns=0`.
+- `compile --repo <absolute-path> --target <absolute-python-file> --checkout <path>
+  --snapshot <git-snapshot>` — run the real upstream compiler, write a private prompt pack,
+  and record Arm A naive-context versus Arm B compiled-context metrics. The checkout must
+  be at revision `4edb163911f9a6bc869f35970fa77acb3dd88b8f` with the expected source checksums.
+- `mgrep-preflight --repo <absolute-path> --store rhize-dogfood-<name>` — write an
+  independent, private file/hash inventory and invoke real `mgrep watch --dry-run`. It never
+  uploads content and never counts as a completed semantic-search benchmark.
+- `report` — aggregate compatible receipt metrics by capability and live Arm A/B variant.
+
+Configuration is stored at
+`~/.claude/rhize-context-manager/context-experiments.json`; raw redaction-safe receipts
+are stored under `~/.claude/rhize-context-manager/experiments/`. Both locations can be
+redirected in tests with `RHIZE_CONTEXT_EXPERIMENT_CONFIG` and
+`RHIZE_CONTEXT_EXPERIMENT_DATA_DIR`.
+
+Set `RHIZE_CONTEXT_COMPILER_CHECKOUT` to avoid passing `--checkout` manually. Before `arm`,
+show the exact command and ask for confirmation. For mgrep, confirmation must explicitly
+cover network indexing of the exact allowlisted repository and name the isolated store.
+Do not infer upload approval from installation, login, a dry-run, or approval in a prior
+session.

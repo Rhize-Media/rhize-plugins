@@ -67,6 +67,24 @@
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__session-end.sh",
       "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `/rhize-context-manager:learn-harvest` (then `/skill-refine review`). Moved from rhize-devflow — see CHANGELOG 2026-08-09.",
       "default": false
+    },
+    {
+      "id": "context-experiment-selector",
+      "title": "Claim the next eligible context experiment",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
+      "description": "Opt-in, fail-silent selector for the explicitly armed mgrep/compiled-context dogfood program. Applies repository, task, provider-health, snapshot, network, and smoke-review gates before suggesting a live Arm A/B route. Provider health comes from the pinned real mgrep CLI and checksum-verified upstream Context Compiler checkout.",
+      "default": false
+    },
+    {
+      "id": "context-experiment-finalizer",
+      "title": "Finalize an eligible context experiment",
+      "tier": "T3",
+      "event": "Stop",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
+      "description": "Opt-in, fail-silent companion to context-experiment-selector. Finalizes only runs with durable real-provider execution evidence; interrupted selections produce an explicit incomplete receipt and do not consume an armed run. Enable and disable it together with the selector.",
+      "default": false
     }
   ],
   "dependencies": [

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/context-pack-v1.schema.json",
+  "title": "Rhize Context Compiler Pack Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "targetPath", "compiler", "entries",
+    "excludedCount", "totalRepoFiles", "naiveDumpTokens", "compiledTokens",
+    "reductionPercent", "buildMilliseconds", "diagnostics", "policy", "warnings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packId": { "$ref": "#/$defs/safeId" },
+    "repoId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "snapshot": { "$ref": "#/$defs/safeId" },
+    "taskHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "targetPath": { "$ref": "#/$defs/relativePath" },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "revision", "maxHops"],
+      "properties": {
+        "name": { "const": "context-compiler" },
+        "revision": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+        "maxHops": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "tier", "hopDistance", "contentHash", "estimatedTokens"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "tier": { "enum": [1, 2] },
+          "hopDistance": { "type": ["integer", "null"], "minimum": 0 },
+          "contentHash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "estimatedTokens": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "excludedCount": { "type": "integer", "minimum": 0 },
+    "totalRepoFiles": { "type": "integer", "minimum": 1 },
+    "naiveDumpTokens": { "type": "integer", "minimum": 0 },
+    "compiledTokens": { "type": "integer", "minimum": 0 },
+    "reductionPercent": { "type": "number" },
+    "buildMilliseconds": { "type": "number", "minimum": 0 },
+    "diagnostics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unresolvedCallCount", "dynamicDispatchFileCount", "decoratorHintFileCount", "nameCollisionCount"],
+      "properties": {
+        "unresolvedCallCount": { "type": "integer", "minimum": 0 },
+        "dynamicDispatchFileCount": { "type": "integer", "minimum": 0 },
+        "decoratorHintFileCount": { "type": "integer", "minimum": 0 },
+        "nameCollisionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptedForInjection", "maximumTokens", "maximumEntryCoverage",
+        "maximumNameCollisions", "observedEntryCoverage", "rejectionReasons"
+      ],
+      "properties": {
+        "acceptedForInjection": { "type": "boolean" },
+        "maximumTokens": { "type": "integer", "minimum": 1 },
+        "maximumEntryCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "maximumNameCollisions": { "type": "integer", "minimum": 0 },
+        "observedEntryCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "rejectionReasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/safeId" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/safeId" }
+    }
+  },
+  "$defs": {
+    "safeId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "pattern": "^/" }
+    }
+  }
+}

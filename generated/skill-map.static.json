@@ -327,6 +327,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "command:rhize-context-manager/context-experiment",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "command:rhize-context-manager/context-hygiene",
       "type": "contains"
     },
@@ -364,6 +370,24 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "command:rhize-context-manager/start",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/agent-brief-router",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/context-experiment-finalizer",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/context-experiment-selector",
       "type": "contains"
     },
     {
@@ -2168,6 +2192,13 @@
       "path": "rhize-context-manager/commands/context-doctor.md"
     },
     {
+      "description": "Arm, inspect, run, report, or disarm opt-in mgrep and Context Compiler dogfood experiments",
+      "id": "command:rhize-context-manager/context-experiment",
+      "kind": "command",
+      "name": "context-experiment",
+      "path": "rhize-context-manager/commands/context-experiment.md"
+    },
+    {
       "description": "Mid-session context cleanup — manage context window and session health during long development sessions",
       "id": "command:rhize-context-manager/context-hygiene",
       "kind": "command",
@@ -2654,6 +2685,39 @@
       "status": "wired"
     },
     {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/agent-brief-router.js\"",
+      "event": "PreToolUse",
+      "id": "hook:rhize-context-manager/agent-brief-router",
+      "kind": "hook",
+      "matcher": "^(Agent)$",
+      "name": "agent-brief-router",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
+      "event": "Stop",
+      "id": "hook:rhize-context-manager/context-experiment-finalizer",
+      "kind": "hook",
+      "matcher": "",
+      "name": "context-experiment-finalizer",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/context-experiment-selector",
+      "kind": "hook",
+      "matcher": "",
+      "name": "context-experiment-selector",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
+    },
+    {
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-window-monitor.js\"",
       "event": "PreToolUse",
       "id": "hook:rhize-context-manager/context-window-monitor",
@@ -2950,7 +3014,7 @@
       "path": "project-launcher"
     },
     {
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands (/start, /done, /context-hygiene, /context-doctor) and a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. /done delegates code-change review to rhize-devflow's /review when installed. /impact-map is a deprecation adapter to rhize-devflow, which owns the executable command.",
+      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack (Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK, graphify, opt-in Graphiti), ships session-lifecycle commands plus a disabled-by-default real-provider mgrep/Context Compiler dogfood harness, and provides a curated, skill-forge-gated context-engineering skill library that closes gaps in proven plugins rather than duplicating them. /done delegates code-change review to rhize-devflow's /review when installed. /impact-map is a deprecation adapter to rhize-devflow, which owns the executable command.",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",

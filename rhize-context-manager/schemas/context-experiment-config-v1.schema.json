@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/context-experiment-config-v1.schema.json",
+  "title": "Rhize Context Experiment Configuration v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "experiments"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "leaseTtlSeconds": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 86400,
+      "default": 900
+    },
+    "experiments": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mgrep": {
+          "$ref": "#/$defs/mgrepCapability"
+        },
+        "compiledContext": {
+          "$ref": "#/$defs/compiledContextCapability"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "armedRuns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 0
+        },
+        "eligibleRepos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          },
+          "uniqueItems": true,
+          "default": []
+        },
+        "liveAssignment": {
+          "const": "alternate",
+          "default": "alternate"
+        },
+        "shadow": {
+          "type": "boolean",
+          "default": true
+        },
+        "networkApproved": {
+          "type": "boolean",
+          "default": false
+        },
+        "smokeApproved": {
+          "type": "boolean",
+          "default": false
+        },
+        "store": {
+          "type": ["string", "null"],
+          "pattern": "^rhize-dogfood-[a-z0-9][a-z0-9-]{0,62}$",
+          "default": null
+        },
+        "completedRuns": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "maxDurationSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300,
+          "default": 30
+        }
+      }
+    },
+    "mgrepCapability": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/capability"
+        },
+        {
+          "if": {
+            "properties": {
+              "armedRuns": {
+                "minimum": 1
+              }
+            },
+            "required": ["armedRuns"]
+          },
+          "then": {
+            "required": ["enabled", "eligibleRepos", "networkApproved", "store"],
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "eligibleRepos": {
+                "minItems": 1
+              },
+              "networkApproved": {
+                "const": true
+              },
+              "store": {
+                "type": "string",
+                "pattern": "^rhize-dogfood-[a-z0-9][a-z0-9-]{0,62}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "compiledContextCapability": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/capability"
+        },
+        {
+          "properties": {
+            "store": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "armedRuns": {
+                "minimum": 1
+              }
+            },
+            "required": ["armedRuns"]
+          },
+          "then": {
+            "required": ["enabled", "eligibleRepos", "smokeApproved"],
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "eligibleRepos": {
+                "minItems": 1
+              },
+              "smokeApproved": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
