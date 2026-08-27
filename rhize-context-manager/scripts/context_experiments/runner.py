@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -41,7 +42,12 @@ if __package__ in {None, ""}:
         Metric,
         RunStatus,
     )
-    from context_experiments.providers import ContextCompilerProvider, MgrepProvider
+    from context_experiments.providers import (
+        ContextCompilerProvider,
+        GrepaiLayout,
+        GrepaiProvider,
+        MgrepProvider,
+    )
     from context_experiments.receipt_store import PendingStore, ReceiptStore
 else:
     from .aggregate import aggregate_receipts
@@ -58,16 +64,42 @@ else:
     from .eligibility import EligibilityInput, classify_task, evaluate_eligibility
     from .lease import Lease, LeaseStore
     from .models import Arm, Capability, ExperimentConfig, ExperimentReceipt, Metric, RunStatus
-    from .providers import ContextCompilerProvider, MgrepProvider
+    from .providers import ContextCompilerProvider, GrepaiLayout, GrepaiProvider, MgrepProvider
     from .receipt_store import PendingStore, ReceiptStore
 
 
-def real_provider_status() -> dict[Capability, tuple[bool, bool, str]]:
+def _local_retrieval_status(repo_root: Path | None) -> tuple[bool, bool, str]:
+    if repo_root is None:
+        return False, False, "no Git repository selected for local retrieval"
+    marker_path = repo_root / ".grepai" / "rhize-snapshot.json"
+    try:
+        marker = json.loads(marker_path.read_text(encoding="utf-8"))
+        config_sha256 = marker.get("configSha256") if isinstance(marker, dict) else None
+        if not isinstance(config_sha256, str) or not re.fullmatch(r"[a-f0-9]{64}", config_sha256):
+            raise ValueError("invalid marker")
+        provider = GrepaiProvider(
+            GrepaiLayout(
+                Path(".grepai/config.yaml"),
+                Path(".grepai/index.gob"),
+                Path(".grepai/rhize-snapshot.json"),
+            ),
+            expected_config_sha256=config_sha256,
+        )
+        health = provider.doctor(repo_root)
+    except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError):
+        return False, False, "local grepai index is absent or unverified"
+    return health.ready, health.ready, health.note
+
+
+def real_provider_status(
+    repo_root: Path | None = None,
+) -> dict[Capability, tuple[bool, bool, str]]:
     """Probe installed real providers without reading source or making a network call."""
 
     mgrep = MgrepProvider().doctor()
     compiler = ContextCompilerProvider().doctor()
     return {
+        Capability.LOCAL_RETRIEVAL: _local_retrieval_status(repo_root),
         Capability.MGREP: (
             mgrep.ready,
             False,
@@ -147,7 +179,11 @@ def select_next(
     repo_root = git_root(Path(cwd_value))
     task_class = classify_task(prompt)
 
-    for capability in (Capability.MGREP, Capability.COMPILED_CONTEXT):
+    for capability in (
+        Capability.LOCAL_RETRIEVAL,
+        Capability.MGREP,
+        Capability.COMPILED_CONTEXT,
+    ):
         capability_config = config.for_capability(capability)
         ready, snapshot_current, provider_note = provider_status.get(
             capability, (False, False, "unregistered")
@@ -482,8 +518,10 @@ def hook_select() -> int:
         if not isinstance(payload, dict):
             return 0
         config = load_config()
+        cwd_value = payload.get("cwd") or os.getcwd()
+        selected_repo = git_root(Path(cwd_value)) if isinstance(cwd_value, str) else None
         selection = claim_hook_selection(
-            payload, config, real_provider_status(), default_data_dir()
+            payload, config, real_provider_status(selected_repo), default_data_dir()
         )
         if selection is None:
             return 0
@@ -523,7 +561,7 @@ def command_status() -> int:
     config_path = default_config_path()
     try:
         config = load_config(config_path)
-        statuses = real_provider_status()
+        statuses = real_provider_status(git_root(Path.cwd()))
         output = {
             "schemaVersion": 1,
             "configured": config_path.exists(),
@@ -558,7 +596,9 @@ def command_doctor() -> int:
         checks.append({"name": "config", "status": "dead", "note": str(error)})
         print(json.dumps({"schemaVersion": 1, "checks": checks}, indent=2, sort_keys=True))
         return 2
-    for capability, (ready, snapshot_current, note) in real_provider_status().items():
+    for capability, (ready, snapshot_current, note) in real_provider_status(
+        git_root(Path.cwd())
+    ).items():
         capability_config = config.for_capability(capability)
         status = "OK" if ready and snapshot_current else "unavailable"
         if ready and not snapshot_current:

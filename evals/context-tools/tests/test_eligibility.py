@@ -92,3 +92,10 @@ def test_compiled_context_requires_smoke_review(tmp_path: Path) -> None:
     config = CapabilityConfig(**{**original.capability_config.__dict__, "smoke_approved": False})
     updated = EligibilityInput(**{**original.__dict__, "capability_config": config})
     assert "smoke_review_not_approved" in evaluate_eligibility(updated).reasons
+
+
+def test_local_retrieval_requires_smoke_review(tmp_path: Path) -> None:
+    original = eligible_input(tmp_path, Capability.LOCAL_RETRIEVAL)
+    config = CapabilityConfig(**{**original.capability_config.__dict__, "smoke_approved": False})
+    updated = EligibilityInput(**{**original.__dict__, "capability_config": config})
+    assert "smoke_review_not_approved" in evaluate_eligibility(updated).reasons

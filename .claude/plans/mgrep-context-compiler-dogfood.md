@@ -81,6 +81,33 @@ run without source leaving the machine. Its costs are local model download, disk
 time, watcher reliability, version maintenance, and single-machine limitations. Team sharing would
 add PostgreSQL/pgvector or Qdrant operations and is explicitly outside the first spike.
 
+### 1.3 Local retrieval checkpoint — 2026-08-27
+
+Phase 1.5 produced real negative evidence, so the local semantic path is **not approved for an
+automatic live task** yet:
+
+- Installed and checksum-verified grepai `0.35.0` and Ollama `0.33.1`; pulled
+  `nomic-embed-text:v1.5` and verified its full manifest digest
+  `0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f`.
+- grepai has no one-shot index command. Its foreground watcher also discovers registered Git
+  worktrees every three seconds, auto-initializes their `.grepai` stores, and modifies their
+  `.gitignore` files. A real main-worktree smoke exposed this behavior; it was stopped, the two
+  affected worktrees were restored, and their indexes were quarantined. Direct main-worktree
+  indexing is now prohibited. The benchmark used a detached, single-worktree disposable clone.
+- The isolated scan indexed 530 real repository files into 2,945 chunks in 91.543 seconds. The GOB
+  index was 18,872,969 bytes and the symbol index was 1,655,309 bytes. The foreground watcher was
+  terminated after readiness; no grepai daemon remains.
+- On the reviewed six-case retrieval smoke corpus, Arm A ripgrep achieved mean recall@5 `1.0`,
+  mean precision@5 `0.466667`, and zero critical misses. Arm B-local grepai achieved mean recall@5
+  `0.166667`, mean precision@5 `0.1`, and five critical misses. Median end-to-end query time was
+  41.444 ms for the multi-call ripgrep baseline and 534.875 ms for the guarded grepai adapter,
+  including its provider and snapshot checks.
+- The versioned evaluator gate records `pause` for critical misses and recall below baseline. Keep
+  the adapter, strict snapshot/provider checks, and
+  evaluator as repeatable evidence infrastructure, but leave `localRetrieval` disabled and unarmed.
+  Do not count this as an automatic live experiment. Reconsider only with a materially different
+  model/configuration or an upstream release that provides safe single-checkout indexing.
+
 Sources: Mixedbread [pricing](https://www.mixedbread.com/pricing),
 [Privacy Policy](https://www.mixedbread.com/pages/privacy),
 [Terms](https://www.mixedbread.com/pages/terms), and
@@ -239,6 +266,15 @@ Add an opt-in setup item that writes local, gitignored configuration under the c
 {
   "schemaVersion": 1,
   "experiments": {
+    "localRetrieval": {
+      "enabled": false,
+      "armedRuns": 0,
+      "eligibleRepos": ["/absolute/path/to/rhize-plugins"],
+      "liveAssignment": "alternate",
+      "shadow": true,
+      "networkApproved": false,
+      "smokeApproved": false
+    },
     "mgrep": {
       "enabled": true,
       "armedRuns": 1,
@@ -667,6 +703,11 @@ Verify:
 
 **Goal:** determine whether a managed account is justified before sending source to a vendor.
 
+**Current disposition (2026-08-27):** implementation and the real offline spike are complete.
+Arm B-local failed correctness non-inferiority and is paused before live-task arming. Arm B-managed
+remains blocked by the contradictory free-tier data-use terms and requires a separate paid-tier
+decision; no Mixedbread account, store, authentication, or upload was created.
+
 Run three separately identified paths against the same reviewed retrieval corpus; never aggregate
 the two candidate providers into one Arm B result:
 
@@ -954,10 +995,11 @@ Jira is the coordination surface; raw experiment data stays in the controlled lo
 
 The program is complete only when:
 
-- The next-viable-task selector has automatically executed at least one approved semantic-retrieval
-  experiment and one compiled-context experiment after explicit arming. Managed mgrep must either
-  have a real receipt or a documented stop decision at the economics/privacy gate; a simulated run
-  cannot satisfy this condition.
+- The next-viable-task selector has automatically executed each capability that passed its offline
+  safety/correctness gate after explicit arming. A capability that fails the gate instead requires
+  a documented stop decision and real retained evidence. Managed mgrep must either have a real
+  receipt or a documented stop decision at the economics/privacy gate; a simulated run cannot
+  satisfy this condition.
 - Receipts prove exactly which live and shadow arms ran.
 - Privacy, eligibility, snapshot, and concurrency gates are covered by automated tests.
 - The offline paired corpus and minimum live sample are complete or a stop condition has been reached and documented.

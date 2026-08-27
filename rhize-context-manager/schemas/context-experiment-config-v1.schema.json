@@ -19,6 +19,9 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
+        "localRetrieval": {
+          "$ref": "#/$defs/localRetrievalCapability"
+        },
         "mgrep": {
           "$ref": "#/$defs/mgrepCapability"
         },
@@ -128,6 +131,47 @@
         },
         {
           "properties": {
+            "store": {
+              "type": "null"
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "armedRuns": {
+                "minimum": 1
+              }
+            },
+            "required": ["armedRuns"]
+          },
+          "then": {
+            "required": ["enabled", "eligibleRepos", "smokeApproved"],
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "eligibleRepos": {
+                "minItems": 1
+              },
+              "smokeApproved": {
+                "const": true
+              }
+            }
+          }
+        }
+      ]
+    },
+    "localRetrievalCapability": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/capability"
+        },
+        {
+          "properties": {
+            "networkApproved": {
+              "const": false
+            },
             "store": {
               "type": "null"
             }

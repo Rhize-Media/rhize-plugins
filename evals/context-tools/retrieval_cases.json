@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "rhize-plugins-retrieval-phase-1-5-v1",
+  "repository": "rhize-plugins",
+  "review": {
+    "status": "reviewed",
+    "reviewedOn": "2026-08-27",
+    "reviewedSnapshot": "d95c8a8d5a234696cbb0df1f64a8ca06a0c3dede",
+    "scope": "Small Phase 1.5 retrieval smoke corpus; not the full adoption corpus"
+  },
+  "topK": 5,
+  "cases": [
+    {
+      "id": "context-experiment-eligibility-gates",
+      "intent": "Where are context experiment task classes and eligibility gates implemented and tested, including rejection of production or secret work?",
+      "baselineRgGlobs": [
+        "rhize-context-manager/scripts/context_experiments/**",
+        "evals/context-tools/tests/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "evaluate_eligibility",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "SENSITIVE_TASK_RE",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-context-manager/scripts/context_experiments/eligibility.py",
+          "critical": true,
+          "rationale": "Defines task classification and the complete eligibility decision path, including sensitive-operation rejection."
+        },
+        {
+          "path": "evals/context-tools/tests/test_eligibility.py",
+          "critical": false,
+          "rationale": "Exercises the allowlist, task-class, provider, network, and smoke-review gates."
+        }
+      ]
+    },
+    {
+      "id": "receipt-redaction-contract",
+      "intent": "Where do context experiment receipts reject raw prompts, source content, and absolute paths, and where is that privacy boundary tested?",
+      "baselineRgGlobs": [
+        "rhize-context-manager/scripts/context_experiments/**",
+        "evals/context-tools/tests/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "forbidden_keys",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "test_receipt_rejects_absolute_paths_and_raw_content",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-context-manager/scripts/context_experiments/models.py",
+          "critical": true,
+          "rationale": "Implements recursive receipt privacy validation for forbidden content fields and absolute paths."
+        },
+        {
+          "path": "evals/context-tools/tests/test_models_and_config.py",
+          "critical": false,
+          "rationale": "Contains the regression test that proves receipt serialization rejects private path data."
+        }
+      ]
+    },
+    {
+      "id": "map-driven-skill-router",
+      "intent": "Where does the map-driven skill router rank a user prompt and emit the selected skill through hook additionalContext, including its tests?",
+      "baselineRgGlobs": [
+        "rhize-context-manager/hooks/**",
+        "tests/skill-map/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "routeFromIndex",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "function computeMessage",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "test_router.js — exercises",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-context-manager/hooks/skill-router.js",
+          "critical": true,
+          "rationale": "Owns the UserPromptSubmit adapter and emits the routing advisory in the required hook output field."
+        },
+        {
+          "path": "rhize-context-manager/hooks/lib/route-core.js",
+          "critical": true,
+          "rationale": "Owns shared prompt tokenization, map/index loading, ranking, and tie-breaking."
+        },
+        {
+          "path": "tests/skill-map/test_router.js",
+          "critical": false,
+          "rationale": "Covers map-driven routing and validates the additionalContext output contract."
+        }
+      ]
+    },
+    {
+      "id": "agent-brief-skill-coverage",
+      "intent": "Where is outgoing subagent brief skill coverage measured, with suggested skills and the advisory feature flag, and where is it tested?",
+      "baselineRgGlobs": [
+        "rhize-context-manager/hooks/**",
+        "tests/skill-map/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "suggestedSkills",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "RHIZE_AGENT_BRIEF_ADVISORY",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "routeFromIndex",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-context-manager/hooks/agent-brief-router.js",
+          "critical": true,
+          "rationale": "Parses Agent tool briefs, compares named and suggested skills, logs coverage, and gates the advisory."
+        },
+        {
+          "path": "rhize-context-manager/hooks/lib/route-core.js",
+          "critical": true,
+          "rationale": "Provides the shared ranking primitives used to derive suggested skills from the brief."
+        },
+        {
+          "path": "tests/skill-map/test_agent_brief_router.js",
+          "critical": false,
+          "rationale": "Covers brief parsing, privacy-preserving logging, and flag-gated advisory output."
+        }
+      ]
+    },
+    {
+      "id": "devflow-evidence-base-and-protected-files",
+      "intent": "Where does the devflow evidence command resolve its comparison base and detect protected changed files, and where are those cases tested?",
+      "baselineRgGlobs": [
+        "rhize-devflow/scripts/**",
+        "tests/rhize-devflow/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "def is_protected",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "test_evidence_protected_file_touch",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "test_evidence_explicit_base_resolves",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-devflow/scripts/devflow.py",
+          "critical": true,
+          "rationale": "Implements base resolution, changed-file collection, protected-path matching, and evidence output."
+        },
+        {
+          "path": "tests/rhize-devflow/test_devflow_cli.py",
+          "critical": false,
+          "rationale": "Exercises protected-file findings and explicit base resolution through the evidence CLI."
+        }
+      ]
+    },
+    {
+      "id": "context-compiler-provider-guardrails",
+      "intent": "Where does the Context Compiler adapter verify its pinned upstream checkout and validate compact context pack safety, and where is the adapter contract tested?",
+      "baselineRgGlobs": [
+        "rhize-context-manager/scripts/context_experiments/providers/**",
+        "evals/context-tools/tests/**"
+      ],
+      "baselineRgPatterns": [
+        {
+          "pattern": "UPSTREAM_REVISION",
+          "mode": "fixed"
+        },
+        {
+          "pattern": "validate_context_pack_manifest",
+          "mode": "fixed"
+        }
+      ],
+      "groundTruth": [
+        {
+          "path": "rhize-context-manager/scripts/context_experiments/providers/context_compiler.py",
+          "critical": true,
+          "rationale": "Pins and verifies the upstream checkout, applies injection guardrails, and validates the sanitized pack manifest."
+        },
+        {
+          "path": "evals/context-tools/tests/test_real_provider_adapters.py",
+          "critical": false,
+          "rationale": "Tests the pin, unverified-checkout rejection, and repository-relative manifest contract."
+        }
+      ]
+    }
+  ]
+}

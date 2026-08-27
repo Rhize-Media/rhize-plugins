@@ -86,7 +86,10 @@ def evaluate_eligibility(value: EligibilityInput) -> EligibilityDecision:
         reasons.append("network_not_approved")
     if value.capability is Capability.MGREP and not config.store:
         reasons.append("store_not_configured")
-    if value.capability is Capability.COMPILED_CONTEXT and not config.smoke_approved:
+    if (
+        value.capability in {Capability.LOCAL_RETRIEVAL, Capability.COMPILED_CONTEXT}
+        and not config.smoke_approved
+    ):
         reasons.append("smoke_review_not_approved")
 
     return EligibilityDecision(not reasons, tuple(reasons))

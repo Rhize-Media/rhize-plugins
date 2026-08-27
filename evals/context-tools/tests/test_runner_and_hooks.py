@@ -34,6 +34,16 @@ def armed_mgrep(repo: Path) -> ExperimentConfig:
     )
 
 
+def armed_local_retrieval(repo: Path) -> ExperimentConfig:
+    return arm_capability(
+        ExperimentConfig(),
+        Capability.LOCAL_RETRIEVAL,
+        repo,
+        1,
+        smoke_approved=True,
+    )
+
+
 def test_unavailable_real_provider_keeps_selection_inert() -> None:
     selection = select_next(
         {
@@ -45,6 +55,31 @@ def test_unavailable_real_provider_keeps_selection_inert() -> None:
         {Capability.MGREP: (False, False, "provider-unavailable")},
     )
     assert selection is None
+
+
+def test_local_retrieval_is_selected_only_with_current_real_snapshot() -> None:
+    selection = select_next(
+        {
+            "prompt": "Implement a new context experiment feature",
+            "cwd": str(REPO_ROOT),
+            "session_id": "session-local-retrieval",
+        },
+        armed_local_retrieval(REPO_ROOT),
+        {Capability.LOCAL_RETRIEVAL: (True, True, "verified local index")},
+    )
+    assert selection is not None
+    assert selection["capability"] is Capability.LOCAL_RETRIEVAL
+
+    stale = select_next(
+        {
+            "prompt": "Implement a new context experiment feature",
+            "cwd": str(REPO_ROOT),
+            "session_id": "session-local-retrieval-stale",
+        },
+        armed_local_retrieval(REPO_ROOT),
+        {Capability.LOCAL_RETRIEVAL: (True, False, "stale local index")},
+    )
+    assert stale is None
 
 
 def test_claim_is_atomic_and_interrupted_finalization_does_not_consume_run(

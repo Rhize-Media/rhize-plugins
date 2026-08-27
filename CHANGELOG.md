@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-context-manager** 0.16.0 → 0.17.0 (minor); marketplace 2.44.0 → 2.45.0.
+- _2026-08-27_ **rhize-context-manager — real local semantic-retrieval spike and stop
+  decision.** Added a separate fail-closed `localRetrieval` capability, pinned grepai 0.35.0
+  plus local Ollama `nomic-embed-text:v1.5`, strict model/config/snapshot checks, linked-worktree
+  protection, hard-deny inventory, and a paired six-case ripgrep/grepai evaluator. The real
+  isolated run indexed 530 files/2,945 chunks, then failed correctness non-inferiority: ripgrep
+  recall@5 1.0 with zero critical misses versus the guarded grepai adapter at 0.166667 with five
+  critical misses. grepai's
+  watcher also has no supported way to disable automatic linked-worktree discovery, so direct
+  main-worktree indexing and live arming are prohibited. No fake-provider row, Mixedbread signup,
+  remote store, or source upload was used.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.15.1 → 0.16.0 (minor); marketplace 2.43.1 → 2.44.0.
 - _2026-08-27_ **rhize-context-manager — real-provider context-tool dogfood spine.** Added
   opt-in, fail-silent selection/finalization hooks; strict local configuration, atomic leases,

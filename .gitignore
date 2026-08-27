@@ -60,3 +60,6 @@ CLAUDE.md.headroom-bak.*
 
 # Timestamped backups written before in-place config edits (local safety net only)
 *.bak
+
+# Local grepai indexes and reviewed snapshot markers
+.grepai/

@@ -76,7 +76,11 @@ def arm_capability(
         armed_runs=runs,
         eligible_repos=repos,
         network_approved=network_approved if capability is Capability.MGREP else False,
-        smoke_approved=smoke_approved if capability is Capability.COMPILED_CONTEXT else False,
+        smoke_approved=(
+            smoke_approved
+            if capability in {Capability.LOCAL_RETRIEVAL, Capability.COMPILED_CONTEXT}
+            else False
+        ),
         store=store if capability is Capability.MGREP else None,
     )
     result = config.with_capability(capability, updated)

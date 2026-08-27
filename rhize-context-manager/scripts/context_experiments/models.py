@@ -30,6 +30,7 @@ _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 
 
 class Capability(str, Enum):
+    LOCAL_RETRIEVAL = "localRetrieval"
     MGREP = "mgrep"
     COMPILED_CONTEXT = "compiledContext"
 
@@ -155,10 +156,18 @@ class CapabilityConfig:
             raise ValueError("an armed mgrep experiment requires networkApproved=true")
         if capability is Capability.MGREP and armed_runs and not store:
             raise ValueError("an armed mgrep experiment requires a dedicated store")
-        if capability is Capability.COMPILED_CONTEXT and store is not None:
-            raise ValueError("compiledContext does not accept an mgrep store")
-        if capability is Capability.COMPILED_CONTEXT and armed_runs and not smoke_approved:
-            raise ValueError("an armed compiled-context experiment requires smokeApproved=true")
+        if capability is not Capability.MGREP and store is not None:
+            raise ValueError(f"{capability.value} does not accept an mgrep store")
+        if capability is Capability.LOCAL_RETRIEVAL and network_approved:
+            raise ValueError("localRetrieval does not accept networkApproved=true")
+        if (
+            capability in {Capability.LOCAL_RETRIEVAL, Capability.COMPILED_CONTEXT}
+            and armed_runs
+            and not smoke_approved
+        ):
+            raise ValueError(
+                f"an armed {capability.value} experiment requires smokeApproved=true"
+            )
 
         return cls(
             enabled=enabled,
@@ -190,6 +199,7 @@ class CapabilityConfig:
 
 @dataclass(frozen=True)
 class ExperimentConfig:
+    local_retrieval: CapabilityConfig = field(default_factory=CapabilityConfig)
     mgrep: CapabilityConfig = field(default_factory=CapabilityConfig)
     compiled_context: CapabilityConfig = field(default_factory=CapabilityConfig)
     lease_ttl_seconds: int = 900
@@ -213,6 +223,10 @@ class ExperimentConfig:
             value.get("leaseTtlSeconds", 900), "leaseTtlSeconds", 60, 86_400
         )
         return cls(
+            local_retrieval=CapabilityConfig.from_dict(
+                Capability.LOCAL_RETRIEVAL,
+                _mapping(experiments.get(Capability.LOCAL_RETRIEVAL.value, {})),
+            ),
             mgrep=CapabilityConfig.from_dict(
                 Capability.MGREP, _mapping(experiments.get(Capability.MGREP.value, {}))
             ),
@@ -224,18 +238,31 @@ class ExperimentConfig:
         )
 
     def for_capability(self, capability: Capability) -> CapabilityConfig:
-        return self.mgrep if capability is Capability.MGREP else self.compiled_context
+        if capability is Capability.LOCAL_RETRIEVAL:
+            return self.local_retrieval
+        if capability is Capability.MGREP:
+            return self.mgrep
+        return self.compiled_context
 
     def with_capability(
         self, capability: Capability, capability_config: CapabilityConfig
     ) -> "ExperimentConfig":
         if capability is Capability.MGREP:
             return ExperimentConfig(
+                local_retrieval=self.local_retrieval,
                 mgrep=capability_config,
                 compiled_context=self.compiled_context,
                 lease_ttl_seconds=self.lease_ttl_seconds,
             )
+        if capability is Capability.LOCAL_RETRIEVAL:
+            return ExperimentConfig(
+                local_retrieval=capability_config,
+                mgrep=self.mgrep,
+                compiled_context=self.compiled_context,
+                lease_ttl_seconds=self.lease_ttl_seconds,
+            )
         return ExperimentConfig(
+            local_retrieval=self.local_retrieval,
             mgrep=self.mgrep,
             compiled_context=capability_config,
             lease_ttl_seconds=self.lease_ttl_seconds,
@@ -246,6 +273,7 @@ class ExperimentConfig:
             "schemaVersion": self.schema_version,
             "leaseTtlSeconds": self.lease_ttl_seconds,
             "experiments": {
+                Capability.LOCAL_RETRIEVAL.value: self.local_retrieval.to_dict(),
                 Capability.MGREP.value: self.mgrep.to_dict(),
                 Capability.COMPILED_CONTEXT.value: self.compiled_context.to_dict(),
             },

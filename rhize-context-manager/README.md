@@ -77,7 +77,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
-| `/context-experiment` | Opt-in mgrep and Context Compiler dogfood control: provider health, bounded arming, real dry-run/compile execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
+| `/context-experiment` | Opt-in local retrieval, mgrep, and Context Compiler dogfood control: provider health, bounded arming, real dry-run/eval/compile execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -173,7 +173,7 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed mgrep or compiled-context experiment only when the pinned real provider is healthy. |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed local-retrieval, mgrep, or compiled-context experiment only when the pinned real provider and snapshot are healthy. |
 | `context-experiment-finalizer` | `Stop` | T3 (advisory) | Finalizes durable execution evidence; interrupted runs receive an incomplete receipt and do not consume the armed run. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
@@ -229,6 +229,15 @@ create a store until the dated provider-economics/privacy review in
 passes. Mixedbread's published free-tier data-use language is contradictory, so the plan tests a
 pinned local semantic-retrieval candidate first and keeps managed mgrep as a separately measured,
 explicitly approved arm.
+
+The local comparison path pins grepai `0.35.0`, Ollama `0.33.1`, and
+`nomic-embed-text:v1.5`. It runs only with loopback Ollama, cloud features disabled, a reviewed
+configuration checksum, a GOB store, and a current independently generated snapshot marker.
+Direct `grepai watch` execution in a real main worktree is prohibited: 0.35.0 automatically
+discovers and initializes linked worktrees and has no supported opt-out. The first real isolated
+six-case benchmark also failed correctness non-inferiority (five critical misses versus zero for
+ripgrep), so `localRetrieval` remains disabled and unarmed pending a materially improved provider
+or configuration. See [`evals/context-tools`](../evals/context-tools/README.md).
 
 The Context Compiler adapter runs an unmodified checkout pinned to revision
 `4edb163911f9a6bc869f35970fa77acb3dd88b8f`, verifies the MIT license and source-file

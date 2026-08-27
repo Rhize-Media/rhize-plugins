@@ -35,7 +35,7 @@
       "$ref": "#/$defs/safeId"
     },
     "capability": {
-      "enum": ["mgrep", "compiledContext"]
+      "enum": ["localRetrieval", "mgrep", "compiledContext"]
     },
     "status": {
       "enum": ["pending", "completed", "incomplete", "failed"]

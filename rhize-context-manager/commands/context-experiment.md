@@ -1,5 +1,5 @@
 ---
-description: Arm, inspect, run, report, or disarm opt-in mgrep and Context Compiler dogfood experiments
+description: Inspect, evaluate, arm, report, or disarm opt-in local retrieval, mgrep, and Context Compiler experiments
 model: sonnet
 ---
 
@@ -7,9 +7,9 @@ model: sonnet
 
 Operate the controlled context-tool experiment defined in
 `.claude/plans/mgrep-context-compiler-dogfood.md`. The implementation is off by default.
-Only real providers count as dogfood evidence. The command supports the pinned mgrep CLI
-and an unmodified, pinned upstream Context Compiler checkout. Unit-test doubles never
-produce receipts or benchmark rows.
+Only real providers count as dogfood evidence. The command supports pinned local grepai,
+the pinned mgrep CLI, and an unmodified pinned upstream Context Compiler checkout.
+Unit-test doubles never produce receipts or benchmark rows.
 
 Resolve the runner from the installed plugin root:
 
@@ -20,12 +20,14 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" status
 Supported operations:
 
 - `status` — print validated local configuration and provider readiness.
-- `doctor` — report invalid config, pinned mgrep readiness, and upstream checkout integrity.
-- `arm --capability <mgrep|compiledContext> --repo <absolute-path> --runs 1` — opt in
+- `doctor` — report invalid config, pinned local grepai/index readiness, pinned mgrep readiness,
+  and upstream checkout integrity.
+- `arm --capability <localRetrieval|mgrep|compiledContext> --repo <absolute-path> --runs 1` — opt in
   to a bounded automatic run. mgrep additionally requires `--network-approved` and
-  `--store rhize-dogfood-<repo>`; compiled
-  context requires `--smoke-approved`. Never infer either approval from a prior session.
-- `disarm --capability <mgrep|compiledContext>` — set `enabled=false` and `armedRuns=0`.
+  `--store rhize-dogfood-<repo>`; local retrieval and compiled context require
+  `--smoke-approved`. Never infer either approval from a prior session.
+- `disarm --capability <localRetrieval|mgrep|compiledContext>` — set `enabled=false` and
+  `armedRuns=0`.
 - `compile --repo <absolute-path> --target <absolute-python-file> --checkout <path>
   --snapshot <git-snapshot>` — run the real upstream compiler, write a private prompt pack,
   and record Arm A naive-context versus Arm B compiled-context metrics. The checkout must
@@ -46,3 +48,8 @@ show the exact command and ask for confirmation. For mgrep, confirmation must ex
 cover network indexing of the exact allowlisted repository and name the isolated store.
 Do not infer upload approval from installation, login, a dry-run, or approval in a prior
 session.
+
+`localRetrieval` is currently a measured-but-paused capability. Its first real offline run
+failed the relevant-file non-inferiority gate, and grepai 0.35.0 cannot safely scope its
+watcher to a main checkout when linked worktrees exist. Do not arm it until a later reviewed
+run clears both gates. The adapter and eval harness remain available for that re-evaluation.

@@ -105,6 +105,27 @@ def test_armed_compiled_context_requires_smoke_approval(tmp_path: Path) -> None:
         ExperimentConfig.from_dict(value)
 
 
+def test_armed_local_retrieval_requires_smoke_approval(tmp_path: Path) -> None:
+    value = ExperimentConfig().to_dict()
+    value["experiments"]["localRetrieval"].update(
+        {"enabled": True, "armedRuns": 1, "eligibleRepos": [str(tmp_path)]}
+    )
+    with pytest.raises(ValueError, match="smokeApproved"):
+        ExperimentConfig.from_dict(value)
+
+
+def test_local_retrieval_rejects_network_and_store(tmp_path: Path) -> None:
+    value = ExperimentConfig().to_dict()
+    value["experiments"]["localRetrieval"]["networkApproved"] = True
+    with pytest.raises(ValueError, match="networkApproved"):
+        ExperimentConfig.from_dict(value)
+
+    value = ExperimentConfig().to_dict()
+    value["experiments"]["localRetrieval"]["store"] = "rhize-dogfood-test"
+    with pytest.raises(ValueError, match="mgrep store"):
+        ExperimentConfig.from_dict(value)
+
+
 def test_write_config_is_private_and_round_trips(tmp_path: Path) -> None:
     path = tmp_path / "private" / "context-experiments.json"
     config = arm_capability(
