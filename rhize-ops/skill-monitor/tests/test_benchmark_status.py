@@ -332,10 +332,28 @@ def _note(total_rows=0, newest_row_date=None, error=None):
 
 
 def test_liveness_ok_when_row_covers_last_run():
-    note = _note(total_rows=1, newest_row_date=date(2026, 8, 24))
+    # Genuine "ok": the newest row is dated strictly AFTER the run, so it
+    # demonstrably postdates it — not the same-day case (see
+    # test_liveness_indeterminate_same_day_when_run_and_row_share_a_date).
+    note = _note(total_rows=1, newest_row_date=date(2026, 8, 25))
     lookup = {"matched": True, "last_run_at": datetime(2026, 8, 24, 19, 1, 37)}
     v = bs.classify_liveness(note, lookup)
     assert v["status"] == "ok"
+
+
+def test_liveness_indeterminate_same_day_when_run_and_row_share_a_date():
+    # The exact false-negative this module used to produce: the scheduler's
+    # last run and the newest logged row share a calendar date. Rows carry
+    # only a date, not a time, so whether the row was written before or
+    # after that day's run cannot be proven either way — this must NOT be
+    # reported as "ok" (this was previously asserted as "ok" — that
+    # assertion documented the bug, not a spec).
+    note = _note(total_rows=1, newest_row_date=date(2026, 8, 24))
+    lookup = {"matched": True, "last_run_at": datetime(2026, 8, 24, 19, 1, 37)}
+    v = bs.classify_liveness(note, lookup)
+    assert v["status"] == "indeterminate_same_day"
+    assert "2026-08-24" in v["reason"]
+    assert "cannot be determined" in v["reason"]
 
 
 def test_liveness_row_missing_when_run_postdates_newest_row():
@@ -389,11 +407,12 @@ def test_liveness_unknown_when_scheduler_has_no_timestamp_but_rows_exist():
     assert v["status"] == "unknown"
 
 
-def test_all_four_liveness_statuses_are_reachable():
+def test_all_five_liveness_statuses_are_reachable():
     # A whole-suite sanity check: every status value this module defines can
     # actually be produced. A watchdog that can only ever emit 'ok' is useless.
     statuses = {
         "ok": test_liveness_ok_when_row_covers_last_run,
+        "indeterminate_same_day": test_liveness_indeterminate_same_day_when_run_and_row_share_a_date,
         "row_missing": test_liveness_row_missing_when_run_postdates_newest_row,
         "never_run": test_liveness_never_run,
         "unknown": test_liveness_unknown_when_scheduler_unmatched,

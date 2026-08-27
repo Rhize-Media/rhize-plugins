@@ -213,6 +213,66 @@ def test_sum_measured_trust_check_still_fires_before_basis_check():
 
 
 # ---------------------------------------------------------------------------
+# sum_measured — the third, orthogonal unit check. Trust class and basis
+# alone are not enough: two metrics can both be trust=MEASURED and share a
+# basis (or both omit one) and still be nonsense added together if their
+# units differ (tokens vs. usd).
+# ---------------------------------------------------------------------------
+
+def test_sum_measured_refuses_mixed_unit():
+    """The exact repro from the task brief: a tokens metric and a usd
+    metric, both trust=MEASURED, both basis=BILLED_CONSUMPTION — neither
+    the trust check nor the basis check catches this, so the old code
+    returned 3.0 (1 token + 2 dollars). The unit check must refuse it."""
+    metrics = [
+        _metric(
+            stack_metrics.TrustClass.MEASURED, value=1, name="x", unit="tokens",
+            basis=stack_metrics.Basis.BILLED_CONSUMPTION,
+        ),
+        _metric(
+            stack_metrics.TrustClass.MEASURED, value=2, name="y", unit="usd",
+            basis=stack_metrics.Basis.BILLED_CONSUMPTION,
+        ),
+    ]
+    with pytest.raises(stack_metrics.UnitMismatchError):
+        stack_metrics.sum_measured(metrics)
+
+
+def test_sum_measured_allows_same_unit():
+    """No regression: metrics that already share a unit must still sum."""
+    metrics = [
+        _metric(stack_metrics.TrustClass.MEASURED, value=3, name="a", unit="tokens"),
+        _metric(stack_metrics.TrustClass.MEASURED, value=4, name="b", unit="tokens"),
+    ]
+    assert stack_metrics.sum_measured(metrics) == 7
+
+
+def test_sum_measured_trust_and_basis_checks_still_fire_independently_of_unit_check():
+    """The unit check must not weaken or reorder the existing two guards:
+    a non-MEASURED metric still raises TrustClassError, and a mixed-basis
+    pair still raises BasisMismatchError, even when units are homogeneous."""
+    non_measured = [
+        _metric(stack_metrics.TrustClass.MEASURED, value=3, name="a", unit="tokens"),
+        _metric(stack_metrics.TrustClass.INDICATIVE, value=4, name="b", unit="tokens"),
+    ]
+    with pytest.raises(stack_metrics.TrustClassError):
+        stack_metrics.sum_measured(non_measured)
+
+    mixed_basis = [
+        _metric(
+            stack_metrics.TrustClass.MEASURED, value=3, name="a", unit="tokens",
+            basis=stack_metrics.Basis.BILLED_CONSUMPTION,
+        ),
+        _metric(
+            stack_metrics.TrustClass.MEASURED, value=4, name="b", unit="tokens",
+            basis=stack_metrics.Basis.SAVINGS,
+        ),
+    ]
+    with pytest.raises(stack_metrics.BasisMismatchError):
+        stack_metrics.sum_measured(mixed_basis)
+
+
+# ---------------------------------------------------------------------------
 # load_claude_code_spend (costs.jsonl, via cost_metrics.py)
 # ---------------------------------------------------------------------------
 

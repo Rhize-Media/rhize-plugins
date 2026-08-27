@@ -8,6 +8,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.11.0 → 0.12.0 (minor); marketplace 2.42.1 → 2.43.0.
+- _2026-08-27_ **rhize-ops/skill-monitor — three guard fixes, and a new measurement whose
+  directional verdicts are deliberately SUPPRESSED.** (1) `sum_measured()` had two orthogonal
+  guards (trust class, semantic basis) but checked neither **unit** — it would add 1 token to
+  2 USD and return 3.0. `build_snapshot()` filtered by unit first so the internal path was safe,
+  but the public guard was not; unit homogeneity is now a third check. (2) `benchmark_status.py`'s
+  liveness watchdog compared calendar dates only, so a row written at 00:01 was treated as
+  covering a scheduler run at 23:59 — the exact false negative the watchdog exists to catch. It
+  now distinguishes same-date from later-date and emits `indeterminate_same_day` rather than a
+  false `ok`; on live data AI-Stack-Version-Drift immediately flipped from `ok` to
+  `indeterminate_same_day`. (3) New `recurrence.py` measures whether the waste patterns named in
+  Headroom learned rules stopped recurring — per-session occurrence counts before/after each
+  rule's landing commit.
+- _2026-08-27_ **Why recurrence.py ships with no verdicts.** Two independent reviews found the
+  directional verdicts unpublishable: of 26, roughly 13-14 signatures are PRESCRIPTIONS ("always
+  use X") where a drop means the advice was ABANDONED — yet it graded `reduced` = success; ~4 are
+  identifiers with no waste semantics; only ~8-9 are genuine waste targets. The identical
+  signature `npx vitest run …` appears under two OPPOSITE bullets, both graded `reduced`. The
+  loudest `increased` result was the rule working (its signature is the prescribed replacement).
+  A generic signature like `timeout` matched ~400 events, almost none of them the misuse targeted.
+  So the module now emits counts and rates — real measurements — and `not_evaluated` in place of
+  any directional claim, plus `not_evaluable` (distinct from `insufficient_data`) where a side can
+  never acquire data: 116 rules belong to a repo with zero surviving transcripts, and calling that
+  "insufficient" implies it might resolve. Restoring verdicts requires signature role
+  classification, a session-level test (occurrences cluster within sessions, so a pooled binomial
+  is anti-conservative), multiplicity correction across the comparisons, and a frozen transcript
+  manifest.
 - _2026-08-26_ version bump — **rhize-context-manager** 0.15.0 → 0.15.1 (patch); marketplace 2.42.0 → 2.42.1.
 - _2026-08-26_ **rhize-context-manager — final-review fix wave: segment the agent-dispatch
   report by agentType, fix two stale docs claims.** `scripts/suggestion_log_report.py`'s

@@ -35,6 +35,12 @@ The two checks are independent: passing the trust-class check does not
 exempt a set of metrics from the basis check. See
 test_stack_metrics.py::test_sum_measured_refuses_mixed_basis.
 
+A THIRD, also orthogonal check: `sum_measured()` refuses to combine metrics
+whose `unit` differs (e.g. "tokens" vs. "usd"), exactly the way it refuses
+mismatched trust classes or bases. Passing both of those checks is not
+permission to sum across units. See
+test_stack_metrics.py::test_sum_measured_refuses_mixed_unit.
+
 Idiom note: this mirrors savings_scorecard.py's measured-vs-estimated split
 (same project, same intent — an explicit tier that structurally prevents
 estimated figures being summed into a measured total) but generalizes it to
@@ -197,6 +203,17 @@ class BasisMismatchError(ValueError):
     trio combinable."""
 
 
+class UnitMismatchError(ValueError):
+    """Raised when sum_measured() is handed metrics that don't all share the
+    same `unit` — a THIRD guard, orthogonal to both TrustClassError and
+    BasisMismatchError. Passing the trust-class and basis checks is not
+    permission to sum: a Metric tagged unit="tokens" and one tagged
+    unit="usd" can both be trust=MEASURED and share (or both omit) a basis
+    and still be nonsense added together. Unlike basis, `unit` has no
+    legitimate exempt/None case — every Metric carries one — so this is a
+    plain "more than one distinct unit present" refusal."""
+
+
 @dataclass(frozen=True)
 class Metric:
     name: str
@@ -236,6 +253,12 @@ def sum_measured(metrics: Iterable[Metric]) -> float:
     exactly the kind of accidental cross-basis sum this guard exists to
     catch).
 
+    Third, orthogonal check: refuses (raises UnitMismatchError) if the
+    metrics don't all share the same `unit` — e.g. a metric measured in
+    tokens and one measured in dollars can both be trust=MEASURED and share
+    a basis and still be meaningless added together. Passing the trust-class
+    and basis checks is never a free pass on this one.
+
     This is the single point every "total" in this module must pass through.
     """
     metrics = list(metrics)
@@ -261,6 +284,20 @@ def sum_measured(metrics: Iterable[Metric]) -> float:
             "Metrics must share one semantic basis (billed-consumption vs. "
             "raw-consumption vs. savings) before they can be summed, even "
             "when all are trust-class MEASURED."
+        )
+
+    units = {m.unit for m in metrics}
+    if len(units) > 1:
+        by_unit: dict[str, list[str]] = {}
+        for m in metrics:
+            by_unit.setdefault(m.unit, []).append(m.name)
+        grouping = "; ".join(
+            f"{u}={names}" for u, names in sorted(by_unit.items())
+        )
+        raise UnitMismatchError(
+            f"refusing to sum metrics with different units: {grouping}. "
+            "Metrics must share one unit before they can be summed, even "
+            "when all are trust-class MEASURED and share a basis."
         )
 
     total = 0.0

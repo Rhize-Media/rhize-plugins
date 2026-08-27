@@ -27,7 +27,9 @@ The `liveness` section is the actual point of this module: per routine, did the
 routine run (per the scheduler) more recently than the newest row logged in its
 note? If so, a run happened and produced no row — `row_missing`. That is the
 finding this module exists to surface, made unmissable in both JSON and the
-human-readable report.
+human-readable report. Rows carry only a DATE, never a time, so a run and the
+newest row sharing a calendar date is genuinely indeterminate, not `ok` — see
+`classify_liveness()`'s `indeterminate_same_day` status.
 
 System python3 here is 3.14 and has no `jsonschema` — this module deliberately
 imports nothing beyond the standard library.
@@ -459,19 +461,33 @@ def find_scheduler_last_run(routine_name: str, scheduler_status: dict[str, Any])
 
 # --- 5. Liveness classification ----------------------------------------------
 
-LIVENESS_STATUSES = ("ok", "row_missing", "never_run", "unknown")
+LIVENESS_STATUSES = ("ok", "indeterminate_same_day", "row_missing", "never_run", "unknown")
 
 
 def classify_liveness(note_summary: dict[str, Any], scheduler_lookup: dict[str, Any]) -> dict[str, Any]:
     """The watchdog's actual verdict: did the routine run, and did a row land?
 
-    ok          — newest logged row covers the scheduler's last known run.
-    row_missing — scheduler shows a run that postdates the newest row (or the
-                  note has zero rows despite a recorded run). THE finding this
-                  module exists to surface.
-    never_run   — scheduler entry exists but has no recorded run, and the note
-                  has zero rows.
-    unknown     — can't determine; `reason` names the missing input.
+    ok                     — newest logged row is dated strictly AFTER the
+                             scheduler's last known run — the row demonstrably
+                             postdates the run, so it can only have landed
+                             because of (or after) that run or a later one.
+    indeterminate_same_day — the newest row and the scheduler's last run share
+                             a calendar date. Rows carry only a DATE, not a
+                             time, so whether that row was written before or
+                             after that day's run cannot be determined either
+                             way from this data. Reporting this as `ok` was
+                             the exact false-negative this module used to
+                             produce: a run that landed no row still reads as
+                             covered as long as some earlier row exists from
+                             the same day. Never fabricate a time to resolve
+                             this — report the genuine indeterminacy instead.
+    row_missing            — scheduler shows a run that postdates the newest
+                             row (or the note has zero rows despite a recorded
+                             run). THE finding this module exists to surface.
+    never_run              — scheduler entry exists but has no recorded run,
+                             and the note has zero rows.
+    unknown                — can't determine; `reason` names the missing
+                             input.
     """
     if note_summary.get("error"):
         return {"status": "unknown", "reason": f"could not read/parse note: {note_summary['error']}"}
@@ -506,6 +522,15 @@ def classify_liveness(note_summary: dict[str, Any], scheduler_lookup: dict[str, 
             "reason": (
                 f"scheduler last ran {last_run_date.isoformat()}, "
                 f"newest row is {newest_row_date.isoformat()} — a run happened and no row landed"
+            ),
+        }
+    if last_run_date == newest_row_date:
+        return {
+            "status": "indeterminate_same_day",
+            "reason": (
+                f"scheduler last ran {last_run_date.isoformat()} and the newest row is "
+                f"also dated {newest_row_date.isoformat()} — rows carry only a date, not "
+                "a time, so whether this row postdates the run cannot be determined"
             ),
         }
     return {
