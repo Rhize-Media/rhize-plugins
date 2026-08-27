@@ -327,13 +327,7 @@ def load_claude_code_spend(days: int, costs_path: Path | None = None) -> dict:
     reader: rows in costs.jsonl are CUMULATIVE snapshots, so only the latest
     row per session_id is used — never summed across a session's own rows.
     """
-    prev = cost_metrics.COSTS_JSONL
-    if costs_path is not None:
-        cost_metrics.COSTS_JSONL = costs_path
-    try:
-        result = cost_metrics.load_latest_costs_per_session(days=days)
-    finally:
-        cost_metrics.COSTS_JSONL = prev
+    result = cost_metrics.load_latest_costs_per_session(days=days, costs_path=costs_path)
 
     if not result["available"]:
         return {

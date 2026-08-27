@@ -13,8 +13,10 @@ guarantee:
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -46,6 +48,24 @@ def _sqlite(path: Path, ddl: str, rows: list[tuple] = ()) -> None:
         conn.executemany(f"INSERT INTO {table} VALUES ({placeholders})", rows)
     conn.commit()
     conn.close()
+
+
+def _recent_ts(hours_ago: float = 0, minutes_ago: float = 0) -> str:
+    """ISO-8601 UTC timestamp relative to *now* (with a 'Z' suffix), for any
+    fixture row a loader's `days`-based cutoff will inspect.
+
+    Every loader here filters rows with `datetime.now(timezone.utc) -
+    timedelta(days=N)`. A fixture that hardcodes an absolute calendar date
+    (e.g. "2026-08-20T00:00:00Z") silently drifts outside that window as real
+    time passes — that is what made 12 tests in this file go red while the
+    fixture-injection mechanism they were meant to exercise worked correctly
+    the whole time. Always build a timestamp a loader will filter on from
+    this helper, never as a literal. See
+    test_no_hardcoded_absolute_date_literals_in_fixtures below, which fails
+    the suite if this rule is violated again.
+    """
+    dt = datetime.now(timezone.utc) - timedelta(hours=hours_ago, minutes=minutes_ago)
+    return dt.isoformat().replace("+00:00", "Z")
 
 
 # ---------------------------------------------------------------------------
@@ -298,7 +318,7 @@ def test_costs_malformed_row_is_skipped_not_fatal(tmp_path):
     _write_jsonl(p, [
         "{not valid json",
         json.dumps({
-            "timestamp": "2026-08-20T00:00:00Z", "session_id": "s1",
+            "timestamp": _recent_ts(hours_ago=1), "session_id": "s1",
             "estimated_cost_usd": 1.5, "input_tokens": 10, "output_tokens": 5,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
@@ -313,12 +333,12 @@ def test_costs_well_formed(tmp_path):
     p = tmp_path / "costs.jsonl"
     _write_jsonl(p, [
         json.dumps({
-            "timestamp": "2026-08-20T00:00:00Z", "session_id": "s1",
+            "timestamp": _recent_ts(hours_ago=2), "session_id": "s1",
             "estimated_cost_usd": 2.0, "input_tokens": 100, "output_tokens": 50,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
         json.dumps({
-            "timestamp": "2026-08-21T00:00:00Z", "session_id": "s2",
+            "timestamp": _recent_ts(hours_ago=1), "session_id": "s2",
             "estimated_cost_usd": 3.0, "input_tokens": 200, "output_tokens": 25,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
@@ -338,17 +358,17 @@ def test_costs_cumulative_rows_trap(tmp_path):
     p = tmp_path / "costs.jsonl"
     _write_jsonl(p, [
         json.dumps({
-            "timestamp": "2026-08-20T10:00:00Z", "session_id": "s1",
+            "timestamp": _recent_ts(minutes_ago=10), "session_id": "s1",
             "estimated_cost_usd": 1.0, "input_tokens": 10, "output_tokens": 5,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
         json.dumps({
-            "timestamp": "2026-08-20T10:05:00Z", "session_id": "s1",
+            "timestamp": _recent_ts(minutes_ago=5), "session_id": "s1",
             "estimated_cost_usd": 2.5, "input_tokens": 25, "output_tokens": 12,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
         json.dumps({
-            "timestamp": "2026-08-20T10:10:00Z", "session_id": "s1",
+            "timestamp": _recent_ts(minutes_ago=0), "session_id": "s1",
             "estimated_cost_usd": 4.0, "input_tokens": 40, "output_tokens": 20,
             "cache_write_tokens": 0, "cache_read_tokens": 0,
         }),
@@ -387,9 +407,9 @@ def test_transcripts_malformed_row_is_skipped_not_fatal(tmp_path):
     f = d / "session1.jsonl"
     _write_jsonl(f, [
         "{not valid json",
-        json.dumps({"type": "user", "timestamp": "2026-08-20T00:00:00Z"}),  # not assistant
+        json.dumps({"type": "user", "timestamp": _recent_ts(hours_ago=1)}),  # not assistant
         json.dumps({
-            "type": "assistant", "timestamp": "2026-08-20T00:00:00Z",
+            "type": "assistant", "timestamp": _recent_ts(hours_ago=1),
             "message": {"usage": {
                 "input_tokens": 5, "output_tokens": 10,
                 "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0,
@@ -409,14 +429,14 @@ def test_transcripts_well_formed_sums_per_turn_deltas(tmp_path):
     f = d / "session1.jsonl"
     _write_jsonl(f, [
         json.dumps({
-            "type": "assistant", "timestamp": "2026-08-20T00:00:00Z",
+            "type": "assistant", "timestamp": _recent_ts(minutes_ago=1),
             "message": {"usage": {
                 "input_tokens": 10, "output_tokens": 20,
                 "cache_creation_input_tokens": 1, "cache_read_input_tokens": 2,
             }},
         }),
         json.dumps({
-            "type": "assistant", "timestamp": "2026-08-20T00:01:00Z",
+            "type": "assistant", "timestamp": _recent_ts(minutes_ago=0),
             "message": {"usage": {
                 "input_tokens": 5, "output_tokens": 8,
                 "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0,
@@ -459,7 +479,7 @@ def test_headroom_malformed_proxy_file(tmp_path):
     proxy = tmp_path / "proxy_savings.json"
     events = tmp_path / "savings_events.jsonl"
     proxy.write_text("{not valid json", encoding="utf-8")
-    _write_jsonl(events, [json.dumps({"ts": "2026-08-20T00:00:00Z", "saved": 5})])
+    _write_jsonl(events, [json.dumps({"ts": _recent_ts(hours_ago=1), "saved": 5})])
     result = stack_metrics.load_headroom(7, proxy_path=proxy, events_path=events)
     # proxy is broken but events parsed fine -> overall still available via events
     assert result["available"] is True
@@ -471,10 +491,10 @@ def test_headroom_well_formed(tmp_path):
     proxy = tmp_path / "proxy_savings.json"
     events = tmp_path / "savings_events.jsonl"
     _write_json(proxy, {"history": [
-        {"timestamp": "2026-08-20T00:00:00Z", "total_tokens_saved": 100,
+        {"timestamp": _recent_ts(hours_ago=1), "total_tokens_saved": 100,
          "compression_savings_usd": 0.5},
     ]})
-    _write_jsonl(events, [json.dumps({"ts": "2026-08-20T00:00:00Z", "saved": 5})])
+    _write_jsonl(events, [json.dumps({"ts": _recent_ts(hours_ago=1), "saved": 5})])
     result = stack_metrics.load_headroom(7, proxy_path=proxy, events_path=events)
     assert result["window_tokens_saved"] == 100
     tok_metric = next(m for m in result["metrics"] if m.name == "headroom_tokens_saved")
@@ -504,7 +524,7 @@ def test_procedural_memory_malformed_row_is_skipped_not_fatal(tmp_path):
     f = d / "2026-08-20.jsonl"
     _write_jsonl(f, [
         "{not valid json",
-        json.dumps({"started_at": "2026-08-20T00:00:00Z", "ok": True, "duration_ms": 50}),
+        json.dumps({"started_at": _recent_ts(hours_ago=1), "ok": True, "duration_ms": 50}),
     ])
     result = stack_metrics.load_procedural_memory(7, runs_dir=d)
     assert result["run_count"] == 1
@@ -515,8 +535,8 @@ def test_procedural_memory_well_formed(tmp_path):
     d = tmp_path / "runs"
     f = d / "2026-08-20.jsonl"
     _write_jsonl(f, [
-        json.dumps({"started_at": "2026-08-20T00:00:00Z", "ok": True, "duration_ms": 50}),
-        json.dumps({"started_at": "2026-08-20T00:01:00Z", "ok": False, "duration_ms": 30}),
+        json.dumps({"started_at": _recent_ts(minutes_ago=1), "ok": True, "duration_ms": 50}),
+        json.dumps({"started_at": _recent_ts(minutes_ago=0), "ok": False, "duration_ms": 30}),
     ])
     result = stack_metrics.load_procedural_memory(7, runs_dir=d)
     assert result["run_count"] == 2
@@ -555,7 +575,7 @@ def test_skill_invocations_malformed_events_field(tmp_path):
 def test_skill_invocations_well_formed(tmp_path):
     p = tmp_path / "skill-usage.json"
     _write_json(p, {"events": [
-        {"skill": "foo", "timestamp": "2026-08-20T00:00:00Z"},
+        {"skill": "foo", "timestamp": _recent_ts(hours_ago=1)},
         {"skill": "bar", "timestamp": "2020-01-01T00:00:00Z"},  # outside window
     ]})
     result = stack_metrics.load_skill_invocations(7, usage_path=p)
@@ -604,7 +624,7 @@ def test_rtk_malformed_db_file(tmp_path):
 def test_rtk_malformed_row_null_numeric_fields(tmp_path):
     p = tmp_path / "history.db"
     _sqlite(p, RTK_DDL, rows=[
-        (1, "2026-08-20T00:00:00+00:00", "ls", "rtk ls", None, None, None, None, 0, ""),
+        (1, _recent_ts(hours_ago=1), "ls", "rtk ls", None, None, None, None, 0, ""),
     ])
     result = stack_metrics.load_rtk(7, db_path=p)
     assert result["available"] is True
@@ -614,8 +634,8 @@ def test_rtk_malformed_row_null_numeric_fields(tmp_path):
 def test_rtk_well_formed_and_tagged_measured_caveated(tmp_path):
     p = tmp_path / "history.db"
     _sqlite(p, RTK_DDL, rows=[
-        (1, "2026-08-20T00:00:00+00:00", "cat x", "rtk read", 10, 5, 2, 20.0, 3, "/repo"),
-        (2, "2026-08-20T00:01:00+00:00", "grep y", "rtk grep", 8, 4, 1, 12.5, 1, "/repo"),
+        (1, _recent_ts(minutes_ago=1), "cat x", "rtk read", 10, 5, 2, 20.0, 3, "/repo"),
+        (2, _recent_ts(minutes_ago=0), "grep y", "rtk grep", 8, 4, 1, 12.5, 1, "/repo"),
     ])
     result = stack_metrics.load_rtk(7, db_path=p)
     assert result["window_command_count"] == 2
@@ -662,8 +682,8 @@ def test_claude_mem_well_formed_and_tagged_indicative(tmp_path):
     epoch_now_ms = int(time.time() * 1000)
     p = tmp_path / "claude-mem.db"
     _sqlite(p, CLAUDE_MEM_DDL, rows=[
-        (1, 500, "2026-08-20T00:00:00Z", epoch_now_ms),
-        (2, 300, "2026-08-20T00:01:00Z", epoch_now_ms),
+        (1, 500, _recent_ts(minutes_ago=1), epoch_now_ms),
+        (2, 300, _recent_ts(minutes_ago=0), epoch_now_ms),
     ])
     result = stack_metrics.load_claude_mem(7, db_path=p)
     assert result["window_discovery_tokens_sum"] == 800
@@ -718,7 +738,7 @@ def test_openwolf_well_formed_and_tagged_self_reported(tmp_path):
         "version": 1,
         "lifetime": {"anatomy_hits": 500, "estimated_savings_vs_bare_cli": 12345},
         "sessions": [
-            {"started": "2026-08-20T00:00:00Z", "ended": "2026-08-20T00:10:00Z"},
+            {"started": _recent_ts(minutes_ago=10), "ended": _recent_ts(minutes_ago=0)},
         ],
     })
     result = stack_metrics.load_openwolf(7, dev_local_root=root)
@@ -827,7 +847,7 @@ def test_build_snapshot_totals_are_basis_partitioned_not_cross_basis(tmp_path, m
 
     costs = tmp_path / "costs.jsonl"
     _write_jsonl(costs, [json.dumps({
-        "timestamp": "2026-08-20T00:00:00Z", "session_id": "s1",
+        "timestamp": _recent_ts(hours_ago=1), "session_id": "s1",
         "estimated_cost_usd": 1.0, "input_tokens": 100, "output_tokens": 50,
         "cache_write_tokens": 0, "cache_read_tokens": 0,
     })])
@@ -835,7 +855,7 @@ def test_build_snapshot_totals_are_basis_partitioned_not_cross_basis(tmp_path, m
 
     transcripts = tmp_path / "projects" / "proj1"
     _write_jsonl(transcripts / "session1.jsonl", [json.dumps({
-        "type": "assistant", "timestamp": "2026-08-20T00:00:00Z",
+        "type": "assistant", "timestamp": _recent_ts(hours_ago=1),
         "message": {"usage": {
             "input_tokens": 10, "output_tokens": 20,
             "cache_creation_input_tokens": 1, "cache_read_input_tokens": 2,
@@ -845,7 +865,7 @@ def test_build_snapshot_totals_are_basis_partitioned_not_cross_basis(tmp_path, m
 
     proxy = tmp_path / "proxy_savings.json"
     _write_json(proxy, {"history": [
-        {"timestamp": "2026-08-20T00:00:00Z", "total_tokens_saved": 7,
+        {"timestamp": _recent_ts(hours_ago=1), "total_tokens_saved": 7,
          "compression_savings_usd": 0.1},
     ]})
     monkeypatch.setattr(stack_metrics, "DEFAULT_PROXY_SAVINGS", proxy)
@@ -877,3 +897,143 @@ def test_build_snapshot_totals_are_basis_partitioned_not_cross_basis(tmp_path, m
     ]
     # every total must itself be JSON-serializable as part of the snapshot
     json.dumps(snapshot)
+
+
+# ---------------------------------------------------------------------------
+# Standing regression: injection must keep reaching the actual read, per
+# loader. Each test injects a fixture holding a deliberately implausible
+# sentinel value and asserts that exact value comes back — not a plausible
+# rounded number, so a loader silently falling back to a default/global path
+# is caught immediately rather than passing by coincidence. All timestamps
+# use _recent_ts so these tests cannot themselves become time bombs.
+# ---------------------------------------------------------------------------
+
+def test_injection_sentinel_load_claude_code_spend(tmp_path):
+    p = tmp_path / "costs.jsonl"
+    _write_jsonl(p, [json.dumps({
+        "timestamp": _recent_ts(hours_ago=1), "session_id": "sentinel-session",
+        "estimated_cost_usd": 0.0, "input_tokens": 8675309, "output_tokens": 0,
+        "cache_write_tokens": 0, "cache_read_tokens": 0,
+    })])
+    result = stack_metrics.load_claude_code_spend(7, costs_path=p)
+    assert result["total_tokens"] == 8675309
+
+
+def test_injection_sentinel_load_session_transcripts(tmp_path):
+    f = tmp_path / "projects" / "proj1" / "session1.jsonl"
+    _write_jsonl(f, [json.dumps({
+        "type": "assistant", "timestamp": _recent_ts(hours_ago=1),
+        "message": {"usage": {
+            "input_tokens": 9137331, "output_tokens": 0,
+            "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0,
+        }},
+    })])
+    result = stack_metrics.load_session_transcripts(7, transcripts_dir=tmp_path / "projects")
+    assert result["input_tokens"] == 9137331
+
+
+def test_injection_sentinel_load_headroom(tmp_path):
+    proxy = tmp_path / "proxy_savings.json"
+    events = tmp_path / "savings_events.jsonl"
+    _write_json(proxy, {"history": [
+        {"timestamp": _recent_ts(hours_ago=1), "total_tokens_saved": 8246611,
+         "compression_savings_usd": 0.0},
+    ]})
+    events.write_text("", encoding="utf-8")
+    result = stack_metrics.load_headroom(7, proxy_path=proxy, events_path=events)
+    assert result["window_tokens_saved"] == 8246611
+
+
+def test_injection_sentinel_load_procedural_memory(tmp_path):
+    d = tmp_path / "runs"
+    f = d / "today.jsonl"
+    _write_jsonl(f, [json.dumps({
+        "started_at": _recent_ts(hours_ago=1), "ok": True, "duration_ms": 7352941,
+    })])
+    result = stack_metrics.load_procedural_memory(7, runs_dir=d)
+    assert result["total_duration_ms"] == 7352941
+
+
+def test_injection_sentinel_load_skill_invocations(tmp_path):
+    p = tmp_path / "skill-usage.json"
+    _write_json(p, {"events": [{"skill": "sentinel", "timestamp": _recent_ts(hours_ago=1)}] * 647})
+    result = stack_metrics.load_skill_invocations(7, usage_path=p)
+    assert result["window_event_count"] == 647
+
+
+def test_injection_sentinel_load_rtk(tmp_path):
+    p = tmp_path / "history.db"
+    _sqlite(p, RTK_DDL, rows=[
+        (1, _recent_ts(hours_ago=1), "ls", "rtk ls", 5551212, 0, 0, 0.0, 0, ""),
+    ])
+    result = stack_metrics.load_rtk(7, db_path=p)
+    assert result["window_input_tokens"] == 5551212
+
+
+def test_injection_sentinel_load_claude_mem(tmp_path):
+    p = tmp_path / "claude-mem.db"
+    now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    _sqlite(p, CLAUDE_MEM_DDL, rows=[
+        (1, 4442221, _recent_ts(hours_ago=1), now_ms),
+    ])
+    result = stack_metrics.load_claude_mem(7, db_path=p)
+    assert result["window_discovery_tokens_sum"] == 4442221
+
+
+def test_injection_sentinel_load_openwolf(tmp_path):
+    root = tmp_path / "dev-local"
+    ledger = root / "repo1" / ".wolf" / "token-ledger.json"
+    _write_json(ledger, {
+        "version": 1,
+        "lifetime": {"anatomy_hits": 1, "estimated_savings_vs_bare_cli": 3133731},
+        "sessions": [{"started": _recent_ts(hours_ago=1), "ended": _recent_ts(hours_ago=1)}],
+    })
+    result = stack_metrics.load_openwolf(7, dev_local_root=root)
+    assert result["metrics"][0].value == 3133731
+
+
+def test_injection_sentinel_load_codex_trial_log(tmp_path):
+    p = tmp_path / "log.md"
+    rows = "\n".join(f"| 2026-08-2{i % 7} | sentinel row {i} |" for i in range(271))
+    p.write_text("| date | note |\n|---|---|\n" + rows, encoding="utf-8")
+    result = stack_metrics.load_codex_trial_log(vault_path=p)
+    assert result["row_count"] == 271
+
+
+# ---------------------------------------------------------------------------
+# Guard against reintroducing the class of bug that made 12 tests in this
+# file go red: a fixture timestamp hardcoded to a specific calendar date
+# silently drifts outside a days-based cutoff window as real time passes,
+# and reads as a loader defect rather than a stale fixture. This scans the
+# test file's own source rather than relying on remembering the rule.
+# ---------------------------------------------------------------------------
+
+def test_no_hardcoded_absolute_date_literals_in_fixtures():
+    """Any ISO-8601 date+time literal ("YYYY-MM-DDTHH:MM:SS...") dated 2025
+    or later found in this file's own source — outside `_recent_ts`'s own
+    docstring, which uses one only as a worked example of what NOT to do —
+    is exactly the bug that made 12 tests here go red while the injection
+    mechanism they were meant to exercise worked correctly the whole time.
+    Use `_recent_ts(...)` instead. Dates before 2025 (e.g. the deliberate
+    "outside window" sentinel in test_skill_invocations_well_formed, or the
+    codex-trial-log's plain YYYY-MM-DD markdown dates, which have no time
+    component and are never checked against a days-cutoff) are unambiguously
+    far enough from "now" — or not used for windowing at all — to be exempt.
+    """
+    source = Path(__file__).read_text(encoding="utf-8")
+
+    marker = "def _recent_ts("
+    start = source.index(marker)
+    rest = source[start + len(marker):]
+    next_def = re.search(r"\ndef ", rest)
+    end = start + len(marker) + (next_def.start() if next_def else len(rest))
+    scanned = source[:start] + source[end:]
+
+    violations = [
+        m.group(0)
+        for m in re.finditer(r'"20(2[5-9]|[3-9]\d)-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[^"]*"', scanned)
+    ]
+    assert not violations, (
+        "hardcoded absolute-date fixture literal(s) found — use _recent_ts(...) "
+        f"instead so this file doesn't silently go stale-and-red again: {violations}"
+    )

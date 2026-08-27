@@ -34,6 +34,7 @@ def parse_iso(ts: str) -> datetime:
 def load_latest_costs_per_session(
     days: int | None = None,
     session_ids: set[str] | None = None,
+    costs_path: Path | None = None,
 ) -> dict:
     """Read costs.jsonl and return the latest row per session_id.
 
@@ -44,6 +45,11 @@ def load_latest_costs_per_session(
     - `session_ids`: if set, restrict to only these session_ids (still applying
       the `days` cutoff, if any). Used by skill_roi.py to look up costs for a
       known set of sessions without scanning the whole file's history twice.
+    - `costs_path`: if set, read from this path instead of the module-level
+      `COSTS_JSONL` default — the explicit way callers (tests, stack_metrics.py)
+      inject a fixture file. When omitted (the default, and what every existing
+      caller in savings_scorecard.py/skill_roi.py does today), behavior is
+      unchanged: reads `COSTS_JSONL`.
 
     Returns:
         {
@@ -55,10 +61,11 @@ def load_latest_costs_per_session(
                                                         # regardless of `days`
         }
     """
-    if not COSTS_JSONL.exists():
+    path = costs_path if costs_path is not None else COSTS_JSONL
+    if not path.exists():
         return {
             "available": False,
-            "error": f"not found: {COSTS_JSONL}",
+            "error": f"not found: {path}",
             "sessions": {},
             "all_time_row_count": 0,
             "last_event_ts": None,
@@ -74,7 +81,7 @@ def load_latest_costs_per_session(
     last_event_ts: datetime | None = None
 
     try:
-        with COSTS_JSONL.open("r", encoding="utf-8", errors="replace") as f:
+        with path.open("r", encoding="utf-8", errors="replace") as f:
             for line in f:
                 line = line.strip()
                 if not line:

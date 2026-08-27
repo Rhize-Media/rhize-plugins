@@ -8,6 +8,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.12.0 → 0.12.1 (patch); marketplace 2.43.0 → 2.43.1.
+- _2026-08-27_ **rhize-ops/skill-monitor — hardened `cost_metrics.load_latest_costs_per_session`'s
+  fixture-injection idiom, and fixed the actual cause of 12 red tests in `test_stack_metrics.py`.**
+  `stack_metrics.load_claude_code_spend`'s `costs_path` parameter reached the real file read only
+  by temporarily reassigning the shared module global `cost_metrics.COSTS_JSONL` around the call —
+  it worked (Python resolves a function's free variables against its module's `__dict__` at call
+  time), but was fragile, and a static read of the signature made it look broken. It now takes an
+  explicit `costs_path` parameter instead, with no shared-state mutation; `savings_scorecard.py`
+  and `skill_roi.py` are unaffected (they never pass a path). **The tests were never reading
+  production data** — every one of the 12 failing tests correctly read its own fixture; the fixture
+  timestamps were hardcoded to a specific past calendar date, and as real time passed they silently
+  fell outside the `days=7` cutoff window, so the loader correctly excluded them. Fixed by replacing
+  every hardcoded fixture timestamp checked against a days-based cutoff with a new `_recent_ts()`
+  helper computed relative to `datetime.now()`, and added a guard test that scans the test file's
+  own source for reintroduced absolute-date literals. Also added 9 standing sentinel-injection
+  regression tests (one per loader that accepts a path/dir override), each verified by execution to
+  round-trip a deliberately implausible value. `python3 -m pytest tests/ -q`: 136 passed, 0 failed,
+  0 skipped.
 - _2026-08-27_ version bump — **rhize-ops** 0.11.0 → 0.12.0 (minor); marketplace 2.42.1 → 2.43.0.
 - _2026-08-27_ **rhize-ops/skill-monitor — three guard fixes, and a new measurement whose
   directional verdicts are deliberately SUPPRESSED.** (1) `sum_measured()` had two orthogonal
