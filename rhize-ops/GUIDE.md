@@ -4,16 +4,17 @@ This guide explains what the rhize-ops plugin does and how to get the most out o
 
 ## What This Plugin Does
 
-rhize-ops covers two everyday ops jobs:
+rhize-ops covers three everyday ops jobs:
 
 - **Handing work off to a teammate** without losing context — turning a messy session into a clear, encouraging task package they can actually execute.
 - **Watching skill health** — seeing which of your installed skills are earning their keep, so you know what to prune.
+- **Optimizing parallel-agent work** — choosing one safe execution strategy for real work and gathering evidence through isolated comparisons when a replayable fixture exists.
 
 It's built for anyone running a Claude Code/Cowork setup who regularly delegates work and wants visibility into their own tool usage. `delegate-to-teammate` is config-driven — no recipient, workspace, or project data is hardcoded — so it works for any team once you run its setup wizard once.
 
 ## Setup
 
-Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` needs no setup.
+Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` and `parallel-agent-optimization` need no setup. The latter creates its private local receipt directory on first use.
 
 ## Skills Reference
 
@@ -37,7 +38,40 @@ Every approved task's Jira description and Slack thread reply also share a stabl
 **Example prompt:**
 > "Show me the skill dashboard" or "/skill-dashboard"
 
+### parallel-agent-optimization
+
+**When to use it:** When agent dispatch might materially help, or when you want to compare the
+installed ECC and Superpowers planning resources with the Rhize routing policy. Use `apply` for
+real work and `compare` only for a safe replayable repository fixture. The skill will keep a
+dependency chain or shared-state task sequential even when the word “parallel” appears in the
+request.
+
+**What it produces:** An `apply` run selects exactly one of baseline, ECC, Superpowers, or Rhize,
+executes it under a one-writer safety envelope, verifies the result, and appends one observational
+receipt. A `compare` run creates four isolated arms from the same seed, runs them in a
+counterbalanced order, and stores controlled receipts separately. There is no combined
+ECC+Superpowers arm, and the Rhize arm chooses at most one upstream resource.
+
+Receipts include coarse task class, variant, timing/overlap, tool/token coverage, agent counts,
+verification, correctness, collisions, and rework. They cannot contain prompts, code, commands,
+paths, names, URLs, session IDs, or issue IDs.
+
+**Example prompt:**
+> "/rhize-ops:parallel-optimize apply audit these three independent modules and verify the findings"
+
+For a controlled fixture:
+> "/rhize-ops:parallel-optimize compare evals/parallel-agent-skills/tasks/mixed-verification"
+
 ## Commands Reference
+
+### /parallel-optimize
+
+**What it's for:** A stable entry point to the execution and measurement contract. `apply` runs
+one strategy on the actual task; `compare` runs four separate arms only when the task is isolated
+and replayable; `report` renders observational and controlled evidence in separate sections.
+
+**Example usage:**
+> "/rhize-ops:parallel-optimize report all" — inspect accumulated evidence without rerunning any task.
 
 ### /delegate-setup
 
@@ -86,3 +120,16 @@ Two scripts under `skill-monitor/` give you cost visibility on top of the skill-
 **Want fresher dashboard data mid-week?** Ask to "refresh the dashboard" — this reruns the monitor before rendering. Normal renders just reuse whatever snapshots have already accumulated (fast, no rescan).
 
 **Bump-version dry-runs by default.** Nothing gets written until you confirm the plan; run with `--check` any time to validate versions without making changes.
+
+**A comparison refused to run?** The command will not clone a live task into multiple arms. Supply
+a deterministic fixture or disposable worktree seed with predeclared checks, then retry `compare`.
+Use `apply` for the actual live task.
+
+**Token/tool coverage says unavailable?** That is an honest host limitation, not zero usage. The
+receipt keeps the field null with a reason and the report shows measured-run coverage instead of
+estimating a value.
+
+**Do direct ECC or Superpowers invocations add receipts?** No. Only runs routed through
+`/rhize-ops:parallel-optimize` use this receipt contract. The existing skill monitor may still count
+some direct Claude-host skill launches, but those historical counts do not contain matched outcome
+evidence and are not mixed into these reports.

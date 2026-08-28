@@ -723,6 +723,12 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
+      "to": "command:rhize-ops/parallel-optimize",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
       "to": "command:rhize-ops/rhize-setup",
       "type": "contains"
     },
@@ -730,6 +736,12 @@
       "from": "plugin:rhize-ops",
       "source": "marketplace",
       "to": "skill:rhize-ops/delegate-to-teammate",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
+      "to": "skill:rhize-ops/parallel-agent-optimization",
       "type": "contains"
     },
     {
@@ -1781,6 +1793,42 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "relations-catalog",
+      "to": "external:ecc-parallel-execution-optimizer",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "relations-catalog",
+      "to": "external:superpowers-dispatching-parallel-agents",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-ops/skill-dashboard",
       "source": "frontmatter",
       "to": "mcp:chrome-devtools",
@@ -2360,6 +2408,13 @@
       "path": "rhize-ops/commands/delegate-setup.md"
     },
     {
+      "description": "Safely choose, run, and measure one parallel-agent strategy, or explicitly compare isolated baseline, ECC, Superpowers, and Rhize arms",
+      "id": "command:rhize-ops/parallel-optimize",
+      "kind": "command",
+      "name": "parallel-optimize",
+      "path": "rhize-ops/commands/parallel-optimize.md"
+    },
+    {
       "description": "",
       "id": "command:rhize-ops/rhize-setup",
       "kind": "command",
@@ -2533,6 +2588,12 @@
       "name": "ecc:kotlin-build-resolver (agent)"
     },
     {
+      "description": "Maintained ECC lane and dependency planning resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization.",
+      "id": "external:ecc-parallel-execution-optimizer",
+      "kind": "external",
+      "name": "ecc:parallel-execution-optimizer (skill)"
+    },
+    {
       "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
       "id": "external:ecc-react-build-resolver",
       "kind": "external",
@@ -2628,6 +2689,12 @@
       "id": "external:skill-forge",
       "kind": "external",
       "name": "@rhize/skill-forge"
+    },
+    {
+      "description": "Maintained Superpowers focused dispatch resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization.",
+      "id": "external:superpowers-dispatching-parallel-agents",
+      "kind": "external",
+      "name": "superpowers:dispatching-parallel-agents (skill)"
     },
     {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py\"",
@@ -3035,7 +3102,7 @@
       "path": "rhize-devflow"
     },
     {
-      "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
+      "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -3334,6 +3401,14 @@
       "kind": "skill",
       "name": "delegate-to-teammate",
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
+    },
+    {
+      "contentHash": "c01b0082de5ccf44841bb34e47fd799e48b4546cb3a7410d98d85e655490db86",
+      "description": "Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. Use when the user invokes `/rhize-ops:parallel-optimize`, asks to optimize parallel-agent execution, wants to benchmark ECC versus Superpowers versus the Rhize policy, or wants a controlled comparison of parallel-agent approaches. Ordinary work runs exactly one strategy and records observational evidence; multi-arm comparisons are explicit, isolated, replayable, and never duplicate a live task. Never load ECC and Superpowers together for one arm.",
+      "id": "skill:rhize-ops/parallel-agent-optimization",
+      "kind": "skill",
+      "name": "parallel-agent-optimization",
+      "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md"
     },
     {
       "contentHash": "8c33b15f947bc9aebe6b638fa431acc49e2ef658d12b22e8a57734e64791cb4f",

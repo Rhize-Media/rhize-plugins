@@ -157,6 +157,10 @@
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/simplify"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-ops/parallel-agent-optimization"
       }
     ],
     "vercel": [
@@ -1004,6 +1008,33 @@
         {
           "kind": "tag",
           "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/parallel-agent-optimization": [
+        {
+          "kind": "name",
+          "label": "parallel-agent-optimization",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
           "weight": 2
         },
         {

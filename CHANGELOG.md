@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.12.1 → 0.13.0 (minor); marketplace 2.44.0 → 2.45.0.
+- _2026-08-27_ **rhize-ops — approved Forge DEFER+wrap for parallel-agent optimization.** Added
+  `parallel-agent-optimization` and `/rhize-ops:parallel-optimize`: real work runs one baseline,
+  ECC, Superpowers, or Rhize arm and appends observational evidence; explicit comparisons run four
+  separate counterbalanced arms only in replayable isolated environments. The Rhize arm selects at
+  most one upstream resource, every checkout has one writer, live tasks are never duplicated, and
+  controlled runs prohibit live mutations. A stdlib receipt helper uses exact-key validation and
+  private append-only observational/controlled stores, derives real overlap from agent intervals,
+  retains unavailable token/tool coverage honestly, and rejects prompts, code, commands, paths,
+  names, URLs, and session/thread/issue identifiers. Provenance records both maintained MIT
+  dependencies and reuses the existing `ai-stack-version-drift` boundary instead of adding a
+  scheduler. Decision and smoke evidence remain linked to RT-129.
+
 - _2026-08-27_ version bump — **rhize-context-manager** 0.15.1 → 0.16.0 (minor); marketplace 2.43.1 → 2.44.0.
 - _2026-08-27_ **rhize-context-manager — real-provider context-tool dogfood spine.** Added
   opt-in, fail-silent selection/finalization hooks; strict local configuration, atomic leases,
