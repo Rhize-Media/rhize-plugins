@@ -19,6 +19,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from context_experiments.aggregate import aggregate_receipts
     from context_experiments.assignment import assign_arms
+    from context_experiments.capture_health import evaluate_capture_health
     from context_experiments.config import (
         arm_capability,
         default_config_path,
@@ -53,6 +54,7 @@ if __package__ in {None, ""}:
 else:
     from .aggregate import aggregate_receipts
     from .assignment import assign_arms
+    from .capture_health import evaluate_capture_health
     from .config import (
         arm_capability,
         default_config_path,
@@ -1002,6 +1004,18 @@ def command_report() -> int:
     return 0
 
 
+def command_capture_health(args: argparse.Namespace) -> int:
+    config = load_config(Path(args.config).expanduser() if args.config else None)
+    data_dir = Path(args.data_dir).expanduser() if args.data_dir else default_data_dir()
+    report = evaluate_capture_health(
+        data_dir,
+        lease_ttl_seconds=config.lease_ttl_seconds,
+        config=config,
+    )
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0 if report["ok"] else 2
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1010,6 +1024,10 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("hook-select")
     subparsers.add_parser("hook-finalize")
     subparsers.add_parser("report")
+
+    capture_health = subparsers.add_parser("capture-health")
+    capture_health.add_argument("--config")
+    capture_health.add_argument("--data-dir")
 
     arm = subparsers.add_parser("arm")
     arm.add_argument("--capability", choices=[item.value for item in Capability], required=True)
@@ -1070,6 +1088,7 @@ def main(argv: list[str] | None = None) -> int:
         "verify-pack": lambda: command_verify_pack(args),
         "mgrep-preflight": lambda: command_mgrep_preflight(args),
         "report": command_report,
+        "capture-health": lambda: command_capture_health(args),
     }
     try:
         return commands[args.command]()

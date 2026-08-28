@@ -162,6 +162,39 @@ because it isn't explained by any known harness behavior.
 
 Wired into the `scheduled-tasks` MCP (skill: `weekly-skill-audit`). Fires Monday mornings. See `/Users/jamesdeola/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`.
 
+### Daily benchmark-capture watchdog
+
+`benchmark_status.py` is the reliability gate for the procedural-memory and
+context-experiment measurements. It does not infer success from a date-only row:
+`bench-append` must leave a private timestamped receipt whose row hash, date, and Arm match
+an exact row in the benchmark note and whose `runId` resolves to a successful
+`bench-append` telemetry run. A later manual or untracked append therefore cannot make a
+scheduled run look captured. The optional context runner invokes the real
+`capture-health` evaluator, which keeps Arm A/B counts separate and reports malformed,
+failed, incomplete, missing-arm, missing-metric, non-comparable, missing-history, and
+expired-pending evidence.
+
+```bash
+python3 benchmark_status.py \
+  --context-runner ../../rhize-context-manager/scripts/context_experiments/runner.py \
+  --alert-sentry \
+  --sentry-checkin-slug
+```
+
+Exit `0` means no capture findings, exit `2` means the watchdog ran and found unavailable
+measurements, and exit `3` means Sentry delivery or the watchdog check-in failed. Findings
+use stable fingerprints and redact absolute paths. `indeterminate_same_day` is a warning;
+missing rows, invalid receipts, context-capture failures, and evaluator failures are errors.
+`--sentry-checkin-slug` requires `--alert-sentry`. The final Sentry Cron check-in is sent
+only after evaluation and incident delivery complete,
+so a crash, scheduler miss, or broken alert path becomes a missed-check-in incident rather
+than a false healthy signal.
+
+The DSN is read on demand from `RHIZE_BENCHMARK_SENTRY_DSN` or the macOS Keychain service
+`Rhize Agent Evals Sentry DSN`; it is never committed or exported globally. Unit fixtures
+exercise failure branches only. Adoption evidence must still come from real Arm A/B runs and
+real Sentry delivery verification.
+
 ## Workflow — using the dashboard with the weekly audit
 
 ### Monday morning (no action required)

@@ -261,6 +261,20 @@ entry-hash drift. The five-case native corpus plus the nine upstream cases total
 context cases; native v1 passed its controlled gate with zero critical misses and a 39.02% median
 reduction across four accepted cases. This supports an advanced opt-in pilot, not default use.
 
+Capture reliability is independently queryable and fail-closed:
+
+```bash
+python3 scripts/context_experiments/runner.py capture-health
+```
+
+The command strictly parses every receipt and pending selection, reconciles stored completed
+receipts against each capability's `completedRuns`, keeps completed/incomplete Arm A and Arm B
+counts separate per capability, and requires at least one metric per executed Arm plus a
+shared name/unit/evidence tuple for completed A/B receipts. It exits `2` for malformed artifacts,
+failed or incomplete receipts, missing-arm/metric/history evidence, non-comparable A/B
+measurements, or a pending selection that outlived its lease without producing a receipt. It
+never generates benchmark evidence or substitutes a provider double for a real dogfood run.
+
 ### Refinement-pipeline hooks (also in `setup/manifest.json`)
 
 Two of the nine live under `hooks/` directly as refinement-pipeline hooks. They arrived on 2026-08-09, moved

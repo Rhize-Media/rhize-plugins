@@ -3,6 +3,24 @@
 These evals use the real pinned providers. Test-local doubles may exercise failure
 branches, but they never generate benchmark rows and do not count toward adoption gates.
 
+## Capture-health gate
+
+Every live context experiment is evaluated separately from provider quality:
+
+```bash
+python3 rhize-context-manager/scripts/context_experiments/runner.py capture-health
+```
+
+The report validates the full receipt schema and model invariants, reconciles receipt history
+with configured `completedRuns`, reports malformed receipt or pending files, separates
+completed/incomplete Arm A and Arm B counts by capability, and flags failed, incomplete,
+missing-arm, missing-metric, non-comparable, missing-history, and expired-pending captures.
+A completed paired receipt needs at least one metric for each Arm and a shared metric
+name/unit/evidence tuple. A healthy report exits `0`; actionable evidence loss exits `2`. Duplicate
+failures can be grouped downstream for alerting, but the source report retains each affected
+artifact. These tests verify the measurement pipeline only and never satisfy a provider
+adoption gate.
+
 ## Local semantic retrieval
 
 The paired retrieval runner executes real scoped ripgrep searches as Arm A and real local

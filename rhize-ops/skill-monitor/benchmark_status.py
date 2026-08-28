@@ -8,7 +8,7 @@ run, or did it silently no-op? The capture pipeline (`bench-append`) has already
 failed silently at least once — this module exists to turn "did it land?" into a
 queryable JSON snapshot instead of something discovered by eyeballing a table.
 
-Four read-only data sources:
+Five local data sources:
   1. The four benchmark notes' `## Metrics log` markdown tables (vault paths
      below). The four notes have DIFFERENT column sets — this module does not
      assume a shared schema; it reports each note's own header verbatim.
@@ -22,6 +22,13 @@ Four read-only data sources:
      — existence only, no run-time log) and the Desktop app's registry JSON at
      `~/Library/Application Support/Claude/local-agent-mode-sessions/*/*/
      scheduled-tasks.json` (has real `lastRunAt` timestamps keyed by task id).
+  5. Private timestamped `bench-append` receipts and, when `--context-runner` is
+     supplied, the context experiment's strict `capture-health` report.
+
+The default run is local-only. `--alert-sentry` explicitly sends stable,
+path-redacted measurement incidents using an on-demand env/Keychain DSN, and
+`--sentry-checkin-slug` closes the run with a Sentry Cron check-in only after
+evaluation and incident delivery complete.
 
 The `liveness` section is the actual point of this module: per routine, did the
 routine run (per the scheduler) more recently than the newest row logged in its
@@ -36,17 +43,24 @@ date-only comparison.
 System python3 here is 3.14 and has no `jsonschema` — this module deliberately
 imports nothing beyond the standard library.
 
-Run as: python3 benchmark_status.py [--json]
+Run as: python3 benchmark_status.py [--json] [--context-runner PATH]
 """
 from __future__ import annotations
 
 import argparse
+import getpass
+import hashlib
 import json
+import os
 import re
+import secrets
+import stat
+import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from urllib import parse, request
 from zoneinfo import ZoneInfo
 
 HOME = Path.home()
@@ -81,6 +95,9 @@ DESKTOP_SESSIONS_ROOT = HOME / "Library" / "Application Support" / "Claude" / "l
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
 OUTPUT_PATH = DATA_DIR / "benchmark-status.json"
+BENCHMARK_RECEIPTS_DIR = HOME / ".rhize" / "procedural-memory" / "benchmark-receipts"
+SENTRY_KEYCHAIN_SERVICE = "Rhize Agent Evals Sentry DSN"
+SENTRY_CRON_SLUG = "rhize-agent-evals-capture-watchdog"
 
 # Substrings (case-insensitive) matched against Desktop scheduler task `id`s to
 # find the entry(ies) that correspond to each benchmark-instrumented routine.
@@ -142,6 +159,7 @@ def parse_metrics_table(text: str) -> dict[str, Any]:
             "error": "no '## Metrics log' section found",
             "columns": [],
             "raw_rows": [],
+            "raw_row_hashes": [],
             "malformed_rows": [],
         }
 
@@ -162,6 +180,7 @@ def parse_metrics_table(text: str) -> dict[str, Any]:
             "error": "'## Metrics log' section found but no table under it",
             "columns": [],
             "raw_rows": [],
+            "raw_row_hashes": [],
             "malformed_rows": [],
         }
 
@@ -172,6 +191,7 @@ def parse_metrics_table(text: str) -> dict[str, Any]:
         data_start += 1  # skip the |---|---| separator row
 
     raw_rows: list[dict[str, str]] = []
+    raw_row_hashes: list[str] = []
     malformed_rows: list[dict[str, Any]] = []
     k = data_start
     while k < section_end:
@@ -190,9 +210,16 @@ def parse_metrics_table(text: str) -> dict[str, Any]:
             )
         else:
             raw_rows.append(dict(zip(columns, cells)))
+            raw_row_hashes.append(hashlib.sha256(stripped.encode()).hexdigest())
         k += 1
 
-    return {"error": None, "columns": columns, "raw_rows": raw_rows, "malformed_rows": malformed_rows}
+    return {
+        "error": None,
+        "columns": columns,
+        "raw_rows": raw_rows,
+        "raw_row_hashes": raw_row_hashes,
+        "malformed_rows": malformed_rows,
+    }
 
 
 def summarize_note(text: str) -> dict[str, Any]:
@@ -208,6 +235,7 @@ def summarize_note(text: str) -> dict[str, Any]:
             "rows_by_arm": {},
             "newest_row_date": None,
             "newest_row_date_by_arm": {},
+            "row_evidence": {},
             "malformed_rows": parsed["malformed_rows"],
             "unparseable_dates": [],
         }
@@ -220,9 +248,16 @@ def summarize_note(text: str) -> dict[str, Any]:
     newest_by_arm: dict[str, date] = {}
     newest_overall: date | None = None
     unparseable_dates: list[dict[str, Any]] = []
+    row_evidence: dict[str, dict[str, str]] = {}
 
-    for idx, rec in enumerate(parsed["raw_rows"]):
+    for idx, (rec, row_sha256) in enumerate(
+        zip(parsed["raw_rows"], parsed["raw_row_hashes"], strict=True)
+    ):
         arm_key = (rec.get(arm_col, "").strip() if arm_col else "") or "<unknown>"
+        row_evidence[row_sha256] = {
+            "arm": arm_key,
+            "date": rec.get(date_col, "").strip() if date_col else "",
+        }
         rows_by_arm[arm_key] = rows_by_arm.get(arm_key, 0) + 1
 
         if date_col is None:
@@ -243,6 +278,7 @@ def summarize_note(text: str) -> dict[str, Any]:
         "rows_by_arm": rows_by_arm,
         "newest_row_date": newest_overall,
         "newest_row_date_by_arm": newest_by_arm,
+        "row_evidence": row_evidence,
         "malformed_rows": parsed["malformed_rows"],
         "unparseable_dates": unparseable_dates,
     }
@@ -262,6 +298,7 @@ def load_note_summary(path: Path) -> dict[str, Any]:
             "rows_by_arm": {},
             "newest_row_date": None,
             "newest_row_date_by_arm": {},
+            "row_evidence": {},
             "malformed_rows": [],
             "unparseable_dates": [],
         }
@@ -274,6 +311,7 @@ def load_note_summary(path: Path) -> dict[str, Any]:
             "rows_by_arm": {},
             "newest_row_date": None,
             "newest_row_date_by_arm": {},
+            "row_evidence": {},
             "malformed_rows": [],
             "unparseable_dates": [],
         }
@@ -284,6 +322,107 @@ def load_note_summary(path: Path) -> dict[str, Any]:
 
 def load_all_note_summaries(notes: dict[str, Path] = BENCHMARK_NOTES) -> dict[str, dict[str, Any]]:
     return {name: load_note_summary(path) for name, path in notes.items()}
+
+
+# --- Timestamped capture receipts --------------------------------------------
+
+_SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+_RECEIPT_REQUIRED_FIELDS = {
+    "schemaVersion",
+    "capturedAt",
+    "noteId",
+    "rowSha256",
+    "rowDate",
+    "arm",
+    "beforeCount",
+    "afterCount",
+}
+_RECEIPT_OPTIONAL_FIELDS = {"runId"}
+
+
+def note_identity(path: Path) -> str:
+    """Stable note identity shared with bench-append; never exposes the path."""
+    canonical = str(path.expanduser().resolve(strict=False))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _validate_capture_receipt(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError("receipt must be an object")
+    fields = set(value)
+    if (
+        not _RECEIPT_REQUIRED_FIELDS.issubset(fields)
+        or fields - _RECEIPT_REQUIRED_FIELDS - _RECEIPT_OPTIONAL_FIELDS
+    ):
+        raise ValueError("receipt fields do not match schema version 1")
+    if value["schemaVersion"] != 1:
+        raise ValueError("schemaVersion must be 1")
+    if value["arm"] not in {"A", "B"}:
+        raise ValueError("arm must be A or B")
+    if not _SHA256_RE.fullmatch(str(value["noteId"])):
+        raise ValueError("noteId must be a SHA-256 digest")
+    if not _SHA256_RE.fullmatch(str(value["rowSha256"])):
+        raise ValueError("rowSha256 must be a SHA-256 digest")
+    run_id = value.get("runId")
+    if run_id is not None and (
+        not isinstance(run_id, str) or not run_id
+    ):
+        raise ValueError("runId must be null or a non-empty string")
+    if isinstance(value["beforeCount"], bool) or not isinstance(value["beforeCount"], int):
+        raise ValueError("beforeCount must be an integer")
+    if isinstance(value["afterCount"], bool) or not isinstance(value["afterCount"], int):
+        raise ValueError("afterCount must be an integer")
+    if value["afterCount"] - value["beforeCount"] != 1:
+        raise ValueError("append counts must prove a delta of exactly 1")
+    row_date = _parse_date(value["rowDate"])
+    if row_date is None:
+        raise ValueError("rowDate must be YYYY-MM-DD")
+    try:
+        captured_at = datetime.fromisoformat(str(value["capturedAt"]).replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError("capturedAt must be an ISO-8601 timestamp") from error
+    if captured_at.tzinfo is None:
+        raise ValueError("capturedAt must include a timezone")
+    return {
+        **value,
+        "runId": run_id,
+        "captured_at": captured_at,
+        "row_date": row_date,
+    }
+
+
+def load_benchmark_receipts(receipts_dir: Path = BENCHMARK_RECEIPTS_DIR) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "available": True,
+        "error": None,
+        "valid": 0,
+        "by_note_id": {},
+        "malformed": [],
+    }
+    if not receipts_dir.exists():
+        result["available"] = False
+        result["error"] = f"receipt dir not found: {receipts_dir}"
+        return result
+    try:
+        paths = sorted(receipts_dir.glob("*.json"))
+    except OSError as error:
+        result["available"] = False
+        result["error"] = str(error)
+        return result
+    for path in paths:
+        try:
+            if stat.S_IMODE(path.stat().st_mode) != 0o600:
+                raise ValueError("receipt permissions must be 0600")
+            receipt = _validate_capture_receipt(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            result["malformed"].append({"file": path.name, "reason": str(error)})
+            continue
+        receipt["source_file"] = path.name
+        result["valid"] += 1
+        result["by_note_id"].setdefault(receipt["noteId"], []).append(receipt)
+    for receipts in result["by_note_id"].values():
+        receipts.sort(key=lambda item: item["captured_at"])
+    return result
 
 
 # --- 2. Run telemetry --------------------------------------------------------
@@ -298,6 +437,7 @@ def load_run_telemetry(runs_dir: Path = RUNS_DIR) -> dict[str, Any]:
         "files_read": 0,
         "files_error": [],
         "artifacts": {},
+        "capture_runs": {},
     }
     if not runs_dir.exists():
         result["available"] = False
@@ -329,6 +469,18 @@ def load_run_telemetry(runs_dir: Path = RUNS_DIR) -> dict[str, Any]:
                         entry["newest_started_at"] is None or started > entry["newest_started_at"]
                     ):
                         entry["newest_started_at"] = started
+                    run_id = rec.get("run_id")
+                    if (
+                        name == "bench-append"
+                        and isinstance(run_id, str)
+                        and run_id
+                        and isinstance(started, str)
+                        and started
+                    ):
+                        result["capture_runs"][run_id] = {
+                            "ok": rec.get("ok") is True,
+                            "started_at": started,
+                        }
             result["files_read"] += 1
         except OSError as e:
             result["files_error"].append({"file": str(fp), "error": str(e)})
@@ -455,12 +607,25 @@ def find_scheduler_last_run(routine_name: str, scheduler_status: dict[str, Any])
             continue
 
     matched_ids = [m.get("id") for m in matches]
+    enabled = any(m.get("enabled") is True for m in matches)
     if not parsed:
-        return {"matched": True, "last_run_at": None, "matched_ids": matched_ids, "reason": None}
+        return {
+            "matched": True,
+            "last_run_at": None,
+            "matched_ids": matched_ids,
+            "enabled": enabled,
+            "reason": None,
+        }
 
     parsed.sort(key=lambda x: x[0])
     newest_dt, _ = parsed[-1]
-    return {"matched": True, "last_run_at": newest_dt, "matched_ids": matched_ids, "reason": None}
+    return {
+        "matched": True,
+        "last_run_at": newest_dt,
+        "matched_ids": matched_ids,
+        "enabled": enabled,
+        "reason": None,
+    }
 
 
 # --- 5. Liveness classification ----------------------------------------------
@@ -468,7 +633,11 @@ def find_scheduler_last_run(routine_name: str, scheduler_status: dict[str, Any])
 LIVENESS_STATUSES = ("ok", "indeterminate_same_day", "row_missing", "never_run", "unknown")
 
 
-def classify_liveness(note_summary: dict[str, Any], scheduler_lookup: dict[str, Any]) -> dict[str, Any]:
+def classify_liveness(
+    note_summary: dict[str, Any],
+    scheduler_lookup: dict[str, Any],
+    capture_receipts: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """The watchdog's actual verdict: did the routine run, and did a row land?
 
     ok                     — newest logged row is dated strictly AFTER the
@@ -517,6 +686,21 @@ def classify_liveness(note_summary: dict[str, Any], scheduler_lookup: dict[str, 
     if last_run_at.tzinfo is not None:
         last_run_at = last_run_at.astimezone(BENCHMARK_TIMEZONE)
     last_run_date = last_run_at.date()
+    for receipt in capture_receipts or []:
+        captured_at = receipt.get("captured_at")
+        if not isinstance(captured_at, datetime):
+            continue
+        if captured_at.tzinfo is not None:
+            captured_at = captured_at.astimezone(BENCHMARK_TIMEZONE)
+        receipt_row_date = receipt.get("row_date") or _parse_date(receipt.get("rowDate"))
+        if captured_at >= last_run_at and receipt_row_date == last_run_date:
+            return {
+                "status": "ok",
+                "reason": (
+                    "timestamped capture receipt postdates the scheduler run and is "
+                    f"bound to row date {last_run_date.isoformat()}"
+                ),
+            }
     if newest_row_date is None:
         return {
             "status": "row_missing",
@@ -560,27 +744,113 @@ def _jsonable(obj: Any) -> Any:
     return obj
 
 
+def run_context_capture_health(
+    runner_path: Path | None,
+    *,
+    command_runner: Any = subprocess.run,
+) -> dict[str, Any]:
+    if runner_path is None:
+        return {"configured": False, "available": False, "error": None, "report": None}
+    try:
+        result = command_runner(
+            [sys.executable, str(runner_path), "capture-health"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode not in {0, 2}:
+            raise ValueError(f"capture-health exited {result.returncode}")
+        report = json.loads(result.stdout)
+        if (
+            not isinstance(report, dict)
+            or not isinstance(report.get("ok"), bool)
+            or not isinstance(report.get("issues"), list)
+        ):
+            raise ValueError("capture-health output does not match its report contract")
+        if (result.returncode == 0) != report["ok"]:
+            raise ValueError("capture-health exit code disagrees with report.ok")
+        return {
+            "configured": True,
+            "available": True,
+            "error": None,
+            "exit_code": result.returncode,
+            "report": report,
+        }
+    except (OSError, subprocess.TimeoutExpired, ValueError, json.JSONDecodeError) as error:
+        return {
+            "configured": True,
+            "available": False,
+            "error": _safe_event_text(error),
+            "report": None,
+        }
+
+
 def build_snapshot(
     notes: dict[str, Path] = BENCHMARK_NOTES,
     runs_dir: Path = RUNS_DIR,
     health_dir: Path = HEALTH_DIR,
     scheduled_tasks_dir: Path = SCHEDULED_TASKS_DIR,
     sessions_root: Path = DESKTOP_SESSIONS_ROOT,
+    receipts_dir: Path = BENCHMARK_RECEIPTS_DIR,
+    context_runner: Path | None = None,
 ) -> dict[str, Any]:
     note_summaries = load_all_note_summaries(notes)
     run_telemetry = load_run_telemetry(runs_dir)
     health = load_health_sidecars(health_dir)
     scheduler_status = load_scheduler_status(scheduled_tasks_dir, sessions_root)
+    capture_receipts = load_benchmark_receipts(receipts_dir)
+    capture_receipts["unbound"] = []
+    context_capture_health = run_context_capture_health(context_runner)
 
     liveness: dict[str, Any] = {}
     for routine_name in notes:
         lookup = find_scheduler_last_run(routine_name, scheduler_status)
-        verdict = classify_liveness(note_summaries[routine_name], lookup)
+        candidate_receipts = capture_receipts["by_note_id"].get(
+            note_identity(notes[routine_name]), []
+        )
+        row_evidence = note_summaries[routine_name].get("row_evidence", {})
+        receipts = []
+        for receipt in candidate_receipts:
+            evidence = row_evidence.get(receipt["rowSha256"])
+            capture_run = run_telemetry["capture_runs"].get(receipt.get("runId"))
+            binding_error = None
+            if evidence != {"arm": receipt["arm"], "date": receipt["rowDate"]}:
+                binding_error = "receipt does not match an exact row in the benchmark note"
+            elif capture_run is None:
+                binding_error = "receipt runId does not match bench-append run telemetry"
+            elif capture_run.get("ok") is not True:
+                binding_error = "receipt runId belongs to a failed bench-append run"
+            else:
+                try:
+                    run_started_at = datetime.fromisoformat(
+                        str(capture_run["started_at"]).replace("Z", "+00:00")
+                    )
+                except (KeyError, ValueError):
+                    binding_error = "receipt run telemetry has an invalid started_at"
+                else:
+                    if run_started_at.tzinfo is None:
+                        binding_error = "receipt run telemetry started_at lacks a timezone"
+                    elif receipt["captured_at"] < run_started_at:
+                        binding_error = "receipt timestamp predates its bench-append run"
+            if binding_error is None:
+                receipts.append(receipt)
+            else:
+                capture_receipts["unbound"].append(
+                    {
+                        "arm": receipt["arm"],
+                        "file": receipt["source_file"],
+                        "routine": routine_name,
+                        "reason": binding_error,
+                    }
+                )
+        verdict = classify_liveness(note_summaries[routine_name], lookup, receipts)
         liveness[routine_name] = {
             "status": verdict["status"],
             "reason": verdict["reason"],
             "scheduler_matched_ids": lookup.get("matched_ids", []),
             "scheduler_last_run_at": lookup.get("last_run_at"),
+            "scheduler_enabled": lookup.get("enabled"),
         }
 
     snapshot = {
@@ -589,9 +859,279 @@ def build_snapshot(
         "run_telemetry": run_telemetry,
         "health": health,
         "scheduler": scheduler_status,
+        "capture_receipts": capture_receipts,
+        "context_capture_health": context_capture_health,
         "liveness": liveness,
     }
     return _jsonable(snapshot)
+
+
+def actionable_findings(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    findings: list[dict[str, Any]] = []
+    receipt_store = snapshot.get("capture_receipts", {})
+    if receipt_store.get("available") is False:
+        findings.append(
+            {
+                "routine": "capture-receipts",
+                "status": "receipt_store_unavailable",
+                "reason": receipt_store.get("error") or "capture receipt store unavailable",
+                "scheduler_matched_ids": [],
+                "scheduler_last_run_at": None,
+                "component": "benchmark-status",
+                "system": "procedural-memory",
+                "arm": "global",
+            }
+        )
+    for routine, value in snapshot.get("liveness", {}).items():
+        status = value.get("status")
+        reason = str(value.get("reason") or "")
+        if status not in {
+            "row_missing",
+            "indeterminate_same_day",
+            "never_run",
+            "unknown",
+        }:
+            continue
+        if status == "unknown" and "on-demand routine by design" in reason:
+            continue
+        if status == "never_run" and value.get("scheduler_enabled") is not True:
+            continue
+        findings.append(
+            {
+                "routine": routine,
+                "status": status,
+                "reason": reason,
+                "component": "benchmark-status",
+                "system": "procedural-memory",
+                "arm": "global",
+                "scheduler_matched_ids": value.get("scheduler_matched_ids", []),
+                "scheduler_last_run_at": value.get("scheduler_last_run_at"),
+            }
+        )
+    for malformed in snapshot.get("capture_receipts", {}).get("malformed", []):
+        findings.append(
+            {
+                "routine": "capture-receipts",
+                "status": "malformed_receipt",
+                "reason": f"{malformed.get('file')}: {malformed.get('reason')}",
+                "scheduler_matched_ids": [],
+                "scheduler_last_run_at": None,
+                "component": "benchmark-status",
+                "system": "procedural-memory",
+                "arm": "global",
+            }
+        )
+    for unbound in snapshot.get("capture_receipts", {}).get("unbound", []):
+        findings.append(
+            {
+                "routine": unbound.get("routine", "capture-receipts"),
+                "status": "unbound_receipt",
+                "reason": f"{unbound.get('file')}: {unbound.get('reason')}",
+                "scheduler_matched_ids": [],
+                "scheduler_last_run_at": None,
+                "component": "benchmark-status",
+                "system": "procedural-memory",
+                "arm": str(unbound.get("arm") or "global"),
+            }
+        )
+
+    context = snapshot.get("context_capture_health", {})
+    if context.get("configured") and not context.get("available"):
+        findings.append(
+            {
+                "routine": "context-capture-health",
+                "status": "evaluator_unavailable",
+                "reason": context.get("error") or "capture-health report unavailable",
+                "scheduler_matched_ids": [],
+                "scheduler_last_run_at": None,
+                "component": "context-capture-health",
+                "system": "context-experiments",
+                "arm": "global",
+            }
+        )
+    elif context.get("available"):
+        seen: set[tuple[str, str, str]] = set()
+        for issue in context.get("report", {}).get("issues", []):
+            capability = str(issue.get("capability") or "global")
+            affected_arms = (
+                issue.get("affectedArms") or issue.get("missingArms") or ["global"]
+            )
+            for arm in affected_arms:
+                key = (capability, str(arm), str(issue.get("kind") or "unknown"))
+                if key in seen:
+                    continue
+                seen.add(key)
+                findings.append(
+                    {
+                        "routine": f"context:{capability}",
+                        "status": key[2],
+                        "reason": (
+                            f"{issue.get('path', 'capture artifact')}: "
+                            f"{issue.get('error') or issue.get('status') or key[2]}"
+                        ),
+                        "scheduler_matched_ids": [],
+                        "scheduler_last_run_at": None,
+                        "component": "context-capture-health",
+                        "system": "context-experiments",
+                        "arm": str(arm),
+                    }
+                )
+    return findings
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-") or "unknown"
+
+
+def _safe_event_text(value: Any) -> str:
+    text = str(value)
+    text = text.replace(str(HOME), "[home]")
+    return re.sub(r"/(?:Users|private|var|tmp|Volumes)/.*", "[local path redacted]", text)
+
+
+def build_sentry_event(
+    finding: dict[str, Any], generated_at: str, release: str | None
+) -> dict[str, Any]:
+    routine = str(finding["routine"])
+    status = str(finding["status"])
+    component = str(finding.get("component") or "benchmark-status")
+    system = str(finding.get("system") or "procedural-memory")
+    arm = str(finding.get("arm") or "global")
+    event = {
+        "event_id": secrets.token_hex(16),
+        "timestamp": generated_at,
+        "platform": "python",
+        "level": "warning" if status == "indeterminate_same_day" else "error",
+        "logger": "rhize.benchmark-capture",
+        "message": f"Benchmark measurement unavailable: {_slug(routine)}",
+        "fingerprint": [
+            "rhize-agent-evals",
+            _slug(component),
+            _slug(routine),
+            _slug(arm),
+            _slug(status),
+        ],
+        "environment": os.environ.get("RHIZE_BENCHMARK_ENVIRONMENT", "production"),
+        "tags": {
+            "alert.kind": "measurement-unavailable",
+            "benchmark.routine": _slug(routine),
+            "benchmark.status": status,
+            "benchmark.measurement_required": "true",
+            "component": component,
+            "eval.system": system,
+            "eval.failure": status,
+            "eval.arm": arm,
+        },
+        "extra": {
+            "reason": _safe_event_text(finding.get("reason", "")),
+            "scheduler_ids": [
+                _safe_event_text(item) for item in finding.get("scheduler_matched_ids", [])
+            ],
+            "scheduler_last_run_at": finding.get("scheduler_last_run_at"),
+        },
+    }
+    if release:
+        event["release"] = release
+    return event
+
+
+def _sentry_endpoint_parts(dsn: str) -> tuple[str, str, str]:
+    parsed = parse.urlsplit(dsn)
+    project_id = parsed.path.strip("/")
+    public_key = parsed.username
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("Sentry DSN must use HTTP(S) and include a host")
+    if not project_id or not public_key:
+        raise ValueError("Sentry DSN must include a public key and project id")
+    base = f"{parsed.scheme}://{parsed.hostname}"
+    if parsed.port:
+        base += f":{parsed.port}"
+    return base, project_id, public_key
+
+
+def send_sentry_event(
+    event: dict[str, Any], dsn: str, *, opener: Any = request.urlopen
+) -> dict[str, Any]:
+    try:
+        base, project_id, public_key = _sentry_endpoint_parts(dsn)
+        endpoint = f"{base}/api/{project_id}/store/"
+        auth = (
+            "Sentry sentry_version=7, sentry_client=rhize-benchmark-status/1.0, "
+            f"sentry_key={public_key}"
+        )
+        req = request.Request(
+            endpoint,
+            data=json.dumps(event, separators=(",", ":")).encode(),
+            headers={"Content-Type": "application/json", "X-Sentry-Auth": auth},
+            method="POST",
+        )
+        with opener(req, timeout=10) as response:
+            payload = json.loads(response.read().decode() or "{}")
+        return {"status": "sent", "event_id": payload.get("id", event.get("event_id"))}
+    except Exception as error:
+        return {"status": "failed", "error": _safe_event_text(error)}
+
+
+def send_sentry_checkin(
+    dsn: str,
+    monitor_slug: str,
+    *,
+    opener: Any = request.urlopen,
+) -> dict[str, Any]:
+    try:
+        base, project_id, public_key = _sentry_endpoint_parts(dsn)
+        endpoint = (
+            f"{base}"
+            f"/api/{project_id}/crons/{parse.quote(monitor_slug, safe='')}/"
+            f"{parse.quote(public_key, safe='')}/"
+        )
+        with opener(request.Request(endpoint, method="GET"), timeout=10) as response:
+            response.read()
+        return {"status": "sent", "monitor_slug": monitor_slug}
+    except Exception as error:
+        return {"status": "failed", "error": _safe_event_text(error)}
+
+
+def resolve_sentry_dsn(service: str = SENTRY_KEYCHAIN_SERVICE) -> str | None:
+    configured = os.environ.get("RHIZE_BENCHMARK_SENTRY_DSN")
+    if configured:
+        return configured.strip() or None
+    try:
+        result = subprocess.run(
+            [
+                "security",
+                "find-generic-password",
+                "-a",
+                getpass.getuser(),
+                "-s",
+                service,
+                "-w",
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=3,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else None
+
+
+def dispatch_sentry_alerts(
+    snapshot: dict[str, Any], dsn: str | None, *, sender: Any = send_sentry_event
+) -> dict[str, Any]:
+    findings = actionable_findings(snapshot)
+    if not findings:
+        return {"status": "not_needed", "findings": 0, "deliveries": []}
+    if not dsn:
+        return {"status": "not_configured", "findings": len(findings), "deliveries": []}
+    release = os.environ.get("RHIZE_BENCHMARK_RELEASE") or os.environ.get("SENTRY_RELEASE")
+    deliveries = [
+        sender(build_sentry_event(item, snapshot["generated_at"], release), dsn)
+        for item in findings
+    ]
+    status = "sent" if all(item.get("status") == "sent" for item in deliveries) else "failed"
+    return {"status": status, "findings": len(findings), "deliveries": deliveries}
 
 
 def render_human(snapshot: dict[str, Any]) -> str:
@@ -641,16 +1181,62 @@ def render_human(snapshot: dict[str, Any]) -> str:
     else:
         lines.append(f"  UNAVAILABLE — {snapshot['health']['error']}")
 
+    findings = actionable_findings(snapshot)
+    lines.append("")
+    lines.append(f"Capture eval: {len(findings)} actionable finding(s)")
+    if snapshot.get("alerting"):
+        lines.append(f"Alerting: {snapshot['alerting']['status']}")
+
     return "\n".join(lines)
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--json", action="store_true", help="print the full JSON snapshot to stdout")
     ap.add_argument("--output", default=str(OUTPUT_PATH), help="where to write the JSON snapshot")
-    args = ap.parse_args()
+    ap.add_argument(
+        "--receipts-dir",
+        default=str(BENCHMARK_RECEIPTS_DIR),
+        help="timestamped bench-append receipt directory",
+    )
+    ap.add_argument(
+        "--alert-sentry",
+        action="store_true",
+        help="send actionable capture findings to Sentry using env/Keychain DSN",
+    )
+    ap.add_argument(
+        "--context-runner",
+        help="path to the context experiment runner whose capture-health eval should run",
+    )
+    ap.add_argument(
+        "--sentry-checkin-slug",
+        nargs="?",
+        const=SENTRY_CRON_SLUG,
+        default=None,
+        help="send an OK check-in only after the watchdog and alert delivery complete",
+    )
+    args = ap.parse_args(argv)
+    if args.sentry_checkin_slug and not args.alert_sentry:
+        ap.error("--sentry-checkin-slug requires --alert-sentry")
 
-    snapshot = build_snapshot()
+    snapshot = build_snapshot(
+        receipts_dir=Path(args.receipts_dir).expanduser(),
+        context_runner=(Path(args.context_runner).expanduser() if args.context_runner else None),
+    )
+    dsn = resolve_sentry_dsn() if args.alert_sentry or args.sentry_checkin_slug else None
+    if args.alert_sentry:
+        snapshot["alerting"] = dispatch_sentry_alerts(snapshot, dsn)
+    if args.sentry_checkin_slug:
+        alert_status = snapshot.get("alerting", {}).get("status", "not_needed")
+        if alert_status in {"sent", "not_needed"} and dsn:
+            snapshot["watchdog_checkin"] = send_sentry_checkin(
+                dsn, args.sentry_checkin_slug
+            )
+        else:
+            snapshot["watchdog_checkin"] = {
+                "status": "failed",
+                "error": "alert delivery incomplete or Sentry DSN unavailable",
+            }
 
     output_path = Path(args.output).expanduser()
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -662,8 +1248,14 @@ def main() -> int:
         print(render_human(snapshot))
         print(f"\n→ JSON snapshot written to {output_path}")
 
-    any_row_missing = any(v["status"] == "row_missing" for v in snapshot["liveness"].values())
-    return 2 if any_row_missing else 0
+    alert_failed = args.alert_sentry and snapshot["alerting"]["status"] in {
+        "not_configured",
+        "failed",
+    }
+    checkin_failed = args.sentry_checkin_slug and snapshot["watchdog_checkin"]["status"] != "sent"
+    if alert_failed or checkin_failed:
+        return 3
+    return 2 if actionable_findings(snapshot) else 0
 
 
 if __name__ == "__main__":

@@ -8,6 +8,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-context-manager** 0.19.0 → 0.19.1 (patch); **rhize-ops** 0.13.2 → 0.13.3 (patch); marketplace 2.48.2 → 2.48.3.
+- _2026-08-27_ **benchmark-capture reliability and alerting.** `bench-append` now leaves a
+  private, timestamped, run-bound receipt after proving an exact one-row delta. The skill
+  monitor validates receipt permissions, exact row/date/Arm binding, and the corresponding
+  successful registry run. The context capture-health evaluator now rejects missing history,
+  missing per-Arm metrics, and non-comparable paired metrics while keeping Arm A/B evidence
+  separate. Stable path-redacted Sentry incidents report unavailable measurements. A final
+  Sentry Cron check-in covers the watchdog itself and is refused unless incident delivery is
+  enabled and complete. Test doubles exercise error branches only; they never create benchmark
+  evidence.
 - _2026-08-27_ version bump — **rhize-ops** 0.13.1 → 0.13.2 (patch); marketplace 2.48.1 → 2.48.2.
 - _2026-08-27_ **rhize-ops/skill-monitor — benchmark watchdog local-date correction.**
   Scheduler `lastRunAt` instants are now converted to the benchmark program's

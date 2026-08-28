@@ -5,9 +5,14 @@ Run: python3 -m pytest tests/test_benchmark_status.py -q   (from the repo root)
 from __future__ import annotations
 
 import json
+import hashlib
+import os
+import stat
 import sys
 from datetime import date, datetime
 from pathlib import Path
+
+import pytest
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
@@ -130,6 +135,9 @@ def test_parser_paired_rows():
     assert s["rows_by_arm"] == {"A": 1, "B": 1}
     assert s["newest_row_date"] == date(2026, 8, 24)
     assert s["newest_row_date_by_arm"] == {"A": date(2026, 8, 24), "B": date(2026, 8, 24)}
+    assert hashlib.sha256(b"| 2026-08-24 | A | 100 | real |").hexdigest() in s[
+        "row_evidence"
+    ]
 
 
 # --- parser: malformed row ----------------------------------------------------
@@ -247,6 +255,32 @@ def test_run_telemetry_streams_and_aggregates(tmp_path):
     assert bench["fail"] == 1
     assert bench["newest_started_at"] == "2026-08-26T17:56:06+00:00"
     assert result["artifacts"]["vault-orphan-linker"]["runs"] == 1
+
+
+def test_run_telemetry_indexes_bench_append_runs_for_receipt_binding(tmp_path):
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    (runs / "2026-08-28.jsonl").write_text(
+        json.dumps(
+            {
+                "name": "bench-append",
+                "ok": True,
+                "run_id": "capture-run",
+                "started_at": "2026-08-28T00:10:00+00:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    result = bs.load_run_telemetry(runs)
+
+    assert result["capture_runs"] == {
+        "capture-run": {
+            "ok": True,
+            "started_at": "2026-08-28T00:10:00+00:00",
+        }
+    }
 
 
 # --- health sidecars ------------------------------------------------------------
@@ -573,3 +607,487 @@ def test_live_vault_notes_parse_with_consistent_structure():
         assert not summary.get("unparseable_dates"), f"{name} has unparseable dates"
         if total:
             assert summary.get("newest_row_date"), f"{name} has rows but no newest date"
+
+
+# --- timestamped capture receipts ---------------------------------------------
+
+
+def _capture_receipt(note: Path, **overrides):
+    row = overrides.pop("row", "| 2026-08-27 | A | 100 | real |")
+    value = {
+        "schemaVersion": 1,
+        "capturedAt": "2026-08-28T00:12:17.873185+00:00",
+        "runId": "a5b94939-73ef-4062-be41-3325ad512618",
+        "noteId": bs.note_identity(note),
+        "rowSha256": hashlib.sha256(row.encode()).hexdigest(),
+        "rowDate": "2026-08-27",
+        "arm": "A",
+        "beforeCount": 4,
+        "afterCount": 5,
+    }
+    value.update(overrides)
+    return value
+
+
+def test_capture_receipts_are_strict_timestamped_and_note_bound(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "receipt.json"
+    path.write_text(json.dumps(_capture_receipt(note)), encoding="utf-8")
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["available"] is True
+    assert result["malformed"] == []
+    receipts = result["by_note_id"][bs.note_identity(note)]
+    assert len(receipts) == 1
+    assert receipts[0]["arm"] == "A"
+    assert receipts[0]["captured_at"] == datetime.fromisoformat(
+        "2026-08-28T00:12:17.873185+00:00"
+    )
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_capture_receipt_validation_surfaces_corrupt_and_invalid_files(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    (receipt_dir / "broken.json").write_text("{not-json", encoding="utf-8")
+    (receipt_dir / "wrong-arm.json").write_text(
+        json.dumps(_capture_receipt(note, arm="C")), encoding="utf-8"
+    )
+    (receipt_dir / "wrong-delta.json").write_text(
+        json.dumps(_capture_receipt(note, beforeCount=4, afterCount=6)), encoding="utf-8"
+    )
+    for path in receipt_dir.glob("*.json"):
+        os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["by_note_id"] == {}
+    assert {item["file"] for item in result["malformed"]} == {
+        "broken.json",
+        "wrong-arm.json",
+        "wrong-delta.json",
+    }
+    assert all("/" not in item["file"] for item in result["malformed"])
+
+
+def test_capture_receipt_resolves_same_day_liveness(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T00:01:20.025+00:00"),
+    }
+    receipt = _capture_receipt(note)
+    receipt["captured_at"] = datetime.fromisoformat(receipt.pop("capturedAt"))
+
+    verdict = bs.classify_liveness(summary, lookup, [receipt])
+
+    assert verdict["status"] == "ok"
+    assert "timestamped capture receipt" in verdict["reason"]
+
+
+def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T00:30:00+00:00"),
+    }
+    receipt = _capture_receipt(note)
+    receipt["captured_at"] = datetime.fromisoformat(receipt.pop("capturedAt"))
+
+    verdict = bs.classify_liveness(summary, lookup, [receipt])
+
+    assert verdict["status"] == "indeterminate_same_day"
+
+
+def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-27"), encoding="utf-8")
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    (receipt_dir / "capture.json").write_text(
+        json.dumps(_capture_receipt(note)), encoding="utf-8"
+    )
+    os.chmod(receipt_dir / "capture.json", 0o600)
+    sessions = tmp_path / "sessions" / "acct" / "space"
+    sessions.mkdir(parents=True)
+    (sessions / "scheduled-tasks.json").write_text(
+        json.dumps(
+            {
+                "scheduledTasks": [
+                    {
+                        "id": "daily-completed-summary",
+                        "enabled": True,
+                        "lastRunAt": "2026-08-28T00:01:20.025Z",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    (runs / "capture.jsonl").write_text(
+        json.dumps(
+            {
+                "name": "bench-append",
+                "ok": True,
+                "run_id": "a5b94939-73ef-4062-be41-3325ad512618",
+                "started_at": "2026-08-28T00:10:00+00:00",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    health = tmp_path / "health"
+    health.mkdir()
+    scheduled = tmp_path / "scheduled"
+    scheduled.mkdir()
+
+    snapshot = bs.build_snapshot(
+        notes={"Daily Completed Summary": note},
+        runs_dir=runs,
+        health_dir=health,
+        scheduled_tasks_dir=scheduled,
+        sessions_root=tmp_path / "sessions",
+        receipts_dir=receipt_dir,
+    )
+
+    assert snapshot["capture_receipts"]["valid"] == 1
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "ok"
+
+
+def test_build_snapshot_rejects_a_receipt_without_matching_run_telemetry(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-27"), encoding="utf-8")
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    receipt_path = receipt_dir / "capture.json"
+    receipt_path.write_text(json.dumps(_capture_receipt(note)), encoding="utf-8")
+    os.chmod(receipt_path, 0o600)
+    sessions = tmp_path / "sessions" / "acct" / "space"
+    sessions.mkdir(parents=True)
+    (sessions / "scheduled-tasks.json").write_text(
+        json.dumps(
+            {
+                "scheduledTasks": [
+                    {
+                        "id": "daily-completed-summary",
+                        "enabled": True,
+                        "lastRunAt": "2026-08-28T00:01:20.025Z",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    runs = tmp_path / "runs"
+    runs.mkdir()
+    health = tmp_path / "health"
+    health.mkdir()
+    scheduled = tmp_path / "scheduled"
+    scheduled.mkdir()
+
+    snapshot = bs.build_snapshot(
+        notes={"Daily Completed Summary": note},
+        runs_dir=runs,
+        health_dir=health,
+        scheduled_tasks_dir=scheduled,
+        sessions_root=tmp_path / "sessions",
+        receipts_dir=receipt_dir,
+    )
+
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "indeterminate_same_day"
+    assert snapshot["capture_receipts"]["unbound"] == [
+        {
+            "arm": "A",
+            "file": "capture.json",
+            "reason": "receipt runId does not match bench-append run telemetry",
+            "routine": "Daily Completed Summary",
+        }
+    ]
+    finding = next(
+        item for item in bs.actionable_findings(snapshot) if item["status"] == "unbound_receipt"
+    )
+    assert finding["arm"] == "A"
+
+
+# --- actionable eval findings + Sentry event transport -------------------------
+
+
+def test_actionable_findings_cover_missing_unverifiable_and_malformed_evidence():
+    snapshot = {
+        "generated_at": "2026-08-28T00:30:00+00:00",
+        "liveness": {
+            "Missing": {
+                "status": "row_missing",
+                "reason": "a run happened and no row landed",
+                "scheduler_matched_ids": ["missing-task"],
+                "scheduler_last_run_at": "2026-08-28T00:01:00+00:00",
+            },
+            "Same Day": {
+                "status": "indeterminate_same_day",
+                "reason": "cannot be determined",
+                "scheduler_matched_ids": ["same-day-task"],
+                "scheduler_last_run_at": "2026-08-28T00:02:00+00:00",
+            },
+            "On Demand": {
+                "status": "unknown",
+                "reason": "on-demand routine by design",
+                "scheduler_matched_ids": [],
+                "scheduler_last_run_at": None,
+            },
+        },
+        "capture_receipts": {
+            "available": True,
+            "malformed": [{"file": "bad.json", "reason": "invalid arm"}],
+        },
+    }
+
+    findings = bs.actionable_findings(snapshot)
+
+    assert {(item["routine"], item["status"]) for item in findings} == {
+        ("Missing", "row_missing"),
+        ("Same Day", "indeterminate_same_day"),
+        ("capture-receipts", "malformed_receipt"),
+    }
+
+
+def test_missing_receipt_store_is_an_actionable_measurement_failure():
+    findings = bs.actionable_findings(
+        {
+            "liveness": {},
+            "capture_receipts": {
+                "available": False,
+                "error": "receipt dir not found",
+                "malformed": [],
+                "unbound": [],
+            },
+        }
+    )
+
+    assert [(item["routine"], item["status"]) for item in findings] == [
+        ("capture-receipts", "receipt_store_unavailable")
+    ]
+
+
+def test_sentry_event_has_stable_fingerprint_and_scrubs_absolute_paths():
+    finding = {
+        "routine": "Daily Completed Summary",
+        "status": "row_missing",
+        "reason": "could not read /Users/example/Secret Vault/note.md",
+        "scheduler_matched_ids": ["daily-completed-summary"],
+        "scheduler_last_run_at": "2026-08-28T00:01:00+00:00",
+    }
+
+    first = bs.build_sentry_event(finding, "2026-08-28T00:30:00+00:00", "rhize-ops@test")
+    second = bs.build_sentry_event(finding, "2026-08-28T00:31:00+00:00", "rhize-ops@test")
+
+    assert first["fingerprint"] == second["fingerprint"] == [
+        "rhize-agent-evals",
+        "benchmark-status",
+        "daily-completed-summary",
+        "global",
+        "row-missing",
+    ]
+    assert first["tags"]["benchmark.status"] == "row_missing"
+    assert first["tags"]["benchmark.measurement_required"] == "true"
+    assert first["tags"]["alert.kind"] == "measurement-unavailable"
+    assert "/Users/" not in json.dumps(first)
+    assert first["level"] == "error"
+
+
+def test_sentry_store_transport_uses_public_dsn_without_leaking_it():
+    captured = {}
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"id":"event-id"}'
+
+    def opener(request, timeout):
+        captured["request"] = request
+        captured["timeout"] = timeout
+        return Response()
+
+    result = bs.send_sentry_event(
+        {"event_id": "a" * 32, "message": "capture failed"},
+        "https://public-key@o1.ingest.us.sentry.io/12345",
+        opener=opener,
+    )
+
+    request = captured["request"]
+    assert request.full_url == "https://o1.ingest.us.sentry.io/api/12345/store/"
+    assert "public-key" in request.headers["X-sentry-auth"]
+    assert b"public-key" not in request.data
+    assert captured["timeout"] == 10
+    assert result == {"status": "sent", "event_id": "event-id"}
+
+
+def test_sentry_delivery_failure_is_reported_not_raised():
+    def failing_opener(_request, timeout):
+        assert timeout == 10
+        raise OSError("network unavailable")
+
+    result = bs.send_sentry_event(
+        {"event_id": "a" * 32, "message": "capture failed"},
+        "https://public-key@o1.ingest.us.sentry.io/12345",
+        opener=failing_opener,
+    )
+
+    assert result["status"] == "failed"
+    assert "network unavailable" in result["error"]
+    assert "public-key" not in json.dumps(result)
+
+
+def test_receipt_with_broad_permissions_is_rejected(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "receipt.json"
+    path.write_text(json.dumps(_capture_receipt(note)), encoding="utf-8")
+    os.chmod(path, 0o644)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 0
+    assert result["malformed"] == [
+        {"file": "receipt.json", "reason": "receipt permissions must be 0600"}
+    ]
+
+
+def test_context_capture_health_runs_real_command_and_preserves_arm_findings(tmp_path):
+    runner = tmp_path / "runner.py"
+    runner.write_text(
+        "import json\n"
+        "print(json.dumps({'ok': False, 'issues': [{"
+        "'kind': 'missing_arm_capture', 'capability': 'compiled-context', "
+        "'missingArms': ['A'], 'path': 'receipts/e.json'}]}))\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+
+    health = bs.run_context_capture_health(runner)
+    findings = bs.actionable_findings(
+        {
+            "liveness": {},
+            "capture_receipts": {"malformed": [], "unbound": []},
+            "context_capture_health": health,
+        }
+    )
+
+    assert health["available"] is True
+    assert [(item["status"], item["arm"]) for item in findings] == [
+        ("missing_arm_capture", "A")
+    ]
+
+
+def test_context_capture_health_prefers_affected_arms_for_sentry_grouping(tmp_path):
+    runner = tmp_path / "runner.py"
+    runner.write_text(
+        "import json\n"
+        "print(json.dumps({'ok': False, 'issues': [{"
+        "'kind': 'stale_pending_selection', 'capability': 'compiledContext', "
+        "'affectedArms': ['A', 'B'], 'missingArms': [], "
+        "'path': 'pending/session.json'}]}))\n"
+        "raise SystemExit(2)\n",
+        encoding="utf-8",
+    )
+
+    health = bs.run_context_capture_health(runner)
+    findings = bs.actionable_findings(
+        {
+            "liveness": {},
+            "capture_receipts": {"malformed": [], "unbound": []},
+            "context_capture_health": health,
+        }
+    )
+
+    assert [(item["status"], item["arm"]) for item in findings] == [
+        ("stale_pending_selection", "A"),
+        ("stale_pending_selection", "B"),
+    ]
+
+
+def test_context_capture_health_command_failure_is_actionable(tmp_path):
+    runner = tmp_path / "runner.py"
+    runner.write_text("raise SystemExit(9)\n", encoding="utf-8")
+
+    health = bs.run_context_capture_health(runner)
+    findings = bs.actionable_findings(
+        {
+            "liveness": {},
+            "capture_receipts": {"malformed": [], "unbound": []},
+            "context_capture_health": health,
+        }
+    )
+
+    assert health["available"] is False
+    assert [(item["routine"], item["status"]) for item in findings] == [
+        ("context-capture-health", "evaluator_unavailable")
+    ]
+
+
+def test_sentry_cron_checkin_uses_dsn_derived_ingest_url():
+    captured = {}
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b""
+
+    def opener(req, timeout):
+        captured["url"] = req.full_url
+        captured["timeout"] = timeout
+        return Response()
+
+    result = bs.send_sentry_checkin(
+        "https://public-key@o1.ingest.us.sentry.io/12345",
+        "rhize-agent-evals-capture-watchdog",
+        opener=opener,
+    )
+
+    assert captured == {
+        "url": (
+            "https://o1.ingest.us.sentry.io/api/12345/crons/"
+            "rhize-agent-evals-capture-watchdog/public-key/"
+        ),
+        "timeout": 10,
+    }
+    assert result == {
+        "status": "sent",
+        "monitor_slug": "rhize-agent-evals-capture-watchdog",
+    }
+
+
+def test_cli_refuses_a_healthy_checkin_without_alert_delivery(tmp_path):
+    with pytest.raises(SystemExit) as raised:
+        bs.main(
+            [
+                "--sentry-checkin-slug",
+                "watchdog",
+                "--output",
+                str(tmp_path / "snapshot.json"),
+            ]
+        )
+
+    assert raised.value.code == 2
+    assert not (tmp_path / "snapshot.json").exists()
