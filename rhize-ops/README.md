@@ -16,7 +16,7 @@ guardrail hooks are active in a project.
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying v… | automation, obsidian, workflow-patterns |
-| `parallel-agent-optimization` | Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. | automation, observability, testing, workflow-patterns |
+| `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 <!-- SKILL-MAP:END -->
 
@@ -55,18 +55,22 @@ in separate files and report sections.
 
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
-**Triggers:** `/rhize-ops:parallel-optimize`, "optimize parallel agents", "compare parallel-agent
-strategies", or a request to benchmark ECC versus Superpowers versus the Rhize policy.
+**Required triggers:** any mention, discussion, proposal, plan, review, benchmark, optimization, or
+use of parallel agents, multi-agent work, subagents, concurrent agent dispatch, or delegation to
+multiple agents. Invoke it before the first dispatch even when the user does not name the skill.
+Discussion-only requests use `assess` and create no receipt. For execution, parallel agents are the
+default when at least two independent bounded lanes pass the isolation and coordination-benefit
+gates; otherwise the skill selects sequential or gated execution and explains why.
 
 ## Commands
 
 ### `/parallel-optimize`
 
-Thin command adapter for `parallel-agent-optimization`. Use `apply [--variant ...] <task>` for one
-real-task strategy, `compare <replayable task or fixture>` for an explicit isolated four-arm
-comparison, or `report [observational|controlled|all]` to inspect accumulated evidence without
-running work. The command grants no new production, external-write, commit, push, merge, or deploy
-authority.
+Thin command adapter for `parallel-agent-optimization`. Use `assess <question or task>` for a
+non-executing routing decision, `apply [--variant ...] <task>` for one real-task strategy, `compare
+<replayable task or fixture>` for an explicit isolated four-arm comparison, or `report
+[observational|controlled|all]` to inspect accumulated evidence without running work. The command
+grants no new production, external-write, commit, push, merge, or deploy authority.
 
 **Invoked as:** `/rhize-ops:parallel-optimize`
 

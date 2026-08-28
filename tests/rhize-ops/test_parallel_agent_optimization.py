@@ -339,11 +339,20 @@ def test_skill_and_command_preserve_safety_and_provenance_contracts():
     assert "one writer per checkout" in skill
     assert "Never load `ecc:parallel-execution-optimizer` and `superpowers:dispatching-parallel-agents`" in skill
     assert "observational and controlled evidence separate" in skill
+    assert "whenever parallel agents are part of the conversation or execution" in skill
+    assert "Invoke it before the\nfirst dispatch" in skill
+    assert "Discussion-only requests\nuse `assess` and create no receipt" in skill
+    assert "parallel agents are the default" in skill
+    assert "Host-level authorization and agent-tool policies still apply" in skill
+    assert "assess <parallel-agent question or candidate task>" in skill
+    assert "Do not dispatch agents" in skill
     assert "no upstream code or prose copied" in provenance
     assert "ai-stack-version-drift" in provenance
     assert "**Graph relation:** consumes" in ledger
     assert "**Additional source:**" in ledger
     assert "Pass\n`$ARGUMENTS` unchanged" in command
+    assert "required pre-dispatch entry point" in command
+    assert "Use `assess` for discussion-only requests" in command
     edges = [edge for edge in skill_map["edges"] if edge["from"] == "skill:rhize-ops/parallel-agent-optimization"]
     assert not any(edge["type"] == "fork-of" for edge in edges)
     assert {
@@ -352,6 +361,13 @@ def test_skill_and_command_preserve_safety_and_provenance_contracts():
         "external:ecc-parallel-execution-optimizer",
         "external:superpowers-dispatching-parallel-agents",
     }
+    skill_node = next(
+        node
+        for node in skill_map["nodes"]
+        if node["id"] == "skill:rhize-ops/parallel-agent-optimization"
+    )
+    assert "Required whenever parallel or multi-agent work" in skill_node["description"]
+    assert "Invoke before spawning or dispatching any agent" in skill_node["description"]
 
 
 def test_cli_append_then_report_round_trip(tmp_path):

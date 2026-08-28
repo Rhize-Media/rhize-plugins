@@ -6,6 +6,18 @@ Every arm inherits the skill's safety, one-writer, verification, and receipt bou
 
 Classify the task before choosing execution:
 
+Parallel execution is the default only when every eligibility condition is satisfied:
+
+- two or more lanes can start without consuming another lane's output;
+- each lane has a bounded deliverable and an explicit owner;
+- writes are absent, non-overlapping, or isolated in separate worktrees/copies;
+- protected files and shared external state remain coordinator-owned;
+- a defined join point and complete verification plan exist; and
+- expected elapsed-time or quality benefit exceeds dispatch and integration overhead.
+
+Otherwise choose sequential or gated execution. This eligibility gate applies even when the user
+asks for parallelism; the skill must still be invoked and explain the safer decision.
+
 | Task class | Default decision | Reason |
 | --- | --- | --- |
 | `parallel_read` | parallel | Independent research or inspection lanes can overlap. |

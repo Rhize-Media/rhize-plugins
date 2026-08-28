@@ -8,7 +8,7 @@ consumes:
   - superpowers:dispatching-parallel-agents
 provenance: parallel-agent-optimization
 description: |
-  Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. Use when the user invokes `/rhize-ops:parallel-optimize`, asks to optimize parallel-agent execution, wants to benchmark ECC versus Superpowers versus the Rhize policy, or wants a controlled comparison of parallel-agent approaches. Ordinary work runs exactly one strategy and records observational evidence; multi-arm comparisons are explicit, isolated, replayable, and never duplicate a live task. Never load ECC and Superpowers together for one arm.
+  Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, prefer parallel execution when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Ordinary work runs exactly one strategy and records observational evidence; comparisons are explicit, isolated, and replayable. Never duplicate a live task or load ECC and Superpowers together for one arm.
 metadata:
   rhize:
     topics: [automation, observability, workflow-patterns]
@@ -20,6 +20,22 @@ metadata:
 Use the smallest safe execution shape for the task, then record enough structured evidence to learn from the run without retaining task content.
 
 Read [references/modes.md](references/modes.md) before choosing or executing a mode. Read [references/receipt-contract.md](references/receipt-contract.md) before recording or reporting evidence. [references/provenance.md](references/provenance.md) records the two maintained dependencies and Forge decision. The deterministic helper is `scripts/parallel_metrics.py` relative to this skill directory.
+
+## Required trigger and default
+
+Invoke this skill whenever parallel agents are part of the conversation or execution, even when the
+user does not name this skill or command. This includes discussing whether parallel agents would
+help, proposing or reviewing a multi-agent plan, mentioning subagents or agent dispatch, delegating
+independent lanes to multiple agents, and actually spawning or managing agents. Invoke it before the
+first dispatch so lane ownership and protected state are declared up front.
+
+The invocation requirement is broader than the decision to parallelize. Discussion-only requests
+use `assess` and create no receipt. For execution, parallel agents are the default when there are at
+least two genuinely independent, bounded lanes; their inputs and outputs are clear; writes are
+read-only, disjoint, or isolated; the host supports agent dispatch; and the likely gain exceeds
+coordination overhead. If any condition fails, choose sequential or gated execution and say why.
+Host-level authorization and agent-tool policies still apply; this skill does not create permission
+to dispatch agents where the active environment forbids it.
 
 ## Non-negotiable boundaries
 
@@ -38,12 +54,22 @@ Read [references/modes.md](references/modes.md) before choosing or executing a m
 Interpret `$ARGUMENTS` using this grammar:
 
 ```text
+assess <parallel-agent question or candidate task>
 apply [--variant baseline|ecc|superpowers|rhize] <task>
 compare <replayable task or fixture>
 report [observational|controlled|all]
 ```
 
-A bare task means `apply <task>`.
+A discussion or planning request means `assess`. A bare task that asks to execute work means
+`apply <task>`.
+
+### Assess
+
+Decide whether parallel agents are appropriate using the classification and eligibility rules in
+`references/modes.md`. State the proposed lanes, dependencies, write boundaries, protected state,
+join point, and verification owner. Do not dispatch agents, run a candidate strategy, assign an
+observational variant, or write a receipt. If execution follows in the same request, complete the
+assessment first and then continue in `apply` mode.
 
 ### Apply
 

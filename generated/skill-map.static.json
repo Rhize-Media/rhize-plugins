@@ -2421,7 +2421,7 @@
       "path": "rhize-ops/commands/delegate-setup.md"
     },
     {
-      "description": "Safely choose, run, and measure one parallel-agent strategy, or explicitly compare isolated baseline, ECC, Superpowers, and Rhize arms",
+      "description": "Required entry point whenever parallel agents are discussed, planned, reviewed, or employed; assess first, then safely run or compare eligible work",
       "id": "command:rhize-ops/parallel-optimize",
       "kind": "command",
       "name": "parallel-optimize",
@@ -3416,8 +3416,8 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "c01b0082de5ccf44841bb34e47fd799e48b4546cb3a7410d98d85e655490db86",
-      "description": "Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. Use when the user invokes `/rhize-ops:parallel-optimize`, asks to optimize parallel-agent execution, wants to benchmark ECC versus Superpowers versus the Rhize policy, or wants a controlled comparison of parallel-agent approaches. Ordinary work runs exactly one strategy and records observational evidence; multi-arm comparisons are explicit, isolated, replayable, and never duplicate a live task. Never load ECC and Superpowers together for one arm.",
+      "contentHash": "11510eda429067739245d306dfe3bb104143d9d03673fca25f57cdf328383c63",
+      "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, prefer parallel execution when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Ordinary work runs exactly one strategy and records observational evidence; comparisons are explicit, isolated, and replayable. Never duplicate a live task or load ECC and Superpowers together for one arm.",
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
       "name": "parallel-agent-optimization",

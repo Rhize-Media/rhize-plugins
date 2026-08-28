@@ -40,11 +40,13 @@ Every approved task's Jira description and Slack thread reply also share a stabl
 
 ### parallel-agent-optimization
 
-**When to use it:** When agent dispatch might materially help, or when you want to compare the
-installed ECC and Superpowers planning resources with the Rhize routing policy. Use `apply` for
-real work and `compare` only for a safe replayable repository fixture. The skill will keep a
-dependency chain or shared-state task sequential even when the word “parallel” appears in the
-request.
+**When to use it:** Always when parallel or multi-agent work is mentioned, discussed, planned,
+reviewed, or employed—including subagents and concurrent agent dispatch. Invoke it before the first
+agent spawn. Use `assess` for discussion or planning with no execution or receipt, `apply` for real
+work, and `compare` only for a safe replayable repository fixture. Parallel agents are the execution
+default when at least two independent bounded lanes pass the isolation and coordination-benefit
+gates. The skill keeps dependency chains, shared-state work, and approval-gated operations
+sequential even when the request asks for parallelism.
 
 **What it produces:** An `apply` run selects exactly one of baseline, ECC, Superpowers, or Rhize,
 executes it under a one-writer safety envelope, verifies the result, and appends one observational
@@ -57,6 +59,9 @@ verification, correctness, collisions, and rework. They cannot contain prompts, 
 paths, names, URLs, session IDs, or issue IDs.
 
 **Example prompt:**
+> "/rhize-ops:parallel-optimize assess would parallel agents help with this repository audit?"
+
+For real work:
 > "/rhize-ops:parallel-optimize apply audit these three independent modules and verify the findings"
 
 For a controlled fixture:
@@ -66,9 +71,10 @@ For a controlled fixture:
 
 ### /parallel-optimize
 
-**What it's for:** A stable entry point to the execution and measurement contract. `apply` runs
-one strategy on the actual task; `compare` runs four separate arms only when the task is isolated
-and replayable; `report` renders observational and controlled evidence in separate sections.
+**What it's for:** The required entry point whenever parallel agents enter the conversation or
+execution. `assess` makes a non-executing routing decision; `apply` runs one strategy on the actual
+task; `compare` runs four separate arms only when the task is isolated and replayable; `report`
+renders observational and controlled evidence in separate sections.
 
 **Example usage:**
 > "/rhize-ops:parallel-optimize report all" — inspect accumulated evidence without rerunning any task.
