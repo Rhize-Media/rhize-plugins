@@ -8,6 +8,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-28_ version bump — **rhize-ops** 0.13.3 → 0.13.4 (patch); marketplace 2.48.3 → 2.48.4.
+- _2026-08-28_ **benchmark receipt variant compatibility.** The capture watchdog now accepts
+  run-bound `G`/`G1`/`G2`/`G3` procedural-memory receipts, reports counts by variant, and keeps
+  every graph receipt out of the four A/B context-note liveness calculations.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.19.0 → 0.19.1 (patch); **rhize-ops** 0.13.2 → 0.13.3 (patch); marketplace 2.48.2 → 2.48.3.
 - _2026-08-27_ **benchmark-capture reliability and alerting.** `bench-append` now leaves a
   private, timestamped, run-bound receipt after proving an exact one-row delta. The skill

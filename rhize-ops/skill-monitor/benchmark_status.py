@@ -337,7 +337,9 @@ _RECEIPT_REQUIRED_FIELDS = {
     "beforeCount",
     "afterCount",
 }
-_RECEIPT_OPTIONAL_FIELDS = {"runId"}
+_RECEIPT_OPTIONAL_FIELDS = {"runId", "variant", "rowDateSource"}
+_CAPTURE_VARIANTS = {"A", "B", "G", "G1", "G2", "G3"}
+_GRAPH_CAPTURE_VARIANTS = _CAPTURE_VARIANTS - {"A", "B"}
 
 
 def note_identity(path: Path) -> str:
@@ -357,8 +359,14 @@ def _validate_capture_receipt(value: Any) -> dict[str, Any]:
         raise ValueError("receipt fields do not match schema version 1")
     if value["schemaVersion"] != 1:
         raise ValueError("schemaVersion must be 1")
-    if value["arm"] not in {"A", "B"}:
-        raise ValueError("arm must be A or B")
+    arm = value["arm"]
+    if arm not in _CAPTURE_VARIANTS:
+        raise ValueError("arm must be A, B, G, G1, G2, or G3")
+    variant = value.get("variant", arm)
+    if variant not in _CAPTURE_VARIANTS:
+        raise ValueError("variant must be A, B, G, G1, G2, or G3")
+    if variant != arm:
+        raise ValueError("variant must match arm")
     if not _SHA256_RE.fullmatch(str(value["noteId"])):
         raise ValueError("noteId must be a SHA-256 digest")
     if not _SHA256_RE.fullmatch(str(value["rowSha256"])):
@@ -368,6 +376,14 @@ def _validate_capture_receipt(value: Any) -> dict[str, Any]:
         not isinstance(run_id, str) or not run_id
     ):
         raise ValueError("runId must be null or a non-empty string")
+    row_date_source = value.get("rowDateSource", "row")
+    if row_date_source not in {"row", "captured_local_date"}:
+        raise ValueError("rowDateSource must be row or captured_local_date")
+    if row_date_source == "captured_local_date":
+        if variant not in _GRAPH_CAPTURE_VARIANTS:
+            raise ValueError("captured_local_date is valid only for graph variants")
+        if run_id is None:
+            raise ValueError("captured_local_date requires runId")
     if isinstance(value["beforeCount"], bool) or not isinstance(value["beforeCount"], int):
         raise ValueError("beforeCount must be an integer")
     if isinstance(value["afterCount"], bool) or not isinstance(value["afterCount"], int):
@@ -385,6 +401,8 @@ def _validate_capture_receipt(value: Any) -> dict[str, Any]:
         raise ValueError("capturedAt must include a timezone")
     return {
         **value,
+        "variant": variant,
+        "rowDateSource": row_date_source,
         "runId": run_id,
         "captured_at": captured_at,
         "row_date": row_date,
@@ -396,6 +414,7 @@ def load_benchmark_receipts(receipts_dir: Path = BENCHMARK_RECEIPTS_DIR) -> dict
         "available": True,
         "error": None,
         "valid": 0,
+        "by_variant": {},
         "by_note_id": {},
         "malformed": [],
     }
@@ -419,6 +438,8 @@ def load_benchmark_receipts(receipts_dir: Path = BENCHMARK_RECEIPTS_DIR) -> dict
             continue
         receipt["source_file"] = path.name
         result["valid"] += 1
+        variant = receipt["variant"]
+        result["by_variant"][variant] = result["by_variant"].get(variant, 0) + 1
         result["by_note_id"].setdefault(receipt["noteId"], []).append(receipt)
     for receipts in result["by_note_id"].values():
         receipts.sort(key=lambda item: item["captured_at"])
@@ -806,9 +827,13 @@ def build_snapshot(
     liveness: dict[str, Any] = {}
     for routine_name in notes:
         lookup = find_scheduler_last_run(routine_name, scheduler_status)
-        candidate_receipts = capture_receipts["by_note_id"].get(
-            note_identity(notes[routine_name]), []
-        )
+        candidate_receipts = [
+            receipt
+            for receipt in capture_receipts["by_note_id"].get(
+                note_identity(notes[routine_name]), []
+            )
+            if receipt["variant"] in {"A", "B"}
+        ]
         row_evidence = note_summaries[routine_name].get("row_evidence", {})
         receipts = []
         for receipt in candidate_receipts:

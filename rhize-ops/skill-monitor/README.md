@@ -174,6 +174,12 @@ scheduled run look captured. The optional context runner invokes the real
 failed, incomplete, missing-arm, missing-metric, non-comparable, missing-history, and
 expired-pending evidence.
 
+The receipt store also accepts procedural-memory graph variants `G`, `G1`, `G2`, and `G3`.
+They are counted separately in `capture_receipts.by_variant` and never participate in the four
+A/B note-liveness calculations. Graph receipts may use `rowDateSource=captured_local_date` when
+they carry a run ID; A/B receipts remain row-dated. This keeps one operational receipt store
+without mixing graph-cohort evidence into context/search performance claims.
+
 ```bash
 python3 benchmark_status.py \
   --context-runner ../../rhize-context-manager/scripts/context_experiments/runner.py \

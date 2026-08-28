@@ -24,6 +24,54 @@ evidence must produce both a non-zero local result and a stable operational inci
 - Procedural receipts count only when bound to both the exact note row and successful
   `bench-append` run telemetry; context history must reconcile with configured completed runs.
 
+## Current behavior
+
+The released watchdog accepts only A/B receipt fields. The live procedural-memory graph cohort
+now emits schema-version-1 G/G1/G2/G3 receipts with explicit `variant` and `rowDateSource`
+metadata. Those valid graph receipts are consequently reported as malformed even though they are
+bound to successful `bench-append` telemetry. Graph receipts must not enter the four A/B note
+liveness calculations.
+
+## Intended semantic delta
+
+Accept G/G1/G2/G3 as valid capture variants, require any explicit `variant` to match `arm`, and
+validate `rowDateSource`. Report receipt counts by variant while continuing to bind only receipts
+whose note identity matches a configured A/B benchmark note. A graph receipt becomes valid store
+evidence, not A/B performance evidence.
+
+## Invariants
+
+- Existing schema-version-1 A/B receipts remain valid without the new optional fields.
+- G/G1/G2/G3 receipts remain isolated from A/B note rows and liveness verdicts.
+- `captured_local_date` is graph-only and requires a non-empty run ID.
+- Malformed, unbound, broad-permission, and failed-run receipts remain actionable.
+- No receipt body, prompt, source text, absolute vault path, or credential enters alerts.
+
+## Acceptance tests
+
+1. A real-shaped G1 receipt with `captured_local_date` loads as valid and increments only `by_variant.G1`.
+2. Variant/arm disagreement and A/B use of `captured_local_date` fail validation.
+3. Existing A/B receipt, binding, liveness, permissions, and actionable-finding tests stay green.
+4. The released watchdog accepts the live G1 receipt without adding it to any A/B routine.
+
+## Implementation order
+
+1. Extend the receipt validator and aggregate output.
+2. Add focused contract and isolation tests.
+3. Update operator documentation and release metadata.
+4. Reconcile the impact receipt, run full validation, release, then rerun the real watchdog.
+
+## Changed files
+
+- `.claude/plans/benchmark-capture-reliability.md`
+- `.claude-plugin/marketplace.json`
+- `CHANGELOG.md`
+- `README.md`
+- `rhize-ops/.claude-plugin/plugin.json`
+- `rhize-ops/skill-monitor/README.md`
+- `rhize-ops/skill-monitor/benchmark_status.py`
+- `rhize-ops/skill-monitor/tests/test_benchmark_status.py`
+
 ## Verification
 
 1. Deterministic capture evals cover valid, missing, malformed, stale-pending, incomplete,

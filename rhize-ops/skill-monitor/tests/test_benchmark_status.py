@@ -650,6 +650,65 @@ def test_capture_receipts_are_strict_timestamped_and_note_bound(tmp_path):
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
+def test_capture_receipts_accept_graph_variant_without_counting_it_as_ab(tmp_path):
+    note = tmp_path / "Graph Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "graph.json"
+    path.write_text(
+        json.dumps(
+            _capture_receipt(
+                note,
+                arm="G1",
+                variant="G1",
+                rowDateSource="captured_local_date",
+            )
+        ),
+        encoding="utf-8",
+    )
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 1
+    assert result["malformed"] == []
+    assert result["by_variant"] == {"G1": 1}
+    assert result["by_note_id"][bs.note_identity(note)][0]["variant"] == "G1"
+
+
+@pytest.mark.parametrize(
+    "overrides, expected_reason",
+    [
+        ({"variant": "G1"}, "variant must match arm"),
+        (
+            {"rowDateSource": "captured_local_date"},
+            "captured_local_date is valid only for graph variants",
+        ),
+        (
+            {
+                "arm": "G1",
+                "variant": "G1",
+                "rowDateSource": "captured_local_date",
+                "runId": None,
+            },
+            "captured_local_date requires runId",
+        ),
+    ],
+)
+def test_capture_receipt_rejects_cross_variant_metadata(tmp_path, overrides, expected_reason):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "invalid.json"
+    path.write_text(json.dumps(_capture_receipt(note, **overrides)), encoding="utf-8")
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 0
+    assert result["malformed"] == [{"file": "invalid.json", "reason": expected_reason}]
+
+
 def test_capture_receipt_validation_surfaces_corrupt_and_invalid_files(tmp_path):
     note = tmp_path / "Procedural Memory Benchmark.md"
     receipt_dir = tmp_path / "receipts"
@@ -706,14 +765,13 @@ def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_
     assert verdict["status"] == "indeterminate_same_day"
 
 
-def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
+def _build_receipt_snapshot(tmp_path, *, receipt_overrides=None, include_run=True):
     note = tmp_path / "Procedural Memory Benchmark.md"
     note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-27"), encoding="utf-8")
+    receipt = _capture_receipt(note, **(receipt_overrides or {}))
     receipt_dir = tmp_path / "receipts"
     receipt_dir.mkdir()
-    (receipt_dir / "capture.json").write_text(
-        json.dumps(_capture_receipt(note)), encoding="utf-8"
-    )
+    (receipt_dir / "capture.json").write_text(json.dumps(receipt), encoding="utf-8")
     os.chmod(receipt_dir / "capture.json", 0o600)
     sessions = tmp_path / "sessions" / "acct" / "space"
     sessions.mkdir(parents=True)
@@ -733,24 +791,25 @@ def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
     )
     runs = tmp_path / "runs"
     runs.mkdir()
-    (runs / "capture.jsonl").write_text(
-        json.dumps(
-            {
-                "name": "bench-append",
-                "ok": True,
-                "run_id": "a5b94939-73ef-4062-be41-3325ad512618",
-                "started_at": "2026-08-28T00:10:00+00:00",
-            }
+    if include_run:
+        (runs / "capture.jsonl").write_text(
+            json.dumps(
+                {
+                    "name": "bench-append",
+                    "ok": True,
+                    "run_id": receipt["runId"],
+                    "started_at": "2026-08-28T00:10:00+00:00",
+                }
+            )
+            + "\n",
+            encoding="utf-8",
         )
-        + "\n",
-        encoding="utf-8",
-    )
     health = tmp_path / "health"
     health.mkdir()
     scheduled = tmp_path / "scheduled"
     scheduled.mkdir()
 
-    snapshot = bs.build_snapshot(
+    return bs.build_snapshot(
         notes={"Daily Completed Summary": note},
         runs_dir=runs,
         health_dir=health,
@@ -758,50 +817,33 @@ def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
         sessions_root=tmp_path / "sessions",
         receipts_dir=receipt_dir,
     )
+
+
+def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
+    snapshot = _build_receipt_snapshot(tmp_path)
 
     assert snapshot["capture_receipts"]["valid"] == 1
     assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "ok"
 
 
-def test_build_snapshot_rejects_a_receipt_without_matching_run_telemetry(tmp_path):
-    note = tmp_path / "Procedural Memory Benchmark.md"
-    note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-27"), encoding="utf-8")
-    receipt_dir = tmp_path / "receipts"
-    receipt_dir.mkdir()
-    receipt_path = receipt_dir / "capture.json"
-    receipt_path.write_text(json.dumps(_capture_receipt(note)), encoding="utf-8")
-    os.chmod(receipt_path, 0o600)
-    sessions = tmp_path / "sessions" / "acct" / "space"
-    sessions.mkdir(parents=True)
-    (sessions / "scheduled-tasks.json").write_text(
-        json.dumps(
-            {
-                "scheduledTasks": [
-                    {
-                        "id": "daily-completed-summary",
-                        "enabled": True,
-                        "lastRunAt": "2026-08-28T00:01:20.025Z",
-                    }
-                ]
-            }
-        ),
-        encoding="utf-8",
+def test_build_snapshot_keeps_graph_receipt_out_of_ab_liveness(tmp_path):
+    snapshot = _build_receipt_snapshot(
+        tmp_path,
+        receipt_overrides={
+            "arm": "G1",
+            "variant": "G1",
+            "rowDateSource": "captured_local_date",
+        },
     )
-    runs = tmp_path / "runs"
-    runs.mkdir()
-    health = tmp_path / "health"
-    health.mkdir()
-    scheduled = tmp_path / "scheduled"
-    scheduled.mkdir()
 
-    snapshot = bs.build_snapshot(
-        notes={"Daily Completed Summary": note},
-        runs_dir=runs,
-        health_dir=health,
-        scheduled_tasks_dir=scheduled,
-        sessions_root=tmp_path / "sessions",
-        receipts_dir=receipt_dir,
-    )
+    assert snapshot["capture_receipts"]["valid"] == 1
+    assert snapshot["capture_receipts"]["by_variant"] == {"G1": 1}
+    assert snapshot["capture_receipts"]["unbound"] == []
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "indeterminate_same_day"
+
+
+def test_build_snapshot_rejects_a_receipt_without_matching_run_telemetry(tmp_path):
+    snapshot = _build_receipt_snapshot(tmp_path, include_run=False)
 
     assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "indeterminate_same_day"
     assert snapshot["capture_receipts"]["unbound"] == [
