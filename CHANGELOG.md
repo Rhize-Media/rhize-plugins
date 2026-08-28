@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.12.1 → 0.13.0 (minor); marketplace 2.47.0 → 2.48.0.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.18.0 → 0.19.0 (minor); marketplace 2.46.0 → 2.47.0.
 - _2026-08-27_ **rhize-context-manager — native compiled-context advanced opt-in.** Added
   a local mixed-language FULL/INTERFACE pack provider, CodeGraph-first or deterministic target
