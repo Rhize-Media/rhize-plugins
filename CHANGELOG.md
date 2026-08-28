@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.13.0 → 0.13.1 (patch); marketplace 2.48.0 → 2.48.1.
+- _2026-08-27_ **rhize-ops — mandatory parallel-agent routing trigger.**
+  `parallel-agent-optimization` now activates whenever parallel or multi-agent work is mentioned,
+  discussed, planned, reviewed, or employed, before the first dispatch. A non-executing `assess`
+  mode keeps discussion out of receipt data, while real work defaults to parallel execution only
+  when independent bounded lanes, safe write isolation, verification ownership, host support, and
+  coordination benefit are all present.
 - _2026-08-27_ version bump — **rhize-ops** 0.12.1 → 0.13.0 (minor); marketplace 2.47.0 → 2.48.0.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.18.0 → 0.19.0 (minor); marketplace 2.46.0 → 2.47.0.
 - _2026-08-27_ **rhize-context-manager — native compiled-context advanced opt-in.** Added
