@@ -5,9 +5,10 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 ## Setup
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
-The other skill (`skill-dashboard`) and commands (`/bump-version`, `/rhize-setup`) work with no
-prior configuration — `/rhize-setup` is itself a wizard, run whenever you want to review or
-change which plugin guardrail hooks are active in a project.
+The other skills and commands work with no prior configuration. `parallel-agent-optimization`
+stores opt-in, privacy-safe local receipts under `~/.rhize/parallel-agent-optimization/` only when
+it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
+guardrail hooks are active in a project.
 
 ## Skills
 
@@ -15,6 +16,7 @@ change which plugin guardrail hooks are active in a project.
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying v… | automation, obsidian, workflow-patterns |
+| `parallel-agent-optimization` | Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. | automation, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 <!-- SKILL-MAP:END -->
 
@@ -38,7 +40,35 @@ Renders the live skill-monitor audit dashboard — aggregates every per-run snap
 
 **Triggers:** "show the skill dashboard", "render the audit dashboard", "skill usage dashboard", "/skill-dashboard", or a request to visualize skill-monitor data.
 
+### `parallel-agent-optimization`
+
+Routes a task through one baseline, ECC, Superpowers, or Rhize strategy and records a strict
+structured receipt so future runs compound into evidence. Ordinary `apply` runs execute one arm
+only and remain observational. An explicit `compare` runs baseline, ECC, Superpowers, and Rhize as
+separate, counterbalanced arms only in fresh replayable environments; it never repeats a live task
+or adds a combined ECC+Superpowers arm. The Rhize arm itself selects at most one upstream resource.
+
+Receipts contain counts, coarse task class, timing intervals, verification, collisions/rework, and
+availability-marked token/tool metrics. They reject prompts, code, commands, repository/file paths,
+names, URLs, and session/thread/issue identifiers, and keep observational versus controlled results
+in separate files and report sections.
+
+**Invoked as:** `rhize-ops:parallel-agent-optimization`
+
+**Triggers:** `/rhize-ops:parallel-optimize`, "optimize parallel agents", "compare parallel-agent
+strategies", or a request to benchmark ECC versus Superpowers versus the Rhize policy.
+
 ## Commands
+
+### `/parallel-optimize`
+
+Thin command adapter for `parallel-agent-optimization`. Use `apply [--variant ...] <task>` for one
+real-task strategy, `compare <replayable task or fixture>` for an explicit isolated four-arm
+comparison, or `report [observational|controlled|all]` to inspect accumulated evidence without
+running work. The command grants no new production, external-write, commit, push, merge, or deploy
+authority.
+
+**Invoked as:** `/rhize-ops:parallel-optimize`
 
 ### `/delegate-setup`
 
@@ -115,4 +145,4 @@ installing the upstream outright rather than reinventing it.
 
 ## Data Subsystem
 
-`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. Two companion scripts add cost visibility on top of that usage data: `savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings across ecc, rtk, Headroom, claude-mem, and OpenWolf) and `skill_roi.py` (joins skill invocations to session cost for a per-skill ROI view). `monitor.py` also writes a counts-only session-level skill co-occurrence snapshot (`data/skill-cooccurrence.json`) consumed by the repo-root `scripts/build_local_skill_map.py` to build the skill map's local overlay (see `docs/skill-map.md`). See `skill-monitor/README.md` for details on all four scripts.
+`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. Two companion scripts add cost visibility on top of that usage data: `savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings across ecc, rtk, Headroom, claude-mem, and OpenWolf) and `skill_roi.py` (joins skill invocations to session cost for a per-skill ROI view). `monitor.py` also writes a counts-only session-level skill co-occurrence snapshot (`data/skill-cooccurrence.json`) consumed by the repo-root `scripts/build_local_skill_map.py` to build the skill map's local overlay (see `docs/skill-map.md`). This monitor remains separate from the structured `parallel-agent-optimization` receipt store: invocation counts and outcome evidence answer different questions and are never silently joined. See `skill-monitor/README.md` for details on all four scripts.

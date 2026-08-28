@@ -106,6 +106,18 @@
       "kind": "external",
       "name": "ecc:browser-qa (skill)",
       "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls."
+    },
+    {
+      "id": "external:ecc-parallel-execution-optimizer",
+      "kind": "external",
+      "name": "ecc:parallel-execution-optimizer (skill)",
+      "description": "Maintained ECC lane and dependency planning resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization."
+    },
+    {
+      "id": "external:superpowers-dispatching-parallel-agents",
+      "kind": "external",
+      "name": "superpowers:dispatching-parallel-agents (skill)",
+      "description": "Maintained Superpowers focused dispatch resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization."
     }
   ],
   "edges": [
@@ -244,6 +256,18 @@
     {
       "from": "skill:rhize-devflow/chrome-devtools-mcp",
       "to": "external:ecc-browser-qa",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "to": "external:ecc-parallel-execution-optimizer",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "to": "external:superpowers-dispatching-parallel-agents",
       "type": "depends-on",
       "source": "relations-catalog"
     }

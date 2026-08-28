@@ -67,9 +67,7 @@ Inputs and what they produce
       `skills/context-engineering/hooks/*.sh` — those are picked up the same
       way as any other manifest item, no special-casing needed.
 
-5. `rhize-context-manager/skills/SOURCES.md` (the plan names
-   `rhize-context-manager/SOURCES.md`; the file actually lives one level
-   deeper, at `skills/SOURCES.md` — read from the real path)
+5. Each plugin's optional `skills/SOURCES.md`
    -> `fork-of` edges from the corresponding skill node to a PER-SKILL
       `external` node (one node per upstream skill, not one shared node per
       marketplace — a single node can't carry a resolvable `path` for 7
@@ -86,7 +84,11 @@ Inputs and what they produce
       string/regex operations only, never passed to a shell. The parse
       grammar itself lives in `scripts/sources_md.py` (single owner, shared
       with `scripts/baseline_upstreams.py`) — see that module's docstring.
-      An entry's optional `- **Upstream baseline:** sha256:<hex> (recorded
+      A DEFER+wrap entry may declare `- **Graph relation:** consumes`; its
+      dependency edges come from `catalog/skill-relations.json`, so the
+      ledger remains available to Forge without misrepresenting the wrapper
+      as a fork. An entry's optional
+      `- **Upstream baseline:** sha256:<hex> (recorded
       YYYY-MM-DD)` field (written by `scripts/baseline_upstreams.py`, never by
       this compiler) becomes `baselineHash` on the per-skill external node.
       The corresponding skill node also gains `contentHashNormalized` —
@@ -707,6 +709,17 @@ def load_sources_md(
             raise BuildError(
                 f"SOURCES.md entry {skill_name!r} is not marked RETIRED but "
                 f"no SKILL.md exists at {skill_dir} — unresolvable reference"
+            )
+        graph_relation = entry["fields"].get("Graph relation", "fork-of")
+        if graph_relation == "consumes":
+            # DEFER+wrap: the ledger is the provenance/drift join, while the
+            # relations catalog represents each consumed external resource.
+            # No source content was copied, so fork-of would be false.
+            continue
+        if graph_relation != "fork-of":
+            raise BuildError(
+                f"SOURCES.md entry {skill_name!r}: Graph relation must be "
+                "'fork-of' or 'consumes'"
             )
         source_value = entry["fields"].get("Source", "")
         is_url = bool(_URL_SCHEME_RE.match(source_value))

@@ -2,28 +2,31 @@
 
 | Field | Value |
 |---|---|
-| Status | DEFER confirmed; 24-run smoke complete; no live skill mutation |
+| Status | DEFER+wrap confirmed; wrapper implemented and validated on feature branch |
 | Created | 2026-08-27 |
 | Jira | [RT-129](https://amesdigitalsolutions.atlassian.net/browse/RT-129) |
 | Branch | `codex/rt-parallel-agent-skill-forge-review` |
 | Candidate Arm A | `ecc:parallel-execution-optimizer` from ECC 2.2.0 |
 | Candidate Arm B | `superpowers:dispatching-parallel-agents` from Superpowers 6.3.0 |
-| Recommended Forge verb | **DEFER** |
-| Gate outcome | Human confirmed DEFER and the pre-wrapper smoke on 2026-08-27; any wrapper still requires a new gate |
+| Recommended Forge verb | **DEFER+wrap** (recorded as DEFER; no upstream copy) |
+| Gate outcome | Human explicitly confirmed the wrapper implementation on 2026-08-27 |
 
 ## 1. Decision
 
-**Final recommendation: DEFER both candidates; do not create a Rhize wrapper.** Keep both installed external skills as maintained
-resources; do not copy their prose into Rhize and do not fork either plugin skill.
+**Final recommendation: DEFER both candidates and add a thin Rhize wrapper.** Keep both installed
+external skills as maintained resources; do not copy their prose into Rhize and do not fork either
+plugin skill. The wrapper owns only the distinct Rhize execution, safety, and evidence contract.
 
 The controlled smoke found a promising elapsed-time signal for each candidate alone, but it did
 not clear the predeclared adoption gate: the fixture ran once per cell, authoritative token/tool
-totals were unavailable, and the combined arm was slower than baseline. A future product decision
-may repeat the instrumented trial, but the current evidence does not justify a Rhize-owned wrapper.
+totals were unavailable, and the combined arm was slower than baseline. The confirmed wrapper does
+not claim either candidate is superior. It creates the missing telemetry and safe, isolated
+comparison surface needed to accumulate better evidence while keeping ordinary tasks single-arm.
 
-The human confirmed DEFER and authorized the 24-run pre-wrapper evaluation. This report does not
-create a wrapper, edit either live skill, append a provenance ledger entry, or merge anything to
-`main`. Those remain outside the confirmed gate.
+The human subsequently confirmed DEFER+wrap. The implementation adds
+`rhize-ops:parallel-agent-optimization`, `/rhize-ops:parallel-optimize`, a strict local receipt
+utility, provenance, documentation, and tests. It does not edit either live external skill or merge
+anything to `main`.
 
 Why this verb:
 
@@ -413,21 +416,44 @@ sensor for plugin/version movement. If the human approves DEFER+wrap, record bot
 sources and versions in Forge provenance; the sensor reports movement and Forge classifies whether
 the wrapper needs re-evaluation on demand. Any future propagation remains human-gated.
 
-## 10. Gate resolution and future boundary
+## 10. Gate resolution and wrapper boundary
 
-The human confirmed **DEFER** and authorized the 24-run pre-wrapper evaluation on 2026-08-27. The
-smoke is complete, and no wrapper is recommended from its evidence.
-
-If a later, telemetry-complete repeated evaluation earns a wrapper, return to the Forge gate before
-writing it. The wrapper's
-minimum distinct contract would be:
+The human confirmed **DEFER+wrap** on 2026-08-27 after reviewing the smoke and the proposed command
+surface. The approved wrapper's minimum distinct contract is:
 
 - Arm A's lane/dependency classification;
 - Arm B's focused agent-task shape;
 - exact non-overlapping file territories and protected files;
 - one writer per shared checkout unless worktrees are explicitly isolated;
-- Claude and Codex dispatch adapters;
+- one portable execution contract that uses the current host's available agent tools;
 - coordinator-owned integration and verification;
 - the privacy-safe run receipt above.
 
-No wrapper is justified merely because the two source skills look complementary on paper.
+The implementation deliberately does not combine the two resources. `apply` runs one assigned or
+explicit arm and records observational evidence. `compare` requires an explicit replayable fixture,
+uses fresh isolated environments, and runs baseline, ECC, Superpowers, and Rhize as separate arms.
+`report` keeps observational and controlled evidence separate. No prompt, code, repository/file
+path, name, URL, session/thread ID, or issue ID is accepted by the receipt schema.
+
+## 11. Implementation follow-up tracking
+
+The requested RT follow-up task could not be created during implementation: both the initial Jira
+create attempt and the post-validation retry returned HTTP 401 from the configured Jira connector,
+including the connector's resource-discovery call. No issue key or successful write was inferred.
+RT-129 remains the durable investigation link; create and relate the follow-up after the connector
+is reauthenticated, using the acceptance criteria and validation evidence in this report and the
+new skill references.
+
+## 12. Final implementation validation
+
+- Focused receipt, privacy, ordering, graph, CLI, and concurrency tests: 27 passed.
+- Full repository suite: 383 passed, including the stale-map local-clone cycle.
+- Forge provenance drift classifier: PASS; lists the DEFER wrapper with ECC 2.2.0 and Superpowers
+  6.3.0 and points to the existing AI-stack drift boundary.
+- Skill map: current; two `depends-on` edges, no wrapper `fork-of` edge.
+- Plugin config lint, generated-doc idempotence, JSON parsing, Python compilation, version contract,
+  and `git diff --check`: PASS.
+- Independent skeptical review: PASS after three fix/re-review cycles; no remaining findings.
+- Generic OpenAI skill/plugin validators are not applicable to this repository contract: the skill
+  validator rejects Forge-required top-level metadata, and the plugin validator requires a
+  `.codex-plugin/plugin.json` while `rhize-ops` is an established Claude marketplace plugin.

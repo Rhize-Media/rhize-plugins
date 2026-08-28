@@ -111,7 +111,7 @@
     {
       "name": "rhize-ops",
       "source": "./rhize-ops",
-      "description": "Operations skill set — delegation, hand-offs, and team-workflow automation. Houses delegate-to-teammate: package a session's work into a structured hand-off for a configured teammate (tracker issue + Slack notification + Fireflies context). Recipient/tracker/project config is set up via /rhize-ops:delegate-setup and stored locally, not hardcoded.",
+      "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
       "version": "0.12.1",
       "author": {
         "name": "Rhize Media"

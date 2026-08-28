@@ -73,6 +73,7 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying v… | automation, obsidian, workflow-patterns |
+| `parallel-agent-optimization` | Choose whether a task should use parallel agents, run one bounded execution strategy, and record privacy-safe evidence. | automation, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 
 ## rhize-tasks
