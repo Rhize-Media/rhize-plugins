@@ -2,10 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Status | DEFER+wrap confirmed; wrapper implemented and validated on feature branch |
+| Status | DEFER+wrap confirmed; integrated and validated for the v2.48.0 main release |
 | Created | 2026-08-27 |
 | Jira | [RT-129](https://amesdigitalsolutions.atlassian.net/browse/RT-129) |
-| Branch | `codex/rt-parallel-agent-skill-forge-review` |
+| Integration branch | `codex/rt-parallel-agent-integration` |
+| Release target | `rhize-ops` 0.13.0; marketplace v2.48.0 |
 | Candidate Arm A | `ecc:parallel-execution-optimizer` from ECC 2.2.0 |
 | Candidate Arm B | `superpowers:dispatching-parallel-agents` from Superpowers 6.3.0 |
 | Recommended Forge verb | **DEFER+wrap** (recorded as DEFER; no upstream copy) |
@@ -25,8 +26,9 @@ comparison surface needed to accumulate better evidence while keeping ordinary t
 
 The human subsequently confirmed DEFER+wrap. The implementation adds
 `rhize-ops:parallel-agent-optimization`, `/rhize-ops:parallel-optimize`, a strict local receipt
-utility, provenance, documentation, and tests. It does not edit either live external skill or merge
-anything to `main`.
+utility, provenance, documentation, and tests. It does not edit either live external skill. The
+three investigation, evaluation, and implementation commits were replayed onto v2.47.0 so the
+context-tools release remains in the ancestry of the v2.48.0 release candidate.
 
 Why this verb:
 
@@ -437,23 +439,31 @@ path, name, URL, session/thread ID, or issue ID is accepted by the receipt schem
 
 ## 11. Implementation follow-up tracking
 
-The requested RT follow-up task could not be created during implementation: both the initial Jira
-create attempt and the post-validation retry returned HTTP 401 from the configured Jira connector,
-including the connector's resource-discovery call. No issue key or successful write was inferred.
-RT-129 remains the durable investigation link; create and relate the follow-up after the connector
-is reauthenticated, using the acceptance criteria and validation evidence in this report and the
-new skill references.
+The requested RT follow-up task could not be created during implementation: the initial Jira create
+attempt and post-validation resource-discovery retry returned HTTP 401 from the configured Jira
+connector. After integration and exact-tree validation, one final RT-129 evidence-comment retry also
+returned HTTP 401 Unauthorized on 2026-08-27. No issue key, comment, or successful write was
+inferred. RT-129 remains the durable investigation link; create and relate the follow-up after the
+connector is reauthenticated, using the acceptance criteria and validation evidence in this report
+and the new skill references.
 
 ## 12. Final implementation validation
 
-- Focused receipt, privacy, ordering, graph, CLI, and concurrency tests: 27 passed.
-- Full repository suite: 383 passed, including the stale-map local-clone cycle.
+- Focused receipt, privacy, ordering, graph, CLI, and concurrency tests: 29 passed and 6 subtests
+  passed.
+- Full repository suite: 623 passed, 2 skipped, and 6 subtests passed. The stale-map local-clone
+  cycle passed outside the filesystem sandbox; its first sandboxed run was denied permission to
+  create Git local-clone object links, not a source or assertion failure.
+- Release contract: 303 `rhize-devflow` tests passed; impact-map, plugin-config, skill-map freshness,
+  marketplace/plugin version, JSON, and diff checks passed.
 - Forge provenance drift classifier: PASS; lists the DEFER wrapper with ECC 2.2.0 and Superpowers
   6.3.0 and points to the existing AI-stack drift boundary.
 - Skill map: current; two `depends-on` edges, no wrapper `fork-of` edge.
-- Plugin config lint, generated-doc idempotence, JSON parsing, Python compilation, version contract,
-  and `git diff --check`: PASS.
-- Independent skeptical review: PASS after three fix/re-review cycles; no remaining findings.
+- Governed skill-map regeneration was idempotent on the integrated tree; the v2.47.0 context-tools
+  commit remains an ancestor, and the only changed plugin is consistently versioned at 0.13.0 under
+  marketplace 2.48.0.
+- Independent skeptical feature review passed after three fix/re-review cycles. A separate final
+  read-only review of the integrated release tree also passed with no remaining findings.
 - Generic OpenAI skill/plugin validators are not applicable to this repository contract: the skill
   validator rejects Forge-required top-level metadata, and the plugin validator requires a
   `.codex-plugin/plugin.json` while `rhize-ops` is an established Claude marketplace plugin.
