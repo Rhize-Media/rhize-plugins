@@ -356,6 +356,30 @@ def test_liveness_indeterminate_same_day_when_run_and_row_share_a_date():
     assert "cannot be determined" in v["reason"]
 
 
+def test_liveness_uses_new_york_date_for_utc_scheduler_instant():
+    # The scheduler stores instants in UTC while benchmark notes record the
+    # America/New_York calendar date. 00:01 UTC is still the prior local day.
+    note = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T00:01:20.025+00:00"),
+    }
+    v = bs.classify_liveness(note, lookup)
+    assert v["status"] == "indeterminate_same_day"
+    assert "2026-08-27" in v["reason"]
+
+
+def test_liveness_still_flags_a_later_new_york_calendar_date():
+    note = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T05:00:00+00:00"),
+    }
+    v = bs.classify_liveness(note, lookup)
+    assert v["status"] == "row_missing"
+    assert "2026-08-28" in v["reason"]
+
+
 def test_liveness_row_missing_when_run_postdates_newest_row():
     # This is the case the whole module exists to catch: the scheduler shows a
     # run that happened AFTER the newest row was logged.

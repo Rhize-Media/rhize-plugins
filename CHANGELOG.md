@@ -8,6 +8,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-ops** 0.13.1 → 0.13.2 (patch); marketplace 2.48.1 → 2.48.2.
+- _2026-08-27_ **rhize-ops/skill-monitor — benchmark watchdog local-date correction.**
+  Scheduler `lastRunAt` instants are now converted to the benchmark program's
+  `America/New_York` calendar before comparison with date-only Obsidian rows. This prevents an
+  evening run that crosses UTC midnight from being mislabeled `row_missing`, while preserving
+  `indeterminate_same_day` and genuine later-local-day missing-row detection.
 - _2026-08-27_ version bump — **rhize-ops** 0.13.0 → 0.13.1 (patch); marketplace 2.48.0 → 2.48.1.
 - _2026-08-27_ **rhize-ops — mandatory parallel-agent routing trigger.**
   `parallel-agent-optimization` now activates whenever parallel or multi-agent work is mentioned,

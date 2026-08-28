@@ -29,7 +29,9 @@ note? If so, a run happened and produced no row — `row_missing`. That is the
 finding this module exists to surface, made unmissable in both JSON and the
 human-readable report. Rows carry only a DATE, never a time, so a run and the
 newest row sharing a calendar date is genuinely indeterminate, not `ok` — see
-`classify_liveness()`'s `indeterminate_same_day` status.
+`classify_liveness()`'s `indeterminate_same_day` status. Scheduler instants are
+converted to the benchmark program's America/New_York calendar before that
+date-only comparison.
 
 System python3 here is 3.14 and has no `jsonschema` — this module deliberately
 imports nothing beyond the standard library.
@@ -45,8 +47,10 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 HOME = Path.home()
+BENCHMARK_TIMEZONE = ZoneInfo("America/New_York")
 
 # --- Data source locations -------------------------------------------------
 
@@ -510,6 +514,8 @@ def classify_liveness(note_summary: dict[str, Any], scheduler_lookup: dict[str, 
             "reason": "scheduler entry found but lastRunAt is missing; note has rows so recency can't be verified",
         }
 
+    if last_run_at.tzinfo is not None:
+        last_run_at = last_run_at.astimezone(BENCHMARK_TIMEZONE)
     last_run_date = last_run_at.date()
     if newest_row_date is None:
         return {
