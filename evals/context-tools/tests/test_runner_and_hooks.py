@@ -47,6 +47,16 @@ def armed_local_retrieval(repo: Path) -> ExperimentConfig:
     )
 
 
+def armed_compiled_context(repo: Path) -> ExperimentConfig:
+    return arm_capability(
+        ExperimentConfig(),
+        Capability.COMPILED_CONTEXT,
+        repo,
+        1,
+        smoke_approved=True,
+    )
+
+
 def test_unavailable_real_provider_keeps_selection_inert() -> None:
     selection = select_next(
         {
@@ -112,6 +122,60 @@ def test_claim_is_atomic_and_interrupted_finalization_does_not_consume_run(
         "no_execution_evidence"
     }
     assert finalize_hook_selection(payload, tmp_path) is False
+
+
+def test_compiled_context_hook_builds_real_pack_and_records_arms(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "service.py").write_text(
+        "def normalize(value: str) -> str:\n    return value.strip()\n"
+    )
+    (repo / "app.py").write_text(
+        "from service import normalize\n\ndef run(value: str) -> str:\n    return normalize(value)\n"
+    )
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(repo), "-c", "user.name=Rhize Tests",
+            "-c", "user.email=tests@rhize.media", "commit", "-qm", "fixture",
+        ],
+        check=True,
+    )
+    config_path = tmp_path / "config.json"
+    write_config(armed_compiled_context(repo), config_path)
+    payload = {
+        "prompt": "Implement the app normalize service behavior for this feature",
+        "cwd": str(repo),
+        "session_id": "session-native-auto",
+    }
+    claimed = claim_hook_selection(
+        payload,
+        load_config(config_path),
+        {Capability.COMPILED_CONTEXT: (True, True, "native provider")},
+        tmp_path / "data",
+    )
+    assert claimed is not None
+    execution = claimed["pending"]["providerExecution"]
+    assert execution["providerRevision"] == "rhize-native-context-pack-v1"
+    assert (tmp_path / "data" / "packs" / execution["manifestFile"]).is_file()
+    assert (tmp_path / "data" / "packs" / execution["promptFile"]).is_file()
+    assert "prompt" not in claimed["pending"]
+
+    assert finalize_hook_selection(payload, tmp_path / "data", config_path) is True
+    receipt_path = next((tmp_path / "data" / "receipts").glob("*.json"))
+    receipt = json.loads(receipt_path.read_text())
+    assert receipt["status"] == "completed"
+    assert set(receipt["armsExecuted"]) == {"A", "B"}
+    assert {metric["variant"] for metric in receipt["metrics"]} == {"A", "B"}
+    assert "live_task_outcome_requires_human_review" in receipt["warnings"]
+    assert "provider_revision_rhize-native-context-pack-v1" in receipt["warnings"]
+    assert any(value.startswith("pack_id_pack-") for value in receipt["warnings"])
+    updated = load_config(config_path)
+    assert updated.compiled_context.armed_runs == 0
+    assert updated.compiled_context.completed_runs == 1
 
 
 def test_real_context_compiler_writes_pack_and_receipt_before_consuming_arm(

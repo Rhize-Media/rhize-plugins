@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Phases 0, 1, 1.5, and 3 complete; Phase 2 is blocked and Phase 4 design is next |
+| Status | Implementation complete through Phase 7 decision; native packs are advanced opt-in, retrieval paths rejected, combined test skipped because prerequisites failed |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
@@ -112,6 +112,25 @@ automatic live task** yet:
   evaluator as repeatable evidence infrastructure, but leave `localRetrieval` disabled and unarmed.
   Do not count this as an automatic live experiment. Reconsider only with a materially different
   model/configuration or an upstream release that provides safe single-checkout indexing.
+
+### 1.4 Native compiled-context and final decision checkpoint — 2026-08-27
+
+- Added `rhize-native-context-pack-v1`, a local-only Python/JavaScript/TypeScript provider with
+  explicit or query-based target discovery, CodeGraph-first behavior when `.codegraph/` exists,
+  FULL/INTERFACE roles, source-free v2 manifests, visible selection reasons, and `verify-pack`
+  snapshot/source-hash invalidation.
+- The real native corpus passed 5/5 cases with zero critical misses. Four accepted cases had a
+  39.02% median estimated reduction; a dynamic JavaScript import failed closed. Together with the
+  nine upstream cases, compiled context has 14 paired offline cases.
+- Real repository dogfood accepted the provider-target pack at 8,759 versus 680,703 estimated
+  tokens and correctly rejected the runner-target pack despite more than 94% reduction because of
+  a dynamic edge. The one-shot hook then built an accepted query-discovered pack with Arm B live
+  at 10,907 versus 682,821 estimated tokens; a subsequent edit made verification fail on snapshot
+  drift and forced a fresh accepted pack.
+- Final disposition: native compiled context is an advanced opt-in capability; the upstream
+  compiler remains an eval/reference provider; current managed mgrep and local grepai paths are
+  rejected; the combined 2x2 is skipped because retrieval did not pass its independent gate.
+  The decision record is `evals/context-tools/NATIVE_CONTEXT_DECISION.md`.
 
 Sources: Mixedbread [pricing](https://www.mixedbread.com/pricing),
 [Privacy Policy](https://www.mixedbread.com/pages/privacy),
@@ -821,6 +840,9 @@ Verify:
 
 **Goal:** create the Rhize-owned abstraction that can serve mixed-language work without duplicating the context stack.
 
+**Disposition (2026-08-27):** complete. Native v1 passed the fixed mixed-language gate and its
+actual-repository explicit/query smoke paths; unsafe dynamic targets reject use.
+
 Tasks:
 
 - Implement target discovery adapters for baseline routing and CodeGraph where `.codegraph/` exists.
@@ -846,6 +868,11 @@ Verify:
 
 **Goal:** measure compiled packs in real, eligible tasks without forcing the workflow globally.
 
+**Disposition (2026-08-27):** first-run complete. The one-shot selector built a real accepted
+native pack before the next implementation slice and recorded Arm B live/Arm A shadow. The receipt
+retains human-review warnings for correctness and follow-up reads. Broader rollout stops at
+advanced opt-in and moves to the scheduled 5-task/14-day review rather than claiming adoption.
+
 Tasks:
 
 - First use `/context-pack` explicitly on an approved task and review the artifact.
@@ -869,6 +896,10 @@ Verify:
 
 **Goal:** produce enough controlled and live evidence for a bundle decision.
 
+**Disposition (2026-08-27):** complete at the documented stop/decision boundary. Fourteen paired
+compiled-context cases and six paired retrieval cases reconcile to their source reports. The 2x2
+combined run was not executed because both semantic-retrieval candidates failed prerequisites.
+
 Tasks:
 
 - Complete at least 12 paired offline cases and the required live-task sample.
@@ -889,6 +920,11 @@ Verify:
 - Executor: Terra analysis; Sol final decision review.
 
 ### Phase 7 — Bundle or retire
+
+**Disposition (2026-08-27):** complete. Bundle the native pack as disabled-by-default advanced
+opt-in; retain upstream/retrieval adapters only as evidence infrastructure; do not add a
+`rhize-devflow` consumer or managed provider setup. See
+`evals/context-tools/NATIVE_CONTEXT_DECISION.md`.
 
 **If evidence supports adoption:**
 

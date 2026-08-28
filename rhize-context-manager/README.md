@@ -77,8 +77,8 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
-| `/context-experiment` | Opt-in local retrieval, mgrep, and Context Compiler dogfood control: provider health, bounded arming, real dry-run/eval/compile execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
-| `/context-pack` | Explicitly build and inspect a deterministic, private Context Compiler pack. It never arms, injects, or records a completed experiment; unsupported dependency patterns fail closed to baseline retrieval. |
+| `/context-experiment` | Opt-in local retrieval, mgrep, and compiled-context dogfood control: provider health, bounded arming, real dry-run/eval/pack execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
+| `/context-pack` | Build and inspect a deterministic private pack. The local native provider supports Python, JavaScript, TypeScript, mixed targets, target discovery, FULL/INTERFACE roles, and stale-pack verification; the pinned upstream Python provider remains available for comparison. Preview mode never arms or injects. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -174,7 +174,7 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed local-retrieval, mgrep, or compiled-context experiment only when the pinned real provider and snapshot are healthy. |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed experiment only when its real provider and snapshot are healthy. For `compiledContext`, it builds an accepted native pack automatically before discovery; rejected packs stay silent and leave the arm intact. |
 | `context-experiment-finalizer` | `Stop` | T3 (advisory) | Finalizes durable execution evidence; interrupted runs receive an incomplete receipt and do not consume the armed run. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
@@ -250,6 +250,16 @@ evidence that a pack improves a coding task. The default checkout is
 `~/.claude/rhize-context-manager/providers/context-compiler`; override it with
 `RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
 [`evals/context-tools`](../evals/context-tools/README.md).
+
+The default `/context-pack --provider native` path is Rhize-owned and local-only. It uses exact
+static imports for Python/JavaScript/TypeScript, includes explicit targets in full, renders static
+dependencies as interfaces, and adds related tests/configuration when they fit. Query discovery
+uses CodeGraph first when `.codegraph/` exists and records an explicit baseline fallback otherwise.
+Every manifest records provider revision, task/query hashes, source/rendered hashes, selection
+reasons, token budget, and warnings without source text. `verify-pack` rejects any snapshot or
+entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
+context cases; native v1 passed its controlled gate with zero critical misses and a 39.02% median
+reduction across four accepted cases. This supports an advanced opt-in pilot, not default use.
 
 ### Refinement-pipeline hooks (also in `setup/manifest.json`)
 

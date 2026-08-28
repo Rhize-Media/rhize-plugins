@@ -71,6 +71,32 @@ behavior, not improved coding outcomes.
 Live-task receipts must separately measure correctness, follow-up reads, context tokens,
 latency, and whether the compiled pack actually influenced the task.
 
+## Native compiled context
+
+Run the five-case real native-provider corpus:
+
+```bash
+python3 evals/context-tools/run_native_context_evals.py \
+  --output /private/path/native-context-phase-4.json
+```
+
+The fixed cases cover TypeScript, JavaScript, Python, explicit mixed-language targets, and a
+dynamic JavaScript import that must fall back. Both arms run in every row: Arm A is the complete
+supported-source baseline and Arm B is `rhize-native-context-pack-v1`. Every case compiles twice
+and requires the same source-bound pack ID and prompt; no provider double produces benchmark data.
+
+On 2026-08-27, all five cases passed `native-context-phase-4-v1`: four static packs were accepted,
+the dynamic case was rejected with `dynamic_dependency_edge`, no critical entry was missing, and
+the accepted cases had a 39.02% median estimated token reduction. Combined with the nine upstream
+cases, the compiled-context decision corpus has 14 paired cases.
+
+A real `rhize-plugins` explicit-target smoke accepted the provider implementation pack at 8,759
+estimated Arm B tokens versus 680,703 for Arm A. A broad runner pack reduced tokens by more than
+94% but rejected itself because of a dynamic edge. A query-discovered one-shot hook run then built
+an accepted six-file pack before the next implementation slice. These results support only an
+advanced opt-in pilot: task correctness and follow-up reads remain human-reviewed receipt fields,
+and token reduction alone is not a default-enable signal.
+
 ## mgrep
 
 The first gate is the real CLI plus an independent local upload inventory:
@@ -83,6 +109,8 @@ python3 rhize-context-manager/scripts/context_experiments/runner.py \
 ```
 
 An unauthenticated CLI reports `completed: false` even though mgrep itself exits zero after
-showing a login prompt. Once authenticated, the vendor dry-run may create or retrieve the
-named remote store, but it does not upload file content. Repository upload remains a later,
-explicitly confirmed action based on the reviewed manifest.
+showing a login prompt. The 2026-08-27 economics/privacy gate stopped the managed pilot before
+signup: Mixedbread's published free-tier data-use language is contradictory, and the local grepai
+alternative then failed correctness non-inferiority. No account, token, store, or upload was
+created. Managed mgrep remains rejected unless new terms or a paid approval materially change the
+gate; the preflight code is retained only as auditable evaluation infrastructure.

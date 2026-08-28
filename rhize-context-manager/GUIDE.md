@@ -59,6 +59,16 @@ the right one, and health-checks the whole thing.
   *Example: "Run /rhize-devflow:impact-map for this sponsor lifecycle change, then reconcile it
   after the fix."*
 
+- **"Build a compact source pack for this task" / "inspect compiled context"**
+  → `/context-pack` — a local-only preview for Python, JavaScript, TypeScript, and mixed targets.
+  Give it one or more target files, or a task query; it uses CodeGraph first when the repository
+  already has `.codegraph/`, records why each FULL/INTERFACE entry was selected, and fails closed
+  on dynamic or stale dependencies. `verify-pack` must pass before reuse after any edit. The
+  automatic selector is separately opt-in and one-shot; no network provider is enabled by this
+  command.
+  *Example: "Run /context-pack for the account sync target, inspect the reasons, then verify it
+  before using it in review."*
+
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 

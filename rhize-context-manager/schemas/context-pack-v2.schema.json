@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/context-pack-v2.schema.json",
+  "title": "Rhize Native Context Pack Manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery",
+    "entries", "excludedCount", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
+    "reductionPercent", "buildMilliseconds", "sourceManifestHash", "policy", "warnings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "packId": { "$ref": "#/$defs/packId" },
+    "repoId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "snapshot": { "$ref": "#/$defs/safeId" },
+    "taskHash": { "$ref": "#/$defs/hash" },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "revision"],
+      "properties": {
+        "name": { "const": "rhize-native" },
+        "revision": { "const": "rhize-native-context-pack-v1" }
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "queryHash", "targetPaths"],
+      "properties": {
+        "strategy": { "enum": ["explicit", "baseline", "codegraph"] },
+        "queryHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "targetPaths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/relativePath" }
+        }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "reason", "sourceHash", "renderedHash", "estimatedTokens"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "role": { "enum": ["FULL", "INTERFACE"] },
+          "reason": { "enum": ["explicit_or_discovered_target", "static_dependency", "related_test", "nearby_configuration"] },
+          "sourceHash": { "$ref": "#/$defs/hash" },
+          "renderedHash": { "$ref": "#/$defs/hash" },
+          "estimatedTokens": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "excludedCount": { "type": "integer", "minimum": 0 },
+    "totalSourceFiles": { "type": "integer", "minimum": 1 },
+    "naiveDumpTokens": { "type": "integer", "minimum": 0 },
+    "compiledTokens": { "type": "integer", "minimum": 0 },
+    "reductionPercent": { "type": "number" },
+    "buildMilliseconds": { "type": "number", "minimum": 0 },
+    "sourceManifestHash": { "$ref": "#/$defs/hash" },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptedForUse", "maximumTokens", "rejectionReasons"],
+      "properties": {
+        "acceptedForUse": { "type": "boolean" },
+        "maximumTokens": { "type": "integer", "minimum": 1 },
+        "rejectionReasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/safeId" }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/safeId" }
+    }
+  },
+  "$defs": {
+    "packId": { "type": "string", "pattern": "^pack-[a-f0-9]{32}$" },
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$" },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "pattern": "(^/|(^|/)\\.\\.(/|$))" }
+    }
+  }
+}

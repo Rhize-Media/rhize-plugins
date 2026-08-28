@@ -13,6 +13,7 @@ def test_all_phase_one_json_documents_parse() -> None:
         PLUGIN_ROOT / "schemas" / "context-experiment-config-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-experiment-receipt-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v1.schema.json",
+        PLUGIN_ROOT / "schemas" / "context-pack-v2.schema.json",
         PLUGIN_ROOT / "setup" / "manifest.json",
     ]
     for path in paths:
@@ -62,6 +63,18 @@ def test_context_pack_schema_matches_upstream_adapter_contract() -> None:
         "callbackRegistrationFileCount",
         "syntaxErrorFileCount",
     }.issubset(diagnostics)
+
+
+def test_native_context_pack_schema_is_provider_neutral_and_source_free() -> None:
+    schema = json.loads(
+        (PLUGIN_ROOT / "schemas" / "context-pack-v2.schema.json").read_text()
+    )
+    assert schema["additionalProperties"] is False
+    assert schema["properties"]["provider"]["properties"]["name"]["const"] == "rhize-native"
+    entry = schema["properties"]["entries"]["items"]
+    assert {"path", "role", "reason", "sourceHash", "renderedHash"}.issubset(entry["required"])
+    assert set(entry["properties"]["role"]["enum"]) == {"FULL", "INTERFACE"}
+    assert "content" not in entry["properties"]
 
 
 def test_opt_in_manifest_wires_both_fail_silent_hooks() -> None:

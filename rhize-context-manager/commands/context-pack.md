@@ -1,40 +1,59 @@
 ---
-description: Build and inspect a private Context Compiler pack without injecting it into a task
+description: Build and inspect a private, source-bound context pack without injecting it
 model: sonnet
 ---
 
 # /context-pack
 
-Build a source-bound preview with the checksum-verified, unmodified upstream Context Compiler.
-This command never arms an experiment, injects context, or records a completed dogfood receipt.
-It is the Phase 3 inspection path for deciding whether a target is safe enough to advance to a
-later provider-neutral experiment.
+Build a deterministic preview. The default `native` provider is local-only and supports Python,
+JavaScript, TypeScript, and mixed-language repositories. It selects FULL targets, INTERFACE
+dependencies, related tests, and nearby configuration under a declared token budget. The pinned
+upstream Python Context Compiler remains available for reproduction of the Phase 3 evidence.
 
-Resolve the runner from the installed plugin root and run:
+Resolve the runner from the installed plugin root and use one of these forms:
 
 ```bash
+# Native provider with an explicit target (repeat --target for a mixed-language task)
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" pack \
+  --provider native \
+  --repo /absolute/path/to/repository \
+  --target src/app.ts
+
+# Native target discovery. If .codegraph/ exists, CodeGraph is tried first; otherwise the
+# provider uses its deterministic baseline discovery and records that strategy.
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" pack \
+  --provider native \
+  --repo /absolute/path/to/repository \
+  --query "implement the account synchronization behavior"
+
+# Pinned upstream Python comparison
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" pack \
   --provider upstream-python \
   --repo /absolute/path/to/repository \
-  --target /absolute/path/to/repository/module.py
+  --target module.py
 ```
 
-The runner binds the pack to the current Git snapshot, including a digest when the worktree is
-dirty. Pass `--snapshot <expected-snapshot>` when the caller already has an expected value and
-wants the command to fail if the repository changed. `--checkout`, `--max-hops`, and
-`--max-tokens` override the pinned defaults.
+The preview never arms an experiment, injects context, or records a completed receipt. Inspect
+`acceptedForUse`, every entry's role/reason, and all warnings before opening the private prompt.
+Dynamic dependency edges, ambiguous targets, unsupported syntax, or a required target outside the
+budget reject use. Optional budget truncation remains visible even when the required pack is safe.
 
-Inspect the printed verdict before opening the private prompt file:
+Both manifest and prompt are mode `0600` under
+`~/.claude/rhize-context-manager/experiments/packs/` by default. The manifest contains hashes and
+repository-relative paths, never source text or an absolute repository path. Verify a native pack
+immediately before reuse:
 
-- `acceptedForInjection=false` is a successful conservative preview, not permission to inject.
-- Any dynamic-dispatch, decorator-registration, callback-registration, unsupported-syntax,
-  token-budget, coverage, or collision rejection requires baseline retrieval or a wider context
-  path.
-- `manifestPath` and `promptPath` are mode `0600` files under
-  `~/.claude/rhize-context-manager/experiments/packs/` by default.
-- Repeating the same source-bound request reuses the identical immutable pack. A same-ID content
-  mismatch fails closed.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/context_experiments/runner.py" verify-pack \
+  --repo /absolute/path/to/repository \
+  --manifest /absolute/path/to/pack.json
+```
 
-Only `/context-experiment compile` may produce a paired Arm A/Arm B receipt, and it still requires
-an explicitly armed compiled-context run. This preview must not be counted as proof of improved
-task correctness.
+Any source edit or snapshot change makes verification fail and requires recompilation. Repeating
+an unchanged request reuses the same immutable pack ID.
+
+When the opt-in selector is explicitly armed for `compiledContext`, it runs this native provider
+on the next eligible prompt. A rejected discovery stays silent and does not consume the arm. An
+accepted pack is built before discovery, its path is added to the session, and the Stop hook writes
+an Arm A/B receipt. The receipt deliberately warns that task correctness and follow-up reads still
+require human review; estimated token reduction is not an adoption decision by itself.

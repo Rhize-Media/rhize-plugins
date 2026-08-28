@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "providerRevision": "rhize-native-context-pack-v1",
+  "cases": [
+    {
+      "id": "native-typescript-static",
+      "fixture": "typescript",
+      "languageClass": "typescript",
+      "taskClass": "implementation",
+      "targets": ["src/app.ts"],
+      "expectedEntries": ["src/app.ts", "src/service.ts", "src/types.ts", "tests/app.test.ts", "package.json"],
+      "expectedAccepted": true,
+      "expectedWarnings": []
+    },
+    {
+      "id": "native-javascript-static",
+      "fixture": "javascript",
+      "languageClass": "javascript",
+      "taskClass": "diagnosis",
+      "targets": ["hook.js"],
+      "expectedEntries": ["hook.js", "lib/route-core.js", "hook.test.js", "package.json"],
+      "expectedAccepted": true,
+      "expectedWarnings": []
+    },
+    {
+      "id": "native-python-static",
+      "fixture": "python",
+      "languageClass": "python",
+      "taskClass": "review",
+      "targets": ["app.py"],
+      "expectedEntries": ["app.py", "service.py", "test_app.py", "pyproject.toml"],
+      "expectedAccepted": true,
+      "expectedWarnings": []
+    },
+    {
+      "id": "native-mixed-explicit-targets",
+      "fixture": "mixed",
+      "languageClass": "mixed",
+      "taskClass": "impact_analysis",
+      "targets": ["web/orchestrator.ts", "worker/main.py"],
+      "expectedEntries": ["web/orchestrator.ts", "web/config.ts", "worker/main.py", "worker/io.py", "package.json"],
+      "expectedAccepted": true,
+      "expectedWarnings": []
+    },
+    {
+      "id": "native-dynamic-import-fallback",
+      "fixture": "dynamic",
+      "languageClass": "javascript-dynamic",
+      "taskClass": "implementation",
+      "targets": ["dispatcher.js"],
+      "expectedEntries": ["dispatcher.js"],
+      "expectedAccepted": false,
+      "expectedWarnings": ["dynamic_dependency_edge"]
+    }
+  ]
+}

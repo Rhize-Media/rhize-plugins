@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-27_ version bump — **rhize-context-manager** 0.18.0 → 0.19.0 (minor); marketplace 2.46.0 → 2.47.0.
+- _2026-08-27_ **rhize-context-manager — native compiled-context advanced opt-in.** Added
+  a local mixed-language FULL/INTERFACE pack provider, CodeGraph-first or deterministic target
+  discovery, source-free v2 manifests, entry-level provenance, stale-pack verification, and real
+  one-shot hook execution. Five native cases passed with zero critical misses and 39.02% median
+  reduction across accepted cases; an actual automatic Arm B run selected six files and recorded
+  10,907 estimated tokens versus 682,821 for Arm A. Dynamic paths fail closed, task outcome and
+  follow-up reads remain human-reviewed, current mgrep/grepai paths are rejected, and no account,
+  credential, store, watcher, or upload was created.
 - _2026-08-27_ version bump — **rhize-context-manager** 0.17.0 → 0.18.0 (minor); marketplace 2.45.0 → 2.46.0.
 - _2026-08-27_ **rhize-context-manager — Context Compiler Phase 3 evidence gate.**
   Added `/context-pack` as a real-provider, source-bound preview that never arms or injects;

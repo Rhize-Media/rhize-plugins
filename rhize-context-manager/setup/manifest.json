@@ -74,7 +74,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
-      "description": "Opt-in, fail-silent selector for the explicitly armed local-retrieval/mgrep/compiled-context dogfood program. Applies repository, task, provider-health, snapshot, network, and smoke-review gates before suggesting a live Arm A/B route. Provider health comes from pinned real grepai/Ollama, mgrep, and the checksum-verified upstream Context Compiler checkout.",
+      "description": "Opt-in, fail-silent selector for the explicitly armed local-retrieval/mgrep/compiled-context dogfood program. Applies repository, task, provider-health, snapshot, network, and smoke-review gates before a live Arm A/B route. The compiled-context route automatically builds an accepted local Rhize-native pack; unsafe discovery stays silent and does not consume the arm. Retrieval health comes from pinned real grepai/Ollama or mgrep providers.",
       "default": false
     },
     {

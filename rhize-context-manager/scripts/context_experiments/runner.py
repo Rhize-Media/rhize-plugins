@@ -47,6 +47,7 @@ if __package__ in {None, ""}:
         GrepaiLayout,
         GrepaiProvider,
         MgrepProvider,
+        NativeContextPackProvider,
     )
     from context_experiments.receipt_store import PendingStore, ReceiptStore
 else:
@@ -64,7 +65,13 @@ else:
     from .eligibility import EligibilityInput, classify_task, evaluate_eligibility
     from .lease import Lease, LeaseStore
     from .models import Arm, Capability, ExperimentConfig, ExperimentReceipt, Metric, RunStatus
-    from .providers import ContextCompilerProvider, GrepaiLayout, GrepaiProvider, MgrepProvider
+    from .providers import (
+        ContextCompilerProvider,
+        GrepaiLayout,
+        GrepaiProvider,
+        MgrepProvider,
+        NativeContextPackProvider,
+    )
     from .receipt_store import PendingStore, ReceiptStore
 
 
@@ -97,7 +104,7 @@ def real_provider_status(
     """Probe installed real providers without reading source or making a network call."""
 
     mgrep = MgrepProvider().doctor()
-    compiler = ContextCompilerProvider().doctor()
+    compiler = NativeContextPackProvider().doctor()
     return {
         Capability.LOCAL_RETRIEVAL: _local_retrieval_status(repo_root),
         Capability.MGREP: (
@@ -239,6 +246,42 @@ def claim_hook_selection(
     if lease is None:
         return None
     assignment = selection["assignment"]
+    provider_execution = None
+    if selection["capability"] is Capability.COMPILED_CONTEXT:
+        prompt = payload.get("prompt")
+        if not isinstance(prompt, str):
+            lease_store.release(lease)
+            return None
+        try:
+            native_provider = NativeContextPackProvider()
+            pack = native_provider.compile(
+                selection["repoRoot"],
+                snapshot=snapshot,
+                task_hash=selection["promptHash"],
+                query=prompt,
+            )
+            if not pack.manifest["policy"]["acceptedForUse"]:
+                lease_store.release(lease)
+                return None
+            manifest_path, prompt_path = native_provider.write_pack(
+                pack, storage_root / "packs"
+            )
+            provider_execution = {
+                "provider": "rhize-native",
+                "providerRevision": pack.manifest["provider"]["revision"],
+                "packId": pack.manifest["packId"],
+                "manifestFile": manifest_path.name,
+                "promptFile": prompt_path.name,
+                "naiveDumpTokens": pack.manifest["naiveDumpTokens"],
+                "compiledTokens": pack.manifest["compiledTokens"],
+                "totalSourceFiles": pack.manifest["totalSourceFiles"],
+                "compiledFiles": len(pack.manifest["entries"]),
+                "buildMilliseconds": pack.manifest["buildMilliseconds"],
+                "warnings": pack.manifest["warnings"],
+            }
+        except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError):
+            lease_store.release(lease)
+            return None
     pending = {
         "schemaVersion": 1,
         "sessionIdHash": session_hash,
@@ -256,6 +299,7 @@ def claim_hook_selection(
         "shadowVariant": assignment.shadow_variant.value if assignment.shadow_variant else None,
         "leaseFile": lease.path.name,
         "leaseOwner": lease_owner,
+        "providerExecution": provider_execution,
     }
     try:
         PendingStore(storage_root / "pending").write(session_hash, pending)
@@ -263,10 +307,16 @@ def claim_hook_selection(
         lease_store.release(lease)
         raise
     selection["pending"] = pending
+    if provider_execution is not None:
+        selection["providerPromptPath"] = str(
+            storage_root / "packs" / provider_execution["promptFile"]
+        )
     return selection
 
 
-def finalize_hook_selection(payload: Mapping[str, Any], storage_root: Path) -> bool:
+def finalize_hook_selection(
+    payload: Mapping[str, Any], storage_root: Path, config_path: Path | None = None
+) -> bool:
     session_id = payload.get("session_id")
     if not isinstance(session_id, str) or not session_id:
         return False
@@ -284,31 +334,101 @@ def finalize_hook_selection(payload: Mapping[str, Any], storage_root: Path) -> b
     )
     if not receipt_path.exists():
         requested = tuple(Arm(value) for value in pending["armsRequested"])
-        receipt = ExperimentReceipt(
-            experiment_id=pending["experimentId"],
-            task_id=pending["taskId"],
-            capability=Capability(pending["capability"]),
-            status=RunStatus.INCOMPLETE,
-            started_at=pending["startedAt"],
-            completed_at=utc_now(),
-            repo_id=pending["repoId"],
-            repo_name=pending["repoName"],
-            snapshot=pending["snapshot"],
-            prompt_hash=pending["promptHash"],
-            task_class=pending["taskClass"],
-            arms_requested=requested,
-            arms_executed=(),
-            arms_skipped=tuple(
-                {"arm": arm.value, "reason": "no_execution_evidence"} for arm in requested
-            ),
-            live_variant=Arm(pending["liveVariant"]),
-            shadow_variant=(
-                Arm(pending["shadowVariant"]) if pending.get("shadowVariant") else None
-            ),
-            fallback_used=False,
-            warnings=("finalized_without_provider_execution_evidence",),
-        )
+        provider_execution = pending.get("providerExecution")
+        if isinstance(provider_execution, dict):
+            live_variant = Arm(pending["liveVariant"])
+
+            def role(arm: Arm) -> str:
+                return "live" if arm is live_variant else "shadow"
+
+            metrics = (
+                Metric(
+                    "context_tokens", provider_execution["naiveDumpTokens"], "tokens",
+                    Arm.BASELINE, role(Arm.BASELINE), "estimated",
+                ),
+                Metric(
+                    "context_tokens", provider_execution["compiledTokens"], "tokens",
+                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "estimated",
+                ),
+                Metric(
+                    "files_presented", provider_execution["totalSourceFiles"], "count",
+                    Arm.BASELINE, role(Arm.BASELINE), "measured",
+                ),
+                Metric(
+                    "files_presented", provider_execution["compiledFiles"], "count",
+                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "measured",
+                ),
+                Metric(
+                    "build_duration", provider_execution["buildMilliseconds"], "ms",
+                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "measured",
+                ),
+            )
+            receipt = ExperimentReceipt(
+                experiment_id=pending["experimentId"],
+                task_id=pending["taskId"],
+                capability=Capability(pending["capability"]),
+                status=RunStatus.COMPLETED,
+                started_at=pending["startedAt"],
+                completed_at=utc_now(),
+                repo_id=pending["repoId"],
+                repo_name=pending["repoName"],
+                snapshot=pending["snapshot"],
+                prompt_hash=pending["promptHash"],
+                task_class=pending["taskClass"],
+                arms_requested=requested,
+                arms_executed=requested,
+                arms_skipped=(),
+                live_variant=live_variant,
+                shadow_variant=(
+                    Arm(pending["shadowVariant"]) if pending.get("shadowVariant") else None
+                ),
+                fallback_used=False,
+                metrics=metrics,
+                warnings=tuple(
+                    [
+                        *provider_execution["warnings"],
+                        f"provider_revision_{provider_execution['providerRevision']}",
+                        f"pack_id_{provider_execution['packId']}",
+                        "live_task_outcome_requires_human_review",
+                        "follow_up_reads_not_observed_by_hook",
+                    ]
+                ),
+            )
+        else:
+            receipt = ExperimentReceipt(
+                experiment_id=pending["experimentId"],
+                task_id=pending["taskId"],
+                capability=Capability(pending["capability"]),
+                status=RunStatus.INCOMPLETE,
+                started_at=pending["startedAt"],
+                completed_at=utc_now(),
+                repo_id=pending["repoId"],
+                repo_name=pending["repoName"],
+                snapshot=pending["snapshot"],
+                prompt_hash=pending["promptHash"],
+                task_class=pending["taskClass"],
+                arms_requested=requested,
+                arms_executed=(),
+                arms_skipped=tuple(
+                    {"arm": arm.value, "reason": "no_execution_evidence"}
+                    for arm in requested
+                ),
+                live_variant=Arm(pending["liveVariant"]),
+                shadow_variant=(
+                    Arm(pending["shadowVariant"])
+                    if pending.get("shadowVariant")
+                    else None
+                ),
+                fallback_used=False,
+                warnings=("finalized_without_provider_execution_evidence",),
+            )
         receipt_store.write(receipt)
+        if receipt.status is RunStatus.COMPLETED:
+            resolved_config_path = config_path or default_config_path()
+            updated = record_completed_run(
+                load_config(resolved_config_path), receipt.capability
+            )
+            write_config(updated, resolved_config_path)
     pending_store.delete(session_hash)
     LeaseStore(storage_root / "leases", 900).release(lease)
     return True
@@ -497,6 +617,57 @@ def build_context_pack_preview(
     return pack.manifest, manifest_path, prompt_path
 
 
+def build_native_context_pack_preview(
+    repo_root: Path,
+    snapshot: str,
+    *,
+    target_files: tuple[Path, ...] = (),
+    query: str | None = None,
+    max_hops: int = 2,
+    max_tokens: int = 40_000,
+    data_dir: Path | None = None,
+) -> tuple[dict[str, Any], Path, Path]:
+    """Build a local provider-neutral pack without injection or a live receipt."""
+
+    repo = repo_root.expanduser().resolve(strict=True)
+    current_snapshot = git_snapshot(repo)
+    if current_snapshot is None:
+        raise ValueError("native context-pack preview requires a Git repository")
+    if current_snapshot != snapshot:
+        raise ValueError(
+            f"snapshot mismatch: requested {snapshot}, current repository is {current_snapshot}"
+        )
+    target_material = ",".join(
+        str(path.expanduser().resolve(strict=False).relative_to(repo))
+        for path in target_files
+    )
+    task_hash = digest(
+        ":".join(
+            (
+                "native-context-pack",
+                repository_fingerprint(repo),
+                snapshot,
+                target_material,
+                query or "",
+            )
+        ),
+        64,
+    )
+    provider = NativeContextPackProvider()
+    pack = provider.compile(
+        repo,
+        snapshot=snapshot,
+        task_hash=task_hash,
+        targets=target_files,
+        query=query,
+        max_hops=max_hops,
+        max_tokens=max_tokens,
+    )
+    storage_root = data_dir or default_data_dir()
+    manifest_path, prompt_path = provider.write_pack(pack, storage_root / "packs")
+    return pack.manifest, manifest_path, prompt_path
+
+
 def run_mgrep_preflight(
     repo_root: Path,
     store: str,
@@ -564,7 +735,10 @@ def hook_select() -> int:
         cwd_value = payload.get("cwd") or os.getcwd()
         selected_repo = git_root(Path(cwd_value)) if isinstance(cwd_value, str) else None
         selection = claim_hook_selection(
-            payload, config, real_provider_status(selected_repo), default_data_dir()
+            payload,
+            config,
+            real_provider_status(selected_repo),
+            default_data_dir(),
         )
         if selection is None:
             return 0
@@ -572,9 +746,19 @@ def hook_select() -> int:
         message = (
             f"Context experiment selected: {selection['capability'].value}; "
             f"live Arm {assignment.live_variant.value}; "
-            f"shadow Arm {assignment.shadow_variant.value if assignment.shadow_variant else 'none'}. "
+            "shadow Arm "
+            f"{assignment.shadow_variant.value if assignment.shadow_variant else 'none'}. "
             "Record execution evidence before finalizing the receipt."
         )
+        execution = selection["pending"].get("providerExecution")
+        if isinstance(execution, dict):
+            message += (
+                f" Accepted native pack {execution['packId']} was built automatically at "
+                f"{selection['providerPromptPath']}. Inspect it only when Arm B is live; "
+                "run verify-pack "
+                "before reuse after any edit. Task correctness and follow-up reads still require "
+                "human review."
+            )
         print(
             json.dumps(
                 {
@@ -715,36 +899,66 @@ def command_pack(args: argparse.Namespace) -> int:
     snapshot = args.snapshot or git_snapshot(repo)
     if snapshot is None:
         raise ValueError("context-pack preview requires a Git repository")
-    manifest, manifest_path, prompt_path = build_context_pack_preview(
-        repo_root=repo,
-        target_file=Path(args.target),
-        snapshot=snapshot,
-        checkout=Path(args.checkout) if args.checkout else None,
-        max_hops=args.max_hops,
-        max_tokens=args.max_tokens,
-    )
+    if args.provider == "native":
+        manifest, manifest_path, prompt_path = build_native_context_pack_preview(
+            repo_root=repo,
+            snapshot=snapshot,
+            target_files=tuple(Path(value) for value in args.target),
+            query=args.query,
+            max_hops=args.max_hops,
+            max_tokens=args.max_tokens,
+        )
+        provider_name = "native"
+        accepted = manifest["policy"]["acceptedForUse"]
+        target_paths = manifest["discovery"]["targetPaths"]
+        arm_b_variant = "rhize-native-context-pack-v1"
+    else:
+        if len(args.target) != 1:
+            raise ValueError("upstream-python requires exactly one --target")
+        manifest, manifest_path, prompt_path = build_context_pack_preview(
+            repo_root=repo,
+            target_file=Path(args.target[0]),
+            snapshot=snapshot,
+            checkout=Path(args.checkout) if args.checkout else None,
+            max_hops=args.max_hops,
+            max_tokens=args.max_tokens,
+        )
+        provider_name = "upstream-python"
+        accepted = manifest["policy"]["acceptedForInjection"]
+        target_paths = [manifest["targetPath"]]
+        arm_b_variant = "context-compiler-pack"
     print(
         json.dumps(
             {
-                "schemaVersion": 1,
+                "schemaVersion": manifest["schemaVersion"],
                 "mode": "preview_only",
-                "provider": "upstream-python",
+                "provider": provider_name,
                 "injected": False,
                 "receiptRecorded": False,
                 "packId": manifest["packId"],
-                "targetPath": manifest["targetPath"],
+                "targetPaths": target_paths,
                 "snapshot": manifest["snapshot"],
-                "acceptedForInjection": manifest["policy"]["acceptedForInjection"],
+                "acceptedForUse": accepted,
                 "rejectionReasons": manifest["policy"]["rejectionReasons"],
                 "warnings": manifest["warnings"],
+                "entries": [
+                    {
+                        "path": entry["path"],
+                        "role": entry.get("role", f"TIER_{entry.get('tier')}"),
+                        "reason": entry.get("reason", "upstream_dependency_graph"),
+                    }
+                    for entry in manifest["entries"]
+                ],
                 "metrics": {
                     "armA": {
                         "variant": "baseline-naive-repository",
                         "contextTokens": manifest["naiveDumpTokens"],
-                        "filesPresented": manifest["totalRepoFiles"],
+                        "filesPresented": manifest.get(
+                            "totalRepoFiles", manifest.get("totalSourceFiles")
+                        ),
                     },
                     "armB": {
-                        "variant": "context-compiler-pack",
+                        "variant": arm_b_variant,
                         "contextTokens": manifest["compiledTokens"],
                         "filesPresented": len(manifest["entries"]),
                         "buildMilliseconds": manifest["buildMilliseconds"],
@@ -759,6 +973,20 @@ def command_pack(args: argparse.Namespace) -> int:
         )
     )
     return 0
+
+
+def command_verify_pack(args: argparse.Namespace) -> int:
+    manifest_path = Path(args.manifest).expanduser().resolve(strict=True)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schemaVersion") != 2:
+        raise ValueError("verify-pack accepts only native context-pack v2 manifests")
+    repo = Path(args.repo).expanduser().resolve(strict=True)
+    snapshot = git_snapshot(repo)
+    if snapshot is None:
+        raise ValueError("verify-pack requires a Git repository")
+    result = NativeContextPackProvider().verify_pack(manifest, repo, snapshot)
+    print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    return 0 if result.valid else 2
 
 
 def command_mgrep_preflight(args: argparse.Namespace) -> int:
@@ -808,13 +1036,18 @@ def build_parser() -> argparse.ArgumentParser:
     compile_command.add_argument("--snapshot", required=True)
 
     pack = subparsers.add_parser("pack")
-    pack.add_argument("--provider", choices=["upstream-python"], default="upstream-python")
+    pack.add_argument("--provider", choices=["native", "upstream-python"], default="native")
     pack.add_argument("--repo", required=True)
-    pack.add_argument("--target", required=True)
+    pack.add_argument("--target", action="append", default=[])
+    pack.add_argument("--query")
     pack.add_argument("--checkout")
     pack.add_argument("--max-hops", type=int, default=2)
     pack.add_argument("--max-tokens", type=int, default=40_000)
     pack.add_argument("--snapshot")
+
+    verify_pack = subparsers.add_parser("verify-pack")
+    verify_pack.add_argument("--repo", required=True)
+    verify_pack.add_argument("--manifest", required=True)
 
     preflight = subparsers.add_parser("mgrep-preflight")
     preflight.add_argument("--repo", required=True)
@@ -834,6 +1067,7 @@ def main(argv: list[str] | None = None) -> int:
         "disarm": lambda: command_disarm(args),
         "compile": lambda: command_compile(args),
         "pack": lambda: command_pack(args),
+        "verify-pack": lambda: command_verify_pack(args),
         "mgrep-preflight": lambda: command_mgrep_preflight(args),
         "report": command_report,
     }
