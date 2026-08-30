@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/memory-envelope-v1.schema.json",
+  "title": "Rhize Memory Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "memoryId", "memoryType", "sourceSystem", "sourceIdHash",
+    "sourceRevision", "scope", "sensitivity", "validFrom", "validUntil", "recordedAt",
+    "extractionVersion", "trustClass", "confidence", "retentionClass", "provenanceHashes",
+    "contentRole", "authorityClass", "processingPolicy", "scopeDecision", "adapterStatus",
+    "contentHash", "payloadRef", "relevance", "claimKeyHash", "supersedesHashes"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "memoryId": { "$ref": "#/$defs/hash" },
+    "memoryType": { "enum": ["working", "episodic", "semantic", "procedural"] },
+    "sourceSystem": { "$ref": "#/$defs/safeId" },
+    "sourceIdHash": { "$ref": "#/$defs/hash" },
+    "sourceRevision": { "$ref": "#/$defs/safeId" },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantHash", "projectHash", "taskHash"],
+      "properties": {
+        "tenantHash": { "$ref": "#/$defs/hash" },
+        "projectHash": { "$ref": "#/$defs/hash" },
+        "taskHash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] }
+      }
+    },
+    "sensitivity": { "enum": ["public", "internal", "confidential", "restricted"] },
+    "validFrom": { "$ref": "#/$defs/nullableTime" },
+    "validUntil": { "$ref": "#/$defs/nullableTime" },
+    "recordedAt": { "$ref": "#/$defs/nullableTime" },
+    "extractionVersion": { "$ref": "#/$defs/safeId" },
+    "trustClass": { "enum": ["unverified", "observed", "verified", "operator-approved"] },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "retentionClass": { "enum": ["transient", "session", "project", "durable"] },
+    "provenanceHashes": { "type": "array", "items": { "$ref": "#/$defs/hash" } },
+    "contentRole": { "enum": ["data", "evidence", "decision-summary", "policy-reference", "procedure-reference"] },
+    "authorityClass": { "enum": ["current-session", "verified-fact", "canonical-policy", "human-decision", "derived", "untrusted"] },
+    "processingPolicy": { "enum": ["inert", "reference-only"] },
+    "scopeDecision": { "const": "allowed" },
+    "adapterStatus": { "const": "available" },
+    "contentHash": { "$ref": "#/$defs/hash" },
+    "payloadRef": { "type": "string", "pattern": "^payload-[a-f0-9]{32}$" },
+    "relevance": { "type": "number", "minimum": 0, "maximum": 1 },
+    "claimKeyHash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+    "supersedesHashes": { "type": "array", "items": { "$ref": "#/$defs/hash" } },
+    "rank": { "type": "integer", "minimum": 1 },
+    "estimatedTokens": { "type": "integer", "minimum": 1 },
+    "conflictGroupHash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$" },
+    "nullableTime": { "type": ["string", "null"], "format": "date-time" }
+  }
+}

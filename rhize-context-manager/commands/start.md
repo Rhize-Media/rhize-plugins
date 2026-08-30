@@ -42,9 +42,9 @@ Look for and summarize:
 - Recent git activity
 
 ### Step 2: Load Relevant Memories
-If memory MCP available (Zen, Graphiti, etc.):
+If an explicitly supported memory read API is available:
 ```
-Query for relevant context about current project and recent work
+Query within the current tenant/project scope. Otherwise report unavailable; never scrape transcripts.
 ```
 
 ### Step 3: Freshness Check

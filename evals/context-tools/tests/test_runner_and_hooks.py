@@ -177,6 +177,7 @@ def test_compiled_context_pack_construction_alone_freezes_incomplete_run(
     (repo / "app.py").write_text(
         "from service import normalize\n\ndef run(value: str) -> str:\n    return normalize(value)\n"
     )
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -202,7 +203,7 @@ def test_compiled_context_pack_construction_alone_freezes_incomplete_run(
     )
     assert claimed is not None
     execution = claimed["pending"]["providerExecution"]
-    assert execution["providerRevision"] == "rhize-native-context-pack-v1"
+    assert execution["providerRevision"] == "rhize-native-context-pack-v2"
     assert (tmp_path / "data" / "packs" / execution["manifestFile"]).is_file()
     assert (tmp_path / "data" / "packs" / execution["promptFile"]).is_file()
     assert "prompt" not in claimed["pending"]
@@ -231,6 +232,7 @@ def test_review_sidecar_completes_only_evidenced_live_arm(tmp_path: Path) -> Non
     repo.mkdir()
     (repo / "service.py").write_text("def normalize(value):\n    return value.strip()\n")
     (repo / "app.py").write_text("from service import normalize\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -289,6 +291,7 @@ def test_repo_capability_lease_never_stale_reclaims_an_accepted_pending(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -340,6 +343,7 @@ def test_dirty_repo_and_expired_duration_refuse_before_reservation(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -552,6 +556,7 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -618,6 +623,7 @@ def test_record_evidence_command_requires_pending_and_is_immutable(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(

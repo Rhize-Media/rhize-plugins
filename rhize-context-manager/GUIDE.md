@@ -11,7 +11,7 @@ the right one, and health-checks the whole thing.
 
 - **"Which tool should hold this knowledge?" / "set up context tooling for this repo"**
   → the `context-stack` skill answers routing questions.
-  *Example: "Where should the client's evolving pricing decisions live — claude-mem, the vault, or Graphiti?"*
+  *Example: "Where should the client's evolving pricing decisions live, and what may be previewed?"*
 
 - **"Session start feels slow" / "I'm seeing the same context twice"**
   → `/context-doctor` — read-only health check + overlap flags across Headroom, RTK,
@@ -75,12 +75,17 @@ the right one, and health-checks the whole thing.
   *Example: "Run /context-pack for the account sync target, inspect the reasons, then verify it
   before using it in review."*
 
+- **"Assemble context from several memory sources" / "show memory conflicts"**
+  → `/memory-context` — a private, explicit preview that preserves source authority, scope,
+  conflicts, TTL, and unavailable adapters. It never scrapes host transcripts, executes recalled
+  procedures, writes back, or injects automatically.
+
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 
 - **"We need queryable long-term memory with relationships and time"**
-  → the `graphiti-memory` skill walks through opt-in Graphiti adoption (backend, MCP
-  wiring, usage patterns). Nothing is installed automatically.
+  → use the Neo4j ontology/hygiene plans; the `graphiti-memory` skill is historical design context
+  only. Graphiti was not implemented and must not be installed or routed as a fallback.
 
 - **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
   should I compress? where should a learning be stored?) → the curated library:
@@ -172,8 +177,8 @@ the right one, and health-checks the whole thing.
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
-- Graphiti is approved for Rhize adoption but needs its backend stood up first — until
-  then `graphiti-memory` is the design reference, not a working integration.
+- Graphiti was not implemented. Neo4j is available, but its semantic-memory adapter remains blocked
+  until ontology/hygiene gates pass; `memory-context` is preview-only in the meantime.
 
 ## Troubleshooting
 

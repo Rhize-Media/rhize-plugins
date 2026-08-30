@@ -44,8 +44,10 @@ later run — or another tool — can see what changed.
    - `.codegraph/` present? If yes, one `codegraph_explore` smoke query (or `codegraph explore` CLI).
    - Serena MCP connected? (ToolSearch for `serena` tools.)
    - Flag if BOTH are active in the same repo — redundant indexing.
-6. **Graphiti (opt-in)**
-   - Only if configured: check the graphiti MCP server responds. Otherwise report "not adopted yet (by design)".
+6. **Memory-context adapters**
+   - Report supported explicit adapters and their normalized status. Missing host episodic and
+     procedural JSON read contracts are `unavailable`, not `empty`. Do not scrape transcripts,
+     parse prose, or probe Graphiti.
 7. **Credential-expiry lookahead**
    - Every layer that authenticates has a credential with a dated expiry. Read **expiry metadata
      only — never token values**, since this report is persisted to disk:

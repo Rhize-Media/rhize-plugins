@@ -25,6 +25,7 @@ if __package__ in {None, ""}:
     from context_experiments.config import (
         arm_capability,
         default_config_path,
+        default_context_pack_dir,
         default_data_dir,
         disarm_capability,
         freeze_capability,
@@ -69,6 +70,7 @@ else:
     from .config import (
         arm_capability,
         default_config_path,
+        default_context_pack_dir,
         default_data_dir,
         disarm_capability,
         freeze_capability,
@@ -311,7 +313,7 @@ def claim_hook_selection(
                 "compiledTokens": pack.manifest["compiledTokens"],
                 "totalSourceFiles": pack.manifest["totalSourceFiles"],
                 "compiledFiles": len(pack.manifest["entries"]),
-                "buildMilliseconds": pack.manifest["buildMilliseconds"],
+                "buildMilliseconds": round((time.monotonic() - started) * 1000, 3),
                 "warnings": pack.manifest["warnings"],
                 "claimPackVerified": True,
             }
@@ -759,7 +761,7 @@ def build_context_pack_preview(
         max_hops=max_hops,
         max_tokens=max_tokens,
     )
-    storage_root = data_dir or default_data_dir()
+    storage_root = data_dir or default_context_pack_dir()
     manifest_path, prompt_path = provider.write_pack(pack, storage_root / "packs")
     return pack.manifest, manifest_path, prompt_path
 
@@ -792,7 +794,7 @@ def build_native_context_pack_preview(
         ":".join(
             (
                 "native-context-pack",
-                repository_fingerprint(repo),
+                digest(f"{repo.name}:{snapshot}"),
                 snapshot,
                 target_material,
                 query or "",
@@ -810,7 +812,7 @@ def build_native_context_pack_preview(
         max_hops=max_hops,
         max_tokens=max_tokens,
     )
-    storage_root = data_dir or default_data_dir()
+    storage_root = data_dir or default_context_pack_dir()
     manifest_path, prompt_path = provider.write_pack(pack, storage_root / "packs")
     return pack.manifest, manifest_path, prompt_path
 
@@ -1124,6 +1126,7 @@ def command_compile(args: argparse.Namespace) -> int:
 
 
 def command_pack(args: argparse.Namespace) -> int:
+    started = time.monotonic()
     repo = Path(args.repo).expanduser().resolve(strict=True)
     snapshot = args.snapshot or git_snapshot(repo)
     if snapshot is None:
@@ -1140,7 +1143,7 @@ def command_pack(args: argparse.Namespace) -> int:
         provider_name = "native"
         accepted = manifest["policy"]["acceptedForUse"]
         target_paths = manifest["discovery"]["targetPaths"]
-        arm_b_variant = "rhize-native-context-pack-v1"
+        arm_b_variant = manifest["provider"]["revision"]
     else:
         if len(args.target) != 1:
             raise ValueError("upstream-python requires exactly one --target")
@@ -1190,7 +1193,7 @@ def command_pack(args: argparse.Namespace) -> int:
                         "variant": arm_b_variant,
                         "contextTokens": manifest["compiledTokens"],
                         "filesPresented": len(manifest["entries"]),
-                        "buildMilliseconds": manifest["buildMilliseconds"],
+                        "buildMilliseconds": round((time.monotonic() - started) * 1000, 3),
                     },
                     "reductionPercent": manifest["reductionPercent"],
                 },

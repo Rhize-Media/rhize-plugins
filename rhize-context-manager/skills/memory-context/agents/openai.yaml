@@ -1,0 +1,4 @@
+interface:
+  display_name: "Memory Context"
+  short_description: "Assemble a scoped private memory preview"
+  default_prompt: "Use $memory-context to assemble and verify a bounded context preview from authorized memory sources."

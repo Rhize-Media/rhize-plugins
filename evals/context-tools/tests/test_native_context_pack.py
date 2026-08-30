@@ -48,6 +48,10 @@ def write_static_typescript_fixture(repo: Path) -> None:
         "import { value } from '../src/app';\nif (!value) throw new Error('app failed');\n",
         encoding="utf-8",
     )
+    (repo / "src" / "unused.ts").write_text(
+        "\n".join(f"export const unused{index} = {index};" for index in range(50)),
+        encoding="utf-8",
+    )
     (repo / "package.json").write_text('{"scripts":{"test":"node tests/app.test.ts"}}\n')
 
 
@@ -93,6 +97,7 @@ def test_native_pack_is_reproducible_and_detects_stale_entries(tmp_path: Path) -
         data_dir=tmp_path / "data",
     )
     assert first[0]["packId"] == second[0]["packId"]
+    assert first[0] == second[0]
     assert first[1:] == second[1:]
 
     (repo / "src" / "service.ts").write_text("export function load() { return 'changed'; }\n")
@@ -102,6 +107,30 @@ def test_native_pack_is_reproducible_and_detects_stale_entries(tmp_path: Path) -
     assert result.valid is False
     assert result.snapshot_current is False
     assert result.changed_entries == ("src/service.ts",)
+
+
+def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) -> None:
+    first_repo = tmp_path / "host-a" / "project"
+    second_repo = tmp_path / "host-b" / "project"
+    write_static_typescript_fixture(first_repo)
+    write_static_typescript_fixture(second_repo)
+    snapshot = "fixture-" + "a" * 32
+
+    first = NativeContextPackProvider().compile(
+        first_repo,
+        snapshot=snapshot,
+        task_hash="8" * 64,
+        targets=(first_repo / "src" / "app.ts",),
+    )
+    second = NativeContextPackProvider().compile(
+        second_repo,
+        snapshot=snapshot,
+        task_hash="8" * 64,
+        targets=(second_repo / "src" / "app.ts",),
+    )
+
+    assert first.manifest == second.manifest
+    assert first.prompt == second.prompt
 
 
 def test_query_discovery_falls_back_explicitly_when_codegraph_is_unavailable(
@@ -165,7 +194,8 @@ def test_dynamic_dependency_edges_reject_use_without_hiding_the_target(tmp_path:
         targets=(repo / "dispatcher.js",),
     )
     assert pack.manifest["policy"]["acceptedForUse"] is False
-    assert pack.manifest["policy"]["rejectionReasons"] == ["dynamic_dependency_edge"]
+    assert "dynamic_dependency_edge" in pack.manifest["policy"]["rejectionReasons"]
+    assert "insufficient_compilation_benefit" in pack.manifest["policy"]["rejectionReasons"]
     assert pack.manifest["entries"][0]["path"] == "dispatcher.js"
 
 
@@ -253,3 +283,183 @@ def test_manifest_contains_no_source_or_absolute_paths(tmp_path: Path) -> None:
     malformed = {**pack.manifest, "snapshot": "/absolute/snapshot"}
     with pytest.raises(ValueError, match="invalid snapshot"):
         validate_native_context_pack_manifest(malformed)
+
+
+def test_python_multiline_decorated_contract_is_complete(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "service.py").write_text(
+        "from typing import overload\n\n"
+        "@overload\n"
+        "def load(\n    value: str,\n    *,\n    strict: bool = False,\n) -> str:\n    ...\n\n"
+        "def load(value: str, *, strict: bool = False) -> str:\n    return value\n"
+    )
+    target = repo / "app.py"
+    target.write_text("from service import load\n\nresult = load('x')\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(50)))
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="2" * 64, targets=(target,)
+    )
+
+    entry = next(item for item in pack.manifest["entries"] if item["path"] == "service.py")
+    assert entry["role"] == "INTERFACE"
+    assert "@overload\ndef load(\n    value: str" in pack.prompt
+    assert "strict: bool = False" in pack.prompt
+    assert pack.manifest["policy"]["acceptedForUse"] is True
+
+
+def test_typescript_path_alias_and_workspace_exports_resolve(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    (repo / "apps" / "web" / "src").mkdir(parents=True)
+    (repo / "packages" / "shared" / "src").mkdir(parents=True)
+    (repo / "tsconfig.json").write_text(
+        json.dumps({"compilerOptions": {"baseUrl": ".", "paths": {"@app/*": ["apps/web/src/*"]}}})
+    )
+    (repo / "package.json").write_text(json.dumps({"workspaces": ["apps/*", "packages/*"]}))
+    (repo / "packages" / "shared" / "package.json").write_text(
+        json.dumps({"name": "@rhize/shared", "exports": {"./feature": "./src/feature.ts"}})
+    )
+    (repo / "packages" / "shared" / "src" / "feature.ts").write_text(
+        "export interface Feature { id: string }\n"
+    )
+    (repo / "apps" / "web" / "src" / "local.ts").write_text(
+        "export function local(value: string): string { return value; }\n"
+    )
+    target = repo / "apps" / "web" / "src" / "app.ts"
+    target.write_text(
+        "import { local } from '@app/local';\n"
+        "import type { Feature } from '@rhize/shared/feature';\n"
+        "export const value: Feature = { id: local('x') };\n"
+    )
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="3" * 64, targets=(target,)
+    )
+
+    paths = {item["path"] for item in pack.manifest["entries"]}
+    assert "apps/web/src/local.ts" in paths
+    assert "packages/shared/src/feature.ts" in paths
+    assert "unresolved_local_dependency" not in pack.manifest["warnings"]
+
+
+def test_typescript_multiline_import_and_generic_contract_are_complete(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "service.ts").write_text(
+        "export interface Result<T extends string> {\n"
+        "  readonly value: T;\n"
+        "}\n"
+        "export function load<T extends string>(\n"
+        "  value: T,\n"
+        "  options?: { strict: boolean },\n"
+        "): Promise<Result<T>> {\n"
+        "  return Promise.resolve({ value });\n"
+        "}\n"
+    )
+    target = repo / "src" / "app.ts"
+    target.write_text(
+        "import {\n  load,\n  type Result,\n} from './service';\n"
+        "export const result: Promise<Result<'x'>> = load('x');\n"
+    )
+    (repo / "src" / "unused.ts").write_text(
+        "\n".join(f"export const unused{index} = {index};" for index in range(50))
+    )
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="8" * 64, targets=(target,)
+    )
+
+    entry = next(item for item in pack.manifest["entries"] if item["path"] == "src/service.ts")
+    assert entry["role"] == "INTERFACE"
+    assert "export interface Result<T extends string>" in pack.prompt
+    assert "options?: { strict: boolean }" in pack.prompt
+    assert "): Promise<Result<T>>;" in pack.prompt
+    assert "return Promise.resolve" not in pack.prompt
+    assert pack.manifest["policy"]["acceptedForUse"] is True
+
+
+def test_python_configured_source_root_resolves(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    (repo / "src" / "acme").mkdir(parents=True)
+    (repo / "pyproject.toml").write_text(
+        "[tool.setuptools.package-dir]\n\"\" = \"src\"\n"
+    )
+    (repo / "src" / "acme" / "service.py").write_text(
+        "def load(value: str) -> str:\n    return value\n"
+    )
+    target = repo / "app.py"
+    target.write_text("from acme.service import load\nresult = load('x')\n")
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="4" * 64, targets=(target,)
+    )
+
+    assert "src/acme/service.py" in {item["path"] for item in pack.manifest["entries"]}
+
+
+def test_unresolved_alias_is_fail_closed_and_private_detail_stays_out_of_manifest(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "tsconfig.json").write_text(
+        json.dumps({"compilerOptions": {"paths": {"@app/*": ["src/*"]}}})
+    )
+    target = repo / "app.ts"
+    target.write_text("import { missing } from '@app/missing';\nexport const value = missing();\n")
+    (repo / "unused.ts").write_text("export const unused = true;\n")
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="5" * 64, targets=(target,)
+    )
+
+    assert "unresolved_local_dependency" in pack.manifest["policy"]["rejectionReasons"]
+    assert "@app/missing" not in json.dumps(pack.manifest)
+    assert "app.ts:1 (@app/missing)" in pack.prompt
+    assert pack.manifest["exclusionLedger"]["privateIssueCount"] == 1
+
+
+def test_unsupported_class_interface_widens_to_full_source(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "service.ts").write_text(
+        "export class Service { load(value: string): string { return value; } }\n"
+    )
+    target = repo / "app.ts"
+    target.write_text("import { Service } from './service';\nexport const value = new Service();\n")
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="6" * 64, targets=(target,)
+    )
+
+    entry = next(item for item in pack.manifest["entries"] if item["path"] == "service.ts")
+    assert entry["role"] == "FULL"
+    assert entry["reason"] == "interface_widened_to_full"
+    assert "interface_widened_to_full" in pack.manifest["warnings"]
+
+
+def test_scan_budget_and_small_repository_declines_are_explicit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    target = repo / "app.py"
+    target.write_text("value = 1\n")
+    snapshot = commit_fixture(repo)
+    monkeypatch.setattr(native_provider, "MAX_SOURCE_FILES", 0)
+
+    pack = NativeContextPackProvider().compile(
+        repo, snapshot=snapshot, task_hash="7" * 64, targets=(target,)
+    )
+
+    assert set(pack.manifest["policy"]["rejectionReasons"]) >= {
+        "repository_scan_budget_exceeded", "insufficient_compilation_benefit"
+    }
+    assert pack.manifest["policy"]["eligibilityPolicy"]["version"] == "native-context-eligibility-v2"

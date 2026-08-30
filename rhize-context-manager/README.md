@@ -6,7 +6,7 @@ than forking them) and ships a curated, safety-gated skill library.
 
 ## Design: orchestrate, don't vendor
 
-Headroom, claude-mem, Serena, OpenWolf, RTK, CodeGraph, and Graphiti are living external
+Headroom, claude-mem, Serena, OpenWolf, RTK, and CodeGraph are living external
 tools with their own release cycles. This plugin owns the *decision layer* — which tool
 to use when, how they coexist, and how to health-check the stack — while the binaries
 and their own hook plugins stay externally installed and updated.
@@ -62,14 +62,14 @@ Per the marketplace curation rule, context/token budgeting, iterative retrieval,
 strategic compaction are NOT re-shipped here — `ecc@everything-claude-code` owns them.
 
 Coverage per feature goal: compression (context-compression), retrieval/budgeting
-(ecc's skills, by design), memory (memory-systems, graphiti-memory), degradation
+(ecc's skills, by design), memory (memory-systems, memory-context), degradation
 (context-degradation), refinement (refinement-pipeline, learning-curation).
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags. Asserts **capture liveness** (a layer is not `OK` because a port answers or a file mtime moved — claude-mem must show new observations, else `dead`, or `indeterminate` if no sessions ran) and flags **credentials expiring before the next scheduled run**. Persists each run to `~/.claude/context-manager/doctor/<YYYY-MM-DD-HHMM>.json`, prints a delta against the previous run, and — if the `ecc` plugin's `harness-audit` skill is available — chains into it as a final deeper pass (graceful one-line skip otherwise). |
+| `/context-doctor` | Read-only health check of the active stack layers (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph) + overlap flags. Asserts **capture liveness** and flags credentials expiring before the next scheduled run. |
 | `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |
@@ -79,6 +79,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 | `/context-experiment` | Opt-in local retrieval, mgrep, and compiled-context dogfood control: provider health, bounded arming, real dry-run/eval/pack execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
 | `/context-pack` | Build and inspect a deterministic private pack. The local native provider supports Python, JavaScript, TypeScript, mixed targets, target discovery, FULL/INTERFACE roles, and stale-pack verification; the pinned upstream Python provider remains available for comparison. Preview mode never arms or injects. |
+| `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -251,15 +252,18 @@ evidence that a pack improves a coding task. The default checkout is
 `RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
 [`evals/context-tools`](../evals/context-tools/README.md).
 
-The default `/context-pack --provider native` path is Rhize-owned and local-only. It uses exact
-static imports for Python/JavaScript/TypeScript, includes explicit targets in full, renders static
-dependencies as interfaces, and adds related tests/configuration when they fit. Query discovery
+The default `/context-pack --provider native` path is Rhize-owned and local-only. Native v2 uses
+parser-backed multiline Python/JavaScript/TypeScript contracts, configured Python source roots,
+JS/TS aliases, workspace imports, and package exports. It includes explicit targets in full,
+renders safe dependencies as interfaces, widens uncertain interfaces to full source, and adds
+related tests/configuration when they fit. Query and dependency discovery
 uses CodeGraph first when `.codegraph/` exists and records an explicit baseline fallback otherwise.
 Every manifest records provider revision, task/query hashes, source/rendered hashes, selection
 reasons, token budget, and warnings without source text. `verify-pack` rejects any snapshot or
 entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
-context cases; native v1 passed its controlled gate with zero critical misses and a 39.02% median
-reduction across four accepted cases. This supports an advanced opt-in pilot, not default use.
+context cases. The prior native-v1 corpus remains historical evidence; v2 adds separate contract,
+alias/workspace, source-root, eligibility, and exclusion-ledger fixtures. This remains advanced
+opt-in preview functionality, not default injection.
 
 The live P4 gate is stricter than preview mode. Selection refuses a dirty repository, unresolved
 local dependency, truncated dependency traversal, required dependency omitted by budget, or a
@@ -403,7 +407,7 @@ metadata:
 | `extends` | Names an existing skill this one deliberately deepens/specializes (chains capped at depth 2 by the compiler). Also the declaration `skill-forge`'s `--skill-map` overlap gate checks for its exemption. |
 | `augments` | Names a topic (not a skill) this skill should run alongside/after — a cross-cutting modifier, distinct from `extends`. |
 | `remediates` | Names a `tag:condition/<slug>` this skill fixes when detected in failed tool output — feeds `remediation-suggester.js`. |
-| `dependsOn` | Runtime dependencies, e.g. `["mcp:graphiti"]` — mints an `mcp-server` node in the compiled map. |
+| `dependsOn` | Runtime dependencies, e.g. `["mcp:codegraph"]` — mints an `mcp-server` node in the compiled map. |
 
 `docs/skill-map.md` (repo root) is the authoritative schema/tagging reference; this table
 is the quick-lookup version for anyone editing a `SKILL.md` here.
@@ -431,7 +435,7 @@ artifact — required for anything touching `follows` edges or third-party nodes
 | Serena | semantic code navigation | MCP server (user scope) |
 | CodeGraph | code knowledge graph | `codegraph` CLI + MCP, `codegraph init` per repo |
 | graphify | vault knowledge graphs | skill (vendored here) |
-| Graphiti | temporal KG memory | opt-in — see `graphiti-memory` skill |
+| Neo4j | governed semantic projection | deferred until ontology and hygiene gates pass |
 
 ### Per-repo stack config
 

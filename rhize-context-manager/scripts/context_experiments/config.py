@@ -27,6 +27,20 @@ def default_data_dir() -> Path:
     return Path.home() / ".claude" / "rhize-context-manager" / "experiments"
 
 
+def default_context_pack_dir() -> Path:
+    """Host-neutral storage for explicit Claude Code/Codex context-pack previews."""
+
+    override = os.environ.get("RHIZE_CONTEXT_PACK_DATA_DIR")
+    if override:
+        return Path(override).expanduser()
+    context_home = os.environ.get("RHIZE_CONTEXT_HOME")
+    if context_home:
+        return Path(context_home).expanduser() / "context-packs"
+    data_home = os.environ.get("XDG_DATA_HOME")
+    base = Path(data_home).expanduser() if data_home else Path.home() / ".local" / "share"
+    return base / "rhize" / "context-manager" / "context-packs"
+
+
 def load_config(path: Path | None = None) -> ExperimentConfig:
     config_path = path or default_config_path()
     if not config_path.exists():

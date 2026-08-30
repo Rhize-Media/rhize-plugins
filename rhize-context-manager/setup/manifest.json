@@ -164,17 +164,6 @@
         "suggestion": "rely on grep/Read instead of an indexed knowledge graph",
         "warning": "this is the plugin's own documented fallback — CodeGraph indexing is the user's decision to opt into per repo, not something a hand-rolled index should try to replicate."
       }
-    },
-    {
-      "name": "Graphiti",
-      "kind": "mcp",
-      "purpose": "Opt-in temporal knowledge-graph memory, adopted via the graphiti-memory skill — explicitly NOT a dependency of anything else in this plugin.",
-      "required": false,
-      "degradedBehavior": "No effect on any other skill or command — Graphiti is additive, opt-in memory, not something the plugin routes through by default.",
-      "replacement": {
-        "suggestion": "skip temporal memory entirely, or use claude-mem's non-temporal memory instead",
-        "warning": "if you specifically need temporal/graph-shaped memory, Graphiti is already built and maintained for that; a hand-rolled temporal store is a much larger undertaking than the other replacements on this list."
-      }
     }
   ]
 }

@@ -42,10 +42,10 @@ user with `AskUserQuestion` if it matters to the proposal, otherwise default to 
 and don't block on it.
 
 ### Step 2 — Probe which stack layers are actually active
-Reuse the exact probe logic from `/context-doctor` (checks 1–6 in
+Reuse the exact probe logic from `/context-doctor` (checks 1–5 in
 `commands/context-doctor.md`): Headroom proxy + `.claude/settings.local.json`, RTK,
 claude-mem dashboard, `.wolf/` (OpenWolf), `.codegraph/` + Serena MCP connection,
-Graphiti (opt-in). You can either run `/context-doctor` first and read its persisted
+Only probe implemented layers. You can either run `/context-doctor` first and read its persisted
 JSON (`~/.claude/context-manager/doctor/<latest>.json`) if one exists from this session,
 or run the checks directly — either is fine, don't duplicate work if a fresh doctor run
 already exists.
@@ -57,7 +57,7 @@ Treat a prior run as the starting point to revise, not a reason to skip.
 
 ### Step 3 — Propose a tailored stack, with one-line reasons
 For each layer in the `context-stack` skill's table (Headroom, RTK, claude-mem,
-OpenWolf, Serena, CodeGraph, graphify, Graphiti), decide **enable / disable / leave as
+OpenWolf, Serena, CodeGraph, graphify, memory-context), decide **enable / disable / leave as
 global-default** for this repo, and give a one-line reason grounded in Steps 1–2. Apply
 the `context-stack` skill's routing rules and coexistence watch list, in particular:
 
@@ -73,6 +73,8 @@ the `context-stack` skill's routing rules and coexistence watch list, in particu
   has a large file count) → propose adding Headroom if not already wired.
 - A `generic` project with no detected framework (e.g. this plugin marketplace repo) →
   don't propose semantic-code-nav layers (Serena/CodeGraph) unless one is already active.
+- `memory-context` is preview-only and needs explicit supported adapters. Never propose Graphiti;
+  Neo4j memory remains a later gated adapter, not setup work here.
 
 Present the proposal as a compact table: layer | current state | proposed | reason.
 

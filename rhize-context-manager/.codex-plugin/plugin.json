@@ -1,0 +1,32 @@
+{
+  "name": "rhize-context-manager",
+  "version": "0.21.0",
+  "description": "Rhize context routing, private code context packs, and bounded memory-context previews",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "context-engineering",
+    "context-pack",
+    "memory-context",
+    "codegraph",
+    "graphify",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Context Manager",
+    "shortDescription": "Private, verified context routing and assembly",
+    "longDescription": "Build deterministic source-bound code context packs and scoped memory-context previews with explicit authority, conflict, TTL, purge, and unavailable-adapter behavior. Claude Code and Codex share the same skills and host-neutral runners.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "defaultPrompt": [
+      "Build and verify a private context pack for this implementation task.",
+      "Assemble a scoped memory-context preview without automatic injection."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#0F766E"
+  }
+}

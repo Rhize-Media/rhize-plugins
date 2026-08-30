@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery",
-    "entries", "excludedCount", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
+    "entries", "excludedCount", "exclusionLedger", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
     "reductionPercent", "buildMilliseconds", "sourceManifestHash", "policy", "warnings"
   ],
   "properties": {
@@ -21,7 +21,7 @@
       "required": ["name", "revision"],
       "properties": {
         "name": { "const": "rhize-native" },
-        "revision": { "const": "rhize-native-context-pack-v1" }
+        "revision": { "const": "rhize-native-context-pack-v2" }
       }
     },
     "discovery": {
@@ -48,7 +48,7 @@
         "properties": {
           "path": { "$ref": "#/$defs/relativePath" },
           "role": { "enum": ["FULL", "INTERFACE"] },
-          "reason": { "enum": ["explicit_or_discovered_target", "static_dependency", "related_test", "nearby_configuration"] },
+          "reason": { "enum": ["explicit_or_discovered_target", "static_dependency", "related_test", "nearby_configuration", "interface_widened_to_full"] },
           "sourceHash": { "$ref": "#/$defs/hash" },
           "renderedHash": { "$ref": "#/$defs/hash" },
           "estimatedTokens": { "type": "integer", "minimum": 0 }
@@ -56,6 +56,21 @@
       }
     },
     "excludedCount": { "type": "integer", "minimum": 0 },
+    "exclusionLedger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reasonCounts", "reasonKindsTruncated", "privateIssueCount", "privateIssuesTruncated"],
+      "properties": {
+        "reasonCounts": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        },
+        "reasonKindsTruncated": { "type": "integer", "minimum": 0 },
+        "privateIssueCount": { "type": "integer", "minimum": 0 },
+        "privateIssuesTruncated": { "type": "integer", "minimum": 0 }
+      }
+    },
     "totalSourceFiles": { "type": "integer", "minimum": 1 },
     "naiveDumpTokens": { "type": "integer", "minimum": 0 },
     "compiledTokens": { "type": "integer", "minimum": 0 },
@@ -65,10 +80,21 @@
     "policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["acceptedForUse", "maximumTokens", "rejectionReasons"],
+      "required": ["acceptedForUse", "maximumTokens", "eligibilityPolicy", "rejectionReasons"],
       "properties": {
         "acceptedForUse": { "type": "boolean" },
         "maximumTokens": { "type": "integer", "minimum": 1 },
+        "eligibilityPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "maximumSourceFiles", "maximumScanBytes", "minimumProjectedReductionPercent"],
+          "properties": {
+            "version": { "const": "native-context-eligibility-v2" },
+            "maximumSourceFiles": { "type": "integer", "minimum": 1 },
+            "maximumScanBytes": { "type": "integer", "minimum": 1 },
+            "minimumProjectedReductionPercent": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
         "rejectionReasons": {
           "type": "array",
           "items": { "$ref": "#/$defs/safeId" }

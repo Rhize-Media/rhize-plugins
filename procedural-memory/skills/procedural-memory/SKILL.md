@@ -82,6 +82,18 @@ explicit slash command, and follow the same rules either way.
 surface all of it, not just the name and similarity score. A high-similarity hit with
 `trust=unreviewed` or `health=degraded` is not a safe recommendation to run without saying so.
 
+## Unified-memory adapter boundary
+
+`rhize-context-manager:memory-context` may consume procedural metadata only through a supported,
+versioned, machine-readable read contract (`rhize-procedural-recall-v1`). The adapter is recall-only:
+it may expose artifact identity, trust, health, verification revision, and provenance as a
+`procedure-reference`, but it never runs the artifact or turns similarity into execution authority.
+
+Until `rhize-skill` exposes that exact JSON contract, memory assembly must report the procedural lane
+as `unavailable`. It must not scrape this skill, parse human CLI prose, query registry tables directly,
+or call `run` as a fallback. Execution remains exclusively behind this skill's existing digest,
+trust, health, and user-approval gates.
+
 ## Read the registry, never write to it directly
 
 This plugin only ever talks to the registry through `rhize-skill`. Never hand-edit files under

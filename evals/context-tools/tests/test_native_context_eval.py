@@ -37,4 +37,4 @@ def test_real_native_provider_passes_the_fixed_corpus() -> None:
     assert report["provider"]["ready"] is True
     assert report["corpus"]["totalCompiledContextCaseCount"] == 14
     assert report["gate"]["decision"] == "continue_to_explicit_dogfood"
-    assert all(row["providerRevision"] == "rhize-native-context-pack-v1" for row in report["results"])
+    assert all(row["providerRevision"] == "rhize-native-context-pack-v2" for row in report["results"])

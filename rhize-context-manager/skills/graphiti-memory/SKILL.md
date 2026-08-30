@@ -1,21 +1,17 @@
 ---
 name: graphiti-memory
 description: >-
-  Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for
-  agents. Use when the user wants queryable long-term agent memory with entities,
-  relationships, and time-awareness (beyond claude-mem's observation stream), when
-  setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem,
-  graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this
-  plugin documents the wiring but does not install or require it.
+  Historical design reference for Graphiti concepts. Use only when reviewing the prior
+  Graphiti decision or comparing its temporal-memory ideas with Rhize's governed Neo4j plans.
+  Do not use this skill to install, configure, route to, or claim adoption of Graphiti.
 metadata:
   rhize:
     topics: [knowledge-graph, memory-systems]
     stacks: []
-    dependsOn: ["mcp:graphiti"]
 
 ---
 
-# Graphiti — Temporal Knowledge-Graph Memory (opt-in)
+# Graphiti — historical design reference only
 
 Graphiti (github.com/getzep/graphiti) builds a temporally-aware knowledge graph from
 agent interactions and business data: entities, relationships, and validity intervals
@@ -23,40 +19,22 @@ agent interactions and business data: entities, relationships, and validity inte
 supports incremental updates, point-in-time queries, and hybrid retrieval
 (semantic + BM25 + graph traversal) without full re-ingestion.
 
-## When Graphiti (vs the rest of the stack)
+## Current routing instead
 
 - **claude-mem**: automatic session observations, zero setup — keep as the default.
 - **graphify**: human-browsable vault knowledge graphs — for reading, not agent recall.
-- **Graphiti**: when agents need to QUERY structured memory — "what did we decide about
-  X and when did it change", cross-project entity relationships, client/product state
-  that evolves. Reach for it when claude-mem recall keeps missing relationship-shaped
-  questions.
+- **memory-context**: bounded, private multi-source previews with authority and conflicts preserved.
+- **Neo4j**: later read-only semantic projection only after the approved ontology/hygiene gates.
 
-## Setup (not performed automatically — requires a graph backend)
+## Concepts retained for design comparison
 
-1. **Backend**: Neo4j (Desktop or Docker) or FalkorDB (lighter, Docker one-liner):
-   `docker run -p 6379:6379 -p 3000:3000 falkordb/falkordb`
-2. **MCP server** (recommended integration path for Claude Code):
-   ```bash
-   claude mcp add --scope user graphiti -- uvx graphiti-mcp-server
-   ```
-   Required env: `OPENAI_API_KEY` (or configured alternative LLM for extraction),
-   `NEO4J_URI`/`NEO4J_USER`/`NEO4J_PASSWORD` (or FalkorDB connection vars).
-   Store keys in the macOS Keychain per the Rhize credential pattern; retrieve
-   on-demand — never hardcode in the MCP config.
-3. Verify: the server exposes add-episode / search-nodes / search-facts style tools;
-   add a test episode and query it back.
-
-## Usage patterns
-
-- **Episodes in, queries out**: feed session outcomes/decisions as episodes; query by
-  entity or natural language during later sessions.
-- **Namespace per project** (group_id) so client/project graphs stay separated.
-- **Don't double-write**: if a fact is already in claude-mem AND the vault, only promote
-  it to Graphiti when it's relationship- or time-shaped. Graphiti is not a third dump.
+- Temporal validity and supersession must survive retrieval.
+- Every project/client needs an enforced namespace and ACL boundary.
+- A graph projection must not become a second canonical source or accept implicit writes.
 
 ## Status at Rhize
 
-Approved for full adoption (2026-07-20) but NOT a dependency of this plugin — backend
-standing-up is a separate infra task. Until it exists, treat this skill as the
-design/decision reference and route memory per the `context-stack` skill.
+Graphiti was never implemented and is not adopted. Neo4j is the available graph database, with
+Graphify and CodeGraph retaining their existing responsibilities. The canonical `memory-context`
+skill assembles preview-only source-bound context; a Neo4j semantic adapter remains blocked on the
+separate ontology and graph-hygiene gates. Do not install Graphiti or add it to setup/doctor routing.

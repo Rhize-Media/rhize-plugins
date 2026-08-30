@@ -16,7 +16,10 @@ def test_all_phase_one_json_documents_parse() -> None:
         PLUGIN_ROOT / "schemas" / "context-experiment-evidence-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v2.schema.json",
+        PLUGIN_ROOT / "schemas" / "memory-envelope-v1.schema.json",
+        PLUGIN_ROOT / "schemas" / "memory-context-pack-v1.schema.json",
         PLUGIN_ROOT / "setup" / "manifest.json",
+        PLUGIN_ROOT / ".codex-plugin" / "plugin.json",
     ]
     for path in paths:
         assert isinstance(json.loads(path.read_text()), dict), path
@@ -97,6 +100,21 @@ def test_native_context_pack_schema_is_provider_neutral_and_source_free() -> Non
     assert {"path", "role", "reason", "sourceHash", "renderedHash"}.issubset(entry["required"])
     assert set(entry["properties"]["role"]["enum"]) == {"FULL", "INTERFACE"}
     assert "content" not in entry["properties"]
+    assert schema["properties"]["provider"]["properties"]["revision"]["const"] == "rhize-native-context-pack-v2"
+    assert "exclusionLedger" in schema["required"]
+
+
+def test_cross_host_skills_and_metadata_share_one_launcher() -> None:
+    for name in ("context-pack", "memory-context"):
+        root = PLUGIN_ROOT / "skills" / name
+        assert (root / "SKILL.md").exists()
+        assert (root / "agents" / "openai.yaml").exists()
+        assert (root / "scripts" / f"{name}.sh").exists()
+    codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+    assert codex["skills"] == "./skills/"
+    assert codex["version"] == json.loads(
+        (PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text()
+    )["version"]
 
 
 def test_opt_in_manifest_wires_both_fail_silent_hooks() -> None:

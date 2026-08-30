@@ -100,7 +100,7 @@ python3 evals/context-tools/run_native_context_evals.py \
 
 The fixed cases cover TypeScript, JavaScript, Python, explicit mixed-language targets, and a
 dynamic JavaScript import that must fall back. Both arms run in every row: Arm A is the complete
-supported-source baseline and Arm B is `rhize-native-context-pack-v1`. Every case compiles twice
+supported-source baseline and Arm B is `rhize-native-context-pack-v2`. Every case compiles twice
 and requires the same source-bound pack ID and prompt; no provider double produces benchmark data.
 
 On 2026-08-27, all five cases passed `native-context-phase-4-v1`: four static packs were accepted,

@@ -10,6 +10,7 @@ import shutil
 import statistics
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -50,7 +51,9 @@ def evaluate_case(case: dict[str, Any], provider: NativeContextPackProvider) -> 
         snapshot = fixture_snapshot(repo)
         task_hash = hashlib.sha256(case["id"].encode()).hexdigest()
         targets = tuple(repo / value for value in case["targets"])
+        started = time.monotonic()
         first = provider.compile(repo, snapshot=snapshot, task_hash=task_hash, targets=targets)
+        build_milliseconds = round((time.monotonic() - started) * 1000, 3)
         second = provider.compile(repo, snapshot=snapshot, task_hash=task_hash, targets=targets)
         manifest = first.manifest
         actual_entries = [entry["path"] for entry in manifest["entries"]]
@@ -83,7 +86,7 @@ def evaluate_case(case: dict[str, Any], provider: NativeContextPackProvider) -> 
                 "variant": PROVIDER_REVISION,
                 "contextTokens": manifest["compiledTokens"],
                 "filesPresented": len(manifest["entries"]),
-                "buildMilliseconds": manifest["buildMilliseconds"],
+                "buildMilliseconds": build_milliseconds,
             },
             "reductionPercent": manifest["reductionPercent"],
             "acceptedForUse": manifest["policy"]["acceptedForUse"],

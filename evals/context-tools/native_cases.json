@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "providerRevision": "rhize-native-context-pack-v1",
+  "providerRevision": "rhize-native-context-pack-v2",
   "cases": [
     {
       "id": "native-typescript-static",
