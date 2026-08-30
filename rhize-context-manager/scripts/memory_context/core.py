@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import tempfile
@@ -33,6 +34,7 @@ AUTHORITY_ORDER = {
     "untrusted": 5,
 }
 TRUST_ORDER = {"operator-approved": 0, "verified": 1, "observed": 2, "unverified": 3}
+RETENTION_CLASSES = {"transient", "session", "project", "durable"}
 DEFAULT_LANE_BUDGETS = {
     memory_type: {"maxItems": 5, "maxTokens": 1_500} for memory_type in MEMORY_TYPES
 }
@@ -507,6 +509,39 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("memory context taskHash is invalid")
     parse_time(manifest["createdAt"])
     parse_time(manifest["expiresAt"])
+    adapter_keys = {"name", "memoryType", "status", "reason"}
+    if not isinstance(manifest["adapterStatuses"], list):
+        raise ValueError("memory context adapterStatuses are invalid")
+    for adapter in manifest["adapterStatuses"]:
+        if not isinstance(adapter, dict) or set(adapter) != adapter_keys:
+            raise ValueError("memory context adapter status has an invalid shape")
+        _safe_id(adapter["name"], "adapter name")
+        _safe_id(adapter["reason"], "adapter reason")
+        if adapter["memoryType"] not in MEMORY_TYPES or adapter["status"] not in ADAPTER_STATUSES:
+            raise ValueError("memory context adapter status is invalid")
+    exclusion_counts = manifest["exclusionReasonCounts"]
+    if (
+        not isinstance(exclusion_counts, dict)
+        or len(exclusion_counts) > 12
+        or any(
+            not isinstance(reason, str)
+            or isinstance(count, bool)
+            or not isinstance(count, int)
+            or count < 1
+            for reason, count in exclusion_counts.items()
+        )
+    ):
+        raise ValueError("memory context exclusion reason counts are invalid")
+    truncated = manifest["exclusionReasonKindsTruncated"]
+    total_tokens = manifest["totalEstimatedTokens"]
+    if isinstance(truncated, bool) or not isinstance(truncated, int) or truncated < 0:
+        raise ValueError("memory context truncated exclusion count is invalid")
+    if isinstance(total_tokens, bool) or not isinstance(total_tokens, int) or total_tokens < 0:
+        raise ValueError("memory context total token estimate is invalid")
+    if not isinstance(manifest["warnings"], list):
+        raise ValueError("memory context warnings are invalid")
+    for warning in manifest["warnings"]:
+        _safe_id(warning, "memory context warning")
     if manifest["policy"] != {
         "version": "memory-context-ranking-v1", "automaticInjection": False, "writeBack": False
     }:
@@ -530,6 +565,8 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         for key in ("memoryId", "sourceIdHash", "contentHash"):
             if not re.fullmatch(r"[a-f0-9]{64}", str(candidate[key])):
                 raise ValueError(f"memory context candidate {key} is invalid")
+        for key in ("sourceSystem", "sourceRevision", "extractionVersion"):
+            _safe_id(candidate[key], f"memory context candidate {key}")
         if not re.fullmatch(r"payload-[a-f0-9]{32}", str(candidate["payloadRef"])):
             raise ValueError("memory context candidate payloadRef is invalid")
         if candidate["payloadRef"] != f"payload-{candidate['contentHash'][:32]}":
@@ -552,6 +589,8 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
             raise ValueError("memory context candidate sensitivity is invalid")
         if candidate["trustClass"] not in TRUST_ORDER or candidate["authorityClass"] not in AUTHORITY_ORDER:
             raise ValueError("memory context candidate trust or authority is invalid")
+        if candidate["retentionClass"] not in RETENTION_CLASSES:
+            raise ValueError("memory context candidate retention class is invalid")
         if candidate["contentRole"] not in CONTENT_ROLES:
             raise ValueError("memory context candidate content role is invalid")
         if candidate["adapterStatus"] not in {"available", "partial"}:
@@ -563,9 +602,72 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
                 not re.fullmatch(r"[a-f0-9]{64}", str(value)) for value in candidate[key]
             ):
                 raise ValueError(f"memory context candidate {key} is invalid")
+        for key in ("claimKeyHash", "conflictGroupHash"):
+            value = candidate[key]
+            if value is not None and not re.fullmatch(r"[a-f0-9]{64}", str(value)):
+                raise ValueError(f"memory context candidate {key} is invalid")
+        for key in ("validFrom", "validUntil", "recordedAt"):
+            value = candidate[key]
+            if value is not None:
+                if not isinstance(value, str):
+                    raise ValueError(f"memory context candidate {key} is invalid")
+                parse_time(value)
+        for key in ("confidence", "relevance"):
+            value = candidate[key]
+            if (
+                value is not None
+                and (
+                    isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(value)
+                    or not 0 <= value <= 1
+                )
+            ):
+                raise ValueError(f"memory context candidate {key} is invalid")
+        if candidate["relevance"] is None:
+            raise ValueError("memory context candidate relevance is invalid")
+        for key in ("rank", "estimatedTokens"):
+            value = candidate[key]
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise ValueError(f"memory context candidate {key} is invalid")
+    if total_tokens != sum(candidate["estimatedTokens"] for candidate in manifest["candidates"]):
+        raise ValueError("memory context total token estimate is inconsistent")
     serialized = json.dumps(manifest, sort_keys=True)
     if re.search(r"(?:^|[\" ])/(?:Users|home|private|tmp)/", serialized):
         raise ValueError("memory context manifest contains an absolute path")
+
+
+def _validate_pack_payload(manifest: dict[str, Any], payload: dict[str, Any]) -> None:
+    """Reject an invalid manifest/payload pair before persistence creates artifacts."""
+
+    validate_manifest(manifest)
+    reasons = _pack_payload_reasons(manifest, payload)
+    if reasons:
+        raise ValueError(f"memory context payload is invalid: {', '.join(reasons)}")
+
+
+def _pack_payload_reasons(manifest: dict[str, Any], payload: Any) -> list[str]:
+    reasons = []
+    digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    if digest != manifest["payloadHash"]:
+        reasons.append("payload_hash_mismatch")
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"schemaVersion", "payloads"}
+        or payload.get("schemaVersion") != 1
+        or not isinstance(payload.get("payloads"), dict)
+    ):
+        reasons.append("payload_shape_invalid")
+        return reasons
+    expected_refs = {
+        item["payloadRef"]: item["contentHash"] for item in manifest["candidates"]
+    }
+    if set(payload["payloads"]) != set(expected_refs) or any(
+        not isinstance(content, str) or sha256(content) != expected_refs[reference]
+        for reference, content in payload["payloads"].items()
+    ):
+        reasons.append("payload_candidate_binding_mismatch")
+    return reasons
 
 
 class MemoryStore:
@@ -591,7 +693,7 @@ class MemoryStore:
             os.close(descriptor)
 
     def write(self, manifest: dict[str, Any], payload: dict[str, Any]) -> tuple[Path, Path]:
-        validate_manifest(manifest)
+        _validate_pack_payload(manifest, payload)
         if self.packs.is_symlink():
             raise ValueError("memory pack directory cannot be a symlink")
         self.packs.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -654,17 +756,7 @@ class MemoryStore:
             reasons.append("expired")
         if manifest_path.stat().st_mode & 0o777 != 0o600 or payload_path.stat().st_mode & 0o777 != 0o600:
             reasons.append("insecure_file_mode")
-        digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")))
-        if digest != manifest["payloadHash"]:
-            reasons.append("payload_hash_mismatch")
-        expected_refs = {item["payloadRef"]: item["contentHash"] for item in manifest["candidates"]}
-        if not isinstance(payload, dict) or set(payload) != {"schemaVersion", "payloads"} or payload.get("schemaVersion") != 1 or not isinstance(payload.get("payloads"), dict):
-            reasons.append("payload_shape_invalid")
-        elif set(payload["payloads"]) != set(expected_refs) or any(
-            not isinstance(content, str) or sha256(content) != expected_refs[reference]
-            for reference, content in payload["payloads"].items()
-        ):
-            reasons.append("payload_candidate_binding_mismatch")
+        reasons.extend(_pack_payload_reasons(manifest, payload))
         index = self._read_index()
         revoked = set(index["revokedSources"])
         if any(item["sourceIdHash"] in revoked for item in manifest["candidates"]):

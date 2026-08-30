@@ -260,8 +260,10 @@ you verify it. After any install or update:
 
 ## Hooks
 
-The refactor-evidence workflow is auto-wired for every project that installs this plugin. Its
-state is shared by Claude and Codex:
+Claude Code auto-wires the refactor-evidence workflow through the plugin hook manifest. Codex does
+not consume that Claude hook manifest; it invokes the same host-neutral script runners explicitly
+through the shared skills and commands. Both hosts use the same receipt schema and state files, so
+their evidence remains interoperable without claiming identical lifecycle wiring.
 
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|

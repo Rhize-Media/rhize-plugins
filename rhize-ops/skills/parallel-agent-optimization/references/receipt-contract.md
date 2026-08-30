@@ -62,6 +62,7 @@ Pass `finalize --run-id <id> --input <file>` exactly these fields:
   "task_graph": {
     "planned": 2,
     "required": 2,
+    "required_completed": 2,
     "completed": 2,
     "failed": 0,
     "cancelled": 0,
@@ -82,8 +83,9 @@ may also be null so finalization never requires invented zeros. All supplied cou
 Duplicate finalization is rejected. `audit-pending` identifies accepted reservations without
 terminal receipts and flags those older than the configured threshold.
 
-Pre-task-graph v2 receipts remain readable and visible as migration history, but reports exclude
-them from current graph-completeness and readiness metrics. They are never rewritten in place.
+Pre-task-graph v2 receipts and task-graph receipts that predate `required_completed` remain readable
+and visible as migration history, but reports exclude them from current graph-completeness and
+readiness metrics. They are never rewritten in place.
 
 Allowed unavailable reasons are `host_not_exposed`, `partial_host_coverage`, and `not_measured`.
 Never estimate token or tool counts. Timestamps are timezone-aware ISO 8601 values and agent
@@ -108,6 +110,8 @@ There is no free-text field. Never add prompts, summaries, code, commands, repos
 project/user/agent/host names, URLs, source session/thread IDs, issue IDs, or external identifiers.
 Random local comparison/run UUIDs are receipt identifiers, not source-session identifiers.
 
-Task-graph terminal status counts must sum to `planned`, `required` cannot exceed `planned`, and
-optional skips cannot exceed the optional-node count. Cleanup failures are counted separately and
-never converted into successful completion.
+Task-graph terminal status counts must sum to `planned`; `required_completed` cannot exceed either
+`required` or `completed`; and optional completions plus skips cannot exceed the optional-node count.
+`correctness_pass: true` requires `required_completed == required`, so completed optional work can
+never mask a failed required node. Cleanup failures are counted separately and never converted into
+successful completion.

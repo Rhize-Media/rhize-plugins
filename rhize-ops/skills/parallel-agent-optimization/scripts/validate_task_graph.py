@@ -314,7 +314,7 @@ def validate_state(raw: Any, graph: dict[str, Any]) -> dict[str, Any]:
             or node_state["status"] in execution_statuses
         )
         if execution_started and any(
-            state["nodes"][dependency]["status"] not in {"completed", "skipped_optional"}
+            state["nodes"][dependency]["status"] != "completed"
             for dependency in node["depends_on"]
         ):
             raise GraphError(f"dependencies must be complete before executing {node_id}")
@@ -332,10 +332,10 @@ def next_wave(graph: dict[str, Any], state: dict[str, Any], cap: int) -> dict[st
         if statuses[node_id] not in {"pending", "ready"}:
             continue
         dependency_statuses = [statuses[item] for item in nodes[node_id]["depends_on"]]
-        if any(status in {"failed", "cancelled", "timed_out", "blocked_dependency"} for status in dependency_statuses):
+        if any(status in {"failed", "cancelled", "timed_out", "blocked_dependency", "skipped_optional"} for status in dependency_statuses):
             blocked.append(node_id)
             continue
-        if all(status in {"completed", "skipped_optional"} for status in dependency_statuses):
+        if all(status == "completed" for status in dependency_statuses):
             if nodes[node_id]["requires_approval"] and not state["approvals_revalidated"]:
                 continue
             if nodes[node_id]["external_effect"] != "none" and not state["external_state_revalidated"]:
@@ -352,6 +352,7 @@ def next_wave(graph: dict[str, Any], state: dict[str, Any], cap: int) -> dict[st
 
 def validate_results(graph: dict[str, Any], state: dict[str, Any]) -> dict[str, Any]:
     nodes = {node["id"]: node for node in graph["nodes"]}
+    required = sum(not node["optional"] for node in nodes.values())
     counts = Counter(value["status"] for value in state["nodes"].values())
     cleanup_failed = sum(not value["cleanup_ok"] for value in state["nodes"].values())
     unfinished = sum(value["status"] in {"pending", "ready", "running"} for value in state["nodes"].values())
@@ -383,7 +384,8 @@ def validate_results(graph: dict[str, Any], state: dict[str, Any]) -> dict[str, 
     return {
         "synthesis_allowed": complete,
         "planned": len(nodes),
-        "required": sum(not node["optional"] for node in nodes.values()),
+        "required": required,
+        "required_completed": required - len(missing_required),
         "completed": counts["completed"],
         "failed": counts["failed"],
         "cancelled": counts["cancelled"],

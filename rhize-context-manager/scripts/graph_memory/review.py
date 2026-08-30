@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Sequence
 
 from .contract import sha256_value
-from .dedup import candidate_revision_hash
+from .dedup import candidate_revision_hash, identity_pair_key
 from .resolution import canonical_pair, parse_timestamp, validate_entity_type, validate_hash
 
 
@@ -230,13 +230,20 @@ class IdentityReviewStore:
                 "expectedRevision": expected_revision, "leaseExpiresAt": lease_expires_at,
             }
         )
-        idempotency_hash, replay = self._idempotency_lookup(idempotency_key, fingerprint)
-        if replay is not None:
-            return replay
-        lease_token = sha256_value(
-            {"reviewId": review_id, "actor": actor.actor_hash, "session": actor.session_hash, "key": idempotency_hash}
-        )
         with self._lock:
+            idempotency_hash, replay = self._idempotency_lookup(
+                idempotency_key, fingerprint
+            )
+            if replay is not None:
+                return replay
+            lease_token = sha256_value(
+                {
+                    "reviewId": review_id,
+                    "actor": actor.actor_hash,
+                    "session": actor.session_hash,
+                    "key": idempotency_hash,
+                }
+            )
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
             self._require_acl(actor, review)
@@ -374,10 +381,12 @@ class IdentityReviewStore:
                 "dependencySnapshotHash": sha256_value(dependencies),
             }
         )
-        idempotency_hash, replay = self._idempotency_lookup(idempotency_key, fingerprint)
-        if replay is not None:
-            return replay
         with self._lock:
+            idempotency_hash, replay = self._idempotency_lookup(
+                idempotency_key, fingerprint
+            )
+            if replay is not None:
+                return replay
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
             self._require_acl(actor, review)
@@ -493,10 +502,12 @@ class IdentityReviewStore:
                 "dependencySnapshotHash": sha256_value(dependencies),
             }
         )
-        idempotency_hash, replay = self._idempotency_lookup(idempotency_key, fingerprint)
-        if replay is not None:
-            return replay
         with self._lock:
+            idempotency_hash, replay = self._idempotency_lookup(
+                idempotency_key, fingerprint
+            )
+            if replay is not None:
+                return replay
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
             self._require_acl(actor, review)
@@ -1152,15 +1163,6 @@ def _validate_review(review: Mapping[str, Any], *, initial: bool) -> None:
     pair = canonical_pair(*review["candidateIds"])
     if list(pair) != review["candidateIds"]:
         raise ReviewError("identity review candidate ids must be canonically ordered")
-    expected_pair_key = sha256_value(
-        {
-            "tenant": review["tenantHash"],
-            "namespace": review["namespaceHash"],
-            "pair": pair,
-        }
-    )
-    if review["pairKey"] != expected_pair_key:
-        raise ReviewError("identity review pair key is not governed by its partition and ids")
     if (
         not isinstance(review["sourceRevisionHashes"], list)
         or not 1 <= len(review["sourceRevisionHashes"]) <= 2
@@ -1179,6 +1181,16 @@ def _validate_review(review: Mapping[str, Any], *, initial: bool) -> None:
         raise ReviewError("identity review ACL scope hashes are invalid")
     for scope_hash in review["aclScopeHashes"]:
         validate_hash(scope_hash, "identity review ACL scope hash")
+    expected_pair_key = identity_pair_key(
+        review["tenantHash"],
+        review["namespaceHash"],
+        pair,
+        review["aclScopeHashes"],
+    )
+    if review["pairKey"] != expected_pair_key:
+        raise ReviewError(
+            "identity review pair key is not governed by its partition, ACL lane, and ids"
+        )
     if review["state"] not in REVIEW_STATES or review["risk"] not in {"standard", "protected"}:
         raise ReviewError("identity review state or risk is invalid")
     if initial and (review["state"] != "pending" or review["lease"] is not None or review["decisionId"] is not None):

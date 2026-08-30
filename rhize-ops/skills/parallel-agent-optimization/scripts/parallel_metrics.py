@@ -67,6 +67,7 @@ VERIFICATION_KEYS = {"required", "completed", "passed"}
 TASK_GRAPH_KEYS = (
     "planned",
     "required",
+    "required_completed",
     "completed",
     "failed",
     "cancelled",
@@ -207,8 +208,15 @@ def validate_task_graph(value: Any, status: str) -> dict[str, int] | None:
         raise ReceiptError("task_graph terminal counts must equal planned")
     if graph["required"] > graph["planned"]:
         raise ReceiptError("task_graph.required cannot exceed planned")
-    if graph["skipped_optional"] > graph["planned"] - graph["required"]:
-        raise ReceiptError("task_graph.skipped_optional exceeds optional nodes")
+    if graph["required_completed"] > graph["required"]:
+        raise ReceiptError("task_graph.required_completed cannot exceed required")
+    if graph["required_completed"] > graph["completed"]:
+        raise ReceiptError("task_graph.required_completed cannot exceed completed")
+    optional_terminal_success = (
+        graph["completed"] - graph["required_completed"] + graph["skipped_optional"]
+    )
+    if optional_terminal_success > graph["planned"] - graph["required"]:
+        raise ReceiptError("task_graph optional completions and skips exceed optional nodes")
     return graph
 
 
@@ -462,9 +470,12 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
             raise ReceiptError("lanes_planned must equal task_graph.planned")
         if task_graph["cleanup_failed"] and raw["correctness_pass"] is True:
             raise ReceiptError("cleanup failure cannot claim correctness_pass=true")
-        if raw["correctness_pass"] is True and task_graph["completed"] < task_graph["required"]:
+        if (
+            raw["correctness_pass"] is True
+            and task_graph["required_completed"] != task_graph["required"]
+        ):
             raise ReceiptError(
-                "correctness_pass=true requires at least every required node completed"
+                "correctness_pass=true requires every required node completed"
             )
 
     agents = raw["agents"]
@@ -669,6 +680,9 @@ def complete_comparison_groups(
         if any(row.get("task_graph") is None for row in group):
             counts["pre_task_graph_v2"] += 1
             continue
+        if any("required_completed" not in row["task_graph"] for row in group):
+            counts["pre_required_closure_v2"] += 1
+            continue
         if any(row.get("status") != "completed" for row in group):
             counts["noncompleted"] += 1
             continue
@@ -812,7 +826,9 @@ def build_report(store: Path, evidence: str) -> dict[str, Any]:
         analyzed = [
             row
             for row in rows
-            if row.get("status") == "completed" and row.get("task_graph") is not None
+            if row.get("status") == "completed"
+            and row.get("task_graph") is not None
+            and "required_completed" in row["task_graph"]
         ]
         comparison_counts = None
         if evidence_class == "controlled":
@@ -825,6 +841,11 @@ def build_report(store: Path, evidence: str) -> dict[str, Any]:
             "stored_runs": len(rows),
             "analyzed_runs": len(analyzed),
             "pre_task_graph_v2_runs": sum(row.get("task_graph") is None for row in rows),
+            "pre_required_closure_v2_runs": sum(
+                row.get("task_graph") is not None
+                and "required_completed" not in row["task_graph"]
+                for row in rows
+            ),
             "terminal_status_counts": {
                 status: sum(row.get("status") == status for row in rows) for status in TERMINAL_STATUSES
             },
@@ -854,6 +875,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 "",
                 f"Stored terminal receipts: {section['stored_runs']}; analyzed completed runs: {section['analyzed_runs']}",
                 f"Pre-task-graph v2 receipts retained but excluded: {section['pre_task_graph_v2_runs']}",
+                f"Pre-required-closure v2 receipts retained but excluded: {section['pre_required_closure_v2_runs']}",
                 "",
                 "| Variant | Runs | Correctness | Routing | Verification | Median ms | Overlap | Agents | Collisions | Rework | Tools | Tokens |",
                 "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",

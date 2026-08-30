@@ -61,6 +61,11 @@ rejects `qmd_enabled: true` and marks every compiled page ineligible because an 
 adapter does not yet exist. Keep compiler output and private state outside every qmd collection.
 Context packs, Graphify, Neo4j, live synthesis, and scheduled mutation are also disabled.
 
+Privacy purge is a forward-recovering transaction: it deletes compiler-owned projections,
+previews, and source snapshots before committing purged index/registration status. Any interrupted
+authorized purge resumes under the vault lock. Its `rawSourceRetained` receipt remains true because
+the canonical human source note is deliberately outside compiler deletion authority.
+
 The canonical engine is shared by Claude Code's thin `/vault-compile` command and Codex's
 `knowledge-compiler` skill metadata. Run `python3 scripts/compiled_knowledge.py --help` for the exact
 CLI. `init-config` prints a disabled-by-default template; it never guesses a personal vault path.

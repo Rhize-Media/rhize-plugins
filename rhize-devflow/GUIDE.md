@@ -24,7 +24,7 @@ Every command and skill here exists to prevent one of those failure modes.
 
 The plugin has two kinds of components:
 
-**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All seven overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
+**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All eight overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
 
 **Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
@@ -99,6 +99,12 @@ evidence-backed no-op as success and never rewrites an applied migration for cle
 **How to use it effectively:**
 - Ask for edits when you want safe candidates applied and validated.
 - Add "read-only" when you want a candidate report without source changes.
+- Name a range or files when the task boundary is broader than the current session's changes.
+- Run `/rhize-devflow:check` after applied simplifications and `/rhize-devflow:review` before a
+  production release.
+
+**Key insight:** Simplification is a behavior-preserving reduction, not a license for redesign.
+Fewer lines are useful only when the resulting ownership and safeguards are at least as clear.
 
 ### test-evidence
 
@@ -112,12 +118,6 @@ trusted sandbox must satisfy. The current runner does not execute package script
 
 **Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
 contract and produce test evidence before review."
-- Name a range or files when the task boundary is broader than the current session's changes.
-- Run `/rhize-devflow:check` after applied simplifications and `/rhize-devflow:review` before a
-  production release.
-
-**Key insight:** Simplification is a behavior-preserving reduction, not a license for redesign.
-Fewer lines are useful only when the resulting ownership and safeguards are at least as clear.
 
 ### completed-branch-promotion
 

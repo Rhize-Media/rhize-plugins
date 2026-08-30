@@ -11,5 +11,6 @@ adapter: load that skill, preserve its approval and privacy boundaries, and invo
 For `preview`, show the named preview's change brief and exact diff. For `apply`, require explicit
 approval of that preview id in the current conversation before invoking the mutation. `status`
 never authors new compiled content; after an interrupted authorized apply, it may restore the
-journaled pre-transaction bytes before reporting. `rebuild` creates a new preview and never applies
-it. Scheduled or automatic apply is not available.
+journaled pre-transaction bytes before reporting; after an interrupted authorized purge, it resumes
+the forward-only deletion journal before reporting. `rebuild` creates a new preview and never
+applies it. Scheduled or automatic apply is not available.

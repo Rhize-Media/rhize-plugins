@@ -80,10 +80,11 @@
     "task_graph": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["planned", "required", "completed", "failed", "cancelled", "timed_out", "blocked_dependency", "skipped_optional", "cleanup_failed", "fan_in_levels", "declared_concurrency_cap"],
+      "required": ["planned", "required", "required_completed", "completed", "failed", "cancelled", "timed_out", "blocked_dependency", "skipped_optional", "cleanup_failed", "fan_in_levels", "declared_concurrency_cap"],
       "properties": {
         "planned": {"type": "integer", "minimum": 0},
         "required": {"type": "integer", "minimum": 0},
+        "required_completed": {"type": "integer", "minimum": 0},
         "completed": {"type": "integer", "minimum": 0},
         "failed": {"type": "integer", "minimum": 0},
         "cancelled": {"type": "integer", "minimum": 0},

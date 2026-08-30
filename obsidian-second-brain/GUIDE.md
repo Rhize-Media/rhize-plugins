@@ -107,7 +107,8 @@ The workflow has four user-facing modes:
   changed, the ACL/retention contract drifted, or a human edited the page.
 - `status` reports clean, stale, conflicting, and purged pages without exposing preview content. If
   an authorized apply was interrupted, status first restores its journaled pre-transaction bytes;
-  it never authors a new synthesis.
+  if an authorized purge was interrupted, status resumes its forward-only deletion journal before
+  reporting. It never authors a new synthesis.
 - `rebuild` creates another preview; it never applies automatically.
 
 First, create an explicit project config from the disabled template printed by
@@ -132,7 +133,9 @@ Example lifecycle:
 Scheduled compilation, automatic apply, context injection, Graphify, and Neo4j promotion are not
 available in this release. A legal/privacy purge is a separate explicit operation requiring the exact
 `source_id:revision_hash`; it removes compiler-owned payloads and records only a non-sensitive
-tombstone. It never deletes the canonical human source note.
+tombstone. Purged status is committed only after private snapshots and derived payloads are gone.
+The receipt's `rawSourceRetained: true` means the canonical human source note remains outside the
+compiler's deletion authority.
 
 ### /vault-search
 

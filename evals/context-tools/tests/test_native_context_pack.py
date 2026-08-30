@@ -170,6 +170,28 @@ def test_native_pack_verification_binds_manifest_and_prompt_bytes(tmp_path: Path
     assert understated.prompt_current is False
 
 
+def test_native_pack_write_rejects_unbound_prompt_before_creating_artifacts(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    snapshot = commit_fixture(repo)
+    provider = NativeContextPackProvider()
+    pack = provider.compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="d" * 64,
+        targets=(repo / "src" / "app.ts",),
+    )
+    output = tmp_path / "packs"
+    tampered = pack.__class__(manifest=pack.manifest, prompt=pack.prompt + "\ntampered\n")
+
+    with pytest.raises(ValueError, match="prompt token count|prompt hash"):
+        provider.write_pack(tampered, output)
+
+    assert not output.exists()
+
+
 def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) -> None:
     first_repo = tmp_path / "host-a" / "project"
     second_repo = tmp_path / "host-b" / "project"

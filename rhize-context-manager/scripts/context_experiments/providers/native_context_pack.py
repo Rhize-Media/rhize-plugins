@@ -409,7 +409,7 @@ class NativeContextPackProvider:
         return CompiledPack(manifest=manifest, prompt=prompt)
 
     def write_pack(self, pack: CompiledPack, directory: Path) -> tuple[Path, Path]:
-        validate_native_context_pack_manifest(pack.manifest)
+        _validate_pack_artifact(pack.manifest, pack.prompt)
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(directory, 0o700)
         pack_id = pack.manifest["packId"]
@@ -1646,6 +1646,19 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack source manifest hash is inconsistent")
     if manifest["packId"] != stable_pack_id(manifest):
         raise ValueError("native context pack identity does not match its manifest")
+
+
+def _validate_pack_artifact(manifest: dict[str, Any], prompt: str) -> None:
+    """Validate a complete manifest/prompt pair before creating either artifact."""
+
+    validate_native_context_pack_manifest(manifest)
+    if not isinstance(prompt, str):
+        raise ValueError("native context pack prompt is invalid")
+    if _estimate_tokens(prompt) != manifest["compiledTokens"]:
+        raise ValueError("native context pack prompt token count does not match its manifest")
+    prompt_hash = manifest.get("promptHash")
+    if prompt_hash is not None and _sha256(prompt.encode()) != prompt_hash:
+        raise ValueError("native context pack prompt hash does not match its manifest")
 
 
 def _require_relative_path(value: Any) -> None:

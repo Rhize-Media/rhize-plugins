@@ -31,3 +31,9 @@ cancelled or marked `skipped_optional`, so omissions stay visible. Fan-in levels
 declared item bounds; raw node outputs are never included in the validation response.
 `next-wave` reports downstream nodes whose failed, cancelled, timed-out, or blocked dependency must
 be closed as `blocked_dependency`; it never silently leaves them eligible.
+
+Task-graph v1 has no nullable-edge contract. Therefore a producer marked `skipped_optional` does
+not satisfy any `depends_on` edge: `next-wave` closes its pending dependents as
+`blocked_dependency`, and state validation rejects any dependent that already started. A future
+nullable dependency must be an explicit schema change rather than an inference from node
+optionality.

@@ -61,6 +61,7 @@ def final_input(**overrides):
         "task_graph": {
             "planned": 2,
             "required": 2,
+            "required_completed": 2,
             "completed": 2,
             "failed": 0,
             "cancelled": 0,
@@ -103,6 +104,7 @@ def test_begin_then_finalize_writes_private_v2_receipt(tmp_path):
     assert receipt["status"] == "completed"
     assert receipt["actual_overlap"] is False
     assert receipt["verification_completeness"] == 1.0
+    assert receipt["task_graph"]["required_completed"] == 2
     assert receipt["task_graph"]["completed"] == 2
     path = next((store / "observational").glob("*.jsonl"))
     assert stat.S_IMODE(store.stat().st_mode) == 0o700
@@ -135,6 +137,7 @@ def test_canonical_v2_schema_matches_two_arm_lifecycle_contract():
     assert "resource_used" not in schema["$defs"]["begin"]["properties"]
     assert "task_graph" in schema["$defs"]["final"]["required"]
     assert schema["$defs"]["task_graph"]["additionalProperties"] is False
+    assert "required_completed" in schema["$defs"]["task_graph"]["required"]
 
 
 @pytest.mark.parametrize(
@@ -142,7 +145,9 @@ def test_canonical_v2_schema_matches_two_arm_lifecycle_contract():
     [
         ({"planned": 3}, "terminal counts"),
         ({"required": 3}, "required"),
-        ({"skipped_optional": 1, "completed": 1}, "optional"),
+        ({"required_completed": 3}, "required_completed"),
+        ({"skipped_optional": 1, "completed": 1, "required_completed": 1}, "optional"),
+        ({"planned": 3, "required_completed": 1, "skipped_optional": 1}, "optional"),
         ({"declared_concurrency_cap": 0}, "positive"),
     ],
 )
@@ -188,9 +193,23 @@ def test_v2_rejects_success_when_cleanup_or_required_results_failed():
         parallel_metrics.validate_final(cleanup, parallel_metrics.validate_begin(begin_input()))
 
     missing = final_input()
-    missing["task_graph"].update(completed=1, failed=1)
+    missing["task_graph"].update(required_completed=1, completed=1, failed=1)
     with pytest.raises(parallel_metrics.ReceiptError, match="required node"):
         parallel_metrics.validate_final(missing, parallel_metrics.validate_begin(begin_input()))
+
+
+def test_v2_rejects_equal_count_swap_that_masks_failed_required_node():
+    value = final_input(lanes_planned=3)
+    value["task_graph"].update(
+        planned=3,
+        required=2,
+        required_completed=1,
+        completed=2,
+        failed=1,
+    )
+
+    with pytest.raises(parallel_metrics.ReceiptError, match="every required node completed"):
+        parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
 
 
 def test_noncompleted_lifecycle_can_finalize_without_invented_graph_counts():
@@ -385,6 +404,21 @@ def test_report_retains_but_excludes_pre_task_graph_v2_receipt(tmp_path):
     ]
     assert section["stored_runs"] == 1
     assert section["pre_task_graph_v2_runs"] == 1
+    assert section["analyzed_runs"] == 0
+
+
+def test_report_retains_but_excludes_pre_required_closure_v2_receipt(tmp_path):
+    directory = tmp_path / "observational"
+    directory.mkdir(parents=True)
+    row = parallel_metrics.validate_final(final_input(), parallel_metrics.validate_begin(begin_input()))
+    row["task_graph"].pop("required_completed")
+    (directory / "2026-08.jsonl").write_text(json.dumps(row) + "\n")
+
+    section = parallel_metrics.build_report(tmp_path, "observational")["evidence"][
+        "observational"
+    ]
+    assert section["stored_runs"] == 1
+    assert section["pre_required_closure_v2_runs"] == 1
     assert section["analyzed_runs"] == 0
 
 

@@ -729,6 +729,10 @@ def accepted_manifest_path(settings: Settings, page_id: str) -> Path:
     return settings.state_root / "accepted" / f"{require_id(page_id, 'page_id')}.json"
 
 
+def purge_journal_path(settings: Settings, source_id: str) -> Path:
+    return settings.state_root / "purges" / f"{require_id(source_id, 'source_id')}.json"
+
+
 def accepted_manifest_path_from_entry(settings: Settings, page_id: str, entry: dict[str, Any]) -> Path:
     expected = accepted_manifest_path(settings, page_id)
     return authorized_absolute_path(
@@ -915,8 +919,6 @@ def validate_journal(settings: Settings, path: Path, raw_journal: Any) -> tuple[
 def recover_incomplete(settings: Settings) -> list[str]:
     journal_root = settings.state_root / "transactions"
     authorized_absolute_path(str(journal_root), settings.state_root, "transaction journal root")
-    if not journal_root.exists():
-        return []
     recovered = []
     for path in sorted(journal_root.glob("*.json")):
         journal, paths = validate_journal(settings, path, load_json(path))
@@ -931,6 +933,7 @@ def recover_incomplete(settings: Settings) -> list[str]:
         journal["recovery"] = "restored-pre-transaction-bytes"
         write_journal(path, journal)
         recovered.append(path.stem)
+    recovered.extend(recover_incomplete_purges(settings))
     return recovered
 
 
@@ -1126,9 +1129,294 @@ def rebuild_page(settings: Settings, page_id: str, proposal_path: Path | None, a
     return preview_payload(settings, canonical_json(proposal), at)
 
 
-def purge_source(settings: Settings, source_id: str, confirmation: str, at: datetime) -> dict[str, Any]:
+PURGE_STATES = (
+    "prepared",
+    "targets-deleted",
+    "accepted-manifests-deleted",
+    "previews-deleted",
+    "source-store-deleted",
+    "tombstone-written",
+    "index-written",
+    "purged",
+)
+
+
+def matching_preview_ids(settings: Settings, source_id: str) -> list[str]:
+    preview_root = settings.state_root / "previews"
+    matching = []
+    for manifest_path in sorted(preview_root.glob("*/manifest.json")):
+        manifest = manifest_validation(load_json(manifest_path))
+        validate_preview_identity(manifest)
+        preview_id = manifest["preview"]["id"]
+        if (
+            manifest["project"] != settings.project
+            or manifest["operator_id"] != settings.operator_id
+            or manifest_path.parent != preview_dir(settings, preview_id)
+        ):
+            raise CompilerError("preview does not match purge project/operator authority")
+        if source_id in {item["source_id"] for item in manifest["source_revisions"]}:
+            matching.append(preview_id)
+    return matching
+
+
+def validate_purge_journal(
+    settings: Settings,
+    path: Path,
+    raw_journal: Any,
+) -> tuple[dict[str, Any], dict[str, Path]]:
+    authorized_absolute_path(
+        str(path),
+        settings.state_root,
+        "purge journal path",
+        expected=purge_journal_path(settings, path.stem),
+    )
+    journal = require_object(raw_journal, "purge journal")
+    require_exact_keys(
+        journal,
+        {
+            "schema_version", "source_id", "project", "operator_id", "confirmation_revision_hash",
+            "purged_at", "state", "paths", "pages", "preview_ids",
+        },
+        "purge journal",
+    )
+    source_id = require_id(journal.get("source_id"), "purge journal source_id")
+    revision_hash = journal.get("confirmation_revision_hash")
+    if (
+        journal.get("schema_version") != 1
+        or source_id != path.stem
+        or journal.get("project") != settings.project
+        or journal.get("operator_id") != settings.operator_id
+        or not isinstance(revision_hash, str)
+        or not HASH_PATTERN.fullmatch(revision_hash)
+        or journal.get("state") not in PURGE_STATES
+    ):
+        raise CompilerError(f"purge journal {path.name} has invalid identity/state")
+    parse_time(require_string(journal.get("purged_at"), "purge journal purged_at"))
+
+    paths = require_object(journal["paths"], "purge journal paths")
+    require_exact_keys(paths, {"registration", "index", "tombstone", "source_store"}, "purge journal paths")
+    validated_paths = {
+        "registration": authorized_absolute_path(
+            paths["registration"], settings.state_root, "purge registration path",
+            expected=registration_path(settings, source_id),
+        ),
+        "index": authorized_absolute_path(
+            paths["index"], settings.state_root, "purge index path", expected=index_path(settings),
+        ),
+        "tombstone": authorized_absolute_path(
+            paths["tombstone"], settings.state_root, "purge tombstone path",
+            expected=settings.state_root / "tombstones" / f"{source_id}.json",
+        ),
+        "source_store": authorized_absolute_path(
+            paths["source_store"], settings.state_root, "purge source payload store",
+            expected=settings.state_root / "sources" / source_id,
+        ),
+    }
+
+    pages = journal.get("pages")
+    if not isinstance(pages, list):
+        raise CompilerError("purge journal pages must be an array")
+    page_ids = []
+    allowed_dispositions = {"owned", "suppressed", "conflict", "absent"}
+    for index, raw_page in enumerate(pages):
+        page = require_object(raw_page, f"purge journal pages[{index}]")
+        require_exact_keys(
+            page,
+            {"page_id", "path", "target", "accepted_manifest", "rendered_hash", "disposition"},
+            f"purge journal pages[{index}]",
+        )
+        page_id = require_id(page.get("page_id"), f"purge journal pages[{index}].page_id")
+        page_ids.append(page_id)
+        expected_target = resolve_target_under(
+            settings.output_root, page.get("path"), f"purge journal pages[{index}].path"
+        )
+        authorized_absolute_path(
+            page.get("target"), settings.output_root, f"purge journal pages[{index}].target",
+            expected=expected_target,
+        )
+        authorized_absolute_path(
+            page.get("accepted_manifest"), settings.state_root,
+            f"purge journal pages[{index}].accepted_manifest",
+            expected=accepted_manifest_path(settings, page_id),
+        )
+        if not isinstance(page.get("rendered_hash"), str) or not HASH_PATTERN.fullmatch(page["rendered_hash"]):
+            raise CompilerError(f"purge journal pages[{index}].rendered_hash is invalid")
+        if page.get("disposition") not in allowed_dispositions:
+            raise CompilerError(f"purge journal pages[{index}].disposition is invalid")
+    if len(page_ids) != len(set(page_ids)):
+        raise CompilerError("purge journal page ids must be unique")
+
+    preview_ids = journal.get("preview_ids")
+    if (
+        not isinstance(preview_ids, list)
+        or len(preview_ids) != len(set(preview_ids))
+        or any(not isinstance(value, str) or not HASH_PATTERN.fullmatch(value) for value in preview_ids)
+    ):
+        raise CompilerError("purge journal preview_ids are invalid")
+    return journal, validated_paths
+
+
+def purge_result(journal: dict[str, Any], tombstone_path: Path) -> dict[str, Any]:
+    return {
+        "status": "purged",
+        "source_id": journal["source_id"],
+        "suppressed_pages": sorted(
+            page["page_id"] for page in journal["pages"] if page["disposition"] == "suppressed"
+        ),
+        "human_edit_conflicts": sorted(
+            page["page_id"] for page in journal["pages"] if page["disposition"] == "conflict"
+        ),
+        "tombstone": str(tombstone_path),
+        # The compiler deletes its private snapshots; the canonical human source remains outside its authority.
+        "rawSourceRetained": True,
+    }
+
+
+def advance_purge(
+    journal_path: Path,
+    journal: dict[str, Any],
+    state: str,
+    fault_after: str | None,
+    fault_point: str | None = None,
+) -> None:
+    journal["state"] = state
+    write_journal(journal_path, journal)
+    maybe_crash(fault_point or f"purge-{state}", fault_after)
+
+
+def complete_purge(
+    settings: Settings,
+    journal_path: Path,
+    journal: dict[str, Any],
+    paths: dict[str, Path],
+    fault_after: str | None = None,
+) -> dict[str, Any]:
+    def reached(state: str) -> bool:
+        return PURGE_STATES.index(journal["state"]) >= PURGE_STATES.index(state)
+
+    if not reached("targets-deleted"):
+        for page in journal["pages"]:
+            target = Path(page["target"])
+            if page["disposition"] == "owned":
+                content = read_optional(target)
+                if content is None:
+                    page["disposition"] = "suppressed"
+                elif (
+                    digest(content) == page["rendered_hash"]
+                    and content.startswith(f"{OWNERSHIP_PREFIX}{page['page_id']} -->".encode())
+                ):
+                    target.unlink()
+                    page["disposition"] = "suppressed"
+                else:
+                    page["disposition"] = "conflict"
+                write_journal(journal_path, journal)
+        advance_purge(journal_path, journal, "targets-deleted", fault_after)
+
+    if not reached("accepted-manifests-deleted"):
+        for page in journal["pages"]:
+            with contextlib.suppress(FileNotFoundError):
+                Path(page["accepted_manifest"]).unlink()
+        advance_purge(journal_path, journal, "accepted-manifests-deleted", fault_after)
+
+    if not reached("previews-deleted"):
+        for preview_id in matching_preview_ids(settings, journal["source_id"]):
+            if preview_id not in journal["preview_ids"]:
+                journal["preview_ids"].append(preview_id)
+                journal["preview_ids"].sort()
+                write_journal(journal_path, journal)
+        for preview_id in journal["preview_ids"]:
+            directory = preview_dir(settings, preview_id)
+            if directory.exists():
+                shutil.rmtree(directory)
+        advance_purge(journal_path, journal, "previews-deleted", fault_after)
+
+    if not reached("source-store-deleted"):
+        if paths["source_store"].exists():
+            shutil.rmtree(paths["source_store"])
+        if paths["source_store"].exists():
+            raise CompilerError("source payload store still exists after authorized deletion")
+        advance_purge(journal_path, journal, "source-store-deleted", fault_after)
+
+    if not reached("tombstone-written"):
+        if paths["source_store"].exists() or any(
+            Path(page["accepted_manifest"]).exists() for page in journal["pages"]
+        ) or any(preview_dir(settings, preview_id).exists() for preview_id in journal["preview_ids"]):
+            raise CompilerError("purge cannot commit terminal state while compiler payloads remain")
+        tombstone = {
+            "schema_version": 1,
+            "source_id": journal["source_id"],
+            "project": settings.project,
+            "purged_at": journal["purged_at"],
+            "operator_id": settings.operator_id,
+            "last_revision_hash": journal["confirmation_revision_hash"],
+            "reason": "payload-and-derived-projections-not-reproducible",
+            "rawSourceRetained": True,
+        }
+        atomic_write(paths["tombstone"], canonical_json(tombstone))
+        advance_purge(journal_path, journal, "tombstone-written", fault_after)
+
+    if not reached("index-written"):
+        index = load_index(settings)
+        for page in journal["pages"]:
+            page_id = page["page_id"]
+            entry = index["pages"].get(page_id)
+            if (
+                entry is None
+                or journal["source_id"] not in entry["source_ids"]
+                or entry["path"] != page["path"]
+                or entry["rendered_hash"] != page["rendered_hash"]
+                or accepted_manifest_path_from_entry(settings, page_id, entry) != Path(page["accepted_manifest"])
+            ):
+                raise CompilerError("purge index changed after authorization")
+            entry.update({"status": "purged", "qmd_eligible": False})
+        atomic_write(paths["index"], canonical_json(index))
+        advance_purge(journal_path, journal, "index-written", fault_after)
+
+    if not reached("purged"):
+        registration = load_registration(settings, journal["source_id"])
+        if registration["current_revision_hash"] != journal["confirmation_revision_hash"]:
+            raise CompilerError("source revision changed after purge authorization")
+        registration["status"] = "purged"
+        registration["revisions"] = []
+        atomic_write(paths["registration"], canonical_json(registration))
+        advance_purge(journal_path, journal, "purged", fault_after, "purge-registration-written")
+    return purge_result(journal, paths["tombstone"])
+
+
+def recover_incomplete_purges(settings: Settings) -> list[str]:
+    journal_root = settings.state_root / "purges"
+    authorized_absolute_path(str(journal_root), settings.state_root, "purge journal root")
+    recovered = []
+    for path in sorted(journal_root.glob("*.json")):
+        journal, paths = validate_purge_journal(settings, path, load_json(path))
+        if journal["state"] == "purged":
+            continue
+        complete_purge(settings, path, journal, paths)
+        recovered.append(f"purge:{journal['source_id']}")
+    return recovered
+
+
+def purge_source(
+    settings: Settings,
+    source_id: str,
+    confirmation: str,
+    at: datetime,
+    fault_after: str | None = None,
+) -> dict[str, Any]:
     with vault_lock(settings):
         recover_incomplete(settings)
+        journal_path = purge_journal_path(settings, source_id)
+        if journal_path.exists():
+            journal, paths = validate_purge_journal(settings, journal_path, load_json(journal_path))
+            expected = f"{source_id}:{journal['confirmation_revision_hash']}"
+            if confirmation != expected:
+                raise CompilerError("purge confirmation must equal source_id:current_revision_hash")
+            if journal["state"] != "purged":
+                result = complete_purge(settings, journal_path, journal, paths, fault_after)
+            else:
+                result = purge_result(journal, paths["tombstone"])
+            return result
+
         registration = load_registration(settings, source_id)
         expected = f"{source_id}:{registration['current_revision_hash']}"
         if confirmation != expected:
@@ -1140,43 +1428,44 @@ def purge_source(settings: Settings, source_id: str, confirmation: str, at: date
                 continue
             target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
             manifest_path = accepted_manifest_path_from_entry(settings, page_id, entry)
-            affected.append((page_id, entry, target, read_optional(target), manifest_path))
+            content = read_optional(target)
+            owned = content is not None and digest(content) == entry["rendered_hash"] and content.startswith(
+                f"{OWNERSHIP_PREFIX}{page_id} -->".encode()
+            )
+            affected.append({
+                "page_id": page_id,
+                "path": entry["path"],
+                "target": str(target),
+                "accepted_manifest": str(manifest_path),
+                "rendered_hash": entry["rendered_hash"],
+                "disposition": "owned" if owned else ("conflict" if content is not None else "absent"),
+            })
         source_store = authorized_absolute_path(
             str(settings.state_root / "sources" / source_id),
             settings.state_root,
             "source payload store",
         )
         tombstone_path = settings.state_root / "tombstones" / f"{source_id}.json"
-        tombstone = {
-            "schema_version": 1, "source_id": source_id, "project": settings.project,
-            "purged_at": format_time(at), "operator_id": settings.operator_id,
-            "last_revision_hash": registration["current_revision_hash"],
-            "reason": "payload-and-derived-projections-not-reproducible",
+        journal = {
+            "schema_version": 1,
+            "source_id": source_id,
+            "project": settings.project,
+            "operator_id": settings.operator_id,
+            "confirmation_revision_hash": registration["current_revision_hash"],
+            "purged_at": format_time(at),
+            "state": "prepared",
+            "paths": {
+                "registration": str(registration_path(settings, source_id)),
+                "index": str(index_path(settings)),
+                "tombstone": str(tombstone_path),
+                "source_store": str(source_store),
+            },
+            "pages": affected,
+            "preview_ids": matching_preview_ids(settings, source_id),
         }
-        atomic_write(tombstone_path, canonical_json(tombstone))
-        registration["status"] = "purged"
-        registration["revisions"] = []
-        atomic_write(registration_path(settings, source_id), canonical_json(registration))
-        suppressed, conflicts = [], []
-        for page_id, entry, target, content, manifest_path in affected:
-            if content is not None and digest(content) == entry["rendered_hash"] and content.startswith(f"{OWNERSHIP_PREFIX}{page_id} -->".encode()):
-                target.unlink()
-                suppressed.append(page_id)
-            elif content is not None:
-                conflicts.append(page_id)
-            with contextlib.suppress(FileNotFoundError):
-                manifest_path.unlink()
-            entry.update({"status": "purged", "qmd_eligible": False})
-        atomic_write(index_path(settings), canonical_json(index))
-        if source_store.exists():
-            shutil.rmtree(source_store)
-        preview_root = settings.state_root / "previews"
-        if preview_root.exists():
-            for manifest_path in list(preview_root.glob("*/manifest.json")):
-                manifest = manifest_validation(load_json(manifest_path))
-                if source_id in {item["source_id"] for item in manifest["source_revisions"]}:
-                    shutil.rmtree(manifest_path.parent)
-        return {"status": "purged", "source_id": source_id, "suppressed_pages": suppressed, "human_edit_conflicts": conflicts, "tombstone": str(tombstone_path)}
+        advance_purge(journal_path, journal, "prepared", fault_after)
+        validated_journal, paths = validate_purge_journal(settings, journal_path, journal)
+        return complete_purge(settings, journal_path, validated_journal, paths, fault_after)
 
 
 def config_template(vault_root: str) -> dict[str, Any]:

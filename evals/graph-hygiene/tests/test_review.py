@@ -24,6 +24,25 @@ from graph_memory.review import (
 )
 
 
+class ForcedIdempotencyRaceStore(IdentityReviewStore):
+    """Force the old lookup-before-mutation ordering into a deterministic race."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._race_lookup = False
+        self._lookup_barrier = threading.Barrier(2)
+
+    def arm_idempotency_race(self) -> None:
+        self._race_lookup = True
+        self._lookup_barrier = threading.Barrier(2)
+
+    def _idempotency_lookup(self, idempotency_key, fingerprint):
+        result = super()._idempotency_lookup(idempotency_key, fingerprint)
+        if self._race_lookup and not self._lock._is_owned():
+            self._lookup_barrier.wait(timeout=2)
+        return result
+
+
 def decide(
     store: IdentityReviewStore,
     review: dict,
@@ -53,6 +72,29 @@ def decide(
 
 
 class ReviewTests(unittest.TestCase):
+    def run_concurrently(self, operation):
+        start = threading.Barrier(2)
+        receipts = []
+        errors = []
+
+        def invoke() -> None:
+            start.wait(timeout=2)
+            try:
+                receipts.append(operation())
+            except Exception as error:  # captured so both threads always join
+                errors.append(error)
+
+        threads = [threading.Thread(target=invoke) for _ in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=3)
+        self.assertFalse(any(thread.is_alive() for thread in threads))
+        self.assertEqual(errors, [])
+        self.assertEqual(len(receipts), 2)
+        self.assertEqual(receipts[0], receipts[1])
+        return receipts[0]
+
     def test_authorized_accept_is_logged_logical_and_source_preserving(self) -> None:
         source = [entity("a", "Same"), entity("b", "Same")]
         source_bytes = json.dumps(source, sort_keys=True).encode()
@@ -145,10 +187,181 @@ class ReviewTests(unittest.TestCase):
             entity("a", "Context Compiler", acl=["rhize:other"]),
             entity("b", "Context Compiler", acl=["rhize:other"]),
         )
-        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+        self.assertEqual(
             store.enqueue_candidates(
                 [other_scope_review], actor=denied, occurred_at=NOW
+            ),
+            {"queued": 1, "replayed": 0, "suppressed": 0, "superseded": 0},
+        )
+        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+            store.show_review(other_scope_review["reviewId"], actor=reviewer)
+
+    def test_same_entity_pair_in_disjoint_acl_lanes_has_isolated_review_state(self) -> None:
+        internal = candidate()
+        restricted = candidate(
+            entity("a", "Context Compiler", acl=["rhize:restricted"]),
+            entity("b", "Context Compiler", acl=["rhize:restricted"]),
+        )
+        internal_reviewer = actor("identity_reviewer")
+        restricted_reviewer = actor(
+            "identity_reviewer",
+            "restricted",
+            acl_scope_hashes=frozenset({h("rhize:restricted")}),
+        )
+        store = IdentityReviewStore()
+
+        self.assertEqual(internal["candidateIds"], restricted["candidateIds"])
+        self.assertNotEqual(internal["pairKey"], restricted["pairKey"])
+        self.assertNotEqual(internal["reviewId"], restricted["reviewId"])
+        store.enqueue_candidates([internal], actor=internal_reviewer, occurred_at=NOW)
+        store.enqueue_candidates([restricted], actor=restricted_reviewer, occurred_at=NOW)
+
+        internal_results = store.list_reviews(
+            tenant_hash=internal["tenantHash"],
+            namespace_hash=internal["namespaceHash"],
+            actor=internal_reviewer,
+        )["results"]
+        restricted_results = store.list_reviews(
+            tenant_hash=restricted["tenantHash"],
+            namespace_hash=restricted["namespaceHash"],
+            actor=restricted_reviewer,
+        )["results"]
+        self.assertEqual(
+            [result["reviewId"] for result in internal_results],
+            [internal["reviewId"]],
+        )
+        self.assertEqual(
+            [result["reviewId"] for result in restricted_results],
+            [restricted["reviewId"]],
+        )
+
+        lease = store.lease(
+            internal["reviewId"],
+            expected_revision=internal["reviewRevision"],
+            actor=internal_reviewer,
+            now="2026-08-30T14:01:00+00:00",
+            lease_expires_at="2026-08-30T14:31:00+00:00",
+            idempotency_key="internal-lease",
+        )
+        leased = store.show_review(internal["reviewId"], actor=internal_reviewer)
+        impact = preview(
+            store, leased, internal_reviewer, lease, "accept_same_as"
+        )
+        decide(store, leased, internal_reviewer, lease, impact, key="internal-accept")
+
+        self.assertEqual(
+            store.show_review(restricted["reviewId"], actor=restricted_reviewer)["state"],
+            "pending",
+        )
+        self.assertEqual(
+            store.projection(
+                tenant_hash=restricted["tenantHash"],
+                namespace_hash=restricted["namespaceHash"],
+                actor=restricted_reviewer,
+            ),
+            {},
+        )
+        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+            store.show_review(internal["reviewId"], actor=restricted_reviewer)
+
+    def test_concurrent_same_key_lease_returns_one_atomic_receipt(self) -> None:
+        review = candidate()
+        reviewer = actor("identity_reviewer")
+        store = ForcedIdempotencyRaceStore()
+        store.enqueue_candidates([review], actor=reviewer, occurred_at=NOW)
+        store.arm_idempotency_race()
+
+        receipt = self.run_concurrently(
+            lambda: store.lease(
+                review["reviewId"],
+                expected_revision=review["reviewRevision"],
+                actor=reviewer,
+                now="2026-08-30T14:01:00+00:00",
+                lease_expires_at="2026-08-30T14:31:00+00:00",
+                idempotency_key="concurrent-lease",
             )
+        )
+        self.assertEqual(receipt["status"], "leased")
+
+    def test_concurrent_same_key_decision_returns_one_atomic_receipt(self) -> None:
+        review = candidate()
+        reviewer = actor("identity_reviewer")
+        store = ForcedIdempotencyRaceStore()
+        lease, leased = leased_review(store, review, reviewer)
+        impact = preview(store, leased, reviewer, lease, "accept_same_as")
+        store.arm_idempotency_race()
+
+        receipt = self.run_concurrently(
+            lambda: decide(
+                store,
+                leased,
+                reviewer,
+                lease,
+                impact,
+                key="concurrent-decision",
+            )
+        )
+        self.assertEqual(receipt["status"], "accepted")
+        self.assertEqual(
+            len(
+                store.ledger(
+                    tenant_hash=review["tenantHash"],
+                    namespace_hash=review["namespaceHash"],
+                    actor=reviewer,
+                )
+            ),
+            1,
+        )
+
+    def test_concurrent_same_key_reversal_returns_one_atomic_receipt(self) -> None:
+        review = candidate()
+        reviewer = actor("identity_reviewer")
+        store = ForcedIdempotencyRaceStore()
+        lease, leased = leased_review(store, review, reviewer)
+        impact = preview(store, leased, reviewer, lease, "accept_same_as")
+        decide(store, leased, reviewer, lease, impact)
+        accepted = store.show_review(review["reviewId"], actor=reviewer)
+        reverse_lease = store.lease(
+            review["reviewId"],
+            expected_revision=accepted["reviewRevision"],
+            actor=reviewer,
+            now="2026-08-30T14:10:00+00:00",
+            lease_expires_at="2026-08-30T14:30:00+00:00",
+            idempotency_key="concurrent-reverse-lease",
+        )
+        accepted = store.show_review(review["reviewId"], actor=reviewer)
+        reverse_impact = preview(
+            store,
+            accepted,
+            reviewer,
+            reverse_lease,
+            "reverse_same_as",
+            now="2026-08-30T14:11:00+00:00",
+        )
+        store.arm_idempotency_race()
+
+        receipt = self.run_concurrently(
+            lambda: store.reverse(
+                review["reviewId"],
+                rationale_code="distinct_entities",
+                expected_revision=accepted["reviewRevision"],
+                lease_token_hash=reverse_lease["leaseTokenHash"],
+                preview_hash=reverse_impact["previewHash"],
+                actor=reviewer,
+                occurred_at="2026-08-30T14:12:00+00:00",
+                idempotency_key="concurrent-reverse",
+                current_state=current_candidate_state(accepted),
+            )
+        )
+        self.assertEqual(receipt["status"], "reversed")
+        self.assertEqual(
+            store.projection(
+                tenant_hash=review["tenantHash"],
+                namespace_hash=review["namespaceHash"],
+                actor=reviewer,
+            ),
+            {},
+        )
 
     def test_authority_cas_lease_expiry_and_stale_state_are_enforced(self) -> None:
         review = candidate()

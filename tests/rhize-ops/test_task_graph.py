@@ -175,6 +175,31 @@ def test_failed_or_closed_dependency_deterministically_blocks_downstream(termina
     assert task_graph.next_wave(value, validated, 2)["blocked_dependency"] == ["dependent"]
 
 
+def test_skipped_optional_dependency_blocks_required_consumer_before_scheduling():
+    value = graph([
+        node("source", optional=True),
+        node("dependent", depends=("source",)),
+    ])
+    current = state(value)
+    current["nodes"]["source"].update(status="skipped_optional")
+
+    validated = task_graph.validate_state(current, value)
+    assert task_graph.next_wave(value, validated, 2)["blocked_dependency"] == ["dependent"]
+
+
+def test_skipped_optional_dependency_rejects_already_started_required_consumer():
+    value = graph([
+        node("source", optional=True),
+        node("dependent", depends=("source",)),
+    ])
+    current = state(value)
+    current["nodes"]["source"].update(status="skipped_optional")
+    current["nodes"]["dependent"].update(previous_status="ready", status="running")
+
+    with pytest.raises(task_graph.GraphError, match="dependencies must be complete"):
+        task_graph.validate_state(current, value)
+
+
 @pytest.mark.parametrize("dependent_status", ("running", "completed", "failed"))
 def test_execution_state_rejects_incomplete_dependency_closure(dependent_status):
     value = graph([
@@ -209,6 +234,7 @@ def test_missing_required_result_and_cleanup_failure_block_synthesis():
     result = task_graph.validate_results(value, task_graph.validate_state(current, value))
     assert result["synthesis_allowed"] is False
     assert result["missing_required_count"] == 1
+    assert result["required_completed"] == 0
     assert result["cleanup_failed"] == 1
 
 

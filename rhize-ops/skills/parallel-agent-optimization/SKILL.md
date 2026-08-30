@@ -124,8 +124,8 @@ reservations as evidence failures requiring factual terminal finalization, not a
 ## Finish every execution
 
 1. Validate every required result and output contract. Missing/failed required results or cleanup
-   failures block synthesis; optional omissions remain visible. Use bounded hierarchical fan-in when
-   the graph's item budget requires it.
+   failures block synthesis; optional omissions remain visible and never satisfy a dependency edge.
+   Use bounded hierarchical fan-in when the graph's item budget requires it.
 2. Verify the task with the predeclared checks.
 3. Finalize the accepted reservation with receipt v2's aggregate task-graph counts and factual
    terminal status. Never persist the graph, node ids, descriptions, paths, or raw outputs. Receipt

@@ -10,6 +10,7 @@ import unittest
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest import mock
 
 
 SCRIPT = Path(__file__).parents[1] / "scripts" / "compiled_knowledge.py"
@@ -295,15 +296,111 @@ class CompiledKnowledgeTests(unittest.TestCase):
             confirmation = f"source-1:{vault.registration['current_revision_hash']}"
             result = compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
             self.assertEqual(result["suppressed_pages"], ["page-1"])
+            self.assertTrue(result["rawSourceRetained"])
+            self.assertTrue(vault.source.exists())
             self.assertFalse((vault.output / "compiled-page.md").exists())
             self.assertFalse((vault.settings.state_root / "sources" / "source-1").exists())
             tombstone = json.loads(Path(str(result["tombstone"])).read_text())
             self.assertNotIn("content", tombstone)
+            self.assertTrue(tombstone["rawSourceRetained"])
             report = compiler.status_report(vault.settings, NOW)
             self.assertEqual(report["pages"][0]["status"], "purged")
             self.assertFalse(report["pages"][0]["qmd_eligible"])
             with self.assertRaisesRegex(compiler.CompilerError, "cannot be reused"):
                 compiler.register_source(vault.settings, "Sources/article.md", "source-1", ["internal"], "local-only", "standard", NOW, None)
+
+    def test_purge_without_apply_deletes_snapshot_before_terminal_status(self) -> None:
+        temporary, vault = self.fixture()
+        with temporary:
+            confirmation = f"source-1:{vault.registration['current_revision_hash']}"
+            result = compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
+            self.assertEqual(result["suppressed_pages"], [])
+            self.assertTrue(result["rawSourceRetained"])
+            self.assertTrue(vault.source.exists())
+            self.assertFalse((vault.settings.state_root / "sources" / "source-1").exists())
+            self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "purged")
+
+    def test_purge_recovers_forward_after_every_durable_step(self) -> None:
+        fault_points = (
+            "purge-prepared",
+            "purge-targets-deleted",
+            "purge-accepted-manifests-deleted",
+            "purge-previews-deleted",
+            "purge-source-store-deleted",
+            "purge-tombstone-written",
+            "purge-index-written",
+            "purge-registration-written",
+        )
+        for point in fault_points:
+            with self.subTest(point=point):
+                temporary, vault = self.fixture()
+                with temporary:
+                    preview = vault.preview()
+                    vault.apply(str(preview["preview_id"]))
+                    confirmation = f"source-1:{vault.registration['current_revision_hash']}"
+                    with self.assertRaises(compiler.InjectedCrash):
+                        compiler.purge_source(vault.settings, "source-1", confirmation, NOW, point)
+
+                    source_store = vault.settings.state_root / "sources" / "source-1"
+                    registration = compiler.load_registration(vault.settings, "source-1")
+                    index_entry = compiler.load_index(vault.settings)["pages"]["page-1"]
+                    if point in {
+                        "purge-prepared",
+                        "purge-targets-deleted",
+                        "purge-accepted-manifests-deleted",
+                        "purge-previews-deleted",
+                    }:
+                        self.assertTrue(source_store.exists())
+                        self.assertEqual(registration["status"], "active")
+                        self.assertEqual(index_entry["status"], "accepted")
+                    else:
+                        self.assertFalse(source_store.exists())
+                    self.assertTrue(vault.source.exists())
+
+                    report = compiler.status_report(vault.settings, NOW)
+                    expected_recovery = [] if point == "purge-registration-written" else ["purge:source-1"]
+                    self.assertEqual(report["recovered_transactions"], expected_recovery)
+                    self.assertEqual(report["pages"][0]["status"], "purged")
+                    self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "purged")
+                    self.assertFalse(source_store.exists())
+                    self.assertFalse((vault.output / "compiled-page.md").exists())
+                    self.assertFalse(Path(str(preview["preview_dir"])).exists())
+                    result = compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
+                    self.assertEqual(result["status"], "purged")
+                    self.assertTrue(result["rawSourceRetained"])
+
+    def test_source_store_deletion_failure_cannot_commit_purged_status(self) -> None:
+        temporary, vault = self.fixture()
+        with temporary:
+            preview = vault.preview()
+            vault.apply(str(preview["preview_id"]))
+            confirmation = f"source-1:{vault.registration['current_revision_hash']}"
+            source_store = vault.settings.state_root / "sources" / "source-1"
+            original_rmtree = compiler.shutil.rmtree
+
+            def interrupt_source_store(path: object) -> None:
+                candidate = Path(path)
+                if candidate == source_store:
+                    for child in candidate.iterdir():
+                        child.unlink()
+                    raise OSError("simulated interruption during source-store deletion")
+                original_rmtree(path)
+
+            with mock.patch.object(compiler.shutil, "rmtree", side_effect=interrupt_source_store):
+                with self.assertRaisesRegex(OSError, "source-store deletion"):
+                    compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
+
+            journal = json.loads(compiler.purge_journal_path(vault.settings, "source-1").read_text())
+            self.assertEqual(journal["state"], "previews-deleted")
+            self.assertTrue(source_store.exists())
+            self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "active")
+            self.assertEqual(compiler.load_index(vault.settings)["pages"]["page-1"]["status"], "accepted")
+            self.assertFalse((vault.settings.state_root / "tombstones" / "source-1.json").exists())
+
+            report = compiler.status_report(vault.settings, NOW)
+            self.assertEqual(report["recovered_transactions"], ["purge:source-1"])
+            self.assertEqual(report["pages"][0]["status"], "purged")
+            self.assertFalse(source_store.exists())
 
     def test_rebuild_creates_preview_and_never_mutates_page(self) -> None:
         temporary, vault = self.fixture()

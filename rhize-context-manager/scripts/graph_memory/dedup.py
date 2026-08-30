@@ -181,11 +181,16 @@ def generate_candidates(
         if first["entityType"] != second["entityType"]:
             rejected_comparisons += 1
             continue
-        if not set(first["acl"]).intersection(second["acl"]):
+        shared_acl_scopes = sorted(set(first["acl"]).intersection(second["acl"]))
+        if not shared_acl_scopes:
             rejected_comparisons += 1
             continue
         pair = canonical_pair(first["entityId"], second["entityId"])
-        pair_key = sha256_value({"tenant": tenant_hash, "namespace": namespace_hash, "pair": pair})
+        acl_scope_hashes = [sha256_value(scope) for scope in shared_acl_scopes]
+        acl_summary_hash = sha256_value(shared_acl_scopes)
+        pair_key = identity_pair_key(
+            tenant_hash, namespace_hash, pair, acl_scope_hashes
+        )
         deterministic = _deterministic_disposition(first, second)
         if deterministic is not None:
             if deterministic == "match":
@@ -209,9 +214,6 @@ def generate_candidates(
         source_revisions = sorted(
             {first["sourceRevisionHash"], second["sourceRevisionHash"]}
         )
-        shared_acl_scopes = sorted(set(first["acl"]).intersection(second["acl"]))
-        acl_scope_hashes = [sha256_value(scope) for scope in shared_acl_scopes]
-        acl_summary_hash = sha256_value(shared_acl_scopes)
         trust_summary = min((first["trust"], second["trust"]), key=trust_rank)
         versions = {
             "normalizationVersion": NORMALIZATION_VERSION,
@@ -389,6 +391,32 @@ def candidate_policy_hash(policy: CandidatePolicy) -> str:
             policy.candidate_ttl_seconds,
         ],
     })
+
+
+def identity_pair_key(
+    tenant_hash: str,
+    namespace_hash: str,
+    pair: tuple[str, str],
+    acl_scope_hashes: Iterable[str],
+) -> str:
+    """Bind a canonical entity pair to one tenant, namespace, and ACL lane."""
+
+    validate_hash(tenant_hash, "tenant_hash")
+    validate_hash(namespace_hash, "namespace_hash")
+    canonical_ids = canonical_pair(*pair)
+    canonical_acl_hashes = sorted(set(acl_scope_hashes))
+    if not canonical_acl_hashes:
+        raise HygieneError("identity pair key requires at least one ACL scope")
+    for scope_hash in canonical_acl_hashes:
+        validate_hash(scope_hash, "identity pair ACL scope hash")
+    return sha256_value(
+        {
+            "tenant": tenant_hash,
+            "namespace": namespace_hash,
+            "aclScopeHashes": canonical_acl_hashes,
+            "pair": canonical_ids,
+        }
+    )
 
 
 def candidate_revision_hash(candidate: Mapping[str, Any]) -> str:

@@ -69,5 +69,6 @@ operations; they never execute agents. Nodes use `pending`, `ready`, `running`, 
 `cancelled`, `timed_out`, `blocked_dependency`, or `skipped_optional`. The coordinator revalidates
 checkout state at every wave boundary and approvals/external state after every pause or ambiguous
 effect. Write, approval, paid, and external-effect nodes do not retry automatically. Cancellation or
-required failure closes downstream work rather than allowing partial synthesis. The live graph is
-discarded after the run; only receipt-v2 aggregate counts persist.
+required failure closes downstream work rather than allowing partial synthesis. Because v1 has no
+nullable dependency edge, skipping an optional producer also closes its downstream nodes. The live
+graph is discarded after the run; only receipt-v2 aggregate counts persist.

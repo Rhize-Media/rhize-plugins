@@ -94,6 +94,62 @@ class DedupTests(unittest.TestCase):
             medium["candidates"][0]["candidateRevision"],
         )
 
+    def test_pair_keys_bind_acl_lanes_for_fuzzy_and_deterministic_matches(self) -> None:
+        internal = self.generate(
+            [entity("a", "Same"), entity("b", "Same")]
+        )["candidates"][0]
+        restricted = self.generate(
+            [
+                entity("a", "Same", acl=["rhize:restricted"]),
+                entity("b", "Same", acl=["rhize:restricted"]),
+            ]
+        )["candidates"][0]
+        self.assertEqual(internal["candidateIds"], restricted["candidateIds"])
+        self.assertNotEqual(internal["pairKey"], restricted["pairKey"])
+
+        deterministic_internal = self.generate(
+            [
+                entity(
+                    "a",
+                    "One",
+                    entity_type="Repository",
+                    deterministic_identity=deterministic("repo"),
+                ),
+                entity(
+                    "b",
+                    "Two",
+                    entity_type="Repository",
+                    deterministic_identity=deterministic("repo"),
+                ),
+            ]
+        )["deterministicMatches"][0]
+        deterministic_restricted = self.generate(
+            [
+                entity(
+                    "a",
+                    "One",
+                    entity_type="Repository",
+                    acl=["rhize:restricted"],
+                    deterministic_identity=deterministic("repo"),
+                ),
+                entity(
+                    "b",
+                    "Two",
+                    entity_type="Repository",
+                    acl=["rhize:restricted"],
+                    deterministic_identity=deterministic("repo"),
+                ),
+            ]
+        )["deterministicMatches"][0]
+        self.assertEqual(
+            deterministic_internal["candidateIds"],
+            deterministic_restricted["candidateIds"],
+        )
+        self.assertNotEqual(
+            deterministic_internal["pairKey"],
+            deterministic_restricted["pairKey"],
+        )
+
     def test_global_input_budget_is_enforced_before_unbounded_materialization(self) -> None:
         rows = [entity(str(index), "Same") for index in range(3)]
         with patch("graph_memory.dedup.MAX_INPUT_ENTITIES", 2):

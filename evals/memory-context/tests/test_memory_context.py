@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from memory_context.core import MemoryContextAssembler, MemoryStore, sha256
+from memory_context.core import MemoryContextAssembler, MemoryStore, sha256, validate_manifest
 
 
 EVAL_ROOT = Path(__file__).resolve().parents[1]
@@ -243,6 +243,42 @@ def test_pack_identity_includes_scope_time_and_ttl_window(tmp_path: Path) -> Non
     assert first_manifest["packId"] != second_manifest["packId"]
     assert first_manifest["taskHash"] == sha256("rt-130")
     assert all(path.exists() for path in (*first_paths, *second_paths))
+
+
+def test_runtime_manifest_validation_matches_persisted_adapter_schema() -> None:
+    manifest, _ = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    malformed = json.loads(json.dumps(manifest))
+    malformed["adapterStatuses"] = [{"name": "broken"}]
+    identity = {key: value for key, value in malformed.items() if key != "packId"}
+    malformed["packId"] = (
+        "memory-"
+        + sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")))[:32]
+    )
+
+    with pytest.raises(ValueError, match="adapter status has an invalid shape"):
+        validate_manifest(malformed)
+
+
+def test_write_rejects_unbound_payload_before_creating_artifacts(tmp_path: Path) -> None:
+    manifest, _ = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    malformed_payload = {"schemaVersion": 1, "payloads": {}}
+    malformed_manifest = json.loads(json.dumps(manifest))
+    malformed_manifest["payloadHash"] = sha256(
+        json.dumps(malformed_payload, sort_keys=True, separators=(",", ":"))
+    )
+    identity = {
+        key: value for key, value in malformed_manifest.items() if key != "packId"
+    }
+    malformed_manifest["packId"] = (
+        "memory-"
+        + sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")))[:32]
+    )
+    store = MemoryStore(tmp_path / "store")
+
+    with pytest.raises(ValueError, match="payload_candidate_binding_mismatch"):
+        store.write(malformed_manifest, malformed_payload)
+
+    assert not store.root.exists()
 
 
 def test_retry_reconciles_orphan_index_and_purge_finds_valid_orphans(tmp_path: Path) -> None:

@@ -3375,7 +3375,7 @@
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
     },
     {
-      "contentHash": "84de94a51563c16ee2de45cf255fc39ff6cd6d864b424bfc78014b4da8dcc78f",
+      "contentHash": "ea8c5c9c3b2fd5f63c6752d07f5c88ce7c5297abb4a928868f4ecea88115c027",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
@@ -3687,7 +3687,7 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "6370d37aa72b454762deb4596611bdf71d8ba522cad3764e297b7763627a7105",
+      "contentHash": "b16f50f10906ff7172bce686cf60c1ac80bd4c3f4a828753596d6669bab5b261",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
