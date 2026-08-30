@@ -36,9 +36,11 @@ note? If so, a run happened and produced no row — `row_missing`. That is the
 finding this module exists to surface, made unmissable in both JSON and the
 human-readable report. Rows carry only a DATE, never a time, so a run and the
 newest row sharing a calendar date is genuinely indeterminate, not `ok` — see
-`classify_liveness()`'s `indeterminate_same_day` status. Scheduler instants are
-converted to the benchmark program's America/New_York calendar before that
-date-only comparison.
+`classify_liveness()`'s `indeterminate_same_day` status. The one exception is a
+same-day run from before timestamped receipt enforcement existed; that history
+is reported as `legacy_unverifiable` instead of repeatedly alerting on evidence
+that cannot be reconstructed. Scheduler instants are converted to the benchmark
+program's America/New_York calendar before that date-only comparison.
 
 System python3 here is 3.14 and has no `jsonschema` — this module deliberately
 imports nothing beyond the standard library.
@@ -65,6 +67,13 @@ from zoneinfo import ZoneInfo
 
 HOME = Path.home()
 BENCHMARK_TIMEZONE = ZoneInfo("America/New_York")
+# Timestamped, run-bound benchmark receipts shipped with the capture reliability
+# release (5f7fb049a33f3b366fc83f239bdc67747dad35f4). Earlier same-day
+# scheduler/row ordering cannot be reconstructed honestly, so the cutoff is
+# explicit and applies to every routine equally.
+RECEIPT_ENFORCEMENT_STARTED_AT = datetime.fromisoformat(
+    "2026-08-27T23:11:36-04:00"
+).astimezone(BENCHMARK_TIMEZONE)
 
 # --- Data source locations -------------------------------------------------
 
@@ -651,13 +660,22 @@ def find_scheduler_last_run(routine_name: str, scheduler_status: dict[str, Any])
 
 # --- 5. Liveness classification ----------------------------------------------
 
-LIVENESS_STATUSES = ("ok", "indeterminate_same_day", "row_missing", "never_run", "unknown")
+LIVENESS_STATUSES = (
+    "ok",
+    "legacy_unverifiable",
+    "indeterminate_same_day",
+    "row_missing",
+    "never_run",
+    "unknown",
+)
 
 
 def classify_liveness(
     note_summary: dict[str, Any],
     scheduler_lookup: dict[str, Any],
     capture_receipts: list[dict[str, Any]] | None = None,
+    *,
+    receipt_enforcement_started_at: datetime = RECEIPT_ENFORCEMENT_STARTED_AT,
 ) -> dict[str, Any]:
     """The watchdog's actual verdict: did the routine run, and did a row land?
 
@@ -675,6 +693,10 @@ def classify_liveness(
                              covered as long as some earlier row exists from
                              the same day. Never fabricate a time to resolve
                              this — report the genuine indeterminacy instead.
+    legacy_unverifiable    — the same date-only ambiguity, but the scheduler run
+                             predates timestamped receipt enforcement. Keep the
+                             uncertainty visible without alerting forever on
+                             evidence that could not have been captured.
     row_missing            — scheduler shows a run that postdates the newest
                              row (or the note has zero rows despite a recorded
                              run). THE finding this module exists to surface.
@@ -704,8 +726,15 @@ def classify_liveness(
             "reason": "scheduler entry found but lastRunAt is missing; note has rows so recency can't be verified",
         }
 
-    if last_run_at.tzinfo is not None:
+    if last_run_at.tzinfo is None:
+        last_run_at = last_run_at.replace(tzinfo=BENCHMARK_TIMEZONE)
+    else:
         last_run_at = last_run_at.astimezone(BENCHMARK_TIMEZONE)
+    if receipt_enforcement_started_at.tzinfo is None:
+        raise ValueError("receipt_enforcement_started_at must include a timezone")
+    receipt_enforcement_started_at = receipt_enforcement_started_at.astimezone(
+        BENCHMARK_TIMEZONE
+    )
     last_run_date = last_run_at.date()
     for receipt in capture_receipts or []:
         captured_at = receipt.get("captured_at")
@@ -736,6 +765,16 @@ def classify_liveness(
             ),
         }
     if last_run_date == newest_row_date:
+        if last_run_at < receipt_enforcement_started_at:
+            return {
+                "status": "legacy_unverifiable",
+                "reason": (
+                    f"scheduler last ran {last_run_date.isoformat()} and the newest row is "
+                    f"also dated {newest_row_date.isoformat()}, before timestamped receipt "
+                    "enforcement began — historical ordering remains unverifiable and is "
+                    "not reconstructed"
+                ),
+            }
         return {
             "status": "indeterminate_same_day",
             "reason": (

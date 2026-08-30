@@ -382,36 +382,62 @@ def test_liveness_indeterminate_same_day_when_run_and_row_share_a_date():
     # after that day's run cannot be proven either way — this must NOT be
     # reported as "ok" (this was previously asserted as "ok" — that
     # assertion documented the bug, not a spec).
-    note = _note(total_rows=1, newest_row_date=date(2026, 8, 24))
-    lookup = {"matched": True, "last_run_at": datetime(2026, 8, 24, 19, 1, 37)}
+    note = _note(total_rows=1, newest_row_date=date(2026, 8, 28))
+    lookup = {"matched": True, "last_run_at": datetime(2026, 8, 28, 19, 1, 37)}
     v = bs.classify_liveness(note, lookup)
     assert v["status"] == "indeterminate_same_day"
-    assert "2026-08-24" in v["reason"]
+    assert "2026-08-28" in v["reason"]
     assert "cannot be determined" in v["reason"]
+
+
+def test_liveness_marks_pre_enforcement_same_day_history_unverifiable():
+    note = _note(total_rows=1, newest_row_date=date(2026, 8, 24))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-24T19:01:37.956+00:00"),
+    }
+
+    verdict = bs.classify_liveness(note, lookup)
+
+    assert verdict["status"] == "legacy_unverifiable"
+    assert "before timestamped receipt enforcement" in verdict["reason"]
+    assert "not reconstructed" in verdict["reason"]
+
+
+def test_liveness_keeps_post_enforcement_same_day_history_actionable():
+    note = _note(total_rows=1, newest_row_date=date(2026, 8, 28))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T19:01:37.956+00:00"),
+    }
+
+    verdict = bs.classify_liveness(note, lookup)
+
+    assert verdict["status"] == "indeterminate_same_day"
 
 
 def test_liveness_uses_new_york_date_for_utc_scheduler_instant():
     # The scheduler stores instants in UTC while benchmark notes record the
     # America/New_York calendar date. 00:01 UTC is still the prior local day.
-    note = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    note = _note(total_rows=2, newest_row_date=date(2026, 8, 28))
     lookup = {
         "matched": True,
-        "last_run_at": datetime.fromisoformat("2026-08-28T00:01:20.025+00:00"),
+        "last_run_at": datetime.fromisoformat("2026-08-29T00:01:20.025+00:00"),
     }
     v = bs.classify_liveness(note, lookup)
     assert v["status"] == "indeterminate_same_day"
-    assert "2026-08-27" in v["reason"]
+    assert "2026-08-28" in v["reason"]
 
 
 def test_liveness_still_flags_a_later_new_york_calendar_date():
-    note = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    note = _note(total_rows=2, newest_row_date=date(2026, 8, 28))
     lookup = {
         "matched": True,
-        "last_run_at": datetime.fromisoformat("2026-08-28T05:00:00+00:00"),
+        "last_run_at": datetime.fromisoformat("2026-08-29T05:00:00+00:00"),
     }
     v = bs.classify_liveness(note, lookup)
     assert v["status"] == "row_missing"
-    assert "2026-08-28" in v["reason"]
+    assert "2026-08-29" in v["reason"]
 
 
 def test_liveness_row_missing_when_run_postdates_newest_row():
@@ -465,11 +491,12 @@ def test_liveness_unknown_when_scheduler_has_no_timestamp_but_rows_exist():
     assert v["status"] == "unknown"
 
 
-def test_all_five_liveness_statuses_are_reachable():
+def test_all_six_liveness_statuses_are_reachable():
     # A whole-suite sanity check: every status value this module defines can
     # actually be produced. A watchdog that can only ever emit 'ok' is useless.
     statuses = {
         "ok": test_liveness_ok_when_row_covers_last_run,
+        "legacy_unverifiable": test_liveness_marks_pre_enforcement_same_day_history_unverifiable,
         "indeterminate_same_day": test_liveness_indeterminate_same_day_when_run_and_row_share_a_date,
         "row_missing": test_liveness_row_missing_when_run_postdates_newest_row,
         "never_run": test_liveness_never_run,
@@ -613,14 +640,14 @@ def test_live_vault_notes_parse_with_consistent_structure():
 
 
 def _capture_receipt(note: Path, **overrides):
-    row = overrides.pop("row", "| 2026-08-27 | A | 100 | real |")
+    row = overrides.pop("row", "| 2026-08-28 | A | 100 | real |")
     value = {
         "schemaVersion": 1,
-        "capturedAt": "2026-08-28T00:12:17.873185+00:00",
+        "capturedAt": "2026-08-29T00:12:17.873185+00:00",
         "runId": "a5b94939-73ef-4062-be41-3325ad512618",
         "noteId": bs.note_identity(note),
         "rowSha256": hashlib.sha256(row.encode()).hexdigest(),
-        "rowDate": "2026-08-27",
+        "rowDate": "2026-08-28",
         "arm": "A",
         "beforeCount": 4,
         "afterCount": 5,
@@ -645,7 +672,7 @@ def test_capture_receipts_are_strict_timestamped_and_note_bound(tmp_path):
     assert len(receipts) == 1
     assert receipts[0]["arm"] == "A"
     assert receipts[0]["captured_at"] == datetime.fromisoformat(
-        "2026-08-28T00:12:17.873185+00:00"
+        "2026-08-29T00:12:17.873185+00:00"
     )
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
@@ -736,10 +763,10 @@ def test_capture_receipt_validation_surfaces_corrupt_and_invalid_files(tmp_path)
 
 def test_capture_receipt_resolves_same_day_liveness(tmp_path):
     note = tmp_path / "Procedural Memory Benchmark.md"
-    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 28))
     lookup = {
         "matched": True,
-        "last_run_at": datetime.fromisoformat("2026-08-28T00:01:20.025+00:00"),
+        "last_run_at": datetime.fromisoformat("2026-08-29T00:01:20.025+00:00"),
     }
     receipt = _capture_receipt(note)
     receipt["captured_at"] = datetime.fromisoformat(receipt.pop("capturedAt"))
@@ -752,10 +779,10 @@ def test_capture_receipt_resolves_same_day_liveness(tmp_path):
 
 def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_path):
     note = tmp_path / "Procedural Memory Benchmark.md"
-    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 27))
+    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 28))
     lookup = {
         "matched": True,
-        "last_run_at": datetime.fromisoformat("2026-08-28T00:30:00+00:00"),
+        "last_run_at": datetime.fromisoformat("2026-08-29T00:30:00+00:00"),
     }
     receipt = _capture_receipt(note)
     receipt["captured_at"] = datetime.fromisoformat(receipt.pop("capturedAt"))
@@ -767,7 +794,7 @@ def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_
 
 def _build_receipt_snapshot(tmp_path, *, receipt_overrides=None, include_run=True):
     note = tmp_path / "Procedural Memory Benchmark.md"
-    note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-27"), encoding="utf-8")
+    note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-28"), encoding="utf-8")
     receipt = _capture_receipt(note, **(receipt_overrides or {}))
     receipt_dir = tmp_path / "receipts"
     receipt_dir.mkdir()
@@ -782,7 +809,7 @@ def _build_receipt_snapshot(tmp_path, *, receipt_overrides=None, include_run=Tru
                     {
                         "id": "daily-completed-summary",
                         "enabled": True,
-                        "lastRunAt": "2026-08-28T00:01:20.025Z",
+                        "lastRunAt": "2026-08-29T00:01:20.025Z",
                     }
                 ]
             }
@@ -798,7 +825,7 @@ def _build_receipt_snapshot(tmp_path, *, receipt_overrides=None, include_run=Tru
                     "name": "bench-append",
                     "ok": True,
                     "run_id": receipt["runId"],
-                    "started_at": "2026-08-28T00:10:00+00:00",
+                    "started_at": "2026-08-29T00:10:00+00:00",
                 }
             )
             + "\n",
@@ -878,6 +905,12 @@ def test_actionable_findings_cover_missing_unverifiable_and_malformed_evidence()
                 "reason": "cannot be determined",
                 "scheduler_matched_ids": ["same-day-task"],
                 "scheduler_last_run_at": "2026-08-28T00:02:00+00:00",
+            },
+            "Legacy": {
+                "status": "legacy_unverifiable",
+                "reason": "predates timestamped receipt enforcement",
+                "scheduler_matched_ids": ["legacy-task"],
+                "scheduler_last_run_at": "2026-08-24T19:01:37+00:00",
             },
             "On Demand": {
                 "status": "unknown",

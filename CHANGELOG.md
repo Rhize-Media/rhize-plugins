@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- _2026-08-30_ version bump — **rhize-devflow** 2.15.0 → 2.16.0 (minor); marketplace 2.48.4 → 2.49.0.
+- _2026-08-30_ version bump — **rhize-devflow** 2.15.0 → 2.16.0 (minor); marketplace 2.48.5 → 2.49.0.
 - _2026-08-30_ **rhize-devflow — completed branch promotion.** Added one canonical
   `completed-branch-promotion` skill for the explicit phrases "push to main" and "push to dev and
   main". It specializes Superpowers' generic branch-finishing mechanics with repository-policy
@@ -17,6 +17,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   remote/deployment proof, and Vercel author-safe content-neutral release commits. Offline routing
   and contract fixtures cover explicit overrides, manual-push authorization, dirty worktrees,
   failed gates, and deployment constraints.
+- _2026-08-30_ version bump — **rhize-ops** 0.13.4 → 0.13.5 (patch); marketplace 2.48.4 → 2.48.5.
+- _2026-08-30_ **benchmark receipt-enforcement cutoff.** The capture watchdog now reports
+  same-day scheduler/row ambiguity from before timestamped receipts existed as visible,
+  non-actionable `legacy_unverifiable` history. Post-enforcement ambiguity and every genuine
+  missing, malformed, unbound, failed, incomplete, or non-comparable capture remain actionable;
+  no historical evidence is backfilled or inferred.
 - _2026-08-28_ version bump — **rhize-ops** 0.13.3 → 0.13.4 (patch); marketplace 2.48.3 → 2.48.4.
 - _2026-08-28_ **benchmark receipt variant compatibility.** The capture watchdog now accepts
   run-bound `G`/`G1`/`G2`/`G3` procedural-memory receipts, reports counts by variant, and keeps

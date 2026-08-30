@@ -1,6 +1,6 @@
 {
   "name": "rhize-ops",
-  "version": "0.13.4",
+  "version": "0.13.5",
   "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
   "author": {
     "name": "Rhize Media"

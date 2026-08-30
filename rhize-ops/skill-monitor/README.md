@@ -191,6 +191,11 @@ Exit `0` means no capture findings, exit `2` means the watchdog ran and found un
 measurements, and exit `3` means Sentry delivery or the watchdog check-in failed. Findings
 use stable fingerprints and redact absolute paths. `indeterminate_same_day` is a warning;
 missing rows, invalid receipts, context-capture failures, and evaluator failures are errors.
+Same-day scheduler/row pairs from before timestamped receipt enforcement shipped on
+2026-08-27 remain visible as `legacy_unverifiable` but are not actionable: no trustworthy
+timestamped receipt could exist for those historical runs, and the watchdog never backfills or
+guesses one. Every same-day run at or after the cutoff remains `indeterminate_same_day` and
+actionable until a valid run-bound receipt resolves it.
 `--sentry-checkin-slug` requires `--alert-sentry`. The final Sentry Cron check-in is sent
 only after evaluation and incident delivery complete,
 so a crash, scheduler miss, or broken alert path becomes a missed-check-in incident rather
