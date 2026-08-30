@@ -11,7 +11,13 @@ from pathlib import Path
 
 import pytest
 
-from context_experiments.config import arm_capability, load_config, write_config
+import context_experiments.runner as runner_module
+from context_experiments.config import (
+    arm_capability,
+    load_config,
+    record_completed_run,
+    write_config,
+)
 from context_experiments.models import Arm, Capability, ExperimentConfig, ExperimentEvidence
 from context_experiments.receipt_store import EvidenceStore
 from context_experiments.runner import (
@@ -60,6 +66,10 @@ def armed_compiled_context(repo: Path) -> ExperimentConfig:
         1,
         smoke_approved=True,
     )
+
+
+def test_legacy_compiler_completion_transition_is_bound_without_checkout() -> None:
+    assert runner_module.record_completed_run is record_completed_run
 
 
 def test_unavailable_real_provider_keeps_selection_inert() -> None:
