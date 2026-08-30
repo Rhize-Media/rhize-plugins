@@ -1,6 +1,8 @@
 # Obsidian Second Brain
 
-A second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, and vault health management, backed by semantic search (qmd), MCP server, and CLI integration.
+A second brain toolkit for Obsidian vaults — knowledge workflows, evidence-bound compilation,
+research pipelines, connection discovery, and vault health management, backed by semantic search
+(qmd), MCP server, CLI integration, and a deterministic local compiler.
 
 ## Knowledge Workflows
 
@@ -12,6 +14,7 @@ The core of this plugin. These skills and commands turn your vault into an activ
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `defuddle` | ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. | content-authoring, obsidian, web-clipping |
+| `knowledge-compiler` | Compile captured sources into cited, invalidatable knowledge-page previews and apply only an approved exact diff. | knowledge-management, provenance, workflow-patterns |
 | `qmd-search` | ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. | knowledge-management, obsidian, search |
 | `second-brain` | ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. | knowledge-management, obsidian, workflow-patterns |
 | `vault-alignment` | ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. | knowledge-management, observability, obsidian |
@@ -26,6 +29,7 @@ The core of this plugin. These skills and commands turn your vault into an activ
 | `/vault-connect [note\|topic\|recent]` | Find and build missing links between related notes (qmd-enhanced) |
 | `/vault-recall <question>` | Ask your vault a natural language question and get a synthesized answer |
 | `/vault-review [daily\|weekly\|monthly]` | Periodic review — summarize activity, surface themes, plan ahead |
+| `/vault-compile preview\|apply\|status\|rebuild` | Review and maintain evidence-bound compiled knowledge |
 
 ### Commands — Capture & Daily
 
@@ -41,6 +45,23 @@ The core of this plugin. These skills and commands turn your vault into an activ
 |---------|-------------|
 | `/vault-align [check\|fix\|migrate\|plugins]` | Vault health monitor — audit structure, fix orphans, bulk migrate |
 | `/vault-setup [new\|existing\|resume]` | Interactive setup wizard — personalized folders, templates, dashboards, plugins, qmd |
+
+## Evidence-bound compiled knowledge
+
+`knowledge-compiler` separates immutable captured sources from replaceable synthesis. Its
+standard-library Python engine creates private preview artifacts—a strict manifest, rendered page,
+exact diff, and change brief—then applies only the named approved preview under a per-vault lock and
+compare-and-swap check. Claim citations use content-hash-bound line anchors, so source edits make
+dependent pages stale instead of silently rebinding them.
+
+The config explicitly binds project, tenant, scope, operator, allowed vault/source roots, ACL,
+egress, retention, and adapter policy. Preview data, source snapshots, journals, and purge tombstones
+remain under a private state root. qmd can see only accepted fresh pages permitted by ACL; context
+packs, Graphify, Neo4j, live synthesis, and scheduled mutation are disabled in this first release.
+
+The canonical engine is shared by Claude Code's thin `/vault-compile` command and Codex's
+`knowledge-compiler` skill metadata. Run `python3 scripts/compiled_knowledge.py --help` for the exact
+CLI. `init-config` prints a disabled-by-default template; it never guesses a personal vault path.
 
 ## Format Skills
 
@@ -80,7 +101,7 @@ auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `
 plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
 currently empty: this plugin's hooks are already scoped to the vault path, advisory-only, and
 auto-wired, so there's nothing here that needs to be opt-in rather than on-by-default. It does
-declare a `dependencies` array (obsidian-mcp-server, Obsidian CLI, Defuddle, qmd) that the
+declare a `dependencies` array (obsidian-mcp-server, Obsidian CLI, Defuddle, qmd, Python 3) that the
 wizard's dependency check reads.
 
 **Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
@@ -194,10 +215,14 @@ Accept the plugin when presented in chat, or install the `.plugin` file from you
 ```
 obsidian-second-brain/
 ├── .claude-plugin/plugin.json
+├── .codex-plugin/plugin.json          # Codex discovery for the same canonical skills
 ├── .mcp.json                          # Obsidian MCP server connector (via mcp-secret-launcher.sh)
 ├── scripts/
+│   ├── compiled_knowledge.py          # Deterministic preview/apply/status/rebuild engine
 │   └── mcp-secret-launcher.sh         # Resolves OBSIDIAN_API_KEY (keychain, then env fallback)
-├── commands/                          # 9 slash commands
+├── schemas/
+│   └── compiled-knowledge-manifest-v1.schema.json
+├── commands/                          # 10 slash commands
 │   ├── vault-research.md              # Research pipeline
 │   ├── vault-connect.md               # Connection discovery
 │   ├── vault-recall.md                # Natural language recall
@@ -206,11 +231,13 @@ obsidian-second-brain/
 │   ├── vault-daily.md                 # Daily notes
 │   ├── vault-search.md                # Search
 │   ├── vault-align.md                 # Vault health
+│   ├── vault-compile.md               # Thin evidence-bound compiler adapter
 │   └── vault-setup.md                 # Setup wizard
 ├── skills/
 │   ├── second-brain/                  # PKM methodology
 │   ├── vault-templates/               # Note archetypes
 │   ├── vault-alignment/               # Health monitoring
+│   ├── knowledge-compiler/            # Canonical Claude Code/Codex compilation contract
 │   ├── qmd-search/                    # Semantic search config
 │   ├── defuddle/                      # Web clipping
 │   ├── obsidian-markdown/             # Markdown syntax
@@ -224,6 +251,8 @@ obsidian-second-brain/
 │       └── vault-read-hint.py         # PostToolUse Read implementation
 ├── setup/
 │   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
+├── tests/
+│   └── test_compiled_knowledge.py     # Policy, CAS, recovery, purge, parity fixtures
 └── README.md
 ```
 

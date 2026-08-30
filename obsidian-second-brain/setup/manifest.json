@@ -46,6 +46,17 @@
         "suggestion": "keep using the plugin's own MCP/CLI keyword-search fallback",
         "warning": "this isn't a case for a custom reimplementation — the keyword-search fallback already is the intended non-qmd path. Installing qmd only upgrades to semantic search; it doesn't close a gap that needs a DIY replacement."
       }
+    },
+    {
+      "name": "Python 3",
+      "kind": "cli",
+      "purpose": "Runs the standard-library-only evidence-bound compiled knowledge engine shared by Claude Code and Codex.",
+      "required": false,
+      "degradedBehavior": "The knowledge-compiler skill and /vault-compile command are unavailable; ordinary vault capture, search, linking, and health workflows still work.",
+      "replacement": {
+        "suggestion": "install a current Python 3 runtime and invoke the bundled script with python3",
+        "warning": "do not replace the deterministic engine with model-written hashing, policy, or transaction logic; that would break host parity and provenance guarantees."
+      }
     }
   ]
 }

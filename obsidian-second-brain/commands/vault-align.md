@@ -1,7 +1,7 @@
 ---
 description: Vault health monitor — check alignment, analyze specific areas, fix issues, bulk migrate, audit plugins
 allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "mcp__workspace__web_fetch"]
-argument-hint: [check|check tags|check orphans|check links|check structure|check full|fix|migrate|plugins]
+argument-hint: [check|check tags|check orphans|check links|check structure|check compiled|check full|fix|migrate|plugins]
 ---
 
 Ongoing vault health monitor and improvement engine. Analyzes the vault against second-brain best practices and the user's chosen archetype (if `/vault-setup` has been run), then surfaces specific actionable suggestions ranked by impact.
@@ -52,8 +52,18 @@ If `$ARGUMENTS` contains a focus keyword after "check", run only that analysis a
 - Use obsidian_list_notes at the root with recursionDepth=1 for per-folder file counts.
 - Report folder sizes, identify very large (>50 notes) or very small (1-2 notes) folders, and suggest organizational improvements.
 
+**"check compiled":**
+- Load the `knowledge-compiler` skill and run its deterministic `status` mode with the explicit
+  project config. Never infer a personal vault path or inspect private preview contents.
+- Report accepted pages as clean, stale, conflicting, or purged. Include the reason codes, expired
+  preview count, recovered transaction ids, and qmd eligibility, but not source text or absolute
+  private paths.
+- Recommend a reviewable rebuild preview for stale pages. Never rebuild or apply as part of a health
+  check, and never make a purged source reproducible.
+
 **"check full" or "check audit":**
-Run all focused analyses in sequence: structure → tags → orphans → links. Present a comprehensive report with actionable recommendations.
+Run all focused analyses in sequence: structure → tags → orphans → links → compiled (when a compiler
+config exists). Present a comprehensive report with actionable recommendations.
 
 If none of these focus keywords are present (just "check" or no arguments), proceed to the full health report below.
 
@@ -93,6 +103,10 @@ obsidian search query="[status:processing]" format=json
 obsidian search query="[summarization-layer:1]" format=json
 ```
 
+**Compiled knowledge (when configured):**
+Run the compiler's `status` mode. Treat stale or purged compiled pages as ineligible for qmd,
+connection reuse, context packs, or graph promotion even if the Markdown file still exists.
+
 **Plugins:**
 ```bash
 obsidian plugins format=json
@@ -106,6 +120,8 @@ Present a health report with scores for each dimension. Use a simple scale:
 - **Connectivity**: [Good / Needs attention / Needs work] — based on orphan ratio, broken links, MOC coverage
 - **Consistency**: [Good / Needs attention / Needs work] — based on frontmatter adherence, tag style uniformity
 - **Processing**: [Good / Needs attention / Needs work] — based on stale items, summarization progress
+- **Compiled knowledge**: [Clean / Stale or conflicting / Not configured] — based on manifest/source
+  hashes, retention and purge status, ownership, and incomplete-transaction recovery
 - **Plugins**: [Fully equipped / Missing recommended / Not checked]
 
 For each dimension that needs attention, provide 1-3 specific, actionable suggestions:

@@ -74,5 +74,8 @@ Surface bridge opportunities when found — these are among the highest-value co
 ## Always:
 - Show proposed connections before making changes
 - Explain why each connection is suggested (not just "these share keywords" — with qmd, explain the semantic relationship)
+- Reuse a compiled page's proposed links only when the canonical compiler status reports it accepted
+  and clean. A preview, stale/conflicting page, purged source, or ineligible index entry is not link
+  evidence. Keep source citations when explaining an accepted compiled connection.
 - Confirm with the user before modifying any notes
 - Report a summary of connections made at the end
