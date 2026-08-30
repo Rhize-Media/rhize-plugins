@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Memory"
+  short_description: "Govern Graphify artifacts for Neo4j"
+  default_prompt: "Use $graph-memory to validate and preview a source-bound graph projection without touching live Neo4j."

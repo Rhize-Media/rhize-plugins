@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "rhize-ontology-redacted-canary",
+  "sourceRevision": "fixture-revision-1",
+  "artifactSha256": "822a84e099ed5511d7e2d9cabcfacd2fefea32a3c1b63274aa9affe30324499f",
+  "extractorVersion": "graphify-fixture-1",
+  "recordedAt": "2026-08-30T00:00:00Z",
+  "defaultAcl": ["group:rhize-tools"],
+  "defaultTrust": "medium",
+  "sensitivity": "internal",
+  "wrapperVersion": "fixture-wrapper-1",
+  "graphifyBuildCommit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "modelId": "fixture-model",
+  "promptHash": "794590e7480e810ac326672557150b5e5755f2357f691d9a97c58d95f49c898c"
+}

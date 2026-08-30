@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/graph-ingest-receipt-v1.schema.json",
+  "title": "Rhize graph ingest receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receiptVersion", "runId", "status", "tenantHash", "namespaceHash", "sourceRevisionHash", "compilationHash", "artifactHash", "ontologyChecksum", "migrationChecksums", "counts", "adapterVersion"],
+  "properties": {
+    "receiptVersion": {"const": 1}, "runId": {"$ref": "#/$defs/hash"},
+    "status": {"enum": ["staged", "accepted", "replayed", "rejected", "failed", "superseded", "purged"]},
+    "tenantHash": {"$ref": "#/$defs/hash"}, "namespaceHash": {"$ref": "#/$defs/hash"},
+    "sourceRevisionHash": {"$ref": "#/$defs/hash"}, "compilationHash": {"$ref": "#/$defs/hash"},
+    "artifactHash": {"$ref": "#/$defs/hash"}, "ontologyChecksum": {"$ref": "#/$defs/hash"},
+    "currentCompilationHash": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+    "migrationChecksums": {"type": "array", "items": {"$ref": "#/$defs/hash"}, "uniqueItems": true},
+    "counts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["records", "relationships", "rejections", "quarantined"],
+      "properties": {"records": {"type": "integer", "minimum": 0}, "relationships": {"type": "integer", "minimum": 0}, "rejections": {"type": "integer", "minimum": 0}, "quarantined": {"type": "integer", "minimum": 0}}
+    },
+    "adapterVersion": {"type": "string", "minLength": 1, "maxLength": 128}, "failureStage": {"type": ["string", "null"], "maxLength": 64}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

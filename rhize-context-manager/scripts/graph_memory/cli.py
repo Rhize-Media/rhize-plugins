@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""Host-neutral CLI for the governed graph-memory contract."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Sequence
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from graph_memory.contract import ContractError, canonical_json, compile_ontology, load_json, sha256_value
+    from graph_memory.store import InMemoryNeo4jAdapter, QueryBudget, StoreError
+    from graph_memory.translate import GraphifyTranslator
+else:
+    from .contract import ContractError, canonical_json, compile_ontology, load_json, sha256_value
+    from .store import InMemoryNeo4jAdapter, QueryBudget, StoreError
+    from .translate import GraphifyTranslator
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="graph-memory",
+        description="Preview and verify governed Rhize graph operations without live Neo4j access.",
+    )
+    parser.add_argument("--core", type=Path, help="override the canonical core ontology path")
+    parser.add_argument("--pack", type=Path, action="append", default=[], help="namespaced extension pack")
+    parser.add_argument("--pretty", action="store_true", help="indent JSON output")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    subparsers.add_parser("compile", help="compile writer, reader, and migration contracts")
+    subparsers.add_parser("status", help="report the disabled-live-adapter contract state")
+
+    for command in ("validate", "preview", "ingest", "query"):
+        child = subparsers.add_parser(command)
+        _add_artifact_arguments(child)
+    ingest = subparsers.choices["ingest"]
+    ingest.add_argument("--role", required=True, choices=[InMemoryNeo4jAdapter.INGEST_ROLE])
+    ingest.add_argument("--idempotency-key", required=True)
+    ingest.add_argument(
+        "--failure-at", choices=["after_validation", "after_stage", "before_publish"]
+    )
+
+    query = subparsers.choices["query"]
+    query.add_argument("--role", required=True, choices=[InMemoryNeo4jAdapter.QUERY_ROLE, InMemoryNeo4jAdapter.REVIEW_ROLE])
+    query.add_argument("--principal-scope", action="append", required=True)
+    query.add_argument(
+        "--operation",
+        required=True,
+        choices=["query_context", "get_claim_sources", "get_related_artifacts"],
+    )
+    query.add_argument("--query-text")
+    query.add_argument("--record-id")
+    query.add_argument("--depth", type=int, default=1)
+    query.add_argument("--limit", type=int, default=20)
+    query.add_argument("--runtime-ms", type=int, default=250)
+
+    migrate = subparsers.add_parser("migrate", help="verify checksummed migrations in the fake adapter")
+    migrate.add_argument("--role", required=True, choices=[InMemoryNeo4jAdapter.MIGRATION_ROLE])
+
+    manifest = subparsers.add_parser("manifest", help="create a reviewable manifest for a graph.json artifact")
+    manifest.add_argument("--graph", type=Path, required=True)
+    manifest.add_argument("--corpus-id", required=True)
+    manifest.add_argument("--source-revision", required=True)
+    manifest.add_argument("--extractor-version", required=True)
+    manifest.add_argument("--recorded-at", required=True)
+    manifest.add_argument("--acl", action="append", required=True)
+    manifest.add_argument(
+        "--sensitivity",
+        choices=["public", "internal", "confidential", "restricted"],
+        default="internal",
+    )
+    manifest.add_argument(
+        "--default-trust",
+        choices=["high", "medium", "low", "unverified"],
+        default="medium",
+    )
+    manifest.add_argument("--wrapper-version")
+    manifest.add_argument("--build-commit")
+    manifest.add_argument("--model-id")
+    manifest.add_argument("--prompt-hash")
+    return parser
+
+
+def _add_artifact_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--graph", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--tenant", required=True)
+    parser.add_argument("--namespace", required=True)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    try:
+        result = _run(args)
+    except (ContractError, StoreError, OSError, json.JSONDecodeError) as exc:
+        print(canonical_json({"status": "error", "error": str(exc)}), file=sys.stderr)
+        return 2
+    print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2 if args.pretty else None))
+    return 0
+
+
+def _run(args: argparse.Namespace) -> dict[str, Any]:
+    ontology = compile_ontology(args.core, args.pack)
+    if args.command == "compile":
+        return ontology.to_dict()
+    if args.command == "status":
+        return InMemoryNeo4jAdapter(ontology).status() | {
+            "ontologyChecksum": ontology.checksum,
+            "liveCanaryIssue": "RT-159",
+        }
+    if args.command == "migrate":
+        store = InMemoryNeo4jAdapter(ontology)
+        return {"applied": store.apply_migrations(role=args.role), "status": store.status()}
+    if args.command == "manifest":
+        artifact = load_json(args.graph)
+        artifact_commit = artifact.get("built_at_commit")
+        if args.build_commit and artifact_commit and args.build_commit != artifact_commit:
+            raise ContractError("supplied build commit does not match the Graphify artifact")
+        build_commit = args.build_commit or artifact_commit
+        return {
+            "schemaVersion": 1,
+            "corpusId": args.corpus_id,
+            "sourceRevision": args.source_revision,
+            "artifactSha256": sha256_value(artifact),
+            "extractorVersion": args.extractor_version,
+            "recordedAt": args.recorded_at,
+            "defaultAcl": sorted(set(args.acl)),
+            "defaultTrust": args.default_trust,
+            "sensitivity": args.sensitivity,
+            **({"wrapperVersion": args.wrapper_version} if args.wrapper_version else {}),
+            **({"graphifyBuildCommit": build_commit} if build_commit else {}),
+            **({"modelId": args.model_id} if args.model_id else {}),
+            **({"promptHash": args.prompt_hash} if args.prompt_hash else {}),
+        }
+
+    artifact = load_json(args.graph)
+    manifest = load_json(args.manifest)
+    compilation = GraphifyTranslator(ontology).translate(
+        artifact, manifest, tenant=args.tenant, namespace=args.namespace
+    )
+    if args.command == "preview":
+        return compilation
+    if args.command == "validate":
+        return {
+            "status": "valid",
+            "compilationHash": compilation["compilationId"],
+            "ontologyChecksum": compilation["ontologyChecksum"],
+            "counts": {
+                "records": len(compilation["records"]),
+                "relationships": len(compilation["relationships"]),
+                "rejections": len(compilation["rejections"]),
+                "quarantined": sum(
+                    1 for item in [*compilation["records"], *compilation["relationships"]]
+                    if item["quarantined"]
+                ),
+            },
+        }
+
+    store = InMemoryNeo4jAdapter(ontology)
+    store.apply_migrations(role=InMemoryNeo4jAdapter.MIGRATION_ROLE)
+    if args.command == "ingest":
+        receipt = store.ingest(
+            compilation,
+            role=args.role,
+            idempotency_key=args.idempotency_key,
+            expected_current=None,
+            failure_at=args.failure_at,
+        )
+        return {"receipt": receipt, "status": store.status()}
+
+    store.ingest(
+        compilation,
+        role=InMemoryNeo4jAdapter.INGEST_ROLE,
+        idempotency_key=f"query-preview:{compilation['compilationId']}",
+        expected_current=None,
+    )
+    return store.query(
+        args.operation,
+        tenant_key=compilation["tenantKey"],
+        namespace_key=compilation["namespaceKey"],
+        corpus_key=compilation["corpusKey"],
+        principal_scopes=args.principal_scope,
+        role=args.role,
+        budget=QueryBudget(args.depth, args.limit, args.runtime_ms),
+        query_text=args.query_text,
+        record_id=args.record_id,
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

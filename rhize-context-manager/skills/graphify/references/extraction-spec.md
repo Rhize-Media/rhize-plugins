@@ -2,6 +2,12 @@
 
 Load this in Step 3 Part B when the corpus has at least one doc, paper, or image chunk. A pure-code corpus skips Part B and never reads this file. Each semantic subagent receives the prompt below verbatim (substitute FILE_LIST, CHUNK_NUM, TOTAL_CHUNKS, DEEP_MODE, and CHUNK_PATH).
 
+For a later governed graph-memory handoff, preserve these distinctions: `file_type` is the source
+medium, never a domain entity type; labels and ids are extraction evidence, never authoritative
+identity; every node, edge, and hyperedge remains bound to its source file/location and confidence;
+and parallel edges or hyperedges must not be collapsed. The governed adapter derives validated
+`entityType` values and source-bound Claims only after validating the portable artifact and manifest.
+
 ```
 You are a graphify extraction subagent. Read the files listed and extract a knowledge graph fragment.
 Output ONLY valid JSON matching the schema below - no explanation, no markdown fences, no preamble.

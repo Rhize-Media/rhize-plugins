@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "ontologyVersion": "1.0.0",
+  "namespace": "rhize.core",
+  "description": "Small, source-bound vocabulary for governed Rhize graph projections.",
+  "nodeTypes": {
+    "Source": {
+      "identityEligible": true,
+      "requiredProperties": ["sourceRefHash", "sourceRevision"],
+      "allowedProperties": ["sourceRefHash", "sourceRevision", "medium", "capturedAt", "canonicalUrlHash", "authorHash", "contributorHash"]
+    },
+    "Entity": {
+      "identityEligible": true,
+      "requiredProperties": ["label", "entityType", "rawIdHash"],
+      "allowedProperties": ["label", "entityType", "rawIdHash", "codeReference", "rationaleHash", "graphifyMetadataHash"]
+    },
+    "Claim": {
+      "identityEligible": false,
+      "requiredProperties": ["predicate", "subjectId", "objectId"],
+      "allowedProperties": ["predicate", "subjectId", "objectId", "participants", "evidenceContextHash", "label", "weight", "graphifyMetadataHash"]
+    },
+    "Event": {
+      "identityEligible": false,
+      "requiredProperties": ["label", "validFrom"],
+      "allowedProperties": ["label", "validFrom", "validUntil"]
+    },
+    "Artifact": {
+      "identityEligible": true,
+      "requiredProperties": ["label", "artifactType", "rawIdHash"],
+      "allowedProperties": ["label", "artifactType", "rawIdHash", "codeReference", "rationaleHash", "graphifyMetadataHash"]
+    },
+    "Preference": {
+      "identityEligible": false,
+      "requiredProperties": ["label", "scope"],
+      "allowedProperties": ["label", "scope", "supersededBy"]
+    },
+    "Compilation": {
+      "identityEligible": false,
+      "requiredProperties": ["compilationHash", "artifactHash", "status"],
+      "allowedProperties": ["compilationHash", "artifactHash", "status", "extractorVersion", "promptHash", "modelId"]
+    }
+  },
+  "relationshipTypes": {
+    "DERIVED_FROM": {"sources": ["Entity", "Claim", "Event", "Artifact", "Preference", "Compilation"], "targets": ["Source"]},
+    "MENTIONS": {"sources": ["Source", "Artifact"], "targets": ["Entity", "Event", "Artifact"]},
+    "ASSERTS": {"sources": ["Source"], "targets": ["Claim"]},
+    "ABOUT": {"sources": ["Claim", "Preference"], "targets": ["Entity", "Event", "Artifact"]},
+    "PRODUCED": {"sources": ["Event", "Compilation"], "targets": ["Artifact", "Claim", "Entity"]},
+    "TRIGGERED_BY": {"sources": ["Event", "Compilation"], "targets": ["Event", "Artifact", "Source"]},
+    "TOUCHED": {"sources": ["Event", "Compilation"], "targets": ["Artifact", "Entity"]},
+    "SUPERSEDES": {"sources": ["Claim", "Preference", "Compilation"], "targets": ["Claim", "Preference", "Compilation"]},
+    "RELATED_TO": {"sources": ["Entity", "Event", "Artifact", "Claim"], "targets": ["Entity", "Event", "Artifact", "Claim"], "requiresSemanticType": true}
+  },
+  "graphify": {
+    "allowedFileTypes": ["code", "document", "paper", "image", "rationale", "concept"],
+    "allowedConfidenceClasses": ["EXTRACTED", "INFERRED", "AMBIGUOUS"],
+    "allowedNodeFields": ["id", "label", "file_type", "source_file", "source_location", "source_url", "captured_at", "author", "contributor", "rationale", "codegraph_ref", "_origin", "community", "community_name", "norm_label", "repo", "local_id"],
+    "allowedEdgeFields": ["source", "target", "relation", "confidence", "confidence_score", "source_file", "source_location", "weight", "context", "_origin"],
+    "allowedHyperedgeFields": ["id", "label", "nodes", "relation", "confidence", "confidence_score", "source_file", "source_location"]
+  },
+  "trustPolicy": {
+    "levels": ["high", "medium", "low", "unverified"],
+    "graphifyCeilings": {"EXTRACTED": "medium", "INFERRED": "low", "AMBIGUOUS": "unverified"},
+    "normalQueryMinimum": "medium",
+    "identityMinimum": "high"
+  },
+  "queryBudgets": {"maxDepth": 3, "maxResults": 100, "maxRuntimeMs": 1000}
+}
