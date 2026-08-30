@@ -8,6 +8,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ coordinated article-improvements release — **obsidian-second-brain** 1.4.4 → 1.5.0; **procedural-memory** 0.3.1 → 0.3.2; **rhize-context-manager** 0.21.0 → 0.22.0; **rhize-devflow** 2.16.0 → 2.17.0; **rhize-ops** marketplace entry aligned at 0.14.0; **rhize-tasks** 0.3.0 → 0.3.1; marketplace 2.51.1 → 2.52.0.
+- _2026-08-30_ **article-derived agent infrastructure for Claude Code and Codex.** Added a
+  dual-host task-graph contract and state-bound behavioral test evidence; deterministic native v2
+  context packs; evidence-bound Obsidian knowledge compilation; bounded unified-memory assembly;
+  governed Graphify-to-Neo4j ontology, ingest, read adapter, reversible identity review, and
+  decision-accountability contracts. Live Neo4j publication, automatic `SAME_AS`, automatic memory
+  injection/write-back, and decision recording remain disabled pending RT-155 through RT-161
+  measurement, canary, and promotion evidence.
 - _2026-08-30_ version bump — **rhize-ops** 0.13.5 → 0.13.6 (patch); marketplace 2.51.0 → 2.51.1.
 - _2026-08-30_ **mandatory fresh benchmark receipts.** The capture watchdog now independently
   validates strict `procedural-engineering-eval/v2` routine receipts alongside v1/graph receipts,

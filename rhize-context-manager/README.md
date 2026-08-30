@@ -47,7 +47,7 @@ back to `rg`.
 | `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
-| `graph-memory` | Govern Graphify artifacts, offline identity review, and source-bound decisions for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
+| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
 | `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
 | `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
@@ -132,14 +132,16 @@ that never ran.
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 | `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
 | `next-step-suggester.js` | `PostToolUse` (`Skill`) | After a skill invocation, looks up the invoked skill's succession entry and suggests exactly one next step — the declared `precedes` successor, or the mined `follows` successor if no `precedes` exists. Silent when there's no successor. |
-| `context-experiment-selector.js` | `UserPromptSubmit` | Fail-silent Claude/Codex selector. Strict disabled-by-default config, allowlist, task, clean-repository, provider, snapshot, duration, and single-flight gates decide whether to emit an accepted local pack/evidence command. |
+| `context-experiment-selector.js` | `UserPromptSubmit` | Fail-silent Claude Code selector. Strict disabled-by-default config, allowlist, task, clean-repository, provider, snapshot, duration, and single-flight gates decide whether to emit an accepted local pack/evidence command. |
 | `context-experiment-finalizer.js` | `Stop` | Writes one evidence-backed terminal receipt. Completed continuous attempts remain enabled; failed, incomplete, stale, or malformed evidence freezes further claims. |
 
-All six hooks are auto-wired in `hooks/hooks.json`. The experiment pair executes in Claude and
-Codex but remains behaviorally inert until strict configuration explicitly enables a capability
-for an allowlisted repository. Before plugin migration, the coordinator must remove any duplicate
-manual Claude selector/finalizer entries; duplicate calls are state-idempotent, but a second
-selector can waste a local provider build before the lease rejects it.
+All six hooks are auto-wired for Claude Code in `hooks/hooks.json`. Codex does not consume this
+Claude hook manifest; it discovers the same canonical skills and must invoke the host-neutral
+context pack or experiment runner explicitly. Both paths remain behaviorally inert until strict
+configuration explicitly enables a capability for an allowlisted repository. Before Claude plugin
+migration, the coordinator must remove any duplicate manual selector/finalizer entries; duplicate
+calls are state-idempotent, but a second selector can waste a local provider build before the lease
+rejects it.
 `session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
 obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
 `.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
@@ -173,8 +175,9 @@ path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map
 ### Per-repository and migration hooks (`setup/manifest.json`)
 
 Nine hooks remain declared in `setup/manifest.json` for backward-compatible setup inventory.
-Seven are opt-in per-repository items (`default: false`). The selector/finalizer rows are migration
-metadata now that the scripts are auto-wired in `hooks/hooks.json`; do not wire a second copy.
+Seven are opt-in per-repository items (`default: false`). The selector/finalizer rows are Claude
+Code migration metadata now that the scripts are auto-wired in `hooks/hooks.json`; do not wire a
+second Claude copy. Codex invokes the shared runner explicitly through its canonical skill.
 Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for

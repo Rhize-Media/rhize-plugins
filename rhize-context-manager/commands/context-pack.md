@@ -65,6 +65,8 @@ an unchanged request reuses the same immutable pack ID.
 
 When the opt-in selector is explicitly armed for `compiledContext`, it runs this native provider
 on the next eligible prompt. A rejected discovery stays silent and does not consume the arm. An
-accepted pack is built before discovery, its path is added to the session, and the Stop hook writes
-an Arm A/B receipt. The receipt deliberately warns that task correctness and follow-up reads still
-require human review; estimated token reduction is not an adoption decision by itself.
+accepted pack is built before discovery, its path is added to the Claude Code session, and the Stop
+hook writes an Arm A/B receipt. Codex uses this same native provider through explicit skill/runner
+invocation; it does not auto-run the Claude hook lifecycle. The receipt deliberately warns that task
+correctness and follow-up reads still require human review; estimated token reduction is not an
+adoption decision by itself.

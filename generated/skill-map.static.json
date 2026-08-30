@@ -369,7 +369,19 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "command:rhize-context-manager/graph-decision",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "command:rhize-context-manager/graph-memory",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/graph-memory-review",
       "type": "contains"
     },
     {
@@ -2468,11 +2480,25 @@
       "path": "rhize-context-manager/commands/done.md"
     },
     {
+      "description": "Preview or inspect a source-bound decision through the governed graph-memory contract",
+      "id": "command:rhize-context-manager/graph-decision",
+      "kind": "command",
+      "name": "graph-decision",
+      "path": "rhize-context-manager/commands/graph-decision.md"
+    },
+    {
       "description": "Validate and preview a governed Graphify projection without live Neo4j access",
       "id": "command:rhize-context-manager/graph-memory",
       "kind": "command",
       "name": "graph-memory",
       "path": "rhize-context-manager/commands/graph-memory.md"
+    },
+    {
+      "description": "Review and reverse governed offline graph identity proposals",
+      "id": "command:rhize-context-manager/graph-memory-review",
+      "kind": "command",
+      "name": "graph-memory-review",
+      "path": "rhize-context-manager/commands/graph-memory-review.md"
     },
     {
       "description": "Deprecated — use /rhize-devflow:impact-map instead.",
@@ -3270,7 +3296,7 @@
       "name": "vercel"
     },
     {
-      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
+      "description": "Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex",
       "id": "plugin:obsidian-second-brain",
       "kind": "plugin",
       "name": "obsidian-second-brain",
@@ -3291,7 +3317,7 @@
       "path": "project-launcher"
     },
     {
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack, ships a disabled-by-default real-provider retrieval/compiled-context dogfood harness, and adds a local mixed-language native context pack with explicit provenance and stale-pack verification. The pinned upstream Python compiler remains an eval provider.",
+      "description": "Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",
@@ -3305,14 +3331,14 @@
       "path": "rhize-cowork"
     },
     {
-      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, authorized completed-branch promotion through repository-governed PR/deployment flows, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
+      "description": "Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
       "path": "rhize-devflow"
     },
     {
-      "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
+      "description": "Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -3489,7 +3515,7 @@
       "path": "rhize-context-manager/skills/context-pack/SKILL.md"
     },
     {
-      "contentHash": "e3770719fcea5b170f27467102ec73b9bb9d6747133a9e028c03488b2fc39daf",
+      "contentHash": "d458c7405d6243be4a3aaee460a592cb76673e721284a2f5abb350ead47cfed9",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
@@ -3506,8 +3532,8 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "bb00a1f9ec6f67ceca7b3595654fc4aa31ebca0a271384a87730cf1547a79f39",
-      "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
+      "contentHash": "e821b7cdd3da5eb12be4f6501696c3ce517014b1d8032fb79bd6c51bf3f59d4a",
+      "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
       "name": "graph-memory",
@@ -3538,7 +3564,7 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "096ef43b5ad5a95dbcd60d605671c3f4040ea8b394fe13828851e1b3422dcf5a",
+      "contentHash": "8fa83731e5fd026153480c2bf0bcb1dfb2757d8ec13a01ad93b7c7d5cc2abd37",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",

@@ -63,6 +63,11 @@ The canonical engine is shared by Claude Code's thin `/vault-compile` command an
 `knowledge-compiler` skill metadata. Run `python3 scripts/compiled_knowledge.py --help` for the exact
 CLI. `init-config` prints a disabled-by-default template; it never guesses a personal vault path.
 
+Obsidian remains the canonical semantic source for `rhize-context-manager:memory-context`.
+Memory assembly may read only an explicit, versioned, source-bound adapter result; it must not scrape
+vault prose, treat a compiled page as authority over its cited sources, or write retrieval feedback
+back into the vault. Neo4j is a reversible derived projection, not a replacement source of truth.
+
 ## Format Skills
 
 Lower-level skills that auto-trigger when you're working with specific Obsidian file types or syntax. You rarely invoke these directly — they activate when needed.
@@ -209,6 +214,11 @@ Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-con
 ### Installation
 
 Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server.
+
+Claude Code discovers commands and skills from `.claude-plugin/plugin.json`; Codex discovers the
+same canonical skills from `.codex-plugin/plugin.json` and each skill's `agents/openai.yaml`.
+After an install or update, start a fresh Claude Code or Codex session before verifying discovery;
+an already-running host may retain the previous plugin snapshot.
 
 ## Architecture
 

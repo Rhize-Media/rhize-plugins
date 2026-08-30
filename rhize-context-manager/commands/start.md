@@ -24,9 +24,9 @@ Initialize a new development session with full context loading.
 Before anything else, check for the compiled skill-map artifact:
 `~/.claude/context-manager/skill-map.resolved.json`, falling back to
 `~/.claude/context-manager/skill-map.static.json`. If present, this repo's
-stack-relevant skills are already surfaced automatically by
-`rhize-context-manager/hooks/session-disclosure.js` (a SessionStart hook) —
-no manual action needed here. If neither file exists, the map hasn't been
+stack-relevant skills are already surfaced automatically in Claude Code by
+`rhize-context-manager/hooks/session-disclosure.js` (a SessionStart hook). Codex does not consume
+that hook manifest, so inspect the same artifact explicitly before routing. If neither file exists, the map hasn't been
 built/installed on this machine yet; degrade gracefully and proceed with the
 rest of `/start` using the flat plugin/skill listing instead (see the
 `context-stack` skill's "routing decisions consult the map; the flat listing

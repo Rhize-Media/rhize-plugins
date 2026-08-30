@@ -10,6 +10,11 @@ stores opt-in, privacy-safe v2 lifecycle receipts under `~/.rhize/parallel-agent
 only when it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
 guardrail hooks are active in a project.
 
+Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
+Codex loads the same skill bodies from `.codex-plugin/plugin.json` and `agents/openai.yaml`.
+After installing or updating either host, start a fresh session before checking discovery so a
+previously cached plugin snapshot is not mistaken for the release.
+
 ## Skills
 
 <!-- SKILL-MAP:BEGIN -->

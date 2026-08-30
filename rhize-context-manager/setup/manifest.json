@@ -74,7 +74,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
-      "description": "Migration metadata for the fail-silent selector now auto-wired in hooks/hooks.json for Claude and Codex. Do not add a second manual hook. Strict disabled-by-default config gates allowlisted canary/continuous local selection; mgrep remains separately network-authorized.",
+      "description": "Claude Code migration metadata for the fail-silent selector now auto-wired in hooks/hooks.json. Do not add a second manual Claude hook. Codex invokes the shared host-neutral runner explicitly through its skill. Strict disabled-by-default config gates allowlisted canary/continuous local selection; mgrep remains separately network-authorized.",
       "default": false
     },
     {
@@ -83,7 +83,7 @@
       "tier": "T3",
       "event": "Stop",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
-      "description": "Migration metadata for the fail-silent finalizer now auto-wired in hooks/hooks.json for Claude and Codex. Do not add a second manual hook. It writes a terminal receipt for every observed accepted attempt; only evidence-backed continuous success remains enabled.",
+      "description": "Claude Code migration metadata for the fail-silent finalizer now auto-wired in hooks/hooks.json. Do not add a second manual Claude hook. Codex invokes the shared host-neutral runner explicitly through its skill. The finalizer writes a terminal receipt for every observed accepted Claude attempt; only evidence-backed continuous success remains enabled.",
       "default": false
     }
   ],

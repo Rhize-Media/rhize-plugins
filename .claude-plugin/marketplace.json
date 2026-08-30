@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.51.1",
-  "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
+  "version": "2.52.0",
+  "description": "Curated Claude Code and Codex plugins by Rhize Media — knowledge, context, development workflow, operations, SEO, and web tooling",
   "owner": {
     "name": "Rhize Media"
   },
@@ -26,8 +26,8 @@
     {
       "name": "obsidian-second-brain",
       "source": "./obsidian-second-brain",
-      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
-      "version": "1.4.4",
+      "description": "Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex",
+      "version": "1.5.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -42,7 +42,9 @@
         "moc",
         "research",
         "qmd",
-        "semantic-search"
+        "semantic-search",
+        "compiled-knowledge",
+        "provenance"
       ],
       "category": "workflow"
     },
@@ -71,8 +73,8 @@
     {
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
-      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, authorized completed-branch promotion through repository-governed PR/deployment flows, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
-      "version": "2.16.0",
+      "description": "Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex",
+      "version": "2.17.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -82,15 +84,17 @@
         "data-mutation",
         "sentry",
         "chrome-devtools",
-        "rhize"
+        "rhize",
+        "test-evidence",
+        "mutation-testing"
       ],
       "category": "workflow"
     },
     {
       "name": "rhize-context-manager",
       "source": "./rhize-context-manager",
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack, ships a disabled-by-default real-provider retrieval/compiled-context dogfood harness, and adds a local mixed-language native context pack with explicit provenance and stale-pack verification. The pinned upstream Python compiler remains an eval provider.",
-      "version": "0.21.0",
+      "description": "Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts",
+      "version": "0.22.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -103,7 +107,10 @@
         "token-budget",
         "headroom",
         "claude-mem",
-        "graphiti",
+        "graphify",
+        "neo4j",
+        "memory-context",
+        "context-pack",
         "rhize"
       ],
       "category": "workflow"
@@ -111,8 +118,8 @@
     {
       "name": "rhize-ops",
       "source": "./rhize-ops",
-      "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
-      "version": "0.13.6",
+      "description": "Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts",
+      "version": "0.14.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -124,6 +131,9 @@
         "slack",
         "fireflies",
         "team-workflow",
+        "parallel-agents",
+        "task-graph",
+        "observability",
         "rhize"
       ],
       "category": "workflow"
@@ -132,7 +142,7 @@
       "name": "rhize-tasks",
       "source": "./rhize-tasks",
       "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -157,7 +167,7 @@
       "name": "procedural-memory",
       "source": "./procedural-memory",
       "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "Rhize Media"
       },

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-second-brain",
-  "version": "1.4.4",
+  "version": "1.5.0",
   "description": "Local-first Obsidian workflows, semantic search, and evidence-bound compiled knowledge for Claude Code and Codex.",
   "author": {
     "name": "Rhize Media"

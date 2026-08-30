@@ -72,8 +72,9 @@ the right one, and health-checks the whole thing.
   FULL/INTERFACE entry was selected, and fails closed
   on dynamic or stale dependencies. `verify-pack` must pass before reuse after any edit. The
   optional `--impact-map .claude/plans/<name>.md` bridge adds semantic terms and source-file seeds
-  while recording only hashes/counts. Selector/finalizer hooks are present in Claude and Codex but
-  strict config disables all providers by default. Canary mode stays one-shot; explicitly enabled
+  while recording only hashes/counts. Claude Code auto-wires the selector/finalizer hooks; Codex
+  exposes the same host-neutral runner through the `context-pack` and `context-experiment` skills
+  and must invoke it explicitly. Strict config disables all providers by default. Canary mode stays one-shot; explicitly enabled
   continuous local mode stays live only after evidence-backed success and freezes on every
   incomplete/failed/stale/malformed terminal state. No network provider is enabled by this command.
   *Example: "Run /context-pack for the account sync target, inspect the reasons, then verify it
@@ -143,8 +144,9 @@ the right one, and health-checks the whole thing.
   `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
 - `context-experiment-selector.js` and `context-experiment-finalizer.js` are auto-wired for Claude
-  and Codex but no-op while capabilities are disabled. Remove older manually wired Claude entries
-  when updating; duplicate calls are state-safe but waste local provider work.
+  Code and no-op while capabilities are disabled. Codex uses the same host-neutral runner through
+  explicit skill invocation; it does not consume `hooks/hooks.json`. Remove older manually wired
+  Claude entries when updating; duplicate calls are state-safe but waste local provider work.
 - `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`)
   replaced the keyword-grep `skill-suggester` hook 2026-08-09 — it ranks the prompt
   against the compiled skill-map's topic/stack tags instead of a fixed keyword list, so

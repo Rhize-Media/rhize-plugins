@@ -812,8 +812,11 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     assert receipt["evidenceDigest"] is None
 
 
-def test_plugin_hooks_auto_wire_selector_and_finalizer_for_shared_runtimes() -> None:
-    hooks = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())["hooks"]
+def test_plugin_hooks_auto_wire_selector_and_finalizer_for_claude_code_only() -> None:
+    hook_manifest = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
+    assert "Claude Code auto-wires" in hook_manifest["description"]
+    assert "Codex uses the same host-neutral skills and runners explicitly" in hook_manifest["description"]
+    hooks = hook_manifest["hooks"]
     prompt_commands = [
         hook["command"]
         for group in hooks["UserPromptSubmit"]
@@ -826,6 +829,16 @@ def test_plugin_hooks_auto_wire_selector_and_finalizer_for_shared_runtimes() -> 
     ]
     assert any("context-experiment-selector.js" in value for value in prompt_commands)
     assert any("context-experiment-finalizer.js" in value for value in stop_commands)
+
+
+def test_cross_host_docs_do_not_claim_codex_consumes_claude_hooks() -> None:
+    readme = (PLUGIN_ROOT / "README.md").read_text()
+    guide = (PLUGIN_ROOT / "GUIDE.md").read_text()
+    command = (PLUGIN_ROOT / "commands" / "context-experiment.md").read_text()
+    assert "Codex does not consume" in readme
+    assert "Claude hook manifest" in readme
+    assert "Codex uses the same host-neutral runner" in guide
+    assert "the Claude hook manifest is not a Codex runtime surface" in command
 
 
 def test_record_evidence_command_requires_pending_and_is_immutable(

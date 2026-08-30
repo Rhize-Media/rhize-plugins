@@ -59,9 +59,11 @@ are stored under `~/.claude/rhize-context-manager/experiments/`. Both locations 
 redirected in tests with `RHIZE_CONTEXT_EXPERIMENT_CONFIG` and
 `RHIZE_CONTEXT_EXPERIMENT_DATA_DIR`.
 
-The selector and finalizer are shared plugin hooks for Claude and Codex, but strict config keeps
-them inert by default. Before upgrading, remove any manually wired Claude selector/finalizer
-entries; duplicate invocations are state-idempotent but can repeat local pack construction.
+Claude Code auto-wires the selector and finalizer through `hooks/hooks.json`; strict config keeps
+them inert by default. Codex discovers the same canonical skill and invokes this host-neutral runner
+explicitly because the Claude hook manifest is not a Codex runtime surface. Before upgrading,
+remove any manually wired Claude selector/finalizer entries; duplicate invocations are
+state-idempotent but can repeat local pack construction.
 
 Set `RHIZE_CONTEXT_COMPILER_CHECKOUT` to avoid passing `--checkout` manually. Before `arm`,
 show the exact command and ask for confirmation. For mgrep, confirmation must explicitly

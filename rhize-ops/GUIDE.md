@@ -16,6 +16,10 @@ It's built for anyone running a Claude Code/Cowork setup who regularly delegates
 
 Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` and `parallel-agent-optimization` need no setup. The latter creates its private local receipt directory on first use.
 
+The same `parallel-agent-optimization` skill contract is discoverable in Claude Code and Codex.
+Restart the host after installing or updating the plugin before running a discovery smoke; commands
+are Claude adapters, while Codex routes through the canonical skill and its OpenAI metadata.
+
 ## Skills Reference
 
 ### delegate-to-teammate

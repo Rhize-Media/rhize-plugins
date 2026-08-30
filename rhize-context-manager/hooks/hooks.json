@@ -1,5 +1,5 @@
 {
-  "description": "rhize-context-manager auto-wires local context selection/finalization for Claude and Codex plus the context-window monitor, stack disclosure, and relationship suggesters. Context experiments remain disabled in strict configuration until explicitly enabled for an allowlisted repository. Existing manually wired selector/finalizer entries must be removed during coordinator migration; duplicate invocations are state-idempotent but waste a provider build.",
+  "description": "Claude Code auto-wires local context selection/finalization plus the context-window monitor, stack disclosure, and relationship suggesters. Codex uses the same host-neutral skills and runners explicitly because this Claude hook manifest is not a Codex runtime surface. Context experiments remain disabled in strict configuration until explicitly enabled for an allowlisted repository. Existing manually wired Claude selector/finalizer entries must be removed during coordinator migration; duplicate invocations are state-idempotent but waste a provider build.",
   "hooks": {
     "UserPromptSubmit": [
       {

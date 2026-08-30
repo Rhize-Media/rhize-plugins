@@ -39,14 +39,15 @@ failure mode is running overlapping layers without noticing they compete.
 Skill/capability routing decisions (which skill to reach for, which skills are
 relevant to a repo) consult the generated skill map first — see
 `docs/skill-map.md` for the artifact/schema and `.claude/plans/skill-map-graph-substrate.md`
-for the rationale. Two consumers read it today: `skill-router.js` (opt-in,
+for the rationale. Claude Code has two hook consumers today: `skill-router.js` (opt-in,
 per-prompt suggestion) and `session-disclosure.js` (auto-wired SessionStart
 hook, stack-fingerprint-driven repo disclosure — replaces the four per-plugin
 SessionStart banners retired 2026-08-09). Both resolve
 `~/.claude/context-manager/skill-map.resolved.json`, falling back to
 `skill-map.static.json`. The flat plugin/skill listing (this file's tables,
 each plugin's README) is the fallback when the map is missing or stale — it
-is never the primary source once the map is installed.
+is never the primary source once the map is installed. Codex does not consume the Claude hook
+manifest; its agent inspects the same generated map and canonical skill metadata explicitly.
 
 ## Routing rules
 
