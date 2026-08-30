@@ -146,3 +146,8 @@ estimating a value.
 `ai-stack-version-drift` review references only. The existing skill monitor may still contain old
 direct-launch counts, but those historical counts do not contain matched outcome evidence and are
 not mixed into v2 reports.
+
+**A receipt is evidence, not decision authority.** An authenticated coordinator may preview an
+experiment adoption/promotion/hold decision through `rhize-context-manager` only after binding the
+current Jira revision, predeclared thresholds, privacy-safe receipt/report digests, policy, and
+approval. Ops never writes a graph or shadow ledger and never updates Jira from a decision preview.

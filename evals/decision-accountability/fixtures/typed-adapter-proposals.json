@@ -1,0 +1,218 @@
+{
+  "rhize-devflow": {
+    "acl": [
+      "group:fixture"
+    ],
+    "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+    "approval": {
+      "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+      "approvalIdHash": "38e48ac96fe121d4985784eccfcfc2a3079830d682d712ba75ab36b3624f12b1",
+      "digest": "2920dac302d84c65fd55aad690b5d7b6d6eff3a8df340d96b180cebc34a52e5d",
+      "expiresAt": "2026-08-30T13:00:00Z",
+      "granted": true,
+      "revision": "approval-v1",
+      "scopes": [
+        "decision:record",
+        "group:fixture"
+      ],
+      "source": "fixture-approval"
+    },
+    "decisionClass": "release",
+    "domain": "software-delivery",
+    "evidenceSet": {
+      "digest": "e6ed671d30494459ffd0f82a0a66309aa106dd34f46089d0ff0e8c68bf519554",
+      "evidenceSetId": "e6ed671d30494459ffd0f82a0a66309aa106dd34f46089d0ff0e8c68bf519554",
+      "items": [
+        {
+          "digest": "37da979d881b9002f988268090a9fe21724b737545dcff3c7db2848865665e09",
+          "evidenceId": "b401f7e1e01dbd2d44dbaa63a9a3904040cde7e1997ab23106cb07920aa91e8d",
+          "idHash": "1f6c35e42463059705bb7e8a2357862d7a9797478cde7ca5e4c87fac9e86331b",
+          "revision": "release-fixture-v1",
+          "status": "available",
+          "system": "git"
+        }
+      ]
+    },
+    "policyEvaluation": {
+      "deterministic": true,
+      "evaluatedAt": "2026-08-30T12:00:00Z",
+      "evaluationId": "2c07071442b26cdb656db5fba2afb50e97ba0fbc0b2404ae81bcedb2016aeae7",
+      "evaluationVersion": 1,
+      "evaluatorVersion": "adapter-fixture-v1",
+      "inputRefs": [
+        "b401f7e1e01dbd2d44dbaa63a9a3904040cde7e1997ab23106cb07920aa91e8d"
+      ],
+      "outputDigest": "cb6a7de3cc3bde067862053629ce17ee97cf9113b1e01a37b762646651075d79",
+      "policyDigest": "3e18816113a6a5dcf535e92b54e3e1c7429a18c725a9b750af33ab0cec9933f4",
+      "policyIdHash": "4e3ce411dfd89cb7e132a485debe8d84ebd4e26cdeae211f8021409ce0e2af3e",
+      "policyVersion": "policy-v1",
+      "result": "allow",
+      "status": "reproduced"
+    },
+    "policySnapshot": {
+      "digest": "3e18816113a6a5dcf535e92b54e3e1c7429a18c725a9b750af33ab0cec9933f4",
+      "policyIdHash": "4e3ce411dfd89cb7e132a485debe8d84ebd4e26cdeae211f8021409ce0e2af3e",
+      "status": "current",
+      "version": "policy-v1"
+    },
+    "projectRef": "project-fixture",
+    "rationaleSummaryHash": "18d0071093fd8560de9541a8e8e577e9dacd65b6d0f3e6982dea745b2d582e2c",
+    "retentionUntil": "2026-08-31T12:00:00Z",
+    "sensitivity": "internal",
+    "source": {
+      "digest": "672b2eda0f25a9174991f55c57fc2af1f37b1894f0b7e3db801b848b3fe0dd12",
+      "idHash": "d172a5c9520b3f024529ca93d6549fc26c5851b8e42f1200a9fe4f6c67eb549e",
+      "revision": "release-fixture-v1",
+      "system": "git"
+    },
+    "tenantRef": "tenant-fixture",
+    "workflow": {
+      "id": "rhize-devflow",
+      "revision": "adapter-v1"
+    }
+  },
+  "rhize-ops": {
+    "acl": [
+      "group:fixture"
+    ],
+    "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+    "approval": {
+      "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+      "approvalIdHash": "28dd64c0bc39f5c2b5fda31f4c7a88769db1d65698478d6fc2a226c7d4c132a6",
+      "digest": "577ad02fc737fe724589f8886bc87c9a3695eba058ffa3db601c40015a2e465d",
+      "expiresAt": "2026-08-30T13:00:00Z",
+      "granted": true,
+      "revision": "approval-v1",
+      "scopes": [
+        "decision:record",
+        "group:fixture"
+      ],
+      "source": "fixture-approval"
+    },
+    "decisionClass": "adoption",
+    "domain": "operations-experiment",
+    "evidenceSet": {
+      "digest": "c5e3e0300de549dc0de294f1222fc4e6d4756aa215a5c6fc3d97897d9de78eec",
+      "evidenceSetId": "c5e3e0300de549dc0de294f1222fc4e6d4756aa215a5c6fc3d97897d9de78eec",
+      "items": [
+        {
+          "digest": "62dde2bb276ed2469c39adcc8aa098306a1d76595a630a3cefda28f620e14626",
+          "evidenceId": "dab2046b5fc626b117ec524339aea2f7c7b968f3d4fcf31b0ea28497584c072f",
+          "idHash": "bc48fa5d78c55e80332969f1295c45f4be51ab2e9c64597d6249867e503b5def",
+          "revision": "experiment-fixture-v1",
+          "status": "available",
+          "system": "local-receipt"
+        }
+      ]
+    },
+    "policyEvaluation": {
+      "deterministic": true,
+      "evaluatedAt": "2026-08-30T12:00:00Z",
+      "evaluationId": "1b9f5eb0171984f61f2b3942aa28a0ae1e82794021a3769c04f0d58583cb88c8",
+      "evaluationVersion": 1,
+      "evaluatorVersion": "adapter-fixture-v1",
+      "inputRefs": [
+        "dab2046b5fc626b117ec524339aea2f7c7b968f3d4fcf31b0ea28497584c072f"
+      ],
+      "outputDigest": "2cb426c6aa9fd961e55f7a91906590fff508838aadcc28b42fcc89c20b8dcb0a",
+      "policyDigest": "ad9ef844ad7a9b8baa02cc6a2ff68362c91247de7ae64eaa0825361f13d4bbc5",
+      "policyIdHash": "2c1de6b9b687a43e22f0597be2518d4f24042ff0058d741c857e4be11ae39192",
+      "policyVersion": "policy-v1",
+      "result": "allow",
+      "status": "reproduced"
+    },
+    "policySnapshot": {
+      "digest": "ad9ef844ad7a9b8baa02cc6a2ff68362c91247de7ae64eaa0825361f13d4bbc5",
+      "policyIdHash": "2c1de6b9b687a43e22f0597be2518d4f24042ff0058d741c857e4be11ae39192",
+      "status": "current",
+      "version": "policy-v1"
+    },
+    "projectRef": "project-fixture",
+    "rationaleSummaryHash": "10d39e77b782ee806ca586025d4106a0acb7a75b2d478af976ca25cca8c491ec",
+    "retentionUntil": "2026-08-31T12:00:00Z",
+    "sensitivity": "internal",
+    "source": {
+      "digest": "584c75988449dbb597b90265b05e552331c3d08c6c208d8e183d3bf9a2beb348",
+      "idHash": "5e468d787811268736d37f15665878633df0dcfddd65d960e290ea72e4d441b3",
+      "revision": "experiment-fixture-v1",
+      "system": "jira"
+    },
+    "tenantRef": "tenant-fixture",
+    "workflow": {
+      "id": "rhize-ops",
+      "revision": "adapter-v1"
+    }
+  },
+  "rhize-tasks": {
+    "acl": [
+      "group:fixture"
+    ],
+    "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+    "approval": {
+      "actorHash": "b4131a4461f6da92a35cf5a7a449795e23341229212f4d07e783c8c9b11242fa",
+      "approvalIdHash": "2cdeab6ec456b0f44e9dd6a6ed23e3a39b4b04d2a734cb7de29737e2031206f2",
+      "digest": "07d146bf47119d96005d3d68a95cb63712d90fd13806531ef2683a3624031e26",
+      "expiresAt": "2026-08-30T13:00:00Z",
+      "granted": true,
+      "revision": "approval-v1",
+      "scopes": [
+        "decision:record",
+        "group:fixture"
+      ],
+      "source": "fixture-approval"
+    },
+    "decisionClass": "external_effect_routing",
+    "domain": "routing-operations",
+    "evidenceSet": {
+      "digest": "1f044ca908bfb1d81dc0df51ea689455a3272cbf6a37414c5a314bf0ed1147e9",
+      "evidenceSetId": "1f044ca908bfb1d81dc0df51ea689455a3272cbf6a37414c5a314bf0ed1147e9",
+      "items": [
+        {
+          "digest": "e23dddca3e71d64c8625ad0ab5ac1f585a6851bd40f1cae58fd39e46b24a9a9e",
+          "evidenceId": "e0b72827d6e7aace6d65633e1a1fce82a8666d695f14a023166c12d777e7b902",
+          "idHash": "f69afb395c542adc0d2a01fa15bf43e434244c13bd228c5117d42f6cff2140b5",
+          "revision": "plan-fixture-v1",
+          "status": "available",
+          "system": "approved-operation"
+        }
+      ]
+    },
+    "policyEvaluation": {
+      "deterministic": true,
+      "evaluatedAt": "2026-08-30T12:00:00Z",
+      "evaluationId": "cc22498e9cb3ed82c19410fe91d979dcdf655286d9f474a2c0f1f3a8fd5c0cd6",
+      "evaluationVersion": 1,
+      "evaluatorVersion": "adapter-fixture-v1",
+      "inputRefs": [
+        "e0b72827d6e7aace6d65633e1a1fce82a8666d695f14a023166c12d777e7b902"
+      ],
+      "outputDigest": "b74141cef76da95e22b8e57b0d1977508bef102a3d2a553ef1f39f95be68d9e1",
+      "policyDigest": "0c845b5b70078ee8af31bc39a8dcf0d9f9fbb0180c6b55ddd9e3611c3cdedfff",
+      "policyIdHash": "2a29ab9872af479b07b38bbc76f89d57904c738d90d51bdd6da51547b21f50ea",
+      "policyVersion": "policy-v1",
+      "result": "allow",
+      "status": "reproduced"
+    },
+    "policySnapshot": {
+      "digest": "0c845b5b70078ee8af31bc39a8dcf0d9f9fbb0180c6b55ddd9e3611c3cdedfff",
+      "policyIdHash": "2a29ab9872af479b07b38bbc76f89d57904c738d90d51bdd6da51547b21f50ea",
+      "status": "current",
+      "version": "policy-v1"
+    },
+    "projectRef": "project-fixture",
+    "rationaleSummaryHash": "24a291f5c18b80efa7f371f3eaba6f62e48627524f33c0667078e5e11157df01",
+    "retentionUntil": "2026-08-31T12:00:00Z",
+    "sensitivity": "internal",
+    "source": {
+      "digest": "cbc8dfcc9d09e27293af3b2de322804b52a16052eead2a32c39bd0d4384caee7",
+      "idHash": "845aba5674aa4ba0675da919a3b230218b4ac3f98095b5e88114e64b3f3b2e8b",
+      "revision": "plan-fixture-v1",
+      "system": "local-planning-state"
+    },
+    "tenantRef": "tenant-fixture",
+    "workflow": {
+      "id": "rhize-tasks",
+      "revision": "adapter-v1"
+    }
+  }
+}

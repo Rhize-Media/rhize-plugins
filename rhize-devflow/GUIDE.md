@@ -415,6 +415,11 @@ not sufficient — it validates the in-progress change, not the shippability of 
 `review`'s independent-reviewer requirement exists specifically because the session that authored
 a change is a bad judge of its own work.
 
+**Decision previews do not replace release authority.** After review, an authenticated coordinator
+may map the accepted Git/PR/deployment evidence and current policy/approval into
+`rhize-context-manager`'s typed decision preview. Dev Flow never writes a second ledger and an
+offline preview cannot be recorded or published; it cannot merge, deploy, or update Jira.
+
 **Mention the platform when it matters for mutation work.** "Check this mutation" triggers a
 generic pass; "check this Payload afterChange hook" or "check this React Query mutation" lets the
 skill apply the sub-skill-specific checks (Payload's `afterDelete` cache invalidation vs. React

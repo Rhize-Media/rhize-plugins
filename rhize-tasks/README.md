@@ -18,6 +18,15 @@ The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is
 - Completing an exact plugin-created reminder records local completion and creates an approval-required Jira reconciliation comment. It never changes Jira without approval.
 - Pausing stops routines and connector writes. A stale or revoked connector pauses only that connector's writes where the remaining plan can still be evaluated safely.
 
+### Decision-accountability adapter
+
+Rhize Tasks may map an explicitly approved external-effect routing or reconciliation choice into the
+shared graph-memory proposal. The local plan/revision and exact approved operation remain canonical;
+Jira is referenced only through its current task identity/revision. The adapter cannot approve or
+execute an operation, contact a connector, copy SQLite state, or create another ledger. It uses the
+canonical [typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
+and preserves `unavailable` while governed projection operations are disabled.
+
 ## Architecture and source split
 
 | Component | Authority | Read boundary | Write boundary |

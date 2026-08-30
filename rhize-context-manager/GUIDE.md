@@ -91,6 +91,13 @@ the right one, and health-checks the whole thing.
   → use the Neo4j ontology/hygiene plans; the `graphiti-memory` skill is historical design context
   only. Graphiti was not implemented and must not be installed or routed as a fallback.
 
+- **"Preview why we approved this release/experiment/task effect"**
+  → use `graph-memory` (`/graph-decision` in Claude) with a typed adapter from the owning workflow.
+  The offline release validates private, source-bound previews but does not record or publish them.
+  Record/explain/impact/precedent/correction operations return `unavailable` until the governed RT-161
+  projection canary; do not create a local fallback ledger. Claude and Codex use the same CLI and
+  [adapter contract](skills/graph-memory/references/typed-decision-adapters.md).
+
 - **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
   should I compress? where should a learning be stored?) → the curated library:
   `context-fundamentals`, `context-degradation`, `context-compression`,

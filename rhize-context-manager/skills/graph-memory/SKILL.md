@@ -3,8 +3,8 @@ name: graph-memory
 description: >-
   Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to
   validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound
-  claims, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's
-  direct Neo4j export/push for Rhize governed data.
+  claims, preview or reconstruct a consequential decision, test graph tenancy or rollback,
+  or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.
 metadata:
   rhize:
     tier: custom
@@ -93,6 +93,30 @@ installed skill path. The CLI itself has no host-specific imports or environment
 Compile packs with repeated `--pack` arguments. A pack must use a distinct `rhize.*` namespace,
 target the exact core version, avoid redefining core types, and justify every subtype or relationship
 with a named query. Unsupported concepts remain source-bound Claims rather than expanding the core.
+
+## Decision accountability
+
+Use `decision` operations only for predeclared consequential decisions owned by an authenticated
+workflow. Read [typed-decision-adapters.md](references/typed-decision-adapters.md) before mapping a
+Dev Flow, Ops, or Rhize Tasks record. The proposal must bind current canonical evidence, policy,
+approval, actor, tenant/project, workflow revision, retention, and a privacy-safe rationale digest.
+It must not contain prompts, transcripts, hidden reasoning, credentials, client content, or paths.
+
+Check capability before proposing a mutation:
+
+```bash
+python3 <plugin-root>/scripts/graph_memory/cli.py decision status
+```
+
+The offline CLI supports private `preview` only. The in-memory adapter tests record/query/correction
+semantics in one process, but it is not durable state. `record`, `explain`, `impact`, `precedents`,
+and `correct` return `status=unavailable` until the governed projection is configured. Never replace
+that response with a plugin-local ledger, raw Cypher, direct Neo4j, Jira access, or automatic
+execution.
+
+Claude's `/graph-decision` command is a thin adapter to this CLI. Codex discovers this same skill
+and OpenAI metadata. Both hosts must produce byte-equivalent JSON for fixed inputs and must preserve
+the same unavailable/unauthorized failures.
 
 ## Release boundary
 

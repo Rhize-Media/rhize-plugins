@@ -100,6 +100,15 @@ Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in ho
 
 **Invoked as:** `/rhize-ops:rhize-setup`
 
+## Decision-accountability adapter
+
+Ops may map a predeclared experiment adoption/promotion/hold decision into the shared graph-memory
+proposal using the Jira measurement revision, privacy-safe receipt/report digests, fixed thresholds,
+current policy, and explicit approval. It never upgrades observational evidence, mutates Jira, or
+creates a decision store. The canonical
+[typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
+owns preview/record semantics and returns `unavailable` while projection operations are disabled.
+
 ## Setup manifest schema
 
 `rhize-ops` owns this spec — any Rhize plugin that wants its guardrail hooks discoverable by `/rhize-ops:rhize-setup` ships a `setup/manifest.json` at its plugin root conforming to it. Shipping a manifest never auto-wires anything; it only makes the hook *offerable* through the wizard.

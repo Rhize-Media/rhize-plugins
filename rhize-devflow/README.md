@@ -22,6 +22,15 @@ Dev Flow is installed and code changed this session; otherwise it runs a disclos
 fallback checklist. See [rhize-context-manager's README](../rhize-context-manager/README.md) for
 the session-lifecycle side of this boundary.
 
+### Decision-accountability adapter
+
+Dev Flow may map an already reviewed release, rollback, or completed-branch promotion into the
+shared graph-memory decision proposal. Git/PR/deployment revisions, repository policy, evidence,
+and approval remain authoritative; Dev Flow does not own a decision ledger or Neo4j/Jira client.
+The adapter only calls the canonical
+[typed decision contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md),
+never deploys from a graph record, and preserves `unavailable` while the governed projection is off.
+
 ## Commands
 
 ### Canonical control-plane workflow

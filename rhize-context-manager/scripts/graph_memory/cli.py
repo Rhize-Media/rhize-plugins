@@ -12,10 +12,24 @@ from typing import Any, Sequence
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     from graph_memory.contract import ContractError, canonical_json, compile_ontology, load_json, sha256_value
+    from graph_memory.decisions import (
+        DECISION_CONTRACT_VERSION,
+        DecisionError,
+        DecisionPreviewStore,
+        InMemoryDecisionLedger,
+        parse_time,
+    )
     from graph_memory.store import InMemoryNeo4jAdapter, QueryBudget, StoreError
     from graph_memory.translate import GraphifyTranslator
 else:
     from .contract import ContractError, canonical_json, compile_ontology, load_json, sha256_value
+    from .decisions import (
+        DECISION_CONTRACT_VERSION,
+        DecisionError,
+        DecisionPreviewStore,
+        InMemoryDecisionLedger,
+        parse_time,
+    )
     from .store import InMemoryNeo4jAdapter, QueryBudget, StoreError
     from .translate import GraphifyTranslator
 
@@ -81,6 +95,45 @@ def build_parser() -> argparse.ArgumentParser:
     manifest.add_argument("--build-commit")
     manifest.add_argument("--model-id")
     manifest.add_argument("--prompt-hash")
+
+    decision = subparsers.add_parser(
+        "decision",
+        help="preview decisions or report governed projection availability",
+    )
+    decision_parsers = decision.add_subparsers(dest="decision_operation", required=True)
+    preview = decision_parsers.add_parser("preview", help="create a private source-bound preview")
+    preview.add_argument("--proposal", type=Path, required=True)
+    preview.add_argument(
+        "--preview-root",
+        type=Path,
+        required=True,
+        help="absolute caller-owned mode-0700 directory outside the repository",
+    )
+    preview.add_argument("--principal-hash", required=True)
+    preview.add_argument("--principal-scope", action="append", required=True)
+    preview.add_argument("--idempotency-key", required=True)
+    preview.add_argument("--nonce", required=True)
+    preview.add_argument("--ttl-seconds", type=int, default=600)
+    preview.add_argument("--at", help="timezone-aware time override for deterministic fixtures")
+
+    record = decision_parsers.add_parser(
+        "record", help="report availability for governed durable recording"
+    )
+    record.add_argument("--preview-id", required=True)
+
+    decision_parsers.add_parser("status", help="report offline/live decision adapter availability")
+    for operation in ("explain", "impact", "correct"):
+        operation_parser = decision_parsers.add_parser(
+            operation,
+            help=f"report availability for the governed {operation} operation",
+        )
+        operation_parser.add_argument("--decision-id", required=True)
+    precedents = decision_parsers.add_parser(
+        "precedents", help="report availability for the governed precedent query"
+    )
+    precedents.add_argument("--decision-class", required=True)
+    precedents.add_argument("--domain", required=True)
+    precedents.add_argument("--current-policy-digest", required=True)
     return parser
 
 
@@ -96,7 +149,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         result = _run(args)
-    except (ContractError, StoreError, OSError, json.JSONDecodeError) as exc:
+    except (ContractError, DecisionError, StoreError, OSError, json.JSONDecodeError) as exc:
         print(canonical_json({"status": "error", "error": str(exc)}), file=sys.stderr)
         return 2
     print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2 if args.pretty else None))
@@ -104,6 +157,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _run(args: argparse.Namespace) -> dict[str, Any]:
+    if args.command == "decision":
+        return _run_decision(args)
     ontology = compile_ontology(args.core, args.pack)
     if args.command == "compile":
         return ontology.to_dict()
@@ -189,6 +244,47 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         query_text=args.query_text,
         record_id=args.record_id,
     )
+
+
+def _run_decision(args: argparse.Namespace) -> dict[str, Any]:
+    operation = args.decision_operation
+    if operation == "status":
+        return {
+            "contractVersion": DECISION_CONTRACT_VERSION,
+            "liveNeo4jEnabled": False,
+            "offlineOperations": ["preview"],
+            "projectionOperations": ["correct", "explain", "impact", "precedents", "record"],
+            "shadowStoreCreated": False,
+            "status": "offline_contract_only",
+        }
+    if operation in {"correct", "explain", "impact", "precedents", "record"}:
+        return {
+            "contractVersion": DECISION_CONTRACT_VERSION,
+            "liveNeo4jEnabled": False,
+            "operation": operation,
+            "reason": "governed_decision_projection_not_configured",
+            "shadowStoreCreated": False,
+            "status": "unavailable",
+        }
+
+    at = parse_time(args.at, "at") if args.at else None
+    proposal = load_json(args.proposal)
+    preview = InMemoryDecisionLedger(DecisionPreviewStore(args.preview_root)).preview(
+        proposal,
+        principal_hash=args.principal_hash,
+        principal_scopes=args.principal_scope,
+        idempotency_key=args.idempotency_key,
+        nonce=args.nonce,
+        ttl_seconds=args.ttl_seconds,
+        now=at,
+    )
+    return {
+        "contractVersion": DECISION_CONTRACT_VERSION,
+        "liveNeo4jEnabled": False,
+        "preview": preview,
+        "publication": "not_published",
+        "status": "previewed_offline",
+    }
 
 
 if __name__ == "__main__":
