@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; scheduled maintenance and promotion remain gated |
 | Date | 2026-08-30 |
 | Primary owner | `obsidian-second-brain` |
 | Supporting owner | `rhize-context-manager` (`graphify`, scoped context packs) |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for ingestion/provenance; Luna for deterministic lint and fixtures |
 | Cross-host surface | Canonical `obsidian-second-brain:knowledge-compiler` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child linked to RT-128; scheduled maintenance and packaging remain gated by RT-145/RT-146 |
+| Jira tracking | RT-150 implementation; RT-157 measurement/promotion; linked to RT-128, RT-145, and RT-146 |
 
 ## Decision
 

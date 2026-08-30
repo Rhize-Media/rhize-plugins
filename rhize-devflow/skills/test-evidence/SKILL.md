@@ -10,7 +10,7 @@ metadata:
     tier: custom
     domain: dev-flow
     maturity: seedling
-    topics: [testing, review, evidence]
+    topics: [review, evidence]
     stacks: [testing]
     extends: [dev-flow-foundations]
 ---

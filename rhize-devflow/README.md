@@ -84,7 +84,7 @@ mutation-analyze · mutation-fix
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
-| `test-evidence` | Classify changed regression tests and produce or validate state-bound independent-oracle or safely isolated mutation evidence. | evidence, review, testing |
+| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate state-bound independent-oracle or… | evidence, review, testing |
 <!-- SKILL-MAP:END -->
 
 Each of these seven overlay skills carries only Rhize-specific policy or convention, not

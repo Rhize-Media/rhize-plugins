@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; measurement and promotion evidence pending |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-ops` |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for the contract and receipt migration; Luna for bounded fixtures and documentation |
 | Cross-host surface | Canonical `rhize-ops:parallel-agent-optimization` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; measurement remains in RT-147 and historical decision context in RT-129 |
+| Jira tracking | RT-148 implementation; RT-155 measurement/promotion; RT-147 shared measurement; RT-129 historical decision context |
 
 ## Decision
 

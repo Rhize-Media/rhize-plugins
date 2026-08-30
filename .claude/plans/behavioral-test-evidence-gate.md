@@ -2,13 +2,13 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; calibration and promotion evidence pending |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-devflow` |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for gate integration; Luna for labeled fixtures and documentation |
 | Cross-host surface | Canonical `rhize-devflow:test-evidence` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; separate calibration/promotion follow-up linked to RT-145 and RT-146 |
+| Jira tracking | RT-149 implementation; RT-156 calibration/promotion; linked to RT-145 and RT-146 |
 
 ## Decision
 

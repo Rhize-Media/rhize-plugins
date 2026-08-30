@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Implementation complete through Phase 7 decision; Phase 8 native-pack v2 and dual-host hardening proposed pending Jira confirmation |
+| Status | Phase 8 native-pack v2 and dual-host hardening implemented; live measurement remains gated |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
@@ -10,7 +10,7 @@
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for cross-cutting integration; Luna only for bounded fixtures, tests, and documentation |
 | Cross-host surface | Canonical `rhize-context-manager:context-pack` skill/CLI; thin Claude command; Codex skill discovery |
-| Jira tracking | Existing RT-128; add host-stratified live measurement and Phase 8 acceptance before implementation |
+| Jira tracking | RT-128 remains authoritative for host-stratified live measurement and promotion evidence |
 
 ## 1. Objective
 

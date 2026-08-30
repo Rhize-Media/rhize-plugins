@@ -2,14 +2,14 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Offline review/reversal release implemented; calibration and consolidation remain gated |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-context-manager` Neo4j adapter |
 | Prerequisite | `neo4j-marketplace-ontology.md` through governed-ingest acceptance |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for identity decisions/projection/reversal; Luna for labeled-pair fixtures and reporting |
 | Cross-host surface | Extend canonical `rhize-context-manager:graph-memory` skill/CLI; thin Claude review adapter; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; calibration, consolidation, and any automatic `SAME_AS` authority remain separate follow-ups |
+| Jira tracking | RT-153 implementation; RT-160 calibration/consolidation; automatic `SAME_AS` remains out of scope |
 
 ## Decision
 

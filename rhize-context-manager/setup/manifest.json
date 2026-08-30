@@ -67,24 +67,6 @@
       "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__session-end.sh",
       "description": "At session end, computes tool-call count, tool-error count, distinct files written, and session duration from the transcript JSONL; if any threshold is exceeded (>20 tool calls, any error, >60min, >10 files), suggests `/rhize-context-manager:learn-harvest` (then `/skill-refine review`). Moved from rhize-devflow — see CHANGELOG 2026-08-09.",
       "default": false
-    },
-    {
-      "id": "context-experiment-selector",
-      "title": "Claim the next eligible context experiment",
-      "tier": "T3",
-      "event": "UserPromptSubmit",
-      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
-      "description": "Migration metadata for the fail-silent selector now auto-wired in hooks/hooks.json for Claude and Codex. Do not add a second manual hook. Strict disabled-by-default config gates allowlisted canary/continuous local selection; mgrep remains separately network-authorized.",
-      "default": false
-    },
-    {
-      "id": "context-experiment-finalizer",
-      "title": "Finalize an eligible context experiment",
-      "tier": "T3",
-      "event": "Stop",
-      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
-      "description": "Migration metadata for the fail-silent finalizer now auto-wired in hooks/hooks.json for Claude and Codex. Do not add a second manual hook. It writes a terminal receipt for every observed accepted attempt; only evidence-backed continuous success remains enabled.",
-      "default": false
     }
   ],
   "dependencies": [
