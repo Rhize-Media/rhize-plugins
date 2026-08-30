@@ -36,6 +36,42 @@
     "should_trigger": false
   },
   {
+    "id": "trigger-completed-branch-promotion-pos-push-main",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "The feature is complete and all fixes are committed. Push to main.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-completed-branch-promotion-pos-push-dev-main",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "Everything is finished. Please push to dev and main.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-completed-branch-promotion-pos-explicit-override",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "Push to main, but skip dev for this repository-approved hotfix.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-completed-branch-promotion-pos-manual-authorized",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "This is a manual-push repository and I explicitly authorize it: push to dev and main.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-completed-branch-promotion-neg-branch-backup",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "Push my unfinished feature branch to origin as a backup, but do not open or merge a PR.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-completed-branch-promotion-neg-explain-git",
+    "target": "skill:completed-branch-promotion",
+    "prompt": "Explain the difference between git push and git merge.",
+    "should_trigger": false
+  },
+  {
     "id": "trigger-data-mutation-consistency-pos",
     "target": "skill:data-mutation-consistency",
     "prompt": "Our dashboard shows stale data after a Server Action mutation and I had to hard-refresh to see the update -- can you check the cache and revalidate logic?",

@@ -102,5 +102,42 @@
       {"type": "contains", "value": "No extra release authority", "name": "Separates simplification from release authority"},
       {"type": "contains", "value": "commit, push, merge, deploy, migrate data", "name": "Names prohibited release mutations"}
     ]
+  },
+  {
+    "id": "quality-promotion-authority-and-overrides",
+    "target_file": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "manual-push repository", "name": "Handles explicit manual-push authorization"},
+      {"type": "contains", "value": "An explicit narrower instruction wins", "name": "Preserves explicit sequence overrides"},
+      {"type": "contains", "value": "does not independently authorize a production data migration", "name": "Does not broaden external mutation authority"}
+    ]
+  },
+  {
+    "id": "quality-promotion-dev-and-devless-flows",
+    "target_file": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "task branch -> PR -> `main`", "name": "Defines dev-less protected-main flow"},
+      {"type": "contains", "value": "Open a PR from the task branch to `dev`", "name": "Defines task-to-dev PR"},
+      {"type": "contains", "value": "\"Push to main\" never means a raw", "name": "Rejects raw protected-main push"}
+    ]
+  },
+  {
+    "id": "quality-promotion-dirty-diverged-and-failed-gates",
+    "target_file": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Preserve unrelated staged, unstaged, and untracked work", "name": "Protects unrelated dirty work"},
+      {"type": "contains", "value": "non-fast-forward, diverged, or moved", "name": "Stops on remote divergence"},
+      {"type": "contains", "value": "Any simplify, test, review, build, migration-preflight, or required browser gate that fails blocks promotion", "name": "Failed implementation gates block"},
+      {"type": "contains", "value": "deployment, or smoke gate fails", "name": "Failed release gates block"}
+    ]
+  },
+  {
+    "id": "quality-promotion-vercel-author-safe-release",
+    "target_file": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "locally authored **empty release commit**", "name": "Uses a release-only author-safe commit"},
+      {"type": "contains", "value": "tree is byte-for-byte identical to its parent", "name": "Proves release commit is content-neutral"},
+      {"type": "contains", "value": "never rewrite authors or fabricate identity", "name": "Preserves commit identity integrity"}
+    ]
   }
 ]

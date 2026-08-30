@@ -5,7 +5,8 @@
 "Task 9 -- Add evals, usage measures, and release enforcement").
 
 Runs the deterministic control-plane eval suite -- trigger-precision heuristic
-+ quality-assertion fixtures against check.md/review.md, plus a keyword-drift
++ quality-assertion fixtures against check.md/review.md and the canonical simplify/promotion
+skills, plus a keyword-drift
 check -- as part of the normal `python3 -m pytest tests/ -q` run, so a
 regression here fails the suite the same way any other test would. No live
 model calls are made (see evals/rhize-devflow/README.md for why: the plan

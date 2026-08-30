@@ -13,7 +13,7 @@ Everything namespaces as `rhize-devflow:<skill>` and `/rhize-devflow:<command>`.
 
 | Owner | Responsibility |
 |---|---|
-| **Rhize Dev Flow** (this plugin) | Change impact analysis, implementation validation, regression checks, production merge/release review, mutation and browser acceptance workflows. |
+| **Rhize Dev Flow** (this plugin) | Change impact analysis, implementation validation, regression checks, production merge/release review, authorized completed-branch promotion, mutation and browser acceptance workflows. |
 | **Rhize Context Manager** | Session state, context retrieval/compression, memory, checkpoints, context health, learning persistence — `/start`, `/done`, `/context-hygiene`, `/context-doctor`. |
 | **Official/specialist plugins** | Platform API documentation and specialist analysis (Sentry, Sanity, browser, ECC). This plugin layers Rhize-specific conventions on top of them rather than re-shipping their docs. |
 
@@ -37,8 +37,9 @@ the session-lifecycle side of this boundary.
 | `/rhize-devflow:doctor` | overlay | Read-only plugin/install health check — thin adapter over `scripts/devflow.py doctor`. Manifests, canonical commands, referenced assets, duplicate bodies, stale tokens, script/hook integrity, and capability dependencies, reported independently per capability. |
 | `/rhize-devflow:devflow-setup` | setup | Interview-driven wizard for the per-machine `.claude/*.local.md` tenant-file convention. |
 
-Release itself (the actual push/merge/deploy) stays outside this plugin — it's governed by
-each repository's own push policy, never performed by `check` or `review`.
+`check` and `review` never ship. The `completed-branch-promotion` skill performs the actual
+push/PR/merge/deployment-verification sequence only after the user or an auto-push repository
+policy authorizes it, and always remains subordinate to repository-specific release rules.
 
 See [Doctor and evidence CLI](#doctor-and-evidence-cli-scriptsdevflowpy) below for the CLI
 `/rhize-devflow:doctor` wraps, and for the separate `evidence` subcommand `check`/`review` use.
@@ -75,6 +76,7 @@ mutation-analyze · mutation-fix
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `chrome-devtools-mcp` | DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the act… | automation, nextjs, observability, testing |
+| `completed-branch-promotion` | Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. | testing, vercel, workflow-patterns |
 | `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, vercel, workflow-patterns |
 | `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
@@ -83,12 +85,17 @@ mutation-analyze · mutation-fix
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
-Each of these six overlay skills carries only Rhize-specific policy or convention, not
+Each of these seven overlay skills carries only Rhize-specific policy or convention, not
 platform API reference — `sentry-instrumentation` and `sanity-development` explicitly defer to
 the official `sentry:*`/`sanity:*` plugins for SDK setup and exhaustive API docs, and
 `chrome-devtools-mcp` shrinks to DevTools-protocol mechanics for `/rhize-devflow:browser-qa`
 rather than general browser automation guidance. `simplify` is an additive adaptation of Claude
-Code's built-in command for one shared Claude/Codex contract. `dev-flow-foundations` is the
+Code's built-in command for one shared Claude/Codex contract. `completed-branch-promotion` is an
+additive specialization of Superpowers' generic `finishing-a-development-branch`: the upstream
+skill supplies worktree/branch-finishing mechanics, while the Rhize skill owns explicit
+authorization, dev/main PR choreography, release gates, and exact deployment verification.
+Superpowers is therefore required for this skill; a missing dependency stops before mutation.
+`dev-flow-foundations` is the
 reference layer behind `/rhize-devflow:impact-map`/`check`/`review` — not a command surface itself.
 
 > The `skill-refinement` meta-skill moved to the `rhize-meta` plugin (2026-06-15), then on to the
@@ -227,7 +234,8 @@ you verify it. After any install or update:
    deprecated adapters) —
    or run `claude plugin details rhize-devflow` for a non-interactive check of the installed
    component inventory.
-3. Confirm the seven skills above (`simplify`, `dev-flow-foundations`, `data-mutation-consistency`,
+3. Confirm the eight skills above (`simplify`, `completed-branch-promotion`,
+   `dev-flow-foundations`, `data-mutation-consistency`,
    `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
    `chrome-devtools-mcp`) are discoverable in that session.
 4. Start a **fresh** Codex session and confirm the same skills load from

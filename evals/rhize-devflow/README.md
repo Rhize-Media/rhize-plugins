@@ -6,9 +6,9 @@ Two things are measured:
 
 1. **Trigger precision** — does a prompt's phrasing match the skill/command that *should*
    handle it, and stay quiet on near-miss prompts that shouldn't route to Dev Flow?
-2. **Output quality** — do the `/check` and `/review` command contracts declare the exact
-   verdict vocabulary, evidence tables, safety rules, and scope-preservation language the
-   plan requires?
+2. **Output quality** — do the `/check`, `/review`, `simplify`, and
+   `completed-branch-promotion` contracts declare the required verdicts, safety rules,
+   scope/authority boundaries, and release stop conditions?
 
 ## Why this directory looks different from `evals/seo-aeo-geo/` and `evals/obsidian/`
 
@@ -24,7 +24,8 @@ tests must not make live paid-service calls**. This directory is fully offline i
   decision — see "Method and limits" below.
 - **Quality evals** re-run the same assertion engine the house harness uses
   (`evals/assertions.py`'s `evaluate_all`), but against the **static contract text** of
-  `check.md`, `review.md`, and the canonical `simplify` skill instead of live command output.
+  `check.md`, `review.md`, and the canonical `simplify` and `completed-branch-promotion` skills
+  instead of live command output.
 
 Consequently the fixture files here are named `trigger_cases.json` / `quality_cases.json`,
 **not** `trigger_evals.json` / `quality_evals.json`. That's deliberate: `evals/run_evals.py`
@@ -101,9 +102,10 @@ session transcripts, not this synthetic heuristic.
 ## Method and limits — quality assertions
 
 `quality_cases.json` runs `evals/assertions.py`'s `contains`/`regex` assertion types against
-the raw text of `rhize-devflow/commands/check.md`, `review.md`, and
-`rhize-devflow/skills/simplify/SKILL.md`, covering the original four gate buckets plus exact
-simplification scope, behavior preservation, React conventions, and authority boundaries.
+the raw text of `rhize-devflow/commands/check.md`, `review.md`, and the canonical `simplify` and
+`completed-branch-promotion` skills. Promotion fixtures cover explicit overrides, dev/dev-less
+flows, manual-push authorization, unrelated dirty work, divergence, failed gates, protected
+branches, and Vercel author-safe release commits.
 This deliberately overlaps with (and is a lighter-weight
 mirror of) the much more exhaustive pytest coverage in
 `tests/rhize-devflow/test_command_contracts.py` — that file is the actual enforcement
@@ -140,7 +142,7 @@ Task 11 (3.0 cleanup) has a single checklist to work from:
 |---|---|
 | `run_evals.py` | Standalone runner. `python3 run_evals.py` exits 0/1. |
 | `keywords.json` | Curated trigger-phrase keyword sets, one list per `skill:<name>`/`command:<name>` id. |
-| `trigger_cases.json` | Should-trigger / should-not-trigger prompt fixtures (39 cases: 3 per target × 13 targets — 7 skills, 6 canonical commands). |
-| `quality_cases.json` | Assertion fixtures against `check.md`, `review.md`, and `simplify/SKILL.md` (12 cases covering verdict vocabulary, evidence tables, safety, scope preservation, simplification gates, React conventions, and authority boundaries). |
+| `trigger_cases.json` | Should-trigger / should-not-trigger prompt fixtures, including both completed-branch promotion phrases, explicit override/manual authorization, and near misses. |
+| `quality_cases.json` | Assertion fixtures against `check.md`, `review.md`, `simplify/SKILL.md`, and `completed-branch-promotion/SKILL.md`, covering validation/review vocabulary plus promotion authority and failure boundaries. |
 
 `evals/results/rhize-devflow-*.json` (gitignored) holds one timestamped snapshot per run.
