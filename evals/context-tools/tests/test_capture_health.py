@@ -10,10 +10,12 @@ from context_experiments.models import (
     Capability,
     CapabilityConfig,
     ExperimentConfig,
+    ExperimentEvidence,
     ExperimentReceipt,
     Metric,
     RunStatus,
 )
+from context_experiments.receipt_store import EvidenceStore
 from context_experiments.runner import main
 
 
@@ -120,8 +122,12 @@ def test_reports_arm_capture_counts_without_mixing_variants(tmp_path: Path) -> N
     report = evaluate_capture_health(tmp_path, lease_ttl_seconds=900, now=NOW)
 
     compiled = report["perCapability"][Capability.COMPILED_CONTEXT.value]
-    assert compiled[Arm.BASELINE.value] == {"completed": 1, "incomplete": 1}
-    assert compiled[Arm.EXPERIMENTAL.value] == {"completed": 1, "incomplete": 1}
+    assert compiled[Arm.BASELINE.value] == {
+        "completed": 1, "incomplete": 1, "skipped": 0
+    }
+    assert compiled[Arm.EXPERIMENTAL.value] == {
+        "completed": 1, "incomplete": 1, "skipped": 0
+    }
     assert report["receiptStatus"] == {
         "completed": 1,
         "failed": 0,
@@ -174,8 +180,12 @@ def test_classifies_failed_receipts_as_actionable(tmp_path: Path) -> None:
 
     assert report["receiptStatus"][RunStatus.FAILED.value] == 1
     compiled = report["perCapability"][Capability.COMPILED_CONTEXT.value]
-    assert compiled[Arm.BASELINE.value] == {"completed": 0, "incomplete": 1}
-    assert compiled[Arm.EXPERIMENTAL.value] == {"completed": 0, "incomplete": 1}
+    assert compiled[Arm.BASELINE.value] == {
+        "completed": 0, "incomplete": 1, "skipped": 0
+    }
+    assert compiled[Arm.EXPERIMENTAL.value] == {
+        "completed": 0, "incomplete": 1, "skipped": 0
+    }
     assert report["issues"] == [
         {
             "affectedArms": [Arm.BASELINE.value, Arm.EXPERIMENTAL.value],
@@ -256,8 +266,12 @@ def test_completed_receipt_requires_metrics_for_each_arm_and_a_comparable_pair(
         for issue in report["issues"]
     )
     compiled = report["perCapability"][Capability.COMPILED_CONTEXT.value]
-    assert compiled[Arm.BASELINE.value] == {"completed": 0, "incomplete": 2}
-    assert compiled[Arm.EXPERIMENTAL.value] == {"completed": 0, "incomplete": 2}
+    assert compiled[Arm.BASELINE.value] == {
+        "completed": 0, "incomplete": 2, "skipped": 0
+    }
+    assert compiled[Arm.EXPERIMENTAL.value] == {
+        "completed": 0, "incomplete": 2, "skipped": 0
+    }
 
 
 def test_config_completed_run_count_detects_deleted_receipt_history(tmp_path: Path) -> None:
@@ -285,6 +299,35 @@ def test_config_completed_run_count_detects_deleted_receipt_history(tmp_path: Pa
             "path": "receipts",
         }
     ]
+
+
+def test_config_reconciliation_detects_unrecorded_completed_receipt(
+    tmp_path: Path,
+) -> None:
+    write_receipt(tmp_path, receipt("exp-unrecorded"))
+
+    report = evaluate_capture_health(
+        tmp_path,
+        lease_ttl_seconds=60,
+        config=ExperimentConfig(),
+        now=NOW,
+    )
+
+    issue = next(
+        item
+        for item in report["issues"]
+        if item["kind"] == "completed_receipt_history_unrecorded"
+    )
+    assert issue == {
+        "affectedArms": [Arm.BASELINE.value, Arm.EXPERIMENTAL.value],
+        "capability": Capability.COMPILED_CONTEXT.value,
+        "expectedCompletedRuns": 0,
+        "foundCompletedReceipts": 1,
+        "kind": "completed_receipt_history_unrecorded",
+        "missingArms": [],
+        "unexpectedReceipts": 1,
+        "path": "receipts",
+    }
 
 
 def test_comparable_pair_requires_matching_evidence_class(tmp_path: Path) -> None:
@@ -346,3 +389,86 @@ def test_capture_health_command_is_deterministic_and_nonzero_for_failures(
 
     assert first == second
     assert json.loads(first)["ok"] is False
+
+
+def test_receipt_v2_reconciles_immutable_evidence_and_skipped_shadow(
+    tmp_path: Path,
+) -> None:
+    evidence = ExperimentEvidence(
+        experiment_id="exp-evidence-v2",
+        recorded_at="2026-08-30T12:00:00Z",
+        task_outcome="completed",
+        pack_use_observed=True,
+        validation_ids=("pytest-context-tools",),
+        arms_executed=(Arm.EXPERIMENTAL,),
+        arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+    )
+    EvidenceStore(tmp_path / "evidence").write(evidence)
+    document = receipt(
+        "exp-evidence-v2",
+        requested=(Arm.EXPERIMENTAL, Arm.BASELINE),
+        executed=(Arm.EXPERIMENTAL,),
+    ).to_dict()
+    document.update(
+        {
+            "schemaVersion": 2,
+            "armsSkipped": [
+                {"arm": "A", "reason": "no_comparable_shadow_evidence"}
+            ],
+            "evidenceDigest": evidence.digest(),
+            "claimPackVerified": True,
+            "finalPackVerification": "valid",
+        }
+    )
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    (receipts / "exp-evidence-v2.json").write_text(json.dumps(document))
+
+    report = evaluate_capture_health(tmp_path, lease_ttl_seconds=60, now=NOW)
+
+    assert report["counts"]["validEvidence"] == 1
+    assert report["counts"]["malformedEvidence"] == 0
+    compiled = report["perCapability"][Capability.COMPILED_CONTEXT.value]
+    assert compiled["B"] == {"completed": 1, "incomplete": 0, "skipped": 0}
+    assert compiled["A"] == {"completed": 0, "incomplete": 0, "skipped": 1}
+    assert [issue["kind"] for issue in report["issues"]] == [
+        "noncomparable_arm_capture"
+    ]
+
+
+def test_receipt_v2_detects_evidence_digest_mismatch(tmp_path: Path) -> None:
+    evidence = ExperimentEvidence(
+        experiment_id="exp-mismatch-v2",
+        recorded_at="2026-08-30T12:00:00Z",
+        task_outcome="completed",
+        pack_use_observed=True,
+        validation_ids=("pytest-context-tools",),
+        arms_executed=(Arm.EXPERIMENTAL,),
+        arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+    )
+    EvidenceStore(tmp_path / "evidence").write(evidence)
+    document = receipt(
+        "exp-mismatch-v2",
+        requested=(Arm.EXPERIMENTAL, Arm.BASELINE),
+        executed=(Arm.EXPERIMENTAL,),
+    ).to_dict()
+    document.update(
+        {
+            "schemaVersion": 2,
+            "armsSkipped": [
+                {"arm": "A", "reason": "no_comparable_shadow_evidence"}
+            ],
+            "evidenceDigest": "f" * 64,
+            "claimPackVerified": True,
+            "finalPackVerification": "valid",
+        }
+    )
+    receipts = tmp_path / "receipts"
+    receipts.mkdir()
+    (receipts / "exp-mismatch-v2.json").write_text(json.dumps(document))
+
+    report = evaluate_capture_health(tmp_path, lease_ttl_seconds=60, now=NOW)
+
+    assert "evidence_digest_mismatch" in {
+        issue["kind"] for issue in report["issues"]
+    }

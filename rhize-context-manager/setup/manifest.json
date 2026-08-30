@@ -83,7 +83,7 @@
       "tier": "T3",
       "event": "Stop",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
-      "description": "Opt-in, fail-silent companion to context-experiment-selector. Finalizes only runs with durable real-provider execution evidence; interrupted selections produce an explicit incomplete receipt and do not consume an armed run. Enable and disable it together with the selector.",
+      "description": "Opt-in, fail-silent companion to context-experiment-selector. Verifies native packs again and finalizes only immutable source-free review evidence; missing evidence produces an explicit incomplete receipt while the accepted capability remains frozen. Enable and disable it together with the selector.",
       "default": false
     }
   ],

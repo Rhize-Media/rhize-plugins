@@ -12,9 +12,11 @@ from .models import (
     Arm,
     Capability,
     ExperimentConfig,
+    ExperimentEvidence,
     ExperimentReceipt,
     Metric,
     RunStatus,
+    RECEIPT_SCHEMA_VERSION,
     SCHEMA_VERSION,
 )
 
@@ -40,6 +42,11 @@ _RECEIPT_REQUIRED_FIELDS = {
     "warnings",
 }
 _RECEIPT_OPTIONAL_FIELDS = {"completedAt", "shadowVariant"}
+_RECEIPT_V2_REQUIRED_FIELDS = _RECEIPT_REQUIRED_FIELDS | {
+    "evidenceDigest",
+    "claimPackVerified",
+    "finalPackVerification",
+}
 _METRIC_FIELDS = {"name", "value", "unit", "variant", "role", "evidence"}
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _PENDING_FIELDS = {
@@ -84,10 +91,30 @@ def evaluate_capture_health(
 
     root = data_dir.expanduser().resolve(strict=False)
     receipt_paths = sorted((root / "receipts").glob("*.json"))
+    evidence_paths = sorted((root / "evidence").glob("*.json"))
     pending_paths = sorted((root / "pending").glob("*.json"))
     issues: list[dict[str, Any]] = []
     valid_receipts: list[tuple[Path, ExperimentReceipt]] = []
     malformed_receipts = 0
+    malformed_evidence = 0
+    valid_evidence: dict[str, tuple[Path, ExperimentEvidence]] = {}
+
+    for path in evidence_paths:
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+            evidence = ExperimentEvidence.from_dict(value)
+            if path.stem != evidence.experiment_id:
+                raise ValueError("evidence filename does not match experimentId")
+            valid_evidence[evidence.experiment_id] = (path, evidence)
+        except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            malformed_evidence += 1
+            issues.append(
+                {
+                    "error": _safe_error(error),
+                    "kind": "malformed_evidence",
+                    "path": _relative(path, root),
+                }
+            )
 
     for path in receipt_paths:
         try:
@@ -110,7 +137,8 @@ def evaluate_capture_health(
 
     per_capability = {
         capability.value: {
-            arm.value: {"completed": 0, "incomplete": 0} for arm in Arm
+            arm.value: {"completed": 0, "incomplete": 0, "skipped": 0}
+            for arm in Arm
         }
         for capability in Capability
     }
@@ -123,19 +151,31 @@ def evaluate_capture_health(
 
         metric_arms = {metric.variant for metric in receipt.metrics}
         comparable = _has_comparable_pair(receipt)
+        skipped_arms = {Arm(item["arm"]) for item in receipt.arms_skipped}
         for arm in receipt.arms_requested:
-            outcome = (
-                "completed"
-                if receipt.status is RunStatus.COMPLETED
+            if receipt.schema_version == RECEIPT_SCHEMA_VERSION and arm in skipped_arms:
+                outcome = "skipped"
+            elif (
+                receipt.status is RunStatus.COMPLETED
                 and arm in receipt.arms_executed
                 and arm in metric_arms
-                and comparable
-                else "incomplete"
-            )
+                and (
+                    receipt.schema_version == RECEIPT_SCHEMA_VERSION or comparable
+                )
+            ):
+                outcome = "completed"
+            else:
+                outcome = "incomplete"
             per_capability[receipt.capability.value][arm.value][outcome] += 1
 
         missing_arms = sorted(
-            arm.value for arm in receipt.arms_requested if arm not in receipt.arms_executed
+            arm.value
+            for arm in receipt.arms_requested
+            if arm not in receipt.arms_executed
+            and (
+                receipt.schema_version != RECEIPT_SCHEMA_VERSION
+                or arm not in skipped_arms
+            )
         )
         if receipt.status is not RunStatus.COMPLETED:
             issues.append(
@@ -177,6 +217,22 @@ def evaluate_capture_health(
                         "status": receipt.status.value,
                     }
                 )
+            elif (
+                receipt.schema_version == RECEIPT_SCHEMA_VERSION
+                and len(receipt.arms_executed) < len(receipt.arms_requested)
+            ):
+                affected = sorted(arm.value for arm in skipped_arms)
+                issues.append(
+                    {
+                        "affectedArms": affected,
+                        "capability": receipt.capability.value,
+                        "experimentId": receipt.experiment_id,
+                        "kind": "noncomparable_arm_capture",
+                        "missingArms": affected,
+                        "path": _relative(path, root),
+                        "status": receipt.status.value,
+                    }
+                )
             elif not comparable:
                 affected = sorted(arm.value for arm in receipt.arms_executed)
                 issues.append(
@@ -191,14 +247,61 @@ def evaluate_capture_health(
                     }
                 )
 
+        if receipt.schema_version == RECEIPT_SCHEMA_VERSION:
+            sidecar = valid_evidence.get(receipt.experiment_id)
+            if receipt.evidence_digest is not None and sidecar is None:
+                issues.append(
+                    {
+                        "capability": receipt.capability.value,
+                        "experimentId": receipt.experiment_id,
+                        "kind": "missing_evidence_sidecar",
+                        "path": _relative(path, root),
+                    }
+                )
+            elif sidecar is not None and receipt.evidence_digest != sidecar[1].digest():
+                issues.append(
+                    {
+                        "capability": receipt.capability.value,
+                        "experimentId": receipt.experiment_id,
+                        "kind": "evidence_digest_mismatch",
+                        "path": _relative(path, root),
+                    }
+                )
+            elif sidecar is not None and (
+                receipt.arms_executed != sidecar[1].arms_executed
+                or receipt.arms_skipped != sidecar[1].arms_skipped
+            ):
+                issues.append(
+                    {
+                        "capability": receipt.capability.value,
+                        "experimentId": receipt.experiment_id,
+                        "kind": "evidence_arm_accounting_mismatch",
+                        "path": _relative(path, root),
+                    }
+                )
+
     if config is not None:
         for capability in Capability:
             expected = config.for_capability(capability).completed_runs
             found = completed_receipts[capability]
-            if found >= expected:
+            if found == expected:
                 continue
             capability_config = config.for_capability(capability)
             affected = [arm.value for arm in Arm] if capability_config.shadow else []
+            if found > expected:
+                issues.append(
+                    {
+                        "affectedArms": affected,
+                        "capability": capability.value,
+                        "expectedCompletedRuns": expected,
+                        "foundCompletedReceipts": found,
+                        "kind": "completed_receipt_history_unrecorded",
+                        "missingArms": [],
+                        "unexpectedReceipts": found - expected,
+                        "path": "receipts",
+                    }
+                )
+                continue
             issues.append(
                 {
                     "affectedArms": affected,
@@ -214,6 +317,7 @@ def evaluate_capture_health(
 
     malformed_pending = 0
     stale_pending = 0
+    pending_experiment_ids: set[str] = set()
     for path in pending_paths:
         try:
             pending = _read_pending(path)
@@ -231,6 +335,7 @@ def evaluate_capture_health(
             continue
 
         experiment_id = pending["experimentId"]
+        pending_experiment_ids.add(experiment_id)
         age_seconds = (evaluated_at - pending["startedAt"]).total_seconds()
         if age_seconds > lease_ttl_seconds and experiment_id not in receipt_file_ids:
             stale_pending += 1
@@ -247,15 +352,31 @@ def evaluate_capture_health(
                 }
             )
 
+    for experiment_id, (path, _evidence) in valid_evidence.items():
+        if (
+            experiment_id not in receipt_file_ids
+            and experiment_id not in pending_experiment_ids
+        ):
+            issues.append(
+                {
+                    "experimentId": experiment_id,
+                    "kind": "orphan_evidence",
+                    "path": _relative(path, root),
+                }
+            )
+
     issues.sort(key=lambda issue: (str(issue["path"]), str(issue["kind"])))
     counts = {
         "actionableIssues": len(issues),
+        "evidenceFiles": len(evidence_paths),
+        "malformedEvidence": malformed_evidence,
         "malformedPending": malformed_pending,
         "malformedReceipts": malformed_receipts,
         "pendingFiles": len(pending_paths),
         "receiptFiles": len(receipt_paths),
         "stalePending": stale_pending,
         "validReceipts": len(valid_receipts),
+        "validEvidence": len(valid_evidence),
     }
     return {
         "counts": counts,
@@ -263,19 +384,27 @@ def evaluate_capture_health(
         "ok": not issues,
         "perCapability": per_capability,
         "receiptStatus": receipt_status,
-        "schemaVersion": SCHEMA_VERSION,
+        "schemaVersion": RECEIPT_SCHEMA_VERSION,
     }
 
 
 def _read_receipt(path: Path) -> ExperimentReceipt:
     value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, Mapping):
+        raise TypeError("receipt must be an object")
+    schema_version = value.get("schemaVersion")
+    if schema_version not in {SCHEMA_VERSION, RECEIPT_SCHEMA_VERSION}:
+        raise ValueError("unsupported receipt schemaVersion")
     document = _mapping_fields(
         value,
-        _RECEIPT_REQUIRED_FIELDS,
+        (
+            _RECEIPT_V2_REQUIRED_FIELDS
+            if schema_version == RECEIPT_SCHEMA_VERSION
+            else _RECEIPT_REQUIRED_FIELDS
+        ),
         _RECEIPT_OPTIONAL_FIELDS,
         "receipt",
     )
-    _schema_version(document)
     metrics = tuple(_parse_metric(item) for item in _list(document["metrics"], "metrics"))
     skipped = tuple(
         _parse_skipped_arm(item) for item in _list(document["armsSkipped"], "armsSkipped")
@@ -319,6 +448,12 @@ def _read_receipt(path: Path) -> ExperimentReceipt:
         fallback_used=fallback_used,
         metrics=metrics,
         warnings=warnings,
+        evidence_digest=document.get("evidenceDigest"),
+        claim_pack_verified=document.get("claimPackVerified"),
+        final_pack_verification=document.get(
+            "finalPackVerification", "not_applicable"
+        ),
+        schema_version=schema_version,
     )
     skipped_arms = tuple(Arm(item["arm"]) for item in receipt.arms_skipped)
     if len(set(skipped_arms)) != len(skipped_arms):

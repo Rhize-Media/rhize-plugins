@@ -48,14 +48,53 @@ def aggregate_receipts(receipts: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                     "maximum": max(values),
                 }
             )
+        arm_accounting = {
+            arm: {
+                "executed": sum(arm in row.get("armsExecuted", []) for row in rows),
+                "skipped": sum(
+                    any(
+                        isinstance(item, Mapping) and item.get("arm") == arm
+                        for item in row.get("armsSkipped", [])
+                    )
+                    for row in rows
+                ),
+            }
+            for arm in ("A", "B")
+        }
         output.append(
             {
                 "capability": capability,
                 "liveVariant": live_variant,
                 "runs": len(rows),
                 "completed": sum(row.get("status") == "completed" for row in rows),
+                "incomplete": sum(row.get("status") == "incomplete" for row in rows),
+                "failed": sum(row.get("status") == "failed" for row in rows),
+                "evidenceBacked": sum(
+                    isinstance(row.get("evidenceDigest"), str) for row in rows
+                ),
+                "comparableRuns": sum(_has_comparable_pair(row) for row in rows),
+                "armAccounting": arm_accounting,
                 "fallbacks": sum(bool(row.get("fallbackUsed")) for row in rows),
                 "metrics": metrics,
             }
         )
-    return {"schemaVersion": 1, "groups": output}
+    return {"schemaVersion": 2, "groups": output}
+
+
+def _has_comparable_pair(receipt: Mapping[str, Any]) -> bool:
+    if not {"A", "B"}.issubset(set(receipt.get("armsExecuted", []))):
+        return False
+    signatures: dict[str, set[tuple[str, str, str]]] = {"A": set(), "B": set()}
+    for metric in receipt.get("metrics", []):
+        if not isinstance(metric, Mapping):
+            continue
+        variant = metric.get("variant")
+        if variant in signatures:
+            signatures[str(variant)].add(
+                (
+                    str(metric.get("name", "")),
+                    str(metric.get("unit", "")),
+                    str(metric.get("evidence", "")),
+                )
+            )
+    return bool(signatures["A"] & signatures["B"])

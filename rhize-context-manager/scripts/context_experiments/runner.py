@@ -8,8 +8,10 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,8 +27,11 @@ if __package__ in {None, ""}:
         default_config_path,
         default_data_dir,
         disarm_capability,
+        freeze_capability,
         load_config,
         record_completed_run,
+        record_reserved_completion,
+        reserve_capability_run,
         write_config,
     )
     from context_experiments.eligibility import (
@@ -39,8 +44,10 @@ if __package__ in {None, ""}:
         Arm,
         Capability,
         ExperimentConfig,
+        ExperimentEvidence,
         ExperimentReceipt,
         Metric,
+        RECEIPT_SCHEMA_VERSION,
         RunStatus,
     )
     from context_experiments.providers import (
@@ -50,7 +57,11 @@ if __package__ in {None, ""}:
         MgrepProvider,
         NativeContextPackProvider,
     )
-    from context_experiments.receipt_store import PendingStore, ReceiptStore
+    from context_experiments.receipt_store import (
+        EvidenceStore,
+        PendingStore,
+        ReceiptStore,
+    )
 else:
     from .aggregate import aggregate_receipts
     from .assignment import assign_arms
@@ -60,13 +71,25 @@ else:
         default_config_path,
         default_data_dir,
         disarm_capability,
+        freeze_capability,
         load_config,
         record_completed_run,
+        record_reserved_completion,
+        reserve_capability_run,
         write_config,
     )
     from .eligibility import EligibilityInput, classify_task, evaluate_eligibility
     from .lease import Lease, LeaseStore
-    from .models import Arm, Capability, ExperimentConfig, ExperimentReceipt, Metric, RunStatus
+    from .models import (
+        Arm,
+        Capability,
+        ExperimentConfig,
+        ExperimentEvidence,
+        ExperimentReceipt,
+        Metric,
+        RECEIPT_SCHEMA_VERSION,
+        RunStatus,
+    )
     from .providers import (
         ContextCompilerProvider,
         GrepaiLayout,
@@ -74,7 +97,7 @@ else:
         MgrepProvider,
         NativeContextPackProvider,
     )
-    from .receipt_store import PendingStore, ReceiptStore
+    from .receipt_store import EvidenceStore, PendingStore, ReceiptStore
 
 
 def _local_retrieval_status(repo_root: Path | None) -> tuple[bool, bool, str]:
@@ -228,31 +251,30 @@ def claim_hook_selection(
     config: ExperimentConfig,
     provider_status: Mapping[Capability, tuple[bool, bool, str]],
     storage_root: Path,
+    config_path: Path,
 ) -> dict[str, Any] | None:
     selection = select_next(payload, config, provider_status)
     session_id = payload.get("session_id")
     if selection is None or not isinstance(session_id, str) or not session_id:
         return None
     snapshot = git_snapshot(selection["repoRoot"])
-    if snapshot is None:
+    # P4 deliberately refuses dirty repositories instead of relying on the old
+    # path/status-only dirty-tree fingerprint.
+    if snapshot is None or "-dirty-" in snapshot:
         return None
+    capability = selection["capability"]
+    capability_config = config.for_capability(capability)
+    started = time.monotonic()
     session_hash = digest(session_id, 32)
     repo_id = repository_fingerprint(selection["repoRoot"])
     task_material = ":".join((repo_id, snapshot, selection["taskClass"], session_hash))
     task_id = f"task-{digest(task_material)}"
     experiment_id = f"exp-{uuid.uuid4().hex}"
-    lease_key = f"{repo_id}:{snapshot}:{selection['capability'].value}:{task_id}"
-    lease_owner = f"hook-{session_hash}"
-    lease_store = LeaseStore(storage_root / "leases", config.lease_ttl_seconds)
-    lease = lease_store.claim(lease_key, lease_owner)
-    if lease is None:
-        return None
     assignment = selection["assignment"]
     provider_execution = None
-    if selection["capability"] is Capability.COMPILED_CONTEXT:
+    if capability is Capability.COMPILED_CONTEXT:
         prompt = payload.get("prompt")
         if not isinstance(prompt, str):
-            lease_store.release(lease)
             return None
         try:
             native_provider = NativeContextPackProvider()
@@ -263,11 +285,22 @@ def claim_hook_selection(
                 query=prompt,
             )
             if not pack.manifest["policy"]["acceptedForUse"]:
-                lease_store.release(lease)
+                return None
+            if time.monotonic() - started > capability_config.max_duration_seconds:
                 return None
             manifest_path, prompt_path = native_provider.write_pack(
                 pack, storage_root / "packs"
             )
+            current_snapshot = git_snapshot(selection["repoRoot"])
+            if current_snapshot != snapshot:
+                return None
+            verification = native_provider.verify_pack(
+                pack.manifest, selection["repoRoot"], current_snapshot
+            )
+            if not verification.valid:
+                return None
+            if time.monotonic() - started > capability_config.max_duration_seconds:
+                return None
             provider_execution = {
                 "provider": "rhize-native",
                 "providerRevision": pack.manifest["provider"]["revision"],
@@ -280,16 +313,26 @@ def claim_hook_selection(
                 "compiledFiles": len(pack.manifest["entries"]),
                 "buildMilliseconds": pack.manifest["buildMilliseconds"],
                 "warnings": pack.manifest["warnings"],
+                "claimPackVerified": True,
             }
         except (OSError, RuntimeError, TypeError, ValueError, json.JSONDecodeError):
-            lease_store.release(lease)
             return None
+    lease_key = f"{repo_id}:{capability.value}"
+    lease_owner = f"hook-{session_hash}"
+    lease_store = LeaseStore(
+        storage_root / "leases",
+        config.lease_ttl_seconds,
+        reclaim_stale=False,
+    )
+    lease = lease_store.claim(lease_key, lease_owner)
+    if lease is None:
+        return None
     pending = {
         "schemaVersion": 1,
         "sessionIdHash": session_hash,
         "experimentId": experiment_id,
         "taskId": task_id,
-        "capability": selection["capability"].value,
+        "capability": capability.value,
         "repoId": repo_id,
         "repoName": selection["repoRoot"].name,
         "snapshot": snapshot,
@@ -308,6 +351,10 @@ def claim_hook_selection(
     except Exception:
         lease_store.release(lease)
         raise
+    if reserve_capability_run(config_path, capability) is None:
+        PendingStore(storage_root / "pending").delete(session_hash)
+        lease_store.release(lease)
+        return None
     selection["pending"] = pending
     if provider_execution is not None:
         selection["providerPromptPath"] = str(
@@ -334,106 +381,204 @@ def finalize_hook_selection(
         key="",
         owner=pending["leaseOwner"],
     )
+    resolved_config_path = config_path or default_config_path()
+    freeze_capability(resolved_config_path, Capability(pending["capability"]))
     if not receipt_path.exists():
         requested = tuple(Arm(value) for value in pending["armsRequested"])
         provider_execution = pending.get("providerExecution")
+        capability = Capability(pending["capability"])
+        live_variant = Arm(pending["liveVariant"])
+        evidence = EvidenceStore(storage_root / "evidence").read(
+            pending["experimentId"]
+        )
+        final_verification = _final_pack_verification(
+            payload, pending, storage_root
+        )
+        status, executed, skipped, evidence_warnings = _resolve_review_evidence(
+            evidence,
+            requested=requested,
+            live_variant=live_variant,
+            capability=capability,
+            claim_pack_verified=(
+                bool(provider_execution.get("claimPackVerified"))
+                if isinstance(provider_execution, dict)
+                else None
+            ),
+            final_pack_verification=final_verification,
+        )
+        metrics = _provider_metrics(provider_execution, executed, live_variant)
+        warnings = list(evidence_warnings)
         if isinstance(provider_execution, dict):
-            live_variant = Arm(pending["liveVariant"])
-
-            def role(arm: Arm) -> str:
-                return "live" if arm is live_variant else "shadow"
-
-            metrics = (
-                Metric(
-                    "context_tokens", provider_execution["naiveDumpTokens"], "tokens",
-                    Arm.BASELINE, role(Arm.BASELINE), "estimated",
-                ),
-                Metric(
-                    "context_tokens", provider_execution["compiledTokens"], "tokens",
-                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "estimated",
-                ),
-                Metric(
-                    "files_presented", provider_execution["totalSourceFiles"], "count",
-                    Arm.BASELINE, role(Arm.BASELINE), "measured",
-                ),
-                Metric(
-                    "files_presented", provider_execution["compiledFiles"], "count",
-                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "measured",
-                ),
-                Metric(
-                    "build_duration", provider_execution["buildMilliseconds"], "ms",
-                    Arm.EXPERIMENTAL, role(Arm.EXPERIMENTAL), "measured",
-                ),
+            warnings.extend(provider_execution.get("warnings", ()))
+            warnings.extend(
+                (
+                    f"provider_revision_{provider_execution['providerRevision']}",
+                    f"pack_id_{provider_execution['packId']}",
+                )
             )
-            receipt = ExperimentReceipt(
-                experiment_id=pending["experimentId"],
-                task_id=pending["taskId"],
-                capability=Capability(pending["capability"]),
-                status=RunStatus.COMPLETED,
-                started_at=pending["startedAt"],
-                completed_at=utc_now(),
-                repo_id=pending["repoId"],
-                repo_name=pending["repoName"],
-                snapshot=pending["snapshot"],
-                prompt_hash=pending["promptHash"],
-                task_class=pending["taskClass"],
-                arms_requested=requested,
-                arms_executed=requested,
-                arms_skipped=(),
-                live_variant=live_variant,
-                shadow_variant=(
-                    Arm(pending["shadowVariant"]) if pending.get("shadowVariant") else None
-                ),
-                fallback_used=False,
-                metrics=metrics,
-                warnings=tuple(
-                    [
-                        *provider_execution["warnings"],
-                        f"provider_revision_{provider_execution['providerRevision']}",
-                        f"pack_id_{provider_execution['packId']}",
-                        "live_task_outcome_requires_human_review",
-                        "follow_up_reads_not_observed_by_hook",
-                    ]
-                ),
-            )
-        else:
-            receipt = ExperimentReceipt(
-                experiment_id=pending["experimentId"],
-                task_id=pending["taskId"],
-                capability=Capability(pending["capability"]),
-                status=RunStatus.INCOMPLETE,
-                started_at=pending["startedAt"],
-                completed_at=utc_now(),
-                repo_id=pending["repoId"],
-                repo_name=pending["repoName"],
-                snapshot=pending["snapshot"],
-                prompt_hash=pending["promptHash"],
-                task_class=pending["taskClass"],
-                arms_requested=requested,
-                arms_executed=(),
-                arms_skipped=tuple(
-                    {"arm": arm.value, "reason": "no_execution_evidence"}
-                    for arm in requested
-                ),
-                live_variant=Arm(pending["liveVariant"]),
-                shadow_variant=(
-                    Arm(pending["shadowVariant"])
-                    if pending.get("shadowVariant")
-                    else None
-                ),
-                fallback_used=False,
-                warnings=("finalized_without_provider_execution_evidence",),
-            )
+        if final_verification == "stale":
+            warnings.append("final_pack_stale_after_task")
+        receipt = ExperimentReceipt(
+            experiment_id=pending["experimentId"],
+            task_id=pending["taskId"],
+            capability=capability,
+            status=status,
+            started_at=pending["startedAt"],
+            completed_at=utc_now(),
+            repo_id=pending["repoId"],
+            repo_name=pending["repoName"],
+            snapshot=pending["snapshot"],
+            prompt_hash=pending["promptHash"],
+            task_class=pending["taskClass"],
+            arms_requested=requested,
+            arms_executed=executed,
+            arms_skipped=skipped,
+            live_variant=live_variant,
+            shadow_variant=(
+                Arm(pending["shadowVariant"]) if pending.get("shadowVariant") else None
+            ),
+            fallback_used=False,
+            metrics=metrics,
+            warnings=tuple(dict.fromkeys(warnings)),
+            evidence_digest=evidence.digest() if evidence is not None else None,
+            claim_pack_verified=(
+                bool(provider_execution.get("claimPackVerified"))
+                if isinstance(provider_execution, dict)
+                else None
+            ),
+            final_pack_verification=final_verification,
+            schema_version=RECEIPT_SCHEMA_VERSION,
+        )
         receipt_store.write(receipt)
         if receipt.status is RunStatus.COMPLETED:
-            resolved_config_path = config_path or default_config_path()
-            updated = record_completed_run(
-                load_config(resolved_config_path), receipt.capability
-            )
-            write_config(updated, resolved_config_path)
+            try:
+                record_reserved_completion(resolved_config_path, receipt.capability)
+            except Exception:
+                pending_store.delete(session_hash)
+                LeaseStore(
+                    storage_root / "leases", 900, reclaim_stale=False
+                ).release(lease)
+                raise
     pending_store.delete(session_hash)
-    LeaseStore(storage_root / "leases", 900).release(lease)
+    LeaseStore(storage_root / "leases", 900, reclaim_stale=False).release(lease)
     return True
+
+
+def _provider_metrics(
+    provider_execution: Any,
+    executed: tuple[Arm, ...],
+    live_variant: Arm,
+) -> tuple[Metric, ...]:
+    if not isinstance(provider_execution, dict) or Arm.EXPERIMENTAL not in executed:
+        return ()
+    role = "live" if live_variant is Arm.EXPERIMENTAL else "shadow"
+    return (
+        Metric(
+            "context_tokens",
+            provider_execution["compiledTokens"],
+            "tokens",
+            Arm.EXPERIMENTAL,
+            role,
+            "estimated",
+        ),
+        Metric(
+            "files_presented",
+            provider_execution["compiledFiles"],
+            "count",
+            Arm.EXPERIMENTAL,
+            role,
+            "measured",
+        ),
+        Metric(
+            "build_duration",
+            provider_execution["buildMilliseconds"],
+            "ms",
+            Arm.EXPERIMENTAL,
+            role,
+            "measured",
+        ),
+    )
+
+
+def _resolve_review_evidence(
+    evidence: ExperimentEvidence | None,
+    *,
+    requested: tuple[Arm, ...],
+    live_variant: Arm,
+    capability: Capability,
+    claim_pack_verified: bool | None,
+    final_pack_verification: str,
+) -> tuple[RunStatus, tuple[Arm, ...], tuple[dict[str, str], ...], tuple[str, ...]]:
+    if evidence is None:
+        skipped = []
+        for arm in requested:
+            if arm is not live_variant:
+                reason = "no_comparable_shadow_evidence"
+            elif capability is Capability.COMPILED_CONTEXT and arm is Arm.EXPERIMENTAL:
+                reason = "missing_pack_use_task_validation_evidence"
+            else:
+                reason = "missing_task_validation_evidence"
+            skipped.append({"arm": arm.value, "reason": reason})
+        return RunStatus.INCOMPLETE, (), tuple(skipped), ("review_evidence_missing",)
+
+    executed = evidence.arms_executed
+    skipped = evidence.arms_skipped
+    accounted = set(executed) | {Arm(item["arm"]) for item in skipped}
+    if accounted != set(requested) or set(executed) - set(requested):
+        return (
+            RunStatus.INCOMPLETE,
+            (),
+            tuple(
+                {"arm": arm.value, "reason": "invalid_review_arm_accounting"}
+                for arm in requested
+            ),
+            ("review_arm_accounting_invalid",),
+        )
+    pack_use_required = (
+        capability is Capability.COMPILED_CONTEXT
+        and live_variant is Arm.EXPERIMENTAL
+    )
+    execution_proven = (
+        live_variant in executed
+        and (not pack_use_required or evidence.pack_use_observed)
+        and (capability is not Capability.COMPILED_CONTEXT or claim_pack_verified is True)
+        and final_pack_verification != "unavailable"
+    )
+    if not execution_proven:
+        return RunStatus.INCOMPLETE, executed, skipped, ("review_execution_incomplete",)
+    if evidence.task_outcome == "failed":
+        return RunStatus.FAILED, executed, skipped, ("reviewed_task_failed",)
+    return RunStatus.COMPLETED, executed, skipped, ()
+
+
+def _final_pack_verification(
+    payload: Mapping[str, Any], pending: Mapping[str, Any], storage_root: Path
+) -> str:
+    execution = pending.get("providerExecution")
+    if not isinstance(execution, dict):
+        return "not_applicable"
+    cwd_value = payload.get("cwd")
+    if not isinstance(cwd_value, str):
+        return "unavailable"
+    repo_root = git_root(Path(cwd_value))
+    if repo_root is None or repository_fingerprint(repo_root) != pending.get("repoId"):
+        return "unavailable"
+    manifest_file = execution.get("manifestFile")
+    if not isinstance(manifest_file, str) or not re.fullmatch(
+        r"pack-[a-f0-9]{32}\.json", manifest_file
+    ):
+        return "unavailable"
+    try:
+        manifest = json.loads(
+            (storage_root / "packs" / manifest_file).read_text(encoding="utf-8")
+        )
+        snapshot = git_snapshot(repo_root)
+        if snapshot is None:
+            return "unavailable"
+        result = NativeContextPackProvider().verify_pack(manifest, repo_root, snapshot)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return "unavailable"
+    return "valid" if result.valid else "stale"
 
 
 def run_context_compiler_experiment(
@@ -733,7 +878,8 @@ def hook_select() -> int:
         payload = json.loads(sys.stdin.read() or "{}")
         if not isinstance(payload, dict):
             return 0
-        config = load_config()
+        config_path = default_config_path()
+        config = load_config(config_path)
         cwd_value = payload.get("cwd") or os.getcwd()
         selected_repo = git_root(Path(cwd_value)) if isinstance(cwd_value, str) else None
         selection = claim_hook_selection(
@@ -741,26 +887,65 @@ def hook_select() -> int:
             config,
             real_provider_status(selected_repo),
             default_data_dir(),
+            config_path,
         )
         if selection is None:
             return 0
         assignment = selection["assignment"]
+        experiment_id = selection["pending"]["experimentId"]
+        runner_path = Path(__file__).resolve(strict=True)
+        evidence_arguments = [
+            "python3",
+            str(runner_path),
+            "record-evidence",
+            "--experiment-id",
+            experiment_id,
+            "--task-outcome",
+            "completed",
+        ]
+        if (
+            selection["capability"] is Capability.COMPILED_CONTEXT
+            and assignment.live_variant is Arm.EXPERIMENTAL
+        ):
+            evidence_arguments.append("--pack-used")
+        evidence_arguments.extend(
+            [
+                "--validation-id",
+                "validation-id-REPLACE_ME",
+                "--executed-arm",
+                assignment.live_variant.value,
+            ]
+        )
+        if assignment.shadow_variant is not None:
+            evidence_arguments.extend(
+                [
+                    "--skip-arm",
+                    f"{assignment.shadow_variant.value}:no_comparable_shadow_evidence",
+                ]
+            )
+        evidence_command = shlex.join(evidence_arguments)
         message = (
             f"Context experiment selected: {selection['capability'].value}; "
+            f"attempt {experiment_id}; "
             f"live Arm {assignment.live_variant.value}; "
             "shadow Arm "
             f"{assignment.shadow_variant.value if assignment.shadow_variant else 'none'}. "
-            "Record execution evidence before finalizing the receipt."
+            f"Evidence runner: {runner_path}. "
         )
         execution = selection["pending"].get("providerExecution")
         if isinstance(execution, dict):
             message += (
-                f" Accepted native pack {execution['packId']} was built automatically at "
-                f"{selection['providerPromptPath']}. Inspect it only when Arm B is live; "
-                "run verify-pack "
-                "before reuse after any edit. Task correctness and follow-up reads still require "
-                "human review."
+                f"Accepted native pack {execution['packId']} was built automatically. "
+                "For compiled-context Arm B, read and use the accepted prompt pack before "
+                f"implementation: `{selection['providerPromptPath']}`. Run task-specific checks "
+                "and validate the task before recording success. "
             )
+        message += (
+            "Replace validation-id-REPLACE_ME with a source-free validation identifier, "
+            "then run this exact command before Stop: `"
+            f"{evidence_command}`. Without valid evidence, the receipt will be incomplete "
+            "and the capability will remain frozen."
+        )
         print(
             json.dumps(
                 {
@@ -868,6 +1053,48 @@ def command_disarm(args: argparse.Namespace) -> int:
     updated = disarm_capability(load_config(), capability)
     path = write_config(updated)
     print(f"disarmed {capability.value}: {path}")
+    return 0
+
+
+def command_record_evidence(args: argparse.Namespace) -> int:
+    storage_root = default_data_dir()
+    pending = PendingStore(storage_root / "pending").find_by_experiment_id(
+        args.experiment_id
+    )
+    if pending is None:
+        raise ValueError("evidence requires a matching pending accepted attempt")
+    skipped: list[dict[str, str]] = []
+    for value in args.skip_arm:
+        arm_value, separator, reason = value.partition(":")
+        if not separator:
+            raise ValueError("--skip-arm must use ARM:reason")
+        skipped.append({"arm": Arm(arm_value).value, "reason": reason})
+    evidence = ExperimentEvidence(
+        experiment_id=args.experiment_id,
+        recorded_at=utc_now(),
+        task_outcome=args.task_outcome,
+        pack_use_observed=args.pack_used,
+        validation_ids=tuple(args.validation_id),
+        arms_executed=tuple(Arm(value) for value in args.executed_arm),
+        arms_skipped=tuple(skipped),
+    )
+    requested = {Arm(value) for value in pending["armsRequested"]}
+    accounted = set(evidence.arms_executed) | {
+        Arm(item["arm"]) for item in evidence.arms_skipped
+    }
+    if accounted != requested:
+        raise ValueError("evidence must execute or explicitly skip every requested arm")
+    EvidenceStore(storage_root / "evidence").write(evidence)
+    print(
+        json.dumps(
+            {
+                "schemaVersion": 1,
+                "experimentId": evidence.experiment_id,
+                "evidenceDigest": evidence.digest(),
+            },
+            sort_keys=True,
+        )
+    )
     return 0
 
 
@@ -1040,6 +1267,18 @@ def build_parser() -> argparse.ArgumentParser:
     disarm = subparsers.add_parser("disarm")
     disarm.add_argument("--capability", choices=[item.value for item in Capability], required=True)
 
+    evidence = subparsers.add_parser("record-evidence")
+    evidence.add_argument("--experiment-id", required=True)
+    evidence.add_argument(
+        "--task-outcome", choices=["completed", "failed"], required=True
+    )
+    evidence.add_argument("--pack-used", action="store_true")
+    evidence.add_argument("--validation-id", action="append", default=[], required=True)
+    evidence.add_argument(
+        "--executed-arm", choices=[item.value for item in Arm], action="append", default=[]
+    )
+    evidence.add_argument("--skip-arm", action="append", default=[])
+
     compile_command = subparsers.add_parser("compile")
     compile_command.add_argument("--repo", required=True)
     compile_command.add_argument("--target", required=True)
@@ -1083,6 +1322,7 @@ def main(argv: list[str] | None = None) -> int:
         "hook-finalize": hook_finalize,
         "arm": lambda: command_arm(args),
         "disarm": lambda: command_disarm(args),
+        "record-evidence": lambda: command_record_evidence(args),
         "compile": lambda: command_compile(args),
         "pack": lambda: command_pack(args),
         "verify-pack": lambda: command_verify_pack(args),

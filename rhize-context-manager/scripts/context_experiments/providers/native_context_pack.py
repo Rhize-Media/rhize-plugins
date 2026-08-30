@@ -105,6 +105,15 @@ class NativeContextPackProvider:
             if not frontier:
                 break
 
+        # The last included dependency tier is usable only when it closes the graph.
+        # Inspect it once without expanding the pack so max_hops cannot silently hide
+        # another required local edge.
+        for path in frontier:
+            dependencies, warnings = _dependencies(repo, path)
+            edge_warnings.update(warnings)
+            if dependencies:
+                edge_warnings.add("dependency_traversal_truncated")
+
         for path in selected_distance:
             edge_warnings.update(_dynamic_warnings(path))
         if len({path.stem for path in target_paths}) != len(target_paths):
@@ -121,8 +130,13 @@ class NativeContextPackProvider:
         )
         candidates.sort(
             key=lambda item: (
-                _role_order(item[1]),
+                (
+                    0
+                    if item[2] in {"explicit_or_discovered_target", "static_dependency"}
+                    else 1
+                ),
                 item[3],
+                _role_order(item[1]),
                 item[0].relative_to(repo).as_posix(),
             )
         )
@@ -142,6 +156,8 @@ class NativeContextPackProvider:
             if used_tokens + token_count > max_tokens:
                 if role == "FULL" and path in target_paths:
                     edge_warnings.add("required_target_exceeds_token_budget")
+                elif reason == "static_dependency":
+                    edge_warnings.add("required_dependency_exceeds_token_budget")
                 else:
                     budget_truncated = True
                 continue
@@ -176,7 +192,10 @@ class NativeContextPackProvider:
             in {
                 "ambiguous_dependency_name_collision",
                 "dynamic_dependency_edge",
+                "dependency_traversal_truncated",
+                "required_dependency_exceeds_token_budget",
                 "required_target_exceeds_token_budget",
+                "unresolved_local_dependency",
                 "unsupported_source_syntax",
             }
         )

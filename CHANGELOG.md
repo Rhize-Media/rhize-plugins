@@ -8,6 +8,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ version bump — **rhize-context-manager** 0.20.0 → 0.21.0 (minor); marketplace 2.50.0 → 2.51.0.
+- _2026-08-30_ **rhize-context-manager — evidence-gated compiled-context canary.**
+  Replaced the loose one-run arm counter with an atomic repository-and-capability single-flight
+  claim that freezes the eligible input before execution, disarms immediately, refuses dirty or
+  over-budget runs, and cannot reclaim a stale claim automatically. Pack-only execution now emits
+  an explicitly incomplete v2 receipt instead of a false completion; accepted executions require
+  a private source-free evidence sidecar, exact digest binding, declared validation, and the safe
+  `record-evidence` transition before aggregation. The selector prints the exact B-live/A-skipped
+  execution contract for the next eligible task. A separate provider gate records mgrep as a
+  no-go under current cloud retention and training terms; no account, index, watcher, credential,
+  or runtime hook is enabled.
 - _2026-08-30_ **`/context-doctor` capture-liveness assertion + credential-expiry lookahead**
   (rhize-context-manager 0.20.0). A layer is no longer reported `OK` on a liveness proxy — a
   dashboard 200, `consecutiveFailures == 0`, a live worker, or a fresh WAL mtime prove nothing was

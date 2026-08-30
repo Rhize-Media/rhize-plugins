@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Iterable
 
-from .models import ExperimentReceipt
+from .models import ExperimentEvidence, ExperimentReceipt
 
 
 _SAFE_FILE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -59,6 +59,49 @@ class ReceiptStore:
         return tuple(documents)
 
 
+class EvidenceStore:
+    """Append-only, source-free reviewer evidence keyed by experiment id."""
+
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory
+
+    def write(self, evidence: ExperimentEvidence) -> Path:
+        if not _SAFE_FILE_ID.fullmatch(evidence.experiment_id):
+            raise ValueError("experiment id is not safe for an evidence filename")
+        self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        destination = self.directory / f"{evidence.experiment_id}.json"
+        try:
+            descriptor = os.open(
+                destination, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
+            )
+        except FileExistsError:
+            raise FileExistsError("evidence already exists") from None
+        try:
+            payload = (json.dumps(evidence.to_dict(), sort_keys=True) + "\n").encode()
+            os.write(descriptor, payload)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        return destination
+
+    def read(self, experiment_id: str) -> ExperimentEvidence | None:
+        if not _SAFE_FILE_ID.fullmatch(experiment_id):
+            return None
+        path = self.directory / f"{experiment_id}.json"
+        try:
+            value = json.loads(path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, OSError, json.JSONDecodeError):
+            return None
+        try:
+            return ExperimentEvidence.from_dict(value)
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def digest(self, experiment_id: str) -> str | None:
+        evidence = self.read(experiment_id)
+        return evidence.digest() if evidence is not None else None
+
+
 class PendingStore:
     """Session-keyed pending selections; contains no prompt or absolute repo path."""
 
@@ -100,6 +143,15 @@ class PendingStore:
     def delete(self, session_id_hash: str) -> None:
         if _SAFE_FILE_ID.fullmatch(session_id_hash):
             (self.directory / f"{session_id_hash}.json").unlink(missing_ok=True)
+
+    def find_by_experiment_id(self, experiment_id: str) -> dict | None:
+        if not _SAFE_FILE_ID.fullmatch(experiment_id) or not self.directory.exists():
+            return None
+        for path in sorted(self.directory.glob("*.json")):
+            pending = self.read(path.stem)
+            if pending is not None and pending.get("experimentId") == experiment_id:
+                return pending
+        return None
 
 
 def _assert_pending_safe(value: object, key: str = "") -> None:

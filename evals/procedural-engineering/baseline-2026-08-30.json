@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-30T14:23:55Z",
+  "classification": "pre_implementation",
+  "repositories": {
+    "rhizePlugins": {
+      "baseSha": "a6a10c3310f15311f9a1d32ea781e42959c7c648",
+      "planCommit": "3bc14e47c65e68a1be9344378a2f7321e4a7d9e7"
+    },
+    "claudeRoutines": {
+      "baseSha": "0cf38fdf14969e8e7b7ff326533fdebe16c0c8bc"
+    },
+    "proceduralMemory": {
+      "baseSha": "2d359c879d04aec4878e962bdc95b04e991ae575"
+    }
+  },
+  "schedulers": [
+    {
+      "routineId": "daily-completed-summary",
+      "issueKey": "RT-134",
+      "canonicalRegistry": "desktop_registry_a",
+      "schedulerTaskId": "daily-completed-summary",
+      "enabled": true,
+      "cronExpression": "0 20 * * *",
+      "lastRunAt": "2026-08-30T00:01:19.272Z",
+      "nextScheduledLocal": "2026-08-30T20:00:00-04:00",
+      "definitionPath": "/Users/jamesdeola/Documents/Claude/Scheduled/daily-completed-summary/SKILL.md",
+      "definitionSha256": "453ffa0199eef54e948301cb0a9aa4e4c0cbd0f4509768ac6156061f73ba4755"
+    },
+    {
+      "routineId": "ai-stack-version-drift",
+      "issueKey": "RT-136",
+      "canonicalRegistry": "desktop_registry_a",
+      "schedulerTaskId": "ai-stack-version-drift",
+      "enabled": true,
+      "cronExpression": "0 15 * * 1",
+      "lastRunAt": "2026-08-24T19:01:37.956Z",
+      "nextScheduledLocal": "2026-08-31T15:00:00-04:00",
+      "definitionPath": "/Users/jamesdeola/Documents/Claude/Scheduled/ai-stack-version-drift/SKILL.md",
+      "definitionSha256": "7671853a5deb0cdb307cda8a9438f3584ae5a63eb7770e8982215d32bf68b54b"
+    },
+    {
+      "routineId": "ai-stack-version-drift",
+      "issueKey": "RT-136",
+      "canonicalRegistry": "registry_b_dormant_duplicate",
+      "schedulerTaskId": "ai-stack-version-drift",
+      "enabled": false,
+      "cronExpression": "0 6 * * 1,4",
+      "lastRunAt": null,
+      "nextScheduledLocal": null,
+      "definitionPath": "/Users/jamesdeola/.claude/scheduled-tasks/ai-stack-version-drift/SKILL.md",
+      "definitionSha256": "b47221a8bc31765e811ae2800b190b42c7774aa5bcf5608bb31b90719abe6ab4"
+    },
+    {
+      "routineId": "weekly-skill-audit",
+      "issueKey": "RT-137",
+      "canonicalRegistry": "desktop_registry_a_paused_duplicate",
+      "schedulerTaskId": "weekly-skill-audit",
+      "enabled": false,
+      "cronExpression": "30 18 * * 1",
+      "lastRunAt": "2026-08-17T22:31:53.995Z",
+      "nextScheduledLocal": null,
+      "definitionPath": "/Users/jamesdeola/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md",
+      "definitionSha256": "17be3227bb41b07e3a26303583945327cad63883fc5e1b53b6f6a24a9fd37458"
+    },
+    {
+      "routineId": "weekly-skill-audit",
+      "issueKey": "RT-137",
+      "canonicalRegistry": "registry_b",
+      "schedulerTaskId": "weekly-skill-audit",
+      "enabled": true,
+      "cronExpression": "30 18 * * 1",
+      "lastRunAt": null,
+      "nextScheduledLocal": "2026-08-31T18:30:00-04:00",
+      "definitionPath": "/Users/jamesdeola/.claude/scheduled-tasks/weekly-skill-audit/SKILL.md",
+      "definitionSha256": "e12a982637f5c1b02f0936a6d36d7d0cc77f764f8bd1e1aa8b246f0254d11516"
+    }
+  ],
+  "components": {
+    "watchdog": {
+      "componentId": "rhize-ops/benchmark_status.py",
+      "releasedVersion": "0.13.5",
+      "sha256": "034daf99f52ce2dfbba1e27423b029c74f45942b8588cc1884455f92a9971fb4",
+      "evidencePath": "/Users/jamesdeola/.rhize/procedural-memory/benchmark-status/weekly-skill-audit.json",
+      "evidenceSha256": "d3db4ff97df0ffb36181cebd7079ef709d30f558ae440aca83ad5b3b09091bfa"
+    },
+    "compiledContext": {
+      "configSha256": "3c36c5c751cbb17448b19fc17c84a5c359aec92b8598e26f22ccc09cccf5a113",
+      "armedRuns": 1,
+      "completedRuns": 0,
+      "liveHooksEnabled": false,
+      "runnerSha256": "d7d6d72cf6c14a8c668b011a47f5dc61114fd87f45439591bb212f8629d192b9",
+      "selectorSha256": "31efe6c5db0c15cfc555577dc3fdc10a67ad418bec99872b0dca1978a5332c98",
+      "finalizerSha256": "8da5d75dd72e1181e096ea104f01bd9115b76984c0b8f2b260fdf99979140acf",
+      "receiptSchemaSha256": "596e291576243ea59033e278fe9f98403600e74d00181772abb50620a427af49"
+    },
+    "matchedGraphCohort": {
+      "runnerVersion": "1.5.0",
+      "runnerDigest": "cceb53086c40264a8a5b55a770e337034352a883c25af0804871d7ecf1d66621",
+      "graphDigest": "ec7f403c737f4d42202a1f60c2ee3cb4db7549ef2796516e49b57c89ed1f9a65",
+      "controlAdapterDigest": "50ac4c37a40881b4cd49a7ae341b50dcb6a2235e55b6c07214b18ada01c9b7f3",
+      "modelMapDigest": "7b36dde28f59e092faf5970d505a6d5c61566473d546085264099999cb99ea8d",
+      "inputFingerprint": "8c516310bf8c41031e763bce64224856c7771aa78db55f47a474d9e5d53abbcb",
+      "completedPairs": 0,
+      "plannedPairs": 5,
+      "authorizationStatus": "requires_new_digest_bound_authorization"
+    }
+  },
+  "strictCohorts": {
+    "RT-134": {
+      "observedRows": 4,
+      "naturalObservedRows": 3,
+      "strictComparable": 0,
+      "required": 3,
+      "legacyClassification": "non_comparable_legacy"
+    },
+    "RT-136": {
+      "observedRows": 1,
+      "naturalObservedRows": 1,
+      "strictComparable": 0,
+      "required": 3,
+      "legacyClassification": "non_comparable_legacy"
+    },
+    "RT-137": {
+      "observedRows": 0,
+      "naturalObservedRows": 0,
+      "strictComparable": 0,
+      "required": 3,
+      "legacyClassification": "none"
+    }
+  },
+  "decisions": {
+    "aiCadence": "desktop_registry_a_monday_1500_et_during_benchmark",
+    "weeklyOwner": "registry_b_only",
+    "mgrep": "disabled_pending_provider_terms_and_literal_network_data_authorization",
+    "compiledContext": "dormant_until_live_wiring_is_released_and_verified",
+    "matchedGraphCohort": "no_paid_or_external_effect_run_under_preimplementation_digest"
+  }
+}
