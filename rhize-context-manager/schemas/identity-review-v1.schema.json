@@ -7,7 +7,7 @@
   "required": [
     "reviewVersion", "reviewId", "pairKey", "candidateRevision", "reviewRevision",
     "tenantHash", "namespaceHash", "entityType", "candidateIds", "sourceRevisionHashes",
-    "aclSummaryHash", "trustSummary", "scoreComponents", "versions", "createdAt",
+    "aclSummaryHash", "aclScopeHashes", "trustSummary", "scoreComponents", "versions", "createdAt",
     "updatedAt", "expiresAt", "state", "risk", "poisonFlags", "idempotencyKeyHash",
     "origin", "lease", "decisionId", "rationaleCode"
   ],
@@ -29,6 +29,10 @@
       "items": {"$ref": "#/$defs/hash"}
     },
     "aclSummaryHash": {"$ref": "#/$defs/hash"},
+    "aclScopeHashes": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
     "trustSummary": {"enum": ["high", "medium", "low", "unverified"]},
     "scoreComponents": {
       "type": "object", "additionalProperties": false,

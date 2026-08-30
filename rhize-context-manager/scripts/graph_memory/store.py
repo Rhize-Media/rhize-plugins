@@ -203,7 +203,7 @@ class InMemoryNeo4jAdapter:
             idempotency_key=idempotency_key,
             failure_at=failure_at if failure_at in {"after_validation", "after_stage"} else None,
         )
-        if staged["status"] == "replayed":
+        if staged["status"] != "staged":
             return staged
         return self.publish(
             compilation["compilationId"],

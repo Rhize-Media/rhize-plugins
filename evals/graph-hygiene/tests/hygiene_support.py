@@ -83,13 +83,21 @@ def policy(**limits: int) -> CandidatePolicy:
     )
 
 
-def actor(role: str, key: str = "one") -> AuthenticatedActor:
+def actor(
+    role: str,
+    key: str = "one",
+    *,
+    acl_scope_hashes: frozenset[str] | None = None,
+) -> AuthenticatedActor:
     return AuthenticatedActor(
         actor_hash=h(f"actor:{key}"),
         session_hash=h(f"session:{key}"),
         roles=frozenset({role}),
         authentication_context_hash=h(f"auth:{key}"),
         authorized_partitions=frozenset({(TENANT, NAMESPACE)}),
+        authorized_acl_scope_hashes=(
+            acl_scope_hashes or frozenset({h("rhize:internal")})
+        ),
     )
 
 

@@ -16,6 +16,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   decision-accountability contracts. Live Neo4j publication, automatic `SAME_AS`, automatic memory
   injection/write-back, and decision recording remain disabled pending RT-155 through RT-161
   measurement, canary, and promotion evidence.
+- _2026-08-30_ **review-gate hardening.** Compiled knowledge now rejects vault symlink and persisted
+  path-authority escapes and keeps qmd disabled until RT-164 supplies ACL-aware retrieval. Test
+  evidence no longer executes package scripts with ambient authority or accepts execution-backed
+  packets until RT-163 supplies a trusted sandbox. Native context reuse binds the private prompt,
+  unified-memory reuse requires current source revisions and recovers orphaned purge indexes, task
+  synthesis revalidates approvals/external state, graph ingest replays terminal receipts, identity
+  review enforces hashed ACL scopes, and decision-preview stdout is redacted.
 - _2026-08-30_ version bump — **rhize-ops** 0.13.5 → 0.13.6 (patch); marketplace 2.51.0 → 2.51.1.
 - _2026-08-30_ **mandatory fresh benchmark receipts.** The capture watchdog now independently
   validates strict `procedural-engineering-eval/v2` routine receipts alongside v1/graph receipts,

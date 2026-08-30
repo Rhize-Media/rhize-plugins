@@ -47,6 +47,7 @@ _QUERY_STOP_WORDS = {
 class VerificationResult:
     valid: bool
     snapshot_current: bool
+    prompt_current: bool
     changed_entries: tuple[str, ...]
     missing_entries: tuple[str, ...]
 
@@ -54,6 +55,7 @@ class VerificationResult:
         return {
             "valid": self.valid,
             "snapshotCurrent": self.snapshot_current,
+            "promptCurrent": self.prompt_current,
             "changedEntries": list(self.changed_entries),
             "missingEntries": list(self.missing_entries),
         }
@@ -351,8 +353,9 @@ class NativeContextPackProvider:
             },
             "warnings": all_warnings,
         }
-        manifest["packId"] = stable_pack_id(manifest)
         prompt = _render_prompt(manifest, rendered, private_issues[:MAX_PRIVATE_ISSUES])
+        manifest["promptHash"] = _sha256(prompt.encode())
+        manifest["packId"] = stable_pack_id(manifest)
         return CompiledPack(manifest=manifest, prompt=prompt)
 
     def write_pack(self, pack: CompiledPack, directory: Path) -> tuple[Path, Path]:
@@ -386,7 +389,11 @@ class NativeContextPackProvider:
         return manifest_path, prompt_path
 
     def verify_pack(
-        self, manifest: dict[str, Any], repo_root: Path, current_snapshot: str
+        self,
+        manifest: dict[str, Any],
+        repo_root: Path,
+        current_snapshot: str,
+        prompt_path: Path,
     ) -> VerificationResult:
         validate_native_context_pack_manifest(manifest)
         repo = repo_root.expanduser().resolve(strict=True)
@@ -400,9 +407,18 @@ class NativeContextPackProvider:
             if _sha256(path.read_bytes()) != entry["sourceHash"]:
                 changed.append(entry["path"])
         snapshot_current = current_snapshot == manifest["snapshot"]
+        raw_prompt = prompt_path.expanduser()
+        if raw_prompt.is_symlink():
+            raise ValueError("native context prompt cannot be a symlink")
+        prompt = raw_prompt.resolve(strict=True)
+        prompt_current = (
+            prompt.is_file()
+            and _sha256(prompt.read_bytes()) == manifest["promptHash"]
+        )
         return VerificationResult(
-            valid=snapshot_current and not changed and not missing,
+            valid=snapshot_current and prompt_current and not changed and not missing,
             snapshot_current=snapshot_current,
+            prompt_current=prompt_current,
             changed_entries=tuple(sorted(changed)),
             missing_entries=tuple(sorted(missing)),
         )
@@ -1294,7 +1310,6 @@ def _render_prompt(
     lines = [
         "# Rhize native context pack",
         "",
-        f"Pack: {manifest['packId']}",
         f"Snapshot: {manifest['snapshot']}",
         "",
     ]
@@ -1366,8 +1381,9 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         "policy", "warnings",
     }
     manifest_fields = set(manifest)
+    v2_required = legacy_required | {"impactHint", "promptHash"}
     if (
-        manifest_fields not in (legacy_required, legacy_required | {"impactHint"})
+        manifest_fields not in (legacy_required, legacy_required | {"impactHint"}, v2_required)
         or manifest.get("schemaVersion") != 2
     ):
         raise ValueError("native context pack manifest has an invalid top-level shape")
@@ -1390,6 +1406,13 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack provider provenance is invalid")
     if provider["revision"] == PROVIDER_REVISION and "impactHint" not in manifest:
         raise ValueError("native context pack v2 provider requires impact hint provenance")
+    if provider["revision"] == PROVIDER_REVISION:
+        if not re.fullmatch(r"[a-f0-9]{64}", str(manifest.get("promptHash"))):
+            raise ValueError("native context pack v2 provider requires prompt integrity")
+    elif "promptHash" in manifest:
+        raise ValueError("legacy native context packs cannot declare v2 prompt integrity")
+    if manifest["packId"] != stable_pack_id(manifest):
+        raise ValueError("native context pack identity does not match its manifest")
     entries = manifest.get("entries")
     if not isinstance(entries, list) or not entries:
         raise ValueError("native context pack must have at least one entry")

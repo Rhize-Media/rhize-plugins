@@ -84,6 +84,44 @@ class StagePublishTests(unittest.TestCase):
             self.store.current_compilation(*self._partition(self.first)),
             first_receipt["compilationHash"],
         )
+        rejected_replay = self.store.ingest(
+            loser,
+            role="ingest",
+            idempotency_key="loser",
+            expected_current="0" * 64,
+        )
+        self.assertEqual(rejected_replay["status"], "rejected")
+
+    def test_terminal_superseded_and_purged_receipts_replay_without_publication(self) -> None:
+        first = self.store.ingest(
+            self.first, role="ingest", idempotency_key="first", expected_current=None
+        )
+        second = compilation(source_revision="revision-2")
+        self.store.ingest(
+            second,
+            role="ingest",
+            idempotency_key="second",
+            expected_current=first["compilationHash"],
+        )
+        superseded = self.store.ingest(
+            self.first, role="ingest", idempotency_key="first", expected_current=None
+        )
+        self.assertEqual(superseded["status"], "superseded")
+
+        self.store.purge_source_revision(
+            tenant_key=second["tenantKey"],
+            namespace_key=second["namespaceKey"],
+            corpus_key=second["corpusKey"],
+            source_revision="revision-2",
+            role="ingest",
+        )
+        purged = self.store.ingest(
+            second,
+            role="ingest",
+            idempotency_key="second",
+            expected_current=first["compilationHash"],
+        )
+        self.assertEqual(purged["status"], "purged")
 
     def test_queries_enforce_partition_acl_trust_and_budget(self) -> None:
         self.store.ingest(

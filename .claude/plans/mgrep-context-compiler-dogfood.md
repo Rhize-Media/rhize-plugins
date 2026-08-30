@@ -12,6 +12,12 @@
 | Cross-host surface | Canonical `rhize-context-manager:context-pack` skill/CLI; thin Claude command; Codex skill discovery |
 | Jira tracking | RT-128 remains authoritative for host-stratified live measurement and promotion evidence |
 
+## Implemented review hardening
+
+Native v2 pack identity now binds the private rendered prompt hash. Reuse and hook finalization
+require matching manifest/prompt filenames and verify manifest identity, prompt bytes, source bytes,
+and current Git snapshot.
+
 ## 1. Objective
 
 Dogfood two related ideas in normal Rhize engineering work, measure whether either one improves outcomes, and bundle only the pieces that earn their place:

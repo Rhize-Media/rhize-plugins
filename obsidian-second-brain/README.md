@@ -56,8 +56,10 @@ dependent pages stale instead of silently rebinding them.
 
 The config explicitly binds project, tenant, scope, operator, allowed vault/source roots, ACL,
 egress, retention, and adapter policy. Preview data, source snapshots, journals, and purge tombstones
-remain under a private state root. qmd can see only accepted fresh pages permitted by ACL; context
-packs, Graphify, Neo4j, live synthesis, and scheduled mutation are disabled in this first release.
+remain under a private state root. qmd export is fail-closed in this first release: the compiler
+rejects `qmd_enabled: true` and marks every compiled page ineligible because an ACL-aware indexing
+adapter does not yet exist. Keep compiler output and private state outside every qmd collection.
+Context packs, Graphify, Neo4j, live synthesis, and scheduled mutation are also disabled.
 
 The canonical engine is shared by Claude Code's thin `/vault-compile` command and Codex's
 `knowledge-compiler` skill metadata. Run `python3 scripts/compiled_knowledge.py --help` for the exact
@@ -193,10 +195,14 @@ qmd adds local vector embeddings and LLM re-ranking — no cloud services requir
 **Setup:**
 ```bash
 npm install -g qmd
-qmd collection add vault /path/to/your/vault --include "*.md"
+qmd collection add vault /path/to/your/vault/ApprovedForQmd --include "*.md"
 qmd embed vault
 qmd status vault
 ```
+
+Point each collection at an explicitly approved note root. Do not index the whole vault, the
+compiled-knowledge output root, or `.rhize/compiled-knowledge`; qmd does not enforce the compiler's
+ACL, freshness, retention, or purge metadata. An ACL-aware compiled-knowledge adapter is deferred.
 
 Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use semantic search. All commands gracefully fall back to MCP/CLI keyword search when qmd is not available.
 

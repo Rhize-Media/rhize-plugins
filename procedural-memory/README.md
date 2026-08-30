@@ -11,6 +11,12 @@ report its output honestly.
 Distinct from claude-mem's session-search skills: those retrieve what happened in past
 conversations; this plugin executes proven code that already solves a task.
 
+The canonical skill and launcher contract are shared by Claude Code and Codex. Unified memory may
+consume procedural metadata only through the versioned, recall-only
+`rhize-procedural-recall-v1` contract. That adapter is not available yet, so memory assembly must
+report the procedural lane as unavailable. It must not parse human CLI output, query registry tables
+directly, or call `run` as a fallback; similarity never grants execution authority.
+
 ## Setup
 
 The `rhize-skill` CLI is not published to PyPI — it's a Rhize-internal registry you build from

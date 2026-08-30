@@ -12,6 +12,11 @@
 | Cross-host surface | Extend canonical `rhize-context-manager:graph-memory` skill/CLI; thin Claude command; Codex skill discovery |
 | Jira tracking | RT-154 implementation; RT-161 internal canary/promotion; linked to RT-146 |
 
+## Implemented review hardening
+
+Offline preview keeps the full proposal only in its mode-`0600` artifact. CLI stdout exposes a
+redacted receipt containing the preview ID, digest, expiry, and binding digest.
+
 ## Decision
 
 Add a small, governed decision-accountability extension to the Rhize Neo4j ontology. Record selected

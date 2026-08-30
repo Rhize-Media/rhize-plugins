@@ -82,7 +82,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
 | `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
 | `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
-| `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
+| `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Reuse requires an explicit current source-ID/revision map; conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
 | `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process review contracts are tested, but every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
 | `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until RT-161. |
 
@@ -277,8 +277,9 @@ related tests/configuration when they fit. Query discovery uses CodeGraph only a
 bridge expands semantic terms and consumes named source-file seeds while storing only the plan
 content hash, normalized term-set hash, and seed count—never plan content or an absolute path.
 Planned, dynamic, and unsupported edges remain untrusted and fail closed.
-Every manifest records provider revision, task/query hashes, source/rendered hashes, selection
-reasons, token budget, and warnings without source text. `verify-pack` rejects any snapshot or
+Every manifest records provider revision, task/query hashes, source/rendered hashes, the private
+prompt hash, selection reasons, token budget, and warnings without source text. `verify-pack`
+requires the matching manifest and prompt paths and rejects any identity, prompt, snapshot, or
 entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
 context cases. The prior native-v1 corpus remains historical evidence; v2 adds separate contract,
 alias/workspace, source-root, eligibility, exclusion-ledger, and hash-only impact-map/`rg` fixtures.

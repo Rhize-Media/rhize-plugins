@@ -2634,7 +2634,7 @@
       "path": "rhize-devflow/commands/simplify.md"
     },
     {
-      "description": "Produce state-bound test evidence in an isolated disposable worktree for explicit regression claims",
+      "description": "Produce fail-closed, state-bound metadata for explicit regression claims",
       "id": "command:rhize-devflow/test-evidence",
       "kind": "command",
       "name": "test-evidence",
@@ -3375,7 +3375,7 @@
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
     },
     {
-      "contentHash": "23574182069d564eba224f0ec396a6a6151271cf6426bc7e3a96a1be1ae41d32",
+      "contentHash": "84de94a51563c16ee2de45cf255fc39ff6cd6d864b424bfc78014b4da8dcc78f",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
@@ -3439,7 +3439,7 @@
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
     },
     {
-      "contentHash": "594a791d2b7a658ebf5571a9987b1df3357169d52dd8f3e7cbcb1b0e7e9ebace",
+      "contentHash": "37f762e3b50f80767441f806de62e7db7c682a87c0ff7810b8bfb29ec4f8b7e4",
       "description": "Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a task from scratch. Use when a task looks like something the registry may already have solved: recall() finds the closest match by semantic similarity over Postgres/pgvector (ranked with trust tier, health, and success rate), and run() executes it registry-only, content-digest-checked, and trust/health-gated — never a caller-supplied path, never a silently bypassed gate. Also covers promoting a newly captured script into the registry (verify -> classify trust -> write provenance -> commit -> index) and re-running an artifact's sandboxed smoke test to refresh its health state. This skill is about EXECUTING proven code with a provenance contract, not retrieving past conversation or session history — for \"what did we discuss/decide/do before\" use claude-mem's search/recall skills instead, and for a knowledge graph over an Obsidian vault use graphify. Trigger on \"is there already a tool for this\", \"run the registry version of X\", \"promote this script to the registry\", \"recall a proven artifact for <task>\", \"re-verify <artifact-name>\", or \"has this been automated before\".",
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
@@ -3507,7 +3507,7 @@
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
     },
     {
-      "contentHash": "a8df7182e4699f6786f013fbea1f1df0a8518ef50ceb3ecafcc5c03ac2a8bae6",
+      "contentHash": "83f94ac291a5c41cea71d50afac5dc3f041e8c982f3e3114dbaca27fc3b5692f",
       "description": "Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or review task. Use when a bounded dependency-aware pack may reduce targeted reads without hiding critical contracts. Do not use for trivial lookups, highly dynamic code, automatic prompt injection, or as a replacement for exact source verification.",
       "id": "skill:rhize-context-manager/context-pack",
       "kind": "skill",
@@ -3532,7 +3532,7 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "e821b7cdd3da5eb12be4f6501696c3ce517014b1d8032fb79bd6c51bf3f59d4a",
+      "contentHash": "009e302e5fe504de53f134e667287cd8f7acf1d766b3ea823428f5503f2225fe",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
@@ -3564,7 +3564,7 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "8fa83731e5fd026153480c2bf0bcb1dfb2757d8ec13a01ad93b7c7d5cc2abd37",
+      "contentHash": "645d55b934ab397c1720e0e683158b82b506a85fe38b5041b584e92a324a9874",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",
@@ -3671,8 +3671,8 @@
       "path": "rhize-devflow/skills/simplify/SKILL.md"
     },
     {
-      "contentHash": "24ac86af80f56517637d3670fc303ae398c3970a2d849e40a5430f8995ae1254",
-      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate state-bound independent-oracle or safely isolated mutation evidence. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
+      "contentHash": "a4609175a6c639f18e96a62c590c13571bac008c3a9b062ac1e12953ada0fbc3",
+      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including where safely isolated mutation evidence would be required. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",
       "name": "test-evidence",

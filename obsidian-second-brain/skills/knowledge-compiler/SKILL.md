@@ -36,9 +36,10 @@ both Claude Code and Codex rather than recreating hashing, policy, or transactio
   conflict, or apply when the source, target, operator, project, ACL, expiry, or retention changed.
 - `rebuild` creates another preview only. Scheduled compilation and live auto-synthesis are not part
   of this release.
-- Never place previews, source snapshots, journals, or tombstones in qmd or a graph. Only an accepted,
-  fresh manifest may make its page qmd-eligible. Context-pack, Graphify, and Neo4j promotion remain
-  disabled until their separate gates pass.
+- Never place compiler output, previews, source snapshots, journals, or tombstones in a qmd
+  collection. qmd remains fail-closed for every compiled page until an ACL-aware adapter can enforce
+  freshness, retention, and purge decisions at the physical index boundary. Context-pack, Graphify,
+  and Neo4j promotion remain disabled until their separate gates pass.
 
 ## Workflow
 

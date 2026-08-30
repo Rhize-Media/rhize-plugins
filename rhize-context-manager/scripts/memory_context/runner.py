@@ -43,11 +43,14 @@ def command_preview(args: argparse.Namespace) -> int:
 def command_verify(args: argparse.Namespace) -> int:
     manifest_path = Path(args.manifest).expanduser().resolve(strict=True)
     payload_path = Path(args.payload).expanduser().resolve(strict=True)
-    source_state = None
-    if args.source_state:
-        source_state = json.loads(Path(args.source_state).expanduser().resolve(strict=True).read_text())
-        if not isinstance(source_state, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in source_state.items()):
-            raise ValueError("source state must be a JSON object of sourceId to revision")
+    source_state = json.loads(
+        Path(args.source_state).expanduser().resolve(strict=True).read_text()
+    )
+    if not isinstance(source_state, dict) or not all(
+        isinstance(key, str) and isinstance(value, str)
+        for key, value in source_state.items()
+    ):
+        raise ValueError("source state must be a JSON object of sourceId to revision")
     root = Path(args.data_dir).expanduser() if args.data_dir else manifest_path.parent.parent
     result = MemoryStore(root).verify(
         manifest_path, payload_path, now=_time(args.now), source_state=source_state
@@ -78,7 +81,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify = subparsers.add_parser("verify")
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--payload", required=True)
-    verify.add_argument("--source-state")
+    verify.add_argument("--source-state", required=True)
     verify.add_argument("--data-dir")
     verify.add_argument("--now")
     purge = subparsers.add_parser("purge")

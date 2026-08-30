@@ -11,6 +11,11 @@
 | Cross-host surface | Canonical `rhize-context-manager:graph-memory` skill and host-neutral CLI; thin Claude adapters; Codex skill discovery |
 | Jira tracking | RT-152 implementation; RT-159 live canary/rollback; linked to RT-145 and RT-146 |
 
+## Implemented review hardening
+
+Terminal ingest receipts (`accepted`, `rejected`, `superseded`, or `purged`) replay idempotently;
+only a genuinely `staged` compilation resumes publication.
+
 ## Decision
 
 Define a small, versioned Rhize ontology shared by the governed Rhize adapter over Graphify artifacts

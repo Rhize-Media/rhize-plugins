@@ -299,7 +299,12 @@ def _run_decision(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "contractVersion": DECISION_CONTRACT_VERSION,
         "liveNeo4jEnabled": False,
-        "preview": preview,
+        "previewReceipt": {
+            "previewId": preview["previewId"],
+            "previewDigest": preview["previewDigest"],
+            "bindingDigest": preview["bindingDigest"],
+            "expiresAt": preview["expiresAt"],
+        },
         "publication": "not_published",
         "status": "previewed_offline",
     }

@@ -30,6 +30,7 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [ ] RT-159: run the isolated live Neo4j canary, backup/restore rehearsal, and driver/constraint verification before publication.
 - [ ] RT-160: calibrate identity review by entity type before considering any automatic `SAME_AS`; protected identities remain deterministic.
 - [ ] RT-161: validate durable decision recording/query/correction before enabling anything beyond offline preview.
+- [ ] RT-164: implement and validate an ACL-aware qmd adapter before compiled pages can enter qmd collections.
 
 ### Cross-plugin agent workflow
 
@@ -37,6 +38,7 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [x] Ship state-bound independent-oracle and isolated-mutation evidence in `rhize-devflow`.
 - [x] Ship evidence-bound compiled knowledge in `obsidian-second-brain` with source authority retained outside derived pages/graphs.
 - [ ] RT-155 and RT-156: collect host-stratified task-graph and test-evidence calibration before automatic promotion decisions.
+- [ ] RT-163: implement a trusted sandbox adapter before behavioral evidence can execute repository package scripts.
 - [ ] RT-157: measure compiled-knowledge maintenance and invalidation before scheduling rebuilds.
 
 ### seo-aeo-geo

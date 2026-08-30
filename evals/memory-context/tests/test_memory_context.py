@@ -67,7 +67,20 @@ def test_private_write_verify_revision_and_exact_source_purge(tmp_path: Path) ->
 
     assert manifest_path.stat().st_mode & 0o777 == 0o600
     assert payload_path.stat().st_mode & 0o777 == 0o600
-    assert store.verify(manifest_path, payload_path, now=FIXED_NOW)["valid"] is True
+    current_source_state = {
+        "decision-blue": "rev-1",
+        "decision-red": "rev-2",
+        "hostile-note": "rev-1",
+    }
+    assert store.verify(
+        manifest_path,
+        payload_path,
+        now=FIXED_NOW,
+        source_state=current_source_state,
+    )["valid"] is True
+    missing_state = store.verify(manifest_path, payload_path, now=FIXED_NOW)
+    assert missing_state["valid"] is False
+    assert missing_state["reasons"] == ["source_state_required"]
     source_state = {
         "decision-blue": "rev-1",
         "decision-red": "rev-2",
@@ -93,7 +106,16 @@ def test_ttl_cleanup_and_payload_tamper_fail_closed(tmp_path: Path) -> None:
     payload_path.write_text('{"schemaVersion":1,"payloads":{}}\n')
     payload_path.chmod(0o600)
 
-    result = store.verify(manifest_path, payload_path, now=FIXED_NOW)
+    result = store.verify(
+        manifest_path,
+        payload_path,
+        now=FIXED_NOW,
+        source_state={
+            "decision-blue": "rev-1",
+            "decision-red": "rev-2",
+            "hostile-note": "rev-1",
+        },
+    )
     assert result["valid"] is False
     assert "payload_hash_mismatch" in result["reasons"]
     cleanup = store.cleanup_expired(datetime(2026, 8, 30, 14, 0, tzinfo=timezone.utc))
@@ -155,3 +177,51 @@ def test_pack_identity_includes_scope_time_and_ttl_window(tmp_path: Path) -> Non
     assert first_manifest["packId"] != second_manifest["packId"]
     assert first_manifest["taskHash"] == sha256("rt-130")
     assert all(path.exists() for path in (*first_paths, *second_paths))
+
+
+def test_retry_reconciles_orphan_index_and_purge_finds_valid_orphans(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+    store.index_path.unlink()
+
+    assert store.write(manifest, payload) == (manifest_path, payload_path)
+    indexed = json.loads(store.index_path.read_text())
+    assert manifest["packId"] in indexed["sourcePacks"][sha256("decision-blue")]
+
+    store.index_path.unlink()
+    purged = store.purge("decision-blue", FIXED_NOW)
+    assert purged["invalidatedPackIds"] == [manifest["packId"]]
+    assert not manifest_path.exists()
+    assert not payload_path.exists()
+
+
+def test_verify_rejects_manifest_identity_and_artifact_path_tampering(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+    source_state = {
+        "decision-blue": "rev-1",
+        "decision-red": "rev-2",
+        "hostile-note": "rev-1",
+    }
+
+    tampered = json.loads(manifest_path.read_text())
+    tampered["tenantHash"] = "f" * 64
+    manifest_path.write_text(json.dumps(tampered))
+    manifest_path.chmod(0o600)
+    with pytest.raises(ValueError, match="packId does not match"):
+        store.verify(manifest_path, payload_path, now=FIXED_NOW, source_state=source_state)
+
+    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.chmod(0o600)
+    alias = store.packs / f"memory-{'0' * 32}.json"
+    alias.write_text(manifest_path.read_text())
+    alias.chmod(0o600)
+    with pytest.raises(ValueError, match="artifact path does not match"):
+        store.verify(alias, payload_path, now=FIXED_NOW, source_state=source_state)
+
+    symlink = store.packs / f"memory-{'1' * 32}.json"
+    symlink.symlink_to(manifest_path)
+    with pytest.raises(ValueError, match="cannot be symlinks"):
+        store.verify(symlink, payload_path, now=FIXED_NOW, source_state=source_state)

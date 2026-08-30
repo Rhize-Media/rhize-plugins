@@ -11,6 +11,12 @@
 | Cross-host surface | Extend canonical `rhize-context-manager:graph-memory` skill/CLI; thin Claude review adapter; Codex skill discovery |
 | Jira tracking | RT-153 implementation; RT-160 calibration/consolidation; automatic `SAME_AS` remains out of scope |
 
+## Implemented review hardening
+
+Candidate intersections now carry hashed ACL scopes in their revision and ledger identities. Every
+candidate read or transition enforces both tenant/namespace and an authorized ACL intersection;
+same-partition authority alone is insufficient.
+
 ## Decision
 
 Separate canonical naming, real-world identity, truth, and evidence classification. Deterministic

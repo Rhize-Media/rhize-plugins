@@ -134,6 +134,30 @@ def test_next_wave_waits_for_approval_and_external_state_revalidation():
     assert task_graph.next_wave(value, task_graph.validate_state(current, value), 2)["ready"] == ["publish"]
 
 
+def test_effectful_completion_requires_revalidated_authority_and_external_state():
+    value = graph([node("publish", approval=True, effect="external_write")])
+    current = state(value)
+    current["nodes"]["publish"].update(
+        previous_status="running",
+        status="completed",
+        output_contract_satisfied=True,
+    )
+    with pytest.raises(task_graph.GraphError, match="approval must be revalidated"):
+        task_graph.validate_state(current, value)
+    current["approvals_revalidated"] = True
+    with pytest.raises(task_graph.GraphError, match="external state must be revalidated"):
+        task_graph.validate_state(current, value)
+    current["external_state_revalidated"] = True
+    result = task_graph.validate_results(value, task_graph.validate_state(current, value))
+    assert result["synthesis_allowed"] is True
+    assert result["approval_revalidation_required"] is True
+    assert result["external_revalidation_required"] is True
+    current["nodes"]["publish"]["previous_status"] = "completed"
+    current["approvals_revalidated"] = False
+    with pytest.raises(task_graph.GraphError, match="approval must be revalidated"):
+        task_graph.validate_state(current, value)
+
+
 def test_checkout_drift_aborts_wave_before_dispatch():
     value = graph([node("work")])
     current = state(value)

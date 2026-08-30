@@ -67,6 +67,45 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(json.dumps(source, sort_keys=True).encode(), source_bytes)
         self.assertNotIn("label", json.dumps(receipt))
 
+    def test_same_partition_actor_without_candidate_acl_cannot_read_or_transition(self) -> None:
+        review = candidate()
+        reviewer = actor("identity_reviewer")
+        denied = actor(
+            "identity_reviewer",
+            "denied",
+            acl_scope_hashes=frozenset({h("rhize:other")}),
+        )
+        store = IdentityReviewStore()
+        store.enqueue_candidates([review], actor=reviewer, occurred_at=NOW)
+
+        self.assertEqual(
+            store.list_reviews(
+                tenant_hash=review["tenantHash"],
+                namespace_hash=review["namespaceHash"],
+                actor=denied,
+            )["results"],
+            [],
+        )
+        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+            store.show_review(review["reviewId"], actor=denied)
+        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+            store.lease(
+                review["reviewId"],
+                expected_revision=review["reviewRevision"],
+                actor=denied,
+                now=NOW,
+                lease_expires_at="2026-08-30T14:30:00+00:00",
+                idempotency_key="denied-lease",
+            )
+        other_scope_review = candidate(
+            entity("a", "Context Compiler", acl=["rhize:other"]),
+            entity("b", "Context Compiler", acl=["rhize:other"]),
+        )
+        with self.assertRaisesRegex(ReviewError, "ACL scope"):
+            store.enqueue_candidates(
+                [other_scope_review], actor=denied, occurred_at=NOW
+            )
+
     def test_authority_cas_lease_expiry_and_stale_state_are_enforced(self) -> None:
         review = candidate()
         store = IdentityReviewStore()

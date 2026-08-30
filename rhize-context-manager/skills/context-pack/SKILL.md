@@ -20,7 +20,8 @@ from Claude Code and Codex. Build an explicit preview with one or more `--target
 ```bash
 scripts/context-pack.sh pack --provider native --repo /absolute/repo --target src/app.ts
 scripts/context-pack.sh pack --provider native --repo /absolute/repo --query "account sync behavior"
-scripts/context-pack.sh verify-pack --repo /absolute/repo --manifest /absolute/private/pack.json
+scripts/context-pack.sh verify-pack --repo /absolute/repo \
+  --manifest /absolute/private/pack.json --prompt /absolute/private/pack.md
 ```
 
 Inspect `acceptedForUse`, `rejectionReasons`, every entry role/reason, and warnings. A safe pack may

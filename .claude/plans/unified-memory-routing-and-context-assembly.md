@@ -11,6 +11,12 @@
 | Cross-host surface | Canonical `rhize-context-manager:memory-context` skill; thin Claude command; Codex skill discovery |
 | Jira tracking | RT-151 implementation; RT-158 measurement/promotion; linked to RT-128 |
 
+## Implemented review hardening
+
+Pack identity and candidate envelopes are revalidated on reuse, the current source-ID/revision map is
+mandatory, interrupted identical writes repair the private revocation index, and purge also discovers
+validated orphan packs under the exact private store.
+
 ## Decision
 
 Unify memory at the routing and context-assembly boundary, not by migrating every store into one

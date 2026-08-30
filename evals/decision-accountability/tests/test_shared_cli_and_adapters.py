@@ -88,7 +88,10 @@ class SharedDecisionCliAndAdapterTests(unittest.TestCase):
             payload = json.loads(first.stdout)
             self.assertEqual(payload["status"], "previewed_offline")
             self.assertEqual(payload["publication"], "not_published")
-            preview_id = payload["preview"]["previewId"]
+            preview_id = payload["previewReceipt"]["previewId"]
+            self.assertNotIn("preview", payload)
+            self.assertNotIn("proposal", first.stdout)
+            self.assertNotIn("tenant-fixture", first.stdout)
 
             record = self._run_cli("decision", "record", "--preview-id", preview_id)
             record_payload = json.loads(record.stdout)

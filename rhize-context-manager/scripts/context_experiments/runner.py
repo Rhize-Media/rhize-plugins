@@ -304,7 +304,7 @@ def claim_hook_selection(
             if current_snapshot != snapshot:
                 return None
             verification = native_provider.verify_pack(
-                pack.manifest, selection["repoRoot"], current_snapshot
+                pack.manifest, selection["repoRoot"], current_snapshot, prompt_path
             )
             if not verification.valid:
                 return None
@@ -693,18 +693,29 @@ def _final_pack_verification(
     if repo_root is None or repository_fingerprint(repo_root) != pending.get("repoId"):
         return "unavailable"
     manifest_file = execution.get("manifestFile")
+    prompt_file = execution.get("promptFile")
     if not isinstance(manifest_file, str) or not re.fullmatch(
         r"pack-[a-f0-9]{32}\.json", manifest_file
     ):
+        return "unavailable"
+    if not isinstance(prompt_file, str) or not re.fullmatch(
+        r"pack-[a-f0-9]{32}\.md", prompt_file
+    ):
+        return "unavailable"
+    if Path(manifest_file).stem != Path(prompt_file).stem:
         return "unavailable"
     try:
         manifest = json.loads(
             (storage_root / "packs" / manifest_file).read_text(encoding="utf-8")
         )
+        if manifest.get("packId") != Path(manifest_file).stem:
+            return "unavailable"
         snapshot = git_snapshot(repo_root)
         if snapshot is None:
             return "unavailable"
-        result = NativeContextPackProvider().verify_pack(manifest, repo_root, snapshot)
+        result = NativeContextPackProvider().verify_pack(
+            manifest, repo_root, snapshot, storage_root / "packs" / prompt_file
+        )
     except (OSError, TypeError, ValueError, json.JSONDecodeError):
         return "unavailable"
     return "valid" if result.valid else "stale"
@@ -1350,7 +1361,9 @@ def command_verify_pack(args: argparse.Namespace) -> int:
     snapshot = git_snapshot(repo)
     if snapshot is None:
         raise ValueError("verify-pack requires a Git repository")
-    result = NativeContextPackProvider().verify_pack(manifest, repo, snapshot)
+    result = NativeContextPackProvider().verify_pack(
+        manifest, repo, snapshot, Path(args.prompt)
+    )
     print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
     return 0 if result.valid else 2
 
@@ -1451,6 +1464,7 @@ def build_parser() -> argparse.ArgumentParser:
     verify_pack = subparsers.add_parser("verify-pack")
     verify_pack.add_argument("--repo", required=True)
     verify_pack.add_argument("--manifest", required=True)
+    verify_pack.add_argument("--prompt", required=True)
 
     preflight = subparsers.add_parser("mgrep-preflight")
     preflight.add_argument("--repo", required=True)

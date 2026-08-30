@@ -103,10 +103,36 @@ def test_native_pack_is_reproducible_and_detects_stale_entries(tmp_path: Path) -
     (repo / "src" / "service.ts").write_text("export function load() { return 'changed'; }\n")
     current = git_snapshot(repo)
     assert current is not None
-    result = NativeContextPackProvider().verify_pack(first[0], repo, current)
+    result = NativeContextPackProvider().verify_pack(first[0], repo, current, first[2])
     assert result.valid is False
     assert result.snapshot_current is False
+    assert result.prompt_current is True
     assert result.changed_entries == ("src/service.ts",)
+
+
+def test_native_pack_verification_binds_manifest_and_prompt_bytes(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    snapshot = commit_fixture(repo)
+    manifest, manifest_path, prompt_path = build_native_context_pack_preview(
+        repo,
+        snapshot,
+        target_files=(repo / "src" / "app.ts",),
+        data_dir=tmp_path / "data",
+    )
+    provider = NativeContextPackProvider()
+    assert provider.verify_pack(manifest, repo, snapshot, prompt_path).valid is True
+
+    prompt_path.write_text(prompt_path.read_text() + "\nmodified\n")
+    prompt_path.chmod(0o600)
+    tampered_prompt = provider.verify_pack(manifest, repo, snapshot, prompt_path)
+    assert tampered_prompt.valid is False
+    assert tampered_prompt.prompt_current is False
+
+    tampered_manifest = json.loads(manifest_path.read_text())
+    tampered_manifest["taskHash"] = "f" * 64
+    with pytest.raises(ValueError, match="identity does not match"):
+        provider.verify_pack(tampered_manifest, repo, snapshot, prompt_path)
 
 
 def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) -> None:
@@ -568,9 +594,14 @@ def test_legacy_native_manifest_remains_validator_compatible(tmp_path: Path) -> 
         task_hash="8" * 64,
         targets=(repo / "src" / "app.ts",),
     )
-    legacy = {key: value for key, value in pack.manifest.items() if key != "impactHint"}
+    legacy = {
+        key: value
+        for key, value in pack.manifest.items()
+        if key not in {"impactHint", "promptHash"}
+    }
     legacy["provider"] = {
         "name": "rhize-native",
         "revision": "rhize-native-context-pack-v1",
     }
+    legacy["packId"] = native_provider.stable_pack_id(legacy)
     validate_native_context_pack_manifest(legacy)

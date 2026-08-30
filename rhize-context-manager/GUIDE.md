@@ -70,7 +70,8 @@ the right one, and health-checks the whole thing.
   Give it one or more target files, or a task query; it uses CodeGraph first only when an existing
   `.codegraph/` is healthy/current, otherwise uses deterministic `rg`, records why each
   FULL/INTERFACE entry was selected, and fails closed
-  on dynamic or stale dependencies. `verify-pack` must pass before reuse after any edit. The
+  on dynamic or stale dependencies. `verify-pack` must receive both the manifest and its private
+  prompt and pass their identity/content checks before reuse after any edit. The
   optional `--impact-map .claude/plans/<name>.md` bridge adds semantic terms and source-file seeds
   while recording only hashes/counts. Claude Code auto-wires the selector/finalizer hooks; Codex
   exposes the same host-neutral runner through the `context-pack` and `context-experiment` skills
@@ -83,7 +84,8 @@ the right one, and health-checks the whole thing.
 - **"Assemble context from several memory sources" / "show memory conflicts"**
   → `/memory-context` — a private, explicit preview that preserves source authority, scope,
   conflicts, TTL, and unavailable adapters. It never scrapes host transcripts, executes recalled
-  procedures, writes back, or injects automatically.
+  procedures, writes back, or injects automatically. Verification requires an explicit current
+  source-ID/revision map; omission is a non-reusable failure, not a skipped freshness check.
 
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).

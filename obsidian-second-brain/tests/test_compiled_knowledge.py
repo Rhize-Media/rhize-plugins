@@ -23,7 +23,7 @@ NOW = datetime(2026, 8, 30, 12, 0, tzinfo=timezone.utc)
 
 
 class VaultFixture:
-    def __init__(self, root: Path, *, qmd: bool = True, acl: str = "internal") -> None:
+    def __init__(self, root: Path, *, acl: str = "internal") -> None:
         self.root = root
         self.sources = root / "Sources"
         self.output = root / "Compiled"
@@ -41,7 +41,6 @@ class VaultFixture:
         config = compiler.config_template(str(root))
         config["project"] = {"id": "rhize-tools", "tenant_id": "rhize", "scope_id": "internal"}
         config["operator_id"] = "test-operator"
-        config["qmd_enabled"] = qmd
         self.config.write_text(json.dumps(config), encoding="utf-8")
         self.settings = compiler.load_settings(self.config)
         self.registration = compiler.register_source(
@@ -111,7 +110,7 @@ class CompiledKnowledgeTests(unittest.TestCase):
             with self.assertRaisesRegex(compiler.CompilerError, "unknown=tools"):
                 vault.preview()
 
-    def test_apply_is_exact_idempotent_and_qmd_eligible_only_after_acceptance(self) -> None:
+    def test_apply_is_exact_idempotent_and_qmd_remains_fail_closed(self) -> None:
         temporary, vault = self.fixture()
         with temporary:
             preview = vault.preview()
@@ -122,7 +121,16 @@ class CompiledKnowledgeTests(unittest.TestCase):
             self.assertEqual(vault.apply(str(preview["preview_id"]))["status"], "noop")
             report = compiler.status_report(vault.settings, NOW)
             self.assertEqual(report["pages"][0]["status"], "clean")
-            self.assertTrue(report["pages"][0]["qmd_eligible"])
+            self.assertFalse(report["pages"][0]["qmd_eligible"])
+            accepted = compiler.load_accepted_manifest(
+                vault.settings,
+                "page-1",
+                compiler.load_index(vault.settings)["pages"]["page-1"],
+            )
+            self.assertEqual(
+                accepted["adapters"]["qmd"],
+                {"eligible": False, "reason": "acl-aware-qmd-adapter-not-configured"},
+            )
             log_lines = (vault.settings.state_root / "accepted.log.jsonl").read_text().splitlines()
             self.assertEqual(len(log_lines), 1)
 
@@ -243,6 +251,42 @@ class CompiledKnowledgeTests(unittest.TestCase):
             self.assertEqual(report["pages"][0]["status"], "clean")
             self.assertEqual(vault.apply(str(preview["preview_id"]))["status"], "noop")
 
+    def test_recovery_rejects_journal_paths_outside_the_preview_authority(self) -> None:
+        temporary, vault = self.fixture()
+        with temporary:
+            preview = vault.preview()
+            with self.assertRaises(compiler.InjectedCrash):
+                vault.apply(str(preview["preview_id"]), fault_after="prepared")
+            journal_path = next((vault.settings.state_root / "transactions").glob("*.json"))
+            journal = json.loads(journal_path.read_text())
+            other_target = vault.settings.output_root / "human-owned.md"
+            other_target.write_text("human content\n")
+            journal["paths"]["target"] = str(other_target)
+            journal_path.write_text(json.dumps(journal))
+            with self.assertRaisesRegex(compiler.CompilerError, "preview authority"):
+                compiler.status_report(vault.settings, NOW)
+            self.assertEqual(other_target.read_text(), "human content\n")
+
+    def test_index_manifest_path_is_rejected_before_status_rebuild_or_purge(self) -> None:
+        temporary, vault = self.fixture()
+        with temporary:
+            preview = vault.preview()
+            vault.apply(str(preview["preview_id"]))
+            index_path = compiler.index_path(vault.settings)
+            index = json.loads(index_path.read_text())
+            index["pages"]["page-1"]["manifest_path"] = str(vault.root / "outside-manifest.json")
+            index_path.write_text(json.dumps(index))
+            error = "index.pages.page-1.manifest_path"
+            with self.assertRaisesRegex(compiler.CompilerError, error):
+                compiler.status_report(vault.settings, NOW)
+            with self.assertRaisesRegex(compiler.CompilerError, error):
+                compiler.rebuild_page(vault.settings, "page-1", None, NOW)
+            confirmation = f"source-1:{vault.registration['current_revision_hash']}"
+            with self.assertRaisesRegex(compiler.CompilerError, error):
+                compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
+            self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "active")
+            self.assertTrue((vault.output / "compiled-page.md").exists())
+
     def test_purge_removes_compiler_payloads_and_suppresses_indexes(self) -> None:
         temporary, vault = self.fixture()
         with temporary:
@@ -294,6 +338,29 @@ class CompiledKnowledgeTests(unittest.TestCase):
             with self.assertRaisesRegex(compiler.CompilerError, "ownership marker"):
                 vault.preview()
 
+    def test_output_and_state_root_symlink_components_are_denied(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            vault_root = base / "vault"
+            outside = base / "outside"
+            vault_root.mkdir()
+            outside.mkdir()
+            (vault_root / "Sources").mkdir()
+            output_link = vault_root / "Compiled"
+            output_link.symlink_to(outside, target_is_directory=True)
+            config = compiler.config_template(str(vault_root))
+            config_path = vault_root / "config.json"
+            config_path.write_text(json.dumps(config))
+            with self.assertRaisesRegex(compiler.CompilerError, "output_root escapes.*symlink"):
+                compiler.load_settings(config_path)
+
+            output_link.unlink()
+            output_link.mkdir()
+            state_parent = vault_root / ".rhize"
+            state_parent.symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(compiler.CompilerError, "state_root escapes.*symlink"):
+                compiler.load_settings(config_path)
+
     def test_disabled_first_release_gates_are_enforced(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -304,6 +371,12 @@ class CompiledKnowledgeTests(unittest.TestCase):
             path = root / "config.json"
             path.write_text(json.dumps(config))
             with self.assertRaisesRegex(compiler.CompilerError, "must remain false"):
+                compiler.load_settings(path)
+
+            config["live_synthesis_enabled"] = False
+            config["qmd_enabled"] = True
+            path.write_text(json.dumps(config))
+            with self.assertRaisesRegex(compiler.CompilerError, "ACL-aware qmd adapter"):
                 compiler.load_settings(path)
 
     def test_private_acl_never_becomes_qmd_eligible(self) -> None:

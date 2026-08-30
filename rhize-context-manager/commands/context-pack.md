@@ -57,10 +57,12 @@ immediately before reuse:
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/skills/context-pack/scripts/context-pack.sh" verify-pack \
   --repo /absolute/path/to/repository \
-  --manifest /absolute/path/to/pack.json
+  --manifest /absolute/path/to/pack.json \
+  --prompt /absolute/path/to/pack.md
 ```
 
-Any source edit or snapshot change makes verification fail and requires recompilation. Repeating
+Any source edit, snapshot change, manifest edit, or prompt edit makes verification fail and requires
+recompilation. Repeating
 an unchanged request reuses the same immutable pack ID.
 
 When the opt-in selector is explicitly armed for `compiledContext`, it runs this native provider

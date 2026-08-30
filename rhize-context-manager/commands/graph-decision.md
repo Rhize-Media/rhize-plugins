@@ -14,5 +14,6 @@ Run `decision status` first. Default to `preview`. Require the owning workflow's
 source/evidence/policy and an authenticated actor plus approval before requesting `record` or
 `correct`. Never infer a decision from an agent transcript, store prompts or hidden reasoning, issue
 raw Cypher, connect directly to Neo4j, or install Semantica. The offline CLI does not offer durable
-recording. If a requested operation is not configured, return `unavailable` exactly as the CLI
+recording; its stdout is a redacted preview receipt, while the full proposal remains only in the
+mode-`0600` preview artifact. If a requested operation is not configured, return `unavailable` exactly as the CLI
 reports it; do not create a local shadow decision record.

@@ -6,9 +6,9 @@ An agent re-solving a task from scratch every time it comes up is slow and incon
 same n8n deploy guard, the same vault tagging script, the same PDF-to-markdown conversion, each
 recomposed fresh instead of reused. The `procedural-memory` registry keeps proven, working code
 for tasks like these, each one carrying a real safety contract (what it needs, what it touches,
-how it's been verified). This plugin is how you reach that registry from a Claude Code session:
-find the right artifact, run it with the registry's trust/health gates intact, or add a new one
-once you've captured working code worth reusing.
+how it's been verified). This plugin is how you reach that registry from either Claude Code or
+Codex: find the right artifact, run it with the registry's trust/health gates intact, or add a new
+one once you've captured working code worth reusing.
 
 ## When to reach for what
 
@@ -62,6 +62,12 @@ It doesn't retrieve past conversations or session history — that's claude-mem'
 search/recall skills). It doesn't build a knowledge graph over notes — that's `graphify`
 (rhize-context-manager). If the request is "what did we decide last week," you want claude-mem.
 If it's "is there working code for this, and can I just run it," you want this plugin.
+
+Unified memory can consume procedural metadata only through the versioned, recall-only
+`rhize-procedural-recall-v1` contract. That adapter is not available yet, so the procedural lane
+must report `unavailable`; it must not scrape prose, query registry tables directly, or execute an
+artifact as a fallback. Recall metadata never bypasses the normal digest, trust, health, or
+user-approval gates in either Claude Code or Codex.
 
 It also doesn't implement pruning or deletion. `rhize-skill stale` (a read-only decay report) is
 reachable directly through the launcher script if you want it; see

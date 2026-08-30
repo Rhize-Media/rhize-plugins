@@ -5,9 +5,9 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery",
+    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery", "impactHint",
     "entries", "excludedCount", "exclusionLedger", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
-    "reductionPercent", "buildMilliseconds", "sourceManifestHash", "policy", "warnings"
+    "reductionPercent", "buildMilliseconds", "sourceManifestHash", "promptHash", "policy", "warnings"
   ],
   "properties": {
     "schemaVersion": { "const": 2 },
@@ -88,6 +88,7 @@
     "reductionPercent": { "type": "number" },
     "buildMilliseconds": { "type": "number", "minimum": 0 },
     "sourceManifestHash": { "$ref": "#/$defs/hash" },
+    "promptHash": { "$ref": "#/$defs/hash" },
     "policy": {
       "type": "object",
       "additionalProperties": false,

@@ -7,6 +7,8 @@ import json
 import os
 import re
 import tempfile
+import fcntl
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -491,6 +493,12 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("memory context manifest has an invalid shape")
     if not re.fullmatch(r"memory-[a-f0-9]{32}", str(manifest["packId"])):
         raise ValueError("memory context packId is invalid")
+    identity = {key: value for key, value in manifest.items() if key != "packId"}
+    expected_pack_id = (
+        f"memory-{sha256(json.dumps(identity, sort_keys=True, separators=(',', ':')))[:32]}"
+    )
+    if manifest["packId"] != expected_pack_id:
+        raise ValueError("memory context packId does not match its manifest")
     for key in ("requestHash", "tenantHash", "projectHash", "payloadHash"):
         if not re.fullmatch(r"[a-f0-9]{64}", str(manifest[key])):
             raise ValueError(f"memory context {key} is invalid")
@@ -503,6 +511,58 @@ def validate_manifest(manifest: dict[str, Any]) -> None:
         "version": "memory-context-ranking-v1", "automaticInjection": False, "writeBack": False
     }:
         raise ValueError("memory context policy is invalid")
+    candidate_keys = {
+        "schemaVersion", "memoryId", "memoryType", "sourceSystem", "sourceIdHash",
+        "sourceRevision", "scope", "sensitivity", "validFrom", "validUntil",
+        "recordedAt", "extractionVersion", "trustClass", "confidence",
+        "retentionClass", "provenanceHashes", "contentRole", "authorityClass",
+        "processingPolicy", "scopeDecision", "adapterStatus", "contentHash",
+        "payloadRef", "relevance", "claimKeyHash", "supersedesHashes", "rank",
+        "estimatedTokens", "conflictGroupHash",
+    }
+    if not isinstance(manifest["candidates"], list):
+        raise ValueError("memory context candidates are invalid")
+    for candidate in manifest["candidates"]:
+        if not isinstance(candidate, dict) or set(candidate) != candidate_keys:
+            raise ValueError("memory context candidate has an invalid shape")
+        if candidate["schemaVersion"] != 1 or candidate["memoryType"] not in MEMORY_TYPES:
+            raise ValueError("memory context candidate type is invalid")
+        for key in ("memoryId", "sourceIdHash", "contentHash"):
+            if not re.fullmatch(r"[a-f0-9]{64}", str(candidate[key])):
+                raise ValueError(f"memory context candidate {key} is invalid")
+        if not re.fullmatch(r"payload-[a-f0-9]{32}", str(candidate["payloadRef"])):
+            raise ValueError("memory context candidate payloadRef is invalid")
+        if candidate["payloadRef"] != f"payload-{candidate['contentHash'][:32]}":
+            raise ValueError("memory context candidate payload binding is invalid")
+        scope = candidate["scope"]
+        if not isinstance(scope, dict) or set(scope) != {"tenantHash", "projectHash", "taskHash"}:
+            raise ValueError("memory context candidate scope is invalid")
+        for key in ("tenantHash", "projectHash"):
+            if not re.fullmatch(r"[a-f0-9]{64}", str(scope[key])):
+                raise ValueError("memory context candidate scope hash is invalid")
+        if scope["taskHash"] is not None and not re.fullmatch(r"[a-f0-9]{64}", str(scope["taskHash"])):
+            raise ValueError("memory context candidate task scope is invalid")
+        if (
+            scope["tenantHash"] != manifest["tenantHash"]
+            or scope["projectHash"] != manifest["projectHash"]
+            or scope["taskHash"] not in {None, manifest["taskHash"]}
+        ):
+            raise ValueError("memory context candidate scope does not match the pack")
+        if candidate["sensitivity"] not in SENSITIVITY_ORDER:
+            raise ValueError("memory context candidate sensitivity is invalid")
+        if candidate["trustClass"] not in TRUST_ORDER or candidate["authorityClass"] not in AUTHORITY_ORDER:
+            raise ValueError("memory context candidate trust or authority is invalid")
+        if candidate["contentRole"] not in CONTENT_ROLES:
+            raise ValueError("memory context candidate content role is invalid")
+        if candidate["adapterStatus"] not in {"available", "partial"}:
+            raise ValueError("memory context candidate adapter status is invalid")
+        if candidate["processingPolicy"] not in {"inert", "reference-only"} or candidate["scopeDecision"] != "allowed":
+            raise ValueError("memory context candidate processing policy is invalid")
+        for key in ("provenanceHashes", "supersedesHashes"):
+            if not isinstance(candidate[key], list) or any(
+                not re.fullmatch(r"[a-f0-9]{64}", str(value)) for value in candidate[key]
+            ):
+                raise ValueError(f"memory context candidate {key} is invalid")
     serialized = json.dumps(manifest, sort_keys=True)
     if re.search(r"(?:^|[\" ])/(?:Users|home|private|tmp)/", serialized):
         raise ValueError("memory context manifest contains an absolute path")
@@ -515,9 +575,25 @@ class MemoryStore:
         self.root = root.expanduser().resolve(strict=False)
         self.packs = self.root / "memory-packs"
         self.index_path = self.root / "memory-revocations-v1.json"
+        self.lock_path = self.root / "memory-context.lock"
+
+    @contextmanager
+    def _locked(self):
+        self.root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        os.chmod(self.root, 0o700)
+        descriptor = os.open(self.lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            os.fchmod(descriptor, 0o600)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
 
     def write(self, manifest: dict[str, Any], payload: dict[str, Any]) -> tuple[Path, Path]:
         validate_manifest(manifest)
+        if self.packs.is_symlink():
+            raise ValueError("memory pack directory cannot be a symlink")
         self.packs.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(self.packs, 0o700)
         pack_id = manifest["packId"]
@@ -525,23 +601,27 @@ class MemoryStore:
         payload_path = self.packs / f"{pack_id}.payload.json"
         manifest_text = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
         payload_text = json.dumps(payload, indent=2, sort_keys=True) + "\n"
-        if manifest_path.exists() or payload_path.exists():
-            if (
-                manifest_path.is_file()
-                and payload_path.is_file()
-                and manifest_path.read_text() == manifest_text
-                and payload_path.read_text() == payload_text
-            ):
-                return manifest_path, payload_path
-            raise FileExistsError(f"memory pack id collides with different content: {pack_id}")
-        _write_private(manifest_path, manifest_text)
-        try:
-            _write_private(payload_path, payload_text)
-            self._index_pack(manifest)
-        except Exception:
-            manifest_path.unlink(missing_ok=True)
-            payload_path.unlink(missing_ok=True)
-            raise
+        with self._locked():
+            if manifest_path.exists() or payload_path.exists():
+                if (
+                    manifest_path.is_file()
+                    and payload_path.is_file()
+                    and not manifest_path.is_symlink()
+                    and not payload_path.is_symlink()
+                    and manifest_path.read_text() == manifest_text
+                    and payload_path.read_text() == payload_text
+                ):
+                    self._index_pack(manifest)
+                    return manifest_path, payload_path
+                raise FileExistsError(f"memory pack id collides with different content: {pack_id}")
+            _write_private(manifest_path, manifest_text)
+            try:
+                _write_private(payload_path, payload_text)
+                self._index_pack(manifest)
+            except Exception:
+                manifest_path.unlink(missing_ok=True)
+                payload_path.unlink(missing_ok=True)
+                raise
         return manifest_path, payload_path
 
     def verify(
@@ -552,9 +632,23 @@ class MemoryStore:
         now: datetime | None = None,
         source_state: dict[str, str] | None = None,
     ) -> dict[str, Any]:
+        raw_manifest_path = manifest_path.expanduser()
+        raw_payload_path = payload_path.expanduser()
+        if (
+            self.packs.is_symlink()
+            or raw_manifest_path.is_symlink()
+            or raw_payload_path.is_symlink()
+        ):
+            raise ValueError("memory pack artifacts cannot be symlinks")
+        manifest_path = raw_manifest_path.resolve(strict=True)
+        payload_path = raw_payload_path.resolve(strict=True)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         payload = json.loads(payload_path.read_text(encoding="utf-8"))
         validate_manifest(manifest)
+        expected_manifest = (self.packs / f"{manifest['packId']}.json").resolve(strict=False)
+        expected_payload = (self.packs / f"{manifest['packId']}.payload.json").resolve(strict=False)
+        if manifest_path != expected_manifest or payload_path != expected_payload:
+            raise ValueError("memory pack artifact path does not match its packId")
         reasons = []
         if parse_time(manifest["expiresAt"]) <= (now or utc_now()):
             reasons.append("expired")
@@ -563,11 +657,21 @@ class MemoryStore:
         digest = sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")))
         if digest != manifest["payloadHash"]:
             reasons.append("payload_hash_mismatch")
+        expected_refs = {item["payloadRef"]: item["contentHash"] for item in manifest["candidates"]}
+        if not isinstance(payload, dict) or set(payload) != {"schemaVersion", "payloads"} or payload.get("schemaVersion") != 1 or not isinstance(payload.get("payloads"), dict):
+            reasons.append("payload_shape_invalid")
+        elif set(payload["payloads"]) != set(expected_refs) or any(
+            not isinstance(content, str) or sha256(content) != expected_refs[reference]
+            for reference, content in payload["payloads"].items()
+        ):
+            reasons.append("payload_candidate_binding_mismatch")
         index = self._read_index()
         revoked = set(index["revokedSources"])
         if any(item["sourceIdHash"] in revoked for item in manifest["candidates"]):
             reasons.append("source_revoked")
-        if source_state is not None:
+        if source_state is None:
+            reasons.append("source_state_required")
+        else:
             current = {sha256(source_id): revision for source_id, revision in source_state.items()}
             for item in manifest["candidates"]:
                 if current.get(item["sourceIdHash"]) != item["sourceRevision"]:
@@ -577,22 +681,33 @@ class MemoryStore:
 
     def purge(self, source_id: str, now: datetime | None = None) -> dict[str, Any]:
         source_hash = sha256(_safe_id(source_id, "sourceId"))
-        index = self._read_index()
-        pack_ids = sorted(set(index["sourcePacks"].get(source_hash, [])))
-        removed = []
-        for pack_id in pack_ids:
-            if not re.fullmatch(r"memory-[a-f0-9]{32}", pack_id):
-                raise ValueError("revocation index contains an invalid pack id")
-            manifest_path = self.packs / f"{pack_id}.json"
-            payload_path = self.packs / f"{pack_id}.payload.json"
-            manifest_path.unlink(missing_ok=True)
-            payload_path.unlink(missing_ok=True)
-            removed.append(pack_id)
-        index["revokedSources"][source_hash] = format_time(now or utc_now())
-        index["sourcePacks"].pop(source_hash, None)
-        for packs in index["sourcePacks"].values():
-            packs[:] = [pack_id for pack_id in packs if pack_id not in removed]
-        self._write_index(index)
+        with self._locked():
+            index = self._read_index()
+            pack_ids = set(index["sourcePacks"].get(source_hash, []))
+            if self.packs.is_dir():
+                for manifest_path in sorted(self.packs.glob("memory-*.json")):
+                    if manifest_path.name.endswith(".payload.json") or manifest_path.is_symlink():
+                        continue
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    validate_manifest(manifest)
+                    if manifest_path.name != f"{manifest['packId']}.json":
+                        raise ValueError("memory pack filename does not match its packId")
+                    if any(item["sourceIdHash"] == source_hash for item in manifest["candidates"]):
+                        pack_ids.add(manifest["packId"])
+            removed = []
+            for pack_id in sorted(pack_ids):
+                if not re.fullmatch(r"memory-[a-f0-9]{32}", pack_id):
+                    raise ValueError("revocation index contains an invalid pack id")
+                manifest_path = self.packs / f"{pack_id}.json"
+                payload_path = self.packs / f"{pack_id}.payload.json"
+                manifest_path.unlink(missing_ok=True)
+                payload_path.unlink(missing_ok=True)
+                removed.append(pack_id)
+            index["revokedSources"][source_hash] = format_time(now or utc_now())
+            index["sourcePacks"].pop(source_hash, None)
+            for packs in index["sourcePacks"].values():
+                packs[:] = [pack_id for pack_id in packs if pack_id not in removed]
+            self._write_index(index)
         return {"sourceIdHash": source_hash, "invalidatedPackIds": removed, "rawSourceRetained": False}
 
     def cleanup_expired(self, now: datetime | None = None) -> dict[str, Any]:

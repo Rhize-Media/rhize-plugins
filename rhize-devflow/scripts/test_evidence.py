@@ -1,32 +1,29 @@
 #!/usr/bin/env python3
-"""Produce and validate state-bound test evidence in a disposable Git worktree."""
+"""Produce and validate fail-closed, state-bound test-evidence packets."""
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import fcntl
 import hashlib
 import json
 import os
 import re
-import shutil
-import signal
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from typing import Any
 
 
 SCHEMA_VERSION = "rhize-test-evidence-v1"
 RUN_SPEC_VERSION = "rhize-test-evidence-run-v1"
-RUNNER_VERSION = "1.0.0"
+RUNNER_VERSION = "1.1.0"
 VERDICTS = {
     "oracle_supported", "killed", "survived_mutation", "oracle_missing", "artifact_contract",
     "not_applicable", "mutation_unavailable", "mutation_unavailable_dirty_state", "stale_packet",
-    "cleanup_failed",
+    "cleanup_failed", "execution_unavailable",
 }
+EXECUTION_CLAIM_VERDICTS = {"oracle_supported", "killed", "survived_mutation", "artifact_contract"}
 CONTRACT_CLASSES = {"behavior", "artifact", "structural"}
 ORACLE_KINDS = {"independent", "artifact", "missing", "not_applicable"}
 ORACLES_BY_CONTRACT = {
@@ -36,7 +33,7 @@ ORACLES_BY_CONTRACT = {
 }
 SAFE_SCRIPT = re.compile(r"^test(?::[A-Za-z0-9:_-]+)?$")
 PROTECTED = (
-    re.compile(r"^\.github/workflows/"), re.compile(r"(^|/)\.env(?:\.|$)"),
+    re.compile(r"^\.github/workflows/"), re.compile(r"(?i)(^|/)\.env[^/]*$"),
     re.compile(r"(?i)(^|/)(billing|payment)s?(/|$)"),
     re.compile(r"(?i)(^|/)(migrations?|generated|deploy(?:ment)?)(/|$)"),
     re.compile(r"(?i)(^|/)(vercel\.json|dockerfile|[^/]+\.sql)$"),
@@ -85,11 +82,24 @@ def working_fingerprint(repo: Path) -> tuple[str, bool]:
     return hashlib.sha256(payload).hexdigest(), not bool(status.stdout.strip())
 
 
+def reject_symlink_components(path: Path, label: str, *, stop: Path | None = None) -> None:
+    """Reject an existing symlink at the path or in its parent chain."""
+    current = path
+    while True:
+        if current.is_symlink():
+            raise EvidenceError(f"{label} cannot use a symlink path or parent")
+        if current == stop or current.parent == current:
+            return
+        current = current.parent
+
+
 def resolve_file(repo: Path, relative: str, label: str) -> Path:
     if not isinstance(relative, str) or not relative or Path(relative).is_absolute():
         raise EvidenceError(f"{label} must be a relative path")
     root = repo.resolve()
-    path = (root / relative).resolve()
+    unresolved = root / relative
+    reject_symlink_components(unresolved, label, stop=root)
+    path = unresolved.resolve()
     if path != root and root not in path.parents:
         raise EvidenceError(f"{label} escapes the repository")
     if not path.is_file():
@@ -107,18 +117,24 @@ def protected(path: str) -> bool:
     return any(pattern.search(path) for pattern in PROTECTED)
 
 
+def repository_relative(repo: Path, path: Path) -> str:
+    return path.relative_to(repo.resolve()).as_posix()
+
+
 def file_records(repo: Path, paths: list[Any], label: str) -> list[dict[str, str]]:
     if not isinstance(paths, list):
         raise EvidenceError(f"{label} must be an array")
-    return [{"path": value, "sha256": file_digest(resolve_file(repo, value, label))} for value in paths]
+    records = []
+    for value in paths:
+        path = resolve_file(repo, value, label)
+        records.append({"path": repository_relative(repo, path), "sha256": file_digest(path)})
+    return records
 
 
 def package_script(repo: Path, name: str) -> str:
     if not isinstance(name, str) or not SAFE_SCRIPT.fullmatch(name):
         raise EvidenceError("only named test or test:* package scripts are approved")
-    package_path = repo / "package.json"
-    if not package_path.is_file():
-        raise EvidenceError("package.json is required for package-script authorization")
+    package_path = resolve_file(repo, "package.json", "package.json")
     package = json.loads(package_path.read_text(encoding="utf-8"))
     if not isinstance(package, dict) or not isinstance(package.get("scripts"), dict):
         raise EvidenceError("package.json scripts must be an object")
@@ -128,32 +144,9 @@ def package_script(repo: Path, name: str) -> str:
     return script
 
 
-def package_invocation(repo: Path, name: str) -> list[str]:
-    package_script(repo, name)
-    if (repo / "pnpm-lock.yaml").is_file():
-        return ["pnpm", "run", name]
-    if (repo / "yarn.lock").is_file():
-        return ["yarn", "run", name]
-    if (repo / "bun.lockb").is_file() or (repo / "bun.lock").is_file():
-        return ["bun", "run", name]
-    return ["npm", "run", name]
-
-
-def run_process(command: list[str], cwd: Path, timeout: int) -> int:
-    process = subprocess.Popen(
-        command, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        start_new_session=True,
-    )
-    try:
-        return process.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
-        return 124
+def run_process(_command: list[str], _cwd: Path, _timeout: int) -> int:
+    """Reserved adapter boundary; direct ambient process execution is disabled."""
+    raise EvidenceError("test execution unavailable: no trusted sandbox adapter is configured")
 
 
 def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
@@ -187,7 +180,7 @@ def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
     invocation = exact(spec["test_invocation"], {"source", "name"}, "test_invocation")
     if invocation["source"] != "package_script":
         raise EvidenceError("test invocation must come from package_script")
-    package_invocation(repo, invocation["name"])
+    package_script(repo, invocation["name"])
     if isinstance(spec["timeout_seconds"], bool) or not isinstance(spec["timeout_seconds"], int) or not 1 <= spec["timeout_seconds"] <= 1800:
         raise EvidenceError("timeout_seconds must be 1..1800")
     if not isinstance(spec["base_sha"], str) or run_git(repo, "rev-parse", "--verify", spec["base_sha"]).returncode:
@@ -201,14 +194,17 @@ def validate_spec(raw: Any, repo: Path) -> dict[str, Any]:
         if spec["contract_class"] != "behavior":
             raise EvidenceError("isolated mutation is limited to behavior contracts")
         mutation = exact(mutation, {"target_path", "search", "replace", "external_effect"}, "mutation")
-        if (
-            mutation["external_effect"] is not False
-            or not isinstance(mutation["target_path"], str)
-            or protected(mutation["target_path"])
-        ):
+        if mutation["external_effect"] is not False or not isinstance(mutation["target_path"], str):
             raise EvidenceError("mutation target is protected or effectful")
         target = resolve_file(repo, mutation["target_path"], "mutation.target_path")
-        if mutation["target_path"] not in spec["production_files"]:
+        canonical_target = repository_relative(repo, target)
+        if protected(canonical_target):
+            raise EvidenceError("mutation target is protected or effectful")
+        production_paths = {
+            repository_relative(repo, resolve_file(repo, path, "production_files"))
+            for path in spec["production_files"]
+        }
+        if canonical_target not in production_paths:
             raise EvidenceError("mutation target must be listed in production_files")
         for field in ("search", "replace"):
             if not isinstance(mutation[field], str) or len(mutation[field]) > 20_000:
@@ -245,7 +241,9 @@ def base_packet(
             "oracle": {"kind": oracle["kind"], "evidence_digest": digest_text(oracle["evidence"]) if oracle["evidence"] else None},
         },
         "mutation": None if mutation is None else {
-            "target_path": mutation["target_path"],
+            "target_path": repository_relative(
+                repo, resolve_file(repo, mutation["target_path"], "mutation.target_path")
+            ),
             "patch_digest": digest_text(mutation["search"] + "\0" + mutation["replace"]),
             "state_before_fingerprint": None,
             "state_after_fingerprint": None,
@@ -263,7 +261,10 @@ def base_packet(
 
 
 def write_packet(path: Path, packet: dict[str, Any]) -> None:
+    path = path.absolute()
+    reject_symlink_components(path, "output")
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    reject_symlink_components(path, "output")
     if path.exists() or path.is_symlink():
         raise EvidenceError("output already exists")
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -283,120 +284,38 @@ def write_packet(path: Path, packet: dict[str, Any]) -> None:
         os.close(descriptor)
 
 
+def read_json_file(path: Path, label: str) -> Any:
+    path = path.absolute()
+    reject_symlink_components(path, label)
+    if not path.is_file():
+        raise EvidenceError(f"{label} does not exist")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def run_evidence(repo: Path, spec: dict[str, Any], output: Path, lease_root: Path) -> dict[str, Any]:
+    output = output.absolute()
+    lease_root = lease_root.absolute()
+    reject_symlink_components(output, "output")
+    reject_symlink_components(lease_root, "lease root")
     if is_within(output, repo) or is_within(lease_root, repo):
         raise EvidenceError("packet output and lease root must stay outside the target repository")
     initial_fingerprint, clean = working_fingerprint(repo)
     packet = base_packet(
         repo,
         spec,
-        "mutation_unavailable_dirty_state" if not clean else "mutation_unavailable",
+        "mutation_unavailable_dirty_state" if not clean else "execution_unavailable",
         fingerprint=initial_fingerprint,
         clean_before=clean,
     )
     if not clean:
         write_packet(output, packet)
         return packet
-    contract_class = spec["contract_class"]
-    oracle_kind = spec["oracle"]["kind"]
-    if contract_class == "artifact":
-        packet["verdict"] = "artifact_contract" if oracle_kind == "artifact" else "oracle_missing"
-        packet["cleanup"] = {"status": "ok", "human_recovery_required": False}
-        packet["lifecycle"]["clean_after"] = True
-        write_packet(output, packet)
-        return packet
-    if spec["mutation"] is None:
-        packet["verdict"] = "oracle_supported" if oracle_kind == "independent" else ("not_applicable" if oracle_kind == "not_applicable" else "oracle_missing")
-        packet["cleanup"] = {"status": "ok", "human_recovery_required": False}
-        packet["lifecycle"]["clean_after"] = True
-        write_packet(output, packet)
-        return packet
-
-    lease_root.mkdir(parents=True, exist_ok=True, mode=0o700)
-    lease_root.chmod(0o700)
-    common = run_git(repo, "rev-parse", "--git-common-dir").stdout.strip()
-    lease_path = lease_root / (digest_text(str((repo / common).resolve())) + ".lock")
-    lease_flags = os.O_WRONLY | os.O_CREAT
-    if hasattr(os, "O_NOFOLLOW"):
-        lease_flags |= os.O_NOFOLLOW
-    temporary = Path(tempfile.mkdtemp(prefix="rhize-test-evidence-"))
-    try:
-        lease_fd = os.open(lease_path, lease_flags, 0o600)
-    except OSError:
-        shutil.rmtree(temporary, ignore_errors=True)
-        raise
-    worktree = temporary / "worktree"
-    added = False
-    try:
-        os.fchmod(lease_fd, 0o600)
-        try:
-            fcntl.flock(lease_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise EvidenceError("another mutation run holds the exclusive lease") from exc
-        packet["lifecycle"]["lease_acquired"] = True
-        current_fingerprint, current_clean = working_fingerprint(repo)
-        if not current_clean or current_fingerprint != initial_fingerprint:
-            raise EvidenceError("target state changed before isolated mutation")
-        add = run_git(repo, "worktree", "add", "--detach", str(worktree), packet["repository"]["head_sha"])
-        if add.returncode:
-            raise EvidenceError("could not create disposable worktree")
-        added = True
-        packet["lifecycle"]["isolated"] = True
-        command = package_invocation(worktree, spec["test_invocation"]["name"])
-        packet["baseline_test_exit_code"] = run_process(command, worktree, spec["timeout_seconds"])
-        if packet["baseline_test_exit_code"] != 0:
-            packet["verdict"] = "mutation_unavailable"
-        else:
-            mutation = spec["mutation"]
-            target = resolve_file(worktree, mutation["target_path"], "mutation.target_path")
-            original = target.read_text(encoding="utf-8")
-            packet["mutation"]["state_before_fingerprint"] = working_fingerprint(worktree)[0]
-            target.write_text(original.replace(mutation["search"], mutation["replace"]), encoding="utf-8")
-            packet["mutation_test_exit_code"] = run_process(command, worktree, spec["timeout_seconds"])
-            packet["verdict"] = "survived_mutation" if packet["mutation_test_exit_code"] == 0 else "killed"
-            target.write_text(original, encoding="utf-8")
-            packet["mutation"]["state_after_fingerprint"] = working_fingerprint(worktree)[0]
-            packet["final_test_exit_code"] = run_process(command, worktree, spec["timeout_seconds"])
-            clean_after = not bool(run_git(worktree, "status", "--porcelain", "--untracked-files=all").stdout.strip())
-            packet["lifecycle"]["clean_after"] = clean_after
-            packet["lifecycle"]["final_clean_rerun"] = packet["final_test_exit_code"] == 0
-            if (
-                not clean_after
-                or packet["final_test_exit_code"] != 0
-                or packet["mutation"]["state_before_fingerprint"] != packet["mutation"]["state_after_fingerprint"]
-            ):
-                packet["verdict"] = "mutation_unavailable"
-    except (OSError, EvidenceError, json.JSONDecodeError):
-        packet["verdict"] = "mutation_unavailable"
-    finally:
-        removal_ok = True
-        if added:
-            try:
-                removal = run_git(repo, "worktree", "remove", "--force", str(worktree))
-                removal_ok = removal.returncode == 0
-            except OSError:
-                removal_ok = False
-        shutil.rmtree(temporary, ignore_errors=True)
-        fingerprint_ok = True
-        try:
-            final_fingerprint = working_fingerprint(repo)[0]
-            packet["repository"]["final_working_tree_fingerprint"] = final_fingerprint
-        except (OSError, EvidenceError):
-            fingerprint_ok = False
-            final_fingerprint = None
-            packet["repository"]["final_working_tree_fingerprint"] = None
-        packet["cleanup"] = {
-            "status": "ok" if removal_ok and fingerprint_ok else "failed",
-            "human_recovery_required": not removal_ok or not fingerprint_ok,
-        }
-        if not removal_ok or not fingerprint_ok:
-            packet["verdict"] = "cleanup_failed"
-        elif final_fingerprint != initial_fingerprint:
-            packet["verdict"] = "stale_packet"
-        try:
-            fcntl.flock(lease_fd, fcntl.LOCK_UN)
-        finally:
-            os.close(lease_fd)
+    final_fingerprint, final_clean = working_fingerprint(repo)
+    packet["repository"]["final_working_tree_fingerprint"] = final_fingerprint
+    packet["cleanup"] = {"status": "ok", "human_recovery_required": False}
+    packet["lifecycle"]["clean_after"] = final_clean
+    if final_fingerprint != initial_fingerprint:
+        packet["verdict"] = "stale_packet"
     write_packet(output, packet)
     return packet
 
@@ -456,14 +375,18 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
         raise EvidenceError("packet oracle kind conflicts with its evidence digest")
     if oracle["kind"] not in ORACLES_BY_CONTRACT[contract["class"]]:
         raise EvidenceError("packet oracle kind does not match the contract class")
+    bound_paths: dict[str, set[str]] = {}
     for group in ("test_files", "production_files"):
         if not isinstance(contract[group], list):
             raise EvidenceError(f"contract.{group} must be an array")
+        bound_paths[group] = set()
         for record in contract[group]:
             record = exact(record, {"path", "sha256"}, f"contract.{group} record")
             if not is_hex_digest(record["sha256"], 64):
                 raise EvidenceError(f"contract.{group} digest must be sha256")
-            if file_digest(resolve_file(repo, record["path"], group)) != record["sha256"]:
+            bound_file = resolve_file(repo, record["path"], group)
+            bound_paths[group].add(repository_relative(repo, bound_file))
+            if file_digest(bound_file) != record["sha256"]:
                 stale = True
     if packet["mutation"] is not None:
         mutation = exact(
@@ -471,11 +394,11 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
             {"target_path", "patch_digest", "state_before_fingerprint", "state_after_fingerprint"},
             "packet.mutation",
         )
-        if (
-            not isinstance(mutation["target_path"], str)
-            or protected(mutation["target_path"])
-            or not is_hex_digest(mutation["patch_digest"], 64)
-        ):
+        if not isinstance(mutation["target_path"], str) or not is_hex_digest(mutation["patch_digest"], 64):
+            raise EvidenceError("invalid packet mutation")
+        mutation_target = resolve_file(repo, mutation["target_path"], "packet.mutation.target_path")
+        canonical_target = repository_relative(repo, mutation_target)
+        if protected(canonical_target) or canonical_target not in bound_paths["production_files"]:
             raise EvidenceError("invalid packet mutation")
         for field in ("state_before_fingerprint", "state_after_fingerprint"):
             if mutation[field] is not None and not is_hex_digest(mutation[field], 64):
@@ -504,6 +427,8 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
         if packet[field] is not None and (isinstance(packet[field], bool) or not isinstance(packet[field], int)):
             raise EvidenceError(f"{field} must be an integer or null")
     verdict = packet["verdict"]
+    if verdict in EXECUTION_CLAIM_VERDICTS:
+        raise EvidenceError("execution-backed verdicts require a trusted sandbox adapter")
     clean_nonmutation = (
         packet["mutation"] is None
         and lifecycle["clean_before"]
@@ -517,32 +442,7 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
             raise EvidenceError("cleanup_failed requires named human recovery")
     elif cleanup["status"] == "failed" or repository["final_working_tree_fingerprint"] is None:
         raise EvidenceError("failed or incomplete cleanup requires cleanup_failed")
-    if verdict in {"killed", "survived_mutation"}:
-        if (
-            contract["class"] != "behavior"
-            or packet["mutation"] is None
-            or mutation["state_before_fingerprint"] is None
-            or mutation["state_before_fingerprint"] != mutation["state_after_fingerprint"]
-            or packet["baseline_test_exit_code"] != 0
-            or packet["final_test_exit_code"] != 0
-            or not all(lifecycle.values())
-            or cleanup["status"] != "ok"
-        ):
-            raise EvidenceError("mutation verdict has incomplete state or lifecycle evidence")
-        mutation_exit = packet["mutation_test_exit_code"]
-        if mutation_exit is None or (verdict == "killed") == (mutation_exit == 0):
-            raise EvidenceError("mutation verdict conflicts with the mutation test exit code")
-    elif verdict == "oracle_supported":
-        if (
-            contract["class"] not in {"behavior", "structural"}
-            or oracle["kind"] != "independent"
-            or not clean_nonmutation
-        ):
-            raise EvidenceError("oracle_supported requires a clean independent oracle")
-    elif verdict == "artifact_contract":
-        if contract["class"] != "artifact" or oracle["kind"] != "artifact" or not clean_nonmutation:
-            raise EvidenceError("artifact_contract has inconsistent contract evidence")
-    elif verdict == "not_applicable":
+    if verdict == "not_applicable":
         if contract["class"] != "structural" or oracle["kind"] != "not_applicable" or not clean_nonmutation:
             raise EvidenceError("not_applicable has inconsistent contract evidence")
     elif verdict == "oracle_missing":
@@ -551,14 +451,30 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
     elif verdict == "mutation_unavailable_dirty_state":
         if lifecycle["clean_before"] or lifecycle["isolated"] or cleanup["status"] != "not_started":
             raise EvidenceError("dirty-state verdict has inconsistent lifecycle evidence")
+    elif verdict == "execution_unavailable":
+        mutation_state = packet["mutation"] is not None and any(
+            packet["mutation"][field] is not None
+            for field in ("state_before_fingerprint", "state_after_fingerprint")
+        )
+        if (
+            not lifecycle["clean_before"]
+            or not lifecycle["clean_after"]
+            or lifecycle["isolated"]
+            or lifecycle["lease_acquired"]
+            or lifecycle["final_clean_rerun"]
+            or cleanup["status"] != "ok"
+            or mutation_state
+            or any(packet[field] is not None for field in (
+                "baseline_test_exit_code", "mutation_test_exit_code", "final_test_exit_code"
+            ))
+        ):
+            raise EvidenceError("execution_unavailable has inconsistent lifecycle evidence")
     elif verdict == "stale_packet" and not stale:
         raise EvidenceError("stale_packet verdict requires state drift")
     if packet["verdict"] == "cleanup_failed" or cleanup["status"] == "failed":
         review_verdict = "FAIL_REQUIRES_HUMAN"
     elif stale:
         review_verdict = "stale_packet"
-    elif packet["verdict"] in {"oracle_supported", "killed", "artifact_contract", "not_applicable"} and lifecycle["clean_after"]:
-        review_verdict = "supported"
     else:
         review_verdict = "unsupported"
     return {"valid": True, "packet_verdict": packet["verdict"], "review_verdict": review_verdict, "stale": stale}
@@ -581,14 +497,16 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
-        repo = args.repo.resolve()
+        repo_path = args.repo.absolute()
+        reject_symlink_components(repo_path, "repo")
+        repo = repo_path.resolve()
         if run_git(repo, "rev-parse", "--show-toplevel").returncode:
             raise EvidenceError("repo is not a Git repository")
         if args.command == "run":
-            spec = validate_spec(json.loads(args.spec.read_text(encoding="utf-8")), repo)
+            spec = validate_spec(read_json_file(args.spec, "spec"), repo)
             output = run_evidence(repo, spec, args.output, args.lease_root)
         else:
-            output = validate_packet(json.loads(args.packet.read_text(encoding="utf-8")), repo)
+            output = validate_packet(read_json_file(args.packet, "packet"), repo)
         print(json.dumps(output, indent=2, sort_keys=True))
         return 0
     except (OSError, json.JSONDecodeError, EvidenceError) as exc:

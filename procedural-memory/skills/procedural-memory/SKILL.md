@@ -31,6 +31,9 @@ environment as *parameters* (never a baked-in path), declared secrets (Keychain 
 only), a verification spec, and a trust tier — and `run`/`run --offline` refuse unconditionally
 if the on-disk content digest no longer matches what was verified.
 
+Claude Code and Codex use this same canonical skill and launcher contract; neither host gets a
+weaker recall or execution path.
+
 ## This is execution, not retrieval — pick the right tool
 
 | You want to... | Use |

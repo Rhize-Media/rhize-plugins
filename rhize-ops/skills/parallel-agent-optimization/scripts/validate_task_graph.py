@@ -290,6 +290,23 @@ def validate_state(raw: Any, graph: dict[str, Any]) -> dict[str, Any]:
             or node_state["previous_status"] == "skipped_optional"
         ) and not graph_nodes[node_id]["optional"]:
             raise GraphError(f"required node {node_id} cannot be skipped")
+        execution_statuses = {"running", "completed", "failed", "cancelled", "timed_out"}
+        execution_started = (
+            node_state["previous_status"] in execution_statuses
+            or node_state["status"] in execution_statuses
+        )
+        if (
+            execution_started
+            and graph_nodes[node_id]["requires_approval"]
+            and not state["approvals_revalidated"]
+        ):
+            raise GraphError(f"approval must be revalidated before executing {node_id}")
+        if (
+            execution_started
+            and graph_nodes[node_id]["external_effect"] != "none"
+            and not state["external_state_revalidated"]
+        ):
+            raise GraphError(f"external state must be revalidated before executing {node_id}")
     return state
 
 
@@ -334,7 +351,24 @@ def validate_results(graph: dict[str, Any], state: dict[str, Any]) -> dict[str, 
             value["status"] != "completed" or not value["output_contract_satisfied"]
         ):
             missing_required.append(node_id)
-    complete = not missing_required and cleanup_failed == 0 and unfinished == 0 and state["checkout_revalidated"]
+    approval_revalidation_required = any(
+        node["requires_approval"]
+        and state["nodes"][node_id]["status"] == "completed"
+        for node_id, node in nodes.items()
+    )
+    external_revalidation_required = any(
+        node["external_effect"] != "none"
+        and state["nodes"][node_id]["status"] == "completed"
+        for node_id, node in nodes.items()
+    )
+    complete = (
+        not missing_required
+        and cleanup_failed == 0
+        and unfinished == 0
+        and state["checkout_revalidated"]
+        and (not approval_revalidation_required or state["approvals_revalidated"])
+        and (not external_revalidation_required or state["external_state_revalidated"])
+    )
     return {
         "synthesis_allowed": complete,
         "planned": len(nodes),
@@ -348,6 +382,8 @@ def validate_results(graph: dict[str, Any], state: dict[str, Any]) -> dict[str, 
         "cleanup_failed": cleanup_failed,
         "unfinished": unfinished,
         "missing_required_count": len(missing_required),
+        "approval_revalidation_required": approval_revalidation_required,
+        "external_revalidation_required": external_revalidation_required,
     }
 
 

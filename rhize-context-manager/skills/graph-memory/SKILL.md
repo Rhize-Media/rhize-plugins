@@ -111,7 +111,7 @@ boundary prevents a host from mistaking a fresh in-memory store for durable revi
 
 Do not build a plugin-local event log, deserialize private internals, or replay operations inside a
 thin command adapter. A later adapter must be owned by the hygiene domain, define a versioned private
-state schema, authenticate the actor/tenant/namespace boundary, preserve CAS and leases across
+state schema, authenticate the actor/tenant/namespace boundary plus hashed candidate ACL scopes, preserve CAS and leases across
 processes, bind previews to current evidence, write atomically with restrictive permissions, and
 prove interruption/replay behavior before these operations can be enabled.
 
@@ -144,8 +144,9 @@ Check capability before proposing a mutation:
 python3 <plugin-root>/scripts/graph_memory/cli.py decision status
 ```
 
-The offline CLI supports private `preview` only. The in-memory adapter tests record/query/correction
-semantics in one process, but it is not durable state. `record`, `explain`, `impact`, `precedents`,
+The offline CLI supports private `preview` only. It stores the full proposal in a mode-`0600`
+artifact and returns only a redacted ID/digest/expiry/binding receipt on stdout. The in-memory
+adapter tests record/query/correction semantics in one process, but it is not durable state. `record`, `explain`, `impact`, `precedents`,
 and `correct` return `status=unavailable` until the governed projection is configured. Never replace
 that response with a plugin-local ledger, raw Cypher, direct Neo4j, Jira access, or automatic
 execution.

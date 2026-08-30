@@ -113,8 +113,10 @@ The workflow has four user-facing modes:
 First, create an explicit project config from the disabled template printed by
 `python3 scripts/compiled_knowledge.py init-config --vault-root /approved/vault`. Create the listed
 source and output directories, replace every project/operator placeholder, and keep every automatic
-or graph adapter gate false. Then register an already captured note with its real ACL, local egress,
-and retention class. Do not reuse a source id after a privacy purge.
+or graph adapter gate false. `qmd_enabled` must also remain false: qmd does not consume compiler ACL,
+freshness, retention, or purge decisions in this release. Keep both the compiler output and private
+state roots outside qmd collections. Then register an already captured note with its real ACL, local
+egress, and retention class. Do not reuse a source id after a privacy purge.
 
 The compiler may report prompt-like text in a source as an inert-content finding. That text is not
 executed or copied into policy: proposals accept only page, claim, citation, link, and contradiction
@@ -312,7 +314,8 @@ The Obsidian CLI can enable and disable these plugins but cannot install them. W
 **Use `/vault-align check` periodically.** It's the quickest way to find broken links, orphan notes, inconsistent tags, and structural issues before they accumulate. Focus on a specific area with `/vault-align check tags` or `/vault-align check orphans`.
 
 **Use `/vault-align check compiled` after source changes.** A stale Markdown page may still exist on
-disk, but its manifest blocks qmd and downstream reuse until a new preview is reviewed and accepted.
+disk. The compiler blocks its own downstream adapters, but it cannot retract content from a generic
+qmd collection; keep the compiled output root unindexed until an ACL-aware qmd adapter is available.
 
 ## Troubleshooting
 

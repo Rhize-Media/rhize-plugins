@@ -55,8 +55,6 @@ class Settings:
     allowed_acls: tuple[str, ...]
     allowed_egress: tuple[str, ...]
     retention_classes: tuple[str, ...]
-    qmd_allowed_acls: tuple[str, ...]
-    qmd_enabled: bool
     preview_ttl_seconds: int
 
 
@@ -161,6 +159,64 @@ def resolve_target_under(root: Path, relative: str, label: str) -> Path:
     return candidate
 
 
+def resolve_directory_under(root: Path, relative: str, label: str, *, create: bool = False) -> Path:
+    rel = is_relative_safe(relative, label)
+    candidate = root
+    for part in rel.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            try:
+                candidate = candidate.resolve(strict=True)
+            except (OSError, RuntimeError) as exc:
+                raise CompilerError(f"{label} cannot be resolved safely") from exc
+            if not candidate.is_relative_to(root):
+                raise CompilerError(f"{label} escapes the configured root through a symlink")
+        if candidate.exists():
+            if not candidate.is_dir():
+                raise CompilerError(f"{label} must be a directory")
+        elif create:
+            candidate.mkdir(mode=0o700)
+        else:
+            raise CompilerError(f"{label} does not exist")
+    try:
+        resolved = candidate.resolve(strict=True)
+    except (OSError, RuntimeError) as exc:
+        raise CompilerError(f"{label} cannot be resolved safely") from exc
+    if not resolved.is_relative_to(root):
+        raise CompilerError(f"{label} escapes the configured root")
+    return resolved
+
+
+def authorized_absolute_path(
+    raw_path: Any,
+    root: Path,
+    label: str,
+    *,
+    expected: Path | None = None,
+) -> Path:
+    path = Path(require_string(raw_path, label))
+    if not path.is_absolute():
+        raise CompilerError(f"{label} must be an absolute path")
+    if expected is not None and path != expected:
+        raise CompilerError(f"{label} does not match its canonical path")
+    try:
+        relative = path.relative_to(root)
+    except ValueError as exc:
+        raise CompilerError(f"{label} escapes the configured root") from exc
+    candidate = root
+    for part in relative.parts:
+        candidate = candidate / part
+        if candidate.is_symlink():
+            raise CompilerError(f"{label} cannot contain symlink components")
+    try:
+        resolved = path.resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
+        raise CompilerError(f"{label} cannot be resolved safely") from exc
+    if not resolved.is_relative_to(root):
+        raise CompilerError(f"{label} escapes the configured root")
+    return path
+
+
 def ensure_private_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(path, 0o700)
@@ -205,7 +261,7 @@ def load_settings(config_path: Path) -> Settings:
     required = {
         "schema_version", "project", "operator_id", "vault_root", "allowed_vault_roots",
         "source_roots", "output_root", "state_root", "allowed_acls", "allowed_egress",
-        "retention_classes", "qmd_allowed_acls", "qmd_enabled", "preview_ttl_seconds",
+        "retention_classes", "qmd_enabled", "preview_ttl_seconds",
         "scheduled_enabled", "live_synthesis_enabled", "context_pack_enabled",
         "graphify_enabled", "neo4j_enabled",
     }
@@ -233,30 +289,20 @@ def load_settings(config_path: Path) -> Settings:
     if not all(root.is_dir() for root in source_roots):
         raise CompilerError("every source root must be a directory")
 
-    output_rel = is_relative_safe(raw["output_root"], "config.output_root")
-    output_root = (vault_root / output_rel).resolve(strict=True)
-    if not output_root.is_dir():
-        raise CompilerError("config.output_root must already be a directory")
-    state_rel = is_relative_safe(raw["state_root"], "config.state_root")
-    state_root = vault_root / state_rel
-    if state_root.exists() and state_root.is_symlink():
-        raise CompilerError("config.state_root cannot be a symlink")
+    output_root = resolve_directory_under(vault_root, raw["output_root"], "config.output_root")
+    state_root = resolve_directory_under(vault_root, raw["state_root"], "config.state_root", create=True)
     ensure_private_dir(state_root)
-    state_root = state_root.resolve(strict=True)
     if output_root.is_relative_to(state_root) or state_root.is_relative_to(output_root):
         raise CompilerError("output_root and state_root must not overlap")
 
     allowed_acls = tuple(require_string_list(raw["allowed_acls"], "config.allowed_acls"))
     allowed_egress = tuple(require_string_list(raw["allowed_egress"], "config.allowed_egress"))
     retention_classes = tuple(require_string_list(raw["retention_classes"], "config.retention_classes"))
-    qmd_allowed_acls = tuple(require_string_list(raw["qmd_allowed_acls"], "config.qmd_allowed_acls"))
-    if not set(qmd_allowed_acls).issubset(allowed_acls):
-        raise CompilerError("qmd_allowed_acls must be a subset of allowed_acls")
     for gate in ("scheduled_enabled", "live_synthesis_enabled", "context_pack_enabled", "graphify_enabled", "neo4j_enabled"):
         if raw[gate] is not False:
             raise CompilerError(f"config.{gate} must remain false in the first release")
-    if not isinstance(raw["qmd_enabled"], bool):
-        raise CompilerError("config.qmd_enabled must be boolean")
+    if raw["qmd_enabled"] is not False:
+        raise CompilerError("config.qmd_enabled must remain false until an ACL-aware qmd adapter is implemented")
     ttl = raw["preview_ttl_seconds"]
     if not isinstance(ttl, int) or not 60 <= ttl <= 604800:
         raise CompilerError("config.preview_ttl_seconds must be between 60 and 604800")
@@ -264,8 +310,7 @@ def load_settings(config_path: Path) -> Settings:
         config_path=config_path.resolve(strict=True), vault_root=vault_root, state_root=state_root,
         source_roots=source_roots, output_root=output_root, project=normalized_project,
         operator_id=operator_id, allowed_acls=allowed_acls, allowed_egress=allowed_egress,
-        retention_classes=retention_classes, qmd_allowed_acls=qmd_allowed_acls,
-        qmd_enabled=raw["qmd_enabled"], preview_ttl_seconds=ttl,
+        retention_classes=retention_classes, preview_ttl_seconds=ttl,
     )
 
 
@@ -491,6 +536,10 @@ def manifest_validation(manifest: Any) -> dict[str, Any]:
         if not isinstance(adapter["eligible"], bool):
             raise CompilerError(f"manifest.adapters.{name}.eligible must be boolean")
         require_string(adapter["reason"], f"manifest.adapters.{name}.reason")
+    if adapters["qmd"]["eligible"]:
+        raise CompilerError("manifest.adapters.qmd.eligible must remain false until an ACL-aware adapter is implemented")
+    if adapters["qmd"]["reason"] not in {"preview-not-accepted", "acl-aware-qmd-adapter-not-configured"}:
+        raise CompilerError("manifest.adapters.qmd.reason is unsupported while qmd remains disabled")
     for hash_value in (diff["rendered_hash"], diff["unified_diff_hash"], diff["change_brief_hash"], provenance["proposal_hash"], provenance["source_metadata_hash"]):
         if not isinstance(hash_value, str) or not HASH_PATTERN.fullmatch(hash_value):
             raise CompilerError("manifest contains an invalid required hash")
@@ -680,39 +729,204 @@ def accepted_manifest_path(settings: Settings, page_id: str) -> Path:
     return settings.state_root / "accepted" / f"{require_id(page_id, 'page_id')}.json"
 
 
+def accepted_manifest_path_from_entry(settings: Settings, page_id: str, entry: dict[str, Any]) -> Path:
+    expected = accepted_manifest_path(settings, page_id)
+    return authorized_absolute_path(
+        entry.get("manifest_path"),
+        settings.state_root,
+        f"index.pages.{page_id}.manifest_path",
+        expected=expected,
+    )
+
+
+def validate_index_entry(settings: Settings, page_id: str, raw_entry: Any) -> dict[str, Any]:
+    entry = require_object(raw_entry, f"index.pages.{page_id}")
+    require_exact_keys(
+        entry,
+        {
+            "preview_id", "manifest_path", "path", "rendered_hash", "source_ids",
+            "status", "qmd_eligible", "manifest_hash",
+        },
+        f"index.pages.{page_id}",
+    )
+    if not isinstance(entry.get("preview_id"), str) or not HASH_PATTERN.fullmatch(entry["preview_id"]):
+        raise CompilerError(f"index.pages.{page_id}.preview_id is invalid")
+    hashes = (entry.get("rendered_hash"), entry.get("manifest_hash"))
+    if any(not isinstance(value, str) or not HASH_PATTERN.fullmatch(value) for value in hashes):
+        raise CompilerError(f"index.pages.{page_id} contains an invalid hash")
+    require_string_list(entry.get("source_ids"), f"index.pages.{page_id}.source_ids")
+    if entry.get("status") not in {"accepted", "purged"}:
+        raise CompilerError(f"index.pages.{page_id}.status is invalid")
+    if entry.get("qmd_eligible") is not False:
+        raise CompilerError(f"index.pages.{page_id}.qmd_eligible must remain false")
+    resolve_target_under(settings.output_root, entry.get("path"), f"index.pages.{page_id}.path")
+    accepted_manifest_path_from_entry(settings, page_id, entry)
+    return entry
+
+
 def load_index(settings: Settings) -> dict[str, Any]:
-    path = index_path(settings)
+    path = authorized_absolute_path(
+        str(index_path(settings)),
+        settings.state_root,
+        "index path",
+        expected=index_path(settings),
+    )
     if not path.exists():
         return {"schema_version": 1, "project": settings.project, "pages": {}}
     index = require_object(load_json(path), "index")
     require_exact_keys(index, {"schema_version", "project", "pages"}, "index")
     if index["schema_version"] != 1 or index["project"] != settings.project or not isinstance(index["pages"], dict):
         raise CompilerError("index does not match the configured project")
+    for raw_page_id, entry in index["pages"].items():
+        page_id = require_id(raw_page_id, "index page id")
+        validate_index_entry(settings, page_id, entry)
     return index
+
+
+def load_accepted_manifest(
+    settings: Settings,
+    page_id: str,
+    entry: dict[str, Any],
+    accepted_bytes: bytes | None = None,
+) -> dict[str, Any]:
+    path = accepted_manifest_path_from_entry(settings, page_id, entry)
+    accepted_bytes = read_optional(path) if accepted_bytes is None else accepted_bytes
+    if accepted_bytes is None:
+        raise CompilerError("accepted manifest is missing")
+    if digest(accepted_bytes) != entry["manifest_hash"]:
+        raise CompilerError("accepted manifest hash does not match the index")
+    try:
+        manifest = manifest_validation(json.loads(accepted_bytes))
+    except json.JSONDecodeError as exc:
+        raise CompilerError("accepted manifest is not valid JSON") from exc
+    page = require_object(manifest["pages"][0], "accepted manifest page")
+    source_revisions = manifest["source_revisions"]
+    if not all(isinstance(item, dict) for item in source_revisions):
+        raise CompilerError("accepted manifest source revisions are invalid")
+    source_ids = [require_id(item.get("source_id"), "accepted manifest source_id") for item in source_revisions]
+    revision_hashes = [item.get("revision_hash") for item in source_revisions]
+    if len(source_ids) != len(set(source_ids)) or any(
+        not isinstance(value, str) or not HASH_PATTERN.fullmatch(value) for value in revision_hashes
+    ):
+        raise CompilerError("accepted manifest source revisions are invalid")
+    expected_state_root = settings.state_root.relative_to(settings.vault_root).as_posix()
+    preview = manifest["preview"]
+    if (
+        manifest["project"] != settings.project
+        or manifest["operator_id"] != settings.operator_id
+        or preview["id"] != entry["preview_id"]
+        or preview["status"] != "accepted"
+        or page.get("page_id") != page_id
+        or page.get("path") != entry["path"]
+        or manifest["diff"]["rendered_hash"] != entry["rendered_hash"]
+        or source_ids != entry["source_ids"]
+        or manifest["policy"].get("vault_root") != "."
+        or manifest["policy"].get("state_root") != expected_state_root
+        or manifest["adapters"]["qmd"]["eligible"] is not False
+    ):
+        raise CompilerError("accepted manifest does not match the configured index/project authority")
+    return manifest
 
 
 def write_journal(path: Path, journal: dict[str, Any]) -> None:
     atomic_write(path, canonical_json(journal))
 
 
+def validate_backup(value: Any, label: str) -> None:
+    saved = require_object(value, label)
+    require_exact_keys(saved, {"exists", "data"}, label)
+    if not isinstance(saved["exists"], bool) or not isinstance(saved["data"], str):
+        raise CompilerError(f"{label} is invalid")
+    try:
+        base64.b64decode(saved["data"], validate=True)
+    except ValueError as exc:
+        raise CompilerError(f"{label} contains invalid base64") from exc
+
+
+def validate_journal(settings: Settings, path: Path, raw_journal: Any) -> tuple[dict[str, Any], dict[str, Path]]:
+    authorized_absolute_path(str(path), settings.state_root, "transaction journal path")
+    journal = require_object(raw_journal, "transaction journal")
+    required = {"schema_version", "preview_id", "state", "paths", "backups"}
+    unknown = set(journal) - (required | {"recovery"})
+    missing = required - set(journal)
+    if missing or unknown:
+        details = []
+        if missing:
+            details.append(f"missing={','.join(sorted(missing))}")
+        if unknown:
+            details.append(f"unknown={','.join(sorted(unknown))}")
+        raise CompilerError(f"transaction journal has invalid fields ({'; '.join(details)})")
+    preview_id = journal.get("preview_id")
+    if (
+        journal.get("schema_version") != 1
+        or not isinstance(preview_id, str)
+        or not HASH_PATTERN.fullmatch(preview_id)
+        or path.name != f"{preview_id.removeprefix('sha256:')}.json"
+        or journal.get("state") not in {"prepared", "target-written", "manifest-written", "index-written", "accepted", "rolled-back"}
+    ):
+        raise CompilerError(f"transaction journal {path.name} has invalid identity/state")
+    paths = require_object(journal["paths"], "transaction journal paths")
+    backups = require_object(journal["backups"], "transaction journal backups")
+    path_keys = {"target", "index", "log", "accepted_manifest"}
+    require_exact_keys(paths, path_keys, "transaction journal paths")
+    require_exact_keys(backups, path_keys, "transaction journal backups")
+    validated = {
+        "target": authorized_absolute_path(paths["target"], settings.output_root, "transaction target"),
+        "index": authorized_absolute_path(
+            paths["index"], settings.state_root, "transaction index", expected=index_path(settings)
+        ),
+        "log": authorized_absolute_path(
+            paths["log"], settings.state_root, "transaction log", expected=accepted_log_path(settings)
+        ),
+    }
+    accepted = authorized_absolute_path(
+        paths["accepted_manifest"], settings.state_root, "transaction accepted manifest"
+    )
+    if accepted.suffix != ".json" or not ID_PATTERN.fullmatch(accepted.stem):
+        raise CompilerError("transaction accepted manifest has an invalid page id")
+    expected_accepted = accepted_manifest_path(settings, accepted.stem)
+    if accepted != expected_accepted:
+        raise CompilerError("transaction accepted manifest does not match its canonical path")
+    validated["accepted_manifest"] = accepted
+    if journal["state"] not in {"accepted", "rolled-back"}:
+        directory = preview_dir(settings, preview_id)
+        preview_manifest = manifest_validation(load_json(directory / "manifest.json"))
+        validate_preview_identity(preview_manifest)
+        page = require_object(preview_manifest["pages"][0], "transaction preview page")
+        page_id = require_id(page.get("page_id"), "transaction preview page id")
+        expected_target = resolve_target_under(
+            settings.output_root,
+            page.get("path"),
+            "transaction preview page path",
+        )
+        if (
+            preview_manifest["project"] != settings.project
+            or preview_manifest["operator_id"] != settings.operator_id
+            or preview_manifest["preview"]["id"] != preview_id
+            or validated["target"] != expected_target
+            or accepted != accepted_manifest_path(settings, page_id)
+        ):
+            raise CompilerError(f"transaction journal {path.name} does not match its preview authority")
+    for key in path_keys:
+        validate_backup(backups[key], f"transaction journal backups.{key}")
+    return journal, validated
+
+
 def recover_incomplete(settings: Settings) -> list[str]:
     journal_root = settings.state_root / "transactions"
+    authorized_absolute_path(str(journal_root), settings.state_root, "transaction journal root")
     if not journal_root.exists():
         return []
     recovered = []
     for path in sorted(journal_root.glob("*.json")):
-        journal = require_object(load_json(path), "transaction journal")
+        journal, paths = validate_journal(settings, path, load_json(path))
         if journal.get("state") in {"accepted", "rolled-back"}:
             continue
-        paths = journal.get("paths", {})
-        backups = journal.get("backups", {})
-        try:
-            restore(Path(paths["target"]), backups["target"])
-            restore(Path(paths["index"]), backups["index"])
-            restore(Path(paths["log"]), backups["log"])
-            restore(Path(paths["accepted_manifest"]), backups["accepted_manifest"])
-        except (KeyError, TypeError, ValueError) as exc:
-            raise CompilerError(f"transaction journal {path.name} is not recoverable") from exc
+        backups = journal["backups"]
+        restore(paths["target"], backups["target"], 0o644)
+        restore(paths["index"], backups["index"])
+        restore(paths["log"], backups["log"])
+        restore(paths["accepted_manifest"], backups["accepted_manifest"])
         journal["state"] = "rolled-back"
         journal["recovery"] = "restored-pre-transaction-bytes"
         write_journal(path, journal)
@@ -774,10 +988,9 @@ def apply_preview(settings: Settings, preview_id: str, at: datetime, fault_after
             raise CompilerError("preview artifacts no longer match the manifest")
         accepted = json.loads(json.dumps(manifest))
         accepted["preview"]["status"] = "accepted"
-        acl_ok = set(accepted["policy"]["acl"]).issubset(settings.qmd_allowed_acls)
         accepted["adapters"]["qmd"] = {
-            "eligible": settings.qmd_enabled and acl_ok,
-            "reason": "accepted-and-policy-allowed" if settings.qmd_enabled and acl_ok else "qmd-disabled-or-acl-not-allowed",
+            "eligible": False,
+            "reason": "acl-aware-qmd-adapter-not-configured",
         }
         accepted_path = accepted_manifest_path(settings, page["page_id"])
         accepted_bytes = canonical_json(accepted)
@@ -846,7 +1059,7 @@ def status_report(settings: Settings, at: datetime) -> dict[str, Any]:
             elif digest(current) != entry["rendered_hash"]:
                 state, reasons = "conflicting", ["compiled-page-changed"]
             else:
-                accepted_bytes = read_optional(Path(entry["manifest_path"]))
+                accepted_bytes = read_optional(accepted_manifest_path_from_entry(settings, page_id, entry))
                 if accepted_bytes is None:
                     state, reasons = "conflicting", ["accepted-manifest-missing"]
                     pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
@@ -856,8 +1069,8 @@ def status_report(settings: Settings, at: datetime) -> dict[str, Any]:
                     pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
                     continue
                 try:
-                    accepted_manifest = manifest_validation(json.loads(accepted_bytes))
-                except (CompilerError, json.JSONDecodeError):
+                    accepted_manifest = load_accepted_manifest(settings, page_id, entry, accepted_bytes)
+                except CompilerError:
                     state, reasons = "conflicting", ["accepted-manifest-invalid"]
                     pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
                     continue
@@ -878,7 +1091,7 @@ def status_report(settings: Settings, at: datetime) -> dict[str, Any]:
                         break
                 else:
                     state, reasons = "clean", []
-            pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": state == "clean" and bool(entry.get("qmd_eligible"))})
+            pages.append({"page_id": page_id, "path": entry["path"], "status": state, "reasons": reasons, "qmd_eligible": False})
         preview_root = settings.state_root / "previews"
         previews = []
         if preview_root.exists():
@@ -897,7 +1110,7 @@ def rebuild_page(settings: Settings, page_id: str, proposal_path: Path | None, a
     entry = load_index(settings)["pages"].get(require_id(page_id, "page_id"))
     if not entry or entry.get("status") == "purged":
         raise CompilerError("page has no reproducible accepted manifest")
-    manifest = manifest_validation(load_json(Path(entry["manifest_path"])))
+    manifest = load_accepted_manifest(settings, page_id, entry)
     page = manifest["pages"][0]
     proposal = {
         "schema_version": 1,
@@ -920,6 +1133,19 @@ def purge_source(settings: Settings, source_id: str, confirmation: str, at: date
         expected = f"{source_id}:{registration['current_revision_hash']}"
         if confirmation != expected:
             raise CompilerError("purge confirmation must equal source_id:current_revision_hash")
+        index = load_index(settings)
+        affected = []
+        for page_id, entry in index["pages"].items():
+            if source_id not in entry["source_ids"]:
+                continue
+            target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
+            manifest_path = accepted_manifest_path_from_entry(settings, page_id, entry)
+            affected.append((page_id, entry, target, read_optional(target), manifest_path))
+        source_store = authorized_absolute_path(
+            str(settings.state_root / "sources" / source_id),
+            settings.state_root,
+            "source payload store",
+        )
         tombstone_path = settings.state_root / "tombstones" / f"{source_id}.json"
         tombstone = {
             "schema_version": 1, "source_id": source_id, "project": settings.project,
@@ -931,23 +1157,17 @@ def purge_source(settings: Settings, source_id: str, confirmation: str, at: date
         registration["status"] = "purged"
         registration["revisions"] = []
         atomic_write(registration_path(settings, source_id), canonical_json(registration))
-        index = load_index(settings)
         suppressed, conflicts = [], []
-        for page_id, entry in index["pages"].items():
-            if source_id not in entry["source_ids"]:
-                continue
-            target = resolve_target_under(settings.output_root, entry["path"], "indexed page path")
-            content = read_optional(target)
+        for page_id, entry, target, content, manifest_path in affected:
             if content is not None and digest(content) == entry["rendered_hash"] and content.startswith(f"{OWNERSHIP_PREFIX}{page_id} -->".encode()):
                 target.unlink()
                 suppressed.append(page_id)
             elif content is not None:
                 conflicts.append(page_id)
             with contextlib.suppress(FileNotFoundError):
-                Path(entry["manifest_path"]).unlink()
+                manifest_path.unlink()
             entry.update({"status": "purged", "qmd_eligible": False})
         atomic_write(index_path(settings), canonical_json(index))
-        source_store = settings.state_root / "sources" / source_id
         if source_store.exists():
             shutil.rmtree(source_store)
         preview_root = settings.state_root / "previews"
@@ -973,7 +1193,6 @@ def config_template(vault_root: str) -> dict[str, Any]:
         "allowed_acls": ["internal", "private"],
         "allowed_egress": ["local-only"],
         "retention_classes": ["standard", "legal-hold"],
-        "qmd_allowed_acls": ["internal"],
         "qmd_enabled": False,
         "preview_ttl_seconds": 3600,
         "scheduled_enabled": False,

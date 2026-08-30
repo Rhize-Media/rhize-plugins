@@ -47,6 +47,7 @@ class AuthenticatedActor:
     roles: frozenset[str]
     authentication_context_hash: str
     authorized_partitions: frozenset[tuple[str, str]]
+    authorized_acl_scope_hashes: frozenset[str]
 
     def validate(self) -> None:
         validate_hash(self.actor_hash, "actor_hash")
@@ -67,6 +68,14 @@ class AuthenticatedActor:
             tenant_hash, namespace_hash = partition
             validate_hash(tenant_hash, "authorized tenant hash")
             validate_hash(namespace_hash, "authorized namespace hash")
+        if (
+            not isinstance(self.authorized_acl_scope_hashes, frozenset)
+            or not self.authorized_acl_scope_hashes
+            or len(self.authorized_acl_scope_hashes) > 256
+        ):
+            raise ReviewError("authenticated actor ACL scopes are invalid")
+        for scope_hash in self.authorized_acl_scope_hashes:
+            validate_hash(scope_hash, "authorized ACL scope hash")
 
 
 class IdentityReviewStore:
@@ -80,6 +89,7 @@ class IdentityReviewStore:
         self._ledger: list[dict[str, Any]] = []
         self._same_as: dict[str, tuple[str, str]] = {}
         self._decision_partitions: dict[str, tuple[str, str]] = {}
+        self._decision_acl_scopes: dict[str, tuple[str, ...]] = {}
         self._idempotency: dict[str, tuple[str, dict[str, Any]]] = {}
         self._previews: dict[tuple[str, str, str, str], dict[str, Any]] = {}
 
@@ -104,6 +114,7 @@ class IdentityReviewStore:
         parse_timestamp(occurred_at, "occurred_at")
         for candidate in incoming:
             self._require_partition(actor, candidate["tenantHash"], candidate["namespaceHash"])
+            self._require_acl(actor, candidate)
             role = "identity_reviewer" if candidate["origin"] == "manual" else "identity_ingest"
             self._require_role(actor, role)
 
@@ -123,6 +134,7 @@ class IdentityReviewStore:
                     queued += 1
                     continue
                 existing = reviews[existing_id]
+                self._require_acl(actor, existing)
                 if existing["candidateRevision"] == candidate["candidateRevision"]:
                     if existing["state"] in {"rejected", "accepted", "reversed", "superseded"}:
                         suppressed += 1
@@ -195,6 +207,7 @@ class IdentityReviewStore:
         with self._lock:
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+            self._require_acl(actor, review)
             if parse_timestamp(review["expiresAt"], "candidate expiresAt") <= now_time:
                 raise ReviewError("identity candidate has expired")
             if review["state"] not in {"pending", "deferred", "leased", "accepted"}:
@@ -243,6 +256,7 @@ class IdentityReviewStore:
         with self._lock:
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+            self._require_acl(actor, review)
             self._validate_lease(review, actor, lease_token_hash, now_time)
             self._validate_current_state(review, current_state)
             if operation == "reverse_same_as" and review["state"] != "accepted":
@@ -266,7 +280,9 @@ class IdentityReviewStore:
                     for item in dependencies
                     if not item["immutableSourceBound"]
                 )
-            partition_edges = self._partition_edges(review["tenantHash"], review["namespaceHash"])
+            partition_edges = self._partition_edges(
+                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
+            )
             projection_before = self._projection_hash(partition_edges)
             preview = {
                 "previewVersion": 1,
@@ -332,6 +348,7 @@ class IdentityReviewStore:
         with self._lock:
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+            self._require_acl(actor, review)
             if review["state"] != "leased":
                 raise ReviewError("identity decision requires a leased review")
             self._validate_lease(review, actor, lease_token_hash, now_time)
@@ -342,10 +359,13 @@ class IdentityReviewStore:
             if failure_at == "after_validation":
                 raise ReviewError("injected failure after identity decision validation")
 
-            before_edges = self._partition_edges(review["tenantHash"], review["namespaceHash"])
+            before_edges = self._partition_edges(
+                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
+            )
             after_edges = dict(before_edges)
             all_after_edges = dict(self._same_as)
             all_after_partitions = dict(self._decision_partitions)
+            all_after_acl_scopes = dict(self._decision_acl_scopes)
             decision_id = sha256_value(
                 {"reviewId": review_id, "candidateRevision": review["candidateRevision"], "action": action}
             )
@@ -357,6 +377,7 @@ class IdentityReviewStore:
                 all_after_partitions[decision_id] = (
                     review["tenantHash"], review["namespaceHash"]
                 )
+                all_after_acl_scopes[decision_id] = tuple(review["aclScopeHashes"])
                 next_state, event_type = "accepted", "ACCEPT_SAME_AS"
             elif action == "reject_same_as":
                 next_state, event_type = "rejected", "REJECT_SAME_AS"
@@ -398,6 +419,7 @@ class IdentityReviewStore:
             self._sequences[review_id] += 1
             self._same_as = all_after_edges
             self._decision_partitions = all_after_partitions
+            self._decision_acl_scopes = all_after_acl_scopes
             self._ledger.append(event)
             self._discard_previews(review_id)
             receipt = self._receipt(
@@ -445,6 +467,7 @@ class IdentityReviewStore:
         with self._lock:
             review = self._current(review_id, expected_revision)
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+            self._require_acl(actor, review)
             if review["state"] != "accepted" or review["decisionId"] not in self._same_as:
                 raise ReviewError("only an active SAME_AS decision can be reversed")
             self._validate_lease(review, actor, lease_token_hash, now_time)
@@ -460,14 +483,18 @@ class IdentityReviewStore:
             if failure_at == "after_validation":
                 raise ReviewError("injected failure after reversal validation")
 
-            before_edges = self._partition_edges(review["tenantHash"], review["namespaceHash"])
+            before_edges = self._partition_edges(
+                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
+            )
             after_edges = dict(before_edges)
             all_after_edges = dict(self._same_as)
             all_after_partitions = dict(self._decision_partitions)
+            all_after_acl_scopes = dict(self._decision_acl_scopes)
             reversed_decision = review["decisionId"]
             del after_edges[reversed_decision]
             del all_after_edges[reversed_decision]
             del all_after_partitions[reversed_decision]
+            del all_after_acl_scopes[reversed_decision]
             reversal_id = sha256_value(
                 {"reviewId": review_id, "reversalOf": reversed_decision, "candidateRevision": review["candidateRevision"]}
             )
@@ -507,6 +534,7 @@ class IdentityReviewStore:
             self._sequences[review_id] += 1
             self._same_as = all_after_edges
             self._decision_partitions = all_after_partitions
+            self._decision_acl_scopes = all_after_acl_scopes
             self._ledger.append(event)
             self._discard_previews(review_id)
             receipt = self._receipt(
@@ -546,6 +574,7 @@ class IdentityReviewStore:
                 review for review in self._reviews.values()
                 if review["tenantHash"] == tenant_hash
                 and review["namespaceHash"] == namespace_hash
+                and self._can_access_acl(actor, review)
                 and (not requested_states or review["state"] in requested_states)
                 and (entity_type is None or review["entityType"] == entity_type)
                 and (risk is None or review["risk"] == risk)
@@ -572,6 +601,7 @@ class IdentityReviewStore:
             if review is None:
                 raise ReviewError("identity review is unavailable")
             self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+            self._require_acl(actor, review)
             return copy.deepcopy(review)
 
     def ledger(
@@ -588,6 +618,7 @@ class IdentityReviewStore:
                     event for event in self._ledger
                     if event["tenantHash"] == tenant_hash
                     and event["namespaceHash"] == namespace_hash
+                    and bool(actor.authorized_acl_scope_hashes.intersection(event["aclScopeHashes"]))
                 ]
             )
 
@@ -600,7 +631,11 @@ class IdentityReviewStore:
         validate_hash(namespace_hash, "namespace_hash")
         self._require_partition(actor, tenant_hash, namespace_hash)
         with self._lock:
-            return _projection_components(self._partition_edges(tenant_hash, namespace_hash))
+            return _projection_components(
+                self._partition_edges(
+                    tenant_hash, namespace_hash, actor.authorized_acl_scope_hashes
+                )
+            )
 
     def suppressed_candidate_revisions(
         self, *, tenant_hash: str, namespace_hash: str
@@ -664,8 +699,12 @@ class IdentityReviewStore:
             rationale_code="stale_evidence",
             event_type="SUPERSEDE",
             decision_id=decision_id,
-            before_edges=self._partition_edges(review["tenantHash"], review["namespaceHash"]),
-            after_edges=self._partition_edges(review["tenantHash"], review["namespaceHash"]),
+            before_edges=self._partition_edges(
+                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
+            ),
+            after_edges=self._partition_edges(
+                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
+            ),
             dependencies=[],
             depends_on=[],
             reversal_of=None,
@@ -703,6 +742,7 @@ class IdentityReviewStore:
             "status": updated["state"],
             "tenantHash": updated["tenantHash"],
             "namespaceHash": updated["namespaceHash"],
+            "aclScopeHashes": list(updated["aclScopeHashes"]),
             "entityType": updated["entityType"],
             "actorHash": actor.actor_hash,
             "occurredAt": occurred_at,
@@ -807,12 +847,20 @@ class IdentityReviewStore:
         )
 
     def _partition_edges(
-        self, tenant_hash: str, namespace_hash: str
+        self,
+        tenant_hash: str,
+        namespace_hash: str,
+        acl_scope_hashes: Iterable[str] | None = None,
     ) -> dict[str, tuple[str, str]]:
+        allowed = set(acl_scope_hashes) if acl_scope_hashes is not None else None
         return {
             decision_id: pair
             for decision_id, pair in self._same_as.items()
             if self._decision_partitions[decision_id] == (tenant_hash, namespace_hash)
+            and (
+                allowed is None
+                or bool(allowed.intersection(self._decision_acl_scopes[decision_id]))
+            )
         }
 
     @staticmethod
@@ -897,6 +945,15 @@ class IdentityReviewStore:
         if (tenant_hash, namespace_hash) not in actor.authorized_partitions:
             raise ReviewError("authenticated actor is not authorized for this partition")
 
+    @staticmethod
+    def _can_access_acl(actor: AuthenticatedActor, review: Mapping[str, Any]) -> bool:
+        return bool(actor.authorized_acl_scope_hashes.intersection(review["aclScopeHashes"]))
+
+    @classmethod
+    def _require_acl(cls, actor: AuthenticatedActor, review: Mapping[str, Any]) -> None:
+        if not cls._can_access_acl(actor, review):
+            raise ReviewError("authenticated actor is not authorized for this ACL scope")
+
 
 def current_candidate_state(review: Mapping[str, Any]) -> dict[str, Any]:
     """Build the explicit state precondition required by preview and transition calls."""
@@ -913,6 +970,7 @@ def _actor_binding(actor: AuthenticatedActor) -> dict[str, Any]:
         "actorHash": actor.actor_hash,
         "authenticationContextHash": actor.authentication_context_hash,
         "authorizedPartitions": sorted([tenant, namespace] for tenant, namespace in actor.authorized_partitions),
+        "authorizedAclScopeHashes": sorted(actor.authorized_acl_scope_hashes),
     }
 
 
@@ -997,7 +1055,7 @@ def _validate_review(review: Mapping[str, Any], *, initial: bool) -> None:
     required = {
         "reviewVersion", "reviewId", "pairKey", "candidateRevision", "reviewRevision",
         "tenantHash", "namespaceHash", "entityType", "candidateIds", "sourceRevisionHashes",
-        "aclSummaryHash", "trustSummary", "scoreComponents", "versions", "createdAt",
+        "aclSummaryHash", "aclScopeHashes", "trustSummary", "scoreComponents", "versions", "createdAt",
         "updatedAt", "expiresAt", "state", "risk", "poisonFlags", "idempotencyKeyHash",
         "origin", "lease", "decisionId", "rationaleCode",
     }
@@ -1033,6 +1091,15 @@ def _validate_review(review: Mapping[str, Any], *, initial: bool) -> None:
         raise ReviewError("identity review source revisions are invalid")
     for revision in review["sourceRevisionHashes"]:
         validate_hash(revision, "sourceRevisionHash")
+    if (
+        not isinstance(review["aclScopeHashes"], list)
+        or not review["aclScopeHashes"]
+        or len(review["aclScopeHashes"]) > 256
+        or review["aclScopeHashes"] != sorted(set(review["aclScopeHashes"]))
+    ):
+        raise ReviewError("identity review ACL scope hashes are invalid")
+    for scope_hash in review["aclScopeHashes"]:
+        validate_hash(scope_hash, "identity review ACL scope hash")
     if review["state"] not in REVIEW_STATES or review["risk"] not in {"standard", "protected"}:
         raise ReviewError("identity review state or risk is invalid")
     if initial and (review["state"] != "pending" or review["lease"] is not None or review["decisionId"] is not None):
@@ -1108,6 +1175,7 @@ def _validate_ledger_event(event: Mapping[str, Any]) -> None:
     required = {
         "ledgerVersion", "eventId", "decisionId", "reviewId", "pairKey", "eventType",
         "status", "tenantHash", "namespaceHash", "entityType", "actorHash", "occurredAt",
+        "aclScopeHashes",
         "rationaleCode", "candidateRevision", "priorReviewRevision", "newReviewRevision",
         "sourceRevisionHashes", "projectionBeforeHash", "projectionAfterHash",
         "projectionMemberIds", "dependsOnDecisionIds", "reversalOfDecisionId",
@@ -1126,6 +1194,14 @@ def _validate_ledger_event(event: Mapping[str, Any]) -> None:
             raise ReviewError(f"ledger {field} is invalid")
         for value in event[field]:
             validate_hash(value, f"ledger {field}")
+    if (
+        not isinstance(event["aclScopeHashes"], list)
+        or not event["aclScopeHashes"]
+        or event["aclScopeHashes"] != sorted(set(event["aclScopeHashes"]))
+    ):
+        raise ReviewError("ledger ACL scope hashes are invalid")
+    for scope_hash in event["aclScopeHashes"]:
+        validate_hash(scope_hash, "ledger ACL scope hash")
     if not 1 <= len(event["sourceRevisionHashes"]) <= 2:
         raise ReviewError("ledger source revisions are invalid")
     if event["reversalOfDecisionId"] is not None:

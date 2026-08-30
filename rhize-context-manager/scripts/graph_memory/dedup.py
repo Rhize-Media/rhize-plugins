@@ -209,9 +209,9 @@ def generate_candidates(
         source_revisions = sorted(
             {first["sourceRevisionHash"], second["sourceRevisionHash"]}
         )
-        acl_summary_hash = sha256_value(
-            sorted(set(first["acl"]).intersection(second["acl"]))
-        )
+        shared_acl_scopes = sorted(set(first["acl"]).intersection(second["acl"]))
+        acl_scope_hashes = [sha256_value(scope) for scope in shared_acl_scopes]
+        acl_summary_hash = sha256_value(shared_acl_scopes)
         trust_summary = min((first["trust"], second["trust"]), key=trust_rank)
         versions = {
             "normalizationVersion": NORMALIZATION_VERSION,
@@ -224,6 +224,7 @@ def generate_candidates(
             "entityType": first["entityType"],
             "sourceRevisionHashes": source_revisions,
             "aclSummaryHash": acl_summary_hash,
+            "aclScopeHashes": acl_scope_hashes,
             "trustSummary": trust_summary,
             "risk": "standard",
             "scoreComponents": components,
@@ -254,6 +255,7 @@ def generate_candidates(
                 "candidateIds": list(pair),
                 "sourceRevisionHashes": source_revisions,
                 "aclSummaryHash": acl_summary_hash,
+                "aclScopeHashes": acl_scope_hashes,
                 "trustSummary": trust_summary,
                 "scoreComponents": components,
                 "versions": versions,
@@ -398,6 +400,7 @@ def candidate_revision_hash(candidate: Mapping[str, Any]) -> str:
             "entityType": candidate["entityType"],
             "sourceRevisions": candidate["sourceRevisionHashes"],
             "aclSummaryHash": candidate["aclSummaryHash"],
+            "aclScopeHashes": candidate["aclScopeHashes"],
             "trustSummary": candidate["trustSummary"],
             "risk": candidate["risk"],
             "components": candidate["scoreComponents"],

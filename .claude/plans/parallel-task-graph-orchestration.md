@@ -10,6 +10,11 @@
 | Cross-host surface | Canonical `rhize-ops:parallel-agent-optimization` skill; thin Claude command; Codex skill discovery |
 | Jira tracking | RT-148 implementation; RT-155 measurement/promotion; RT-147 shared measurement; RT-129 historical decision context |
 
+## Implemented review hardening
+
+Synthesis now remains blocked unless approval and external-state authority are revalidated for every
+gated node that entered an execution or terminal execution state, including reloaded terminal state.
+
 ## Decision
 
 Extend `rhize-ops:parallel-agent-optimization` from prose-only lane planning to an inspectable,

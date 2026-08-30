@@ -20,7 +20,8 @@ not a transcript path. Build and verify a preview with:
 ```bash
 scripts/memory-context.sh preview --input /absolute/private/request.json
 scripts/memory-context.sh verify --manifest /absolute/private/pack.json \
-  --payload /absolute/private/pack.payload.json
+  --payload /absolute/private/pack.payload.json \
+  --source-state /absolute/private/current-source-revisions.json
 ```
 
 The assembler enforces exact tenant/project/task scope and sensitivity before ranking. It ranks
@@ -43,8 +44,9 @@ supported episodic API or machine-readable procedural recall contract is also `u
 an empty store. Do not scrape host private state, parse prose output, invoke a procedure, or
 substitute Graphiti.
 
-Packs and the revocation index are mode `0600` beneath the host-neutral Rhize data root. Verification
-fails on expiry, payload tampering, source revision drift, insecure modes, or source revocation. Only
+Packs and the revocation index are mode `0600` beneath the host-neutral Rhize data root. The required
+source-state file maps each exact source ID to its current revision. Verification fails if that file
+is omitted, or on expiry, payload tampering, source revision drift, insecure modes, or source revocation. Only
 run `purge --source-id <exact-id>` when the user explicitly asks to revoke that source; it deletes
 exact indexed packs and keeps only a hashed tombstone. `cleanup-expired` removes only validated,
 expired memory pack IDs. Neither command grants permission to mutate canonical source stores.
