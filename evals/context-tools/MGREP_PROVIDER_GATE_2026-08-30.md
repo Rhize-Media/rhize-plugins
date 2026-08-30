@@ -7,6 +7,11 @@ acceptable retention and purge contract.** Keep mgrep disabled, unauthenticated,
 and unwired. This review did not create an account, authenticate, create a store, upload a
 file, run a query, start a watcher, or mutate a credential.
 
+Local pre-gate facts: mgrep `0.1.13` is installed at `/opt/homebrew/bin/mgrep`, the
+repository `.mgrepignore` SHA-256 is
+`43dc80739918f6f590a2e9bcef16f07844475d12df687795c610b16094e211b9`, and the
+experiment configuration keeps the provider disabled. Installation is not authorization.
+
 ## Current primary-source findings
 
 - mgrep is not an offline local index. Its official README says that files are pushed into a
