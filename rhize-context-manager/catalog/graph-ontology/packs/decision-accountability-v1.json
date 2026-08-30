@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "packVersion": "1.0.0",
+  "namespace": "rhize.decision-accountability",
+  "extendsCoreVersion": "1.0.0",
+  "description": "Source-bound decision, policy, approval, effect, outcome, and correction vocabulary for governed Rhize projections.",
+  "nodeSubtypes": [
+    {"name": "Decision", "parent": "Entity", "queryJustification": "Reconstruct one consequential decision from current canonical evidence."},
+    {"name": "DecisionEvent", "parent": "Event", "queryJustification": "Verify the append-only lifecycle and optimistic-concurrency history of a decision."},
+    {"name": "EvidenceSet", "parent": "Artifact", "queryJustification": "Return the immutable evidence selection available when a decision was made."},
+    {"name": "PolicySnapshot", "parent": "Artifact", "queryJustification": "Resolve the exact policy version and digest governing a decision."},
+    {"name": "PolicyEvaluation", "parent": "Artifact", "queryJustification": "Reproduce a deterministic policy result from allowlisted input digests."},
+    {"name": "Approval", "parent": "Artifact", "queryJustification": "Verify the source-bound authority and expiry used to record a decision."},
+    {"name": "Effect", "parent": "Event", "queryJustification": "Distinguish an attempted external effect from its later observed outcome."},
+    {"name": "OutcomeObservation", "parent": "Event", "queryJustification": "Trace an authoritative later observation without rewriting the original decision."},
+    {"name": "DecisionCorrection", "parent": "Event", "queryJustification": "Preserve an approved correction, invalidation, reversal, or supersession."}
+  ],
+  "relationshipTypes": [
+    {"name": "BASED_ON", "source": "Decision", "target": "EvidenceSet", "queryJustification": "Return the evidence selection used by a decision."},
+    {"name": "GOVERNED_BY", "source": "Decision", "target": "PolicySnapshot", "queryJustification": "Return the immutable policy snapshot governing a decision."},
+    {"name": "EVALUATED_AS", "source": "Decision", "target": "PolicyEvaluation", "queryJustification": "Reproduce the recorded policy result separately from approval."},
+    {"name": "AUTHORIZED_BY", "source": "Decision", "target": "Approval", "queryJustification": "Verify that a decision was recorded under current source-bound authority."},
+    {"name": "ATTEMPTED_EFFECT", "source": "Decision", "target": "Effect", "queryJustification": "Find external attempts without treating an attempt as success."},
+    {"name": "OBSERVED_OUTCOME", "source": "Decision", "target": "OutcomeObservation", "queryJustification": "Return later authoritative outcomes separately from attempted effects."},
+    {"name": "OBSERVES_EFFECT", "source": "OutcomeObservation", "target": "Effect", "queryJustification": "Bind an authoritative outcome observation to the exact attempted effect."},
+    {"name": "HAS_DECISION_EVENT", "source": "Decision", "target": "DecisionEvent", "queryJustification": "Traverse a decision's append-only lifecycle without treating events as current state."},
+    {"name": "CORRECTED_BY", "source": "Decision", "target": "DecisionCorrection", "queryJustification": "Trace an approved append-only correction without rewriting decision history."},
+    {"name": "DECISION_SUPERSEDES", "source": "Decision", "target": "Decision", "queryJustification": "Resolve decision supersession without redefining the core SUPERSEDES relationship."},
+    {"name": "PRECEDENT_FOR", "source": "Decision", "target": "Decision", "queryJustification": "Return non-authoritative precedent candidates with policy mismatch warnings."},
+    {"name": "INFLUENCED_BY", "source": "Decision", "target": "Decision", "queryJustification": "Represent reviewed influence without asserting causality."},
+    {"name": "CAUSED", "source": "Decision", "target": "Decision", "queryJustification": "Represent only a predeclared deterministic and reviewed causal mechanism."}
+  ]
+}
