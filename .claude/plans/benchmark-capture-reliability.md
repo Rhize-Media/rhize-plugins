@@ -26,38 +26,46 @@ evidence must produce both a non-zero local result and a stable operational inci
 
 ## Current behavior
 
-The released watchdog accepts only A/B receipt fields. The live procedural-memory graph cohort
-now emits schema-version-1 G/G1/G2/G3 receipts with explicit `variant` and `rowDateSource`
-metadata. Those valid graph receipts are consequently reported as malformed even though they are
-bound to successful `bench-append` telemetry. Graph receipts must not enter the four A/B note
-liveness calculations.
+The released watchdog correctly accepts A/B and G/G1/G2/G3 receipts, but treats every
+same-day scheduler/row pair without a timestamped receipt as actionable. The live
+`AI-Stack-Version-Drift` pair is dated 2026-08-24, three days before timestamped receipt
+enforcement shipped on 2026-08-27. That historical ordering cannot be reconstructed without
+fabricating evidence, so the watchdog currently repeats a false operational alarm that no
+future capture can repair.
 
 ## Intended semantic delta
 
-Accept G/G1/G2/G3 as valid capture variants, require any explicit `variant` to match `arm`, and
-validate `rowDateSource`. Report receipt counts by variant while continuing to bind only receipts
-whose note identity matches a configured A/B benchmark note. A graph receipt becomes valid store
-evidence, not A/B performance evidence.
+Classify only same-day pairs whose scheduler run predates the receipt-enforcement instant as
+`legacy_unverifiable`. Keep them visible in the snapshot, but exclude them from actionable alerts
+because no trustworthy receipt can ever exist for those historical runs. Continue to classify
+every same-day run at or after enforcement as `indeterminate_same_day`, and keep every missing,
+malformed, unbound, failed, incomplete, or non-comparable capture actionable.
 
 ## Invariants
 
-- Existing schema-version-1 A/B receipts remain valid without the new optional fields.
-- G/G1/G2/G3 receipts remain isolated from A/B note rows and liveness verdicts.
-- `captured_local_date` is graph-only and requires a non-empty run ID.
+- Existing schema-version-1 A/B and G/G1/G2/G3 receipt validation is unchanged.
+- The cutoff is an exact aware datetime derived from the receipt-enforcement release, not a
+  scheduler-specific exception or a guessed row timestamp.
+- Only same-day ambiguity before that instant is non-actionable; `row_missing`, receipt-store
+  failure, malformed or unbound receipts, and every post-enforcement ambiguity remain actionable.
 - Malformed, unbound, broad-permission, and failed-run receipts remain actionable.
 - No receipt body, prompt, source text, absolute vault path, or credential enters alerts.
+- No historical benchmark row, metric, or receipt is created, repaired, or backfilled.
 
 ## Acceptance tests
 
-1. A real-shaped G1 receipt with `captured_local_date` loads as valid and increments only `by_variant.G1`.
-2. Variant/arm disagreement and A/B use of `captured_local_date` fail validation.
-3. Existing A/B receipt, binding, liveness, permissions, and actionable-finding tests stay green.
-4. The released watchdog accepts the live G1 receipt without adding it to any A/B routine.
+1. A same-day scheduler/row pair before receipt enforcement is `legacy_unverifiable` and produces
+   no actionable finding.
+2. The same pair at or after enforcement remains `indeterminate_same_day` and actionable.
+3. A pre-enforcement run with a later run date than the newest row remains `row_missing`.
+4. Existing receipt validation, binding, liveness, permissions, and capture-health tests stay green.
+5. The real local snapshot reports the historical AI Stack pair visibly but exits clean when no
+   current measurement-loss finding exists.
 
 ## Implementation order
 
-1. Extend the receipt validator and aggregate output.
-2. Add focused contract and isolation tests.
+1. Add the explicit receipt-enforcement instant and narrow legacy classification.
+2. Add pre/post-cutoff and strict missing-row tests.
 3. Update operator documentation and release metadata.
 4. Reconcile the impact receipt, run full validation, release, then rerun the real watchdog.
 
