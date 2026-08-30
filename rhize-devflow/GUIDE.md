@@ -224,6 +224,10 @@ normal completion remain blocked until `reconcile` returns `IN_SYNC` or
 **Examples:**
 - "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
 - "Reconcile the impact map against what actually changed" (after implementation).
+- "Build a local context pack from this persisted impact map" (optional when
+  `rhize-context-manager` is installed). The bridge passes the plan explicitly, records only
+  hash/count provenance, preserves CodeGraph health semantics, and falls back to `rg` without
+  initializing an index.
 
 #### /rhize-devflow:check
 

@@ -46,6 +46,11 @@
           "maximum": 10,
           "default": 0
         },
+        "mode": {
+          "type": "string",
+          "enum": ["canary", "continuous"],
+          "default": "canary"
+        },
         "eligibleRepos": {
           "type": "array",
           "items": {
@@ -87,7 +92,18 @@
           "maximum": 300,
           "default": 30
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"mode": {"const": "continuous"}},
+            "required": ["mode"]
+          },
+          "then": {
+            "properties": {"armedRuns": {"const": 0}}
+          }
+        }
+      ]
     },
     "mgrepCapability": {
       "allOf": [
@@ -119,6 +135,23 @@
                 "type": "string",
                 "pattern": "^rhize-dogfood-[a-z0-9][a-z0-9-]{0,62}$"
               }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "enabled": {"const": true},
+              "mode": {"const": "continuous"}
+            },
+            "required": ["enabled", "mode"]
+          },
+          "then": {
+            "required": ["eligibleRepos", "networkApproved", "store"],
+            "properties": {
+              "eligibleRepos": {"minItems": 1},
+              "networkApproved": {"const": true},
+              "store": {"type": "string"}
             }
           }
         }
@@ -157,6 +190,22 @@
               "smokeApproved": {
                 "const": true
               }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "enabled": {"const": true},
+              "mode": {"const": "continuous"}
+            },
+            "required": ["enabled", "mode"]
+          },
+          "then": {
+            "required": ["eligibleRepos", "smokeApproved"],
+            "properties": {
+              "eligibleRepos": {"minItems": 1},
+              "smokeApproved": {"const": true}
             }
           }
         }
@@ -198,6 +247,22 @@
               "smokeApproved": {
                 "const": true
               }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "enabled": {"const": true},
+              "mode": {"const": "continuous"}
+            },
+            "required": ["enabled", "mode"]
+          },
+          "then": {
+            "required": ["eligibleRepos", "smokeApproved"],
+            "properties": {
+              "eligibleRepos": {"minItems": 1},
+              "smokeApproved": {"const": true}
             }
           }
         }

@@ -20,12 +20,20 @@ self-relative launcher:
   --repo /absolute/path/to/repository \
   --target src/app.ts
 
-# Native target discovery. If .codegraph/ exists, CodeGraph is tried first; otherwise the
-# provider uses its deterministic baseline discovery and records that strategy.
+# Native target discovery. A healthy existing CodeGraph is tried first; otherwise the
+# provider uses deterministic rg discovery and records that strategy.
 "${CLAUDE_PLUGIN_ROOT}/skills/context-pack/scripts/context-pack.sh" pack \
   --provider native \
   --repo /absolute/path/to/repository \
   --query "implement the account synchronization behavior"
+
+# Optional semantic bridge from a repository-local impact-map/plan. The manifest records
+# content/term hashes and a seed count, never the plan path or text.
+"${CLAUDE_PLUGIN_ROOT}/skills/context-pack/scripts/context-pack.sh" pack \
+  --provider native \
+  --repo /absolute/path/to/repository \
+  --query "implement the account synchronization behavior" \
+  --impact-map /absolute/path/to/repository/.claude/plans/account-sync.md
 
 # Pinned upstream Python comparison
 "${CLAUDE_PLUGIN_ROOT}/skills/context-pack/scripts/context-pack.sh" pack \
@@ -38,6 +46,8 @@ The preview never arms an experiment, injects context, or records a completed re
 `acceptedForUse`, every entry's role/reason, and all warnings before opening the private prompt.
 Dynamic dependency edges, ambiguous targets, unsupported syntax, or a required target outside the
 budget reject use. Optional budget truncation remains visible even when the required pack is safe.
+An impact map expands discovery but never converts a planned edge into structural fact: dynamic,
+generated, or unsupported edges still reject the pack and require targeted `rg`/manual evidence.
 
 Both manifest and prompt are mode `0600` under the configured private context data root. The
 manifest contains hashes and

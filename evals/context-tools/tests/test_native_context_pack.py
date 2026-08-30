@@ -149,7 +149,7 @@ def test_query_discovery_falls_back_explicitly_when_codegraph_is_unavailable(
         task_hash="a" * 64,
         query="change app load behavior",
     )
-    assert pack.manifest["discovery"]["strategy"] == "baseline"
+    assert pack.manifest["discovery"]["strategy"] == "rg"
     assert "codegraph_discovery_unavailable_fell_back" in pack.manifest["warnings"]
     assert pack.manifest["discovery"]["queryHash"] is not None
 
@@ -168,6 +168,7 @@ def test_query_discovery_uses_codegraph_first_when_the_index_exists(
         return (repo / "src" / "app.ts",)
 
     monkeypatch.setattr(native_provider, "_codegraph_targets", discover)
+    monkeypatch.setattr(native_provider, "_codegraph_healthy", lambda _repo: True)
     pack = NativeContextPackProvider().compile(
         repo,
         snapshot=snapshot,
@@ -177,6 +178,99 @@ def test_query_discovery_uses_codegraph_first_when_the_index_exists(
     assert calls == ["change the app behavior"]
     assert pack.manifest["discovery"]["strategy"] == "codegraph"
     assert pack.manifest["discovery"]["targetPaths"] == ["src/app.ts"]
+
+
+def test_impact_map_hint_expands_local_discovery_with_hash_only_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "decoy.py").write_text("def refresh_lifecycle():\n    return 'decoy'\n")
+    (repo / "tenant_policy.py").write_text("def enforce_tenant_policy():\n    return True\n")
+    plan_dir = repo / ".claude" / "plans"
+    plan_dir.mkdir(parents=True)
+    plan = plan_dir / "tenant-refresh.md"
+    plan.write_text(
+        "# Impact Map\n\n## Current structural touchpoints\n"
+        "- `tenant_policy.py`: planned tenant authorization boundary.\n"
+    )
+    snapshot = commit_fixture(repo)
+    monkeypatch.setattr(native_provider.shutil, "which", lambda command: "/usr/bin/rg" if command == "rg" else None)
+
+    baseline = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="2" * 64,
+        query="refresh lifecycle behavior",
+    )
+    assisted = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="3" * 64,
+        query="refresh lifecycle behavior",
+        impact_hint=plan,
+    )
+
+    assert "tenant_policy.py" not in baseline.manifest["discovery"]["targetPaths"]
+    assert "tenant_policy.py" in assisted.manifest["discovery"]["targetPaths"]
+    assert assisted.manifest["discovery"]["strategy"] == "impact_rg"
+    provenance = assisted.manifest["impactHint"]
+    assert set(provenance) == {"contentHash", "present", "seedCount", "termSetHash"}
+    assert provenance["present"] is True
+    assert len(provenance["contentHash"]) == 64
+    assert str(plan) not in json.dumps(assisted.manifest)
+    assert "tenant authorization boundary" not in json.dumps(assisted.manifest)
+
+
+def test_impact_map_uses_only_healthy_existing_codegraph_then_falls_back(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    plan_dir = repo / ".claude" / "plans"
+    plan_dir.mkdir(parents=True)
+    plan = plan_dir / "app.md"
+    plan.write_text("- `src/app.ts`: application entry point\n")
+    (repo / ".codegraph").mkdir()
+    snapshot = commit_fixture(repo)
+    calls: list[str] = []
+    monkeypatch.setattr(native_provider, "_codegraph_healthy", lambda _repo: False)
+    monkeypatch.setattr(
+        native_provider,
+        "_codegraph_targets",
+        lambda *_args: calls.append("explore") or (),
+    )
+
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="4" * 64,
+        query="change application behavior",
+        impact_hint=plan,
+    )
+    assert calls == []
+    assert pack.manifest["discovery"]["strategy"] == "impact_rg"
+    assert "codegraph_discovery_unavailable_fell_back" in pack.manifest["warnings"]
+
+
+def test_impact_map_hint_rejects_repository_local_symlink(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app.py").write_text("value = 1\n")
+    plan = repo / "plan.md"
+    plan.write_text("Inspect `app.py`.\n")
+    linked_plan = repo / "linked-plan.md"
+    linked_plan.symlink_to(plan)
+    snapshot = commit_fixture(repo)
+
+    with pytest.raises(ValueError, match="regular repository-local markdown"):
+        NativeContextPackProvider().compile(
+            repo,
+            snapshot=snapshot,
+            task_hash="8" * 64,
+            query="inspect app",
+            impact_hint=linked_plan,
+        )
 
 
 def test_dynamic_dependency_edges_reject_use_without_hiding_the_target(tmp_path: Path) -> None:
@@ -283,7 +377,6 @@ def test_manifest_contains_no_source_or_absolute_paths(tmp_path: Path) -> None:
     malformed = {**pack.manifest, "snapshot": "/absolute/snapshot"}
     with pytest.raises(ValueError, match="invalid snapshot"):
         validate_native_context_pack_manifest(malformed)
-
 
 def test_python_multiline_decorated_contract_is_complete(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
@@ -463,3 +556,21 @@ def test_scan_budget_and_small_repository_declines_are_explicit(
         "repository_scan_budget_exceeded", "insufficient_compilation_benefit"
     }
     assert pack.manifest["policy"]["eligibilityPolicy"]["version"] == "native-context-eligibility-v2"
+
+
+def test_legacy_native_manifest_remains_validator_compatible(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    snapshot = commit_fixture(repo)
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="8" * 64,
+        targets=(repo / "src" / "app.ts",),
+    )
+    legacy = {key: value for key, value in pack.manifest.items() if key != "impactHint"}
+    legacy["provider"] = {
+        "name": "rhize-native",
+        "revision": "rhize-native-context-pack-v1",
+    }
+    validate_native_context_pack_manifest(legacy)

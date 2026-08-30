@@ -33,6 +33,19 @@ The Terms/Privacy disagreement and the lack of a guaranteed purge are enough to 
 The paid-tier no-training language does not satisfy the experiment's separate deletion and
 absence-verification requirement.
 
+## Financial gate
+
+Published pricing makes a bounded paid pilot plausibly cost-justifiable if the local native plus
+impact-map hybrid fails its recall/outcome gate: Starter includes one-time credit, Scale includes
+monthly credit, and indexing/storage/query charges are small relative to engineering review for a
+roughly 2.6M-token code/docs corpus. That is an economic observation, not upload authorization.
+Paid-tier no-training language is materially better than Free Tier, but no pilot may proceed until
+the operator explicitly accepts the controlling remote privacy, retention, purge, and historical-
+data terms and authorizes the exact manifest/store/caps. Sources:
+<https://www.mixedbread.com/pricing>, <https://www.mixedbread.com/pages/terms>,
+<https://www.mixedbread.com/pages/privacy>, and
+<https://www.mixedbread.com/docs/stores/store-files/manage-store-files>.
+
 ## Evidence needed before reconsideration
 
 1. Written clarification naming the controlling terms for mgrep Free and Paid usage, including

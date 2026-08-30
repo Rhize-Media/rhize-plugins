@@ -88,6 +88,27 @@
     "claimPackVerified": {"type": ["boolean", "null"]},
     "finalPackVerification": {
       "enum": ["valid", "stale", "unavailable", "not_applicable"]
+    },
+    "terminalReason": {"$ref": "#/$defs/safeId"},
+    "evidenceCompleteness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "armAccountingComplete",
+        "evidenceState",
+        "packUseRecorded",
+        "packUseRequired",
+        "taskOutcomeRecorded",
+        "validationRecorded"
+      ],
+      "properties": {
+        "armAccountingComplete": {"type": "boolean"},
+        "evidenceState": {"enum": ["missing", "malformed", "valid"]},
+        "packUseRecorded": {"type": "boolean"},
+        "packUseRequired": {"type": "boolean"},
+        "taskOutcomeRecorded": {"type": "boolean"},
+        "validationRecorded": {"type": "boolean"}
+      }
     }
   },
   "$defs": {

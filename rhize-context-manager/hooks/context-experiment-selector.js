@@ -2,7 +2,7 @@
 'use strict';
 
 // Thin, fail-silent UserPromptSubmit adapter. The Python selector emits only for a
-// healthy real provider, a current snapshot, and an explicitly armed repository.
+// healthy real provider, a current snapshot, and explicit canary/continuous authority.
 
 const fs = require('fs');
 const path = require('path');
@@ -15,7 +15,9 @@ function selectorTimeoutMs() {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const experiments = Object.values(config.experiments || {});
     const durations = experiments
-      .filter((item) => item && item.enabled && item.armedRuns > 0)
+      .filter((item) => item && item.enabled && (
+        item.mode === 'continuous' || item.armedRuns > 0
+      ))
       .map((item) => item.maxDurationSeconds)
       .filter((value) => Number.isInteger(value) && value >= 1 && value <= 300);
     const seconds = durations.length ? Math.max(...durations) : 30;

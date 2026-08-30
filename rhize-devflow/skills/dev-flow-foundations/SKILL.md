@@ -51,6 +51,10 @@ These foundation documents address six core development workflow challenges:
 - Use CodeGraph-first discovery for current symbols, callers, tests, and dependency paths
 - Keep the impact map focused on semantic intent, invariants, operational risk, and acceptance
 - Reconcile the completed graph and diff against the map before declaring completion
+- When `rhize-context-manager` is installed, optionally pass the persisted map to its native local
+  context pack. The bridge records hash/count provenance only, trusts structural graph seeds only
+  after a healthy existing CodeGraph preflight, and otherwise uses deterministic `rg` without
+  creating an index.
 
 **Key Pattern:** CodeGraph tells you what exists; the impact map tells you what must change and
 what must not.

@@ -472,3 +472,29 @@ def test_receipt_v2_detects_evidence_digest_mismatch(tmp_path: Path) -> None:
     assert "evidence_digest_mismatch" in {
         issue["kind"] for issue in report["issues"]
     }
+
+
+def test_capture_health_exposes_continuous_live_and_frozen_lifecycle() -> None:
+    config = ExperimentConfig(
+        compiled_context=CapabilityConfig(
+            enabled=True,
+            mode="continuous",
+            eligible_repos=("/tmp/repo",),
+            smoke_approved=True,
+            completed_runs=2,
+        )
+    )
+    report = evaluate_capture_health(
+        Path("/nonexistent/context-data"),
+        lease_ttl_seconds=60,
+        config=config,
+        now=NOW,
+    )
+    lifecycle = report["capabilityLifecycle"][Capability.COMPILED_CONTEXT.value]
+    assert lifecycle == {
+        "armedRuns": 0,
+        "completedRuns": 2,
+        "enabled": True,
+        "mode": "continuous",
+        "state": "live",
+    }

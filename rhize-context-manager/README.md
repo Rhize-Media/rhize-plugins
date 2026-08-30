@@ -77,8 +77,8 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
-| `/context-experiment` | Opt-in local retrieval, mgrep, and compiled-context dogfood control: provider health, bounded arming, real dry-run/eval/pack execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
-| `/context-pack` | Build and inspect a deterministic private pack. The local native provider supports Python, JavaScript, TypeScript, mixed targets, target discovery, FULL/INTERFACE roles, and stale-pack verification; the pinned upstream Python provider remains available for comparison. Preview mode never arms or injects. |
+| `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
+| `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
 | `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
@@ -127,8 +127,14 @@ that never ran.
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 | `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
 | `next-step-suggester.js` | `PostToolUse` (`Skill`) | After a skill invocation, looks up the invoked skill's succession entry and suggests exactly one next step — the declared `precedes` successor, or the mined `follows` successor if no `precedes` exists. Silent when there's no successor. |
+| `context-experiment-selector.js` | `UserPromptSubmit` | Fail-silent Claude/Codex selector. Strict disabled-by-default config, allowlist, task, clean-repository, provider, snapshot, duration, and single-flight gates decide whether to emit an accepted local pack/evidence command. |
+| `context-experiment-finalizer.js` | `Stop` | Writes one evidence-backed terminal receipt. Completed continuous attempts remain enabled; failed, incomplete, stale, or malformed evidence freezes further claims. |
 
-All four hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
+All six hooks are auto-wired in `hooks/hooks.json`. The experiment pair executes in Claude and
+Codex but remains behaviorally inert until strict configuration explicitly enables a capability
+for an allowlisted repository. Before plugin migration, the coordinator must remove any duplicate
+manual Claude selector/finalizer entries; duplicate calls are state-idempotent, but a second
+selector can waste a local provider build before the lease rejects it.
 `session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
 obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
 `.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
@@ -159,11 +165,12 @@ reports the agent-dispatch rows' named-rate/candidate-present/candidate-miss-rat
 separate section. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file
 path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
 
-### Opt-in hooks (`setup/manifest.json`)
+### Per-repository and migration hooks (`setup/manifest.json`)
 
-Nine hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
-`/rhize-setup` (rhize-ops) to wire per-repo — none of the nine are in `hooks/hooks.json`
-and none do anything until enabled. Three generalized hooks live under
+Nine hooks remain declared in `setup/manifest.json` for backward-compatible setup inventory.
+Seven are opt-in per-repository items (`default: false`). The selector/finalizer rows are migration
+metadata now that the scripts are auto-wired in `hooks/hooks.json`; do not wire a second copy.
+Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
 every repo would be noise:
@@ -175,8 +182,8 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims one clean-repository attempt under a repository/capability single-flight lease. Accepted attempts atomically freeze the capability; rejected packs and elapsed preflights leave the arm intact. |
-| `context-experiment-finalizer` | `Stop` | T3 (advisory) | Verifies the native pack again and writes receipt v2. Pack construction alone is incomplete; completion requires an immutable source-free review sidecar, and every requested arm is explicitly executed or skipped. |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory, auto-wired) | Claims one clean-repository attempt under a repository/capability single-flight lease. Canary claims freeze immediately; continuous claims stay enabled but cannot overlap. |
+| `context-experiment-finalizer` | `Stop` | T3 (advisory, auto-wired) | Verifies the native pack again and writes receipt v2 with terminal reason and source-free completeness fields. Only valid completion evidence releases a continuous attempt without freezing. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
 `hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
@@ -256,21 +263,31 @@ The default `/context-pack --provider native` path is Rhize-owned and local-only
 parser-backed multiline Python/JavaScript/TypeScript contracts, configured Python source roots,
 JS/TS aliases, workspace imports, and package exports. It includes explicit targets in full,
 renders safe dependencies as interfaces, widens uncertain interfaces to full source, and adds
-related tests/configuration when they fit. Query and dependency discovery
-uses CodeGraph first when `.codegraph/` exists and records an explicit baseline fallback otherwise.
+related tests/configuration when they fit. Query discovery uses CodeGraph only after an existing
+`.codegraph/` passes a read-only healthy/current status preflight; otherwise it records deterministic
+`rg` fallback and never creates an index. An optional `--impact-map <repository-local-markdown>`
+bridge expands semantic terms and consumes named source-file seeds while storing only the plan
+content hash, normalized term-set hash, and seed count—never plan content or an absolute path.
+Planned, dynamic, and unsupported edges remain untrusted and fail closed.
 Every manifest records provider revision, task/query hashes, source/rendered hashes, selection
 reasons, token budget, and warnings without source text. `verify-pack` rejects any snapshot or
 entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
 context cases. The prior native-v1 corpus remains historical evidence; v2 adds separate contract,
-alias/workspace, source-root, eligibility, and exclusion-ledger fixtures. This remains advanced
-opt-in preview functionality, not default injection.
+alias/workspace, source-root, eligibility, exclusion-ledger, and hash-only impact-map/`rg` fixtures.
+The three assisted discovery cases must improve supported recall while continuing to reject
+dynamic or unsupported cases. This supports disabled-by-default controlled use, not an inference
+of task correctness.
 
 The live P4 gate is stricter than preview mode. Selection refuses a dirty repository, unresolved
 local dependency, truncated dependency traversal, required dependency omitted by budget, or a
 preflight that exceeds `maxDurationSeconds`. It verifies the pack immediately after writing it,
-then freezes the capability before returning context. The non-reclaiming lease prevents a second
+then reserves the configured canary/continuous authority before returning context. The
+non-reclaiming lease prevents a second
 session from claiming the same repository/capability even after the ordinary lease TTL. Any Stop
-outcome leaves the capability frozen for review; it is never automatically re-armed.
+outcome writes one terminal receipt: evidence-backed completion releases continuous single-flight
+and leaves it enabled, while failed, incomplete, stale, or malformed evidence freezes it. Canary
+mode preserves the prior one-shot freeze behavior. A later selector audit terminalizes expired
+pending attempts as incomplete instead of reclaiming them.
 
 On a compiled-context B claim, selector `additionalContext` prints the exact installed
 `runner.py` path, the real experiment id, and a shell-quoted `record-evidence` command. It also
@@ -294,7 +311,8 @@ python3 scripts/context_experiments/runner.py record-evidence \
 The sidecar contains only the experiment id, timestamp, outcome enum, pack-use boolean,
 source-free validation ids, and exact arm accounting. It rejects prompts, source/output, paths,
 URLs, duplicate writes, and evidence without a matching pending attempt. Receipt v2 binds its
-SHA-256 digest and the claim/final pack-verification results. The command records reviewer
+SHA-256 digest, the claim/final pack-verification results, a terminal reason, and source-free
+completeness state/booleans. The command records reviewer
 assertions; it does not infer task correctness. A comparable Arm A remains a separate evidence
 requirement, and `capture-health` flags a reviewed B-only run as non-comparable.
 
@@ -308,7 +326,8 @@ The command strictly parses every receipt, review sidecar, and pending selection
 sidecar digests and stored completed receipts against each capability's `completedRuns`; and keeps
 completed/incomplete/skipped Arm A and Arm B counts separate per capability. Legacy receipt v1
 still requires comparable A/B metrics. Receipt v2 requires exact arm accounting and reports
-evidence-backed, comparable, skipped, incomplete, and failed runs separately. It exits `2` for
+evidence state, terminal reasons, configured canary/continuous live/frozen state, comparable,
+skipped, incomplete, and failed runs separately. It exits `2` for
 malformed or mismatched artifacts, failed or incomplete receipts, missing-arm/metric/history
 evidence, non-comparable A/B measurements, orphan evidence, or a pending selection that outlived
 its lease without producing a receipt. It never generates benchmark evidence or substitutes a

@@ -29,13 +29,24 @@
       "additionalProperties": false,
       "required": ["strategy", "queryHash", "targetPaths"],
       "properties": {
-        "strategy": { "enum": ["explicit", "baseline", "codegraph"] },
+        "strategy": { "enum": ["explicit", "baseline", "rg", "codegraph", "impact_rg", "impact_codegraph"] },
         "queryHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
         "targetPaths": {
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/relativePath" }
         }
+      }
+    },
+    "impactHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contentHash", "present", "seedCount", "termSetHash"],
+      "properties": {
+        "contentHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "present": { "type": "boolean" },
+        "seedCount": { "type": "integer", "minimum": 0 },
+        "termSetHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
       }
     },
     "entries": {

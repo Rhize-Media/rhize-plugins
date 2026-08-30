@@ -35,6 +35,12 @@ MAX_SOURCE_FILES = 2_500
 MAX_SCAN_BYTES = 25_000_000
 MIN_PROJECTED_REDUCTION_PERCENT = 10.0
 MAX_PRIVATE_ISSUES = 20
+MAX_IMPACT_HINT_BYTES = 256_000
+_QUERY_STOP_WORDS = {
+    "acceptance", "behavior", "change", "current", "evidence", "explicitly",
+    "implementation", "impact", "intended", "must", "planned", "repository",
+    "tests", "that", "the", "this", "with", "from", "into", "and", "for",
+}
 
 
 @dataclass(frozen=True)
@@ -70,6 +76,22 @@ class DependencyIssue:
         return f"{self.code}: {self.source_path}:{self.line} ({self.specifier})"
 
 
+@dataclass(frozen=True)
+class ImpactHint:
+    content_hash: str
+    terms: tuple[str, ...]
+    seeds: tuple[Path, ...]
+
+    def provenance(self) -> dict[str, Any]:
+        term_hash = _sha256("\n".join(self.terms).encode())
+        return {
+            "contentHash": self.content_hash,
+            "present": True,
+            "seedCount": len(self.seeds),
+            "termSetHash": term_hash,
+        }
+
+
 class NativeContextPackProvider:
     """Build inspectable FULL/INTERFACE packs without a network dependency."""
 
@@ -92,6 +114,7 @@ class NativeContextPackProvider:
         task_hash: str,
         targets: Iterable[Path] = (),
         query: str | None = None,
+        impact_hint: Path | None = None,
         max_hops: int = 2,
         max_tokens: int = 40_000,
     ) -> CompiledPack:
@@ -107,8 +130,9 @@ class NativeContextPackProvider:
         source_paths = inventory.paths
         if not source_paths:
             raise ValueError("repository contains no supported source files")
+        hint = _load_impact_hint(repo, source_paths, impact_hint)
         target_paths, strategy, discovery_warnings = _discover_targets(
-            repo, source_paths, targets, query
+            repo, source_paths, targets, query, hint
         )
         if not target_paths:
             raise ValueError("native context-pack discovery found no target")
@@ -288,6 +312,16 @@ class NativeContextPackProvider:
                 "queryHash": _sha256(query.strip().encode()) if query and query.strip() else None,
                 "targetPaths": [path.relative_to(repo).as_posix() for path in target_paths],
             },
+            "impactHint": (
+                hint.provenance()
+                if hint is not None
+                else {
+                    "contentHash": None,
+                    "present": False,
+                    "seedCount": 0,
+                    "termSetHash": None,
+                }
+            ),
             "entries": entries,
             "excludedCount": excluded_count,
             "exclusionLedger": {
@@ -428,6 +462,7 @@ def _discover_targets(
     source_paths: tuple[Path, ...],
     targets: Iterable[Path],
     query: str | None,
+    impact_hint: ImpactHint | None,
 ) -> tuple[tuple[Path, ...], str, tuple[str, ...]]:
     explicit = tuple(_safe_target(repo, target) for target in targets)
     if explicit:
@@ -435,13 +470,91 @@ def _discover_targets(
     if not query or not query.strip():
         raise ValueError("native context-pack requires --target or --query")
     warnings: list[str] = []
+    expanded_query = _expanded_query(query, impact_hint)
+    seeds = impact_hint.seeds if impact_hint is not None else ()
     if (repo / ".codegraph").is_dir():
-        discovered = _codegraph_targets(repo, source_paths, query)
-        if discovered:
-            return discovered, "codegraph", ()
+        if _codegraph_healthy(repo):
+            discovered = _codegraph_targets(repo, source_paths, expanded_query)
+            combined = _ordered_targets(repo, (*discovered, *seeds), limit=5)
+            if combined:
+                return combined, (
+                    "impact_codegraph" if impact_hint is not None else "codegraph"
+                ), ()
         warnings.append("codegraph_discovery_unavailable_fell_back")
-    discovered = _baseline_targets(repo, source_paths, query)
-    return discovered, "baseline", tuple(warnings)
+    discovered = _rg_targets(repo, source_paths, expanded_query)
+    if discovered is None:
+        warnings.append("rg_discovery_unavailable_internal_fallback")
+        discovered = _baseline_targets(repo, source_paths, expanded_query)
+    combined = _ordered_targets(repo, (*seeds, *discovered), limit=5)
+    return combined, ("impact_rg" if impact_hint is not None else "rg"), tuple(warnings)
+
+
+def _load_impact_hint(
+    repo: Path,
+    source_paths: tuple[Path, ...],
+    hint_path: Path | None,
+) -> ImpactHint | None:
+    if hint_path is None:
+        return None
+    candidate = hint_path.expanduser()
+    if not candidate.is_absolute():
+        candidate = repo / candidate
+    if candidate.is_symlink():
+        raise ValueError("impact hint must be a regular repository-local markdown file")
+    candidate = candidate.resolve(strict=True)
+    try:
+        candidate.relative_to(repo)
+    except ValueError as error:
+        raise ValueError("impact hint must be inside the repository") from error
+    if not candidate.is_file() or candidate.suffix != ".md":
+        raise ValueError("impact hint must be a regular repository-local markdown file")
+    payload = candidate.read_bytes()
+    if len(payload) > MAX_IMPACT_HINT_BYTES:
+        raise ValueError("impact hint exceeds the local size limit")
+    text = payload.decode("utf-8", errors="strict")
+    terms = tuple(
+        sorted(
+            {
+                term.lower()
+                for term in re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", text)
+                if term.lower() not in _QUERY_STOP_WORDS
+            }
+        )[:64]
+    )
+    by_relative = {path.relative_to(repo).as_posix(): path for path in source_paths}
+    seeds = tuple(
+        by_relative[value]
+        for value in sorted(
+            {
+                token.strip("`'\".,:;()[]")
+                for token in re.findall(r"`([^`]+)`", text)
+            }
+            & set(by_relative)
+        )
+    )
+    return ImpactHint(_sha256(payload), terms, seeds)
+
+
+def _expanded_query(query: str, impact_hint: ImpactHint | None) -> str:
+    if impact_hint is None or not impact_hint.terms:
+        return query.strip()
+    return " ".join((query.strip(), *impact_hint.terms))
+
+
+def _ordered_targets(
+    repo: Path, paths: Iterable[Path], *, limit: int
+) -> tuple[Path, ...]:
+    ordered: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        resolved = path.resolve()
+        resolved.relative_to(repo)
+        if resolved not in seen:
+            ordered.append(resolved)
+            seen.add(resolved)
+        if len(ordered) == limit:
+            break
+    return tuple(ordered)
 
 
 def _safe_target(repo: Path, target: Path) -> Path:
@@ -478,6 +591,70 @@ def _codegraph_targets(
     matches = [path for relative, path in by_relative.items() if relative in result.stdout]
     ordered = sorted(set(matches), key=lambda path: path.relative_to(repo).as_posix())
     return tuple(ordered[:5])
+
+
+def _codegraph_healthy(repo: Path) -> bool:
+    if not (repo / ".codegraph").is_dir() or shutil.which("codegraph") is None:
+        return False
+    try:
+        result = subprocess.run(
+            ["codegraph", "status"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    status = f"{result.stdout}\n{result.stderr}".lower()
+    return (
+        result.returncode == 0
+        and not any(word in status for word in ("stale", "corrupt", "unhealthy"))
+        and any(word in status for word in ("healthy", "current", "ready", "indexed"))
+    )
+
+
+def _rg_targets(
+    repo: Path, source_paths: tuple[Path, ...], query: str
+) -> tuple[Path, ...] | None:
+    if shutil.which("rg") is None:
+        return None
+    terms = sorted(
+        {
+            term.lower()
+            for term in re.findall(r"[A-Za-z][A-Za-z0-9_-]{2,}", query)
+            if term.lower() not in _QUERY_STOP_WORDS
+        }
+    )
+    if not terms:
+        return ()
+    command = ["rg", "--files-with-matches", "--ignore-case", "--no-messages"]
+    for term in terms:
+        command.extend(("-e", re.escape(term)))
+    command.append(".")
+    try:
+        result = subprocess.run(
+            command,
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode not in {0, 1}:
+        return None
+    allowed = {path.relative_to(repo).as_posix(): path for path in source_paths}
+    candidates = {
+        value.removeprefix("./")
+        for value in result.stdout.splitlines()
+        if value.removeprefix("./") in allowed
+    }
+    return _baseline_targets(
+        repo, tuple(allowed[value] for value in sorted(candidates)), query
+    )
 
 
 def _baseline_targets(
@@ -1182,13 +1359,17 @@ def _write_private(path: Path, content: str) -> None:
 
 
 def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
-    required = {
+    legacy_required = {
         "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider",
         "discovery", "entries", "excludedCount", "exclusionLedger", "totalSourceFiles", "naiveDumpTokens",
         "compiledTokens", "reductionPercent", "buildMilliseconds", "sourceManifestHash",
         "policy", "warnings",
     }
-    if set(manifest) != required or manifest.get("schemaVersion") != 2:
+    manifest_fields = set(manifest)
+    if (
+        manifest_fields not in (legacy_required, legacy_required | {"impactHint"})
+        or manifest.get("schemaVersion") != 2
+    ):
         raise ValueError("native context pack manifest has an invalid top-level shape")
     if not re.fullmatch(r"pack-[a-f0-9]{32}", str(manifest["packId"])):
         raise ValueError("native context pack has an invalid packId")
@@ -1202,8 +1383,13 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack has an invalid snapshot")
     if not re.fullmatch(r"[a-f0-9]{64}", str(manifest["sourceManifestHash"])):
         raise ValueError("native context pack has an invalid source manifest hash")
-    if manifest.get("provider") != {"name": "rhize-native", "revision": PROVIDER_REVISION}:
+    provider = manifest.get("provider")
+    if not isinstance(provider, dict) or provider.get("name") != "rhize-native" or provider.get(
+        "revision"
+    ) not in {"rhize-native-context-pack-v1", PROVIDER_REVISION}:
         raise ValueError("native context pack provider provenance is invalid")
+    if provider["revision"] == PROVIDER_REVISION and "impactHint" not in manifest:
+        raise ValueError("native context pack v2 provider requires impact hint provenance")
     entries = manifest.get("entries")
     if not isinstance(entries, list) or not entries:
         raise ValueError("native context pack must have at least one entry")
@@ -1228,13 +1414,39 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         "strategy", "queryHash", "targetPaths"
     }:
         raise ValueError("native context pack discovery is invalid")
-    if discovery["strategy"] not in {"explicit", "baseline", "codegraph"}:
+    if discovery["strategy"] not in {
+        "explicit", "baseline", "rg", "codegraph", "impact_rg", "impact_codegraph"
+    }:
         raise ValueError("native context pack discovery strategy is invalid")
     for path in discovery["targetPaths"]:
         _require_relative_path(path)
     query_hash = discovery["queryHash"]
     if query_hash is not None and not re.fullmatch(r"[a-f0-9]{64}", str(query_hash)):
         raise ValueError("native context pack query hash is invalid")
+    impact_hint = manifest.get("impactHint")
+    if impact_hint is None and provider["revision"] == "rhize-native-context-pack-v1":
+        impact_hint = {
+            "contentHash": None,
+            "present": False,
+            "seedCount": 0,
+            "termSetHash": None,
+        }
+    if not isinstance(impact_hint, dict) or set(impact_hint) != {
+        "contentHash", "present", "seedCount", "termSetHash"
+    }:
+        raise ValueError("native context pack impact hint provenance is invalid")
+    if not isinstance(impact_hint["present"], bool):
+        raise ValueError("native context pack impact hint presence is invalid")
+    if isinstance(impact_hint["seedCount"], bool) or not isinstance(
+        impact_hint["seedCount"], int
+    ) or impact_hint["seedCount"] < 0:
+        raise ValueError("native context pack impact hint seed count is invalid")
+    for key in ("contentHash", "termSetHash"):
+        value = impact_hint[key]
+        if value is not None and not re.fullmatch(r"[a-f0-9]{64}", str(value)):
+            raise ValueError("native context pack impact hint hash is invalid")
+    if impact_hint["present"] != (impact_hint["contentHash"] is not None):
+        raise ValueError("native context pack impact hint presence/hash mismatch")
     policy = manifest.get("policy")
     if not isinstance(policy, dict) or set(policy) != {
         "acceptedForUse", "maximumTokens", "eligibilityPolicy", "rejectionReasons"

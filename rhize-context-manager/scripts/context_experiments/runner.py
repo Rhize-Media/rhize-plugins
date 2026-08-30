@@ -280,11 +280,18 @@ def claim_hook_selection(
             return None
         try:
             native_provider = NativeContextPackProvider()
+            impact_hint_value = payload.get("impactMapPath")
+            impact_hint = (
+                Path(impact_hint_value)
+                if isinstance(impact_hint_value, str) and impact_hint_value
+                else None
+            )
             pack = native_provider.compile(
                 selection["repoRoot"],
                 snapshot=snapshot,
                 task_hash=selection["promptHash"],
                 query=prompt,
+                impact_hint=impact_hint,
             )
             if not pack.manifest["policy"]["acceptedForUse"]:
                 return None
@@ -340,6 +347,7 @@ def claim_hook_selection(
         "snapshot": snapshot,
         "promptHash": selection["promptHash"],
         "taskClass": selection["taskClass"],
+        "mode": capability_config.mode,
         "startedAt": utc_now(),
         "armsRequested": [arm.value for arm in assignment.arms_requested],
         "liveVariant": assignment.live_variant.value,
@@ -376,6 +384,60 @@ def finalize_hook_selection(
     pending = pending_store.read(session_hash)
     if pending is None:
         return False
+    resolved_config_path = config_path or default_config_path()
+    _finalize_pending_attempt(
+        session_hash,
+        pending,
+        payload,
+        storage_root,
+        resolved_config_path,
+    )
+    return True
+
+
+def audit_pending_attempts(
+    storage_root: Path,
+    config_path: Path | None = None,
+    *,
+    now: float | None = None,
+) -> int:
+    """Terminalize accepted attempts whose Stop hook never ran.
+
+    Accepted leases are never reclaimed into a new claim. Once their configured
+    lifetime expires, the audit writes an incomplete receipt, freezes authority,
+    and releases only that terminalized lease.
+    """
+
+    resolved_config_path = config_path or default_config_path()
+    config = load_config(resolved_config_path)
+    cutoff_now = time.time() if now is None else now
+    pending_store = PendingStore(storage_root / "pending")
+    finalized = 0
+    for session_hash, pending, modified_at in pending_store.active():
+        if cutoff_now - modified_at <= config.lease_ttl_seconds:
+            continue
+        _finalize_pending_attempt(
+            session_hash,
+            pending,
+            {},
+            storage_root,
+            resolved_config_path,
+            forced_reason="stale_pending_attempt",
+        )
+        finalized += 1
+    return finalized
+
+
+def _finalize_pending_attempt(
+    session_hash: str,
+    pending: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    storage_root: Path,
+    config_path: Path,
+    *,
+    forced_reason: str | None = None,
+) -> None:
+    pending_store = PendingStore(storage_root / "pending")
     receipt_store = ReceiptStore(storage_root / "receipts")
     receipt_path = receipt_store.directory / f"{pending['experimentId']}.json"
     lease = Lease(
@@ -383,31 +445,43 @@ def finalize_hook_selection(
         key="",
         owner=pending["leaseOwner"],
     )
-    resolved_config_path = config_path or default_config_path()
-    freeze_capability(resolved_config_path, Capability(pending["capability"]))
+    config = load_config(config_path)
     if not receipt_path.exists():
         requested = tuple(Arm(value) for value in pending["armsRequested"])
         provider_execution = pending.get("providerExecution")
         capability = Capability(pending["capability"])
         live_variant = Arm(pending["liveVariant"])
-        evidence = EvidenceStore(storage_root / "evidence").read(
-            pending["experimentId"]
+        evidence, evidence_state = EvidenceStore(
+            storage_root / "evidence"
+        ).read_with_state(pending["experimentId"])
+        final_verification = (
+            "unavailable"
+            if forced_reason is not None
+            else _final_pack_verification(payload, pending, storage_root)
         )
-        final_verification = _final_pack_verification(
-            payload, pending, storage_root
+        status, executed, skipped, evidence_warnings, terminal_reason = (
+            _resolve_review_evidence(
+                evidence,
+                evidence_state=evidence_state,
+                requested=requested,
+                live_variant=live_variant,
+                capability=capability,
+                claim_pack_verified=(
+                    bool(provider_execution.get("claimPackVerified"))
+                    if isinstance(provider_execution, dict)
+                    else None
+                ),
+                final_pack_verification=final_verification,
+            )
         )
-        status, executed, skipped, evidence_warnings = _resolve_review_evidence(
-            evidence,
-            requested=requested,
-            live_variant=live_variant,
-            capability=capability,
-            claim_pack_verified=(
-                bool(provider_execution.get("claimPackVerified"))
-                if isinstance(provider_execution, dict)
-                else None
-            ),
-            final_pack_verification=final_verification,
-        )
+        if forced_reason is not None:
+            status = RunStatus.INCOMPLETE
+            terminal_reason = forced_reason
+            executed = ()
+            skipped = tuple(
+                {"arm": arm.value, "reason": forced_reason} for arm in requested
+            )
+            evidence_warnings = (*evidence_warnings, forced_reason)
         metrics = _provider_metrics(provider_execution, executed, live_variant)
         warnings = list(evidence_warnings)
         if isinstance(provider_execution, dict):
@@ -449,21 +523,54 @@ def finalize_hook_selection(
                 else None
             ),
             final_pack_verification=final_verification,
+            terminal_reason=terminal_reason,
+            evidence_completeness=_evidence_completeness(
+                evidence,
+                evidence_state,
+                requested,
+                capability,
+                live_variant,
+            ),
             schema_version=RECEIPT_SCHEMA_VERSION,
         )
         receipt_store.write(receipt)
         if receipt.status is RunStatus.COMPLETED:
-            try:
-                record_reserved_completion(resolved_config_path, receipt.capability)
-            except Exception:
-                pending_store.delete(session_hash)
-                LeaseStore(
-                    storage_root / "leases", 900, reclaim_stale=False
-                ).release(lease)
-                raise
+            record_reserved_completion(config_path, receipt.capability)
+        else:
+            freeze_capability(config_path, receipt.capability)
     pending_store.delete(session_hash)
-    LeaseStore(storage_root / "leases", 900, reclaim_stale=False).release(lease)
-    return True
+    LeaseStore(
+        storage_root / "leases",
+        config.lease_ttl_seconds,
+        reclaim_stale=False,
+    ).release(lease)
+
+
+def _evidence_completeness(
+    evidence: ExperimentEvidence | None,
+    evidence_state: str,
+    requested: tuple[Arm, ...],
+    capability: Capability,
+    live_variant: Arm,
+) -> dict[str, Any]:
+    accounted = (
+        set(evidence.arms_executed)
+        | {Arm(item["arm"]) for item in evidence.arms_skipped}
+        if evidence is not None
+        else set()
+    )
+    pack_use_required = (
+        capability is Capability.COMPILED_CONTEXT
+        and live_variant is Arm.EXPERIMENTAL
+    )
+    return {
+        "armAccountingComplete": accounted == set(requested),
+        "evidenceState": evidence_state,
+        "packUseRecorded": bool(evidence and evidence.pack_use_observed),
+        "packUseRequired": pack_use_required,
+        "taskOutcomeRecorded": bool(evidence),
+        "validationRecorded": bool(evidence and evidence.validation_ids),
+    }
 
 
 def _provider_metrics(
@@ -505,12 +612,19 @@ def _provider_metrics(
 def _resolve_review_evidence(
     evidence: ExperimentEvidence | None,
     *,
+    evidence_state: str,
     requested: tuple[Arm, ...],
     live_variant: Arm,
     capability: Capability,
     claim_pack_verified: bool | None,
     final_pack_verification: str,
-) -> tuple[RunStatus, tuple[Arm, ...], tuple[dict[str, str], ...], tuple[str, ...]]:
+) -> tuple[
+    RunStatus,
+    tuple[Arm, ...],
+    tuple[dict[str, str], ...],
+    tuple[str, ...],
+    str,
+]:
     if evidence is None:
         skipped = []
         for arm in requested:
@@ -521,7 +635,8 @@ def _resolve_review_evidence(
             else:
                 reason = "missing_task_validation_evidence"
             skipped.append({"arm": arm.value, "reason": reason})
-        return RunStatus.INCOMPLETE, (), tuple(skipped), ("review_evidence_missing",)
+        warning = f"review_evidence_{evidence_state}"
+        return RunStatus.INCOMPLETE, (), tuple(skipped), (warning,), warning
 
     executed = evidence.arms_executed
     skipped = evidence.arms_skipped
@@ -535,6 +650,7 @@ def _resolve_review_evidence(
                 for arm in requested
             ),
             ("review_arm_accounting_invalid",),
+            "review_arm_accounting_invalid",
         )
     pack_use_required = (
         capability is Capability.COMPILED_CONTEXT
@@ -543,14 +659,25 @@ def _resolve_review_evidence(
     execution_proven = (
         live_variant in executed
         and (not pack_use_required or evidence.pack_use_observed)
-        and (capability is not Capability.COMPILED_CONTEXT or claim_pack_verified is True)
-        and final_pack_verification != "unavailable"
+        and (
+            capability is not Capability.COMPILED_CONTEXT
+            or (
+                claim_pack_verified is True
+                and final_pack_verification == "valid"
+            )
+        )
     )
     if not execution_proven:
-        return RunStatus.INCOMPLETE, executed, skipped, ("review_execution_incomplete",)
+        if final_pack_verification == "stale":
+            reason = "final_pack_stale"
+        elif final_pack_verification == "unavailable":
+            reason = "final_pack_unavailable"
+        else:
+            reason = "review_execution_incomplete"
+        return RunStatus.INCOMPLETE, executed, skipped, (reason,), reason
     if evidence.task_outcome == "failed":
-        return RunStatus.FAILED, executed, skipped, ("reviewed_task_failed",)
-    return RunStatus.COMPLETED, executed, skipped, ()
+        return RunStatus.FAILED, executed, skipped, ("reviewed_task_failed",), "task_failed"
+    return RunStatus.COMPLETED, executed, skipped, (), "evidence_complete"
 
 
 def _final_pack_verification(
@@ -772,6 +899,7 @@ def build_native_context_pack_preview(
     *,
     target_files: tuple[Path, ...] = (),
     query: str | None = None,
+    impact_hint: Path | None = None,
     max_hops: int = 2,
     max_tokens: int = 40_000,
     data_dir: Path | None = None,
@@ -809,6 +937,7 @@ def build_native_context_pack_preview(
         task_hash=task_hash,
         targets=target_files,
         query=query,
+        impact_hint=impact_hint,
         max_hops=max_hops,
         max_tokens=max_tokens,
     )
@@ -881,6 +1010,7 @@ def hook_select() -> int:
         if not isinstance(payload, dict):
             return 0
         config_path = default_config_path()
+        audit_pending_attempts(default_data_dir(), config_path)
         config = load_config(config_path)
         cwd_value = payload.get("cwd") or os.getcwd()
         selected_repo = git_root(Path(cwd_value)) if isinstance(cwd_value, str) else None
@@ -1036,17 +1166,19 @@ def command_doctor() -> int:
 def command_arm(args: argparse.Namespace) -> int:
     capability = Capability(args.capability)
     config = load_config()
+    runs = args.runs if args.runs is not None else (0 if args.mode == "continuous" else 1)
     updated = arm_capability(
         config,
         capability,
         Path(args.repo),
-        args.runs,
+        runs,
+        mode=args.mode,
         network_approved=args.network_approved,
         smoke_approved=args.smoke_approved,
         store=args.store,
     )
     path = write_config(updated)
-    print(f"armed {capability.value} for {args.runs} run(s): {path}")
+    print(f"enabled {capability.value} in {args.mode} mode ({runs} armed run(s)): {path}")
     return 0
 
 
@@ -1137,6 +1269,7 @@ def command_pack(args: argparse.Namespace) -> int:
             snapshot=snapshot,
             target_files=tuple(Path(value) for value in args.target),
             query=args.query,
+            impact_hint=Path(args.impact_map) if args.impact_map else None,
             max_hops=args.max_hops,
             max_tokens=args.max_tokens,
         )
@@ -1173,6 +1306,7 @@ def command_pack(args: argparse.Namespace) -> int:
                 "acceptedForUse": accepted,
                 "rejectionReasons": manifest["policy"]["rejectionReasons"],
                 "warnings": manifest["warnings"],
+                "impactHint": manifest.get("impactHint"),
                 "entries": [
                     {
                         "path": entry["path"],
@@ -1246,6 +1380,12 @@ def command_capture_health(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 2
 
 
+def command_audit_pending() -> int:
+    finalized = audit_pending_attempts(default_data_dir(), default_config_path())
+    print(json.dumps({"schemaVersion": 1, "terminalizedAttempts": finalized}, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -1253,6 +1393,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("doctor")
     subparsers.add_parser("hook-select")
     subparsers.add_parser("hook-finalize")
+    subparsers.add_parser("audit-pending")
     subparsers.add_parser("report")
 
     capture_health = subparsers.add_parser("capture-health")
@@ -1262,7 +1403,8 @@ def build_parser() -> argparse.ArgumentParser:
     arm = subparsers.add_parser("arm")
     arm.add_argument("--capability", choices=[item.value for item in Capability], required=True)
     arm.add_argument("--repo", required=True)
-    arm.add_argument("--runs", type=int, default=1)
+    arm.add_argument("--runs", type=int)
+    arm.add_argument("--mode", choices=["canary", "continuous"], default="canary")
     arm.add_argument("--network-approved", action="store_true")
     arm.add_argument("--smoke-approved", action="store_true")
     arm.add_argument("--store")
@@ -1300,6 +1442,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--repo", required=True)
     pack.add_argument("--target", action="append", default=[])
     pack.add_argument("--query")
+    pack.add_argument("--impact-map")
     pack.add_argument("--checkout")
     pack.add_argument("--max-hops", type=int, default=2)
     pack.add_argument("--max-tokens", type=int, default=40_000)
@@ -1323,6 +1466,7 @@ def main(argv: list[str] | None = None) -> int:
         "doctor": command_doctor,
         "hook-select": hook_select,
         "hook-finalize": hook_finalize,
+        "audit-pending": command_audit_pending,
         "arm": lambda: command_arm(args),
         "disarm": lambda: command_disarm(args),
         "record-evidence": lambda: command_record_evidence(args),

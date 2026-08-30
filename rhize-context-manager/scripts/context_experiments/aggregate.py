@@ -72,6 +72,24 @@ def aggregate_receipts(receipts: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
                 "evidenceBacked": sum(
                     isinstance(row.get("evidenceDigest"), str) for row in rows
                 ),
+                "evidenceStates": {
+                    state: sum(
+                        isinstance(row.get("evidenceCompleteness"), Mapping)
+                        and row["evidenceCompleteness"].get("evidenceState") == state
+                        for row in rows
+                    )
+                    for state in ("missing", "malformed", "valid")
+                },
+                "terminalReasons": {
+                    reason: sum(row.get("terminalReason") == reason for row in rows)
+                    for reason in sorted(
+                        {
+                            str(row["terminalReason"])
+                            for row in rows
+                            if isinstance(row.get("terminalReason"), str)
+                        }
+                    )
+                },
                 "comparableRuns": sum(_has_comparable_pair(row) for row in rows),
                 "armAccounting": arm_accounting,
                 "fallbacks": sum(bool(row.get("fallbackUsed")) for row in rows),

@@ -14,6 +14,11 @@ _OPERATIONS = re.compile(
     r"api[- ]?key|password|database\s+(?:migration|mutation)|dns|billing|payment)\b",
     re.IGNORECASE,
 )
+_DESTRUCTIVE = re.compile(
+    r"(?:\brm\s+-rf\b|\bgit\s+reset\s+--hard\b|\b(?:drop|destroy|purge)\b|"
+    r"\bdelete\s+(?:the\s+)?(?:database|table|records?|files?|repository)\b)",
+    re.IGNORECASE,
+)
 _DIAGNOSIS = re.compile(r"\b(diagnose|investigate|debug|root cause|why (?:is|does|did))\b", re.I)
 _REVIEW = re.compile(r"\b(review|audit|assess|inspect)\b", re.I)
 _IMPACT = re.compile(r"\b(impact|trace|architecture|understand|map|plan)\b", re.I)
@@ -43,7 +48,7 @@ class EligibilityDecision:
 def classify_task(prompt: str) -> str:
     normalized = " ".join(prompt.split())
     words = normalized.split()
-    if _OPERATIONS.search(normalized):
+    if _OPERATIONS.search(normalized) or _DESTRUCTIVE.search(normalized):
         return "operations"
     if len(words) < 4 or _LOOKUP.search(normalized):
         return "deterministic_lookup"
@@ -66,7 +71,7 @@ def evaluate_eligibility(value: EligibilityInput) -> EligibilityDecision:
 
     if not config.enabled:
         reasons.append("capability_disabled")
-    if config.armed_runs <= 0:
+    if config.mode == "canary" and config.armed_runs <= 0:
         reasons.append("no_armed_runs")
     if not value.is_git_repo:
         reasons.append("not_git_repository")

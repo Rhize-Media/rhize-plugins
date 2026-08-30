@@ -7,7 +7,7 @@
 | Managed mgrep | Reject current pilot | Stopped before signup/upload because the published free-tier data-use terms conflict; no account, credential, store, or remote data exists to purge. |
 | Local grepai retrieval | Reject current provider/configuration | Real six-case run: recall@5 0.166667 and five critical misses versus ripgrep recall@5 1.0 and zero misses; watcher isolation also adds material operational risk. |
 | Pinned upstream Context Compiler | Retain as an eval/reference provider | Real nine-case Python behavior corpus passed its guardrail gate, but the provider is Python-only and the real Rhize runner pack was too broad and unsafe to inject. |
-| Rhize native context pack v1 | Bundle as advanced opt-in | Real provider, local-only; five native cases passed with zero critical misses and 39.02% median reduction across four accepted cases. An actual repository target and one-shot query-discovery run were accepted. Correctness/follow-up-read telemetry still requires human review. |
+| Rhize native context pack v2 | Bundle disabled-by-default continuous mode | Real provider, local-only; five native language/risk cases plus three impact-assisted discovery cases cover recall, critical misses, latency, dynamic edges, and unsupported syntax. Correctness/follow-up-read evidence still requires explicit review. |
 | Combined retrieval + compiled context | Skip | Neither managed nor local semantic retrieval passed its independent prerequisite gate; a 2x2 run would not support an adoption claim. |
 
 ## Reconciled evidence
@@ -33,7 +33,8 @@
 ## Bundle boundary
 
 Ship only the local native pack, inspection command, stale-pack verifier, fixed corpus, and
-disabled-by-default one-shot selector integration in `rhize-context-manager`. Do not install or
+disabled-by-default canary/continuous selector integration in `rhize-context-manager`. Successful
+continuous attempts stay enabled only with valid evidence; all other terminal states freeze. Do not install or
 authenticate mgrep, start a grepai watcher, enable the hooks globally, or add a consumer to
 `rhize-devflow`. The pinned upstream adapter and rejected retrieval adapters remain evidence
 infrastructure, not default routing layers.

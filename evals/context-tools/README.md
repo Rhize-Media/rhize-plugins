@@ -91,7 +91,7 @@ latency, and whether the compiled pack actually influenced the task.
 
 ## Native compiled context
 
-Run the five-case real native-provider corpus:
+Run the five language/risk cases plus three impact-assisted discovery cases:
 
 ```bash
 python3 evals/context-tools/run_native_context_evals.py \
@@ -99,11 +99,14 @@ python3 evals/context-tools/run_native_context_evals.py \
 ```
 
 The fixed cases cover TypeScript, JavaScript, Python, explicit mixed-language targets, and a
-dynamic JavaScript import that must fall back. Both arms run in every row: Arm A is the complete
+dynamic JavaScript import that must fall back. Three additional deterministic cases compare the
+same baseline query with a repository-local impact-map hint, recording relevant-file recall,
+critical misses, and measured build latency for both paths. The supported case must improve recall;
+dynamic-import and unsupported-syntax cases must still reject use. Both arms run in every row: Arm A is the complete
 supported-source baseline and Arm B is `rhize-native-context-pack-v2`. Every case compiles twice
 and requires the same source-bound pack ID and prompt; no provider double produces benchmark data.
 
-On 2026-08-27, all five cases passed `native-context-phase-4-v1`: four static packs were accepted,
+The original five cases passed `native-context-phase-4-v1`: four static packs were accepted,
 the dynamic case was rejected with `dynamic_dependency_edge`, no critical entry was missing, and
 the accepted cases had a 39.02% median estimated token reduction. Combined with the nine upstream
 cases, the compiled-context decision corpus has 14 paired cases.
@@ -114,6 +117,10 @@ estimated Arm B tokens versus 680,703 for Arm A. A broad runner pack reduced tok
 an accepted six-file pack before the next implementation slice. These results support only an
 advanced opt-in pilot: task correctness and follow-up reads remain human-reviewed receipt fields,
 and token reduction alone is not a default-enable signal.
+
+`native-context-continuous-v2` keeps those five cases and adds the three baseline-versus-impact
+cases. Its gate requires every assisted case to pass with zero assisted critical misses; measured
+latency is reported but never converted into an outcome or correctness claim.
 
 ## mgrep
 

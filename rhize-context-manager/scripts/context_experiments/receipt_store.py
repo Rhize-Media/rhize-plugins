@@ -85,17 +85,25 @@ class EvidenceStore:
         return destination
 
     def read(self, experiment_id: str) -> ExperimentEvidence | None:
+        evidence, _state = self.read_with_state(experiment_id)
+        return evidence
+
+    def read_with_state(
+        self, experiment_id: str
+    ) -> tuple[ExperimentEvidence | None, str]:
         if not _SAFE_FILE_ID.fullmatch(experiment_id):
-            return None
+            return None, "malformed"
         path = self.directory / f"{experiment_id}.json"
         try:
             value = json.loads(path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, OSError, json.JSONDecodeError):
-            return None
+        except FileNotFoundError:
+            return None, "missing"
+        except (OSError, json.JSONDecodeError):
+            return None, "malformed"
         try:
-            return ExperimentEvidence.from_dict(value)
+            return ExperimentEvidence.from_dict(value), "valid"
         except (KeyError, TypeError, ValueError):
-            return None
+            return None, "malformed"
 
     def digest(self, experiment_id: str) -> str | None:
         evidence = self.read(experiment_id)
@@ -152,6 +160,18 @@ class PendingStore:
             if pending is not None and pending.get("experimentId") == experiment_id:
                 return pending
         return None
+
+    def active(self) -> tuple[tuple[str, dict, float], ...]:
+        """Return valid pending rows with source-free filename and mtime metadata."""
+
+        if not self.directory.exists():
+            return ()
+        active: list[tuple[str, dict, float]] = []
+        for path in sorted(self.directory.glob("*.json")):
+            pending = self.read(path.stem)
+            if pending is not None:
+                active.append((path.stem, pending, path.stat().st_mtime))
+        return tuple(active)
 
 
 def _assert_pending_safe(value: object, key: str = "") -> None:

@@ -67,11 +67,15 @@ the right one, and health-checks the whole thing.
 
 - **"Build a compact source pack for this task" / "inspect compiled context"**
   → `/context-pack` — a local-only preview for Python, JavaScript, TypeScript, and mixed targets.
-  Give it one or more target files, or a task query; it uses CodeGraph first when the repository
-  already has `.codegraph/`, records why each FULL/INTERFACE entry was selected, and fails closed
+  Give it one or more target files, or a task query; it uses CodeGraph first only when an existing
+  `.codegraph/` is healthy/current, otherwise uses deterministic `rg`, records why each
+  FULL/INTERFACE entry was selected, and fails closed
   on dynamic or stale dependencies. `verify-pack` must pass before reuse after any edit. The
-  automatic selector is separately opt-in and one-shot; no network provider is enabled by this
-  command.
+  optional `--impact-map .claude/plans/<name>.md` bridge adds semantic terms and source-file seeds
+  while recording only hashes/counts. Selector/finalizer hooks are present in Claude and Codex but
+  strict config disables all providers by default. Canary mode stays one-shot; explicitly enabled
+  continuous local mode stays live only after evidence-backed success and freezes on every
+  incomplete/failed/stale/malformed terminal state. No network provider is enabled by this command.
   *Example: "Run /context-pack for the account sync target, inspect the reasons, then verify it
   before using it in review."*
 
@@ -124,6 +128,9 @@ the right one, and health-checks the whole thing.
   (`session-init`, `duplicate-check`, `pre-commit-guard`) are opt-in — listed in
   `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
+- `context-experiment-selector.js` and `context-experiment-finalizer.js` are auto-wired for Claude
+  and Codex but no-op while capabilities are disabled. Remove older manually wired Claude entries
+  when updating; duplicate calls are state-safe but waste local provider work.
 - `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`)
   replaced the keyword-grep `skill-suggester` hook 2026-08-09 — it ranks the prompt
   against the compiled skill-map's topic/stack tags instead of a fixed keyword list, so

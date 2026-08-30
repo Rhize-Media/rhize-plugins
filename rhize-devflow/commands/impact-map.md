@@ -156,6 +156,26 @@ hashes any component registry, and records explicit `rg` fallback evidence where
 absent or unhealthy. It never initializes CodeGraph. Do not bypass the gate merely because a
 repository lacks one of the optional artifacts.
 
+### Optional local context-pack bridge
+
+When `rhize-context-manager` is installed, the persisted semantic map may guide its native local
+discovery. Use the exact installed `runner.py` path printed by the context selector (or resolve it
+from that plugin) and pass the same plan explicitly:
+
+```bash
+python3 "<installed-rhize-context-manager>/scripts/context_experiments/runner.py" pack \
+  --provider native \
+  --repo "<workspace-root>" \
+  --query "<the same entry points, symbols, behavior, callers, and tests>" \
+  --impact-map "<workspace-root>/.claude/plans/<descriptive-name>.md"
+```
+
+The bridge is local-only. It stores only the map content hash, normalized term-set hash, and seed
+count in the pack manifest. It never stores the plan path/text, initializes CodeGraph, or upgrades
+a planned edge into structural evidence. A healthy existing CodeGraph remains first; absent,
+stale, corrupt, dynamic, generated, or unsupported edges take the documented `rg`/targeted-read
+fallback, and unsafe packs remain rejected.
+
 1. Start with a failing acceptance or contract test.
 2. Implement the smallest source-system change satisfying the semantic delta.
 3. Preserve every must-not-change boundary.
