@@ -320,7 +320,8 @@ class ExperimentEvidence:
         if not isinstance(self.pack_use_observed, bool):
             raise TypeError("packUseObserved must be a boolean")
         if not self.validation_ids or any(
-            not _SAFE_ID.fullmatch(value) for value in self.validation_ids
+            not _SAFE_ID.fullmatch(value) or value == "validation-id-REPLACE_ME"
+            for value in self.validation_ids
         ):
             raise ValueError("validationIds must contain safe source-free identifiers")
         if len(set(self.validation_ids)) != len(self.validation_ids):

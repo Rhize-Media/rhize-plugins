@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import time
@@ -564,6 +565,33 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     output = json.loads(selected.stdout)
     context = output["hookSpecificOutput"]["additionalContext"]
     assert "Context experiment selected: compiledContext" in context
+    pending = json.loads(
+        next((tmp_path / "data" / "pending").glob("*.json")).read_text()
+    )
+    runner_path = (PLUGIN_ROOT / "scripts" / "context_experiments" / "runner.py").resolve()
+    evidence_command = shlex.join(
+        [
+            "python3",
+            str(runner_path),
+            "record-evidence",
+            "--experiment-id",
+            pending["experimentId"],
+            "--task-outcome",
+            "completed",
+            "--pack-used",
+            "--validation-id",
+            "validation-id-REPLACE_ME",
+            "--executed-arm",
+            "B",
+            "--skip-arm",
+            "A:no_comparable_shadow_evidence",
+        ]
+    )
+    assert f"Evidence runner: {runner_path}." in context
+    assert f"`{evidence_command}`" in context
+    assert "read and use the accepted prompt pack before implementation" in context
+    assert "validate the task before recording success" in context
+    assert "Replace validation-id-REPLACE_ME" in context
     assert load_config(tmp_path / "config.json").compiled_context.enabled is False
 
     finalized = run_hook(FINALIZER, payload, tmp_path)

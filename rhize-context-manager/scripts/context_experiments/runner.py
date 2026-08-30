@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -889,24 +890,60 @@ def hook_select() -> int:
         if selection is None:
             return 0
         assignment = selection["assignment"]
+        experiment_id = selection["pending"]["experimentId"]
+        runner_path = Path(__file__).resolve(strict=True)
+        evidence_arguments = [
+            "python3",
+            str(runner_path),
+            "record-evidence",
+            "--experiment-id",
+            experiment_id,
+            "--task-outcome",
+            "completed",
+        ]
+        if (
+            selection["capability"] is Capability.COMPILED_CONTEXT
+            and assignment.live_variant is Arm.EXPERIMENTAL
+        ):
+            evidence_arguments.append("--pack-used")
+        evidence_arguments.extend(
+            [
+                "--validation-id",
+                "validation-id-REPLACE_ME",
+                "--executed-arm",
+                assignment.live_variant.value,
+            ]
+        )
+        if assignment.shadow_variant is not None:
+            evidence_arguments.extend(
+                [
+                    "--skip-arm",
+                    f"{assignment.shadow_variant.value}:no_comparable_shadow_evidence",
+                ]
+            )
+        evidence_command = shlex.join(evidence_arguments)
         message = (
             f"Context experiment selected: {selection['capability'].value}; "
-            f"attempt {selection['pending']['experimentId']}; "
+            f"attempt {experiment_id}; "
             f"live Arm {assignment.live_variant.value}; "
             "shadow Arm "
             f"{assignment.shadow_variant.value if assignment.shadow_variant else 'none'}. "
-            "Record immutable review evidence before finalizing; without it the receipt "
-            "will be incomplete and the capability will remain frozen."
+            f"Evidence runner: {runner_path}. "
         )
         execution = selection["pending"].get("providerExecution")
         if isinstance(execution, dict):
             message += (
-                f" Accepted native pack {execution['packId']} was built automatically at "
-                f"{selection['providerPromptPath']}. Inspect it only when Arm B is live; "
-                "run verify-pack "
-                "before reuse after any edit. Task correctness and follow-up reads still require "
-                "human review."
+                f"Accepted native pack {execution['packId']} was built automatically. "
+                "For compiled-context Arm B, read and use the accepted prompt pack before "
+                f"implementation: `{selection['providerPromptPath']}`. Run task-specific checks "
+                "and validate the task before recording success. "
             )
+        message += (
+            "Replace validation-id-REPLACE_ME with a source-free validation identifier, "
+            "then run this exact command before Stop: `"
+            f"{evidence_command}`. Without valid evidence, the receipt will be incomplete "
+            "and the capability will remain frozen."
+        )
         print(
             json.dumps(
                 {

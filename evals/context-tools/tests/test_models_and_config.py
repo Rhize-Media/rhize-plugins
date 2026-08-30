@@ -223,3 +223,6 @@ def test_source_free_review_evidence_is_strict_and_digest_stable() -> None:
     unsafe = {**document, "validationIds": ["https://provider.example/result"]}
     with pytest.raises(ValueError, match="validation"):
         ExperimentEvidence.from_dict(unsafe)
+    placeholder = {**document, "validationIds": ["validation-id-REPLACE_ME"]}
+    with pytest.raises(ValueError, match="validation"):
+        ExperimentEvidence.from_dict(placeholder)

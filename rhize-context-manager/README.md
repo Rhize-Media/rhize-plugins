@@ -268,6 +268,13 @@ then freezes the capability before returning context. The non-reclaiming lease p
 session from claiming the same repository/capability even after the ordinary lease TTL. Any Stop
 outcome leaves the capability frozen for review; it is never automatically re-armed.
 
+On a compiled-context B claim, selector `additionalContext` prints the exact installed
+`runner.py` path, the real experiment id, and a shell-quoted `record-evidence` command. It also
+requires the agent to read and use the accepted prompt pack before implementation and validate
+the task before recording success, so neither command location nor working directory is guessed.
+The `validation-id-REPLACE_ME` token must be replaced with a source-free validation identifier;
+the evidence parser rejects the unchanged placeholder.
+
 A reviewer may record the minimum immutable task evidence while the attempt is pending:
 
 ```bash
