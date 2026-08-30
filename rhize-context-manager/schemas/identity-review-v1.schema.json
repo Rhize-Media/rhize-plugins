@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/identity-review-v1.schema.json",
+  "title": "Rhize logical identity review v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reviewVersion", "reviewId", "pairKey", "candidateRevision", "reviewRevision",
+    "tenantHash", "namespaceHash", "entityType", "candidateIds", "sourceRevisionHashes",
+    "aclSummaryHash", "trustSummary", "scoreComponents", "versions", "createdAt",
+    "updatedAt", "expiresAt", "state", "risk", "poisonFlags", "idempotencyKeyHash",
+    "origin", "lease", "decisionId", "rationaleCode"
+  ],
+  "properties": {
+    "reviewVersion": {"const": 1},
+    "reviewId": {"$ref": "#/$defs/hash"},
+    "pairKey": {"$ref": "#/$defs/hash"},
+    "candidateRevision": {"$ref": "#/$defs/hash"},
+    "reviewRevision": {"$ref": "#/$defs/hash"},
+    "tenantHash": {"$ref": "#/$defs/hash"},
+    "namespaceHash": {"$ref": "#/$defs/hash"},
+    "entityType": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,127}$"},
+    "candidateIds": {
+      "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "sourceRevisionHashes": {
+      "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "aclSummaryHash": {"$ref": "#/$defs/hash"},
+    "trustSummary": {"enum": ["high", "medium", "low", "unverified"]},
+    "scoreComponents": {
+      "type": "object", "additionalProperties": false,
+      "required": ["exactAlias", "nameSimilarity", "contextSimilarity", "semanticSimilarity", "weightedScore"],
+      "properties": {
+        "exactAlias": {"type": "number", "minimum": 0, "maximum": 1},
+        "nameSimilarity": {"type": "number", "minimum": 0, "maximum": 1},
+        "contextSimilarity": {"type": "number", "minimum": 0, "maximum": 1},
+        "semanticSimilarity": {"type": "number", "minimum": 0, "maximum": 1},
+        "weightedScore": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "versions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["normalizationVersion", "scoringModelVersion", "schemaVersion", "evidenceVersion"],
+      "properties": {
+        "normalizationVersion": {"type": "string", "minLength": 1, "maxLength": 128},
+        "scoringModelVersion": {"type": "string", "minLength": 1, "maxLength": 128},
+        "schemaVersion": {"type": "string", "minLength": 1, "maxLength": 128},
+        "evidenceVersion": {"type": "string", "minLength": 1, "maxLength": 128}
+      }
+    },
+    "createdAt": {"type": "string", "format": "date-time", "maxLength": 64},
+    "updatedAt": {"type": "string", "format": "date-time", "maxLength": 64},
+    "expiresAt": {"type": "string", "format": "date-time", "maxLength": 64},
+    "state": {"enum": ["pending", "leased", "accepted", "rejected", "deferred", "superseded", "reversed"]},
+    "risk": {"enum": ["standard", "protected"]},
+    "poisonFlags": {
+      "type": "array", "maxItems": 16, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"}
+    },
+    "idempotencyKeyHash": {"$ref": "#/$defs/hash"},
+    "origin": {"enum": ["manual", "ingest", "consolidation"]},
+    "lease": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["tokenHash", "actorHash", "expiresAt"],
+          "properties": {
+            "tokenHash": {"$ref": "#/$defs/hash"},
+            "actorHash": {"$ref": "#/$defs/hash"},
+            "expiresAt": {"type": "string", "format": "date-time", "maxLength": 64}
+          }
+        }
+      ]
+    },
+    "decisionId": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+    "rationaleCode": {
+      "type": ["string", "null"],
+      "enum": [null, "same_authoritative_identity", "same_source_record", "verified_alias", "insufficient_evidence", "distinct_entities", "type_collision", "scope_collision", "stale_evidence", "dependency_blocked"]
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

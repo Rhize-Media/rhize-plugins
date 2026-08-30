@@ -1,0 +1,11 @@
+{
+  "fixtureVersion": 1,
+  "cases": [
+    {"case": "two-reviewer-cas", "expectedCommittedTransitions": 1},
+    {"case": "expired-lease", "expectedCommittedTransitions": 0},
+    {"case": "decision-after-validation-failure", "expectedCommittedTransitions": 0},
+    {"case": "decision-after-staging-failure", "expectedCommittedTransitions": 0},
+    {"case": "consolidation-after-enqueue-failure", "expectedWatermarkAdvance": false},
+    {"case": "consolidation-retry", "expectedDuplicateReviews": 0}
+  ]
+}
