@@ -1,6 +1,6 @@
 {
   "name": "rhize-context-manager",
-  "version": "0.20.0",
+  "version": "0.21.0",
   "description": "Context engineering and optimization plugin. Orchestrates the Rhize context stack, ships a disabled-by-default real-provider retrieval/compiled-context dogfood harness, and adds a local mixed-language native context pack with explicit provenance and stale-pack verification. The pinned upstream Python compiler remains an eval provider.",
   "author": {
     "name": "Rhize Media"

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.50.0",
+  "version": "2.51.0",
   "description": "Curated Claude plugins by Rhize Media — SEO, AEO, GEO, knowledge management, development workflow, operations, and web development tools",
   "owner": {
     "name": "Rhize Media"
@@ -90,7 +90,7 @@
       "name": "rhize-context-manager",
       "source": "./rhize-context-manager",
       "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack, ships a disabled-by-default real-provider retrieval/compiled-context dogfood harness, and adds a local mixed-language native context pack with explicit provenance and stale-pack verification. The pinned upstream Python compiler remains an eval provider.",
-      "version": "0.20.0",
+      "version": "0.21.0",
       "author": {
         "name": "Rhize Media"
       },
