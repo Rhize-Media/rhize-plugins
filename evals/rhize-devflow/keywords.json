@@ -19,6 +19,11 @@
     "react best practices",
     "redundant state"
   ],
+  "skill:completed-branch-promotion": [
+    "push to main",
+    "push to dev and main",
+    "ship or promote the completed branch"
+  ],
   "skill:data-mutation-consistency": [
     "stale data",
     "not updating",

@@ -681,6 +681,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "skill:rhize-devflow/completed-branch-promotion",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "skill:rhize-devflow/data-mutation-consistency",
       "type": "contains"
     },
@@ -1533,6 +1539,36 @@
       "from": "skill:rhize-devflow/chrome-devtools-mcp",
       "source": "frontmatter",
       "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "source": "relations-catalog",
+      "to": "external:superpowers-finishing-development-branch",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "source": "frontmatter",
+      "to": "tag:stack/vercel",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -2710,6 +2746,12 @@
       "name": "superpowers:dispatching-parallel-agents (skill)"
     },
     {
+      "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence.",
+      "id": "external:superpowers-finishing-development-branch",
+      "kind": "external",
+      "name": "superpowers:finishing-a-development-branch (skill)"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py\"",
       "event": "PostToolUse",
       "id": "hook:obsidian-second-brain/vault-read-hint",
@@ -3108,7 +3150,7 @@
       "path": "rhize-cowork"
     },
     {
-      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
+      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, authorized completed-branch promotion through repository-governed PR/deployment flows, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
@@ -3357,6 +3399,14 @@
       "kind": "skill",
       "name": "chrome-devtools-mcp",
       "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
+    },
+    {
+      "contentHash": "a8f68b4b0b03dda685e9a8b0432f0e1e8d0b08a02cfd7c55ae273063a889b63a",
+      "description": "Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. Use when implementation is complete and the user says \"push to main\" or \"push to dev and main\", or otherwise explicitly asks to ship or promote the completed branch. Treat those phrases as authorization for the appropriate PR-based promotion sequence, not a raw push to a protected branch; preserve narrower user overrides and repository-specific release policy.",
+      "id": "skill:rhize-devflow/completed-branch-promotion",
+      "kind": "skill",
+      "name": "completed-branch-promotion",
+      "path": "rhize-devflow/skills/completed-branch-promotion/SKILL.md"
     },
     {
       "contentHash": "a35de9fe6e547ceaa959ae21ec40c6ca421c12aea230f12e30e6535bcab6474d",

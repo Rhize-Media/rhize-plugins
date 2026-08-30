@@ -24,7 +24,7 @@ Every command and skill here exists to prevent one of those failure modes.
 
 The plugin has two kinds of components:
 
-**Skills** are reference knowledge Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All six overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
+**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All seven overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
 
 **Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
@@ -49,7 +49,7 @@ missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
-The control-plane sequence is the spine; six overlay skills feed it or run alongside it:
+The control-plane sequence is the spine; seven overlay skills feed it or run alongside it:
 
 | Stage/Cluster | Command or skills | Question it answers |
 |---------|--------|----------------------|
@@ -57,6 +57,7 @@ The control-plane sequence is the spine; six overlay skills feed it or run along
 | **Post-implementation** | `/rhize-devflow:simplify` (backed by `simplify`) | "Can this exact change have fewer sources of truth or less duplication without changing behavior?" |
 | **2. Validate** | `/rhize-devflow:check` | "Does this pass the tests and gates that actually apply to what changed?" |
 | **3. Gate** | `/rhize-devflow:review` | "Is this safe to merge, and has someone other than me actually checked?" |
+| **Release** | `completed-branch-promotion` | "The work is done and authorized; what exact PR/deployment sequence ships it safely?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
 | **Data-mutation consistency** | `data-mutation-consistency`, `/rhize-devflow:mutation-check` | "Will this mutation leave the cache and the UI in sync, or will someone have to hard-refresh?" |
 | **Browser acceptance** | `chrome-devtools-mcp`, `/rhize-devflow:browser-qa` | "What does this actually look like/do in a real browser — network, console, accessibility, layout, performance?" |
@@ -103,6 +104,36 @@ evidence-backed no-op as success and never rewrites an applied migration for cle
 
 **Key insight:** Simplification is a behavior-preserving reduction, not a license for redesign.
 Fewer lines are useful only when the resulting ownership and safeguards are at least as clear.
+
+### completed-branch-promotion
+
+**When it activates:** Implementation is complete and you say "push to main", "push to dev and
+main", or otherwise explicitly ask to ship/promote the completed feature or task branch.
+
+**What it does:** Treats those phrases as the already-chosen release outcome, so it does not ask
+you to restate the branch/PR menu. It verifies exact local and remote refs, protects unrelated
+dirty work, runs the scoped simplify/check/review gates, publishes the task branch, uses a PR into
+`dev` when the repository actually uses `dev`, verifies that deployment, then promotes through a
+PR to `main` and correlates the exact production deployment and smoke checks. Repositories without
+a `dev` flow use task branch -> PR -> `main`. A raw push or direct commit to a protected branch is
+never the default meaning of "push to main".
+
+Repository-specific manual/auto-push policy, migration order, merge method, deployment gates, and
+an explicit different sequence still win. In a manual-push repository, either trigger phrase is
+the explicit promotion authorization; without it, the skill does not invent permission. If Vercel
+requires an authorized deployment commit author, the skill can use a content-neutral locally
+authored release commit after verifying the local identity and identical tree, without rewriting
+existing authors.
+
+**Examples:**
+- "The feature is finished. Push to main."
+- "Everything is validated; push to dev and main."
+- "Push to main, but skip dev for this repository-approved hotfix."
+
+**Key insight:** This is the mutation-capable step after the read-only review gate. It builds on
+Superpowers' generic branch-finishing mechanics, but Rhize owns the repository-policy-aware
+promotion sequence and exact remote/deployment proof. If that maintained Superpowers skill is not
+installed, promotion stops before mutation instead of duplicating its mechanics.
 
 ### error-lifecycle-management
 
@@ -240,8 +271,8 @@ deployment/data/security/authorization/billing/migration/cache/external-write ca
 actual diff evidence, routes only the specialist reviews that risk map calls for, and requires an
 independent skeptical reviewer for any non-trivial change (a disclosed cold review if none is
 available). Returns exactly one of `PASS`, `FAIL_WITH_FIXABLE_GAPS`, `FAIL_REQUIRES_HUMAN`. Never
-commits, pushes, merges, or deploys — the actual ship step stays a separate, explicit action
-governed by the repository's own push policy.
+commits, pushes, merges, or deploys. The actual ship step stays separate and is executed by
+`completed-branch-promotion` only when the user or repository auto-push policy authorizes it.
 
 **Examples:**
 - "Review this before I merge to main — target branch is `dev`, per the repo's push policy."
@@ -306,7 +337,8 @@ removed no earlier than Dev Flow 3.0.0.
 implementation and reconciles it after; `/rhize-devflow:check` validates the in-progress work
 against deterministic evidence; `/rhize-devflow:review` gates the actual merge/push/release
 decision. Each stage expects the one before it to have already run, but none of the three commits,
-pushes, or deploys — that stays a separate, explicit, repository-governed action.
+pushes, or deploys. `completed-branch-promotion` owns that separate, explicitly authorized,
+repository-governed action.
 
 **Session lifecycle bookends live in the paired plugin:** `rhize-context-manager`'s `/start`,
 `/done`, and `/context-hygiene` own session state. `/done` there delegates code-change review to

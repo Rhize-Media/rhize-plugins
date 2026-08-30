@@ -118,6 +118,12 @@
       "kind": "external",
       "name": "superpowers:dispatching-parallel-agents (skill)",
       "description": "Maintained Superpowers focused dispatch resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization."
+    },
+    {
+      "id": "external:superpowers-finishing-development-branch",
+      "kind": "external",
+      "name": "superpowers:finishing-a-development-branch (skill)",
+      "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence."
     }
   ],
   "edges": [
@@ -268,6 +274,12 @@
     {
       "from": "skill:rhize-ops/parallel-agent-optimization",
       "to": "external:superpowers-dispatching-parallel-agents",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-devflow/completed-branch-promotion",
+      "to": "external:superpowers-finishing-development-branch",
       "type": "depends-on",
       "source": "relations-catalog"
     }

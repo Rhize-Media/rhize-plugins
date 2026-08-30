@@ -156,6 +156,10 @@
       },
       {
         "deeper": [],
+        "skillId": "skill:rhize-devflow/completed-branch-promotion"
+      },
+      {
+        "deeper": [],
         "skillId": "skill:rhize-devflow/simplify"
       },
       {
@@ -164,6 +168,10 @@
       }
     ],
     "vercel": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/completed-branch-promotion"
+      },
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/data-mutation-consistency"
@@ -253,6 +261,9 @@
       ],
       "skill:rhize-context-manager/context-optimization": [
         "skill:rhize-context-manager/context-fundamentals"
+      ],
+      "skill:rhize-devflow/completed-branch-promotion": [
+        "skill:rhize-devflow/dev-flow-foundations"
       ],
       "skill:rhize-devflow/data-mutation-consistency": [
         "skill:rhize-devflow/dev-flow-foundations"
@@ -824,6 +835,28 @@
         {
           "kind": "tag",
           "label": "testing",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/completed-branch-promotion": [
+        {
+          "kind": "name",
+          "label": "completed-branch-promotion",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "vercel",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
           "weight": 2
         }
       ],

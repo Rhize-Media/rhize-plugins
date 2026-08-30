@@ -1,7 +1,7 @@
 {
   "name": "rhize-devflow",
-  "version": "2.15.0",
-  "description": "Rhize Media's engineering control-plane plugin: impact mapping, behavior-preserving simplification, validation, independent production review, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, Sanity house style, and compounding safeguards — impact-map → implement → simplify → check → review → release.",
+  "version": "2.16.0",
+  "description": "Rhize Media's engineering control-plane plugin: impact mapping, behavior-preserving simplification, validation, independent production review, authorized completed-branch promotion, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, Sanity house style, and compounding safeguards — impact-map → implement → simplify → check → review → release.",
   "author": {
     "name": "Rhize Media"
   },
@@ -18,6 +18,8 @@
     "supabase",
     "chrome-devtools",
     "control-plane",
+    "release-promotion",
+    "pull-request",
     "simplification",
     "react",
     "rhize"

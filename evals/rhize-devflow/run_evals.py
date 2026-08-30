@@ -14,9 +14,9 @@ or any other live/paid model call, unlike evals/run_evals.py's house harness
    measures and its limits.
 
 2. Quality assertions (quality_cases.json): deterministic text/regex checks
-   against the check/review command contracts and canonical simplify skill for exact-
-   verdict vocabulary, evidence-table presence, safety rules, scope preservation,
-   behavior preservation, React conventions, and authority boundaries. Reuses
+   against the check/review command contracts and canonical simplify/promotion skills for
+   exact-verdict vocabulary, evidence-table presence, safety rules, scope preservation,
+   behavior preservation, React conventions, authority boundaries, and release stop conditions. Reuses
    evals/assertions.py's evaluate_all(), the same engine
    the house harness uses to grade live output -- here it grades static
    contract text instead.
@@ -202,7 +202,7 @@ def print_report(drift: list[str], trigger: dict, quality: dict) -> None:
         f"(target: >= {TRIGGER_PRECISION_THRESHOLD:.0%}) over {trigger['total_cases']} cases"
     )
 
-    print("\n-- Quality assertions (check / review / simplify contract text) --")
+    print("\n-- Quality assertions (check / review / simplify / promotion contract text) --")
     for case in quality["cases"]:
         status = "PASS" if case["fully_passed"] else "FAIL"
         print(f"  [{status}] {case['id']} ({case['passed']}/{case['total']} assertions)")

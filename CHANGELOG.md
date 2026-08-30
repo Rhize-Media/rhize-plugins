@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ version bump — **rhize-devflow** 2.15.0 → 2.16.0 (minor); marketplace 2.48.5 → 2.49.0.
+- _2026-08-30_ **rhize-devflow — completed branch promotion.** Added one canonical
+  `completed-branch-promotion` skill for the explicit phrases "push to main" and "push to dev and
+  main". It specializes Superpowers' generic branch-finishing mechanics with repository-policy
+  resolution, scoped simplify/check/review gates, task -> dev -> main PR choreography (or direct
+  task -> main PR for dev-less repositories), protected-branch and divergence safeguards, exact
+  remote/deployment proof, and Vercel author-safe content-neutral release commits. Offline routing
+  and contract fixtures cover explicit overrides, manual-push authorization, dirty worktrees,
+  failed gates, and deployment constraints.
 - _2026-08-30_ version bump — **rhize-ops** 0.13.4 → 0.13.5 (patch); marketplace 2.48.4 → 2.48.5.
 - _2026-08-30_ **benchmark receipt-enforcement cutoff.** The capture watchdog now reports
   same-day scheduler/row ambiguity from before timestamped receipts existed as visible,
