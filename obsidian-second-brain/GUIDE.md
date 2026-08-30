@@ -134,8 +134,9 @@ Scheduled compilation, automatic apply, context injection, Graphify, and Neo4j p
 available in this release. A legal/privacy purge is a separate explicit operation requiring the exact
 `source_id:revision_hash`; it removes compiler-owned payloads and records only a non-sensitive
 tombstone. Purged status is committed only after private snapshots and derived payloads are gone.
-The receipt's `rawSourceRetained: true` means the canonical human source note remains outside the
-compiler's deletion authority.
+The receipt's `rawSourceRetained` boolean records whether the canonical human source note still
+existed at the terminal purge boundary. The compiler never deletes that source, but it does not
+claim retention when another actor removed it first.
 
 ### /vault-search
 

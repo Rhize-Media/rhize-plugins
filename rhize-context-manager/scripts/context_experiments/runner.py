@@ -982,7 +982,6 @@ def build_native_context_pack_preview(
         ":".join(
             (
                 "native-context-pack",
-                digest(f"{repo.name}:{snapshot}"),
                 snapshot,
                 target_material,
                 query or "",

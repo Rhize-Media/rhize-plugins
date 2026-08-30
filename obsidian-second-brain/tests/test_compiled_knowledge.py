@@ -320,6 +320,19 @@ class CompiledKnowledgeTests(unittest.TestCase):
             self.assertFalse((vault.settings.state_root / "sources" / "source-1").exists())
             self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "purged")
 
+    def test_purge_reports_missing_canonical_source_truthfully(self) -> None:
+        temporary, vault = self.fixture()
+        with temporary:
+            vault.source.unlink()
+            confirmation = f"source-1:{vault.registration['current_revision_hash']}"
+
+            result = compiler.purge_source(vault.settings, "source-1", confirmation, NOW)
+            tombstone = json.loads(Path(str(result["tombstone"])).read_text())
+
+            self.assertFalse(result["rawSourceRetained"])
+            self.assertFalse(tombstone["rawSourceRetained"])
+            self.assertEqual(compiler.load_registration(vault.settings, "source-1")["status"], "purged")
+
     def test_purge_recovers_forward_after_every_durable_step(self) -> None:
         fault_points = (
             "purge-prepared",

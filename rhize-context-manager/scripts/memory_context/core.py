@@ -38,6 +38,11 @@ RETENTION_CLASSES = {"transient", "session", "project", "durable"}
 DEFAULT_LANE_BUDGETS = {
     memory_type: {"maxItems": 5, "maxTokens": 1_500} for memory_type in MEMORY_TYPES
 }
+SECRET_SHAPED_ID_PATTERNS = (
+    re.compile(r"(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
+    re.compile(r"sntrys_[A-Za-z0-9]{20,}"),
+    re.compile(r"(?:AKIA|ASIA)[A-Z0-9]{16}"),
+)
 
 
 def sha256(value: str | bytes) -> str:
@@ -69,6 +74,8 @@ def _strict_keys(document: dict[str, Any], allowed: set[str], label: str) -> Non
 def _safe_id(value: Any, label: str) -> str:
     if not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value):
         raise ValueError(f"{label} must be a safe identifier")
+    if any(pattern.search(value) for pattern in SECRET_SHAPED_ID_PATTERNS):
+        raise ValueError(f"{label} must not contain secret-shaped material")
     return value
 
 
@@ -871,7 +878,7 @@ def _write_private(path: Path, content: str) -> None:
     temporary = Path(temporary_name)
     try:
         os.fchmod(descriptor, 0o600)
-        os.write(descriptor, content.encode())
+        _write_all(descriptor, content.encode())
         os.fsync(descriptor)
         os.close(descriptor)
         descriptor = -1
@@ -882,12 +889,21 @@ def _write_private(path: Path, content: str) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _write_all(descriptor: int, content: bytes) -> None:
+    remaining = memoryview(content)
+    while remaining:
+        written = os.write(descriptor, remaining)
+        if written <= 0:
+            raise OSError("private artifact write made no progress")
+        remaining = remaining[written:]
+
+
 def _write_private_replace(path: Path, content: str) -> None:
     descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}-", dir=path.parent)
     temporary = Path(temporary_name)
     try:
         os.fchmod(descriptor, 0o600)
-        os.write(descriptor, content.encode())
+        _write_all(descriptor, content.encode())
         os.fsync(descriptor)
         os.close(descriptor)
         descriptor = -1

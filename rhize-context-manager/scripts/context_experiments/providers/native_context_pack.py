@@ -48,6 +48,12 @@ _QUERY_STOP_WORDS = {
     "implementation", "impact", "intended", "must", "planned", "repository",
     "tests", "that", "the", "this", "with", "from", "into", "and", "for",
 }
+_SECRET_SHAPED_IDENTIFIERS = (
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{20,}"),
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    re.compile(r"sntrys_[A-Za-z0-9_-]{20,}"),
+    re.compile(r"(?:AKIA|ASIA)[A-Z0-9]{16}"),
+)
 
 
 @dataclass(frozen=True)
@@ -127,6 +133,7 @@ class NativeContextPackProvider:
         max_hops: int = 2,
         max_tokens: int = 40_000,
     ) -> CompiledPack:
+        _require_safe_snapshot(snapshot)
         repo = repo_root.expanduser().resolve(strict=True)
         if not repo.is_dir():
             raise ValueError("repository root must be a directory")
@@ -326,7 +333,7 @@ class NativeContextPackProvider:
         manifest: dict[str, Any] = {
             "schemaVersion": 2,
             "packId": "pending",
-            "repoId": _sha256(f"{repo.name}:{snapshot}".encode())[:16],
+            "repoId": _repository_id(snapshot, source_manifest_hash),
             "snapshot": snapshot,
             "taskHash": task_hash,
             "provider": {"name": self.name, "revision": PROVIDER_REVISION},
@@ -1404,6 +1411,13 @@ def _sha256(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def _repository_id(snapshot: str, source_manifest_hash: str) -> str:
+    identity = {"snapshot": snapshot, "sourceManifestHash": source_manifest_hash}
+    return _sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    )[:16]
+
+
 def _pack_identity(manifest: dict[str, Any]) -> dict[str, Any]:
     return {
         key: value
@@ -1417,7 +1431,7 @@ def _write_private(path: Path, content: str) -> None:
     temporary = Path(temporary_name)
     try:
         os.fchmod(descriptor, 0o600)
-        os.write(descriptor, content.encode())
+        _write_all(descriptor, content.encode())
         os.fsync(descriptor)
         os.close(descriptor)
         descriptor = -1
@@ -1426,6 +1440,15 @@ def _write_private(path: Path, content: str) -> None:
         if descriptor >= 0:
             os.close(descriptor)
         temporary.unlink(missing_ok=True)
+
+
+def _write_all(descriptor: int, content: bytes) -> None:
+    remaining = memoryview(content)
+    while remaining:
+        written = os.write(descriptor, remaining)
+        if written <= 0:
+            raise OSError("private artifact write made no progress")
+        remaining = remaining[written:]
 
 
 def _matches(value: Any, pattern: str) -> bool:
@@ -1456,6 +1479,14 @@ def _require_safe_ids(value: Any, label: str) -> list[str]:
     return value
 
 
+def _require_safe_snapshot(value: Any) -> str:
+    if not _matches(value, r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}"):
+        raise ValueError("native context pack has an invalid snapshot")
+    if any(pattern.search(value) for pattern in _SECRET_SHAPED_IDENTIFIERS):
+        raise ValueError("native context pack snapshot is secret-shaped")
+    return value
+
+
 def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
     legacy_required = {
         "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider",
@@ -1478,8 +1509,7 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack has an invalid repoId")
     if not _matches(manifest["taskHash"], r"[a-f0-9]{64}"):
         raise ValueError("native context pack has an invalid taskHash")
-    if not _matches(manifest["snapshot"], r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}"):
-        raise ValueError("native context pack has an invalid snapshot")
+    _require_safe_snapshot(manifest["snapshot"])
     if not _matches(manifest["sourceManifestHash"], r"[a-f0-9]{64}"):
         raise ValueError("native context pack has an invalid source manifest hash")
     provider = manifest.get("provider")
@@ -1644,6 +1674,12 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
     )
     if manifest["sourceManifestHash"] != source_manifest_hash:
         raise ValueError("native context pack source manifest hash is inconsistent")
+    if (
+        provider["revision"] == PROVIDER_REVISION
+        and manifest["repoId"]
+        != _repository_id(manifest["snapshot"], source_manifest_hash)
+    ):
+        raise ValueError("native context pack repository identity is inconsistent")
     if manifest["packId"] != stable_pack_id(manifest):
         raise ValueError("native context pack identity does not match its manifest")
 

@@ -99,7 +99,8 @@ include only complete, reserved, sequentially executed baseline/Rhize pairs with
 verification contracts.
 
 Prospective required thresholds are three matched repeats for every deterministic task class, 100%
-correctness/verification/routing, zero collisions, no Rhize rework increase, at least 15% median
+correctness, completed-and-passed verification, and routing, zero collisions, no Rhize rework
+increase, at least 15% median
 elapsed improvement on parallel-expected tasks, actual overlap on every parallel-expected Rhize
 run, and at least two agents in those runs. Token/tool coverage remains visible as optional and
 does not block a decision merely because the host cannot expose it.
@@ -112,6 +113,7 @@ Random local comparison/run UUIDs are receipt identifiers, not source-session id
 
 Task-graph terminal status counts must sum to `planned`; `required_completed` cannot exceed either
 `required` or `completed`; and optional completions plus skips cannot exceed the optional-node count.
-`correctness_pass: true` requires `required_completed == required`, so completed optional work can
-never mask a failed required node. Cleanup failures are counted separately and never converted into
-successful completion.
+`correctness_pass: true` requires `required_completed == required` and non-empty verification where
+`passed == completed == required`, so completed optional work or failed checks can never mask a
+failed required result. Reports apply the same rule to retained receipts. Cleanup failures are
+counted separately and never converted into successful completion.

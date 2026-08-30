@@ -57,7 +57,8 @@ both Claude Code and Codex rather than recreating hashing, policy, or transactio
    pages through another preview. A privacy purge requires a separate explicit user instruction and
    the exact revision confirmation accepted by `purge`. Its durable forward-recovery journal deletes
    compiler projections, previews, and snapshots before terminal purged status; `rawSourceRetained`
-   truthfully refers to the canonical human source note, which the compiler never deletes.
+   truthfully records whether the canonical human source still existed at that boundary. The
+   compiler never deletes that source itself.
 
 Run `python3 ../../scripts/compiled_knowledge.py --help` for the host-neutral CLI. Keep configs,
 proposals, and preview artifacts out of chat when they contain private source identifiers or content.

@@ -12,7 +12,11 @@
   "properties": {
     "schemaVersion": { "const": 2 },
     "packId": { "$ref": "#/$defs/packId" },
-    "repoId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$",
+      "description": "For native v2 packs, a path-independent digest of the snapshot and selected source manifest."
+    },
     "snapshot": { "$ref": "#/$defs/safeId" },
     "taskHash": { "$ref": "#/$defs/hash" },
     "provider": {

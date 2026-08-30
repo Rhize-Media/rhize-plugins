@@ -3375,7 +3375,7 @@
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
     },
     {
-      "contentHash": "ea8c5c9c3b2fd5f63c6752d07f5c88ce7c5297abb4a928868f4ecea88115c027",
+      "contentHash": "a458001a197fcf8b8d136f3843533f6f66f994cdd9ddc5b07e39d832e5043406",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",

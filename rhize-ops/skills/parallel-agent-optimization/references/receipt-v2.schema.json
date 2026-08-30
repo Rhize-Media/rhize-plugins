@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://rhize.media/schemas/parallel-agent-receipt-v2.schema.json",
   "title": "Rhize privacy-safe parallel-agent receipt v2 lifecycle input",
-  "$comment": "Cross-field counts, interval bounds, controlled-run safety, and lifecycle transitions are enforced by parallel_metrics.py.",
+  "$comment": "Cross-field counts, interval bounds, controlled-run safety, lifecycle transitions, and correctness_pass requiring non-empty passed == completed == required verification are enforced by parallel_metrics.py.",
   "oneOf": [
     {"$ref": "#/$defs/begin"},
     {"$ref": "#/$defs/final"}

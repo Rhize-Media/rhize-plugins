@@ -7,7 +7,9 @@ import unittest
 from dataclasses import replace
 
 from hygiene_support import (
+    NAMESPACE,
     NOW,
+    TENANT,
     actor,
     candidate,
     entity,
@@ -36,8 +38,10 @@ class ForcedIdempotencyRaceStore(IdentityReviewStore):
         self._race_lookup = True
         self._lookup_barrier = threading.Barrier(2)
 
-    def _idempotency_lookup(self, idempotency_key, fingerprint):
-        result = super()._idempotency_lookup(idempotency_key, fingerprint)
+    def _idempotency_lookup(self, idempotency_key, fingerprint, **scope):
+        result = super()._idempotency_lookup(
+            idempotency_key, fingerprint, **scope
+        )
         if self._race_lookup and not self._lock._is_owned():
             self._lookup_barrier.wait(timeout=2)
         return result
@@ -263,6 +267,223 @@ class ReviewTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ReviewError, "ACL scope"):
             store.show_review(internal["reviewId"], actor=restricted_reviewer)
+
+    def test_preview_and_reversal_hide_dependencies_outside_actor_acl(self) -> None:
+        shared_acl = ["rhize:internal", "rhize:restricted"]
+        shared = candidate(
+            entity("a", "Context Compiler", acl=shared_acl),
+            entity("b", "Context Compiler", acl=shared_acl),
+        )
+        restricted = candidate(
+            entity("b", "Context Compiler", acl=["rhize:restricted"]),
+            entity("c", "Context Compiler", acl=["rhize:restricted"]),
+        )
+        internal_reviewer = actor("identity_reviewer")
+        restricted_reviewer = actor(
+            "identity_reviewer",
+            "restricted",
+            acl_scope_hashes=frozenset({h("rhize:restricted")}),
+        )
+        store = IdentityReviewStore()
+
+        shared_lease, shared_leased = leased_review(
+            store, shared, internal_reviewer, key="shared-lease"
+        )
+        shared_impact = preview(
+            store, shared_leased, internal_reviewer, shared_lease, "accept_same_as"
+        )
+        shared_receipt = decide(
+            store,
+            shared_leased,
+            internal_reviewer,
+            shared_lease,
+            shared_impact,
+            key="shared-accept",
+        )
+
+        restricted_lease, restricted_leased = leased_review(
+            store,
+            restricted,
+            restricted_reviewer,
+            now="2026-08-30T14:04:00+00:00",
+            expires="2026-08-30T14:34:00+00:00",
+            key="restricted-lease",
+        )
+        restricted_impact = preview(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            "accept_same_as",
+            now="2026-08-30T14:05:00+00:00",
+        )
+        restricted_receipt = decide(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            restricted_impact,
+            when="2026-08-30T14:06:00+00:00",
+            key="restricted-accept",
+        )
+        restricted_event = next(
+            event
+            for event in store.ledger(
+                tenant_hash=restricted["tenantHash"],
+                namespace_hash=restricted["namespaceHash"],
+                actor=restricted_reviewer,
+            )
+            if event["decisionId"] == restricted_receipt["decisionId"]
+        )
+        self.assertIn(
+            shared_receipt["decisionId"], restricted_event["dependsOnDecisionIds"]
+        )
+
+        accepted_shared = store.show_review(shared["reviewId"], actor=internal_reviewer)
+        reverse_lease = store.lease(
+            shared["reviewId"],
+            expected_revision=accepted_shared["reviewRevision"],
+            actor=internal_reviewer,
+            now="2026-08-30T14:10:00+00:00",
+            lease_expires_at="2026-08-30T14:30:00+00:00",
+            idempotency_key="shared-reverse-lease",
+        )
+        accepted_shared = store.show_review(shared["reviewId"], actor=internal_reviewer)
+        impact = preview(
+            store,
+            accepted_shared,
+            internal_reviewer,
+            reverse_lease,
+            "reverse_same_as",
+            now="2026-08-30T14:11:00+00:00",
+        )
+
+        self.assertEqual(set(impact["currentClusterMemberIds"]), set(shared["candidateIds"]))
+        self.assertEqual(impact["blockedByDecisionIds"], [])
+        self.assertTrue(impact["canApply"])
+        internal_view = json.dumps(impact, sort_keys=True)
+        self.assertNotIn(h("entity:c"), internal_view)
+        self.assertNotIn(restricted_receipt["decisionId"], internal_view)
+
+        store.reverse(
+            shared["reviewId"],
+            rationale_code="distinct_entities",
+            expected_revision=accepted_shared["reviewRevision"],
+            lease_token_hash=reverse_lease["leaseTokenHash"],
+            preview_hash=impact["previewHash"],
+            actor=internal_reviewer,
+            occurred_at="2026-08-30T14:12:00+00:00",
+            idempotency_key="shared-reverse",
+            current_state=current_candidate_state(accepted_shared),
+        )
+        self.assertEqual(
+            store.projection(
+                tenant_hash=shared["tenantHash"],
+                namespace_hash=shared["namespaceHash"],
+                actor=internal_reviewer,
+            ),
+            {},
+        )
+        restricted_projection = store.projection(
+            tenant_hash=restricted["tenantHash"],
+            namespace_hash=restricted["namespaceHash"],
+            actor=restricted_reviewer,
+        )
+        self.assertEqual(
+            {tuple(members) for members in restricted_projection.values()},
+            {tuple(restricted["candidateIds"])},
+        )
+
+    def test_idempotency_keys_are_isolated_across_partitions_and_acl_lanes(self) -> None:
+        tenant_b = h("tenant-b")
+        namespace_b = h("namespace-b")
+
+        def partition_review(tenant_hash, namespace_hash, suffix):
+            return generate_candidates(
+                [
+                    entity(
+                        f"{suffix}-a",
+                        "Context Compiler",
+                        tenant_hash=tenant_hash,
+                        namespace_hash=namespace_hash,
+                    ),
+                    entity(
+                        f"{suffix}-b",
+                        "Context Compiler",
+                        tenant_hash=tenant_hash,
+                        namespace_hash=namespace_hash,
+                    ),
+                ],
+                policy=policy(),
+                tenant_hash=tenant_hash,
+                namespace_hash=namespace_hash,
+                created_at=NOW,
+                origin="manual",
+            )["candidates"][0]
+
+        partitioned = [
+            candidate(),
+            partition_review(tenant_b, NAMESPACE, "tenant-b"),
+            partition_review(TENANT, namespace_b, "namespace-b"),
+        ]
+        reviewer = replace(
+            actor("identity_reviewer", "multi-partition"),
+            authorized_partitions=frozenset(
+                (review["tenantHash"], review["namespaceHash"])
+                for review in partitioned
+            ),
+        )
+        store = IdentityReviewStore()
+        for review in partitioned:
+            store.enqueue_candidates([review], actor=reviewer, occurred_at=NOW)
+        receipts = [
+            store.lease(
+                review["reviewId"],
+                expected_revision=review["reviewRevision"],
+                actor=reviewer,
+                now="2026-08-30T14:01:00+00:00",
+                lease_expires_at="2026-08-30T14:31:00+00:00",
+                idempotency_key="caller-retry-key",
+            )
+            for review in partitioned
+        ]
+        self.assertEqual(len({receipt["idempotencyKeyHash"] for receipt in receipts}), 3)
+
+        internal = candidate()
+        restricted = candidate(
+            entity("a", "Context Compiler", acl=["rhize:restricted"]),
+            entity("b", "Context Compiler", acl=["rhize:restricted"]),
+        )
+        lane_reviewer = actor(
+            "identity_reviewer",
+            "all-lanes",
+            acl_scope_hashes=frozenset(
+                {h("rhize:internal"), h("rhize:restricted")}
+            ),
+        )
+        acl_store = IdentityReviewStore()
+        acl_store.enqueue_candidates([internal], actor=lane_reviewer, occurred_at=NOW)
+        acl_store.enqueue_candidates([restricted], actor=lane_reviewer, occurred_at=NOW)
+        internal_receipt = acl_store.lease(
+            internal["reviewId"],
+            expected_revision=internal["reviewRevision"],
+            actor=lane_reviewer,
+            now="2026-08-30T14:01:00+00:00",
+            lease_expires_at="2026-08-30T14:31:00+00:00",
+            idempotency_key="same-acl-lane-key",
+        )
+        restricted_receipt = acl_store.lease(
+            restricted["reviewId"],
+            expected_revision=restricted["reviewRevision"],
+            actor=lane_reviewer,
+            now="2026-08-30T14:01:00+00:00",
+            lease_expires_at="2026-08-30T14:31:00+00:00",
+            idempotency_key="same-acl-lane-key",
+        )
+        self.assertNotEqual(
+            internal_receipt["idempotencyKeyHash"],
+            restricted_receipt["idempotencyKeyHash"],
+        )
 
     def test_concurrent_same_key_lease_returns_one_atomic_receipt(self) -> None:
         review = candidate()

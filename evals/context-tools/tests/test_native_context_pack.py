@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -157,6 +158,14 @@ def test_native_pack_verification_binds_manifest_and_prompt_bytes(tmp_path: Path
     with pytest.raises(ValueError, match="identity does not match"):
         provider.verify_pack(tampered_manifest, repo, snapshot, prompt_path)
 
+    tampered_repo = json.loads(manifest_path.read_text())
+    tampered_repo["repoId"] = (
+        "f" * 16 if tampered_repo["repoId"] != "f" * 16 else "e" * 16
+    )
+    tampered_repo["packId"] = native_provider.stable_pack_id(tampered_repo)
+    with pytest.raises(ValueError, match="repository identity is inconsistent"):
+        provider.verify_pack(tampered_repo, repo, snapshot, prompt_path)
+
     understated_tokens = json.loads(manifest_path.read_text())
     understated_tokens["compiledTokens"] -= 1
     understated_tokens["reductionPercent"] = round(
@@ -192,9 +201,33 @@ def test_native_pack_write_rejects_unbound_prompt_before_creating_artifacts(
     assert not output.exists()
 
 
+def test_native_pack_writer_completes_short_writes(tmp_path: Path, monkeypatch) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    snapshot = commit_fixture(repo)
+    provider = NativeContextPackProvider()
+    pack = provider.compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="e" * 64,
+        targets=(repo / "src" / "app.ts",),
+    )
+    real_write = native_provider.os.write
+
+    def short_write(descriptor: int, content: bytes) -> int:
+        chunk = content[: max(1, len(content) // 2)]
+        return real_write(descriptor, chunk)
+
+    monkeypatch.setattr(native_provider.os, "write", short_write)
+    manifest_path, prompt_path = provider.write_pack(pack, tmp_path / "packs")
+
+    assert json.loads(manifest_path.read_text()) == pack.manifest
+    assert prompt_path.read_text() == pack.prompt
+
+
 def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) -> None:
-    first_repo = tmp_path / "host-a" / "project"
-    second_repo = tmp_path / "host-b" / "project"
+    first_repo = tmp_path / "host-a" / "first-checkout-name"
+    second_repo = tmp_path / "host-b" / "unrelated-directory-name"
     write_static_typescript_fixture(first_repo)
     write_static_typescript_fixture(second_repo)
     snapshot = "fixture-" + "a" * 32
@@ -212,8 +245,65 @@ def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) ->
         targets=(second_repo / "src" / "app.ts",),
     )
 
+    assert first.manifest["repoId"] == second.manifest["repoId"]
+    assert first.manifest["packId"] == second.manifest["packId"]
     assert first.manifest == second.manifest
     assert first.prompt == second.prompt
+
+
+def test_native_preview_identity_is_portable_across_checkout_names(tmp_path: Path) -> None:
+    first_repo = tmp_path / "first-checkout-name"
+    second_repo = tmp_path / "unrelated-directory-name"
+    write_static_typescript_fixture(first_repo)
+    snapshot = commit_fixture(first_repo)
+    shutil.copytree(first_repo, second_repo)
+
+    first = build_native_context_pack_preview(
+        first_repo,
+        snapshot,
+        target_files=(first_repo / "src" / "app.ts",),
+        data_dir=tmp_path / "first-data",
+    )
+    second = build_native_context_pack_preview(
+        second_repo,
+        snapshot,
+        target_files=(second_repo / "src" / "app.ts",),
+        data_dir=tmp_path / "second-data",
+    )
+
+    assert first[0]["taskHash"] == second[0]["taskHash"]
+    assert first[0]["repoId"] == second[0]["repoId"]
+    assert first[0]["packId"] == second[0]["packId"]
+    assert first[0] == second[0]
+    assert first[2].read_text() == second[2].read_text()
+
+
+@pytest.mark.parametrize(
+    "snapshot",
+    (
+        "ghp_" + "A" * 36,
+        "github_pat_" + "A" * 40,
+        "sntrys_" + "A" * 64,
+        "AKIA" + "A" * 16,
+    ),
+)
+def test_native_pack_rejects_secret_shaped_snapshots_before_artifacts(
+    tmp_path: Path, snapshot: str
+) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    output = tmp_path / "packs"
+    provider = NativeContextPackProvider()
+
+    with pytest.raises(ValueError, match="secret-shaped"):
+        provider.compile(
+            repo,
+            snapshot=snapshot,
+            task_hash="8" * 64,
+            targets=(repo / "src" / "app.ts",),
+        )
+
+    assert not output.exists()
 
 
 def test_query_discovery_falls_back_explicitly_when_codegraph_is_unavailable(

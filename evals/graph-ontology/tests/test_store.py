@@ -42,6 +42,32 @@ class StagePublishTests(unittest.TestCase):
         self.assertNotIn("tenant-a", receipt_text)
         self.assertNotIn("/redacted/", receipt_text)
 
+    def test_identical_idempotency_keys_are_partition_local(self) -> None:
+        compilations = [
+            self.first,
+            compilation(tenant="tenant-b", source_revision="revision-1"),
+            compilation(namespace="other-tools", source_revision="revision-1"),
+        ]
+        receipts = [
+            self.store.ingest(
+                item,
+                role="ingest",
+                idempotency_key="caller-retry-key",
+                expected_current=None,
+            )
+            for item in compilations
+        ]
+
+        self.assertTrue(all(receipt["status"] == "accepted" for receipt in receipts))
+        self.assertEqual(len({receipt["runId"] for receipt in receipts}), 3)
+        self.assertEqual(
+            {
+                self.store.current_compilation(*self._partition(item))
+                for item in compilations
+            },
+            {item["compilationId"] for item in compilations},
+        )
+
     def test_failures_before_publication_keep_previous_compilation_visible(self) -> None:
         accepted = self.store.ingest(
             self.first, role="ingest", idempotency_key="first", expected_current=None

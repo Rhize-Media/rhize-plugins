@@ -103,7 +103,15 @@ class InMemoryNeo4jAdapter:
             raise StoreError("injected failure after validation")
         compilation_copy = copy.deepcopy(dict(compilation))
         compilation_id = compilation_copy["compilationId"]
-        run_id = sha256_value(f"ingest:{idempotency_key}")
+        run_id = sha256_value(
+            {
+                "operation": "ingest",
+                "tenantKey": compilation_copy["tenantKey"],
+                "namespaceKey": compilation_copy["namespaceKey"],
+                "corpusKey": compilation_copy["corpusKey"],
+                "idempotencyKey": idempotency_key,
+            }
+        )
 
         with self._lock:
             prior_compilation = self._run_compilations.get(run_id)

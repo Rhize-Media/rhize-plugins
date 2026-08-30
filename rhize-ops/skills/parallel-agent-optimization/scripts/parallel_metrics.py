@@ -539,6 +539,10 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
         raise ReceiptError(
             "completed status requires a decision, correctness result, and complete non-empty verification"
         )
+    if raw["correctness_pass"] is True and not verification_passes(verification):
+        raise ReceiptError(
+            "correctness_pass=true requires complete, non-empty, fully passed verification"
+        )
 
     actual_overlap, concurrent_ms, max_concurrency = interval_metrics(intervals)
     if task_graph is not None and max_concurrency > task_graph["declared_concurrency_cap"]:
@@ -623,6 +627,22 @@ def ratio(numerator: int | float, denominator: int | float) -> float | None:
     return None if denominator == 0 else numerator / denominator
 
 
+def verification_passes(verification: Any) -> bool:
+    return (
+        isinstance(verification, dict)
+        and verification.get("required", 0) > 0
+        and verification.get("passed")
+        == verification.get("completed")
+        == verification.get("required")
+    )
+
+
+def receipt_correctness_passes(row: dict[str, Any]) -> bool:
+    return row.get("correctness_pass") is True and verification_passes(
+        row.get("verification")
+    )
+
+
 def summarize_variant(rows: list[dict[str, Any]]) -> dict[str, Any]:
     completed = [row for row in rows if row.get("status") == "completed"]
     measured_tools = [row["tool_calls"] for row in completed if row.get("tool_calls") is not None]
@@ -636,7 +656,9 @@ def summarize_variant(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
     return {
         "runs": len(completed),
-        "correctness_pass_rate": ratio(sum(row["correctness_pass"] for row in completed), len(completed)),
+        "correctness_pass_rate": ratio(
+            sum(receipt_correctness_passes(row) for row in completed), len(completed)
+        ),
         "routing_appropriate_rate": ratio(sum(row["routing_appropriate"] for row in completed), len(completed)),
         "verification_completeness_mean": (
             statistics.fmean(row["verification_completeness"] for row in completed)
@@ -742,8 +764,8 @@ def build_readiness(groups: list[list[dict[str, Any]]]) -> dict[str, Any]:
         ):
             required[name] = metric("unavailable", None, READINESS_THRESHOLDS)
     else:
-        correctness = all(row["correctness_pass"] for row in rows)
-        verification = all(row["verification_completeness"] == 1.0 for row in rows)
+        correctness = all(receipt_correctness_passes(row) for row in rows)
+        verification = all(verification_passes(row.get("verification")) for row in rows)
         routing = all(row["routing_appropriate"] for row in rows)
         collisions = sum(row["collisions"] for row in rows)
         baseline_rework = sum(row["rework_events"] for row in by_variant["baseline"])
@@ -877,7 +899,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"Pre-task-graph v2 receipts retained but excluded: {section['pre_task_graph_v2_runs']}",
                 f"Pre-required-closure v2 receipts retained but excluded: {section['pre_required_closure_v2_runs']}",
                 "",
-                "| Variant | Runs | Correctness | Routing | Verification | Median ms | Overlap | Agents | Collisions | Rework | Tools | Tokens |",
+                "| Variant | Runs | Correctness | Routing | Verification complete | Median ms | Overlap | Agents | Collisions | Rework | Tools | Tokens |",
                 "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )

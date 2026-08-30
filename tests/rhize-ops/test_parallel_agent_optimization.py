@@ -198,6 +198,26 @@ def test_v2_rejects_success_when_cleanup_or_required_results_failed():
         parallel_metrics.validate_final(missing, parallel_metrics.validate_begin(begin_input()))
 
 
+def test_v2_rejects_correctness_when_any_required_verification_failed():
+    value = final_input(verification={"required": 3, "completed": 3, "passed": 2})
+
+    with pytest.raises(parallel_metrics.ReceiptError, match="fully passed verification"):
+        parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
+
+
+def test_reports_do_not_treat_completed_failed_checks_as_correct():
+    retained = parallel_metrics.validate_final(
+        final_input(), parallel_metrics.validate_begin(begin_input())
+    )
+    retained["verification"] = {"required": 3, "completed": 3, "passed": 2}
+    baseline = {**retained, "variant": "baseline"}
+
+    assert parallel_metrics.summarize_variant([retained])["correctness_pass_rate"] == 0.0
+    readiness = parallel_metrics.build_readiness([[baseline, retained]])
+    assert readiness["required_metrics"]["correctness"]["status"] == "fail"
+    assert readiness["required_metrics"]["verification"]["status"] == "fail"
+
+
 def test_v2_rejects_equal_count_swap_that_masks_failed_required_node():
     value = final_input(lanes_planned=3)
     value["task_graph"].update(

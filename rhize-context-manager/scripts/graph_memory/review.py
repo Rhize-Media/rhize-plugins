@@ -153,7 +153,7 @@ class IdentityReviewStore:
                         decision_acl_scopes,
                         existing["tenantHash"],
                         existing["namespaceHash"],
-                        existing["aclScopeHashes"],
+                        actor.authorized_acl_scope_hashes,
                     )
                     after_edges = dict(before_edges)
                     reversal_of = None
@@ -162,6 +162,7 @@ class IdentityReviewStore:
                         has_active_dependency = any(
                             reversal_of in event["dependsOnDecisionIds"]
                             and event["decisionId"] in same_as
+                            and self._can_access_acl(actor, event)
                             for event in ledger
                         )
                         if has_active_dependency:
@@ -231,8 +232,13 @@ class IdentityReviewStore:
             }
         )
         with self._lock:
+            authorized_review = self._authorized_review(review_id, actor)
             idempotency_hash, replay = self._idempotency_lookup(
-                idempotency_key, fingerprint
+                idempotency_key,
+                fingerprint,
+                operation="lease",
+                review=authorized_review,
+                actor_hash=actor.actor_hash,
             )
             if replay is not None:
                 return replay
@@ -245,8 +251,6 @@ class IdentityReviewStore:
                 }
             )
             review = self._current(review_id, expected_revision)
-            self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
-            self._require_acl(actor, review)
             if parse_timestamp(review["expiresAt"], "candidate expiresAt") <= now_time:
                 raise ReviewError("identity candidate has expired")
             if review["state"] not in {"pending", "deferred", "leased", "accepted"}:
@@ -306,6 +310,8 @@ class IdentityReviewStore:
             blocked_dependencies: list[str] = []
             if operation == "reverse_same_as":
                 target = review["decisionId"]
+                # Hidden ACL lanes cannot affect an actor-bound preview: even a
+                # blocked status would disclose the existence of restricted state.
                 blocked_decisions = sorted(
                     event["decisionId"]
                     for event in self._ledger
@@ -313,15 +319,14 @@ class IdentityReviewStore:
                     and event["decisionId"] in self._same_as
                     and event["tenantHash"] == review["tenantHash"]
                     and event["namespaceHash"] == review["namespaceHash"]
+                    and self._can_access_acl(actor, event)
                 )
                 blocked_dependencies = sorted(
                     item["dependencyHash"]
                     for item in dependencies
                     if not item["immutableSourceBound"]
                 )
-            partition_edges = self._partition_edges(
-                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
-            )
+            partition_edges = self._actor_visible_edges(review, actor)
             projection_before = self._projection_hash(partition_edges)
             preview = {
                 "previewVersion": 1,
@@ -382,14 +387,17 @@ class IdentityReviewStore:
             }
         )
         with self._lock:
+            authorized_review = self._authorized_review(review_id, actor)
             idempotency_hash, replay = self._idempotency_lookup(
-                idempotency_key, fingerprint
+                idempotency_key,
+                fingerprint,
+                operation=action,
+                review=authorized_review,
+                actor_hash=actor.actor_hash,
             )
             if replay is not None:
                 return replay
             review = self._current(review_id, expected_revision)
-            self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
-            self._require_acl(actor, review)
             if review["state"] != "leased":
                 raise ReviewError("identity decision requires a leased review")
             self._validate_lease(review, actor, lease_token_hash, now_time)
@@ -400,9 +408,7 @@ class IdentityReviewStore:
             if failure_at == "after_validation":
                 raise ReviewError("injected failure after identity decision validation")
 
-            before_edges = self._partition_edges(
-                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
-            )
+            before_edges = self._actor_visible_edges(review, actor)
             after_edges = dict(before_edges)
             all_after_edges = dict(self._same_as)
             all_after_partitions = dict(self._decision_partitions)
@@ -503,14 +509,17 @@ class IdentityReviewStore:
             }
         )
         with self._lock:
+            authorized_review = self._authorized_review(review_id, actor)
             idempotency_hash, replay = self._idempotency_lookup(
-                idempotency_key, fingerprint
+                idempotency_key,
+                fingerprint,
+                operation="reverse_same_as",
+                review=authorized_review,
+                actor_hash=actor.actor_hash,
             )
             if replay is not None:
                 return replay
             review = self._current(review_id, expected_revision)
-            self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
-            self._require_acl(actor, review)
             if review["state"] != "accepted" or review["decisionId"] not in self._same_as:
                 raise ReviewError("only an active SAME_AS decision can be reversed")
             self._validate_lease(review, actor, lease_token_hash, now_time)
@@ -526,9 +535,7 @@ class IdentityReviewStore:
             if failure_at == "after_validation":
                 raise ReviewError("injected failure after reversal validation")
 
-            before_edges = self._partition_edges(
-                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
-            )
+            before_edges = self._actor_visible_edges(review, actor)
             after_edges = dict(before_edges)
             all_after_edges = dict(self._same_as)
             all_after_partitions = dict(self._decision_partitions)
@@ -640,12 +647,7 @@ class IdentityReviewStore:
         actor.validate()
         self._require_any_role(actor, "identity_reviewer", "identity_auditor")
         with self._lock:
-            review = self._reviews.get(review_id)
-            if review is None:
-                raise ReviewError("identity review is unavailable")
-            self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
-            self._require_acl(actor, review)
-            return copy.deepcopy(review)
+            return copy.deepcopy(self._authorized_review(review_id, actor))
 
     def ledger(
         self, *, tenant_hash: str, namespace_hash: str, actor: AuthenticatedActor
@@ -904,6 +906,17 @@ class IdentityReviewStore:
             if members.intersection(pair)
         )
 
+    def _actor_visible_edges(
+        self, review: Mapping[str, Any], actor: AuthenticatedActor
+    ) -> dict[str, tuple[str, str]]:
+        """Return only partition edges the authenticated actor may observe."""
+
+        return self._partition_edges(
+            review["tenantHash"],
+            review["namespaceHash"],
+            actor.authorized_acl_scope_hashes,
+        )
+
     def _partition_edges(
         self,
         tenant_hash: str,
@@ -946,11 +959,27 @@ class IdentityReviewStore:
         )
 
     def _idempotency_lookup(
-        self, idempotency_key: str, fingerprint: str
+        self,
+        idempotency_key: str,
+        fingerprint: str,
+        *,
+        operation: str,
+        review: Mapping[str, Any],
+        actor_hash: str,
     ) -> tuple[str, dict[str, Any] | None]:
         if not isinstance(idempotency_key, str) or not idempotency_key or len(idempotency_key) > 256:
             raise ReviewError("bounded idempotency key is required")
-        key_hash = sha256_value(f"identity-review:{idempotency_key}")
+        key_hash = sha256_value(
+            {
+                "domain": "identity-review",
+                "operation": operation,
+                "tenantHash": review["tenantHash"],
+                "namespaceHash": review["namespaceHash"],
+                "aclScopeHashes": sorted(review["aclScopeHashes"]),
+                "actorHash": actor_hash,
+                "idempotencyKey": idempotency_key,
+            }
+        )
         with self._lock:
             existing = self._idempotency.get(key_hash)
             if existing is None:
@@ -960,6 +989,17 @@ class IdentityReviewStore:
             if existing[0] != fingerprint:
                 raise ReviewError("idempotency key is already bound to another operation")
             return key_hash, copy.deepcopy(existing[1])
+
+    def _authorized_review(
+        self, review_id: str, actor: AuthenticatedActor
+    ) -> Mapping[str, Any]:
+        validate_hash(review_id, "review_id")
+        review = self._reviews.get(review_id)
+        if review is None:
+            raise ReviewError("identity review is unavailable")
+        self._require_partition(actor, review["tenantHash"], review["namespaceHash"])
+        self._require_acl(actor, review)
+        return review
 
     def _discard_previews(self, review_id: str) -> None:
         for key in [key for key in self._previews if key[0] == review_id]:

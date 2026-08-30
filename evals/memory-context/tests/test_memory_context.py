@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import memory_context.core as memory_core
 from memory_context.core import MemoryContextAssembler, MemoryStore, sha256, validate_manifest
 
 
@@ -205,6 +206,24 @@ def test_unknown_fields_and_available_candidates_on_failed_adapter_are_rejected(
         MemoryContextAssembler().assemble(document, FIXED_NOW)
 
 
+@pytest.mark.parametrize(
+    "secret_shaped_revision",
+    (
+        "github_pat_" + "a" * 40,
+        "sntrys_" + "a" * 40,
+        "AKIA" + "A" * 16,
+    ),
+)
+def test_secret_shaped_source_revisions_never_reach_public_manifests(
+    secret_shaped_revision: str,
+) -> None:
+    document = fixture()
+    document["adapters"][0]["candidates"][0]["sourceRevision"] = secret_shaped_revision
+
+    with pytest.raises(ValueError, match="secret-shaped"):
+        MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+
 def test_lane_and_total_budgets_are_deterministic() -> None:
     document = fixture()
     document["request"]["laneBudgets"]["semantic"] = {"maxItems": 1, "maxTokens": 100}
@@ -279,6 +298,24 @@ def test_write_rejects_unbound_payload_before_creating_artifacts(tmp_path: Path)
         store.write(malformed_manifest, malformed_payload)
 
     assert not store.root.exists()
+
+
+def test_private_pack_writer_completes_short_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    real_write = memory_core.os.write
+
+    def short_write(descriptor: int, content: bytes) -> int:
+        chunk = content[: max(1, len(content) // 2)]
+        return real_write(descriptor, chunk)
+
+    monkeypatch.setattr(memory_core.os, "write", short_write)
+    manifest_path, payload_path = store.write(manifest, payload)
+
+    assert json.loads(manifest_path.read_text()) == manifest
+    assert json.loads(payload_path.read_text()) == payload
 
 
 def test_retry_reconciles_orphan_index_and_purge_finds_valid_orphans(tmp_path: Path) -> None:

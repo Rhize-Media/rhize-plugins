@@ -1175,7 +1175,7 @@ def validate_purge_journal(
         journal,
         {
             "schema_version", "source_id", "project", "operator_id", "confirmation_revision_hash",
-            "purged_at", "state", "paths", "pages", "preview_ids",
+            "purged_at", "state", "paths", "pages", "preview_ids", "raw_source_retained",
         },
         "purge journal",
     )
@@ -1191,6 +1191,14 @@ def validate_purge_journal(
         or journal.get("state") not in PURGE_STATES
     ):
         raise CompilerError(f"purge journal {path.name} has invalid identity/state")
+    raw_source_retained = journal.get("raw_source_retained")
+    if raw_source_retained is not None and not isinstance(raw_source_retained, bool):
+        raise CompilerError("purge journal raw_source_retained must be boolean or null")
+    if (
+        PURGE_STATES.index(journal["state"]) >= PURGE_STATES.index("tombstone-written")
+        and not isinstance(raw_source_retained, bool)
+    ):
+        raise CompilerError("terminal purge journal requires source-retention evidence")
     parse_time(require_string(journal.get("purged_at"), "purge journal purged_at"))
 
     paths = require_object(journal["paths"], "purge journal paths")
@@ -1267,8 +1275,8 @@ def purge_result(journal: dict[str, Any], tombstone_path: Path) -> dict[str, Any
             page["page_id"] for page in journal["pages"] if page["disposition"] == "conflict"
         ),
         "tombstone": str(tombstone_path),
-        # The compiler deletes its private snapshots; the canonical human source remains outside its authority.
-        "rawSourceRetained": True,
+        # Historical observation at the terminal purge boundary; the compiler never deletes this source.
+        "rawSourceRetained": journal["raw_source_retained"],
     }
 
 
@@ -1342,6 +1350,15 @@ def complete_purge(
             Path(page["accepted_manifest"]).exists() for page in journal["pages"]
         ) or any(preview_dir(settings, preview_id).exists() for preview_id in journal["preview_ids"]):
             raise CompilerError("purge cannot commit terminal state while compiler payloads remain")
+        registration = load_registration(settings, journal["source_id"])
+        try:
+            canonical_source = source_path(settings, registration["path"])
+        except CompilerError:
+            raw_source_retained = False
+        else:
+            raw_source_retained = canonical_source.is_file()
+        journal["raw_source_retained"] = raw_source_retained
+        write_journal(journal_path, journal)
         tombstone = {
             "schema_version": 1,
             "source_id": journal["source_id"],
@@ -1350,7 +1367,7 @@ def complete_purge(
             "operator_id": settings.operator_id,
             "last_revision_hash": journal["confirmation_revision_hash"],
             "reason": "payload-and-derived-projections-not-reproducible",
-            "rawSourceRetained": True,
+            "rawSourceRetained": raw_source_retained,
         }
         atomic_write(paths["tombstone"], canonical_json(tombstone))
         advance_purge(journal_path, journal, "tombstone-written", fault_after)
@@ -1462,6 +1479,7 @@ def purge_source(
             },
             "pages": affected,
             "preview_ids": matching_preview_ids(settings, source_id),
+            "raw_source_retained": None,
         }
         advance_purge(journal_path, journal, "prepared", fault_after)
         validated_journal, paths = validate_purge_journal(settings, journal_path, journal)

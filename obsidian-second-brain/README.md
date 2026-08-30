@@ -63,8 +63,9 @@ Context packs, Graphify, Neo4j, live synthesis, and scheduled mutation are also 
 
 Privacy purge is a forward-recovering transaction: it deletes compiler-owned projections,
 previews, and source snapshots before committing purged index/registration status. Any interrupted
-authorized purge resumes under the vault lock. Its `rawSourceRetained` receipt remains true because
-the canonical human source note is deliberately outside compiler deletion authority.
+authorized purge resumes under the vault lock. Its `rawSourceRetained` receipt records whether the
+canonical human source note still existed at the terminal purge boundary; the compiler itself never
+deletes that source.
 
 The canonical engine is shared by Claude Code's thin `/vault-compile` command and Codex's
 `knowledge-compiler` skill metadata. Run `python3 scripts/compiled_knowledge.py --help` for the exact
