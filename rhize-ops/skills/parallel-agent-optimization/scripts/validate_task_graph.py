@@ -264,6 +264,7 @@ def validate_state(raw: Any, graph: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(state["nodes"], dict) or set(state["nodes"]) != set(graph_nodes):
         raise GraphError("state must contain every graph node exactly once")
     node_keys = {"previous_status", "status", "output_count", "output_contract_satisfied", "cleanup_ok"}
+    execution_statuses = {"running", "completed", "failed", "cancelled", "timed_out"}
     for node_id, value in state["nodes"].items():
         node_state = exact(value, node_keys, f"state.nodes.{node_id}")
         if (
@@ -290,7 +291,6 @@ def validate_state(raw: Any, graph: dict[str, Any]) -> dict[str, Any]:
             or node_state["previous_status"] == "skipped_optional"
         ) and not graph_nodes[node_id]["optional"]:
             raise GraphError(f"required node {node_id} cannot be skipped")
-        execution_statuses = {"running", "completed", "failed", "cancelled", "timed_out"}
         execution_started = (
             node_state["previous_status"] in execution_statuses
             or node_state["status"] in execution_statuses
@@ -307,6 +307,17 @@ def validate_state(raw: Any, graph: dict[str, Any]) -> dict[str, Any]:
             and not state["external_state_revalidated"]
         ):
             raise GraphError(f"external state must be revalidated before executing {node_id}")
+    for node_id, node in graph_nodes.items():
+        node_state = state["nodes"][node_id]
+        execution_started = (
+            node_state["previous_status"] in execution_statuses
+            or node_state["status"] in execution_statuses
+        )
+        if execution_started and any(
+            state["nodes"][dependency]["status"] not in {"completed", "skipped_optional"}
+            for dependency in node["depends_on"]
+        ):
+            raise GraphError(f"dependencies must be complete before executing {node_id}")
     return state
 
 

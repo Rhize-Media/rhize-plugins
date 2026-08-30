@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -36,6 +37,12 @@ MAX_SCAN_BYTES = 25_000_000
 MIN_PROJECTED_REDUCTION_PERCENT = 10.0
 MAX_PRIVATE_ISSUES = 20
 MAX_IMPACT_HINT_BYTES = 256_000
+PROMPT_BUDGET_RESERVE_WARNINGS = {
+    "insufficient_compilation_benefit",
+    "optional_entries_truncated_by_budget",
+    "required_dependency_exceeds_token_budget",
+    "required_target_exceeds_token_budget",
+}
 _QUERY_STOP_WORDS = {
     "acceptance", "behavior", "change", "current", "evidence", "explicitly",
     "implementation", "impact", "intended", "must", "planned", "repository",
@@ -204,7 +211,6 @@ class NativeContextPackProvider:
 
         entries: list[dict[str, Any]] = []
         rendered: list[tuple[dict[str, Any], str]] = []
-        used_tokens = 0
         budget_truncated = False
         seen: set[Path] = set()
         for path, role, reason, _distance in candidates:
@@ -222,14 +228,6 @@ class NativeContextPackProvider:
                     selected_content = content
                     edge_warnings.add("interface_widened_to_full")
             token_count = _estimate_tokens(selected_content)
-            if used_tokens + token_count > max_tokens:
-                if role == "FULL" and path in target_paths:
-                    edge_warnings.add("required_target_exceeds_token_budget")
-                elif reason == "static_dependency":
-                    edge_warnings.add("required_dependency_exceeds_token_budget")
-                else:
-                    budget_truncated = True
-                continue
             relative = path.relative_to(repo).as_posix()
             entry = {
                 "path": relative,
@@ -239,9 +237,25 @@ class NativeContextPackProvider:
                 "renderedHash": _sha256(selected_content.encode()),
                 "estimatedTokens": token_count,
             }
+            budget_manifest = {
+                "snapshot": snapshot,
+                "warnings": sorted(edge_warnings | PROMPT_BUDGET_RESERVE_WARNINGS),
+            }
+            prospective_prompt = _render_prompt(
+                budget_manifest,
+                [*rendered, (entry, selected_content)],
+                private_issues[:MAX_PRIVATE_ISSUES],
+            )
+            if _estimate_tokens(prospective_prompt) > max_tokens:
+                if role == "FULL" and path in target_paths:
+                    edge_warnings.add("required_target_exceeds_token_budget")
+                elif reason == "static_dependency":
+                    edge_warnings.add("required_dependency_exceeds_token_budget")
+                else:
+                    budget_truncated = True
+                continue
             entries.append(entry)
             rendered.append((entry, selected_content))
-            used_tokens += token_count
         if not entries or not all(
             any(
                 entry["path"] == target.relative_to(repo).as_posix()
@@ -253,17 +267,24 @@ class NativeContextPackProvider:
         if budget_truncated:
             edge_warnings.add("optional_entries_truncated_by_budget")
 
-        naive_tokens = sum(
-            _estimate_tokens(path.read_text(encoding="utf-8", errors="replace"))
+        naive_rendered = [
+            (
+                {
+                    "path": path.relative_to(repo).as_posix(),
+                    "role": "FULL",
+                    "reason": "naive_source_dump",
+                },
+                path.read_text(encoding="utf-8", errors="replace"),
+            )
             for path in source_paths
+        ]
+        naive_tokens = _estimate_tokens(
+            _render_prompt(
+                {"snapshot": snapshot, "warnings": []},
+                naive_rendered,
+                [],
+            )
         )
-        reduction_percent = (
-            round((1 - used_tokens / naive_tokens) * 100, 3)
-            if naive_tokens
-            else 0.0
-        )
-        if len(source_paths) <= 1 or reduction_percent < MIN_PROJECTED_REDUCTION_PERCENT:
-            edge_warnings.add("insufficient_compilation_benefit")
         all_warnings = sorted(edge_warnings)
         rejection_reasons = sorted(
             warning
@@ -334,8 +355,8 @@ class NativeContextPackProvider:
             },
             "totalSourceFiles": len(source_paths),
             "naiveDumpTokens": naive_tokens,
-            "compiledTokens": used_tokens,
-            "reductionPercent": reduction_percent,
+            "compiledTokens": 0,
+            "reductionPercent": 0.0,
             # Provider v2 manifests are byte-stable across hosts. Runtime latency is
             # measured by the caller/eval receipt, not embedded in pack identity.
             "buildMilliseconds": 0.0,
@@ -354,6 +375,35 @@ class NativeContextPackProvider:
             "warnings": all_warnings,
         }
         prompt = _render_prompt(manifest, rendered, private_issues[:MAX_PRIVATE_ISSUES])
+        compiled_tokens = _estimate_tokens(prompt)
+        reduction_percent = (
+            round((1 - compiled_tokens / naive_tokens) * 100, 3)
+            if naive_tokens
+            else 0.0
+        )
+        if (
+            len(source_paths) <= 1
+            or reduction_percent < MIN_PROJECTED_REDUCTION_PERCENT
+        ) and "insufficient_compilation_benefit" not in edge_warnings:
+            edge_warnings.add("insufficient_compilation_benefit")
+            all_warnings = sorted(edge_warnings)
+            rejection_reasons = sorted(
+                set(rejection_reasons) | {"insufficient_compilation_benefit"}
+            )
+            manifest["warnings"] = all_warnings
+            manifest["policy"]["acceptedForUse"] = False
+            manifest["policy"]["rejectionReasons"] = rejection_reasons
+            prompt = _render_prompt(manifest, rendered, private_issues[:MAX_PRIVATE_ISSUES])
+            compiled_tokens = _estimate_tokens(prompt)
+            reduction_percent = (
+                round((1 - compiled_tokens / naive_tokens) * 100, 3)
+                if naive_tokens
+                else 0.0
+            )
+        if compiled_tokens > max_tokens:
+            raise ValueError("token budget cannot contain required prompt framing and targets")
+        manifest["compiledTokens"] = compiled_tokens
+        manifest["reductionPercent"] = reduction_percent
         manifest["promptHash"] = _sha256(prompt.encode())
         manifest["packId"] = stable_pack_id(manifest)
         return CompiledPack(manifest=manifest, prompt=prompt)
@@ -411,10 +461,15 @@ class NativeContextPackProvider:
         if raw_prompt.is_symlink():
             raise ValueError("native context prompt cannot be a symlink")
         prompt = raw_prompt.resolve(strict=True)
-        prompt_current = (
-            prompt.is_file()
-            and _sha256(prompt.read_bytes()) == manifest["promptHash"]
-        )
+        prompt_text = prompt.read_text(encoding="utf-8") if prompt.is_file() else ""
+        if manifest["provider"]["revision"] == PROVIDER_REVISION:
+            prompt_current = (
+                prompt.is_file()
+                and _sha256(prompt_text.encode()) == manifest["promptHash"]
+                and _estimate_tokens(prompt_text) == manifest["compiledTokens"]
+            )
+        else:
+            prompt_current = prompt.is_file()
         return VerificationResult(
             valid=snapshot_current and prompt_current and not changed and not missing,
             snapshot_current=snapshot_current,
@@ -1373,6 +1428,34 @@ def _write_private(path: Path, content: str) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _matches(value: Any, pattern: str) -> bool:
+    return isinstance(value, str) and re.fullmatch(pattern, value) is not None
+
+
+def _require_integer(value: Any, label: str, minimum: int) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+        raise ValueError(f"native context pack {label} is invalid")
+    return value
+
+
+def _require_number(value: Any, label: str, minimum: float | None = None) -> float:
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError(f"native context pack {label} is invalid")
+    number = float(value)
+    if minimum is not None and number < minimum:
+        raise ValueError(f"native context pack {label} is invalid")
+    return number
+
+
+def _require_safe_ids(value: Any, label: str) -> list[str]:
+    if not isinstance(value, list) or any(
+        not _matches(item, r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
+        for item in value
+    ):
+        raise ValueError(f"native context pack {label} is invalid")
+    return value
+
+
 def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
     legacy_required = {
         "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider",
@@ -1380,6 +1463,8 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         "compiledTokens", "reductionPercent", "buildMilliseconds", "sourceManifestHash",
         "policy", "warnings",
     }
+    if not isinstance(manifest, dict):
+        raise ValueError("native context pack manifest must be an object")
     manifest_fields = set(manifest)
     v2_required = legacy_required | {"impactHint", "promptHash"}
     if (
@@ -1387,32 +1472,31 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         or manifest.get("schemaVersion") != 2
     ):
         raise ValueError("native context pack manifest has an invalid top-level shape")
-    if not re.fullmatch(r"pack-[a-f0-9]{32}", str(manifest["packId"])):
+    if not _matches(manifest["packId"], r"pack-[a-f0-9]{32}"):
         raise ValueError("native context pack has an invalid packId")
-    if not re.fullmatch(r"[a-f0-9]{16}", str(manifest["repoId"])):
+    if not _matches(manifest["repoId"], r"[a-f0-9]{16}"):
         raise ValueError("native context pack has an invalid repoId")
-    if not re.fullmatch(r"[a-f0-9]{64}", str(manifest["taskHash"])):
+    if not _matches(manifest["taskHash"], r"[a-f0-9]{64}"):
         raise ValueError("native context pack has an invalid taskHash")
-    if not re.fullmatch(
-        r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", str(manifest["snapshot"])
-    ):
+    if not _matches(manifest["snapshot"], r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}"):
         raise ValueError("native context pack has an invalid snapshot")
-    if not re.fullmatch(r"[a-f0-9]{64}", str(manifest["sourceManifestHash"])):
+    if not _matches(manifest["sourceManifestHash"], r"[a-f0-9]{64}"):
         raise ValueError("native context pack has an invalid source manifest hash")
     provider = manifest.get("provider")
-    if not isinstance(provider, dict) or provider.get("name") != "rhize-native" or provider.get(
-        "revision"
-    ) not in {"rhize-native-context-pack-v1", PROVIDER_REVISION}:
+    if (
+        not isinstance(provider, dict)
+        or set(provider) != {"name", "revision"}
+        or provider.get("name") != "rhize-native"
+        or provider.get("revision") not in {"rhize-native-context-pack-v1", PROVIDER_REVISION}
+    ):
         raise ValueError("native context pack provider provenance is invalid")
     if provider["revision"] == PROVIDER_REVISION and "impactHint" not in manifest:
         raise ValueError("native context pack v2 provider requires impact hint provenance")
     if provider["revision"] == PROVIDER_REVISION:
-        if not re.fullmatch(r"[a-f0-9]{64}", str(manifest.get("promptHash"))):
+        if not _matches(manifest.get("promptHash"), r"[a-f0-9]{64}"):
             raise ValueError("native context pack v2 provider requires prompt integrity")
     elif "promptHash" in manifest:
         raise ValueError("legacy native context packs cannot declare v2 prompt integrity")
-    if manifest["packId"] != stable_pack_id(manifest):
-        raise ValueError("native context pack identity does not match its manifest")
     entries = manifest.get("entries")
     if not isinstance(entries, list) or not entries:
         raise ValueError("native context pack must have at least one entry")
@@ -1430,8 +1514,12 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         }:
             raise ValueError("native context pack entry has an invalid reason")
         for key in ("sourceHash", "renderedHash"):
-            if not re.fullmatch(r"[a-f0-9]{64}", str(entry[key])):
+            if not _matches(entry[key], r"[a-f0-9]{64}"):
                 raise ValueError("native context pack entry has an invalid hash")
+        _require_integer(entry["estimatedTokens"], "entry token estimate", 0)
+    entry_paths = [entry["path"] for entry in entries]
+    if len(set(entry_paths)) != len(entry_paths):
+        raise ValueError("native context pack entry paths must be unique")
     discovery = manifest.get("discovery")
     if not isinstance(discovery, dict) or set(discovery) != {
         "strategy", "queryHash", "targetPaths"
@@ -1441,10 +1529,15 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         "explicit", "baseline", "rg", "codegraph", "impact_rg", "impact_codegraph"
     }:
         raise ValueError("native context pack discovery strategy is invalid")
-    for path in discovery["targetPaths"]:
+    target_paths = discovery["targetPaths"]
+    if not isinstance(target_paths, list) or not target_paths:
+        raise ValueError("native context pack discovery targets are invalid")
+    for path in target_paths:
         _require_relative_path(path)
+    if len(set(target_paths)) != len(target_paths) or not set(target_paths) <= set(entry_paths):
+        raise ValueError("native context pack discovery targets are inconsistent")
     query_hash = discovery["queryHash"]
-    if query_hash is not None and not re.fullmatch(r"[a-f0-9]{64}", str(query_hash)):
+    if query_hash is not None and not _matches(query_hash, r"[a-f0-9]{64}"):
         raise ValueError("native context pack query hash is invalid")
     impact_hint = manifest.get("impactHint")
     if impact_hint is None and provider["revision"] == "rhize-native-context-pack-v1":
@@ -1466,10 +1559,12 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack impact hint seed count is invalid")
     for key in ("contentHash", "termSetHash"):
         value = impact_hint[key]
-        if value is not None and not re.fullmatch(r"[a-f0-9]{64}", str(value)):
+        if value is not None and not _matches(value, r"[a-f0-9]{64}"):
             raise ValueError("native context pack impact hint hash is invalid")
     if impact_hint["present"] != (impact_hint["contentHash"] is not None):
         raise ValueError("native context pack impact hint presence/hash mismatch")
+    if impact_hint["present"] != (impact_hint["termSetHash"] is not None):
+        raise ValueError("native context pack impact hint presence/term mismatch")
     policy = manifest.get("policy")
     if not isinstance(policy, dict) or set(policy) != {
         "acceptedForUse", "maximumTokens", "eligibilityPolicy", "rejectionReasons"
@@ -1477,14 +1572,80 @@ def validate_native_context_pack_manifest(manifest: dict[str, Any]) -> None:
         raise ValueError("native context pack policy is invalid")
     if not isinstance(policy["acceptedForUse"], bool):
         raise ValueError("native context pack policy verdict is invalid")
+    maximum_tokens = _require_integer(policy["maximumTokens"], "maximum token policy", 1)
     eligibility = policy["eligibilityPolicy"]
-    if not isinstance(eligibility, dict) or eligibility.get("version") != "native-context-eligibility-v2":
+    if (
+        not isinstance(eligibility, dict)
+        or set(eligibility) != {
+            "version", "maximumSourceFiles", "maximumScanBytes",
+            "minimumProjectedReductionPercent",
+        }
+        or eligibility.get("version") != "native-context-eligibility-v2"
+    ):
         raise ValueError("native context pack eligibility policy is invalid")
+    _require_integer(eligibility["maximumSourceFiles"], "maximum source-file policy", 1)
+    _require_integer(eligibility["maximumScanBytes"], "maximum scan-byte policy", 1)
+    minimum_reduction = _require_number(
+        eligibility["minimumProjectedReductionPercent"], "minimum reduction policy", 0
+    )
+    if minimum_reduction > 100:
+        raise ValueError("native context pack minimum reduction policy is invalid")
+    rejection_reasons = _require_safe_ids(policy["rejectionReasons"], "rejection reasons")
+    if policy["acceptedForUse"] != (not rejection_reasons):
+        raise ValueError("native context pack policy verdict and rejection reasons disagree")
     ledger = manifest.get("exclusionLedger")
     if not isinstance(ledger, dict) or set(ledger) != {
         "reasonCounts", "reasonKindsTruncated", "privateIssueCount", "privateIssuesTruncated"
     }:
         raise ValueError("native context pack exclusion ledger is invalid")
+    reason_counts = ledger["reasonCounts"]
+    if not isinstance(reason_counts, dict) or len(reason_counts) > 8:
+        raise ValueError("native context pack exclusion reason counts are invalid")
+    for key, value in reason_counts.items():
+        if not isinstance(key, str) or not key:
+            raise ValueError("native context pack exclusion reason counts are invalid")
+        _require_integer(value, "exclusion reason count", 1)
+    _require_integer(ledger["reasonKindsTruncated"], "truncated reason count", 0)
+    private_issue_count = _require_integer(ledger["privateIssueCount"], "private issue count", 0)
+    private_issues_truncated = _require_integer(
+        ledger["privateIssuesTruncated"], "truncated private issue count", 0
+    )
+    if private_issues_truncated > private_issue_count:
+        raise ValueError("native context pack private issue ledger is inconsistent")
+
+    excluded_count = _require_integer(manifest["excludedCount"], "excluded count", 0)
+    total_source_files = _require_integer(manifest["totalSourceFiles"], "source-file count", 1)
+    naive_tokens = _require_integer(manifest["naiveDumpTokens"], "naive token count", 0)
+    compiled_tokens = _require_integer(manifest["compiledTokens"], "compiled token count", 0)
+    reduction_percent = _require_number(manifest["reductionPercent"], "reduction percent")
+    _require_number(manifest["buildMilliseconds"], "build duration", 0)
+    if total_source_files != len(entries) + excluded_count:
+        raise ValueError("native context pack source-file counts are inconsistent")
+    if compiled_tokens > maximum_tokens:
+        raise ValueError("native context pack compiled tokens exceed policy")
+    expected_reduction = (
+        round((1 - compiled_tokens / naive_tokens) * 100, 3)
+        if naive_tokens
+        else 0.0
+    )
+    if reduction_percent != expected_reduction:
+        raise ValueError("native context pack token reduction is inconsistent")
+    _require_safe_ids(manifest["warnings"], "warnings")
+
+    source_manifest_hash = _sha256(
+        json.dumps(
+            [
+                {key: entry[key] for key in ("path", "sourceHash", "renderedHash")}
+                for entry in entries
+            ],
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    )
+    if manifest["sourceManifestHash"] != source_manifest_hash:
+        raise ValueError("native context pack source manifest hash is inconsistent")
+    if manifest["packId"] != stable_pack_id(manifest):
+        raise ValueError("native context pack identity does not match its manifest")
 
 
 def _require_relative_path(value: Any) -> None:

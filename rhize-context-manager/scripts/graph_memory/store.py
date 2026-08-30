@@ -157,10 +157,8 @@ class InMemoryNeo4jAdapter:
             if stored.status == "accepted" and current == compilation_id:
                 return copy.deepcopy(self._receipts[stored.run_id])
             if current != expected_current:
-                stored.status = "rejected"
-                self._receipts[stored.run_id] = self._receipt(
-                    stored.compilation,
-                    run_id=stored.run_id,
+                self._set_compilation_status(
+                    compilation_id,
                     status="rejected",
                     current_compilation=current,
                 )
@@ -169,11 +167,8 @@ class InMemoryNeo4jAdapter:
                 raise StoreError("injected failure before atomic publication")
 
             if current is not None:
-                previous = self._compilations[current]
-                previous.status = "superseded"
-                self._receipts[previous.run_id] = self._receipt(
-                    previous.compilation,
-                    run_id=previous.run_id,
+                self._set_compilation_status(
+                    current,
                     status="superseded",
                     current_compilation=compilation_id,
                 )
@@ -306,14 +301,14 @@ class InMemoryNeo4jAdapter:
                 compilation = stored.compilation
                 if self._partition_key(compilation) != key or compilation["sourceRevision"] != source_revision:
                     continue
-                stored.status = "purged"
                 if self._accepted.get(key) == compilation["compilationId"]:
                     del self._accepted[key]
-                receipt = self._receipt(
-                    compilation, run_id=stored.run_id, status="purged", current_compilation=None
+                self._set_compilation_status(
+                    compilation["compilationId"],
+                    status="purged",
+                    current_compilation=None,
                 )
-                self._receipts[stored.run_id] = receipt
-                receipts.append(copy.deepcopy(receipt))
+                receipts.append(copy.deepcopy(self._receipts[stored.run_id]))
         return receipts
 
     def backup(self, *, role: str) -> dict[str, Any]:
@@ -487,6 +482,24 @@ class InMemoryNeo4jAdapter:
         }
         validate_receipt(receipt, self.ontology, compilation)
         return receipt
+
+    def _set_compilation_status(
+        self,
+        compilation_id: str,
+        *,
+        status: str,
+        current_compilation: str | None,
+    ) -> None:
+        stored = self._compilations[compilation_id]
+        stored.status = status
+        for run_id, bound_compilation in self._run_compilations.items():
+            if bound_compilation == compilation_id:
+                self._receipts[run_id] = self._receipt(
+                    stored.compilation,
+                    run_id=run_id,
+                    status=status,
+                    current_compilation=current_compilation,
+                )
 
     def _validate_budget(self, budget: QueryBudget) -> None:
         limits = self.ontology.core["queryBudgets"]

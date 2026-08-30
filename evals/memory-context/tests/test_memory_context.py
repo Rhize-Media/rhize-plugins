@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -92,7 +93,7 @@ def test_private_write_verify_revision_and_exact_source_purge(tmp_path: Path) ->
 
     purge = store.purge("decision-blue", FIXED_NOW)
     assert purge["invalidatedPackIds"] == [manifest["packId"]]
-    assert purge["rawSourceRetained"] is False
+    assert purge["rawSourceRetained"] is True
     assert not manifest_path.exists()
     index = json.loads(store.index_path.read_text())
     assert sha256("decision-blue") in index["revokedSources"]
@@ -120,6 +121,71 @@ def test_ttl_cleanup_and_payload_tamper_fail_closed(tmp_path: Path) -> None:
     assert "payload_hash_mismatch" in result["reasons"]
     cleanup = store.cleanup_expired(datetime(2026, 8, 30, 14, 0, tzinfo=timezone.utc))
     assert cleanup["removedPackIds"] == [manifest["packId"]]
+
+
+def test_ttl_cleanup_serializes_index_updates_with_concurrent_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assembler = MemoryContextAssembler()
+    expired_manifest, expired_payload = assembler.assemble(fixture(), FIXED_NOW)
+    fresh_manifest, fresh_payload = assembler.assemble(
+        fixture(), FIXED_NOW + timedelta(hours=2)
+    )
+    store = MemoryStore(tmp_path / "store")
+    store.write(expired_manifest, expired_payload)
+
+    cleanup_reading_index = threading.Event()
+    release_cleanup = threading.Event()
+    writer_finished = threading.Event()
+    original_read_index = store._read_index
+
+    def controlled_read_index() -> dict:
+        if threading.current_thread().name == "memory-cleanup":
+            cleanup_reading_index.set()
+            if not release_cleanup.wait(timeout=5):
+                raise RuntimeError("cleanup test release timed out")
+        return original_read_index()
+
+    monkeypatch.setattr(store, "_read_index", controlled_read_index)
+    cleanup_result: dict = {}
+    errors: list[BaseException] = []
+
+    def cleanup() -> None:
+        try:
+            cleanup_result.update(
+                store.cleanup_expired(FIXED_NOW + timedelta(hours=2))
+            )
+        except BaseException as exc:
+            errors.append(exc)
+
+    def write_fresh_pack() -> None:
+        try:
+            store.write(fresh_manifest, fresh_payload)
+        except BaseException as exc:
+            errors.append(exc)
+        finally:
+            writer_finished.set()
+
+    cleanup_thread = threading.Thread(target=cleanup, name="memory-cleanup")
+    cleanup_thread.start()
+    assert cleanup_reading_index.wait(timeout=5)
+    writer_thread = threading.Thread(target=write_fresh_pack, name="memory-writer")
+    writer_thread.start()
+    assert not writer_finished.wait(timeout=0.1)
+    release_cleanup.set()
+    cleanup_thread.join(timeout=5)
+    writer_thread.join(timeout=5)
+
+    assert not cleanup_thread.is_alive()
+    assert not writer_thread.is_alive()
+    assert errors == []
+    assert cleanup_result == {"removedPackIds": [expired_manifest["packId"]]}
+    index = json.loads(store.index_path.read_text())
+    assert all(
+        expired_manifest["packId"] not in pack_ids
+        for pack_ids in index["sourcePacks"].values()
+    )
+    assert fresh_manifest["packId"] in index["sourcePacks"][sha256("decision-blue")]
 
 
 def test_unknown_fields_and_available_candidates_on_failed_adapter_are_rejected() -> None:

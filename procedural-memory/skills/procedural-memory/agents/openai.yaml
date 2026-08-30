@@ -1,0 +1,4 @@
+interface:
+  display_name: "Procedural Memory"
+  short_description: "Recall and run proven registry artifacts"
+  default_prompt: "Use $procedural-memory to recall a proven registry artifact for this task without weakening its trust gates."

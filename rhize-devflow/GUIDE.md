@@ -106,7 +106,9 @@ evidence-backed no-op as success and never rewrites an applied migration for cle
 actually protects behavior. It does not activate for cache/data mutation consistency.
 
 **What it knows:** The behavior, artifact, and structural contract classes; independent-oracle
-requirements; exact Git/file binding; protected-target denials; and isolated mutation lifecycle.
+requirements; exact Git/file binding; protected-target denials; and the packet contract a future
+trusted sandbox must satisfy. The current runner does not execute package scripts: it returns
+`execution_unavailable` until RT-163 provides that sandbox.
 
 **Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
 contract and produce test evidence before review."
@@ -281,10 +283,11 @@ merge, deploy, migration, or external-write authority. A verified no-op is a suc
 **Usage:** `/rhize-devflow:test-evidence` with one to three explicit regression claims and a local
 run-spec boundary. Run it before `/review`, never from inside review.
 
-The command classifies each claim, then uses an approved `test`/`test:*` package script and a
-disposable worktree when isolated mutation is authorized. It refuses dirty or protected targets,
-binds the packet to exact SHAs and file digests, restores and reruns clean state, and reports killed,
-survived, missing-oracle, unavailable, stale, or cleanup-failed evidence precisely.
+The command classifies each claim and digest-binds an approved `test`/`test:*` package-script
+declaration without executing it. It refuses dirty or protected targets, binds the packet to exact
+SHAs and file digests, and returns `execution_unavailable` on a clean checkout. Execution-backed
+verdicts remain invalid until RT-163 supplies a trusted sandbox; see `docs/test-evidence.md` for the
+canonical lifecycle and verdict contract.
 
 **Example:** "Run test evidence for the exact cache-key bug these two tests claim to prevent."
 
@@ -390,9 +393,10 @@ it. `data-mutation-consistency` and `chrome-devtools-mcp` are the reference know
 
 **Test evidence is a separate pre-review lane:** use `/rhize-devflow:test-evidence` when changed
 tests claim to prevent a regression. It distinguishes observable behavior from exact artifact and
-structural contracts, then binds independent-oracle or isolated mutation results to the exact Git
-state. `/review` only validates that local packet and never runs a mutant. This is intentionally
-separate from `/mutation-check`, which audits cache and data-write consistency.
+structural contracts, then binds the classification and declared oracle to the exact Git state.
+The current runner reports execution unavailable, and `/review` treats that packet as unsupported;
+neither surface runs a mutant. This is intentionally separate from `/mutation-check`, which audits
+cache and data-write consistency.
 
 **Sanity development stands alongside, not inside:** `sanity-development` doesn't feed a slash
 command in this plugin — it's pure reference knowledge Claude applies automatically whenever

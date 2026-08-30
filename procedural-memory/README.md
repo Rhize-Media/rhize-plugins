@@ -11,7 +11,9 @@ report its output honestly.
 Distinct from claude-mem's session-search skills: those retrieve what happened in past
 conversations; this plugin executes proven code that already solves a task.
 
-The canonical skill and launcher contract are shared by Claude Code and Codex. Unified memory may
+The canonical skill and launcher contract are shared by Claude Code and Codex. Claude Code exposes
+the four slash commands and advisory hooks; Codex discovers the natural-language skill and its
+self-relative launcher, without claiming Claude's hook lifecycle. Unified memory may
 consume procedural metadata only through the versioned, recall-only
 `rhize-procedural-recall-v1` contract. That adapter is not available yet, so memory assembly must
 report the procedural lane as unavailable. It must not parse human CLI output, query registry tables
@@ -32,7 +34,7 @@ python3 -m venv .venv
 This plugin never assumes that checkout lives at any particular path (see "How the CLI is
 resolved" below) — `doctor`'s job is entirely the registry's own readiness, not this plugin's.
 
-Every command here talks to Postgres at the CLI's own default DSN
+Every command or skill invocation here talks to Postgres at the CLI's own default DSN
 (`postgresql://<user>@localhost:5432/procedural_memory`) unless you pass `--dsn` through as an
 extra argument. No plugin-level configuration is needed beyond having a working `rhize-skill`
 somewhere this plugin can find it.
@@ -40,8 +42,10 @@ somewhere this plugin can find it.
 ## How the CLI is resolved (portability)
 
 `rhize-plugins` is distributed to more than one machine; a hardcoded path to one person's
-checkout would break everywhere else. Every command and the skill call
-`scripts/rhize-skill-launcher.sh` instead of the CLI directly. It resolves the binary in order:
+checkout would break everywhere else. Claude Code commands call
+`scripts/rhize-skill-launcher.sh` through `${CLAUDE_PLUGIN_ROOT}`. The shared skill uses its
+self-relative `scripts/procedural-memory.sh`, which resolves the installed plugin root and delegates
+to that same launcher from either host. The launcher resolves the binary in order:
 
 1. `RHIZE_SKILL_BIN` env var — an exact path to the `rhize-skill` executable.
 2. `rhize-skill` on `PATH` (`command -v`) — the portable case for anyone who installed it
@@ -69,7 +73,7 @@ rather than guessing — this degrades to "unchecked," never to a false pass.
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `procedural-memory` | Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a tas… | automation, workflow-patterns |
+| `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
 ## Commands
@@ -121,8 +125,12 @@ read-only 90-day decay report) is reachable directly via
 ```
 procedural-memory/
 ├── .claude-plugin/plugin.json
+├── .codex-plugin/plugin.json               # Codex skill discovery and UI metadata
 ├── commands/{promote,recall,run,verify}.md   # thin wrappers — no reimplemented logic
-├── skills/procedural-memory/SKILL.md         # natural-language trigger, same 4 verbs
+├── skills/procedural-memory/
+│   ├── SKILL.md                              # natural-language trigger, same 4 verbs
+│   ├── agents/openai.yaml                    # Codex skill presentation metadata
+│   └── scripts/procedural-memory.sh          # self-relative cross-host launcher
 ├── scripts/rhize-skill-launcher.sh           # portable CLI resolver + version gate
 ├── hooks/
 │   ├── hooks.json                            # PostToolUse/Bash + Stop, wired

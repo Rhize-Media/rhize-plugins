@@ -29,7 +29,7 @@
   "interface": {
     "displayName": "Rhize Dev Flow",
     "shortDescription": "Impact mapping, simplification, test evidence, validation, review, and safe branch promotion for Rhize engineering.",
-    "longDescription": "Rhize Media's engineering workflow plugin for Next.js/React/Sanity/Payload/Supabase projects deployed on Vercel: exact-diff impact mapping, behavior-preserving simplification, state-bound independent-oracle and isolated mutation evidence, deterministic validation, independent production review, repository-governed completed-branch promotion, mutation-consistency analysis, browser QA, Sentry conventions, and Sanity house style. The control plane is impact-map -> implement -> simplify -> check -> review -> release.",
+    "longDescription": "Rhize Media's engineering workflow plugin for Next.js/React/Sanity/Payload/Supabase projects deployed on Vercel: exact-diff impact mapping, behavior-preserving simplification, fail-closed test classification and state-bound packet validation, deterministic validation, independent production review, repository-governed completed-branch promotion, mutation-consistency analysis, browser QA, Sentry conventions, and Sanity house style. Test execution remains unavailable until a trusted sandbox adapter ships. The control plane is impact-map -> implement -> simplify -> check -> review -> release.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [

@@ -13,8 +13,10 @@ from hygiene_support import (
     entity,
     h,
     leased_review,
+    policy,
     preview,
 )
+from graph_memory.dedup import generate_candidates
 from graph_memory.review import (
     IdentityReviewStore,
     ReviewError,
@@ -66,6 +68,48 @@ class ReviewTests(unittest.TestCase):
         self.assertEqual(list(store.projection(tenant_hash=review["tenantHash"], namespace_hash=review["namespaceHash"], actor=reviewer).values()), [review["candidateIds"]])
         self.assertEqual(json.dumps(source, sort_keys=True).encode(), source_bytes)
         self.assertNotIn("label", json.dumps(receipt))
+
+    def test_changed_accepted_evidence_removes_stale_projection_and_queues_review(self) -> None:
+        source = [entity("a", "Same"), entity("b", "Same")]
+        review = candidate(*source)
+        reviewer = actor("identity_reviewer")
+        store = IdentityReviewStore()
+        lease, leased = leased_review(store, review, reviewer)
+        impact = preview(store, leased, reviewer, lease, "accept_same_as")
+        accepted = decide(store, leased, reviewer, lease, impact)
+
+        changed_source = copy.deepcopy(source)
+        changed_source[0]["sourceRevisionHash"] = h("revision:a:v2")
+        successor = generate_candidates(
+            changed_source,
+            policy=policy(),
+            tenant_hash=review["tenantHash"],
+            namespace_hash=review["namespaceHash"],
+            created_at="2026-08-30T15:00:00+00:00",
+            origin="ingest",
+        )["candidates"][0]
+        result = store.enqueue_candidates(
+            [successor],
+            actor=actor("identity_ingest"),
+            occurred_at="2026-08-30T15:00:00+00:00",
+        )
+
+        self.assertEqual(result, {"queued": 1, "replayed": 0, "suppressed": 0, "superseded": 1})
+        self.assertEqual(store.show_review(review["reviewId"], actor=reviewer)["state"], "superseded")
+        self.assertEqual(store.show_review(successor["reviewId"], actor=reviewer)["state"], "pending")
+        self.assertEqual(
+            store.projection(
+                tenant_hash=review["tenantHash"],
+                namespace_hash=review["namespaceHash"],
+                actor=reviewer,
+            ),
+            {},
+        )
+        events = store.ledger(
+            tenant_hash=review["tenantHash"], namespace_hash=review["namespaceHash"], actor=reviewer
+        )
+        self.assertEqual([event["eventType"] for event in events], ["ACCEPT_SAME_AS", "SUPERSEDE"])
+        self.assertEqual(events[-1]["reversalOfDecisionId"], accepted["decisionId"])
 
     def test_same_partition_actor_without_candidate_acl_cannot_read_or_transition(self) -> None:
         review = candidate()

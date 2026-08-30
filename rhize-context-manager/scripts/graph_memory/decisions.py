@@ -42,6 +42,11 @@ FORBIDDEN_TEXT = (
     "chain of thought", "chain-of-thought", "system prompt", "ignore all previous",
     "-----begin", "sk-", "/users/", "\\users\\", "client content",
 )
+FORBIDDEN_SECRET_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9])(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
+    r"sntrys_[A-Za-z0-9._-]{20,})(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
 PROPOSAL_FIELDS = {
     "tenantRef", "projectRef", "domain", "decisionClass", "source", "workflow",
     "actorHash", "acl", "sensitivity", "rationaleSummaryHash", "evidenceSet",
@@ -1586,6 +1591,8 @@ def _privacy_safe(value: Any) -> None:
             lowered = item.casefold()
             if any(marker in lowered for marker in FORBIDDEN_TEXT):
                 raise DecisionError("protected or prompt-like content is forbidden")
+            if FORBIDDEN_SECRET_PATTERN.search(item):
+                raise DecisionError("secret-shaped content is forbidden")
 
     walk(value)
 

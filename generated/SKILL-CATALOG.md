@@ -103,5 +103,5 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `procedural-memory` | Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a tas… | automation, workflow-patterns |
+| `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 <!-- SKILL-MAP:END -->

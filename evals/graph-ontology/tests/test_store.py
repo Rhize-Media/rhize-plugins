@@ -96,6 +96,12 @@ class StagePublishTests(unittest.TestCase):
         first = self.store.ingest(
             self.first, role="ingest", idempotency_key="first", expected_current=None
         )
+        self.store.ingest(
+            self.first,
+            role="ingest",
+            idempotency_key="first-alternate",
+            expected_current=None,
+        )
         second = compilation(source_revision="revision-2")
         self.store.ingest(
             second,
@@ -104,9 +110,19 @@ class StagePublishTests(unittest.TestCase):
             expected_current=first["compilationHash"],
         )
         superseded = self.store.ingest(
-            self.first, role="ingest", idempotency_key="first", expected_current=None
+            self.first,
+            role="ingest",
+            idempotency_key="first-alternate",
+            expected_current=None,
         )
         self.assertEqual(superseded["status"], "superseded")
+
+        self.store.ingest(
+            second,
+            role="ingest",
+            idempotency_key="second-alternate",
+            expected_current=first["compilationHash"],
+        )
 
         self.store.purge_source_revision(
             tenant_key=second["tenantKey"],
@@ -118,7 +134,7 @@ class StagePublishTests(unittest.TestCase):
         purged = self.store.ingest(
             second,
             role="ingest",
-            idempotency_key="second",
+            idempotency_key="second-alternate",
             expected_current=first["compilationHash"],
         )
         self.assertEqual(purged["status"], "purged")

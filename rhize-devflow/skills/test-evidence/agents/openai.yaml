@@ -1,4 +1,4 @@
 interface:
   display_name: "Test Evidence"
   short_description: "Verify whether changed tests protect behavior."
-  default_prompt: "Use $test-evidence to classify these changed tests and validate independent-oracle or isolated mutation evidence."
+  default_prompt: "Use $test-evidence to classify these changed tests and validate a fail-closed, state-bound evidence packet."

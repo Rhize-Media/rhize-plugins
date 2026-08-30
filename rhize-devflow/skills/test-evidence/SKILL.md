@@ -2,8 +2,8 @@
 name: test-evidence
 description: >-
   Classify changed regression tests as behavior, artifact, or structural contracts and produce or
-  validate fail-closed, state-bound evidence metadata, including where safely isolated mutation evidence
-  would be required. Use before review
+  validate fail-closed, state-bound evidence metadata, including an explicit unavailable status
+  while trusted test execution is not implemented. Use before review
   when tests changed, a change claims regression coverage, or someone asks whether a test actually
   protects behavior. Do not route data/cache mutation consistency requests here.
 metadata:

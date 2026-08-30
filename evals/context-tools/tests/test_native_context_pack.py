@@ -75,6 +75,13 @@ def test_native_pack_selects_full_targets_interfaces_and_related_support(tmp_pat
     assert by_path["tests/app.test.ts"]["reason"] == "related_test"
     assert by_path["package.json"]["reason"] == "nearby_configuration"
     assert manifest["policy"]["acceptedForUse"] is True
+    assert manifest["compiledTokens"] == native_provider._estimate_tokens(
+        prompt_path.read_text(encoding="utf-8")
+    )
+    assert manifest["compiledTokens"] <= manifest["policy"]["maximumTokens"]
+    assert manifest["compiledTokens"] > sum(
+        entry["estimatedTokens"] for entry in manifest["entries"]
+    )
     assert manifest_path.stat().st_mode & 0o777 == 0o600
     assert prompt_path.stat().st_mode & 0o777 == 0o600
     assert str(repo) not in prompt_path.read_text(encoding="utf-8")
@@ -110,6 +117,22 @@ def test_native_pack_is_reproducible_and_detects_stale_entries(tmp_path: Path) -
     assert result.changed_entries == ("src/service.ts",)
 
 
+def test_dirty_snapshot_binds_bytes_when_path_status_is_unchanged(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    commit_fixture(repo)
+    unselected = repo / "src" / "unused.ts"
+    unselected.write_text("export const dirty = 1;\n", encoding="utf-8")
+    first_dirty_snapshot = git_snapshot(repo)
+
+    unselected.write_text("export const dirty = 2;\n", encoding="utf-8")
+    second_dirty_snapshot = git_snapshot(repo)
+
+    assert first_dirty_snapshot is not None
+    assert second_dirty_snapshot is not None
+    assert first_dirty_snapshot != second_dirty_snapshot
+
+
 def test_native_pack_verification_binds_manifest_and_prompt_bytes(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write_static_typescript_fixture(repo)
@@ -133,6 +156,18 @@ def test_native_pack_verification_binds_manifest_and_prompt_bytes(tmp_path: Path
     tampered_manifest["taskHash"] = "f" * 64
     with pytest.raises(ValueError, match="identity does not match"):
         provider.verify_pack(tampered_manifest, repo, snapshot, prompt_path)
+
+    understated_tokens = json.loads(manifest_path.read_text())
+    understated_tokens["compiledTokens"] -= 1
+    understated_tokens["reductionPercent"] = round(
+        (1 - understated_tokens["compiledTokens"] / understated_tokens["naiveDumpTokens"])
+        * 100,
+        3,
+    )
+    understated_tokens["packId"] = native_provider.stable_pack_id(understated_tokens)
+    understated = provider.verify_pack(understated_tokens, repo, snapshot, prompt_path)
+    assert understated.valid is False
+    assert understated.prompt_current is False
 
 
 def test_fixed_fixture_manifest_is_portable_across_host_roots(tmp_path: Path) -> None:
@@ -379,11 +414,29 @@ def test_required_dependency_omitted_by_budget_rejects_use(tmp_path: Path) -> No
         snapshot=snapshot,
         task_hash="1" * 64,
         targets=(target,),
-        max_tokens=40,
+        max_tokens=120,
     )
 
     assert pack.manifest["policy"]["acceptedForUse"] is False
     assert "required_dependency_exceeds_token_budget" in pack.manifest["policy"]["rejectionReasons"]
+
+
+def test_required_target_budget_includes_rendered_prompt_framing(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    target = repo / "app.py"
+    target.write_text("value = 1\n", encoding="utf-8")
+    snapshot = commit_fixture(repo)
+    content_tokens = native_provider._estimate_tokens(target.read_text(encoding="utf-8"))
+
+    with pytest.raises(ValueError, match="cannot contain every required target"):
+        NativeContextPackProvider().compile(
+            repo,
+            snapshot=snapshot,
+            task_hash="a" * 64,
+            targets=(target,),
+            max_tokens=content_tokens,
+        )
 
 
 def test_manifest_contains_no_source_or_absolute_paths(tmp_path: Path) -> None:
@@ -403,6 +456,41 @@ def test_manifest_contains_no_source_or_absolute_paths(tmp_path: Path) -> None:
     malformed = {**pack.manifest, "snapshot": "/absolute/snapshot"}
     with pytest.raises(ValueError, match="invalid snapshot"):
         validate_native_context_pack_manifest(malformed)
+
+
+def test_manifest_runtime_rejects_schema_invalid_and_incoherent_fields(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    write_static_typescript_fixture(repo)
+    snapshot = commit_fixture(repo)
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="b" * 64,
+        targets=(repo / "src" / "app.ts",),
+    )
+
+    malformed_manifests = []
+    for mutate in (
+        lambda value: value.update(excludedCount=-1),
+        lambda value: value["entries"][0].update(estimatedTokens=-1),
+        lambda value: value.update(compiledTokens=-1),
+        lambda value: value.update(buildMilliseconds=-1),
+        lambda value: value["policy"].update(maximumTokens=0),
+        lambda value: value["policy"]["eligibilityPolicy"].update(maximumScanBytes=0),
+        lambda value: value.update(warnings=["not bounded text"]),
+        lambda value: value["exclusionLedger"].update(reasonCounts={"invalid": 0}),
+        lambda value: value["discovery"].update(targetPaths=[]),
+        lambda value: value.update(sourceManifestHash="f" * 64),
+    ):
+        malformed = json.loads(json.dumps(pack.manifest))
+        mutate(malformed)
+        malformed["packId"] = native_provider.stable_pack_id(malformed)
+        malformed_manifests.append(malformed)
+
+    for malformed in malformed_manifests:
+        with pytest.raises(ValueError):
+            validate_native_context_pack_manifest(malformed)
+
 
 def test_python_multiline_decorated_contract_is_complete(tmp_path: Path) -> None:
     repo = tmp_path / "repo"

@@ -40,7 +40,7 @@ never deploys from a graph record, and preserves `unavailable` while the governe
 | `/rhize-devflow:impact-map` | 1 — map | CodeGraph-first structural discovery paired with a semantic impact map; optionally supplies hash-only semantic hints to rhize-context-manager's local native pack with deterministic `rg` fallback and no index creation; reconciles graph/diff/map after implementation. |
 | `/rhize-devflow:simplify` | post-implementation | Safely reduces duplication, accidental complexity, redundant React state/effects, and unnecessary work within the exact task diff. Uses a behavior-preservation candidate gate, validates applied changes, and treats a verified no-op as success. The command is a thin adapter over the canonical `simplify` skill so Claude and Codex share one contract. |
 | `/rhize-devflow:check` | 2 — validate | Evidence-driven mid-implementation validation. Builds a deterministic evidence packet (`devflow.py evidence`), selects checks only from repository instructions and known-safe declared package scripts, runs focused tests then repository-mandated gates, returns `PASS` / `PASS_WITH_WARNINGS` / `BLOCKED`. Never executes shell text parsed from prose. |
-| `/rhize-devflow:test-evidence` | pre-review evidence | Classifies behavior/artifact/structural test contracts and produces state-bound independent-oracle or safely isolated mutation evidence without touching the live checkout. |
+| `/rhize-devflow:test-evidence` | pre-review evidence | Classifies behavior/artifact/structural test contracts and validates state-bound packets without touching the live checkout. The current runner never executes package scripts and returns `execution_unavailable` until RT-163 supplies a trusted sandbox adapter. |
 | `/rhize-devflow:review` | 3 — gate | Read-only production merge/release gate. Resolves the exact base/head comparison range, builds a risk map from actual diff evidence (deployment, data, security, authorization, billing, migration, cache, external-write), routes only relevant specialists, requires an independent skeptical reviewer for non-trivial work, returns `PASS` / `FAIL_WITH_FIXABLE_GAPS` / `FAIL_REQUIRES_HUMAN`. Never commits, pushes, merges, or deploys. |
 | `/rhize-devflow:mutation-check` | overlay | Read-only data-mutation consistency check — `PATH...` (scoped file(s)), `--all` (whole codebase), or `--fix-plan` (proposed changes only, never edits source). |
 | `/rhize-devflow:browser-qa` | overlay | Scenario-driven browser acceptance check (functional path, console/network errors, accessibility smoke, responsive layout, performance on request) against whichever browser tool is actually connected. |
@@ -96,7 +96,7 @@ mutation-analyze · mutation-fix
 | `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
 <!-- SKILL-MAP:END -->
 
-Each of these seven overlay skills carries only Rhize-specific policy or convention, not
+Each of these nine packaged skills carries only Rhize-specific policy or convention, not
 platform API reference — `sentry-instrumentation` and `sanity-development` explicitly defer to
 the official `sentry:*`/`sanity:*` plugins for SDK setup and exhaustive API docs, and
 `chrome-devtools-mcp` shrinks to DevTools-protocol mechanics for `/rhize-devflow:browser-qa`

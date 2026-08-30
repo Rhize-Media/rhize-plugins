@@ -15,7 +15,11 @@
 
 Candidate intersections now carry hashed ACL scopes in their revision and ledger identities. Every
 candidate read or transition enforces both tenant/namespace and an authorized ACL intersection;
-same-partition authority alone is insufficient.
+same-partition authority alone is insufficient. Proposal consolidation now requires one explicit
+authorized ACL lane; its watermark, backlog count, and suppressed-revision lookup cannot aggregate
+or block work from another ACL lane. Changed evidence supersedes an accepted candidate, removes its
+stale logical projection after dependency checks, and queues a fresh manual review with an append-only
+ledger event.
 
 ## Decision
 

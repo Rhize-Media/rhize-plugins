@@ -52,14 +52,14 @@ class DecisionContractTests(unittest.TestCase):
             validate_policy_evaluation(changed)
 
     def test_prompt_transcript_and_secret_shaped_content_fail_closed(self) -> None:
-        item = proposal()
-        item["source"]["system"] = "prompt"
         from graph_memory.decisions import DecisionPreviewStore, InMemoryDecisionLedger
         import tempfile
         from pathlib import Path
 
         with tempfile.TemporaryDirectory() as directory:
             ledger = InMemoryDecisionLedger(DecisionPreviewStore(Path(directory)))
+            item = proposal()
+            item["source"]["system"] = "prompt"
             with self.assertRaisesRegex(DecisionError, "private agent traces"):
                 ledger.preview(
                     item,
@@ -67,6 +67,19 @@ class DecisionContractTests(unittest.TestCase):
                     principal_scopes=["decision:record", "group:rhize-tools"],
                     idempotency_key="one", nonce="nonce-for-fixture", now=NOW,
                 )
+            for index, secret in enumerate(("ghp_" + "a" * 36, "sntrys_" + "a" * 40)):
+                item = proposal()
+                item["tenantRef"] = secret
+                with self.assertRaisesRegex(DecisionError, "secret-shaped content"):
+                    ledger.preview(
+                        item,
+                        principal_hash=sha256_value("principal"),
+                        principal_scopes=["decision:record", "group:rhize-tools"],
+                        idempotency_key=f"secret-{index}",
+                        nonce=f"secret-fixture-{index:02d}",
+                        now=NOW,
+                    )
+            self.assertEqual(list(Path(directory).iterdir()), [])
 
 
 if __name__ == "__main__":

@@ -194,7 +194,56 @@ def git_snapshot(repo_root: Path) -> str | None:
         return None
     if not status.stdout:
         return commit_id
-    return f"{commit_id}-dirty-{hashlib.sha256(status.stdout).hexdigest()[:16]}"
+    try:
+        tracked_changes = subprocess.run(
+            ["git", "-C", str(repo_root), "diff", "--name-only", "-z", "HEAD", "--"],
+            capture_output=True,
+            timeout=3,
+            check=False,
+        )
+        untracked = subprocess.run(
+            ["git", "-C", str(repo_root), "ls-files", "--others", "--exclude-standard", "-z"],
+            capture_output=True,
+            timeout=3,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if tracked_changes.returncode != 0 or untracked.returncode != 0:
+        return None
+
+    fingerprint = hashlib.sha256(status.stdout)
+    dirty_paths = {
+        path
+        for output in (tracked_changes.stdout, untracked.stdout)
+        for path in output.split(b"\0")
+        if path
+    }
+    for raw_path in sorted(dirty_paths):
+        relative = Path(os.fsdecode(raw_path))
+        if relative.is_absolute() or ".." in relative.parts:
+            return None
+        path = repo_root / relative
+        fingerprint.update(raw_path)
+        fingerprint.update(b"\0")
+        if path.is_symlink():
+            fingerprint.update(b"symlink\0")
+            fingerprint.update(os.fsencode(os.readlink(path)))
+        elif path.is_file():
+            fingerprint.update(b"file\0")
+            try:
+                with path.open("rb") as source:
+                    for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                        fingerprint.update(chunk)
+            except OSError:
+                return None
+        elif path.exists():
+            # A dirty directory is typically a submodule. Its nested worktree is
+            # outside this repository's byte-bound snapshot contract.
+            return None
+        else:
+            fingerprint.update(b"missing\0")
+    return f"{commit_id}-dirty-{fingerprint.hexdigest()[:16]}"
 
 
 def select_next(

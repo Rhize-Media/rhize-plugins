@@ -26,21 +26,29 @@ class ProposalConsolidator:
 
     def __init__(self) -> None:
         self._lock = threading.RLock()
-        self._watermarks: dict[tuple[str, str], dict[str, Any]] = {}
+        self._watermarks: dict[tuple[str, str, str], dict[str, Any]] = {}
         self._idempotency: dict[str, tuple[str, dict[str, Any]]] = {}
 
     def status(
-        self, *, tenant_hash: str, namespace_hash: str, actor: AuthenticatedActor
+        self,
+        *,
+        tenant_hash: str,
+        namespace_hash: str,
+        acl_scope_hash: str,
+        actor: AuthenticatedActor,
     ) -> dict[str, Any]:
         actor.validate()
         validate_hash(tenant_hash, "tenant_hash")
         validate_hash(namespace_hash, "namespace_hash")
+        _require_acl_lane(actor, acl_scope_hash)
         if not actor.roles.intersection({"identity_ingest", "identity_auditor"}):
             raise ConsolidationError("consolidation status requires ingest or audit authority")
         _require_partition(actor, tenant_hash, namespace_hash)
         with self._lock:
-            watermark = self._watermarks.get((tenant_hash, namespace_hash))
-            return copy.deepcopy(watermark or _initial_watermark(tenant_hash, namespace_hash))
+            watermark = self._watermarks.get((tenant_hash, namespace_hash, acl_scope_hash))
+            return copy.deepcopy(
+                watermark or _initial_watermark(tenant_hash, namespace_hash, acl_scope_hash)
+            )
 
     def run(
         self,
@@ -49,6 +57,7 @@ class ProposalConsolidator:
         policy: CandidatePolicy,
         tenant_hash: str,
         namespace_hash: str,
+        acl_scope_hash: str,
         expected_watermark_revision: str,
         actor: AuthenticatedActor,
         review_store: IdentityReviewStore,
@@ -66,6 +75,7 @@ class ProposalConsolidator:
         validate_hash(tenant_hash, "tenant_hash")
         validate_hash(namespace_hash, "namespace_hash")
         _require_partition(actor, tenant_hash, namespace_hash)
+        _require_acl_lane(actor, acl_scope_hash)
         validate_hash(expected_watermark_revision, "expected_watermark_revision")
         parse_timestamp(run_at, "run_at")
         if (
@@ -93,6 +103,11 @@ class ProposalConsolidator:
             for entity in normalized
         ):
             raise ConsolidationError("consolidation input crosses the requested partition")
+        if any(
+            acl_scope_hash not in {sha256_value(scope) for scope in entity["acl"]}
+            for entity in normalized
+        ):
+            raise ConsolidationError("consolidation input crosses the requested ACL lane")
         normalized.sort(key=lambda item: (item["recordedAt"], item["entityId"]))
 
         key_hash = _idempotency_hash(idempotency_key)
@@ -100,6 +115,7 @@ class ProposalConsolidator:
             {
                 "tenantHash": tenant_hash,
                 "namespaceHash": namespace_hash,
+                "aclScopeHash": acl_scope_hash,
                 "expectedWatermarkRevision": expected_watermark_revision,
                 "batchSize": batch_size,
                 "backlogLimit": backlog_limit,
@@ -118,15 +134,17 @@ class ProposalConsolidator:
         with self._lock:
             watermark = copy.deepcopy(
                 self._watermarks.get(
-                    (tenant_hash, namespace_hash),
-                    _initial_watermark(tenant_hash, namespace_hash),
+                    (tenant_hash, namespace_hash, acl_scope_hash),
+                    _initial_watermark(tenant_hash, namespace_hash, acl_scope_hash),
                 )
             )
             if watermark["watermarkRevision"] != expected_watermark_revision:
                 raise ConsolidationError("consolidation watermark compare-and-swap rejected")
 
         review_counts = review_store.counts(
-            tenant_hash=tenant_hash, namespace_hash=namespace_hash
+            tenant_hash=tenant_hash,
+            namespace_hash=namespace_hash,
+            acl_scope_hashes={acl_scope_hash},
         )
         pending = review_counts["pending"] + review_counts["leased"]
         if pending >= backlog_limit:
@@ -172,7 +190,9 @@ class ProposalConsolidator:
             namespace_hash=namespace_hash,
             created_at=run_at,
             suppressed_candidate_revisions=review_store.suppressed_candidate_revisions(
-                tenant_hash=tenant_hash, namespace_hash=namespace_hash
+                tenant_hash=tenant_hash,
+                namespace_hash=namespace_hash,
+                acl_scope_hashes={acl_scope_hash},
             ),
             origin="consolidation",
         )
@@ -195,6 +215,7 @@ class ProposalConsolidator:
             "watermarkVersion": 1,
             "tenantHash": tenant_hash,
             "namespaceHash": namespace_hash,
+            "aclScopeHash": acl_scope_hash,
             "recordedAt": last["recordedAt"],
             "entityId": last["entityId"],
             "watermarkRevision": sha256_value(
@@ -221,8 +242,8 @@ class ProposalConsolidator:
         )
         with self._lock:
             current = self._watermarks.get(
-                (tenant_hash, namespace_hash),
-                _initial_watermark(tenant_hash, namespace_hash),
+                (tenant_hash, namespace_hash, acl_scope_hash),
+                _initial_watermark(tenant_hash, namespace_hash, acl_scope_hash),
             )
             if current["watermarkRevision"] != expected_watermark_revision:
                 existing = self._idempotency.get(key_hash)
@@ -231,7 +252,7 @@ class ProposalConsolidator:
                 raise ConsolidationError("consolidation watermark changed during enqueue")
             if failure_at == "before_watermark":
                 raise ConsolidationError("injected failure before watermark commit")
-            self._watermarks[(tenant_hash, namespace_hash)] = next_watermark
+            self._watermarks[(tenant_hash, namespace_hash, acl_scope_hash)] = next_watermark
             self._idempotency[key_hash] = (fingerprint, copy.deepcopy(receipt))
         return copy.deepcopy(receipt)
 
@@ -253,11 +274,14 @@ class ProposalConsolidator:
             self._idempotency[key_hash] = (fingerprint, copy.deepcopy(dict(receipt)))
 
 
-def _initial_watermark(tenant_hash: str, namespace_hash: str) -> dict[str, Any]:
+def _initial_watermark(
+    tenant_hash: str, namespace_hash: str, acl_scope_hash: str
+) -> dict[str, Any]:
     return {
         "watermarkVersion": 1,
         "tenantHash": tenant_hash,
         "namespaceHash": namespace_hash,
+        "aclScopeHash": acl_scope_hash,
         "recordedAt": "1970-01-01T00:00:00+00:00",
         "entityId": "0" * 64,
         "watermarkRevision": INITIAL_WATERMARK_REVISION,
@@ -275,6 +299,12 @@ def _require_partition(
 ) -> None:
     if (tenant_hash, namespace_hash) not in actor.authorized_partitions:
         raise ConsolidationError("authenticated actor is not authorized for this partition")
+
+
+def _require_acl_lane(actor: AuthenticatedActor, acl_scope_hash: str) -> None:
+    validate_hash(acl_scope_hash, "acl_scope_hash")
+    if acl_scope_hash not in actor.authorized_acl_scope_hashes:
+        raise ConsolidationError("authenticated actor is not authorized for this ACL lane")
 
 
 def _receipt(
@@ -297,6 +327,7 @@ def _receipt(
         "status": status,
         "tenantHash": watermark["tenantHash"],
         "namespaceHash": watermark["namespaceHash"],
+        "aclScopeHash": watermark["aclScopeHash"],
         "watermarkRevision": watermark["watermarkRevision"],
         "priorWatermarkRevision": prior_watermark_revision,
         "watermarkRecordedAt": watermark["recordedAt"],

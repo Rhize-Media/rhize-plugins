@@ -3439,8 +3439,8 @@
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
     },
     {
-      "contentHash": "37f762e3b50f80767441f806de62e7db7c682a87c0ff7810b8bfb29ec4f8b7e4",
-      "description": "Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a task from scratch. Use when a task looks like something the registry may already have solved: recall() finds the closest match by semantic similarity over Postgres/pgvector (ranked with trust tier, health, and success rate), and run() executes it registry-only, content-digest-checked, and trust/health-gated — never a caller-supplied path, never a silently bypassed gate. Also covers promoting a newly captured script into the registry (verify -> classify trust -> write provenance -> commit -> index) and re-running an artifact's sandboxed smoke test to refresh its health state. This skill is about EXECUTING proven code with a provenance contract, not retrieving past conversation or session history — for \"what did we discuss/decide/do before\" use claude-mem's search/recall skills instead, and for a knowledge graph over an Obsidian vault use graphify. Trigger on \"is there already a tool for this\", \"run the registry version of X\", \"promote this script to the registry\", \"recall a proven artifact for <task>\", \"re-verify <artifact-name>\", or \"has this been automated before\".",
+      "contentHash": "15d20f1b59c134066b7d13ec8db17e35d9f598d8425b78333800cf9fcca0fe3c",
+      "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
       "name": "procedural-memory",
@@ -3671,8 +3671,8 @@
       "path": "rhize-devflow/skills/simplify/SKILL.md"
     },
     {
-      "contentHash": "a4609175a6c639f18e96a62c590c13571bac008c3a9b062ac1e12953ada0fbc3",
-      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including where safely isolated mutation evidence would be required. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
+      "contentHash": "289ad30bde02a9bb4e5b889089120b417b50c6036551503982658300780758f6",
+      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including an explicit unavailable status while trusted test execution is not implemented. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",
       "name": "test-evidence",

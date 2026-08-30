@@ -1,0 +1,38 @@
+{
+  "name": "procedural-memory",
+  "version": "0.3.2",
+  "description": "Recall and execute proven registry artifacts through one digest-, trust-, and health-gated skill shared by Claude Code and Codex.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "procedural-memory",
+    "registry",
+    "recall",
+    "skill-reuse",
+    "provenance",
+    "trust-gating",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Procedural Memory",
+    "shortDescription": "Recall and run proven registry artifacts safely",
+    "longDescription": "Discover and execute already-proven Rhize registry artifacts through one host-neutral skill. Every call uses the canonical launcher and preserves content-digest, provenance, trust, health, and user-approval gates; similarity never grants execution authority.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Recall a proven registry artifact for this task.",
+      "Run this reviewed registry artifact with its trust gates intact.",
+      "Promote this reusable script after checking its provenance contract."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#7C3AED"
+  }
+}

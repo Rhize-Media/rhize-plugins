@@ -228,20 +228,22 @@ Promotion requires:
   regression;
 - no claim of 1,000-agent readiness without a separate host-supported load test.
 
-The Jira measurement record (RT-147, linked to this implementation ticket) owns baseline/release
-SHAs, host/plugin versions, sanitized aggregate report locations, observation dates, hidden-edge and
-required-node misses, blocked/optional fan-in counts, collisions, routing-caused rework, verification
-completeness, critical-path elapsed time, and the promote/hold decision. Raw content-free receipts
-stay in their existing evidence stores; Jira must not copy task details or identity-bearing fields.
+The shared Jira measurement record RT-147 and task-graph-specific follow-up RT-155 own
+baseline/release SHAs, host/plugin versions, sanitized aggregate report locations, observation dates,
+hidden-edge and required-node misses, blocked/optional fan-in counts, collisions, routing-caused
+rework, verification completeness, critical-path elapsed time, and the promote/hold decision. Raw
+content-free receipts stay in their existing evidence stores; Jira must not copy task details or
+identity-bearing fields.
 
 ## Implementation and release gate
 
 Run schema/unit fixtures, lifecycle/failure/cancellation fixtures, eval aggregation compatibility,
 privacy rejection tests, generated-map stale checks, plugin-config validation, and fresh-cache Claude
 Code/Codex discovery. Update README/GUIDE/CHANGELOG/ROADMAP and both manifests before the version
-bump. The implementation ticket cannot close until RT-147 contains reviewed measurement evidence or
-an explicit hold decision; packaging of the proven surface is linked to RT-145 and the evidence
-decision to RT-146.
+bump. RT-148 may close after the verified dual-host contract is released and its exact release SHA is
+recorded. RT-147 and RT-155 remain open until reviewed measurement evidence produces an explicit
+promote or hold decision; that decision gates promotion, not completion of the fail-closed first
+release. Packaging of the proven surface is linked to RT-145 and the evidence decision to RT-146.
 
 ## Completion criteria
 

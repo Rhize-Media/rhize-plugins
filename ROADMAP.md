@@ -35,7 +35,7 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 ### Cross-plugin agent workflow
 
 - [x] Ship dual-host ephemeral task-graph validation and terminal receipt-v2 lifecycle in `rhize-ops`.
-- [x] Ship state-bound independent-oracle and isolated-mutation evidence in `rhize-devflow`.
+- [x] Ship dual-host test-contract classification and fail-closed, state-bound packet validation in `rhize-devflow`.
 - [x] Ship evidence-bound compiled knowledge in `obsidian-second-brain` with source authority retained outside derived pages/graphs.
 - [ ] RT-155 and RT-156: collect host-stratified task-graph and test-evidence calibration before automatic promotion decisions.
 - [ ] RT-163: implement a trusted sandbox adapter before behavioral evidence can execute repository package scripts.

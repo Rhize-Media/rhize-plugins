@@ -123,6 +123,9 @@ class IdentityReviewStore:
             pair_reviews = dict(self._pair_reviews)
             sequences = dict(self._sequences)
             ledger = copy.deepcopy(self._ledger)
+            same_as = dict(self._same_as)
+            decision_partitions = dict(self._decision_partitions)
+            decision_acl_scopes = dict(self._decision_acl_scopes)
             stale_preview_ids: set[str] = set()
             queued = replayed = suppressed = superseded = 0
             for candidate in incoming:
@@ -141,14 +144,40 @@ class IdentityReviewStore:
                     else:
                         replayed += 1
                     continue
-                if existing["state"] == "accepted":
-                    suppressed += 1
-                    continue
-                if existing["state"] in {"pending", "leased", "deferred"}:
+                if existing["state"] in {"pending", "leased", "deferred", "accepted"}:
                     if "identity_ingest" not in actor.roles:
                         raise ReviewError("stale candidate supersession requires identity_ingest authority")
+                    before_edges = self._partition_edges_from_state(
+                        same_as,
+                        decision_partitions,
+                        decision_acl_scopes,
+                        existing["tenantHash"],
+                        existing["namespaceHash"],
+                        existing["aclScopeHashes"],
+                    )
+                    after_edges = dict(before_edges)
+                    reversal_of = None
+                    if existing["state"] == "accepted":
+                        reversal_of = existing["decisionId"]
+                        has_active_dependency = any(
+                            reversal_of in event["dependsOnDecisionIds"]
+                            and event["decisionId"] in same_as
+                            for event in ledger
+                        )
+                        if has_active_dependency:
+                            raise ReviewError("stale accepted identity decision has active dependencies")
+                        del after_edges[reversal_of]
+                        del same_as[reversal_of]
+                        del decision_partitions[reversal_of]
+                        del decision_acl_scopes[reversal_of]
                     event, updated = self._stage_supersession(
-                        existing, sequences[existing_id], actor, occurred_at
+                        existing,
+                        sequences[existing_id],
+                        actor,
+                        occurred_at,
+                        before_edges=before_edges,
+                        after_edges=after_edges,
+                        reversal_of=reversal_of,
                     )
                     reviews[existing_id] = updated
                     sequences[existing_id] += 1
@@ -167,6 +196,9 @@ class IdentityReviewStore:
             self._pair_reviews = pair_reviews
             self._sequences = sequences
             self._ledger = ledger
+            self._same_as = same_as
+            self._decision_partitions = decision_partitions
+            self._decision_acl_scopes = decision_acl_scopes
             for review_id in stale_preview_ids:
                 self._discard_previews(review_id)
             return {
@@ -638,10 +670,15 @@ class IdentityReviewStore:
             )
 
     def suppressed_candidate_revisions(
-        self, *, tenant_hash: str, namespace_hash: str
+        self,
+        *,
+        tenant_hash: str,
+        namespace_hash: str,
+        acl_scope_hashes: Iterable[str] | None = None,
     ) -> set[str]:
         validate_hash(tenant_hash, "tenant_hash")
         validate_hash(namespace_hash, "namespace_hash")
+        allowed = _validated_acl_filter(acl_scope_hashes)
         with self._lock:
             return {
                 review["candidateRevision"]
@@ -649,16 +686,24 @@ class IdentityReviewStore:
                 if review["state"] in {"rejected", "accepted", "reversed", "superseded"}
                 and review["tenantHash"] == tenant_hash
                 and review["namespaceHash"] == namespace_hash
+                and (allowed is None or bool(allowed.intersection(review["aclScopeHashes"])))
             }
 
     def counts(
-        self, *, tenant_hash: str | None = None, namespace_hash: str | None = None
+        self,
+        *,
+        tenant_hash: str | None = None,
+        namespace_hash: str | None = None,
+        acl_scope_hashes: Iterable[str] | None = None,
     ) -> dict[str, int]:
         if (tenant_hash is None) != (namespace_hash is None):
             raise ReviewError("review counts require both tenant and namespace or neither")
+        if acl_scope_hashes is not None and tenant_hash is None:
+            raise ReviewError("ACL-scoped review counts require a tenant and namespace")
         if tenant_hash is not None and namespace_hash is not None:
             validate_hash(tenant_hash, "tenant_hash")
             validate_hash(namespace_hash, "namespace_hash")
+        allowed = _validated_acl_filter(acl_scope_hashes)
         with self._lock:
             counts = {state: 0 for state in sorted(REVIEW_STATES)}
             for review in self._reviews.values():
@@ -666,6 +711,8 @@ class IdentityReviewStore:
                     review["tenantHash"] != tenant_hash
                     or review["namespaceHash"] != namespace_hash
                 ):
+                    continue
+                if allowed is not None and not allowed.intersection(review["aclScopeHashes"]):
                     continue
                 counts[review["state"]] += 1
             return counts
@@ -676,6 +723,10 @@ class IdentityReviewStore:
         sequence: int,
         actor: AuthenticatedActor,
         occurred_at: str,
+        *,
+        before_edges: Mapping[str, tuple[str, str]],
+        after_edges: Mapping[str, tuple[str, str]],
+        reversal_of: str | None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         updated = copy.deepcopy(dict(review))
         updated.update(
@@ -699,15 +750,11 @@ class IdentityReviewStore:
             rationale_code="stale_evidence",
             event_type="SUPERSEDE",
             decision_id=decision_id,
-            before_edges=self._partition_edges(
-                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
-            ),
-            after_edges=self._partition_edges(
-                review["tenantHash"], review["namespaceHash"], review["aclScopeHashes"]
-            ),
+            before_edges=before_edges,
+            after_edges=after_edges,
             dependencies=[],
             depends_on=[],
-            reversal_of=None,
+            reversal_of=reversal_of,
             idempotency_hash=sha256_value(f"supersede:{decision_id}"),
         )
         return event, updated
@@ -852,14 +899,32 @@ class IdentityReviewStore:
         namespace_hash: str,
         acl_scope_hashes: Iterable[str] | None = None,
     ) -> dict[str, tuple[str, str]]:
+        return self._partition_edges_from_state(
+            self._same_as,
+            self._decision_partitions,
+            self._decision_acl_scopes,
+            tenant_hash,
+            namespace_hash,
+            acl_scope_hashes,
+        )
+
+    @staticmethod
+    def _partition_edges_from_state(
+        same_as: Mapping[str, tuple[str, str]],
+        decision_partitions: Mapping[str, tuple[str, str]],
+        decision_acl_scopes: Mapping[str, tuple[str, ...]],
+        tenant_hash: str,
+        namespace_hash: str,
+        acl_scope_hashes: Iterable[str] | None = None,
+    ) -> dict[str, tuple[str, str]]:
         allowed = set(acl_scope_hashes) if acl_scope_hashes is not None else None
         return {
             decision_id: pair
-            for decision_id, pair in self._same_as.items()
-            if self._decision_partitions[decision_id] == (tenant_hash, namespace_hash)
+            for decision_id, pair in same_as.items()
+            if decision_partitions[decision_id] == (tenant_hash, namespace_hash)
             and (
                 allowed is None
-                or bool(allowed.intersection(self._decision_acl_scopes[decision_id]))
+                or bool(allowed.intersection(decision_acl_scopes[decision_id]))
             )
         }
 
@@ -972,6 +1037,20 @@ def _actor_binding(actor: AuthenticatedActor) -> dict[str, Any]:
         "authorizedPartitions": sorted([tenant, namespace] for tenant, namespace in actor.authorized_partitions),
         "authorizedAclScopeHashes": sorted(actor.authorized_acl_scope_hashes),
     }
+
+
+def _validated_acl_filter(values: Iterable[str] | None) -> set[str] | None:
+    if values is None:
+        return None
+    allowed: set[str] = set()
+    for index, value in enumerate(values):
+        if index >= 256:
+            raise ReviewError("review ACL filter must be a bounded non-empty set")
+        validate_hash(value, "review ACL filter hash")
+        allowed.add(value)
+    if not allowed:
+        raise ReviewError("review ACL filter must be a bounded non-empty set")
+    return allowed
 
 
 def _validate_current_state_input(current_state: Mapping[str, Any]) -> dict[str, Any]:

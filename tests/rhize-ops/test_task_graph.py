@@ -175,6 +175,24 @@ def test_failed_or_closed_dependency_deterministically_blocks_downstream(termina
     assert task_graph.next_wave(value, validated, 2)["blocked_dependency"] == ["dependent"]
 
 
+@pytest.mark.parametrize("dependent_status", ("running", "completed", "failed"))
+def test_execution_state_rejects_incomplete_dependency_closure(dependent_status):
+    value = graph([
+        node("source", optional=True),
+        node("dependent", depends=("source",)),
+    ])
+    current = state(value)
+    current["nodes"]["source"].update(previous_status="running", status="failed")
+    current["nodes"]["dependent"].update(
+        previous_status="running",
+        status=dependent_status,
+        output_contract_satisfied=dependent_status == "completed",
+    )
+
+    with pytest.raises(task_graph.GraphError, match="dependencies must be complete"):
+        task_graph.validate_state(current, value)
+
+
 def test_invalid_state_transition_is_rejected():
     value = graph([node("work")])
     current = state(value)

@@ -708,29 +708,34 @@ class MemoryStore:
             for packs in index["sourcePacks"].values():
                 packs[:] = [pack_id for pack_id in packs if pack_id not in removed]
             self._write_index(index)
-        return {"sourceIdHash": source_hash, "invalidatedPackIds": removed, "rawSourceRetained": False}
+        return {"sourceIdHash": source_hash, "invalidatedPackIds": removed, "rawSourceRetained": True}
 
     def cleanup_expired(self, now: datetime | None = None) -> dict[str, Any]:
         cutoff = now or utc_now()
         removed = []
-        if not self.packs.is_dir():
-            return {"removedPackIds": removed}
-        for manifest_path in sorted(self.packs.glob("memory-*.json")):
-            if manifest_path.name.endswith(".payload.json"):
-                continue
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            validate_manifest(manifest)
-            if parse_time(manifest["expiresAt"]) > cutoff:
-                continue
-            pack_id = manifest["packId"]
-            manifest_path.unlink()
-            (self.packs / f"{pack_id}.payload.json").unlink(missing_ok=True)
-            removed.append(pack_id)
-        if removed:
+        with self._locked():
+            if self.packs.is_symlink():
+                raise ValueError("memory pack directory cannot be a symlink")
+            if not self.packs.is_dir():
+                return {"removedPackIds": removed}
             index = self._read_index()
-            for packs in index["sourcePacks"].values():
-                packs[:] = [pack_id for pack_id in packs if pack_id not in removed]
-            self._write_index(index)
+            for manifest_path in sorted(self.packs.glob("memory-*.json")):
+                if manifest_path.name.endswith(".payload.json") or manifest_path.is_symlink():
+                    continue
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                validate_manifest(manifest)
+                pack_id = manifest["packId"]
+                if manifest_path.name != f"{pack_id}.json":
+                    raise ValueError("memory pack filename does not match its packId")
+                if parse_time(manifest["expiresAt"]) > cutoff:
+                    continue
+                manifest_path.unlink()
+                (self.packs / f"{pack_id}.payload.json").unlink(missing_ok=True)
+                removed.append(pack_id)
+            if removed:
+                for packs in index["sourcePacks"].values():
+                    packs[:] = [pack_id for pack_id in packs if pack_id not in removed]
+                self._write_index(index)
         return {"removedPackIds": removed}
 
     def _index_pack(self, manifest: dict[str, Any]) -> None:

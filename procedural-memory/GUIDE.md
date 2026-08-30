@@ -10,6 +10,10 @@ how it's been verified). This plugin is how you reach that registry from either 
 Codex: find the right artifact, run it with the registry's trust/health gates intact, or add a new
 one once you've captured working code worth reusing.
 
+Claude Code provides the four `/procedural-memory:*` commands and advisory session hooks. Codex uses
+the same natural-language skill through its self-relative launcher; it does not claim Claude Code's
+slash-command or hook lifecycle.
+
 ## When to reach for what
 
 - **"Has this been automated before?" / "is there already a tool for X?"**
@@ -40,8 +44,9 @@ one once you've captured working code worth reusing.
 
 ## The session automatically notices when you might have something to promote
 
-You don't have to remember to run `/procedural-memory:promote` right after writing something
-reusable. Two hooks run in the background:
+In Claude Code, you don't have to remember to run `/procedural-memory:promote` right after writing
+something reusable. Two advisory hooks run in the background. Codex does not wire these Claude Code
+hooks; invoke the shared skill explicitly when you want to recall, run, promote, or verify.
 
 - Every time a Bash call in your session matches a known test/build command (`pytest`, `npm
   test`, `cargo test`, `go test`, `vitest`, `tsc`, and a few others) and completes, it's quietly

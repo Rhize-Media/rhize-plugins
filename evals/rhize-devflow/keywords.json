@@ -21,7 +21,7 @@
   ],
   "skill:test-evidence": [
     "changed regression tests",
-    "safely isolated mutation evidence",
+    "state-bound evidence metadata",
     "protects behavior"
   ],
   "skill:completed-branch-promotion": [

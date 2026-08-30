@@ -148,7 +148,8 @@ paraphrase, and never a command sourced from anywhere else.
 ## Related Workflows
 
 - `/rhize-devflow:impact-map` — run first; narrows which tests are "focused" in Phase 4.
-- `/rhize-devflow:test-evidence` — explicit isolated writer for independent-oracle or mutation
-  evidence; distinct from the data-consistency `/mutation-check` command.
+- `/rhize-devflow:test-evidence` — explicit classifier and state-bound packet writer. Execution is
+  unavailable until RT-163 supplies a trusted sandbox; this remains distinct from the
+  data-consistency `/mutation-check` command.
 - `/rhize-devflow:review` — run after `check` passes, for the production merge/release gate.
 - `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).
