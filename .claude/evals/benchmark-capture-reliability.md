@@ -9,6 +9,13 @@ Baseline: rhize-plugins `31e2198c97b24712c6fbf688b0b693b461ee7bbd`
 - [x] A valid receipt newer than the associated scheduler run resolves date-only
       indeterminacy to `ok` only when its run ID resolves to successful bench-append telemetry.
 - [x] A scheduler run without a valid receipt is `row_missing` and exits non-zero.
+- [x] A post-enforcement scheduler run with a later-dated Markdown row but no fresh
+      receipt is `receipt_missing` and exits non-zero; row dates never replace run evidence.
+- [x] A closed `procedural-engineering-eval/v2` routine receipt is accepted only when its
+      Arm, routine/artifact ids, exact-row projection, timestamps, lifecycle, digests,
+      correctness, and comparability fields reconcile.
+- [x] A strict-v2 non-comparable run remains valid capture evidence without becoming
+      comparable performance evidence.
 - [x] Malformed receipt JSON, invalid Arm/timestamp/hash, incomplete context receipts,
       failed context receipts, and stale pending selections are actionable failures.
 - [x] Context receipt aggregates keep capability, live variant, metric unit, role, and
@@ -25,6 +32,8 @@ Baseline: rhize-plugins `31e2198c97b24712c6fbf688b0b693b461ee7bbd`
 - [x] Legacy date-only tables still parse without schema homogenization.
 - [x] On-demand routines without scheduler keys remain unknown-by-design, not incidents.
 - [x] Existing `row_missing` exit code 2 remains compatible.
+- [x] Existing schema-v1 A/B and G/G1/G2/G3 receipts remain compatible; graph receipts
+      remain excluded from A/B routine liveness.
 - [x] A missing Sentry configuration is explicit in telemetry but does not break local
       development runs.
 - [x] A Sentry Cron OK check-in cannot be requested without incident delivery enabled.
@@ -48,3 +57,11 @@ Context capture-health was valid and found no malformed/pending receipt artifact
 procedural benchmark side correctly reported that its receipt store was not yet deployed and
 kept the two same-day scheduler comparisons indeterminate. No row or receipt was fabricated
 to force a green result.
+
+## Mandatory-receipt follow-up
+
+On 2026-08-30, the real read-only watchdog remained clean with seven valid schema-v1
+receipts, zero malformed or unbound receipts, and clean context capture-health. Strict-v2
+acceptance and the later-row `receipt_missing` branch are deterministic contract evals until
+the next natural strict-v2 routine execution lands; test fixtures are never counted as dogfood
+or benchmark evidence.

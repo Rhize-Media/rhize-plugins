@@ -72,6 +72,7 @@ malformed, unbound, failed, incomplete, or non-comparable capture actionable.
 ## Changed files
 
 - `.claude/plans/benchmark-capture-reliability.md`
+- `.claude/evals/benchmark-capture-reliability.md`
 - `.claude-plugin/marketplace.json`
 - `CHANGELOG.md`
 - `README.md`
@@ -104,3 +105,58 @@ malformed, unbound, failed, incomplete, or non-comparable capture actionable.
 - Context-capture agent: context experiment capture-health module and focused test only.
 - Receipt agent: procedural-memory bench-append script and smoke test only.
 - Sentry agent: read-only design and live capability audit only.
+
+## 2026-08-30 follow-up: require a fresh receipt for every new run
+
+### Current behavior
+
+The scheduler producers now fail if `bench-append` cannot durably write a receipt, and three
+routines can emit the closed strict-v2 lifecycle receipt. The released watchdog still accepts
+only schema-v1 receipts, however, so the next strict-v2 natural run would be reported as malformed.
+Its liveness classifier also returns `ok` when a later-dated row exists even if the latest
+post-enforcement scheduler run has no receipt. That date fallback contradicts the requirement that
+every new run prove capture with timestamped, run-bound evidence.
+
+### Intended semantic delta
+
+- Accept and independently validate both legacy schema-v1 and strict schema-v2 receipts.
+- Normalize strict-v2 note, row, Arm, append-delta, artifact-run, and scheduler metadata into the
+  existing binding pipeline without exposing receipt bodies.
+- Require a valid bound receipt for every scheduler run at or after the existing enforcement
+  instant, regardless of whether a later-dated Markdown row exists.
+- Emit actionable `receipt_missing` for a post-enforcement run with no qualifying receipt.
+- Preserve `legacy_unverifiable` only for genuinely pre-enforcement same-day history; never create,
+  repair, infer, or backfill evidence.
+
+### Invariants
+
+- A schema-v2 receipt must use `procedural-engineering-eval/v2`, `record_type=routine_run`, exact
+  one-row projection, matching top-level/nested note and row digests, matching Arm/variant, and a
+  successful `bench-append` artifact run.
+- Non-comparable receipts are valid capture evidence but remain non-comparable performance evidence.
+- Malformed and unbound receipts remain actionable in addition to `receipt_missing`.
+- V1 graph receipts remain operational evidence only and never satisfy A/B routine liveness.
+- Pre-enforcement `row_missing` remains actionable; the historical exception is not broadened.
+
+### Acceptance tests
+
+1. A real-shaped strict-v2 receipt loads, binds to its exact row and successful artifact run, and
+   resolves post-enforcement liveness to `ok`.
+2. V2 cross-field disagreement, bad projection delta, missing artifact run, or failed artifact run
+   is malformed or unbound and actionable.
+3. A post-enforcement run with a newer Markdown row but no receipt is `receipt_missing` and exits 2.
+4. Existing v1 A/B, graph isolation, legacy cutoff, privacy, context capture-health, and Sentry
+   finding tests remain green.
+5. The exact released watchdog path exits 0 only when all current post-enforcement runs have valid
+   bound receipts.
+
+### Changed files
+
+- `.claude/plans/benchmark-capture-reliability.md`
+- `.claude-plugin/marketplace.json`
+- `CHANGELOG.md`
+- `README.md`
+- `rhize-ops/.claude-plugin/plugin.json`
+- `rhize-ops/skill-monitor/README.md`
+- `rhize-ops/skill-monitor/benchmark_status.py`
+- `rhize-ops/skill-monitor/tests/test_benchmark_status.py`

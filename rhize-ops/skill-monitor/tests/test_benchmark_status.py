@@ -4,6 +4,7 @@ Run: python3 -m pytest tests/test_benchmark_status.py -q   (from the repo root)
 """
 from __future__ import annotations
 
+import copy
 import json
 import hashlib
 import os
@@ -366,13 +367,26 @@ def _note(total_rows=0, newest_row_date=None, error=None):
 
 
 def test_liveness_ok_when_row_covers_last_run():
-    # Genuine "ok": the newest row is dated strictly AFTER the run, so it
-    # demonstrably postdates it — not the same-day case (see
-    # test_liveness_indeterminate_same_day_when_run_and_row_share_a_date).
+    # The date-only fallback is retained only for history from before receipt
+    # enforcement existed.
     note = _note(total_rows=1, newest_row_date=date(2026, 8, 25))
     lookup = {"matched": True, "last_run_at": datetime(2026, 8, 24, 19, 1, 37)}
     v = bs.classify_liveness(note, lookup)
     assert v["status"] == "ok"
+
+
+def test_liveness_requires_receipt_even_when_a_later_row_exists():
+    note = _note(total_rows=2, newest_row_date=date(2026, 8, 29))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-28T19:01:37.956+00:00"),
+    }
+
+    verdict = bs.classify_liveness(note, lookup)
+
+    assert verdict["status"] == "receipt_missing"
+    assert "later row" in verdict["reason"]
+    assert "no fresh run-bound receipt" in verdict["reason"]
 
 
 def test_liveness_indeterminate_same_day_when_run_and_row_share_a_date():
@@ -491,13 +505,14 @@ def test_liveness_unknown_when_scheduler_has_no_timestamp_but_rows_exist():
     assert v["status"] == "unknown"
 
 
-def test_all_six_liveness_statuses_are_reachable():
+def test_all_seven_liveness_statuses_are_reachable():
     # A whole-suite sanity check: every status value this module defines can
     # actually be produced. A watchdog that can only ever emit 'ok' is useless.
     statuses = {
         "ok": test_liveness_ok_when_row_covers_last_run,
         "legacy_unverifiable": test_liveness_marks_pre_enforcement_same_day_history_unverifiable,
         "indeterminate_same_day": test_liveness_indeterminate_same_day_when_run_and_row_share_a_date,
+        "receipt_missing": test_liveness_requires_receipt_even_when_a_later_row_exists,
         "row_missing": test_liveness_row_missing_when_run_postdates_newest_row,
         "never_run": test_liveness_never_run,
         "unknown": test_liveness_unknown_when_scheduler_unmatched,
@@ -656,6 +671,96 @@ def _capture_receipt(note: Path, **overrides):
     return value
 
 
+def _strict_capture_receipt(note: Path, **overrides):
+    row = overrides.pop("row", "| 2026-08-28 | A | 100 | real |")
+    run_id = "a5b94939-73ef-4062-be41-3325ad512618"
+    note_id = bs.note_identity(note)
+    row_digest = hashlib.sha256(row.encode()).hexdigest()
+    value = {
+        "schemaVersion": 2,
+        "capturedAt": "2026-08-29T00:12:17.873Z",
+        "schema_version": "procedural-engineering-eval/v2",
+        "record_type": "routine_run",
+        "observed_at": "2026-08-29T00:10:01.000Z",
+        "baseline_sha": "a" * 40,
+        "variant": "A",
+        "arm": "A",
+        "environment": "cowork",
+        "routine_id": "daily-completed-summary",
+        "scheduler_run_id": "daily-completed-summary-20260829T000000Z",
+        "artifact_run_id": run_id,
+        "task_scope": {
+            "scope_id": "one-window",
+            "source_classes": ["git", "jira"],
+            "source_count": 2,
+            "parameter_keys": ["window-end", "window-start"],
+        },
+        "input_fingerprint": "b" * 64,
+        "definition_digest": "c" * 64,
+        "artifact_digest": "d" * 64,
+        "started_at": "2026-08-29T00:10:00.000Z",
+        "ended_at": "2026-08-29T00:10:01.000Z",
+        "duration_ms": 1000,
+        "expected_steps": ["collect"],
+        "completed_steps": ["collect"],
+        "steps": [
+            {
+                "step_id": "collect",
+                "status": "completed",
+                "started_at": "2026-08-29T00:10:00.000Z",
+                "ended_at": "2026-08-29T00:10:01.000Z",
+                "duration_ms": 1000,
+            }
+        ],
+        "outputs": [{"output_id": "summary-note", "output_type": "note"}],
+        "effects": [
+            {
+                "effect_id": "summary-note-write",
+                "effect_type": "note-write",
+                "status": "completed",
+            }
+        ],
+        "failure_classes": [],
+        "retry_count": 0,
+        "approval_cycles": 0,
+        "correctness": {
+            "schema_valid": True,
+            "source_failures_present": False,
+            "human_correction_required": False,
+            "unsafe_effect_prevented": False,
+            "fabricated_clean_detected": False,
+        },
+        "benchmark": {
+            "row_id": "daily-completed-summary-20260829T000000Z-row",
+            "row_sha256": row_digest,
+            "note_id": note_id,
+            "projection": {
+                "before_count": 4,
+                "after_count": 5,
+                "row_delta": 1,
+                "row_is_last": True,
+                "append_assertion": "passed",
+            },
+        },
+        "duration_reconciliation": {
+            "step_total_ms": 1000,
+            "unattributed_ms": 0,
+            "timestamps_reconciled": True,
+        },
+        "comparable": True,
+        "comparability_reasons": [],
+        "rowDate": "2026-08-28",
+        "rowDateSource": "row",
+        "noteId": note_id,
+        "rowSha256": row_digest,
+        "beforeCount": 4,
+        "afterCount": 5,
+        "runId": run_id,
+    }
+    value.update(overrides)
+    return value
+
+
 def test_capture_receipts_are_strict_timestamped_and_note_bound(tmp_path):
     note = tmp_path / "Procedural Memory Benchmark.md"
     receipt_dir = tmp_path / "receipts"
@@ -675,6 +780,84 @@ def test_capture_receipts_are_strict_timestamped_and_note_bound(tmp_path):
         "2026-08-29T00:12:17.873185+00:00"
     )
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_capture_receipts_accept_strict_v2_lifecycle_evidence(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "strict.json"
+    path.write_text(json.dumps(_strict_capture_receipt(note)), encoding="utf-8")
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 1
+    assert result["malformed"] == []
+    assert result["by_variant"] == {"A": 1}
+    assert result["by_schema_version"] == {"2": 1}
+    receipt = result["by_note_id"][bs.note_identity(note)][0]
+    assert receipt["routine_id"] == "daily-completed-summary"
+    assert receipt["runId"] == receipt["artifact_run_id"]
+
+
+def test_capture_receipts_keep_strict_v2_noncomparable_runs_as_capture_evidence(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt = _strict_capture_receipt(note)
+    receipt["steps"][0]["status"] = "partial"
+    receipt["completed_steps"] = []
+    receipt["failure_classes"] = ["source-partial"]
+    receipt["correctness"]["source_failures_present"] = True
+    receipt["comparable"] = False
+    receipt["comparability_reasons"] = ["source-partial"]
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "strict-noncomparable.json"
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 1
+    assert result["malformed"] == []
+    loaded = result["by_note_id"][bs.note_identity(note)][0]
+    assert loaded["comparable"] is False
+    assert loaded["comparability_reasons"] == ["source-partial"]
+
+
+@pytest.mark.parametrize(
+    "mutation, expected_reason",
+    [
+        (lambda value: value.update({"runId": "different-run"}), "runId must match artifact_run_id"),
+        (
+            lambda value: value["benchmark"]["projection"].update({"row_delta": 2}),
+            "benchmark projection must prove the same exact one-row append",
+        ),
+        (
+            lambda value: value["benchmark"].update({"row_sha256": "e" * 64}),
+            "benchmark digests must match the top-level row and note digests",
+        ),
+        (lambda value: value.update({"unexpected": True}), "receipt fields do not match schema version 2"),
+    ],
+)
+def test_capture_receipts_reject_invalid_strict_v2_evidence(
+    tmp_path, mutation, expected_reason
+):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    receipt = copy.deepcopy(_strict_capture_receipt(note))
+    mutation(receipt)
+    receipt_dir = tmp_path / "receipts"
+    receipt_dir.mkdir()
+    path = receipt_dir / "strict-invalid.json"
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+    os.chmod(path, 0o600)
+
+    result = bs.load_benchmark_receipts(receipt_dir)
+
+    assert result["valid"] == 0
+    assert result["malformed"] == [
+        {"file": "strict-invalid.json", "reason": expected_reason}
+    ]
 
 
 def test_capture_receipts_accept_graph_variant_without_counting_it_as_ab(tmp_path):
@@ -777,6 +960,25 @@ def test_capture_receipt_resolves_same_day_liveness(tmp_path):
     assert "timestamped capture receipt" in verdict["reason"]
 
 
+def test_capture_receipt_resolves_a_short_cross_midnight_run(tmp_path):
+    note = tmp_path / "Procedural Memory Benchmark.md"
+    summary = _note(total_rows=2, newest_row_date=date(2026, 8, 29))
+    lookup = {
+        "matched": True,
+        "last_run_at": datetime.fromisoformat("2026-08-29T03:59:00+00:00"),
+    }
+    receipt = _capture_receipt(
+        note,
+        rowDate="2026-08-29",
+        capturedAt="2026-08-29T04:05:00+00:00",
+    )
+    receipt["captured_at"] = datetime.fromisoformat(receipt.pop("capturedAt"))
+
+    verdict = bs.classify_liveness(summary, lookup, [receipt])
+
+    assert verdict["status"] == "ok"
+
+
 def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_path):
     note = tmp_path / "Procedural Memory Benchmark.md"
     summary = _note(total_rows=2, newest_row_date=date(2026, 8, 28))
@@ -792,10 +994,13 @@ def test_capture_receipt_older_than_scheduler_run_does_not_hide_missing_row(tmp_
     assert verdict["status"] == "indeterminate_same_day"
 
 
-def _build_receipt_snapshot(tmp_path, *, receipt_overrides=None, include_run=True):
+def _build_receipt_snapshot(
+    tmp_path, *, receipt_overrides=None, include_run=True, schema_version=1
+):
     note = tmp_path / "Procedural Memory Benchmark.md"
     note.write_text(NOTE_PAIRED_ROWS.replace("2026-08-24", "2026-08-28"), encoding="utf-8")
-    receipt = _capture_receipt(note, **(receipt_overrides or {}))
+    receipt_factory = _strict_capture_receipt if schema_version == 2 else _capture_receipt
+    receipt = receipt_factory(note, **(receipt_overrides or {}))
     receipt_dir = tmp_path / "receipts"
     receipt_dir.mkdir()
     (receipt_dir / "capture.json").write_text(json.dumps(receipt), encoding="utf-8")
@@ -853,6 +1058,51 @@ def test_build_snapshot_includes_receipt_health_and_uses_it(tmp_path):
     assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "ok"
 
 
+def test_build_snapshot_binds_strict_v2_receipt_to_successful_artifact_run(tmp_path):
+    snapshot = _build_receipt_snapshot(tmp_path, schema_version=2)
+
+    assert snapshot["capture_receipts"]["valid"] == 1
+    assert snapshot["capture_receipts"]["by_schema_version"] == {"2": 1}
+    assert snapshot["capture_receipts"]["unbound"] == []
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "ok"
+
+
+def test_build_snapshot_rejects_strict_v2_receipt_for_wrong_routine(tmp_path):
+    snapshot = _build_receipt_snapshot(
+        tmp_path,
+        schema_version=2,
+        receipt_overrides={"routine_id": "vault-inbox-processor"},
+    )
+
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "indeterminate_same_day"
+    assert snapshot["capture_receipts"]["unbound"] == [
+        {
+            "arm": "A",
+            "file": "capture.json",
+            "reason": "strict receipt routine id does not match the benchmark routine",
+            "routine": "Daily Completed Summary",
+        }
+    ]
+
+
+def test_build_snapshot_rejects_strict_v2_receipt_without_artifact_run(tmp_path):
+    snapshot = _build_receipt_snapshot(
+        tmp_path,
+        schema_version=2,
+        include_run=False,
+    )
+
+    assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "indeterminate_same_day"
+    assert snapshot["capture_receipts"]["unbound"] == [
+        {
+            "arm": "A",
+            "file": "capture.json",
+            "reason": "receipt runId does not match bench-append run telemetry",
+            "routine": "Daily Completed Summary",
+        }
+    ]
+
+
 def test_build_snapshot_keeps_graph_receipt_out_of_ab_liveness(tmp_path):
     snapshot = _build_receipt_snapshot(
         tmp_path,
@@ -906,6 +1156,12 @@ def test_actionable_findings_cover_missing_unverifiable_and_malformed_evidence()
                 "scheduler_matched_ids": ["same-day-task"],
                 "scheduler_last_run_at": "2026-08-28T00:02:00+00:00",
             },
+            "Receipt Missing": {
+                "status": "receipt_missing",
+                "reason": "later row cannot replace a run-bound receipt",
+                "scheduler_matched_ids": ["receipt-missing-task"],
+                "scheduler_last_run_at": "2026-08-28T00:03:00+00:00",
+            },
             "Legacy": {
                 "status": "legacy_unverifiable",
                 "reason": "predates timestamped receipt enforcement",
@@ -930,6 +1186,7 @@ def test_actionable_findings_cover_missing_unverifiable_and_malformed_evidence()
     assert {(item["routine"], item["status"]) for item in findings} == {
         ("Missing", "row_missing"),
         ("Same Day", "indeterminate_same_day"),
+        ("Receipt Missing", "receipt_missing"),
         ("capture-receipts", "malformed_receipt"),
     }
 

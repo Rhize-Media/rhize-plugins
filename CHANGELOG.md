@@ -8,6 +8,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ version bump — **rhize-ops** 0.13.5 → 0.13.6 (patch); marketplace 2.51.0 → 2.51.1.
+- _2026-08-30_ **mandatory fresh benchmark receipts.** The capture watchdog now independently
+  validates strict `procedural-engineering-eval/v2` routine receipts alongside v1/graph receipts,
+  binds v2 routine and artifact-run identity to the exact appended row, and reports receipt counts
+  by schema version. Every post-enforcement scheduled run now requires a fresh bound receipt;
+  a later-dated Markdown row without one is actionable `receipt_missing`, while the existing
+  pre-enforcement historical exception remains narrow and no evidence is backfilled.
 - _2026-08-30_ version bump — **rhize-context-manager** 0.20.0 → 0.21.0 (minor); marketplace 2.50.0 → 2.51.0.
 - _2026-08-30_ **rhize-context-manager — evidence-gated compiled-context canary.**
   Replaced the loose one-run arm counter with an atomic repository-and-capability single-flight

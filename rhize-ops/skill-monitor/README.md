@@ -169,7 +169,10 @@ context-experiment measurements. It does not infer success from a date-only row:
 `bench-append` must leave a private timestamped receipt whose row hash, date, and Arm match
 an exact row in the benchmark note and whose `runId` resolves to a successful
 `bench-append` telemetry run. A later manual or untracked append therefore cannot make a
-scheduled run look captured. The optional context runner invokes the real
+post-enforcement scheduled run look captured. The watchdog accepts both the legacy v1 capture
+shape and the closed `procedural-engineering-eval/v2` routine receipt; strict v2 additionally
+binds the routine id, scheduler/artifact run ids, exact append projection, lifecycle timing,
+digests, correctness flags, and comparability state. The optional context runner invokes the real
 `capture-health` evaluator, which keeps Arm A/B counts separate and reports malformed,
 failed, incomplete, missing-arm, missing-metric, non-comparable, missing-history, and
 expired-pending evidence.
@@ -190,7 +193,11 @@ python3 benchmark_status.py \
 Exit `0` means no capture findings, exit `2` means the watchdog ran and found unavailable
 measurements, and exit `3` means Sentry delivery or the watchdog check-in failed. Findings
 use stable fingerprints and redact absolute paths. `indeterminate_same_day` is a warning;
-missing rows, invalid receipts, context-capture failures, and evaluator failures are errors.
+`receipt_missing`, missing rows, invalid receipts, context-capture failures, and evaluator
+failures are errors. A post-enforcement run always needs a valid bound receipt even when a
+later-dated row exists. A receipt is fresh only when it follows the scheduler timestamp by no
+more than 24 hours; this permits a short cross-midnight run without allowing a later run's receipt
+to cover stale scheduler history.
 Same-day scheduler/row pairs from before timestamped receipt enforcement shipped on
 2026-08-27 remain visible as `legacy_unverifiable` but are not actionable: no trustworthy
 timestamped receipt could exist for those historical runs, and the watchdog never backfills or

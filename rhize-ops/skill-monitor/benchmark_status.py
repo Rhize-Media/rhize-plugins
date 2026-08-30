@@ -22,8 +22,9 @@ Five local data sources:
      — existence only, no run-time log) and the Desktop app's registry JSON at
      `~/Library/Application Support/Claude/local-agent-mode-sessions/*/*/
      scheduled-tasks.json` (has real `lastRunAt` timestamps keyed by task id).
-  5. Private timestamped `bench-append` receipts and, when `--context-runner` is
-     supplied, the context experiment's strict `capture-health` report.
+  5. Private timestamped `bench-append` receipts (legacy v1 and strict routine
+     v2) and, when `--context-runner` is supplied, the context experiment's
+     strict `capture-health` report.
 
 The default run is local-only. `--alert-sentry` explicitly sends stable,
 path-redacted measurement incidents using an on-demand env/Keychain DSN, and
@@ -34,9 +35,10 @@ The `liveness` section is the actual point of this module: per routine, did the
 routine run (per the scheduler) more recently than the newest row logged in its
 note? If so, a run happened and produced no row — `row_missing`. That is the
 finding this module exists to surface, made unmissable in both JSON and the
-human-readable report. Rows carry only a DATE, never a time, so a run and the
-newest row sharing a calendar date is genuinely indeterminate, not `ok` — see
-`classify_liveness()`'s `indeterminate_same_day` status. The one exception is a
+human-readable report. After receipt enforcement began, no Markdown row can
+substitute for a fresh, exact-row, run-bound receipt: same-day ambiguity remains
+`indeterminate_same_day`, a later row without a receipt is `receipt_missing`,
+and an older or absent row is `row_missing`. The one exception is a
 same-day run from before timestamped receipt enforcement existed; that history
 is reported as `legacy_unverifiable` instead of repeatedly alerting on evidence
 that cannot be reconstructed. Scheduler instants are converted to the benchmark
@@ -59,7 +61,7 @@ import secrets
 import stat
 import subprocess
 import sys
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib import parse, request
@@ -117,6 +119,12 @@ ROUTINE_SCHEDULER_KEYS: dict[str, list[str]] = {
     "AI-Stack-Version-Drift": ["ai-stack-version-drift", "drift-benchmark"],
     "Daily Completed Summary": ["daily-completed-summary", "daily-summary-benchmark"],
     "Content Engine": [],
+}
+ROUTINE_RECEIPT_IDS: dict[str, str] = {
+    "Vault Inbox Processor": "vault-inbox-processor",
+    "AI-Stack-Version-Drift": "ai-stack-version-drift",
+    "Daily Completed Summary": "daily-completed-summary",
+    "Content Engine": "content-engine",
 }
 
 
@@ -347,8 +355,55 @@ _RECEIPT_REQUIRED_FIELDS = {
     "afterCount",
 }
 _RECEIPT_OPTIONAL_FIELDS = {"runId", "variant", "rowDateSource"}
+_STRICT_RECEIPT_FIELDS = {
+    "schemaVersion",
+    "capturedAt",
+    "schema_version",
+    "record_type",
+    "observed_at",
+    "baseline_sha",
+    "variant",
+    "arm",
+    "environment",
+    "routine_id",
+    "scheduler_run_id",
+    "artifact_run_id",
+    "task_scope",
+    "input_fingerprint",
+    "definition_digest",
+    "artifact_digest",
+    "started_at",
+    "ended_at",
+    "duration_ms",
+    "expected_steps",
+    "completed_steps",
+    "steps",
+    "outputs",
+    "effects",
+    "failure_classes",
+    "retry_count",
+    "approval_cycles",
+    "correctness",
+    "benchmark",
+    "duration_reconciliation",
+    "comparable",
+    "comparability_reasons",
+    "rowDate",
+    "rowDateSource",
+    "noteId",
+    "rowSha256",
+    "beforeCount",
+    "afterCount",
+    "runId",
+}
 _CAPTURE_VARIANTS = {"A", "B", "G", "G1", "G2", "G3"}
 _GRAPH_CAPTURE_VARIANTS = _CAPTURE_VARIANTS - {"A", "B"}
+_SAFE_RECEIPT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@-]{0,127}$")
+_SHA40_RE = re.compile(r"^[0-9a-f]{40}$")
+_STRICT_ENVIRONMENTS = {"cowork", "claude-code", "codex", "local", "split"}
+_STEP_STATUSES = {"completed", "failed", "partial", "skipped"}
+_EFFECT_STATUSES = {"completed", "failed", "prevented", "skipped"}
+_MAX_RECEIPT_LAG = timedelta(hours=24)
 
 
 def note_identity(path: Path) -> str:
@@ -357,9 +412,263 @@ def note_identity(path: Path) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def _capture_timestamp(value: Any, field: str) -> datetime:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError as error:
+        raise ValueError(f"{field} must be an ISO-8601 timestamp") from error
+    if parsed.tzinfo is None:
+        raise ValueError(f"{field} must include a timezone")
+    return parsed
+
+
+def _capture_utc_timestamp(value: Any, field: str) -> datetime:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise ValueError(f"{field} must be a UTC ISO timestamp ending in Z")
+    parsed = _capture_timestamp(value, field)
+    if parsed.utcoffset() != timedelta(0):
+        raise ValueError(f"{field} must be UTC")
+    return parsed
+
+
+def _duration_milliseconds(start: datetime, end: datetime, field: str) -> int:
+    delta = end - start
+    microseconds = ((delta.days * 86400 + delta.seconds) * 1_000_000) + delta.microseconds
+    if microseconds < 0 or microseconds % 1000:
+        raise ValueError(f"{field} timestamps must produce whole non-negative milliseconds")
+    return microseconds // 1000
+
+
+def _safe_receipt_id(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not _SAFE_RECEIPT_ID_RE.fullmatch(value):
+        raise ValueError(f"{field} must be a redacted identifier")
+    return value
+
+
+def _safe_receipt_ids(value: Any, field: str) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(f"{field} must be a list of redacted identifiers")
+    result = [_safe_receipt_id(item, f"{field}[]") for item in value]
+    if len(result) != len(set(result)):
+        raise ValueError(f"{field} contains duplicates")
+    return result
+
+
+def _nonnegative_integer(value: Any, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field} must be a non-negative integer")
+    return value
+
+
+def _exact_keys(value: Any, expected: set[str], field: str) -> dict[str, Any]:
+    if not isinstance(value, dict) or set(value) != expected:
+        raise ValueError(f"{field} fields do not match the strict receipt schema")
+    return value
+
+
+def _validate_capture_receipt_v2(value: dict[str, Any]) -> dict[str, Any]:
+    if set(value) != _STRICT_RECEIPT_FIELDS:
+        raise ValueError("receipt fields do not match schema version 2")
+    if value.get("schema_version") != "procedural-engineering-eval/v2":
+        raise ValueError("schema_version must be procedural-engineering-eval/v2")
+    if value.get("record_type") != "routine_run":
+        raise ValueError("record_type must be routine_run")
+    variant = value.get("variant")
+    if variant not in {"A", "B"} or value.get("arm") != variant:
+        raise ValueError("strict receipt variant and arm must match A or B")
+    if value.get("rowDateSource") != "row":
+        raise ValueError("strict receipt rowDateSource must be row")
+
+    for field in ("noteId", "rowSha256", "input_fingerprint", "definition_digest", "artifact_digest"):
+        if not _SHA256_RE.fullmatch(str(value.get(field))):
+            raise ValueError(f"{field} must be a SHA-256 digest")
+    if not _SHA40_RE.fullmatch(str(value.get("baseline_sha"))):
+        raise ValueError("baseline_sha must be a 40-character lowercase Git SHA")
+    routine_id = _safe_receipt_id(value.get("routine_id"), "routine_id")
+    scheduler_run_id = _safe_receipt_id(value.get("scheduler_run_id"), "scheduler_run_id")
+    artifact_run_id = _safe_receipt_id(value.get("artifact_run_id"), "artifact_run_id")
+    run_id = _safe_receipt_id(value.get("runId"), "runId")
+    if run_id != artifact_run_id:
+        raise ValueError("runId must match artifact_run_id")
+    if scheduler_run_id == artifact_run_id:
+        raise ValueError("scheduler_run_id must differ from artifact_run_id")
+    if value.get("environment") not in _STRICT_ENVIRONMENTS:
+        raise ValueError("environment is not recognized")
+
+    captured_at = _capture_utc_timestamp(value.get("capturedAt"), "capturedAt")
+    observed_at = _capture_utc_timestamp(value.get("observed_at"), "observed_at")
+    started_at = _capture_utc_timestamp(value.get("started_at"), "started_at")
+    ended_at = _capture_utc_timestamp(value.get("ended_at"), "ended_at")
+    if observed_at != ended_at or started_at > ended_at or captured_at < ended_at:
+        raise ValueError("strict receipt timestamps do not reconcile")
+    duration_ms = _nonnegative_integer(value.get("duration_ms"), "duration_ms")
+    if _duration_milliseconds(started_at, ended_at, "whole-run") != duration_ms:
+        raise ValueError("duration_ms does not reconcile started_at and ended_at")
+
+    row_date = _parse_date(value.get("rowDate"))
+    if row_date is None:
+        raise ValueError("rowDate must be YYYY-MM-DD")
+    before_count = _nonnegative_integer(value.get("beforeCount"), "beforeCount")
+    after_count = _nonnegative_integer(value.get("afterCount"), "afterCount")
+    if after_count - before_count != 1:
+        raise ValueError("append counts must prove a delta of exactly 1")
+
+    scope = _exact_keys(
+        value.get("task_scope"),
+        {"scope_id", "source_classes", "source_count", "parameter_keys"},
+        "task_scope",
+    )
+    _safe_receipt_id(scope.get("scope_id"), "task_scope.scope_id")
+    _safe_receipt_ids(scope.get("source_classes"), "task_scope.source_classes")
+    _nonnegative_integer(scope.get("source_count"), "task_scope.source_count")
+    _safe_receipt_ids(scope.get("parameter_keys"), "task_scope.parameter_keys")
+
+    expected_steps = _safe_receipt_ids(value.get("expected_steps"), "expected_steps")
+    completed_steps = _safe_receipt_ids(value.get("completed_steps"), "completed_steps")
+    if not expected_steps or not set(completed_steps).issubset(expected_steps):
+        raise ValueError("completed_steps must be a subset of non-empty expected_steps")
+    steps = value.get("steps")
+    if not isinstance(steps, list):
+        raise ValueError("steps must be a list")
+    step_total_ms = 0
+    step_ids: list[str] = []
+    completed_from_status: list[str] = []
+    previous_end: datetime | None = None
+    for index, step_value in enumerate(steps):
+        step = _exact_keys(
+            step_value,
+            {"step_id", "status", "started_at", "ended_at", "duration_ms"},
+            f"steps[{index}]",
+        )
+        step_id = _safe_receipt_id(step.get("step_id"), f"steps[{index}].step_id")
+        if step_id not in expected_steps:
+            raise ValueError("steps contains an undeclared step")
+        status = step.get("status")
+        if status not in _STEP_STATUSES:
+            raise ValueError("step status is not recognized")
+        step_started = _capture_utc_timestamp(step.get("started_at"), "step.started_at")
+        step_ended = _capture_utc_timestamp(step.get("ended_at"), "step.ended_at")
+        step_duration = _nonnegative_integer(step.get("duration_ms"), "step.duration_ms")
+        if step_started < started_at or step_ended > ended_at or step_started > step_ended:
+            raise ValueError("step timestamps are outside the whole-run interval")
+        if previous_end is not None and step_started < previous_end:
+            raise ValueError("step timestamps overlap")
+        if _duration_milliseconds(step_started, step_ended, "step") != step_duration:
+            raise ValueError("step duration does not reconcile")
+        previous_end = step_ended
+        step_total_ms += step_duration
+        step_ids.append(step_id)
+        if status == "completed":
+            completed_from_status.append(step_id)
+    if len(step_ids) != len(set(step_ids)) or completed_steps != completed_from_status:
+        raise ValueError("step identities or completed_steps do not reconcile")
+
+    for field, keys, id_key, type_key in (
+        ("outputs", {"output_id", "output_type"}, "output_id", "output_type"),
+        ("effects", {"effect_id", "effect_type", "status"}, "effect_id", "effect_type"),
+    ):
+        records = value.get(field)
+        if not isinstance(records, list):
+            raise ValueError(f"{field} must be a list")
+        seen: set[str] = set()
+        for index, record_value in enumerate(records):
+            record = _exact_keys(record_value, keys, f"{field}[{index}]")
+            identifier = _safe_receipt_id(record.get(id_key), f"{field}[{index}].{id_key}")
+            if identifier in seen:
+                raise ValueError(f"{field} contains duplicate identifiers")
+            seen.add(identifier)
+            _safe_receipt_id(record.get(type_key), f"{field}[{index}].{type_key}")
+            if field == "effects" and record.get("status") not in _EFFECT_STATUSES:
+                raise ValueError("effect status is not recognized")
+
+    failure_classes = _safe_receipt_ids(value.get("failure_classes"), "failure_classes")
+    _nonnegative_integer(value.get("retry_count"), "retry_count")
+    _nonnegative_integer(value.get("approval_cycles"), "approval_cycles")
+    correctness = _exact_keys(
+        value.get("correctness"),
+        {"schema_valid", "source_failures_present", "human_correction_required", "unsafe_effect_prevented", "fabricated_clean_detected"},
+        "correctness",
+    )
+    if any(not isinstance(item, bool) for item in correctness.values()):
+        raise ValueError("correctness values must be booleans")
+
+    benchmark = _exact_keys(
+        value.get("benchmark"),
+        {"row_id", "row_sha256", "note_id", "projection"},
+        "benchmark",
+    )
+    _safe_receipt_id(benchmark.get("row_id"), "benchmark.row_id")
+    if benchmark.get("row_sha256") != value.get("rowSha256") or benchmark.get("note_id") != value.get("noteId"):
+        raise ValueError("benchmark digests must match the top-level row and note digests")
+    projection = _exact_keys(
+        benchmark.get("projection"),
+        {"before_count", "after_count", "row_delta", "row_is_last", "append_assertion"},
+        "benchmark.projection",
+    )
+    if (
+        projection.get("before_count") != before_count
+        or projection.get("after_count") != after_count
+        or projection.get("row_delta") != 1
+        or projection.get("row_is_last") is not True
+        or projection.get("append_assertion") != "passed"
+    ):
+        raise ValueError("benchmark projection must prove the same exact one-row append")
+
+    reconciliation = _exact_keys(
+        value.get("duration_reconciliation"),
+        {"step_total_ms", "unattributed_ms", "timestamps_reconciled"},
+        "duration_reconciliation",
+    )
+    reconciliation_step_total = _nonnegative_integer(
+        reconciliation.get("step_total_ms"), "duration_reconciliation.step_total_ms"
+    )
+    reconciliation_unattributed = _nonnegative_integer(
+        reconciliation.get("unattributed_ms"), "duration_reconciliation.unattributed_ms"
+    )
+    if (
+        reconciliation_step_total != step_total_ms
+        or reconciliation_unattributed != duration_ms - step_total_ms
+        or reconciliation.get("timestamps_reconciled") is not True
+    ):
+        raise ValueError("duration reconciliation does not match the strict lifecycle")
+    comparable = value.get("comparable")
+    if not isinstance(comparable, bool):
+        raise ValueError("comparable must be a boolean")
+    comparability_reasons = _safe_receipt_ids(
+        value.get("comparability_reasons"), "comparability_reasons"
+    )
+    if comparable and (
+        comparability_reasons
+        or completed_steps != expected_steps
+        or step_ids != expected_steps
+        or failure_classes
+        or correctness.get("schema_valid") is not True
+        or any(
+            correctness.get(field) is not False
+            for field in correctness
+            if field != "schema_valid"
+        )
+    ):
+        raise ValueError("comparable strict receipt has incomplete or failed evidence")
+    if not comparable and not comparability_reasons:
+        raise ValueError("non-comparable strict receipt requires a comparability reason")
+
+    return {
+        **value,
+        "variant": variant,
+        "runId": run_id,
+        "routine_id": routine_id,
+        "captured_at": captured_at,
+        "routine_started_at": started_at,
+        "row_date": row_date,
+    }
+
+
 def _validate_capture_receipt(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("receipt must be an object")
+    if value.get("schemaVersion") == 2:
+        return _validate_capture_receipt_v2(value)
     fields = set(value)
     if (
         not _RECEIPT_REQUIRED_FIELDS.issubset(fields)
@@ -402,12 +711,7 @@ def _validate_capture_receipt(value: Any) -> dict[str, Any]:
     row_date = _parse_date(value["rowDate"])
     if row_date is None:
         raise ValueError("rowDate must be YYYY-MM-DD")
-    try:
-        captured_at = datetime.fromisoformat(str(value["capturedAt"]).replace("Z", "+00:00"))
-    except ValueError as error:
-        raise ValueError("capturedAt must be an ISO-8601 timestamp") from error
-    if captured_at.tzinfo is None:
-        raise ValueError("capturedAt must include a timezone")
+    captured_at = _capture_timestamp(value["capturedAt"], "capturedAt")
     return {
         **value,
         "variant": variant,
@@ -424,6 +728,7 @@ def load_benchmark_receipts(receipts_dir: Path = BENCHMARK_RECEIPTS_DIR) -> dict
         "error": None,
         "valid": 0,
         "by_variant": {},
+        "by_schema_version": {},
         "by_note_id": {},
         "malformed": [],
     }
@@ -449,6 +754,10 @@ def load_benchmark_receipts(receipts_dir: Path = BENCHMARK_RECEIPTS_DIR) -> dict
         result["valid"] += 1
         variant = receipt["variant"]
         result["by_variant"][variant] = result["by_variant"].get(variant, 0) + 1
+        schema_version = str(receipt["schemaVersion"])
+        result["by_schema_version"][schema_version] = (
+            result["by_schema_version"].get(schema_version, 0) + 1
+        )
         result["by_note_id"].setdefault(receipt["noteId"], []).append(receipt)
     for receipts in result["by_note_id"].values():
         receipts.sort(key=lambda item: item["captured_at"])
@@ -664,10 +973,23 @@ LIVENESS_STATUSES = (
     "ok",
     "legacy_unverifiable",
     "indeterminate_same_day",
+    "receipt_missing",
     "row_missing",
     "never_run",
     "unknown",
 )
+
+
+def _receipt_covers_scheduler_run(receipt: dict[str, Any], last_run_at: datetime) -> bool:
+    captured_at = receipt.get("captured_at")
+    if not isinstance(captured_at, datetime) or captured_at.tzinfo is None:
+        return False
+    captured_at = captured_at.astimezone(BENCHMARK_TIMEZONE)
+    elapsed = captured_at - last_run_at
+    if elapsed < timedelta(0) or elapsed > _MAX_RECEIPT_LAG:
+        return False
+    receipt_row_date = receipt.get("row_date") or _parse_date(receipt.get("rowDate"))
+    return receipt_row_date in {last_run_at.date(), captured_at.date()}
 
 
 def classify_liveness(
@@ -679,10 +1001,9 @@ def classify_liveness(
 ) -> dict[str, Any]:
     """The watchdog's actual verdict: did the routine run, and did a row land?
 
-    ok                     — newest logged row is dated strictly AFTER the
-                             scheduler's last known run — the row demonstrably
-                             postdates the run, so it can only have landed
-                             because of (or after) that run or a later one.
+    ok                     — a valid timestamped receipt is bound to the latest
+                             post-enforcement scheduler run, or a demonstrably
+                             later row covers a pre-enforcement run.
     indeterminate_same_day — the newest row and the scheduler's last run share
                              a calendar date. Rows carry only a DATE, not a
                              time, so whether that row was written before or
@@ -697,6 +1018,9 @@ def classify_liveness(
                              predates timestamped receipt enforcement. Keep the
                              uncertainty visible without alerting forever on
                              evidence that could not have been captured.
+    receipt_missing        — a later-dated row exists, but a post-enforcement
+                             scheduler run has no fresh bound receipt. The row
+                             cannot substitute for required run evidence.
     row_missing            — scheduler shows a run that postdates the newest
                              row (or the note has zero rows despite a recorded
                              run). THE finding this module exists to surface.
@@ -737,18 +1061,12 @@ def classify_liveness(
     )
     last_run_date = last_run_at.date()
     for receipt in capture_receipts or []:
-        captured_at = receipt.get("captured_at")
-        if not isinstance(captured_at, datetime):
-            continue
-        if captured_at.tzinfo is not None:
-            captured_at = captured_at.astimezone(BENCHMARK_TIMEZONE)
-        receipt_row_date = receipt.get("row_date") or _parse_date(receipt.get("rowDate"))
-        if captured_at >= last_run_at and receipt_row_date == last_run_date:
+        if _receipt_covers_scheduler_run(receipt, last_run_at):
             return {
                 "status": "ok",
                 "reason": (
-                    "timestamped capture receipt postdates the scheduler run and is "
-                    f"bound to row date {last_run_date.isoformat()}"
+                    "timestamped capture receipt is fresh for the scheduler run and "
+                    "bound to an exact benchmark row"
                 ),
             }
     if newest_row_date is None:
@@ -781,6 +1099,15 @@ def classify_liveness(
                 f"scheduler last ran {last_run_date.isoformat()} and the newest row is "
                 f"also dated {newest_row_date.isoformat()} — rows carry only a date, not "
                 "a time, so whether this row postdates the run cannot be determined"
+            ),
+        }
+    if last_run_at >= receipt_enforcement_started_at:
+        return {
+            "status": "receipt_missing",
+            "reason": (
+                f"scheduler last ran {last_run_date.isoformat()} and a later row dated "
+                f"{newest_row_date.isoformat()} exists, but no fresh run-bound receipt "
+                "proves capture for the scheduler run"
             ),
         }
     return {
@@ -881,6 +1208,11 @@ def build_snapshot(
             binding_error = None
             if evidence != {"arm": receipt["arm"], "date": receipt["rowDate"]}:
                 binding_error = "receipt does not match an exact row in the benchmark note"
+            elif (
+                receipt["schemaVersion"] == 2
+                and receipt.get("routine_id") != ROUTINE_RECEIPT_IDS.get(routine_name)
+            ):
+                binding_error = "strict receipt routine id does not match the benchmark routine"
             elif capture_run is None:
                 binding_error = "receipt runId does not match bench-append run telemetry"
             elif capture_run.get("ok") is not True:
@@ -952,6 +1284,7 @@ def actionable_findings(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         if status not in {
             "row_missing",
             "indeterminate_same_day",
+            "receipt_missing",
             "never_run",
             "unknown",
         }:
