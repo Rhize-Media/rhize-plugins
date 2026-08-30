@@ -2,13 +2,15 @@
 
 | Field | Value |
 |---|---|
-| Status | Implementation complete through Phase 7 decision; native packs are advanced opt-in, retrieval paths rejected, combined test skipped because prerequisites failed |
+| Status | Implementation complete through Phase 7 decision; Phase 8 native-pack v2 and dual-host hardening proposed pending Jira confirmation |
 | Created | 2026-08-27 |
 | Primary owner | Rhize Tools |
 | Implementation home | `rhize-context-manager` |
 | Evaluation home | `evals/context-tools` |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for cross-cutting integration; Luna only for bounded fixtures, tests, and documentation |
+| Cross-host surface | Canonical `rhize-context-manager:context-pack` skill/CLI; thin Claude command; Codex skill discovery |
+| Jira tracking | Existing RT-128; add host-stratified live measurement and Phase 8 acceptance before implementation |
 
 ## 1. Objective
 
@@ -131,6 +133,39 @@ automatic live task** yet:
   compiler remains an eval/reference provider; current managed mgrep and local grepai paths are
   rejected; the combined 2x2 is skipped because retrieval did not pass its independent gate.
   The decision record is `evals/context-tools/NATIVE_CONTEXT_DECISION.md`.
+
+### 1.5 Additional Context Compiler article review — 2026-08-30
+
+The published article and its Obsidian Inbox clipping were independently compared with the upstream
+repository, pinned adapter, Rhize native pack, fourteen-case corpus, and real-repository receipts.
+This is not a new plugin domain: it is the source already evaluated by this plan and tracked in
+RT-128. Creating another context-compiler plan or provider would duplicate `rhize-context-manager`.
+
+Adopted insights are partially present and remain the target contract: explicit reachability before
+prompt assembly, FULL/INTERFACE/EXCLUDED classification, deterministic interface rendering, visible
+dynamic/collision warnings, source-bound invalidation, and fail-closed fallback. Native v1 does not
+yet prove complete multiline interfaces or non-relative JS/TS dependency expansion, so Phase 8 fixes
+those gaps before making a stronger claim. Rhize deliberately improves on the article by using an
+existing healthy CodeGraph index for target discovery and, in v2, dependency expansion; supporting
+Python/JavaScript/TypeScript plus tests/configuration; and treating critical-dependency recall and
+task correctness as gates ahead of token savings.
+
+Do not adopt the upstream compiler as a required runtime. Its evidence covers two small Python
+repositories, uses `characters // 4` token estimates, begins from a known target, is not type-aware,
+and does not measure coding outcomes. The headline “70% waste,” reported context-window change, and
+69–74% reductions are source-specific observations, not Rhize baselines or architectural premises.
+The upstream revision remains a pinned eval/reference provider.
+
+The net-new follow-up is correctness hardening before delivery parity. Native v1's line-prefix
+interface renderer must be replaced with parser-backed contract extraction that preserves multiline
+signatures, overloads/generics/decorators, exported types, and the complete callable contract. Its
+JavaScript/TypeScript resolver must resolve configured path aliases, package/workspace imports, and
+package exports—or reject/fall back with a visible unresolved-import reason instead of silently
+ignoring non-relative imports. Phase 8 then exposes the hardened native pack as one canonical skill
+and host-neutral CLI for both Claude Code and Codex. Claude may retain an explicitly armed hook only
+where its supported hook contract is verified; Codex uses explicit preview/build/verify until a
+supported bounded injection surface exists. Host differences are recorded, never hidden behind a
+claimed identical execution path.
 
 Sources: Mixedbread [pricing](https://www.mixedbread.com/pricing),
 [Privacy Policy](https://www.mixedbread.com/pages/privacy),
@@ -952,19 +987,84 @@ Verify:
 - Dependencies: Phase 6 decision.
 - Executor: Terra; Sol production/release gate.
 
+### Phase 8 — Native pack v2, Claude Code/Codex packaging, and host-stratified evidence
+
+**Disposition (2026-08-30):** proposed; implementation is blocked until RT-128 is updated with the
+accepted scope and measurement matrix.
+
+Tasks:
+
+- Replace line-prefix INTERFACE rendering with parser-backed language adapters that preserve complete
+  multiline Python/JavaScript/TypeScript public contracts. Unsupported/ambiguous parsing widens to
+  full source or rejects the pack; it never emits a confidently incomplete interface.
+- Use CodeGraph for dependency expansion when an existing healthy `.codegraph/` index is present.
+  Otherwise resolve JS/TS relative imports plus `tsconfig`/`jsconfig` path aliases, package/workspace
+  imports and package exports, and Python configured source roots within the verified snapshot. Any
+  unresolved internal import is recorded with source location and triggers the predeclared widen/
+  fallback decision; never initialize or sync CodeGraph automatically.
+- Add critical-symbol/contract-fidelity fixtures that assert rendered signatures, types, decorators,
+  overloads/generics, alias targets, workspace packages, and negative dynamic/unsupported cases—not
+  only selected roles and paths.
+- Create `rhize-context-manager/skills/context-pack/SKILL.md` as the canonical workflow and
+  `skills/context-pack/agents/openai.yaml` for Codex routing metadata.
+- Make `commands/context-pack.md` a thin Claude adapter over the existing host-neutral runner.
+- Register the skill in the `.codex-plugin/plugin.json` created by the unified-memory foundation;
+  synchronize Claude/Codex/marketplace manifests, root CHANGELOG/ROADMAP, README/GUIDE, setup
+  metadata, and generated skill maps.
+- Resolve source/install roots portably rather than depending only on Claude-specific environment
+  variables or home-directory layout.
+- Preserve CodeGraph-first behavior only when `.codegraph/` already exists; never initialize or sync
+  CodeGraph automatically. Fall back to the current native/`rg` path with an explicit reason.
+- Add calibrated eligibility for projected benefit and scan/index budget. Single-file/small,
+  alias-heavy, highly dynamic, and bounded large-repository fixtures return explicit reasons such as
+  `insufficient_compilation_benefit` or `repository_scan_budget_exceeded`; thresholds are measured and
+  versioned rather than copied from the article.
+- Reconcile the v2 artifact model: pack entries remain `FULL` or `INTERFACE`, while excluded files are
+  represented by a bounded source-free reason-count ledger plus private inspection output. Do not
+  claim one manifest entry per excluded file when the schema stores only an aggregate.
+- Keep context-pack content private and explicit. No host may scrape private transcripts or silently
+  inject a pack; any later injection is a separate Jira decision.
+
+Verify:
+
+- Fresh installed Claude Code and Codex sessions discover the canonical skill and produce
+  byte-equivalent deterministic manifests, hashes, roles, warnings, and fallback decisions for fixed
+  fixtures; live model/task outcomes are evaluated separately by host/model.
+- Static, dynamic, collision, event/callback, mixed-language, missing-CodeGraph, stale snapshot,
+  multiline-interface, path-alias/workspace, unsupported-host, and budget/coverage cases preserve
+  complete critical contracts or fail closed.
+- Single-file/small, alias-heavy, dynamic, and bounded large-repository cases prove eligibility and
+  scan-budget decisions without inventing universal thresholds.
+- Run two separately labeled comparisons that are never pooled: native-v1 versus native-v2 isolates
+  correctness/regression changes, while the current CodeGraph/`rg`/targeted-read workflow versus
+  native-v2 measures product value. A complete supported-source dump remains a diagnostic upper bound,
+  not the claimed production baseline. Host/model/tool availability and repository state are matched,
+  and actual host input tokens are preferred when exposed while estimates remain labeled.
+- RT-128 records frozen repo/query/source fingerprints, baseline/candidate/release SHAs, host/model/
+  plugin versions, critical symbol/file misses, rendered-contract completeness, correctness,
+  follow-up reads, context tokens, latency, operator burden, and explicit promote/hold outcome. Raw
+  packs/prompts/paths remain local.
+- Native packs remain advanced opt-in until the predeclared live sample is reviewed; token reduction
+  alone cannot promote the capability.
+
+- Dependencies: unified-memory Phase 0 owns the context-manager Codex manifest; existing Phase 7
+  native-pack decision and RT-128 evidence remain authoritative.
+- Executor: Terra; Sol cross-host and release review.
+
 ## 12. Test and validation matrix
 
 | Area | Required cases |
 |---|---|
-| Eligibility | eligible implementation, trivial lookup, production incident, protected task, wrong repo, exhausted budget, already-in-progress discovery |
+| Eligibility | eligible implementation, trivial/single-file/small repo, alias-heavy/dynamic repo, bounded large repo, projected-benefit/scan-budget decline, production incident, protected task, wrong repo, exhausted budget, already-in-progress discovery |
 | Assignment | first B-live run, alternation, deterministic stratification, skipped arm, fallback, no shadow network approval |
 | Concurrency | atomic claim, competing sessions, stale lease, interrupted finalization |
 | Security | `.env*`, nested secrets, symlink escape, ignored paths, oversized file, binary, customer export, wrong store/repository |
 | mgrep | missing CLI, version mismatch, auth failure, store absent, stale snapshot, zero result, malformed result, timeout, fallback, deterministic verification |
 | Upstream compiler | static imports/calls, aliases, duplicate names, decorators, callbacks, event registration, dynamic dispatch, unsupported syntax |
-| Native pack | FULL/INTERFACE selection, test/config inclusion, budget truncation, ambiguity warning, stale hash, post-edit invalidation, follow-up read |
+| Native pack | FULL/INTERFACE selection, multiline contract fidelity, path-alias/workspace import resolution, test/config inclusion, budget truncation, ambiguity warning, stale hash, post-edit invalidation, critical-symbol recall, follow-up read |
 | Receipts | exact executed arms, skipped reasons, redaction, interrupted run, amendment trail, schema/version hash, aggregate reconciliation |
 | Hooks | valid payloads, malformed payload, unarmed no-op, unsupported host, provider unavailable, finalizer after failure |
+| Cross-host | fresh Claude Code/Codex discovery, portable roots, equivalent deterministic artifacts, explicit capability differences, no unsupported injection |
 | E2E | isolated Python, TypeScript, dynamic, and mixed-plugin fixtures with fixed validation commands |
 
 Current executable interfaces:
