@@ -1,3 +1,5 @@
+"""Shared deterministic fixtures for the decision-accountability evals."""
+
 from __future__ import annotations
 
 import copy

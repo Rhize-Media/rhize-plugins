@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from _support import ROOT
+from decision_support import ROOT
 
 
 class DecisionDeliveryContractTests(unittest.TestCase):

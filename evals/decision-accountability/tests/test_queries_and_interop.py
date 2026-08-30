@@ -6,7 +6,7 @@ import unittest
 from datetime import timedelta
 from pathlib import Path
 
-from _support import (
+from decision_support import (
     ACTOR,
     NONCE,
     NOW,

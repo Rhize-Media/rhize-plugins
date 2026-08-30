@@ -4,7 +4,7 @@ import copy
 import json
 import unittest
 
-from _support import ROOT, load_fixture, policy_evaluation, proposal, sha256_value
+from decision_support import NOW, ROOT, load_fixture, policy_evaluation, proposal, sha256_value
 from graph_memory.contract import compile_ontology
 from graph_memory.decisions import (
     DecisionError,
@@ -65,7 +65,7 @@ class DecisionContractTests(unittest.TestCase):
                     item,
                     principal_hash=sha256_value("principal"),
                     principal_scopes=["decision:record", "group:rhize-tools"],
-                    idempotency_key="one", nonce="nonce-for-fixture", now=__import__("_support").NOW,
+                    idempotency_key="one", nonce="nonce-for-fixture", now=NOW,
                 )
 
 
