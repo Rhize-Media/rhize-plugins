@@ -18,7 +18,7 @@ jobs:
       # 2026-08-16). ubuntu-latest's system python3 has no pytest, so the gate
       # reported "Dev Flow test suite failed" on every PR since — a false failure:
       # the suite never ran at all.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       # PyYAML too: ubuntu's SYSTEM python3 ships it, but actions/setup-python
