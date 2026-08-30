@@ -174,8 +174,8 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims the next eligible, explicitly armed experiment only when its real provider and snapshot are healthy. For `compiledContext`, it builds an accepted native pack automatically before discovery; rejected packs stay silent and leave the arm intact. |
-| `context-experiment-finalizer` | `Stop` | T3 (advisory) | Finalizes durable execution evidence; interrupted runs receive an incomplete receipt and do not consume the armed run. |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims one clean-repository attempt under a repository/capability single-flight lease. Accepted attempts atomically freeze the capability; rejected packs and elapsed preflights leave the arm intact. |
+| `context-experiment-finalizer` | `Stop` | T3 (advisory) | Verifies the native pack again and writes receipt v2. Pack construction alone is incomplete; completion requires an immutable source-free review sidecar, and every requested arm is explicitly executed or skipped. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
 `hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
@@ -261,19 +261,47 @@ entry-hash drift. The five-case native corpus plus the nine upstream cases total
 context cases; native v1 passed its controlled gate with zero critical misses and a 39.02% median
 reduction across four accepted cases. This supports an advanced opt-in pilot, not default use.
 
+The live P4 gate is stricter than preview mode. Selection refuses a dirty repository, unresolved
+local dependency, truncated dependency traversal, required dependency omitted by budget, or a
+preflight that exceeds `maxDurationSeconds`. It verifies the pack immediately after writing it,
+then freezes the capability before returning context. The non-reclaiming lease prevents a second
+session from claiming the same repository/capability even after the ordinary lease TTL. Any Stop
+outcome leaves the capability frozen for review; it is never automatically re-armed.
+
+A reviewer may record the minimum immutable task evidence while the attempt is pending:
+
+```bash
+python3 scripts/context_experiments/runner.py record-evidence \
+  --experiment-id exp-REDACTED \
+  --task-outcome completed \
+  --pack-used \
+  --validation-id pytest-context-tools \
+  --executed-arm B \
+  --skip-arm A:no_comparable_shadow_evidence
+```
+
+The sidecar contains only the experiment id, timestamp, outcome enum, pack-use boolean,
+source-free validation ids, and exact arm accounting. It rejects prompts, source/output, paths,
+URLs, duplicate writes, and evidence without a matching pending attempt. Receipt v2 binds its
+SHA-256 digest and the claim/final pack-verification results. The command records reviewer
+assertions; it does not infer task correctness. A comparable Arm A remains a separate evidence
+requirement, and `capture-health` flags a reviewed B-only run as non-comparable.
+
 Capture reliability is independently queryable and fail-closed:
 
 ```bash
 python3 scripts/context_experiments/runner.py capture-health
 ```
 
-The command strictly parses every receipt and pending selection, reconciles stored completed
-receipts against each capability's `completedRuns`, keeps completed/incomplete Arm A and Arm B
-counts separate per capability, and requires at least one metric per executed Arm plus a
-shared name/unit/evidence tuple for completed A/B receipts. It exits `2` for malformed artifacts,
-failed or incomplete receipts, missing-arm/metric/history evidence, non-comparable A/B
-measurements, or a pending selection that outlived its lease without producing a receipt. It
-never generates benchmark evidence or substitutes a provider double for a real dogfood run.
+The command strictly parses every receipt, review sidecar, and pending selection; reconciles
+sidecar digests and stored completed receipts against each capability's `completedRuns`; and keeps
+completed/incomplete/skipped Arm A and Arm B counts separate per capability. Legacy receipt v1
+still requires comparable A/B metrics. Receipt v2 requires exact arm accounting and reports
+evidence-backed, comparable, skipped, incomplete, and failed runs separately. It exits `2` for
+malformed or mismatched artifacts, failed or incomplete receipts, missing-arm/metric/history
+evidence, non-comparable A/B measurements, orphan evidence, or a pending selection that outlived
+its lease without producing a receipt. It never generates benchmark evidence or substitutes a
+provider double for a real dogfood run.
 
 ### Refinement-pipeline hooks (also in `setup/manifest.json`)
 

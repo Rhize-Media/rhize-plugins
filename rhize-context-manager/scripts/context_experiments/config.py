@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+import fcntl
 import json
 import os
 import tempfile
@@ -103,3 +105,63 @@ def record_completed_run(config: ExperimentConfig, capability: Capability) -> Ex
         completed_runs=current.completed_runs + 1,
     )
     return config.with_capability(capability, updated)
+
+
+def reserve_capability_run(
+    path: Path, capability: Capability
+) -> ExperimentConfig | None:
+    """Atomically consume live authority and freeze a capability for review."""
+
+    with _config_lock(path):
+        config = load_config(path)
+        current = config.for_capability(capability)
+        if not current.enabled or current.armed_runs <= 0:
+            return None
+        updated_capability = replace(current, enabled=False, armed_runs=0)
+        updated = config.with_capability(capability, updated_capability)
+        write_config(updated, path)
+        return updated
+
+
+def record_reserved_completion(path: Path, capability: Capability) -> ExperimentConfig:
+    """Increment history only after an already-reserved frozen run completes."""
+
+    with _config_lock(path):
+        config = load_config(path)
+        current = config.for_capability(capability)
+        if current.enabled or current.armed_runs != 0:
+            raise ValueError("completed reserved run requires a frozen capability")
+        updated = config.with_capability(
+            capability,
+            replace(current, completed_runs=current.completed_runs + 1),
+        )
+        write_config(updated, path)
+        return updated
+
+
+def freeze_capability(path: Path, capability: Capability) -> ExperimentConfig:
+    """Idempotently remove live authority for an accepted attempt."""
+
+    with _config_lock(path):
+        config = load_config(path)
+        current = config.for_capability(capability)
+        if not current.enabled and current.armed_runs == 0:
+            return config
+        updated = config.with_capability(
+            capability, replace(current, enabled=False, armed_runs=0)
+        )
+        write_config(updated, path)
+        return updated
+
+
+@contextmanager
+def _config_lock(path: Path):
+    lock_path = path.parent / f".{path.name}.lock"
+    lock_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    descriptor = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)

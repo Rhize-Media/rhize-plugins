@@ -169,6 +169,73 @@ def test_dynamic_dependency_edges_reject_use_without_hiding_the_target(tmp_path:
     assert pack.manifest["entries"][0]["path"] == "dispatcher.js"
 
 
+def test_unresolved_local_dependencies_reject_use(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    target = repo / "app.ts"
+    target.write_text(
+        "import { missing } from './missing';\nexport const value = missing();\n",
+        encoding="utf-8",
+    )
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="e" * 64,
+        targets=(target,),
+    )
+
+    assert pack.manifest["policy"]["acceptedForUse"] is False
+    assert "unresolved_local_dependency" in pack.manifest["policy"]["rejectionReasons"]
+
+
+def test_dependency_hop_truncation_rejects_use(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "types.ts").write_text("export interface User { id: string }\n")
+    (repo / "service.ts").write_text(
+        "import type { User } from './types';\nexport const load = (user: User) => user.id;\n"
+    )
+    target = repo / "app.ts"
+    target.write_text("import { load } from './service';\nexport const value = load({id: '1'});\n")
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="f" * 64,
+        targets=(target,),
+        max_hops=1,
+    )
+
+    assert pack.manifest["policy"]["acceptedForUse"] is False
+    assert "dependency_traversal_truncated" in pack.manifest["policy"]["rejectionReasons"]
+
+
+def test_required_dependency_omitted_by_budget_rejects_use(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    dependency = repo / "service.ts"
+    dependency.write_text(
+        "\n".join(f"export const value{index} = {index};" for index in range(100)) + "\n"
+    )
+    target = repo / "app.ts"
+    target.write_text("import { value0 } from './service';\nexport const value = value0;\n")
+    snapshot = commit_fixture(repo)
+
+    pack = NativeContextPackProvider().compile(
+        repo,
+        snapshot=snapshot,
+        task_hash="1" * 64,
+        targets=(target,),
+        max_tokens=40,
+    )
+
+    assert pack.manifest["policy"]["acceptedForUse"] is False
+    assert "required_dependency_exceeds_token_budget" in pack.manifest["policy"]["rejectionReasons"]
+
+
 def test_manifest_contains_no_source_or_absolute_paths(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     write_static_typescript_fixture(repo)

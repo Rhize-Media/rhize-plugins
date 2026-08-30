@@ -8,6 +8,23 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+function selectorTimeoutMs() {
+  try {
+    const configPath = process.env.RHIZE_CONTEXT_EXPERIMENT_CONFIG
+      || path.join(process.env.HOME || '', '.claude', 'rhize-context-manager', 'context-experiments.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const experiments = Object.values(config.experiments || {});
+    const durations = experiments
+      .filter((item) => item && item.enabled && item.armedRuns > 0)
+      .map((item) => item.maxDurationSeconds)
+      .filter((value) => Number.isInteger(value) && value >= 1 && value <= 300);
+    const seconds = durations.length ? Math.max(...durations) : 30;
+    return (seconds + 5) * 1000;
+  } catch (_error) {
+    return 35000;
+  }
+}
+
 function main() {
   try {
     const input = fs.readFileSync(0, 'utf8');
@@ -17,7 +34,7 @@ function main() {
       input,
       encoding: 'utf8',
       env: process.env,
-      timeout: 5000,
+      timeout: selectorTimeoutMs(),
     });
     if (result.status === 0 && result.stdout) process.stdout.write(result.stdout);
   } catch (_error) {

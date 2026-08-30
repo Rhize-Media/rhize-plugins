@@ -19,6 +19,7 @@ from context_experiments.models import (
     Capability,
     CapabilityConfig,
     ExperimentConfig,
+    ExperimentEvidence,
     ExperimentReceipt,
     Metric,
     RunStatus,
@@ -191,3 +192,34 @@ def test_receipt_serializes_exact_arm_accounting() -> None:
     assert document["liveVariant"] == "B"
     assert document["shadowVariant"] == "A"
     assert {metric["role"] for metric in document["metrics"]} == {"live", "shadow"}
+
+
+def test_source_free_review_evidence_is_strict_and_digest_stable() -> None:
+    evidence = ExperimentEvidence(
+        experiment_id="exp-review",
+        recorded_at="2026-08-30T12:00:00Z",
+        task_outcome="completed",
+        pack_use_observed=True,
+        validation_ids=("pytest-context-tools",),
+        arms_executed=(Arm.EXPERIMENTAL,),
+        arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+    )
+    document = evidence.to_dict()
+    assert document == {
+        "schemaVersion": 1,
+        "experimentId": "exp-review",
+        "recordedAt": "2026-08-30T12:00:00Z",
+        "taskOutcome": "completed",
+        "packUseObserved": True,
+        "validationIds": ["pytest-context-tools"],
+        "armsExecuted": ["B"],
+        "armsSkipped": [
+            {"arm": "A", "reason": "no_comparable_shadow_evidence"}
+        ],
+    }
+    assert ExperimentEvidence.from_dict(document) == evidence
+    assert len(evidence.digest()) == 64
+
+    unsafe = {**document, "validationIds": ["https://provider.example/result"]}
+    with pytest.raises(ValueError, match="validation"):
+        ExperimentEvidence.from_dict(unsafe)

@@ -19,17 +19,26 @@ class Lease:
 
 
 class LeaseStore:
-    def __init__(self, directory: Path, ttl_seconds: int, now=time.time) -> None:
+    def __init__(
+        self,
+        directory: Path,
+        ttl_seconds: int,
+        now=time.time,
+        *,
+        reclaim_stale: bool = True,
+    ) -> None:
         self.directory = directory
         self.ttl_seconds = ttl_seconds
         self._now = now
+        self.reclaim_stale = reclaim_stale
 
     def claim(self, key: str, owner: str) -> Lease | None:
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         path = self.directory / f"{hashlib.sha256(key.encode()).hexdigest()}.lease"
         gate = self._gate(path)
         with gate:
-            self._remove_if_stale(path)
+            if self.reclaim_stale:
+                self._remove_if_stale(path)
             payload = json.dumps(
                 {"keyHash": hashlib.sha256(key.encode()).hexdigest(), "owner": owner},
                 sort_keys=True,

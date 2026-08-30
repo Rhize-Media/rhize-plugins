@@ -7,15 +7,19 @@ record is safe to aggregate and inspect separately.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import re
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any, Mapping
 
 
 SCHEMA_VERSION = 1
+RECEIPT_SCHEMA_VERSION = 2
 MAX_ARMED_RUNS = 10
 VALID_TASK_CLASSES = {
     "implementation",
@@ -288,6 +292,102 @@ class Assignment:
 
 
 @dataclass(frozen=True)
+class ExperimentEvidence:
+    """Immutable, source-free reviewer evidence for one accepted attempt."""
+
+    experiment_id: str
+    recorded_at: str
+    task_outcome: str
+    pack_use_observed: bool
+    validation_ids: tuple[str, ...]
+    arms_executed: tuple[Arm, ...]
+    arms_skipped: tuple[dict[str, str], ...]
+    schema_version: int = 1
+
+    def __post_init__(self) -> None:
+        if self.schema_version != 1:
+            raise ValueError("evidence schemaVersion must be 1")
+        if not _SAFE_ID.fullmatch(self.experiment_id):
+            raise ValueError("unsafe evidence experimentId")
+        try:
+            timestamp = datetime.fromisoformat(self.recorded_at.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError("recordedAt must be an ISO-8601 timestamp") from error
+        if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+            raise ValueError("recordedAt must include a timezone")
+        if self.task_outcome not in {"completed", "failed"}:
+            raise ValueError("taskOutcome must be completed or failed")
+        if not isinstance(self.pack_use_observed, bool):
+            raise TypeError("packUseObserved must be a boolean")
+        if not self.validation_ids or any(
+            not _SAFE_ID.fullmatch(value) for value in self.validation_ids
+        ):
+            raise ValueError("validationIds must contain safe source-free identifiers")
+        if len(set(self.validation_ids)) != len(self.validation_ids):
+            raise ValueError("validationIds contains duplicates")
+        if len(set(self.arms_executed)) != len(self.arms_executed):
+            raise ValueError("evidence armsExecuted contains duplicates")
+        skipped_arms = _validate_skipped_arms(self.arms_skipped)
+        if set(skipped_arms) & set(self.arms_executed):
+            raise ValueError("evidence cannot execute and skip the same arm")
+        _assert_no_absolute_paths_or_raw_content(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "ExperimentEvidence":
+        expected = {
+            "schemaVersion",
+            "experimentId",
+            "recordedAt",
+            "taskOutcome",
+            "packUseObserved",
+            "validationIds",
+            "armsExecuted",
+            "armsSkipped",
+        }
+        if not isinstance(value, Mapping) or set(value) != expected:
+            raise ValueError("evidence has an invalid shape")
+        validation_ids = value["validationIds"]
+        executed = value["armsExecuted"]
+        skipped = value["armsSkipped"]
+        if not isinstance(validation_ids, list) or not all(
+            isinstance(item, str) for item in validation_ids
+        ):
+            raise TypeError("validationIds must be an array of strings")
+        if not isinstance(executed, list):
+            raise TypeError("armsExecuted must be an array")
+        if not isinstance(skipped, list):
+            raise TypeError("armsSkipped must be an array")
+        return cls(
+            schema_version=value["schemaVersion"],
+            experiment_id=value["experimentId"],
+            recorded_at=value["recordedAt"],
+            task_outcome=value["taskOutcome"],
+            pack_use_observed=value["packUseObserved"],
+            validation_ids=tuple(validation_ids),
+            arms_executed=tuple(Arm(item) for item in executed),
+            arms_skipped=tuple(_coerce_skipped_arm(item) for item in skipped),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schemaVersion": self.schema_version,
+            "experimentId": self.experiment_id,
+            "recordedAt": self.recorded_at,
+            "taskOutcome": self.task_outcome,
+            "packUseObserved": self.pack_use_observed,
+            "validationIds": list(self.validation_ids),
+            "armsExecuted": [arm.value for arm in self.arms_executed],
+            "armsSkipped": list(self.arms_skipped),
+        }
+
+    def digest(self) -> str:
+        payload = json.dumps(
+            self.to_dict(), sort_keys=True, separators=(",", ":")
+        ).encode()
+        return hashlib.sha256(payload).hexdigest()
+
+
+@dataclass(frozen=True)
 class ExperimentReceipt:
     experiment_id: str
     task_id: str
@@ -308,6 +408,9 @@ class ExperimentReceipt:
     fallback_used: bool
     metrics: tuple[Metric, ...] = ()
     warnings: tuple[str, ...] = ()
+    evidence_digest: str | None = None
+    claim_pack_verified: bool | None = None
+    final_pack_verification: str = "not_applicable"
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -326,10 +429,34 @@ class ExperimentReceipt:
             raise ValueError("armsExecuted contains duplicates")
         if not set(self.arms_executed).issubset(self.arms_requested):
             raise ValueError("armsExecuted must be a subset of armsRequested")
+        skipped_arms = _validate_skipped_arms(self.arms_skipped)
+        if not set(skipped_arms).issubset(
+            set(self.arms_requested) - set(self.arms_executed)
+        ):
+            raise ValueError("armsSkipped must describe requested arms not executed")
+        if self.schema_version not in {SCHEMA_VERSION, RECEIPT_SCHEMA_VERSION}:
+            raise ValueError("unsupported receipt schemaVersion")
+        if self.final_pack_verification not in {
+            "valid", "stale", "unavailable", "not_applicable"
+        }:
+            raise ValueError("invalid finalPackVerification")
+        if self.claim_pack_verified is not None and not isinstance(
+            self.claim_pack_verified, bool
+        ):
+            raise TypeError("claimPackVerified must be a boolean or null")
+        if self.evidence_digest is not None and not re.fullmatch(
+            r"[a-f0-9]{64}", self.evidence_digest
+        ):
+            raise ValueError("evidenceDigest must be a SHA-256 digest or null")
+        if self.schema_version == RECEIPT_SCHEMA_VERSION:
+            if set(self.arms_executed) | set(skipped_arms) != set(self.arms_requested):
+                raise ValueError("receipt v2 must account for every requested arm")
+            if self.status is RunStatus.COMPLETED and self.evidence_digest is None:
+                raise ValueError("completed receipt v2 requires evidenceDigest")
         _assert_no_absolute_paths_or_raw_content(self.to_dict())
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        document = {
             "schemaVersion": self.schema_version,
             "experimentId": self.experiment_id,
             "taskId": self.task_id,
@@ -351,6 +478,33 @@ class ExperimentReceipt:
             "metrics": [metric.to_dict() for metric in self.metrics],
             "warnings": list(self.warnings),
         }
+        if self.schema_version == RECEIPT_SCHEMA_VERSION:
+            document.update(
+                {
+                    "evidenceDigest": self.evidence_digest,
+                    "claimPackVerified": self.claim_pack_verified,
+                    "finalPackVerification": self.final_pack_verification,
+                }
+            )
+        return document
+
+
+def _coerce_skipped_arm(value: Any) -> dict[str, str]:
+    if not isinstance(value, Mapping) or set(value) != {"arm", "reason"}:
+        raise ValueError("armsSkipped item must contain arm and reason")
+    arm = Arm(value["arm"])
+    reason = value["reason"]
+    if not isinstance(reason, str) or not _SAFE_ID.fullmatch(reason):
+        raise ValueError("armsSkipped reason must be a safe identifier")
+    return {"arm": arm.value, "reason": reason}
+
+
+def _validate_skipped_arms(values: tuple[dict[str, str], ...]) -> tuple[Arm, ...]:
+    normalized = tuple(_coerce_skipped_arm(value) for value in values)
+    arms = tuple(Arm(value["arm"]) for value in normalized)
+    if len(set(arms)) != len(arms):
+        raise ValueError("armsSkipped contains duplicates")
+    return arms
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:

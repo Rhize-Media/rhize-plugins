@@ -12,6 +12,8 @@ def test_all_phase_one_json_documents_parse() -> None:
     paths = [
         PLUGIN_ROOT / "schemas" / "context-experiment-config-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-experiment-receipt-v1.schema.json",
+        PLUGIN_ROOT / "schemas" / "context-experiment-receipt-v2.schema.json",
+        PLUGIN_ROOT / "schemas" / "context-experiment-evidence-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v2.schema.json",
         PLUGIN_ROOT / "setup" / "manifest.json",
@@ -34,6 +36,26 @@ def test_receipt_schema_requires_explicit_arm_and_metric_variant_accounting() ->
     }.issubset(required)
     metric_required = set(schema["properties"]["metrics"]["items"]["required"])
     assert {"variant", "role", "unit", "evidence"}.issubset(metric_required)
+
+
+def test_receipt_v2_is_digest_bound_to_source_free_review_evidence() -> None:
+    receipt = json.loads(
+        (PLUGIN_ROOT / "schemas" / "context-experiment-receipt-v2.schema.json").read_text()
+    )
+    assert {
+        "evidenceDigest",
+        "claimPackVerified",
+        "finalPackVerification",
+    }.issubset(receipt["required"])
+    evidence = json.loads(
+        (PLUGIN_ROOT / "schemas" / "context-experiment-evidence-v1.schema.json").read_text()
+    )
+    assert evidence["additionalProperties"] is False
+    assert "prompt" not in evidence["properties"]
+    assert "source" not in evidence["properties"]
+    assert "output" not in evidence["properties"]
+    assert "path" not in evidence["properties"]
+    assert "url" not in evidence["properties"]
 
 
 def test_config_schema_is_strict_and_caps_armed_runs() -> None:

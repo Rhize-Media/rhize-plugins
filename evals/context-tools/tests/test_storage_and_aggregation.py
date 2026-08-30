@@ -9,8 +9,15 @@ import pytest
 
 from context_experiments.aggregate import aggregate_receipts
 from context_experiments.lease import Lease, LeaseStore
-from context_experiments.models import Arm, Capability, ExperimentReceipt, Metric, RunStatus
-from context_experiments.receipt_store import PendingStore, ReceiptStore
+from context_experiments.models import (
+    Arm,
+    Capability,
+    ExperimentEvidence,
+    ExperimentReceipt,
+    Metric,
+    RunStatus,
+)
+from context_experiments.receipt_store import EvidenceStore, PendingStore, ReceiptStore
 
 
 def receipt(experiment_id: str = "exp-storage") -> ExperimentReceipt:
@@ -59,6 +66,25 @@ def test_pending_store_rejects_lease_path_traversal(tmp_path: Path) -> None:
         PendingStore(tmp_path).write("sessionhash", {"leaseFile": "../../outside"})
 
 
+def test_evidence_sidecars_are_private_immutable_and_digest_bound(tmp_path: Path) -> None:
+    evidence = ExperimentEvidence(
+        experiment_id="exp-evidence",
+        recorded_at="2026-08-30T12:00:00Z",
+        task_outcome="completed",
+        pack_use_observed=True,
+        validation_ids=("pytest-context-tools",),
+        arms_executed=(Arm.EXPERIMENTAL,),
+        arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+    )
+    store = EvidenceStore(tmp_path / "evidence")
+    path = store.write(evidence)
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert store.read("exp-evidence") == evidence
+    assert store.digest("exp-evidence") == evidence.digest()
+    with pytest.raises(FileExistsError):
+        store.write(evidence)
+
+
 def test_lease_allows_only_one_owner_and_only_owner_can_release(tmp_path: Path) -> None:
     store = LeaseStore(tmp_path / "leases", ttl_seconds=60)
     first = store.claim("same-key", "owner-a")
@@ -95,3 +121,26 @@ def test_aggregate_never_mixes_variant_role_unit_or_evidence() -> None:
     assert summaries[("A", "shadow", "ms", "measured")]["median"] == 120
     assert summaries[("B", "live", "seconds", "measured")]["median"] == 1
     assert len(summaries) == 3
+
+
+def test_aggregate_exposes_evidence_and_exact_arm_accounting() -> None:
+    document = receipt("exp-v2").to_dict()
+    document.update(
+        {
+            "schemaVersion": 2,
+            "armsExecuted": ["B"],
+            "armsSkipped": [{"arm": "A", "reason": "no_comparable_shadow_evidence"}],
+            "evidenceDigest": "e" * 64,
+            "claimPackVerified": True,
+            "finalPackVerification": "valid",
+            "metrics": [metric for metric in document["metrics"] if metric["variant"] == "B"],
+        }
+    )
+
+    group = aggregate_receipts([document])["groups"][0]
+    assert group["evidenceBacked"] == 1
+    assert group["comparableRuns"] == 0
+    assert group["armAccounting"] == {
+        "A": {"executed": 0, "skipped": 1},
+        "B": {"executed": 1, "skipped": 0},
+    }
