@@ -15,3 +15,6 @@ Use the canonical `memory-context` skill. This Claude command is only a thin ada
 Inspect adapter statuses, exclusions, conflicts, authority classes, expiry, and warnings. Do not read
 the private payload into a prompt automatically. Verification, exact-source purge, and expired-pack
 cleanup use the same launcher and require the boundaries described by the canonical skill.
+
+The optional graph-memory adapter is library-fed into this same explicit request after a bounded
+`query_context` call. This command never accepts Cypher, graph writes, or live database credentials.

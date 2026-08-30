@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "tenant": "tenant-a",
+  "project": "rhize-tools",
+  "task": "rt-159",
+  "namespace": "rhize-tools",
+  "corpusId": "rhize-ontology-redacted-canary",
+  "query": "implements",
+  "maxResults": 10,
+  "maxDepth": 1,
+  "runtimeMs": 250
+}

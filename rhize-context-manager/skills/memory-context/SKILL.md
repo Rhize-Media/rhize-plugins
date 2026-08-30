@@ -32,9 +32,16 @@ approval, tool, or execution authority.
 Source ownership is fixed: host-supplied current context and canonical `STATE.md` facts are separate
 working lanes; supported host episodic APIs own episodic records; Obsidian/canonical files own
 semantic facts; procedural-memory supplies metadata references only; CodeGraph owns code
-relationships. Neo4j remains a later read-only derived adapter. An absent supported episodic API or
-machine-readable procedural recall contract is `unavailable`, never an empty store. Do not scrape
-host private state, parse prose output, invoke a procedure, or substitute Graphiti.
+relationships. The graph-memory canary may contribute only derived semantic candidates through its
+bounded `query_context` contract and accepted-compilation binding. Tenant keys, source revision,
+ontology checksum, sensitivity, and principal ACL scopes come from that trusted binding rather than
+the agent's query document. It uses the governed in-memory store only: no live Neo4j connection,
+write operation, raw Cypher, or graph dump is exposed. Only bounded query records enter the private
+memory payload.
+Missing stores are `unavailable`; purged or revision-mismatched snapshots are `stale`. An absent
+supported episodic API or machine-readable procedural recall contract is also `unavailable`, never
+an empty store. Do not scrape host private state, parse prose output, invoke a procedure, or
+substitute Graphiti.
 
 Packs and the revocation index are mode `0600` beneath the host-neutral Rhize data root. Verification
 fails on expiry, payload tampering, source revision drift, insecure modes, or source revocation. Only

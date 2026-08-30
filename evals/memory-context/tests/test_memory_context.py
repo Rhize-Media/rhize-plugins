@@ -108,7 +108,7 @@ def test_unknown_fields_and_available_candidates_on_failed_adapter_are_rejected(
 
     document = fixture()
     document["adapters"][0]["status"] = "timeout"
-    with pytest.raises(ValueError, match="only an available adapter"):
+    with pytest.raises(ValueError, match="only an available or partial adapter"):
         MemoryContextAssembler().assemble(document, FIXED_NOW)
 
     document = fixture()

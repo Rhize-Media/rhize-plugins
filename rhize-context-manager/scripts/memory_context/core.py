@@ -251,13 +251,13 @@ class MemoryContextAssembler:
         raw_candidates = value.get("candidates", [])
         if not isinstance(raw_candidates, list):
             raise ValueError("adapter candidates must be an array")
-        if status != "available" and raw_candidates:
-            raise ValueError("only an available adapter may return candidates")
+        if status not in {"available", "partial"} and raw_candidates:
+            raise ValueError("only an available or partial adapter may return candidates")
         candidates: list[Candidate] = []
         rejected: dict[str, int] = {}
         for candidate in raw_candidates:
             normalized, exclusion = self._normalize_candidate(
-                candidate, name, memory_type, request, now
+                candidate, name, memory_type, status, request, now
             )
             if normalized:
                 candidates.append(normalized)
@@ -276,6 +276,7 @@ class MemoryContextAssembler:
         value: Any,
         adapter_name: str,
         memory_type: str,
+        adapter_status: str,
         request: dict[str, Any],
         now: datetime,
     ) -> tuple[Candidate | None, str]:
@@ -291,6 +292,8 @@ class MemoryContextAssembler:
         source_system = _safe_id(value.get("sourceSystem"), "sourceSystem")
         if re.search(r"transcript|conversation-log|private-history", source_system, re.IGNORECASE):
             raise ValueError("private transcript sources are not supported adapters")
+        if (adapter_name == "graph-memory") != (source_system == "graphify-neo4j"):
+            raise ValueError("graph-memory candidates require the governed graph source domain")
         source_id = _safe_id(value.get("sourceId"), "sourceId")
         source_revision = _safe_id(value.get("sourceRevision"), "sourceRevision")
         tenant = _safe_id(value.get("tenant"), "candidate tenant")
@@ -375,7 +378,7 @@ class MemoryContextAssembler:
             "authorityClass": authority,
             "processingPolicy": "reference-only" if memory_type == "procedural" else "inert",
             "scopeDecision": "allowed",
-            "adapterStatus": "available",
+            "adapterStatus": adapter_status,
             "contentHash": content_hash,
             "payloadRef": payload_ref,
             "relevance": float(relevance),
@@ -454,6 +457,8 @@ def _authority(memory_type: str, source_system: str, content_role: str, trust: s
         if content_role == "decision-summary" and trust == "operator-approved":
             return "human-decision"
         return "verified-fact"
+    if source_system == "graphify-neo4j":
+        return "derived"
     if memory_type == "episodic":
         return "derived"
     return "untrusted"

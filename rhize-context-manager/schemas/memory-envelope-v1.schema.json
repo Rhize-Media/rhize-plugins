@@ -41,7 +41,7 @@
     "authorityClass": { "enum": ["current-session", "verified-fact", "canonical-policy", "human-decision", "derived", "untrusted"] },
     "processingPolicy": { "enum": ["inert", "reference-only"] },
     "scopeDecision": { "const": "allowed" },
-    "adapterStatus": { "const": "available" },
+    "adapterStatus": { "enum": ["available", "partial"] },
     "contentHash": { "$ref": "#/$defs/hash" },
     "payloadRef": { "type": "string", "pattern": "^payload-[a-f0-9]{32}$" },
     "relevance": { "type": "number", "minimum": 0, "maximum": 1 },
