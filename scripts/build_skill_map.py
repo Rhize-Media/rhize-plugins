@@ -656,6 +656,11 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
             continue
         item_id = item["id"]
         node_id = f"hook:{plugin_name}/{item_id}"
+        # A setup item may remain as migration metadata after the same hook is
+        # auto-wired in hooks/hooks.json. The wired definition is authoritative;
+        # do not emit a second logical hook or downgrade it to opt-in.
+        if node_id in graph.nodes:
+            continue
         graph.add_node(
             {
                 "id": node_id,
