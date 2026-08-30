@@ -47,7 +47,7 @@ back to `rg`.
 | `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
-| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
+| `graph-memory` | Govern Graphify artifacts, offline identity review, and source-bound decisions for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
 | `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
 | `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
@@ -83,6 +83,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
 | `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
 | `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
+| `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process review contracts are tested, but every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
 | `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until RT-161. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
@@ -458,7 +459,7 @@ artifact — required for anything touching `follows` edges or third-party nodes
 | Serena | semantic code navigation | MCP server (user scope) |
 | CodeGraph | code knowledge graph | `codegraph` CLI + MCP, `codegraph init` per repo |
 | graphify | vault knowledge graphs | skill (vendored here) |
-| Neo4j | governed semantic projection | deferred until ontology and hygiene gates pass |
+| Neo4j | governed semantic projection | ontology, fake-adapter, and in-process identity-review contracts available; shared review state and the credentialed live canary/restore remain deferred to RT-159 |
 
 ### Per-repo stack config
 

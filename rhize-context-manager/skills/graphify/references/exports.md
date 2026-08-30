@@ -30,6 +30,12 @@ The graph-memory fake adapter can exercise checksummed migrations, stage/publish
 bounded reads, purge, and restore without opening a network connection. That is verification—not a
 claim that live Neo4j changed.
 
+If the portable artifact later produces possible duplicate identities, use `graph-memory hygiene
+status` to inspect capability. Stateful review is unavailable until its owning domain supplies a
+private-state adapter. Do not substitute a plugin-local ledger. Similarity and scheduled
+consolidation may eventually enqueue review proposals only; they can never export Cypher, alter
+`graph.json`, or create `SAME_AS` automatically.
+
 ### Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag)
 
 **If `--falkordb`** - generate a Cypher file. The statements are OpenCypher, but FalkorDB's `GRAPH.QUERY` runs one statement at a time (no bulk script import like Neo4j's `cypher-shell`), so prefer `--falkordb-push` to load a graph. Use this only when you want the portable `cypher.txt` artifact:

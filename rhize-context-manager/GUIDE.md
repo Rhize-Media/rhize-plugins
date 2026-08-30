@@ -88,8 +88,15 @@ the right one, and health-checks the whole thing.
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 
 - **"We need queryable long-term memory with relationships and time"**
-  → use the Neo4j ontology/hygiene plans; the `graphiti-memory` skill is historical design context
-  only. Graphiti was not implemented and must not be installed or routed as a fallback.
+  → use the `graph-memory` ontology and bounded offline hygiene contracts; the `graphiti-memory`
+  skill is historical design context only. Graphiti was not implemented and must not be installed
+  or routed as a fallback. Live Neo4j projection remains behind RT-159.
+
+- **"Review these possible duplicate graph entities" / "reverse this SAME_AS decision"**
+  → use `graph-memory` (`/graph-memory-review` in Claude) to inspect capability. The in-process
+  lifecycle tests enforce proposal-only consolidation, leases, previews, CAS, enumerated rationale,
+  and reversal blockers, but shared state is not configured yet. Claude and Codex therefore receive
+  the same structured unavailable response and must not invent a ledger or claim acceptance.
 
 - **"Preview why we approved this release/experiment/task effect"**
   → use `graph-memory` (`/graph-decision` in Claude) with a typed adapter from the owning workflow.
@@ -191,8 +198,9 @@ the right one, and health-checks the whole thing.
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
-- Graphiti was not implemented. Neo4j is available, but its semantic-memory adapter remains blocked
-  until ontology/hygiene gates pass; `memory-context` is preview-only in the meantime.
+- Graphiti was not implemented. Neo4j is available, but its live semantic-memory adapter remains
+  blocked on RT-159 even though ontology and private offline hygiene contracts now exist;
+  `memory-context` is preview-only in the meantime.
 
 ## Troubleshooting
 

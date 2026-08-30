@@ -134,6 +134,22 @@ def build_parser() -> argparse.ArgumentParser:
     precedents.add_argument("--decision-class", required=True)
     precedents.add_argument("--domain", required=True)
     precedents.add_argument("--current-policy-digest", required=True)
+
+    hygiene = subparsers.add_parser(
+        "hygiene",
+        help="report governed graph-identity review capability",
+    )
+    hygiene_parsers = hygiene.add_subparsers(dest="hygiene_operation", required=True)
+    hygiene_parsers.add_parser("status", help="report offline identity-review availability")
+    for operation in HYGIENE_OPERATIONS:
+        child = hygiene_parsers.add_parser(
+            operation, help=f"report availability for the governed {operation} operation"
+        )
+        child.add_argument(
+            "--state-artifact",
+            type=Path,
+            help="future caller-owned private state artifact",
+        )
     return parser
 
 
@@ -159,6 +175,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 def _run(args: argparse.Namespace) -> dict[str, Any]:
     if args.command == "decision":
         return _run_decision(args)
+    if args.command == "hygiene":
+        return _run_hygiene(args)
     ontology = compile_ontology(args.core, args.pack)
     if args.command == "compile":
         return ontology.to_dict()
@@ -284,6 +302,41 @@ def _run_decision(args: argparse.Namespace) -> dict[str, Any]:
         "preview": preview,
         "publication": "not_published",
         "status": "previewed_offline",
+    }
+
+
+HYGIENE_OPERATIONS = (
+    "list",
+    "show",
+    "lease",
+    "preview",
+    "decide",
+    "defer",
+    "reverse",
+    "consolidate",
+    "quality",
+)
+
+
+def _run_hygiene(args: argparse.Namespace) -> dict[str, Any]:
+    operation = args.hygiene_operation
+    capability = {
+        "automaticSameAs": False,
+        "contractVersion": 1,
+        "inProcessContractOperations": list(HYGIENE_OPERATIONS),
+        "liveNeo4jEnabled": False,
+        "privateStateAdapterConfigured": False,
+        "projectionPublished": False,
+        "sharedCliOperations": ["status"],
+    }
+    if operation == "status":
+        return capability | {"status": "offline_contract_only"}
+    return capability | {
+        "operation": operation,
+        "reason": "governed_private_state_adapter_not_configured",
+        "shadowStoreCreated": False,
+        "stateArtifactSupplied": args.state_artifact is not None,
+        "status": "unavailable",
     }
 
 
