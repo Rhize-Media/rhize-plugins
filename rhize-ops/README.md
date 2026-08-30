@@ -6,8 +6,8 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
 The other skills and commands work with no prior configuration. `parallel-agent-optimization`
-stores opt-in, privacy-safe local receipts under `~/.rhize/parallel-agent-optimization/` only when
-it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
+stores opt-in, privacy-safe v2 lifecycle receipts under `~/.rhize/parallel-agent-optimization/`
+only when it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
 guardrail hooks are active in a project.
 
 ## Skills
@@ -42,16 +42,17 @@ Renders the live skill-monitor audit dashboard — aggregates every per-run snap
 
 ### `parallel-agent-optimization`
 
-Routes a task through one baseline, ECC, Superpowers, or Rhize strategy and records a strict
-structured receipt so future runs compound into evidence. Ordinary `apply` runs execute one arm
-only and remain observational. An explicit `compare` runs baseline, ECC, Superpowers, and Rhize as
-separate, counterbalanced arms only in fresh replayable environments; it never repeats a live task
-or adds a combined ECC+Superpowers arm. The Rhize arm itself selects at most one upstream resource.
+Applies one self-contained Rhize routing strategy and records a strict lifecycle receipt so future
+runs compound into evidence. Ordinary `apply` runs execute once and remain observational. An
+explicit `compare` runs baseline and Rhize as separate, counterbalanced arms only in fresh
+replayable environments; it never repeats a live task. ECC and Superpowers are attribution/update
+references, not runtime resources.
 
-Receipts contain counts, coarse task class, timing intervals, verification, collisions/rework, and
-availability-marked token/tool metrics. They reject prompts, code, commands, repository/file paths,
-names, URLs, and session/thread/issue identifiers, and keep observational versus controlled results
-in separate files and report sections.
+Every accepted v2 run begins as a reservation and finalizes as `completed`, `failed`, or
+`incomplete`; `audit-pending` exposes stale reservations. Receipts contain counts, coarse task
+class, timing intervals, verification, collisions/rework, and availability-marked token/tool
+metrics. They reject prompts, code, commands, repository/file paths, names, URLs, and
+session/thread/issue identifiers. Archived v1 candidate smoke stays readable but non-comparable.
 
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
@@ -67,10 +68,11 @@ gates; otherwise the skill selects sequential or gated execution and explains wh
 ### `/parallel-optimize`
 
 Thin command adapter for `parallel-agent-optimization`. Use `assess <question or task>` for a
-non-executing routing decision, `apply [--variant ...] <task>` for one real-task strategy, `compare
-<replayable task or fixture>` for an explicit isolated four-arm comparison, or `report
-[observational|controlled|all]` to inspect accumulated evidence without running work. The command
-grants no new production, external-write, commit, push, merge, or deploy authority.
+non-executing routing decision, `apply <task>` for one real-task strategy, `compare <replayable task
+or fixture>` for an explicit isolated baseline-versus-Rhize comparison, `report
+[observational|controlled|all]` to inspect evidence, or `audit-pending` to find unfinished
+reservations. The command grants no new production, external-write, commit, push, merge, or deploy
+authority.
 
 **Invoked as:** `/rhize-ops:parallel-optimize`
 

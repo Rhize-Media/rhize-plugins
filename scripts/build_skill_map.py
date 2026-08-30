@@ -85,9 +85,10 @@ Inputs and what they produce
       grammar itself lives in `scripts/sources_md.py` (single owner, shared
       with `scripts/baseline_upstreams.py`) — see that module's docstring.
       A DEFER+wrap entry may declare `- **Graph relation:** consumes`; its
-      dependency edges come from `catalog/skill-relations.json`, so the
-      ledger remains available to Forge without misrepresenting the wrapper
-      as a fork. An entry's optional
+      dependency edges come from `catalog/skill-relations.json`. A consolidated
+      source used only for attribution/update review declares
+      `provenance-only`, which emits neither dependency nor fork edges. Both keep
+      the ledger available to Forge without misrepresenting a fork. An entry's optional
       `- **Upstream baseline:** sha256:<hex> (recorded
       YYYY-MM-DD)` field (written by `scripts/baseline_upstreams.py`, never by
       this compiler) becomes `baselineHash` on the per-skill external node.
@@ -711,15 +712,15 @@ def load_sources_md(
                 f"no SKILL.md exists at {skill_dir} — unresolvable reference"
             )
         graph_relation = entry["fields"].get("Graph relation", "fork-of")
-        if graph_relation == "consumes":
+        if graph_relation in {"consumes", "provenance-only"}:
             # DEFER+wrap: the ledger is the provenance/drift join, while the
-            # relations catalog represents each consumed external resource.
-            # No source content was copied, so fork-of would be false.
+            # relations catalog represents any consumed runtime resource.
+            # Provenance-only sources have neither a runtime nor fork edge.
             continue
         if graph_relation != "fork-of":
             raise BuildError(
                 f"SOURCES.md entry {skill_name!r}: Graph relation must be "
-                "'fork-of' or 'consumes'"
+                "'fork-of', 'consumes', or 'provenance-only'"
             )
         source_value = entry["fields"].get("Source", "")
         is_url = bool(_URL_SCHEME_RE.match(source_value))

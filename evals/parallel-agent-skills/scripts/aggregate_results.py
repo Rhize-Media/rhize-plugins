@@ -1,103 +1,116 @@
 #!/usr/bin/env python3
-"""Aggregate privacy-safe metrics from a complete parallel-agent evaluation matrix."""
+"""Aggregate a complete repeated baseline-versus-Rhize fixture matrix."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import statistics
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VARIANT_LABELS = {
-    "baseline": "Baseline",
-    "arm_a": "Arm A (ECC)",
-    "arm_b": "Arm B (Superpowers)",
-    "arm_ab": "Arm A+B",
-}
+VARIANTS = ("baseline", "rhize")
 
 
 def parse_time(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValueError("timestamps must be timezone-aware")
+    return parsed
 
 
-def overlap_metrics(agents: list[dict[str, Any]]) -> dict[str, float | int | bool]:
-    intervals: list[tuple[datetime, datetime]] = []
+def overlap_metrics(agents: list[dict[str, Any]] | None) -> dict[str, float | int | bool | None]:
+    if agents is None:
+        return {
+            "max_concurrency": None,
+            "concurrent_agent_seconds": None,
+            "total_agent_seconds": None,
+            "parallelism_ratio": None,
+            "actual_overlap": None,
+        }
+    intervals = []
     for agent in agents:
-        if agent.get("started_at") and agent.get("completed_at"):
-            started = parse_time(agent["started_at"])
-            completed = parse_time(agent["completed_at"])
-            if completed >= started:
-                intervals.append((started, completed))
-
-    events: dict[datetime, int] = defaultdict(int)
+        started = parse_time(agent["started_at"])
+        completed = parse_time(agent["completed_at"])
+        if completed < started:
+            raise ValueError("agent completion precedes start")
+        intervals.append((started, completed))
+    events: list[tuple[datetime, int]] = []
     total_agent_seconds = 0.0
     for started, completed in intervals:
-        events[started] += 1
-        events[completed] -= 1
+        events.extend(((started, 1), (completed, -1)))
         total_agent_seconds += (completed - started).total_seconds()
-
+    events.sort(key=lambda item: (item[0], item[1]))
     active = 0
     maximum = 0
     concurrent_seconds = 0.0
     previous: datetime | None = None
-    for moment in sorted(events):
+    for moment, change in events:
         if previous is not None and active >= 2:
             concurrent_seconds += (moment - previous).total_seconds()
-        active += events[moment]
+        active += change
         maximum = max(maximum, active)
         previous = moment
-
     return {
         "max_concurrency": maximum,
         "concurrent_agent_seconds": round(concurrent_seconds, 3),
         "total_agent_seconds": round(total_agent_seconds, 3),
-        "parallelism_ratio": (
-            round(concurrent_seconds / total_agent_seconds, 4) if total_agent_seconds else 0.0
-        ),
+        "parallelism_ratio": round(concurrent_seconds / total_agent_seconds, 4) if total_agent_seconds else 0.0,
         "actual_overlap": concurrent_seconds > 0,
     }
 
 
 def load_rows(run_root: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
     expected = {
-        (task["id"], variant)
+        (task["id"], variant, repetition)
         for task in manifest["tasks"]
         for variant in manifest["variants"]
+        for repetition in range(1, manifest["repetitions"] + 1)
     }
-    rows: list[dict[str, Any]] = []
-    observed: set[tuple[str, str]] = set()
-
-    for run_dir in sorted(path for path in run_root.iterdir() if path.is_dir()):
+    rows = []
+    observed = set()
+    if run_root.exists():
+        run_dirs = sorted(path for path in run_root.iterdir() if path.is_dir())
+    else:
+        run_dirs = []
+    for run_dir in run_dirs:
         receipt_path = run_dir / "receipt.json"
         grade_path = run_dir / "grade.json"
         if not receipt_path.exists() or not grade_path.exists():
             continue
         receipt = json.loads(receipt_path.read_text())
         grade = json.loads(grade_path.read_text())
-        key = (receipt["task_id"], receipt["variant"])
+        if receipt.get("schema_version") != 2 or grade.get("schema_version") != 2:
+            raise ValueError(f"non-v2 fixture record: {run_dir.name}")
+        key = (receipt["task_id"], receipt["variant"], receipt["repetition"])
         if key not in expected:
-            continue
+            raise ValueError(f"unexpected evaluation cell: {key}")
         if key in observed:
             raise ValueError(f"duplicate evaluation cell: {key}")
         observed.add(key)
         started = parse_time(receipt["started_at"])
         completed = parse_time(receipt["completed_at"])
+        if completed < started:
+            raise ValueError(f"negative elapsed interval: {key}")
         overlap = overlap_metrics(receipt["agents"])
         tokens = receipt["tokens"]
         rows.append(
             {
                 "run_id": receipt["run_id"],
+                "comparison_id": receipt["comparison_id"],
                 "task_id": receipt["task_id"],
+                "task_class": receipt["task_class"],
                 "variant": receipt["variant"],
-                "expected_decision": grade["expected_decision"],
-                "actual_decision": grade["actual_decision"],
+                "repetition": receipt["repetition"],
+                "status": receipt["status"],
+                "expected_decision": receipt["expected_decision"],
+                "actual_decision": receipt["decision"],
                 "elapsed_seconds": round((completed - started).total_seconds(), 3),
-                "agents_spawned": len(receipt["agents"]),
+                "agents_spawned": len(receipt["agents"]) if receipt["agents"] is not None else None,
                 **overlap,
                 "collisions": receipt["collisions"],
                 "rework_events": receipt["rework_events"],
@@ -110,195 +123,146 @@ def load_rows(run_root: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
                 "token_totals_available": all(value is not None for value in tokens.values()),
             }
         )
-
     missing = sorted(expected - observed)
     if missing:
         raise ValueError(f"missing evaluation cells: {missing}")
-    return sorted(rows, key=lambda row: (row["task_id"], row["variant"]))
+    return sorted(rows, key=lambda row: (row["task_id"], row["repetition"], row["variant"]))
 
 
-def build_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    by_variant_rows: dict[str, list[dict[str, Any]]] = defaultdict(list)
+def coverage_status(rows: list[dict[str, Any]], field: str) -> dict[str, Any]:
+    if field == "tokens":
+        measured = sum(row["token_totals_available"] for row in rows)
+    else:
+        measured = sum(row[field] is not None for row in rows)
+    return {
+        "status": "unavailable" if measured == 0 else ("measured" if measured == len(rows) else "partial"),
+        "measured_runs": measured,
+        "total_runs": len(rows),
+        "required_for_decision": False,
+    }
+
+
+def required_metric(passed: bool, actual: Any, threshold: Any) -> dict[str, Any]:
+    return {"status": "pass" if passed else "fail", "actual": actual, "threshold": threshold}
+
+
+def build_summary(rows: list[dict[str, Any]], manifest: dict[str, Any] | None = None) -> dict[str, Any]:
+    manifest = manifest or json.loads((ROOT / "manifest.json").read_text())
+    thresholds = manifest["thresholds"]
+    by_variant = {variant: [row for row in rows if row["variant"] == variant] for variant in VARIANTS}
+    pair_ids = defaultdict(set)
     for row in rows:
-        by_variant_rows[row["variant"]].append(row)
-
-    baseline_safe = [
-        row["elapsed_seconds"]
-        for row in by_variant_rows["baseline"]
-        if row["expected_decision"] == "parallel"
+        pair_ids[(row["task_id"], row["repetition"])].add(row["comparison_id"])
+    pairs_matched = all(len(ids) == 1 for ids in pair_ids.values())
+    completed = all(row["status"] == "completed" for row in rows)
+    correctness = all(row["correctness_pass"] for row in rows)
+    verification = all(row["verification_completeness"] == 1.0 for row in rows)
+    routing = all(row["appropriateness_pass"] for row in rows)
+    collisions = sum((row["collisions"] or 0) for row in rows)
+    baseline_rework = sum((row["rework_events"] or 0) for row in by_variant["baseline"])
+    rhize_rework = sum((row["rework_events"] or 0) for row in by_variant["rhize"])
+    baseline_parallel = [
+        row["elapsed_seconds"] for row in by_variant["baseline"]
+        if row["expected_decision"] == "parallel" and row["status"] == "completed"
     ]
-    baseline_safe_median = statistics.median(baseline_safe)
-    baseline_safe_rows = [
-        row
-        for row in by_variant_rows["baseline"]
-        if row["expected_decision"] == "parallel"
+    rhize_parallel = [
+        row["elapsed_seconds"] for row in by_variant["rhize"]
+        if row["expected_decision"] == "parallel" and row["status"] == "completed"
     ]
-    variants: dict[str, Any] = {}
-    for variant, variant_rows in sorted(by_variant_rows.items()):
-        elapsed = [row["elapsed_seconds"] for row in variant_rows]
-        parallel_safe_rows = [
-            row for row in variant_rows if row["expected_decision"] == "parallel"
-        ]
-        parallel_safe_elapsed = [row["elapsed_seconds"] for row in parallel_safe_rows]
-        parallel_safe_median = statistics.median(parallel_safe_elapsed)
-        speed_improvement = (
-            (baseline_safe_median - parallel_safe_median) / baseline_safe_median
-            if baseline_safe_median
-            else 0.0
-        )
-        token_data_complete = all(
-            row["token_totals_available"]
-            for row in parallel_safe_rows + baseline_safe_rows
-        )
-        token_ratio: float | None = None
-        if token_data_complete:
-            baseline_token_total = sum(
-                row["tokens"]["input"] + row["tokens"]["output"]
-                for row in baseline_safe_rows
-            )
-            variant_token_total = sum(
-                row["tokens"]["input"] + row["tokens"]["output"]
-                for row in parallel_safe_rows
-            )
-            if baseline_token_total > 0:
-                token_ratio = variant_token_total / baseline_token_total
-        hard_gate_pass = (
-            all(row["correctness_pass"] for row in variant_rows)
-            and all(row["appropriateness_pass"] for row in variant_rows)
-            and all(row["receipt_valid"] for row in variant_rows)
-            and sum(row["collisions"] for row in variant_rows) == 0
-            and all(row["verification_completeness"] == 1.0 for row in variant_rows)
-        )
-        verification_gain = statistics.mean(
-            row["verification_completeness"] for row in variant_rows
-        ) - statistics.mean(
-            row["verification_completeness"] for row in by_variant_rows["baseline"]
-        )
-        elapsed_overhead = (
-            (statistics.median(elapsed) - statistics.median(
-                row["elapsed_seconds"] for row in by_variant_rows["baseline"]
-            ))
-            / statistics.median(row["elapsed_seconds"] for row in by_variant_rows["baseline"])
-        )
-        speed_path_evaluable = token_ratio is not None
-        speed_path_pass = (
-            speed_improvement >= 0.15
-            and token_ratio is not None
-            and token_ratio <= 1.15
-        )
-        verification_path_pass = verification_gain >= 0.20 and elapsed_overhead <= 0.10
+    improvement = None
+    if baseline_parallel and rhize_parallel and statistics.median(baseline_parallel):
+        improvement = (
+            statistics.median(baseline_parallel) - statistics.median(rhize_parallel)
+        ) / statistics.median(baseline_parallel)
+    rhize_parallel_rows = [
+        row for row in by_variant["rhize"]
+        if row["expected_decision"] == "parallel" and row["status"] == "completed"
+    ]
+    overlap_rate = (
+        sum(row["actual_overlap"] is True for row in rhize_parallel_rows) / len(rhize_parallel_rows)
+        if rhize_parallel_rows else None
+    )
+    agent_count_ok = bool(rhize_parallel_rows) and all(
+        row["agents_spawned"] is not None
+        and row["agents_spawned"] >= thresholds["minimum_agents_for_parallel_rhize_run"]
+        for row in rhize_parallel_rows
+    )
+    required = {
+        "matched_pairs": required_metric(pairs_matched, pairs_matched, True),
+        "terminal_completion": required_metric(completed, Counter(row["status"] for row in rows), "all completed"),
+        "correctness": required_metric(correctness, correctness, thresholds["correctness_pass_rate"]),
+        "verification": required_metric(verification, verification, thresholds["verification_completeness"]),
+        "routing": required_metric(routing, routing, thresholds["routing_appropriateness_rate"]),
+        "collisions": required_metric(collisions <= thresholds["maximum_collisions"], collisions, thresholds["maximum_collisions"]),
+        "rework": required_metric(rhize_rework - baseline_rework <= thresholds["maximum_rework_increase_vs_baseline"], rhize_rework - baseline_rework, thresholds["maximum_rework_increase_vs_baseline"]),
+        "elapsed": required_metric(improvement is not None and improvement >= thresholds["minimum_parallel_elapsed_improvement"], improvement, thresholds["minimum_parallel_elapsed_improvement"]),
+        "actual_overlap": required_metric(overlap_rate is not None and overlap_rate >= thresholds["minimum_parallel_overlap_rate"], overlap_rate, thresholds["minimum_parallel_overlap_rate"]),
+        "agent_count": required_metric(agent_count_ok, [row["agents_spawned"] for row in rhize_parallel_rows], thresholds["minimum_agents_for_parallel_rhize_run"]),
+    }
+    decision = "ready" if all(item["status"] == "pass" for item in required.values()) else "not_ready"
+    variants = {}
+    for variant, variant_rows in by_variant.items():
+        elapsed = [row["elapsed_seconds"] for row in variant_rows if row["status"] == "completed"]
         variants[variant] = {
             "runs": len(variant_rows),
+            "status_counts": dict(sorted(Counter(row["status"] for row in variant_rows).items())),
             "correctness_passed": sum(row["correctness_pass"] for row in variant_rows),
-            "appropriateness_passed": sum(
-                row["appropriateness_pass"] for row in variant_rows
-            ),
-            "receipts_valid": sum(row["receipt_valid"] for row in variant_rows),
-            "verification_completeness_mean": round(
-                statistics.mean(row["verification_completeness"] for row in variant_rows), 4
-            ),
-            "elapsed_seconds_median": round(statistics.median(elapsed), 3),
-            "elapsed_seconds_range": [round(min(elapsed), 3), round(max(elapsed), 3)],
-            "parallel_safe_elapsed_seconds_median": round(parallel_safe_median, 3),
-            "parallel_safe_speed_improvement_vs_baseline": round(speed_improvement, 4),
-            "parallel_safe_token_ratio_vs_baseline": (
-                round(token_ratio, 4) if token_ratio is not None else None
-            ),
-            "agents_spawned": sum(row["agents_spawned"] for row in variant_rows),
-            "expected_parallel_runs": len(parallel_safe_rows),
-            "expected_parallel_runs_with_actual_overlap": sum(
-                row["actual_overlap"] for row in parallel_safe_rows
-            ),
-            "collisions": sum(row["collisions"] for row in variant_rows),
-            "rework_events": sum(row["rework_events"] for row in variant_rows),
-            "tool_count_available_runs": sum(
-                row["tool_calls"] is not None for row in variant_rows
-            ),
-            "token_totals_available_runs": sum(
-                row["token_totals_available"] for row in variant_rows
-            ),
-            "hard_gate_pass": hard_gate_pass,
-            "speed_path_evaluable": speed_path_evaluable,
-            "speed_path_pass": speed_path_pass,
-            "verification_path_pass": verification_path_pass,
-            "adoption_gate_pass": hard_gate_pass and (
-                speed_path_pass or verification_path_pass
-            ),
+            "appropriateness_passed": sum(row["appropriateness_pass"] for row in variant_rows),
+            "verification_completeness_mean": statistics.fmean(row["verification_completeness"] for row in variant_rows),
+            "elapsed_seconds_median": statistics.median(elapsed) if elapsed else None,
+            "actual_overlap_runs": sum(row["actual_overlap"] is True for row in variant_rows),
+            "agents_spawned": sum(row["agents_spawned"] or 0 for row in variant_rows),
+            "collisions": sum(row["collisions"] or 0 for row in variant_rows),
+            "rework_events": sum(row["rework_events"] or 0 for row in variant_rows),
         }
-
     return {
-        "schema_version": 1,
-        "evaluation": "parallel-agent-skill-smoke",
+        "schema_version": 2,
+        "evaluation": "parallel-routing-repeated-controlled",
         "run_count": len(rows),
-        "task_count": len({row["task_id"] for row in rows}),
-        "variant_count": len(variants),
+        "task_count": len(manifest["tasks"]),
+        "repetitions": manifest["repetitions"],
         "variants": variants,
+        "decision_readiness": {
+            "decision": decision,
+            "thresholds": thresholds,
+            "required_metrics": required,
+            "optional_metrics": {
+                "tool_calls": coverage_status(rows, "tool_calls"),
+                "tokens": coverage_status(rows, "tokens"),
+            },
+        },
         "runs": rows,
         "limitations": [
-            "Each task/variant cell ran once; smoke results do not establish repeatability or statistical significance.",
-            "Authoritative coordinator-plus-agent tool and token totals were unavailable for every run.",
-            "Elapsed time includes host scheduling and agent startup noise and was not counterbalanced across repeated trials.",
-            "Receipts for two cells were reconstructed by the coordinator from runner-reported fields after the runner safety layer blocked the required write.",
+            "This is deterministic isolated fixture evidence, not a production benchmark.",
+            "Elapsed time includes host scheduling and agent startup effects.",
+            "Unavailable tool/token counts remain null and are not estimated or used as required gates."
         ],
     }
 
 
 def render_markdown(summary: dict[str, Any]) -> str:
+    readiness = summary["decision_readiness"]
     lines = [
-        "# Parallel-Agent Skill Smoke Results",
+        "# Repeated Baseline vs Rhize Routing Evaluation",
         "",
-        "Controlled fixture run completed 2026-08-27. Each of six task classes ran once under",
-        "baseline, Arm A, Arm B, and both candidates. This is screening evidence, not a production",
-        "benchmark or a statistically significant comparison.",
+        f"Decision readiness: **{readiness['decision']}** across {summary['run_count']} isolated fixture runs.",
         "",
-        "| Variant | Correct | Routing | Verification | Safe-task median | vs baseline | Actual overlap | Collisions | Rework | Adoption gate |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|",
+        "| Variant | Runs | Correct | Routing | Verification | Median seconds | Actual overlap | Collisions | Rework |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
-    for variant in ("baseline", "arm_a", "arm_b", "arm_ab"):
+    for variant in VARIANTS:
         data = summary["variants"][variant]
-        improvement = data["parallel_safe_speed_improvement_vs_baseline"]
         lines.append(
-            "| {label} | {correct}/{runs} | {routing}/{runs} | {verification:.0%} | "
-            "{median:.0f}s | {improvement:+.1%} | {overlap}/{parallel} | {collisions} | "
-            "{rework} | {gate} |".format(
-                label=VARIANT_LABELS[variant],
-                correct=data["correctness_passed"],
-                routing=data["appropriateness_passed"],
-                runs=data["runs"],
-                verification=data["verification_completeness_mean"],
-                median=data["parallel_safe_elapsed_seconds_median"],
-                improvement=improvement,
-                overlap=data["expected_parallel_runs_with_actual_overlap"],
-                parallel=data["expected_parallel_runs"],
-                collisions=data["collisions"],
-                rework=data["rework_events"],
-                gate=(
-                    "REFERENCE"
-                    if variant == "baseline"
-                    else ("PASS" if data["adoption_gate_pass"] else "NOT MET")
-                ),
-            )
+            f"| {variant} | {data['runs']} | {data['correctness_passed']} | "
+            f"{data['appropriateness_passed']} | {data['verification_completeness_mean']:.0%} | "
+            f"{data['elapsed_seconds_median'] or 'n/a'} | {data['actual_overlap_runs']} | "
+            f"{data['collisions']} | {data['rework_events']} |"
         )
     lines.extend(
         [
             "",
-            "Actual overlap means at least two nested-agent intervals overlapped; choosing a",
-            "parallel decision or spawning two agents does not count by itself.",
-            "",
-            "## Interpretation boundary",
-            "",
-            "- All variants preserved correctness, routing appropriateness, complete verification,",
-            "  and zero collisions in this smoke.",
-            "- Tool and token totals were unavailable in every run, so the speed-path token ceiling",
-            "  cannot be evaluated and no candidate can pass the predeclared adoption gate.",
-            "- The fixture has one observation per cell. Elapsed-time differences may include host",
-            "  scheduling and startup noise and require repeated, counterbalanced trials before use",
-            "  as an adoption claim.",
-            "- Two receipts were written by the coordinator from factual runner-reported fields after",
-            "  the runner safety layer blocked the required isolated receipt write; both were graded",
-            "  by the same observable-outcome harness.",
-            "",
-            "The durable Forge investigation contains the recommendation and full limitations.",
+            "Required readiness metrics and optional token/tool coverage are separate in the JSON output.",
+            "The tracked 2026-08-27 four-arm smoke remains legacy one-cell screening evidence and is not pooled here.",
             "",
         ]
     )
@@ -311,11 +275,9 @@ def main() -> int:
     parser.add_argument("--json-output", type=Path, required=True)
     parser.add_argument("--markdown-output", type=Path, required=True)
     args = parser.parse_args()
-
     manifest = json.loads((ROOT / "manifest.json").read_text())
-    summary = build_summary(load_rows(args.run_root, manifest))
+    summary = build_summary(load_rows(args.run_root, manifest), manifest)
     args.json_output.parent.mkdir(parents=True, exist_ok=True)
-    args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
     args.json_output.write_text(json.dumps(summary, indent=2) + "\n")
     args.markdown_output.write_text(render_markdown(summary))
     return 0

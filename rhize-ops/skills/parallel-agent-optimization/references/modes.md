@@ -1,74 +1,63 @@
-# Execution modes and arm contracts
+# Self-contained execution modes
 
-Every arm inherits the skill's safety, one-writer, verification, and receipt boundaries. The only difference between arms is the planning resource allowed to shape the execution.
+## Classify before dispatch
 
-## Task classification
-
-Classify the task before choosing execution:
-
-Parallel execution is the default only when every eligibility condition is satisfied:
-
-- two or more lanes can start without consuming another lane's output;
-- each lane has a bounded deliverable and an explicit owner;
-- writes are absent, non-overlapping, or isolated in separate worktrees/copies;
-- protected files and shared external state remain coordinator-owned;
-- a defined join point and complete verification plan exist; and
-- expected elapsed-time or quality benefit exceeds dispatch and integration overhead.
-
-Otherwise choose sequential or gated execution. This eligibility gate applies even when the user
-asks for parallelism; the skill must still be invoked and explain the safer decision.
-
-| Task class | Default decision | Reason |
+| Task class | Expected routing | Constraint |
 | --- | --- | --- |
-| `parallel_read` | parallel | Independent research or inspection lanes can overlap. |
-| `disjoint_write` | parallel only with isolation | Writers need separate worktrees/copies and non-overlapping declared territories. |
-| `shared_state` | sequential | A shared checkout, document, database, or integration creates collision risk. |
-| `dependency_chain` | sequential | Downstream work needs upstream output. |
-| `mixed_verification` | parallel then join | Independent checks may overlap; final interpretation and integration do not. |
-| `gated_live` | gated | Approval, production, or irreversible boundaries control the sequence. |
-| `other` | reason explicitly | Use the safest shape supported by concrete dependencies. |
+| `parallel_read` | `parallel` | Independent read/check lanes may overlap. |
+| `disjoint_write` | `parallel` | Isolate writers and declare non-overlapping territories. |
+| `shared_state` | `sequential` | One owner controls the shared checkout, file, table, or service. |
+| `dependency_chain` | `sequential` | Do not start downstream work before its input is verified. |
+| `mixed_verification` | `parallel` | Overlap independent checks, then join for interpretation. |
+| `gated_live` | `gated` | Approval, production, or irreversible state controls sequencing. |
+| `other` | explain explicitly | Observational only; controlled evidence needs a deterministic label. |
 
-Before parallel dispatch, name each lane, its inputs, its allowed outputs, and any protected files or state. If two lanes can change the same state, consolidate them under one writer or isolate them.
+Parallel execution is eligible only when at least two lanes can start without consuming another
+lane's output, each has a bounded deliverable, writes are absent or isolated, protected state stays
+coordinator-owned, a join and full verification exist, the host permits dispatch, and likely benefit
+exceeds dispatch/integration overhead.
 
-## Arms
+## Build the execution graph
 
-### `baseline`
+Write a compact matrix before a non-trivial dispatch:
 
-Do not load either external resource skill. Use the shared Rhize safety envelope and ordinary platform capabilities. `resource_used` must be `none`.
+```text
+Lane | Depends on | Parallel/gated/sequential | Write surface | Risk | Verification
+```
 
-### `ecc`
+Batch independent reads and checks. Start long-running independent checks together, poll them
+deliberately, and pause any dependent lane when a blocker changes the graph. Keep destructive
+operations, shared mutations, approval decisions, and final integration behind explicit gates.
 
-Load only `ecc:parallel-execution-optimizer` and follow it for lane/dependency planning inside the shared safety envelope. Do not load Superpowers. `resource_used` is `ecc`, or `none` if the dependency is unavailable.
+## Contract every agent lane
 
-### `superpowers`
+Give one agent one independent problem domain. Every brief must be self-contained and specify:
 
-Load only `superpowers:dispatching-parallel-agents` and follow it for narrowly independent problem domains inside the shared safety envelope. Do not load ECC. `resource_used` is `superpowers`, or `none` if the dependency is unavailable.
+1. objective and done signal;
+2. exact scope and inputs;
+3. allowed outputs or write territory;
+4. protected files/state and prohibited effects;
+5. required checks; and
+6. return shape: outcome, evidence, changed state, blockers, and residual risk.
 
-### `rhize`
+Do not send a vague umbrella task or make an agent reconstruct the coordinator's context. Do not
+split related failures before confirming they have independent causes.
 
-Apply this routing policy, then load at most one resource:
+## Integrate and report
 
-- Use ECC for broad work that benefits from an explicit dependency graph, concurrency lanes, gates, or staged verification.
-- Use Superpowers for a small set of genuinely independent investigations or fixes with crisp, non-overlapping scopes.
-- Use neither for sequential dependency chains, shared-state work, trivial tasks, or gated live operations where dispatch adds no safe concurrency.
+The coordinator reviews each result, checks collision claims, runs the joined/full verification,
+and owns any external effect. Report lanes planned/completed/failed, blockers, actual overlapping
+intervals, and verification results. Do not make an unmeasured speed claim.
 
-Record the chosen resource as `ecc`, `superpowers`, or `none`. Never invoke both to synthesize a combined plan.
+## Evidence modes
 
-## One-writer protocol
+- `apply`: one observational `rhize` run on the actual task.
+- `compare`: one isolated controlled reservation containing `baseline` and `rhize` only, run
+  sequentially in counterbalanced order.
+- Archived v1 `baseline`/`ecc`/`superpowers`/`rhize` receipts and the old one-cell smoke remain
+  readable screening evidence. They are never pooled with v2 or required at runtime.
 
-- One checkout has one writing agent.
-- Parallel readers may inspect the same checkout.
-- Parallel writers each receive an isolated worktree/copy and explicit file territory. Their prompts must identify allowed files and protected files.
-- The coordinator owns cross-arm setup, final integration, conflict handling, complete verification, and any external mutation.
-- A collision is any overlapping edit/state claim that requires conflict resolution. Rework is repeated work caused by bad routing, incomplete boundaries, or a failed handoff; ordinary test-driven iteration is not automatically rework.
-
-## Controlled comparison protocol
-
-1. Predeclare the task class, expected decision, fixture seed, checks, and protected state.
-2. Generate the comparison ID and arm order before the first arm.
-3. Create a fresh environment from the same seed for each arm.
-4. Run arms sequentially in the returned order; concurrency is allowed only within an arm.
-5. Run identical checks and record one receipt per arm.
-6. Compare matched receipts only. Treat four completed arms as one comparison, not four independent experiments.
-
-The controlled protocol is for safe fixtures and replayable repository tasks. It is not authorization to repeat deployments, messages, Jira writes, payments, database mutations, or other live side effects.
+Controlled comparison predeclares task class, fixture seed, protected state, checks, and three
+repetitions per deterministic task class. New readiness uses correctness, verification, routing,
+elapsed time, actual overlap, collisions, rework, and agent count. Token/tool coverage is reported
+as optional because some hosts cannot expose it authoritatively.

@@ -2,17 +2,41 @@
 
 | Field | Value |
 |---|---|
-| Status | DEFER+wrap confirmed; integrated and validated for the v2.48.0 main release |
+| Status | Historical v1 investigation retained; 2026-08-30 consolidation supersedes runtime protocol |
 | Created | 2026-08-27 |
 | Jira | [RT-129](https://amesdigitalsolutions.atlassian.net/browse/RT-129) |
+| Measurement follow-up | RT-147 — use the prospective v2 protocol below; do not append candidate-arm production rows |
 | Integration branch | `codex/rt-parallel-agent-integration` |
 | Release target | `rhize-ops` 0.13.0; marketplace v2.48.0 |
 | Candidate Arm A | `ecc:parallel-execution-optimizer` from ECC 2.2.0 |
 | Candidate Arm B | `superpowers:dispatching-parallel-agents` from Superpowers 6.3.0 |
-| Recommended Forge verb | **DEFER+wrap** (recorded as DEFER; no upstream copy) |
-| Gate outcome | Human explicitly confirmed the wrapper implementation on 2026-08-27 |
+| Current Forge verb | **CONSOLIDATE** (human-authorized 2026-08-30; provenance-only upstream references) |
+| Current runtime | Self-contained Rhize routing; baseline-versus-Rhize controlled fixtures only |
 
 ## 1. Decision
+
+### 2026-08-30 protocol addendum (current)
+
+The user authorized consolidating the non-overlapping practices identified below into Rhize.
+`rhize-ops:parallel-agent-optimization` is now self-contained: ECC and Superpowers are MIT
+attribution and `ai-stack-version-drift` review inputs, not runtime skills, graph dependencies, or
+experimental arms. New `apply` runs Rhize once. New `compare` runs baseline versus Rhize only in
+fresh isolated fixtures, counterbalanced and repeated three times for each of the six deterministic
+task classes.
+
+Every accepted v2 run begins with a pending reservation and the grader/runtime owner must finalize
+it `completed`, `failed`, or `incomplete`; stale pending reservations are a visible audit failure.
+Expected routing derives from task class. Readiness requires complete paired coverage, correctness,
+verification, routing, elapsed, actual overlap, zero collisions, bounded rework, and appropriate
+agent count. Authoritative token/tool counts remain optional, visible, and null when unavailable;
+they are never estimated. The old 24-row one-cell candidate smoke and all following candidate-arm
+analysis are historical v1 screening evidence, remain readable, and are not pooled with v2.
+
+Canonical current protocol: `evals/parallel-agent-skills/README.md`, `manifest.json`, and
+`rhize-ops/skills/parallel-agent-optimization/references/receipt-contract.md`. RT-147 should cite
+those contracts and natural controlled fixture outputs only; it must not fabricate benchmark rows.
+
+### 2026-08-27 historical decision
 
 **Final recommendation: DEFER both candidates and add a thin Rhize wrapper.** Keep both installed
 external skills as maintained resources; do not copy their prose into Rhize and do not fork either
@@ -411,14 +435,14 @@ emit the same schema for normal use. The existing skill-monitor remains the sour
 tool invocation counts; this receipt supplies the missing outcome/concurrency join without copying
 private content.
 
-## 9. Drift boundary
+## 9. Historical drift boundary (2026-08-27)
 
 Do not create a new scheduler. The existing `ai-stack-version-drift` scheduled task is the sole
 sensor for plugin/version movement. If the human approves DEFER+wrap, record both installed plugin
 sources and versions in Forge provenance; the sensor reports movement and Forge classifies whether
 the wrapper needs re-evaluation on demand. Any future propagation remains human-gated.
 
-## 10. Gate resolution and wrapper boundary
+## 10. Historical gate resolution and wrapper boundary (superseded)
 
 The human confirmed **DEFER+wrap** on 2026-08-27 after reviewing the smoke and the proposed command
 surface. The approved wrapper's minimum distinct contract is:
@@ -437,6 +461,9 @@ uses fresh isolated environments, and runs baseline, ECC, Superpowers, and Rhize
 `report` keeps observational and controlled evidence separate. No prompt, code, repository/file
 path, name, URL, session/thread ID, or issue ID is accepted by the receipt schema.
 
+This four-arm runtime paragraph is preserved to explain the v1 receipts only. The 2026-08-30
+addendum and current evaluator contracts replace it for all new runs.
+
 ## 11. Implementation follow-up tracking
 
 The requested RT follow-up task could not be created during implementation: the initial Jira create
@@ -447,7 +474,7 @@ inferred. RT-129 remains the durable investigation link; create and relate the f
 connector is reauthenticated, using the acceptance criteria and validation evidence in this report
 and the new skill references.
 
-## 12. Final implementation validation
+## 12. Historical 2026-08-27 implementation validation
 
 - Focused receipt, privacy, ordering, graph, CLI, and concurrency tests: 29 passed and 6 subtests
   passed.

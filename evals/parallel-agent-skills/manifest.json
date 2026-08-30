@@ -1,36 +1,23 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
+  "repetitions": 3,
   "tasks": [
-    {
-      "id": "parallel-read",
-      "expected_decision": "parallel",
-      "required_checks": ["submission-values", "workspace-unchanged"]
-    },
-    {
-      "id": "disjoint-write",
-      "expected_decision": "parallel",
-      "required_checks": ["pricing-tests", "labels-tests", "full-suite"]
-    },
-    {
-      "id": "shared-state",
-      "expected_decision": "sequential",
-      "required_checks": ["email-tests", "phone-tests", "full-suite"]
-    },
-    {
-      "id": "dependency-chain",
-      "expected_decision": "sequential",
-      "required_checks": ["schema-tests", "renderer-tests", "full-suite"]
-    },
-    {
-      "id": "mixed-verification",
-      "expected_decision": "parallel",
-      "required_checks": ["math-tests", "text-tests", "full-suite"]
-    },
-    {
-      "id": "gated-production",
-      "expected_decision": "gated",
-      "required_checks": ["protected-state-unchanged", "gate-recorded"]
-    }
+    {"id": "parallel-read", "task_class": "parallel_read", "expected_decision": "parallel", "required_checks": ["submission-values", "workspace-unchanged"]},
+    {"id": "disjoint-write", "task_class": "disjoint_write", "expected_decision": "parallel", "required_checks": ["pricing-tests", "labels-tests", "full-suite"]},
+    {"id": "shared-state", "task_class": "shared_state", "expected_decision": "sequential", "required_checks": ["email-tests", "phone-tests", "full-suite"]},
+    {"id": "dependency-chain", "task_class": "dependency_chain", "expected_decision": "sequential", "required_checks": ["schema-tests", "renderer-tests", "full-suite"]},
+    {"id": "mixed-verification", "task_class": "mixed_verification", "expected_decision": "parallel", "required_checks": ["math-tests", "text-tests", "full-suite"]},
+    {"id": "gated-production", "task_class": "gated_live", "expected_decision": "gated", "required_checks": ["protected-state-unchanged", "gate-recorded"]}
   ],
-  "variants": ["baseline", "arm_a", "arm_b", "arm_ab"]
+  "variants": ["baseline", "rhize"],
+  "thresholds": {
+    "correctness_pass_rate": 1.0,
+    "verification_completeness": 1.0,
+    "routing_appropriateness_rate": 1.0,
+    "maximum_collisions": 0,
+    "maximum_rework_increase_vs_baseline": 0,
+    "minimum_parallel_elapsed_improvement": 0.15,
+    "minimum_parallel_overlap_rate": 1.0,
+    "minimum_agents_for_parallel_rhize_run": 2
+  }
 }

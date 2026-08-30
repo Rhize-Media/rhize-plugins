@@ -15,6 +15,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   by schema version. Every post-enforcement scheduled run now requires a fresh bound receipt;
   a later-dated Markdown row without one is actionable `receipt_missing`, while the existing
   pre-enforcement historical exception remains narrow and no evidence is backfilled.
+- _2026-08-30_ **rhize-ops 0.14.0 — self-contained parallel routing and v2 evidence lifecycle.**
+  Consolidated the useful dependency-graph, lane-lifecycle, focused-agent-brief, and integration
+  review practices from the installed MIT-licensed ECC 2.2.0 and Superpowers 6.3.0 skills into
+  Rhize's own concise runtime contract. New execution no longer loads either vendor skill or
+  evaluates a combined arm. Accepted runs reserve before work and finalize `completed`, `failed`,
+  or `incomplete`; stale pending reservations are auditable; deterministic task classes derive
+  expected routing; and decision readiness separates required correctness/verification/elapsed/
+  overlap/collision/rework/agent metrics from optional unavailable token/tool counts. The neutral
+  harness now predeclares three baseline-versus-Rhize repetitions for all six task classes. The
+  old four-arm v1 smoke remains immutable non-comparable screening evidence. Root marketplace and
+  generated skill-map artifacts require governed coordinator regeneration after integration.
 - _2026-08-30_ version bump — **rhize-context-manager** 0.20.0 → 0.21.0 (minor); marketplace 2.50.0 → 2.51.0.
 - _2026-08-30_ **rhize-context-manager — evidence-gated compiled-context canary.**
   Replaced the loose one-run arm counter with an atomic repository-and-capability single-flight
