@@ -1,5 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Isolated fixture lifecycle receipt. Runtime receipt v2 is owned by ../../rhize-ops/skills/parallel-agent-optimization/references/receipt-v2.schema.json.",
+  "x-rhize-canonical-v2": "../../rhize-ops/skills/parallel-agent-optimization/references/receipt-v2.schema.json",
   "type": "object",
   "additionalProperties": false,
   "required": [

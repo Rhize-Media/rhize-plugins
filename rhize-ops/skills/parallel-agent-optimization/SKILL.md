@@ -18,11 +18,15 @@ Choose the smallest safe execution graph, give every lane a bounded contract, an
 result. This is the self-contained Rhize strategy; do not load another parallel-agent skill at
 runtime.
 
-Read [references/modes.md](references/modes.md) before execution. Read
+Read [references/modes.md](references/modes.md) before execution. For a non-trivial dispatch, also
+read [references/task-graph-contract.md](references/task-graph-contract.md) and validate the ephemeral
+graph with `scripts/validate_task_graph.py` before dispatch. Read
 [references/receipt-contract.md](references/receipt-contract.md) before recording evidence.
 [references/provenance.md](references/provenance.md) records the authorized upstream consolidation
-and the update-review boundary. The deterministic helper is
-`scripts/parallel_metrics.py` relative to this skill directory.
+and the update-review boundary. Resolve the canonical plugin root through the current host's skill
+discovery, then set a process-local `RHIZE_OPS_ROOT` for the examples below. In Claude Code that
+root is `CLAUDE_PLUGIN_ROOT`; in Codex it is the root containing the discovered skill and
+`.codex-plugin/plugin.json`.
 
 ## Required trigger
 
@@ -67,10 +71,24 @@ agents, reserve a run, or write a receipt.
 
 ### Apply
 
-Run the Rhize strategy exactly once on the real task. Before work, reserve the observational run:
+Run the Rhize strategy exactly once on the real task. First render the bounded nodes, dependencies,
+read/write territories, resource capacities, authority gates, output contracts, and
+coordinator-owned verification into an ephemeral graph. Supply a verified-or-unknown Claude Code
+or Codex host profile and validate it before dispatch. Unknown concurrency degrades to sequential
+guidance; an unordered write collision, conflicting resource declaration, missing coordinator
+slot, invalid retry, or incomplete authority gate fails before dispatch. The host remains the
+scheduler and executor:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/validate_task_graph.py" \
+  validate --graph /private/path/to/task-graph.json \
+  --capabilities /private/path/to/host-capabilities.json
+```
+
+After validation and before work, reserve the observational run:
+
+```bash
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
   begin --input /private/path/to/privacy-safe-begin.json
 ```
 
@@ -84,7 +102,7 @@ Use only when the user explicitly requests comparison and a deterministic fixtur
 without live effects. Create a two-arm counterbalanced reservation:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" new-comparison
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" new-comparison
 ```
 
 Run `baseline` and `rhize` sequentially in the reserved order, each in a fresh environment from the
@@ -94,9 +112,9 @@ checks, reserve and finalize each arm, and never convert archived ECC/Superpower
 ### Report and audit
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
   report --evidence all --format markdown
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
   audit-pending
 ```
 
@@ -105,8 +123,15 @@ reservations as evidence failures requiring factual terminal finalization, not a
 
 ## Finish every execution
 
-1. Review each lane's result and check for overlapping state claims.
-2. Run the predeclared lane checks and coordinator-owned joined verification.
-3. Finalize the reservation with factual terminal status and measurements.
-4. Report terminal status, routing decision, actual overlap, verification, collisions/rework, and missing optional coverage.
-5. For controlled evidence, compare only matched v2 baseline/Rhize receipts that satisfy the same fixture contract.
+1. Validate every required result and output contract. Missing/failed required results or cleanup
+   failures block synthesis; optional omissions remain visible. Use bounded hierarchical fan-in when
+   the graph's item budget requires it.
+2. Verify the task with the predeclared checks.
+3. Finalize the accepted reservation with receipt v2's aggregate task-graph counts and factual
+   terminal status. Never persist the graph, node ids, descriptions, paths, or raw outputs. Receipt
+   validation failure is a visible run failure; fix the structured input rather than weakening the
+   schema.
+4. Report terminal status, routing decision, actual overlap, verification, collisions/rework, and
+   missing optional coverage.
+5. For controlled evidence, compare only matched v2 baseline/Rhize receipts that satisfy the same
+   fixture contract. Do not treat observational medians as causal evidence.

@@ -60,9 +60,23 @@ FINAL_KEYS = {
     "collisions",
     "rework_events",
     "correctness_pass",
+    "task_graph",
 }
 AGENT_KEYS = {"started_at", "completed_at", "status"}
 VERIFICATION_KEYS = {"required", "completed", "passed"}
+TASK_GRAPH_KEYS = (
+    "planned",
+    "required",
+    "completed",
+    "failed",
+    "cancelled",
+    "timed_out",
+    "blocked_dependency",
+    "skipped_optional",
+    "cleanup_failed",
+    "fan_in_levels",
+    "declared_concurrency_cap",
+)
 DEFAULT_STORE = Path.home() / ".rhize" / "parallel-agent-optimization"
 MAX_RECORD_BYTES = 65_536
 STALE_AFTER_SECONDS = 24 * 60 * 60
@@ -165,6 +179,37 @@ def interval_metrics(intervals: list[tuple[dt.datetime, dt.datetime]]) -> tuple[
         maximum = max(maximum, concurrency)
         previous = moment
     return maximum >= 2, round(concurrent_ms), maximum
+
+
+def validate_task_graph(value: Any, status: str) -> dict[str, int] | None:
+    if value is None:
+        if status == "completed":
+            raise ReceiptError("completed status requires task_graph")
+        return None
+    if not isinstance(value, dict):
+        raise ReceiptError("task_graph must be an object or null for a non-completed run")
+    require_exact_keys(value, set(TASK_GRAPH_KEYS), "task_graph")
+    graph = {key: require_int(value[key], f"task_graph.{key}") for key in TASK_GRAPH_KEYS}
+    if graph["declared_concurrency_cap"] == 0:
+        raise ReceiptError("task_graph.declared_concurrency_cap must be positive")
+    terminal_total = sum(
+        graph[key]
+        for key in (
+            "completed",
+            "failed",
+            "cancelled",
+            "timed_out",
+            "blocked_dependency",
+            "skipped_optional",
+        )
+    )
+    if terminal_total != graph["planned"]:
+        raise ReceiptError("task_graph terminal counts must equal planned")
+    if graph["required"] > graph["planned"]:
+        raise ReceiptError("task_graph.required cannot exceed planned")
+    if graph["skipped_optional"] > graph["planned"] - graph["required"]:
+        raise ReceiptError("task_graph.skipped_optional exceeds optional nodes")
+    return graph
 
 
 def validate_begin(raw: Any) -> dict[str, Any]:
@@ -411,6 +456,16 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
             require_int(raw[field], field)
     if raw["correctness_pass"] is not None:
         require_bool(raw["correctness_pass"], "correctness_pass")
+    task_graph = validate_task_graph(raw["task_graph"], status)
+    if task_graph is not None:
+        if raw["lanes_planned"] is not None and raw["lanes_planned"] != task_graph["planned"]:
+            raise ReceiptError("lanes_planned must equal task_graph.planned")
+        if task_graph["cleanup_failed"] and raw["correctness_pass"] is True:
+            raise ReceiptError("cleanup failure cannot claim correctness_pass=true")
+        if raw["correctness_pass"] is True and task_graph["completed"] < task_graph["required"]:
+            raise ReceiptError(
+                "correctness_pass=true requires at least every required node completed"
+            )
 
     agents = raw["agents"]
     if agents is None and status == "completed":
@@ -475,6 +530,8 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
         )
 
     actual_overlap, concurrent_ms, max_concurrency = interval_metrics(intervals)
+    if task_graph is not None and max_concurrency > task_graph["declared_concurrency_cap"]:
+        raise ReceiptError("observed concurrency exceeds task_graph.declared_concurrency_cap")
     stored = dict(reservation)
     stored.pop("reserved_at", None)
     stored.update(raw)
@@ -563,6 +620,9 @@ def summarize_variant(rows: list[dict[str, Any]]) -> dict[str, Any]:
         for row in completed
         if all(value is not None for value in row.get("tokens", {}).values())
     ]
+    task_graph_totals = {
+        key: sum(row["task_graph"][key] for row in completed) for key in TASK_GRAPH_KEYS
+    }
     return {
         "runs": len(completed),
         "correctness_pass_rate": ratio(sum(row["correctness_pass"] for row in completed), len(completed)),
@@ -578,6 +638,7 @@ def summarize_variant(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "rework_events_total": sum(row["rework_events"] for row in completed),
         "tool_calls_measured_runs": len(measured_tools),
         "tokens_measured_runs": len(measured_tokens),
+        "task_graph_totals": task_graph_totals,
     }
 
 
@@ -604,6 +665,9 @@ def complete_comparison_groups(
             continue
         if variants != Counter({"baseline": 1, "rhize": 1}):
             counts["incomplete"] += 1
+            continue
+        if any(row.get("task_graph") is None for row in group):
+            counts["pre_task_graph_v2"] += 1
             continue
         if any(row.get("status") != "completed" for row in group):
             counts["noncompleted"] += 1
@@ -745,7 +809,11 @@ def build_report(store: Path, evidence: str) -> dict[str, Any]:
     }
     complete_groups: list[list[dict[str, Any]]] = []
     for evidence_class, rows in receipts.items():
-        analyzed = [row for row in rows if row.get("status") == "completed"]
+        analyzed = [
+            row
+            for row in rows
+            if row.get("status") == "completed" and row.get("task_graph") is not None
+        ]
         comparison_counts = None
         if evidence_class == "controlled":
             complete_groups, comparison_counts = complete_comparison_groups(
@@ -756,6 +824,7 @@ def build_report(store: Path, evidence: str) -> dict[str, Any]:
         section = {
             "stored_runs": len(rows),
             "analyzed_runs": len(analyzed),
+            "pre_task_graph_v2_runs": sum(row.get("task_graph") is None for row in rows),
             "terminal_status_counts": {
                 status: sum(row.get("status") == status for row in rows) for status in TERMINAL_STATUSES
             },
@@ -784,6 +853,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"## {evidence_class.title()}",
                 "",
                 f"Stored terminal receipts: {section['stored_runs']}; analyzed completed runs: {section['analyzed_runs']}",
+                f"Pre-task-graph v2 receipts retained but excluded: {section['pre_task_graph_v2_runs']}",
                 "",
                 "| Variant | Runs | Correctness | Routing | Verification | Median ms | Overlap | Agents | Collisions | Rework | Tools | Tokens |",
                 "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",

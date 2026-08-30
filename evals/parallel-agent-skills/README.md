@@ -5,6 +5,11 @@ This neutral harness evaluates two instruction variants against six deterministi
 - `baseline` — standing host and fixture instructions only;
 - `rhize` — the self-contained `rhize-ops:parallel-agent-optimization` strategy.
 
+The Rhize strategy validates its ephemeral dependency/resource graph before dispatch. Deterministic
+graph fixtures under `fixtures/task-graphs/` cover parallel reads, shared resources, hidden writes,
+partial fan-in, and layered fan-in. Runtime receipt v2 is owned under `rhize-ops`; this harness's
+receipt schema is limited to isolated fixture lifecycle and grading fields.
+
 Each task/variant cell runs three times. Baseline and Rhize for the same task/repetition share a
 random local comparison ID and run sequentially in counterbalanced order, using fresh copies from
 the same fixture seed. This is isolated controlled evidence, not a production benchmark.

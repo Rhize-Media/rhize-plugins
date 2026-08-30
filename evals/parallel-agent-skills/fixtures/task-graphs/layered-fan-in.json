@@ -1,0 +1,12 @@
+{
+  "schema_version": "rhize-task-graph-v1",
+  "expected_checkout_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "concurrency_budget": 4,
+  "coordinator_slots_reserved": 1,
+  "context_item_budget": 2,
+  "nodes": [
+    {"id": "read_a", "deliverable": "bounded fact set", "inputs": [], "output_contract": {"kind": "json", "max_items": 4}, "depends_on": [], "reads": ["source-a"], "writes": [], "resources": [], "requires_approval": false, "external_effect": "none", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"},
+    {"id": "read_b", "deliverable": "bounded fact set", "inputs": [], "output_contract": {"kind": "json", "max_items": 4}, "depends_on": [], "reads": ["source-b"], "writes": [], "resources": [], "requires_approval": false, "external_effect": "none", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"},
+    {"id": "read_c", "deliverable": "bounded fact set", "inputs": [], "output_contract": {"kind": "json", "max_items": 4}, "depends_on": [], "reads": ["source-c"], "writes": [], "resources": [], "requires_approval": false, "external_effect": "none", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"}
+  ]
+}

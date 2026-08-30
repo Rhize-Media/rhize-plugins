@@ -58,6 +58,12 @@ verification, correctness, collisions, and rework. Every accepted v2 run ends `c
 `failed`, or `incomplete`; `audit-pending` exposes stale reservations. Receipts cannot contain
 prompts, code, commands, paths, names, URLs, session IDs, or issue IDs.
 
+For execution, sketch nodes and dependencies before dispatch. The canonical skill validates that
+file-disjoint work is also independent of checkout state, rate pools, approvals, and external
+effects. Unknown host capacity becomes a sequential wave, and a missing required result blocks the
+join. Claude Code and Codex share this host-neutral contract; neither host needs the other's hooks or
+environment variables.
+
 **Example prompt:**
 > "/rhize-ops:parallel-optimize assess would parallel agents help with this repository audit?"
 

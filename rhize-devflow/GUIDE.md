@@ -41,7 +41,7 @@ section](./README.md#install) for the exact commands — the short version:
 
 Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
 start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
-confirm you see `impact-map`, `simplify`, `check`, `review`, `mutation-check`, `browser-qa`,
+confirm you see `impact-map`, `simplify`, `check`, `test-evidence`, `review`, `mutation-check`, `browser-qa`,
 `doctor`, and `devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
 missing after an update, run `/rhize-devflow:doctor` (or
 `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` directly) — it names exactly what's
@@ -49,13 +49,14 @@ missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
-The control-plane sequence is the spine; seven overlay skills feed it or run alongside it:
+The control-plane sequence is the spine; eight overlay skills feed it or run alongside it:
 
 | Stage/Cluster | Command or skills | Question it answers |
 |---------|--------|----------------------|
 | **1. Map** | `/rhize-devflow:impact-map` (backed by `dev-flow-foundations`) | "What already touches this area, and what's the intended change?" |
 | **Post-implementation** | `/rhize-devflow:simplify` (backed by `simplify`) | "Can this exact change have fewer sources of truth or less duplication without changing behavior?" |
 | **2. Validate** | `/rhize-devflow:check` | "Does this pass the tests and gates that actually apply to what changed?" |
+| **Pre-review evidence** | `test-evidence`, `/rhize-devflow:test-evidence` | "Does this regression test protect behavior, an exact artifact, or only its current implementation?" |
 | **3. Gate** | `/rhize-devflow:review` | "Is this safe to merge, and has someone other than me actually checked?" |
 | **Release** | `completed-branch-promotion` | "The work is done and authorized; what exact PR/deployment sequence ships it safely?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
@@ -98,6 +99,17 @@ evidence-backed no-op as success and never rewrites an applied migration for cle
 **How to use it effectively:**
 - Ask for edits when you want safe candidates applied and validated.
 - Add "read-only" when you want a candidate report without source changes.
+
+### test-evidence
+
+**When it activates:** Tests changed, a change claims regression coverage, or you ask whether a test
+actually protects behavior. It does not activate for cache/data mutation consistency.
+
+**What it knows:** The behavior, artifact, and structural contract classes; independent-oracle
+requirements; exact Git/file binding; protected-target denials; and isolated mutation lifecycle.
+
+**Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
+contract and produce test evidence before review."
 - Name a range or files when the task boundary is broader than the current session's changes.
 - Run `/rhize-devflow:check` after applied simplifications and `/rhize-devflow:review` before a
   production release.
@@ -264,6 +276,18 @@ merge, deploy, migration, or external-write authority. A verified no-op is a suc
 - "Review `origin/dev..HEAD` for consolidation opportunities, but don't edit anything."
 - "Check these React changes for redundant state or Effects before review."
 
+#### /rhize-devflow:test-evidence
+
+**Usage:** `/rhize-devflow:test-evidence` with one to three explicit regression claims and a local
+run-spec boundary. Run it before `/review`, never from inside review.
+
+The command classifies each claim, then uses an approved `test`/`test:*` package script and a
+disposable worktree when isolated mutation is authorized. It refuses dirty or protected targets,
+binds the packet to exact SHAs and file digests, restores and reruns clean state, and reports killed,
+survived, missing-oracle, unavailable, stale, or cleanup-failed evidence precisely.
+
+**Example:** "Run test evidence for the exact cache-key bug these two tests claim to prevent."
+
 #### /rhize-devflow:review
 
 **Usage:** `/rhize-devflow:review` (invoke before merge/push/release)
@@ -363,6 +387,12 @@ Vercel deploys and GitHub commits.
 `/rhize-devflow:browser-qa` are scenario-driven acceptance checks you reach for during
 implementation or as part of `/rhize-devflow:check`'s broader validation — not replacements for
 it. `data-mutation-consistency` and `chrome-devtools-mcp` are the reference knowledge behind each.
+
+**Test evidence is a separate pre-review lane:** use `/rhize-devflow:test-evidence` when changed
+tests claim to prevent a regression. It distinguishes observable behavior from exact artifact and
+structural contracts, then binds independent-oracle or isolated mutation results to the exact Git
+state. `/review` only validates that local packet and never runs a mutant. This is intentionally
+separate from `/mutation-check`, which audits cache and data-write consistency.
 
 **Sanity development stands alongside, not inside:** `sanity-development` doesn't feed a slash
 command in this plugin — it's pure reference knowledge Claude applies automatically whenever

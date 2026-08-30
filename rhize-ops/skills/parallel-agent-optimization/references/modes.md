@@ -61,3 +61,13 @@ Controlled comparison predeclares task class, fixture seed, protected state, che
 repetitions per deterministic task class. New readiness uses correctness, verification, routing,
 elapsed time, actual overlap, collisions, rework, and agent count. Token/tool coverage is reported
 as optional because some hosts cannot expose it authoritatively.
+
+## Task-graph lifecycle
+
+For real execution, `validate`, `next-wave`, and `validate-results` are deterministic guidance
+operations; they never execute agents. Nodes use `pending`, `ready`, `running`, `completed`, `failed`,
+`cancelled`, `timed_out`, `blocked_dependency`, or `skipped_optional`. The coordinator revalidates
+checkout state at every wave boundary and approvals/external state after every pause or ambiguous
+effect. Write, approval, paid, and external-effect nodes do not retry automatically. Cancellation or
+required failure closes downstream work rather than allowing partial synthesis. The live graph is
+discarded after the run; only receipt-v2 aggregate counts persist.

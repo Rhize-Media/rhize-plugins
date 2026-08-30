@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/parallel-agent-receipt-v2.schema.json",
+  "title": "Rhize privacy-safe parallel-agent receipt v2 input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "evidence_class", "variant", "resource_used", "task_class", "started_at", "completed_at", "decision", "expected_decision", "lanes_planned", "agents", "tool_calls", "tool_calls_unavailable_reason", "tokens", "tokens_unavailable_reason", "verification", "collisions", "rework_events", "correctness_pass", "isolated", "live_mutation", "one_writer_enforced", "comparison_id", "task_graph"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "evidence_class": {"enum": ["observational", "controlled"]},
+    "variant": {"enum": ["baseline", "ecc", "superpowers", "rhize"]},
+    "resource_used": {"enum": ["none", "ecc", "superpowers"]},
+    "task_class": {"enum": ["parallel_read", "disjoint_write", "shared_state", "dependency_chain", "mixed_verification", "gated_live", "other"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "decision": {"enum": ["parallel", "sequential", "gated"]},
+    "expected_decision": {"type": ["string", "null"], "enum": ["parallel", "sequential", "gated", null]},
+    "lanes_planned": {"type": "integer", "minimum": 0},
+    "agents": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["started_at", "completed_at", "status"], "properties": {"started_at": {"type": "string", "format": "date-time"}, "completed_at": {"type": "string", "format": "date-time"}, "status": {"enum": ["completed", "failed", "cancelled"]}}}},
+    "tool_calls": {"type": ["integer", "null"], "minimum": 0},
+    "tool_calls_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
+    "tokens": {"type": "object", "additionalProperties": false, "required": ["input", "output", "cache_read", "cache_write"], "properties": {"input": {"type": ["integer", "null"], "minimum": 0}, "output": {"type": ["integer", "null"], "minimum": 0}, "cache_read": {"type": ["integer", "null"], "minimum": 0}, "cache_write": {"type": ["integer", "null"], "minimum": 0}}},
+    "tokens_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
+    "verification": {"type": "object", "additionalProperties": false, "required": ["required", "completed", "passed"], "properties": {"required": {"type": "integer", "minimum": 0}, "completed": {"type": "integer", "minimum": 0}, "passed": {"type": "integer", "minimum": 0}}},
+    "collisions": {"type": "integer", "minimum": 0},
+    "rework_events": {"type": "integer", "minimum": 0},
+    "correctness_pass": {"type": ["boolean", "null"]},
+    "isolated": {"type": "boolean"}, "live_mutation": {"type": "boolean"}, "one_writer_enforced": {"type": "boolean"},
+    "comparison_id": {"type": ["string", "null"], "format": "uuid"},
+    "task_graph": {
+      "type": "object", "additionalProperties": false,
+      "required": ["planned", "required", "completed", "failed", "cancelled", "timed_out", "blocked_dependency", "skipped_optional", "cleanup_failed", "fan_in_levels", "declared_concurrency_cap"],
+      "properties": {
+        "planned": {"type": "integer", "minimum": 0}, "required": {"type": "integer", "minimum": 0}, "completed": {"type": "integer", "minimum": 0}, "failed": {"type": "integer", "minimum": 0}, "cancelled": {"type": "integer", "minimum": 0}, "timed_out": {"type": "integer", "minimum": 0}, "blocked_dependency": {"type": "integer", "minimum": 0}, "skipped_optional": {"type": "integer", "minimum": 0}, "cleanup_failed": {"type": "integer", "minimum": 0}, "fan_in_levels": {"type": "integer", "minimum": 0}, "declared_concurrency_cap": {"type": "integer", "minimum": 1}
+      }
+    }
+  }
+}

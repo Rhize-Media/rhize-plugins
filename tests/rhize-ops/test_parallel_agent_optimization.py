@@ -58,6 +58,19 @@ def final_input(**overrides):
         "collisions": 0,
         "rework_events": 0,
         "correctness_pass": True,
+        "task_graph": {
+            "planned": 2,
+            "required": 2,
+            "completed": 2,
+            "failed": 0,
+            "cancelled": 0,
+            "timed_out": 0,
+            "blocked_dependency": 0,
+            "skipped_optional": 0,
+            "cleanup_failed": 0,
+            "fan_in_levels": 1,
+            "declared_concurrency_cap": 3,
+        },
     }
     value.update(overrides)
     return value
@@ -85,16 +98,20 @@ def test_begin_then_finalize_writes_private_v2_receipt(tmp_path):
     store = tmp_path / "store"
     reservation = parallel_metrics.begin_run(begin_input(), store)
     receipt = parallel_metrics.finalize_run(reservation["run_id"], final_input(), store)
-
     assert reservation["status"] == "pending"
     assert reservation["expected_decision"] == "parallel"
     assert receipt["status"] == "completed"
     assert receipt["actual_overlap"] is False
     assert receipt["verification_completeness"] == 1.0
+    assert receipt["task_graph"]["completed"] == 2
     path = next((store / "observational").glob("*.jsonl"))
     assert stat.S_IMODE(store.stat().st_mode) == 0o700
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
     assert json.loads(path.read_text())["run_id"] == reservation["run_id"]
+    report = parallel_metrics.build_report(store, "observational")
+    assert report["evidence"]["observational"]["variants"]["rhize"][
+        "task_graph_totals"
+    ]["completed"] == 2
 
 
 def test_expected_decision_is_derived_from_task_class():
@@ -109,6 +126,87 @@ def test_expected_decision_is_derived_from_task_class():
     for task_class, decision in expected.items():
         reservation = parallel_metrics.validate_begin(begin_input(task_class=task_class))
         assert reservation["expected_decision"] == decision
+
+
+def test_canonical_v2_schema_matches_two_arm_lifecycle_contract():
+    path = REPO / "rhize-ops/skills/parallel-agent-optimization/references/receipt-v2.schema.json"
+    schema = json.loads(path.read_text())
+    assert schema["$defs"]["begin"]["properties"]["variant"]["enum"] == ["baseline", "rhize"]
+    assert "resource_used" not in schema["$defs"]["begin"]["properties"]
+    assert "task_graph" in schema["$defs"]["final"]["required"]
+    assert schema["$defs"]["task_graph"]["additionalProperties"] is False
+
+
+@pytest.mark.parametrize(
+    "change,match",
+    [
+        ({"planned": 3}, "terminal counts"),
+        ({"required": 3}, "required"),
+        ({"skipped_optional": 1, "completed": 1}, "optional"),
+        ({"declared_concurrency_cap": 0}, "positive"),
+    ],
+)
+def test_v2_rejects_inconsistent_task_graph_aggregates(change, match):
+    value = final_input()
+    value["task_graph"].update(change)
+    with pytest.raises(parallel_metrics.ReceiptError, match=match):
+        parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
+
+
+@pytest.mark.parametrize("forbidden", ("node_ids", "paths", "issue_ids", "decision_prose"))
+def test_v2_task_graph_rejects_content_fields(forbidden):
+    value = final_input()
+    value["task_graph"][forbidden] = ["must-not-land"]
+    with pytest.raises(parallel_metrics.ReceiptError, match="unknown"):
+        parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
+
+
+def test_v2_rejects_concurrency_above_declared_cap():
+    value = final_input(
+        agents=[
+            {
+                "started_at": "2026-08-30T12:00:10-04:00",
+                "completed_at": "2026-08-30T12:01:10-04:00",
+                "status": "completed",
+            },
+            {
+                "started_at": "2026-08-30T12:00:20-04:00",
+                "completed_at": "2026-08-30T12:01:20-04:00",
+                "status": "completed",
+            },
+        ]
+    )
+    value["task_graph"]["declared_concurrency_cap"] = 1
+    with pytest.raises(parallel_metrics.ReceiptError, match="observed concurrency"):
+        parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
+
+
+def test_v2_rejects_success_when_cleanup_or_required_results_failed():
+    cleanup = final_input()
+    cleanup["task_graph"]["cleanup_failed"] = 1
+    with pytest.raises(parallel_metrics.ReceiptError, match="cleanup failure"):
+        parallel_metrics.validate_final(cleanup, parallel_metrics.validate_begin(begin_input()))
+
+    missing = final_input()
+    missing["task_graph"].update(completed=1, failed=1)
+    with pytest.raises(parallel_metrics.ReceiptError, match="required node"):
+        parallel_metrics.validate_final(missing, parallel_metrics.validate_begin(begin_input()))
+
+
+def test_noncompleted_lifecycle_can_finalize_without_invented_graph_counts():
+    value = final_input(
+        status="incomplete",
+        decision=None,
+        lanes_planned=None,
+        agents=None,
+        verification=None,
+        collisions=None,
+        rework_events=None,
+        correctness_pass=None,
+        task_graph=None,
+    )
+    stored = parallel_metrics.validate_final(value, parallel_metrics.validate_begin(begin_input()))
+    assert stored["task_graph"] is None
 
 
 def test_other_task_class_is_not_accepted_for_controlled_evidence(tmp_path):
@@ -274,6 +372,20 @@ def test_report_reads_legacy_v1_without_pooling_it(tmp_path):
     assert report["legacy_v1"]["variants"] == {"ecc": 1}
     assert report["legacy_v1"]["comparable_with_v2"] is False
     assert report["evidence"]["controlled"]["analyzed_runs"] == 0
+
+
+def test_report_retains_but_excludes_pre_task_graph_v2_receipt(tmp_path):
+    directory = tmp_path / "observational"
+    directory.mkdir(parents=True)
+    row = parallel_metrics.validate_final(final_input(), parallel_metrics.validate_begin(begin_input()))
+    row.pop("task_graph")
+    (directory / "2026-08.jsonl").write_text(json.dumps(row) + "\n")
+    section = parallel_metrics.build_report(tmp_path, "observational")["evidence"][
+        "observational"
+    ]
+    assert section["stored_runs"] == 1
+    assert section["pre_task_graph_v2_runs"] == 1
+    assert section["analyzed_runs"] == 0
 
 
 def complete_comparison(store: Path, *, task_class="mixed_verification", missing_optional=True):

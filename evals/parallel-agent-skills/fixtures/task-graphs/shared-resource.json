@@ -1,0 +1,11 @@
+{
+  "schema_version": "rhize-task-graph-v1",
+  "expected_checkout_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "concurrency_budget": 3,
+  "coordinator_slots_reserved": 1,
+  "context_item_budget": 4,
+  "nodes": [
+    {"id": "api_a", "deliverable": "bounded API facts", "inputs": [], "output_contract": {"kind": "json", "max_items": 2}, "depends_on": [], "reads": [], "writes": [], "resources": [{"name": "api", "capacity": 1}], "requires_approval": false, "external_effect": "external_read", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"},
+    {"id": "api_b", "deliverable": "bounded API facts", "inputs": [], "output_contract": {"kind": "json", "max_items": 2}, "depends_on": [], "reads": [], "writes": [], "resources": [{"name": "api", "capacity": 1}], "requires_approval": false, "external_effect": "external_read", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"}
+  ]
+}

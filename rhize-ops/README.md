@@ -54,6 +54,12 @@ class, timing intervals, verification, collisions/rework, and availability-marke
 metrics. They reject prompts, code, commands, repository/file paths, names, URLs, and
 session/thread/issue identifiers. Archived v1 candidate smoke stays readable but non-comparable.
 
+Before dispatch, real work also passes through an ephemeral task graph that validates data and
+hidden shared-resource edges, host concurrency, coordinator capacity, authority gates, bounded
+outputs, retry safety, lifecycle state, and complete fan-in. Claude Code and Codex use the same
+schemas and Python validator. The host still schedules agents; only content-free receipt-v2 counts
+persist, while historical v1 receipts remain readable and labeled legacy.
+
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
 **Required triggers:** any mention, discussion, proposal, plan, review, benchmark, optimization, or

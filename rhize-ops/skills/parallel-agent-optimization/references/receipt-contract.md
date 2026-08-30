@@ -16,7 +16,8 @@ rewritten or compared with v2.
 
 ## Begin
 
-Pass exactly these fields to `begin --input <file>`:
+Pass exactly these fields to `begin --input <file>`. The normative lifecycle schema is
+`receipt-v2.schema.json` in this directory. Unknown fields are rejected.
 
 ```json
 {
@@ -57,7 +58,20 @@ Pass `finalize --run-id <id> --input <file>` exactly these fields:
   "verification": {"required": 3, "completed": 3, "passed": 3},
   "collisions": 0,
   "rework_events": 0,
-  "correctness_pass": true
+  "correctness_pass": true,
+  "task_graph": {
+    "planned": 2,
+    "required": 2,
+    "completed": 2,
+    "failed": 0,
+    "cancelled": 0,
+    "timed_out": 0,
+    "blocked_dependency": 0,
+    "skipped_optional": 0,
+    "cleanup_failed": 0,
+    "fan_in_levels": 1,
+    "declared_concurrency_cap": 3
+  }
 }
 ```
 
@@ -67,6 +81,9 @@ null decision or correctness result; unknown lane, agent, verification, collisio
 may also be null so finalization never requires invented zeros. All supplied counts remain factual.
 Duplicate finalization is rejected. `audit-pending` identifies accepted reservations without
 terminal receipts and flags those older than the configured threshold.
+
+Pre-task-graph v2 receipts remain readable and visible as migration history, but reports exclude
+them from current graph-completeness and readiness metrics. They are never rewritten in place.
 
 Allowed unavailable reasons are `host_not_exposed`, `partial_host_coverage`, and `not_measured`.
 Never estimate token or tool counts. Timestamps are timezone-aware ISO 8601 values and agent
@@ -90,3 +107,7 @@ does not block a decision merely because the host cannot expose it.
 There is no free-text field. Never add prompts, summaries, code, commands, repository/file paths,
 project/user/agent/host names, URLs, source session/thread IDs, issue IDs, or external identifiers.
 Random local comparison/run UUIDs are receipt identifiers, not source-session identifiers.
+
+Task-graph terminal status counts must sum to `planned`, `required` cannot exceed `planned`, and
+optional skips cannot exceed the optional-node count. Cleanup failures are counted separately and
+never converted into successful completion.

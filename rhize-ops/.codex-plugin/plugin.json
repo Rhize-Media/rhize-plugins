@@ -1,0 +1,17 @@
+{
+  "name": "rhize-ops",
+  "version": "0.13.5",
+  "description": "Rhize operations skills for delegation, hand-offs, privacy-safe parallel-agent optimization, and ephemeral task-graph validation.",
+  "author": {"name": "Rhize Media"},
+  "homepage": "https://rhize.media",
+  "keywords": ["operations", "delegation", "parallel-agents", "task-graph", "evaluation", "observability", "rhize"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Ops",
+    "shortDescription": "Delegation and safe parallel-agent operations for Rhize.",
+    "longDescription": "Rhize operational workflows for delegation and host-neutral, inspectable parallel task graphs with privacy-safe aggregate receipts.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Read", "Write"]
+  }
+}

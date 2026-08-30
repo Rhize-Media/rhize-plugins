@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/host-capability-v1.schema.json",
+  "title": "Rhize host capability profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "host", "concurrency", "cancellation", "waiting", "isolated_worktrees"],
+  "properties": {
+    "schema_version": {"const": "rhize-host-capability-v1"},
+    "host": {"enum": ["claude-code", "codex", "unknown"]},
+    "concurrency": {"$ref": "#/$defs/countCapability"},
+    "cancellation": {"$ref": "#/$defs/boolCapability"},
+    "waiting": {"$ref": "#/$defs/boolCapability"},
+    "isolated_worktrees": {"$ref": "#/$defs/boolCapability"}
+  },
+  "$defs": {
+    "status": {"enum": ["verified", "unknown", "unsupported"]},
+    "countCapability": {
+      "type": "object", "additionalProperties": false, "required": ["status", "value"],
+      "properties": {"status": {"$ref": "#/$defs/status"}, "value": {"type": ["integer", "null"], "minimum": 1}},
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "verified"}}}, "then": {"properties": {"value": {"type": "integer", "minimum": 1}}}},
+        {"if": {"properties": {"status": {"enum": ["unknown", "unsupported"]}}}, "then": {"properties": {"value": {"type": "null"}}}}
+      ]
+    },
+    "boolCapability": {
+      "type": "object", "additionalProperties": false, "required": ["status", "supported"],
+      "properties": {"status": {"$ref": "#/$defs/status"}, "supported": {"type": ["boolean", "null"]}},
+      "allOf": [
+        {"if": {"properties": {"status": {"const": "verified"}}}, "then": {"properties": {"supported": {"type": "boolean"}}}},
+        {"if": {"properties": {"status": {"enum": ["unknown", "unsupported"]}}}, "then": {"properties": {"supported": {"type": "null"}}}}
+      ]
+    }
+  }
+}

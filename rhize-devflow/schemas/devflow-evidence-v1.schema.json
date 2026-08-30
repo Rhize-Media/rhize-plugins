@@ -15,6 +15,7 @@
     "package_manager",
     "package_scripts",
     "codegraph",
+    "test_evidence_candidates",
     "findings",
     "healthy"
   ],
@@ -152,6 +153,24 @@
         "stale": {
           "type": ["boolean", "null"],
           "description": "true when db_mtime < newest_source_mtime. null when either mtime is unavailable."
+        }
+      }
+    },
+    "test_evidence_candidates": {
+      "type": "array",
+      "description": "Changed-test candidates for human test-contract review. Advisory only; never a blocking verdict.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["test_path", "related_production_files", "declared_invariant", "contract_class", "oracle_status", "review_status", "signals"],
+        "properties": {
+          "test_path": {"type": "string"},
+          "related_production_files": {"type": "array", "items": {"type": "string"}},
+          "declared_invariant": {"type": ["string", "null"]},
+          "contract_class": {"type": ["string", "null"], "enum": ["behavior", "artifact", "structural", null]},
+          "oracle_status": {"const": "unreviewed"},
+          "review_status": {"const": "advisory"},
+          "signals": {"type": "array", "items": {"enum": ["changed_test", "source_content_assertion"]}}
         }
       }
     },

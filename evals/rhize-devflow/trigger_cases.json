@@ -272,5 +272,23 @@
     "target": "command:browser-qa",
     "prompt": "What's the difference between Chrome and Firefox rendering engines?",
     "should_trigger": false
+  },
+  {
+    "id": "trigger-test-evidence-pos-regression",
+    "target": "skill:test-evidence",
+    "prompt": "These changed regression tests passed, but does the test actually protect behavior? Run safely isolated mutation evidence.",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-test-evidence-neg-data-mutation",
+    "target": "skill:test-evidence",
+    "prompt": "Our Sanity mutation leaves stale cache data after a write.",
+    "should_trigger": false
+  },
+  {
+    "id": "trigger-test-evidence-neg-genetics",
+    "target": "skill:test-evidence",
+    "prompt": "Explain how mutation testing works in genetics research.",
+    "should_trigger": false
   }
 ]
