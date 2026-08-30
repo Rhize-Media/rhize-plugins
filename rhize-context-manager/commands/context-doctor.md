@@ -22,6 +22,22 @@ later run — or another tool — can see what changed.
 3. **claude-mem (global memory)**
    - Dashboard: `curl -s -o /dev/null -w "%{http_code}" http://localhost:37777 || true`
    - Confirm recall context appeared this session (look for the observation digest in session start).
+   - **Capture-liveness assertion — required, and it decides the status.** A dashboard 200,
+     `consecutiveFailures == 0`, a live worker process, and a fresh `claude-mem.db-wal` mtime are
+     all *liveness proxies*. **None of them proves an observation was written.** Assert on the
+     artifact itself:
+     ```bash
+     sqlite3 ~/.claude-mem/claude-mem.db "SELECT max(created_at) FROM observations;"
+     ```
+     Compare against whether sessions actually ran in the window (Headroom's `~/.headroom/guard.log`
+     logs one entry per session start, so it is the cheapest session-occurred signal):
+     - sessions ran **and** no new observations since the previous run → **`dead`**
+     - sessions ran and observations exist but `consecutiveFailures > 0` → **`degraded`**
+     - **no sessions ran** in the window → **`indeterminate`** (a quiet week is not health;
+       do not report `OK` and do not report `dead`)
+     - sessions ran, new observations present, `consecutiveFailures == 0` → **`OK`**
+     Also read `~/.claude-mem/observer-health.json` (note: it is at that path, **not** under
+     `state/`) for `consecutiveFailures`, `failingSinceAt`, `lastSuccessAt`, `lastErrorMessage`.
 4. **OpenWolf (per-repo)**
    - `.wolf/` present in cwd? If yes: `cat .wolf/config.json` and check token ledger freshness; note last cron-state timestamp.
 5. **Serena / CodeGraph (code nav)**
@@ -30,7 +46,22 @@ later run — or another tool — can see what changed.
    - Flag if BOTH are active in the same repo — redundant indexing.
 6. **Graphiti (opt-in)**
    - Only if configured: check the graphiti MCP server responds. Otherwise report "not adopted yet (by design)".
-7. **Coexistence scan**
+7. **Credential-expiry lookahead**
+   - Every layer that authenticates has a credential with a dated expiry. Read **expiry metadata
+     only — never token values**, since this report is persisted to disk:
+     ```bash
+     security find-generic-password -s "Claude Code-credentials" -w \
+       | python3 -c "import sys,json,datetime as dt; o=json.load(sys.stdin).get('claudeAiOauth',{}); \
+     [print(k, dt.datetime.fromtimestamp(o[k]/1000).astimezone().isoformat()) \
+      for k in ('expiresAt','refreshTokenExpiresAt') if isinstance(o.get(k),(int,float))]"
+     ```
+   - **Flag any credential expiring before the next scheduled run plus a margin (~8 days).** An
+     expiry that lands between two weekly runs is invisible until after it has already broken
+     something. Recording the date in a note is not flagging it.
+   - If the keychain item cannot be read in this context, report the expiry as **unknown** — never
+     infer `OK` from an unreadable credential, and never fail the whole run over it.
+
+8. **Coexistence scan**
    - SessionStart wall-time subjectively slow? Duplicated context injected this session (claude-mem recall vs OpenWolf index)? Report per the context-stack skill's watch list.
 
 ## Step 2 — Persist this run
@@ -55,7 +86,9 @@ Shape:
   ]
 }
 ```
-`status` is one of `OK`, `degraded`, `dead`, `not_installed` — matching the Step 1 table.
+`status` is one of `OK`, `degraded`, `dead`, `indeterminate`, `not_installed` — matching the
+Step 1 table. Use `indeterminate` when the layer could not be exercised (e.g. no sessions ran
+in the window, or a credential was unreadable) — it is deliberately distinct from `OK`.
 
 ## Step 3 — Delta against the previous run
 
@@ -76,7 +109,7 @@ isn't installed/enabled, print one line — `ecc:harness-audit not available —
 
 ## Output
 
-A compact table: layer | scope | status (OK / degraded / dead / not installed) | note.
+A compact table: layer | scope | status (OK / degraded / dead / indeterminate / not installed) | note.
 Then a short "Flags" section listing overlap/conflict findings with the recommended
 action (per the `context-stack` skill). Then, if applicable, the "Delta" section from
 Step 3. Then the one-line harness-audit outcome from Step 4. If everything is clean and
@@ -84,6 +117,24 @@ unchanged, say so in one line instead of an empty table.
 
 To act on any flag raised here (enable/disable a layer, wire a hook), use
 `/context-setup` — this command only diagnoses and persists its own run log.
+
+## Probe hygiene
+
+Two probes in this command have produced confidently wrong readings. Both are recorded because
+each one *looks* like a real finding:
+
+- **`observer-health.json` is at `~/.claude-mem/observer-health.json`, not under `state/`.** A
+  `state/`-path probe returns "no such file", which reads exactly like the file having vanished
+  since the last run.
+- **Never grep claude-mem's logs case-insensitively for `error`.** claude-mem logs this command's
+  own Bash commands, so the doctor's probe text matches itself — measured 587 "error-ish" lines
+  against 20 real log-level errors on the same day. Scope to `'^<date>.*\[ERROR\]'`, and before
+  treating any log hit as evidence, confirm it is an event line and not this command's own echo.
+
+A third, general one: **a closed upstream issue is not a fixed one.** Check `stateReason` — an
+issue closed `NOT_PLANNED` (e.g. consolidated into an open umbrella issue) is indistinguishable
+from a fix in a bare issue listing, and recommending an upgrade on that basis sends the user to a
+remedy that cannot work.
 
 ## Cadence
 

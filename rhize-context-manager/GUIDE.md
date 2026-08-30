@@ -22,6 +22,12 @@ the right one, and health-checks the whole thing.
   automatically as a final deeper pass.
   *Example: "Run /context-doctor — rhize-salesforce felt sluggish this morning."*
 
+  It will not call a layer healthy just because its port answers: claude-mem has to show
+  new observations since the last run, or it is reported `dead`. If no sessions ran at all,
+  it says `indeterminate` rather than pretending a quiet week is a healthy one. It also warns
+  about credentials due to expire before the next weekly run — the failure mode that silently
+  killed memory capture for three days in August 2026.
+
 - **"Set up context tooling for this repo" / "which layers should this repo actually run"**
   → `/context-setup` — scans the repo to infer its type, checks which stack layers are
   actually active (via the same probes as `/context-doctor`), proposes a tailored

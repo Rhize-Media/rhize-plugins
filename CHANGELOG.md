@@ -8,6 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ **`/context-doctor` capture-liveness assertion + credential-expiry lookahead**
+  (rhize-context-manager 0.20.0). A layer is no longer reported `OK` on a liveness proxy — a
+  dashboard 200, `consecutiveFailures == 0`, a live worker, or a fresh WAL mtime prove nothing was
+  captured. claude-mem must now show new `observations` rows since the previous run, or it is
+  `dead`; a new `indeterminate` status covers windows where no sessions ran, so a quiet week is not
+  misread as health. The command also reads credential **expiry metadata only** (never token
+  values) and flags anything expiring before the next scheduled run plus margin.
+  Both rules were verified by replaying the two runs that missed a real outage: the 2026-08-20 run
+  recorded an OAuth refresh-token expiry of 2026-08-27 without flagging it, and the 2026-08-27 run
+  reported `OK` hours before capture died for 2 days 16 hours. Under the new rules the first raises
+  a flag and the second yields `dead`. Adds a Probe hygiene section recording three measured
+  false-reading traps.
+
+- _2026-08-30_ version bump — **rhize-context-manager** 0.19.1 → 0.20.0 (minor); marketplace 2.49.0 → 2.50.0.
 - _2026-08-30_ version bump — **rhize-devflow** 2.15.0 → 2.16.0 (minor); marketplace 2.48.5 → 2.49.0.
 - _2026-08-30_ **rhize-devflow — completed branch promotion.** Added one canonical
   `completed-branch-promotion` skill for the explicit phrases "push to main" and "push to dev and
