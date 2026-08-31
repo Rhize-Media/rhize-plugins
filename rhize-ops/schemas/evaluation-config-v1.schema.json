@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/evaluation-config-v1.schema.json",
+  "title": "Rhize local evaluation setup state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "capture_mode", "updated_at", "plugins"],
+  "properties": {
+    "schema_version": {"const": "rhize-evaluation-config-v1"},
+    "capture_mode": {"enum": ["aggressive_local", "deterministic_only", "disabled", "mixed"]},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "plugins": {
+      "type": "object",
+      "propertyNames": {"pattern": "^[a-z][a-z0-9-]*$"},
+      "additionalProperties": {"$ref": "#/$defs/plugin_state"}
+    }
+  },
+  "$defs": {
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "baseline_id", "label", "version", "validation_method"],
+      "properties": {
+        "status": {"enum": ["confirmed", "greenfield", "declined", "unconfirmed"]},
+        "baseline_id": {"type": ["string", "null"], "format": "uuid"},
+        "label": {"type": ["string", "null"]},
+        "version": {"type": ["string", "null"]},
+        "validation_method": {"type": ["string", "null"]}
+      }
+    },
+    "suite_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+        "status": {"enum": ["pass", "fail", "blocked", "not_run"]},
+        "reason": {"type": "string", "minLength": 1},
+        "exit_code": {"type": "integer"},
+        "latency_ms": {"type": "number", "minimum": 0}
+      }
+    },
+    "plugin_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "skills", "baseline", "benchmarks", "suites", "capture_mode"],
+      "properties": {
+        "domain": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+        "skills": {"type": "integer", "minimum": 0},
+        "baseline": {"$ref": "#/$defs/baseline"},
+        "benchmarks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+        },
+        "suites": {"type": "array", "items": {"$ref": "#/$defs/suite_state"}},
+        "capture_mode": {"enum": ["aggressive_local", "deterministic_only", "disabled"]}
+      }
+    }
+  }
+}

@@ -109,7 +109,11 @@ runs that still need factual terminal finalization.
 **What it's for:** A fleet-wide guardrail wizard. Installing a Rhize plugin never turns on any of its hooks by itself — this command finds every installed plugin's opt-in hook catalog, shows you what's already wired vs. just available in the current project, and lets you pick which ones to turn on without hand-editing `.claude/settings.json`. Every hook it offers gets smoke-tested before it's wired, so a broken hook script can't get wired silently.
 
 **Example usage:**
-> "/rhize-ops:rhize-setup" — review the per-plugin menu, pick the guardrails you want (each shows its tier — T3 advisory or T4 blocking — and a one-line description), and it writes them into your project's `.claude/settings.json` plus prints a status table for every available item, wired or not.
+> "/rhize-ops:rhize-setup" — validate all published skill coverage, confirm the exact workflow each plugin is replacing, run the immediate free/offline seed, choose aggressive local capture or deterministic-only mode, then review the per-plugin guardrail menu. The final report keeps deterministic coverage, observational receipts, and controlled benefit readiness separate.
+
+Use `/rhize-ops:rhize-setup --plugin obsidian-second-brain --evaluations` for the evaluation-only
+subflow after `/vault-setup`. Obsidian is grouped with Context Manager and Procedural Memory under
+Knowledge & Context; Ops hosts the setup engine without changing that product taxonomy.
 
 ## Cost & Savings Reports
 

@@ -1,6 +1,6 @@
 {
   "name": "rhize-context-manager",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "Context engineering and optimization with parser-backed private context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projection contracts shared by Claude Code and Codex.",
   "author": {
     "name": "Rhize Media"

@@ -1,0 +1,122 @@
+{
+  "schema_version": "rhize-evaluations-v1",
+  "policy": {
+    "deterministic_release_gate": true,
+    "matched_controlled_claim_gate": true,
+    "natural_evidence_class": "observational",
+    "controlled_repetitions": 3,
+    "capture_modes": ["aggressive_local", "deterministic_only", "disabled"]
+  },
+  "domains": [
+    {
+      "id": "knowledge-context",
+      "title": "Knowledge & Context",
+      "components": ["obsidian-second-brain", "rhize-context-manager", "procedural-memory"]
+    },
+    {
+      "id": "operations",
+      "title": "Operations",
+      "components": ["rhize-ops", "rhize-tasks"]
+    },
+    {
+      "id": "engineering-delivery",
+      "title": "Engineering & Delivery",
+      "components": ["rhize-devflow", "project-launcher", "rhize-cowork"]
+    },
+    {
+      "id": "content-intelligence",
+      "title": "Content Intelligence",
+      "components": ["seo-aeo-geo"]
+    },
+    {
+      "id": "toolchain",
+      "title": "Toolchain",
+      "components": ["skill-forge"]
+    }
+  ],
+  "components": [
+    {
+      "id": "obsidian-second-brain",
+      "kind": "plugin",
+      "domain": "knowledge-context",
+      "skills": ["defuddle", "json-canvas", "knowledge-compiler", "obsidian-bases", "obsidian-cli", "obsidian-markdown", "qmd-search", "second-brain", "vault-alignment", "vault-templates"],
+      "suites": [{"id": "obsidian-local", "kind": "python", "path": "evals/obsidian/run_local_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "obsidian-existing-vs-plugin", "protocol": "evals/obsidian/benchmark_spec.json", "arm_a": "user-confirmed existing vault workflow", "arm_b": "obsidian-second-brain", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-context-manager",
+      "kind": "plugin",
+      "domain": "knowledge-context",
+      "skills": ["context-compression", "context-degradation", "context-engineering", "context-fundamentals", "context-optimization", "context-pack", "context-stack", "filesystem-context", "graph-memory", "graphify", "graphiti-memory", "learning-curation", "memory-context", "memory-systems", "refinement-pipeline", "tool-design"],
+      "suites": [{"id": "context-manager-local", "kind": "python", "path": "evals/rhize-context-manager/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "context-existing-vs-stack", "protocol": "evals/rhize-context-manager/benchmark_contracts.json", "arm_a": "user-confirmed existing context workflow", "arm_b": "rhize-context-manager", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "procedural-memory",
+      "kind": "plugin",
+      "domain": "knowledge-context",
+      "skills": ["functionize", "procedural-memory"],
+      "suites": [
+        {"id": "procedural-memory-local", "kind": "python", "path": "evals/procedural-memory/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true},
+        {"id": "procedural-memory-portable-schema", "kind": "python", "path": "procedural-memory/evals/validate-suite.py", "args": [], "cwd": "procedural-memory", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}
+      ],
+      "benchmarks": [{"id": "procedural-existing-vs-registry", "protocol": "evals/procedural-memory/benchmark_spec.json", "arm_a": "user-confirmed existing repeated workflow", "arm_b": "procedural-memory", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-ops",
+      "kind": "plugin",
+      "domain": "operations",
+      "skills": ["delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
+      "suites": [{"id": "rhize-ops-local", "kind": "python", "path": "evals/parallel-agent-skills/scripts/evaluate_ops_skills.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "operations-existing-vs-rhize", "protocol": "evals/parallel-agent-skills/manifest.json", "arm_a": "user-confirmed existing operations workflow", "arm_b": "rhize-ops", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-tasks",
+      "kind": "plugin",
+      "domain": "operations",
+      "skills": ["manage-task-preferences", "plan-my-day", "reconcile-rhize-tasks", "review-task-opportunities", "rhize-tasks-doctor", "rhize-tasks-setup"],
+      "suites": [{"id": "rhize-tasks-local", "kind": "python", "path": "evals/rhize-tasks/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "tasks-existing-vs-rhize", "protocol": "evals/rhize-tasks/benefit-benchmark.json", "arm_a": "user-confirmed existing task workflow", "arm_b": "rhize-tasks", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-devflow",
+      "kind": "plugin",
+      "domain": "engineering-delivery",
+      "skills": ["chrome-devtools-mcp", "completed-branch-promotion", "data-mutation-consistency", "dev-flow-foundations", "error-lifecycle-management", "sanity-development", "sentry-instrumentation", "simplify", "test-evidence"],
+      "suites": [{"id": "devflow-local", "kind": "python", "path": "evals/rhize-devflow/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "devflow-existing-vs-plugin", "protocol": "evals/rhize-devflow/benchmark_contracts.json", "arm_a": "user-confirmed existing engineering workflow", "arm_b": "rhize-devflow", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "project-launcher",
+      "kind": "plugin",
+      "domain": "engineering-delivery",
+      "skills": ["project-launcher", "rhize-visual-plan"],
+      "suites": [{"id": "project-launcher-local", "kind": "python", "path": "evals/project-launcher/run_local_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "launcher-existing-vs-plugin", "protocol": "evals/project-launcher/benchmark_spec.json", "arm_a": "user-confirmed existing project-launch workflow", "arm_b": "project-launcher", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-cowork",
+      "kind": "plugin",
+      "domain": "engineering-delivery",
+      "skills": ["project-kickoff"],
+      "suites": [{"id": "rhize-cowork-local", "kind": "python", "path": "evals/rhize-cowork/run_local_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "cowork-existing-vs-kickoff", "protocol": "evals/rhize-cowork/benchmark_spec.json", "arm_a": "user-confirmed existing kickoff workflow", "arm_b": "rhize-cowork", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "seo-aeo-geo",
+      "kind": "plugin",
+      "domain": "content-intelligence",
+      "skills": ["aeo-geo-optimization", "backlink-intelligence", "content-seo", "keyword-intelligence", "nextjs-sanity-seo", "seo-site-audit", "serp-intelligence"],
+      "suites": [{"id": "seo-local", "kind": "python", "path": "evals/seo-aeo-geo/run_local_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "seo-existing-vs-plugin", "protocol": "evals/seo-aeo-geo/benchmark_spec.json", "arm_a": "user-confirmed existing SEO workflow", "arm_b": "seo-aeo-geo", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "skill-forge",
+      "kind": "package",
+      "domain": "toolchain",
+      "skills": [],
+      "suites": [{"id": "skill-forge-safety", "kind": "python", "path": "evals/skill-forge/integration_eval.py", "args": ["safety"], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 180, "automatic": false, "requires": ["explicit_checkout_or_binary"]}],
+      "benchmarks": [{"id": "skill-forge-pre-vs-post-evolve", "protocol": "evals/skill-forge/evolve-benchmark.json", "arm_a": "digest-pinned pre-evolve skill", "arm_b": "digest-pinned staged proposal", "natural_capture_eligible": false}]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "name": "rhize-cowork",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
   "author": {
     "name": "Rhize Media"

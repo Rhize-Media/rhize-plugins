@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/evaluation-receipt-v1.schema.json",
+  "title": "Rhize privacy-safe evaluation receipt lifecycle row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "plugin", "benchmark_id", "variant",
+    "input_fingerprint", "status", "recorded_at", "metrics"
+  ],
+  "properties": {
+    "schema_version": {"const": "rhize-evaluation-receipt-v1"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "plugin": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "benchmark_id": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "variant": {"enum": ["A", "B"]},
+    "input_fingerprint": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "status": {"enum": ["pending", "completed", "failed", "incomplete"]},
+    "recorded_at": {"type": "string", "format": "date-time"},
+    "metrics": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "correctness_pass", "verification_required", "verification_completed",
+        "verification_passed", "routing_true_positives", "routing_false_positives",
+        "routing_false_negatives", "tokens", "tokens_unavailable_reason", "latency_ms",
+        "tool_calls", "tool_calls_unavailable_reason", "follow_up_reads", "corrections",
+        "rework_events", "failures", "refusals"
+      ],
+      "properties": {
+        "correctness_pass": {"type": ["boolean", "null"]},
+        "verification_required": {"type": ["integer", "null"], "minimum": 0},
+        "verification_completed": {"type": ["integer", "null"], "minimum": 0},
+        "verification_passed": {"type": ["integer", "null"], "minimum": 0},
+        "routing_true_positives": {"type": ["integer", "null"], "minimum": 0},
+        "routing_false_positives": {"type": ["integer", "null"], "minimum": 0},
+        "routing_false_negatives": {"type": ["integer", "null"], "minimum": 0},
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input", "output", "cache_read", "cache_write"],
+          "properties": {
+            "input": {"type": ["integer", "null"], "minimum": 0},
+            "output": {"type": ["integer", "null"], "minimum": 0},
+            "cache_read": {"type": ["integer", "null"], "minimum": 0},
+            "cache_write": {"type": ["integer", "null"], "minimum": 0}
+          }
+        },
+        "tokens_unavailable_reason": {"enum": ["host_not_exposed", "not_measured", null]},
+        "latency_ms": {"type": ["number", "null"], "minimum": 0},
+        "tool_calls": {"type": ["integer", "null"], "minimum": 0},
+        "tool_calls_unavailable_reason": {"enum": ["host_not_exposed", "not_measured", null]},
+        "follow_up_reads": {"type": ["integer", "null"], "minimum": 0},
+        "corrections": {"type": ["integer", "null"], "minimum": 0},
+        "rework_events": {"type": ["integer", "null"], "minimum": 0},
+        "failures": {"type": ["integer", "null"], "minimum": 0},
+        "refusals": {"type": ["integer", "null"], "minimum": 0}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "pending"}}, "required": ["status"]},
+      "then": {"properties": {"metrics": {"type": "null"}}},
+      "else": {"properties": {"metrics": {"type": "object"}}}
+    }
+  ]
+}

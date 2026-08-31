@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/evaluation-catalog-v1.schema.json",
+  "title": "Rhize centralized evaluation catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "policy", "domains", "components"],
+  "properties": {
+    "schema_version": {"const": "rhize-evaluations-v1"},
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic_release_gate", "matched_controlled_claim_gate",
+        "natural_evidence_class", "controlled_repetitions", "capture_modes"
+      ],
+      "properties": {
+        "deterministic_release_gate": {"const": true},
+        "matched_controlled_claim_gate": {"const": true},
+        "natural_evidence_class": {"const": "observational"},
+        "controlled_repetitions": {"type": "integer", "minimum": 1},
+        "capture_modes": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"enum": ["aggressive_local", "deterministic_only", "disabled"]}
+        }
+      }
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/domain"}
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/component"}
+    }
+  },
+  "$defs": {
+    "slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "repo_path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "components"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "title": {"type": "string", "minLength": 1},
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/slug"}
+        }
+      }
+    },
+    "suite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "args", "cwd", "network", "cost", "timeout_seconds", "automatic"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "kind": {"const": "python"},
+        "path": {"$ref": "#/$defs/repo_path"},
+        "args": {"type": "array", "items": {"type": "string"}},
+        "cwd": {"$ref": "#/$defs/repo_path"},
+        "network": {"const": "none"},
+        "cost": {"const": "free"},
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 600},
+        "automatic": {"type": "boolean"},
+        "requires": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "benchmark": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "protocol", "arm_a", "arm_b", "natural_capture_eligible"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "protocol": {"$ref": "#/$defs/repo_path"},
+        "arm_a": {"type": "string", "minLength": 1},
+        "arm_b": {"type": "string", "minLength": 1},
+        "natural_capture_eligible": {"type": "boolean"}
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "domain", "skills", "suites", "benchmarks"],
+      "properties": {
+        "id": {"$ref": "#/$defs/slug"},
+        "kind": {"enum": ["plugin", "package"]},
+        "domain": {"$ref": "#/$defs/slug"},
+        "skills": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/slug"}
+        },
+        "suites": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/suite"}},
+        "benchmarks": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/benchmark"}}
+      }
+    }
+  }
+}

@@ -137,3 +137,11 @@ unprompted. Then remind them:
   chat notification) and what connecting that MCP + re-running this command would fix
 - Re-run `/rhize-ops:delegate-setup` any time to update it
 - The file lives outside this repo — if they fork this plugin publicly, their config stays private
+
+### 9. Establish the evaluation baseline
+
+After recipient and integration setup succeeds, continue with
+`/rhize-ops:rhize-setup --plugin rhize-ops --evaluations`. Offer the user's current delegation
+handoff as Arm A, but never create Jira issues or send Slack messages solely to seed a benchmark.
+The immediate deterministic suite is free/offline. Any natural capture must exclude recipient,
+issue, channel, project, and session identifiers.

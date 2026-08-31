@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "rhize-devflow",
   "items": [
     {
@@ -90,5 +90,9 @@
         "warning": "Chrome DevTools MCP already wraps a wait-aware Puppeteer client tuned for this workflow; a hand-rolled Playwright script duplicates that work and has to be maintained separately."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-devflow"
+  }
 }

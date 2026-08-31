@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/setup-manifest-v2.schema.json",
+  "title": "Rhize setup manifest v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "plugin", "items", "dependencies", "evaluations"],
+  "properties": {
+    "schema": {"const": 2},
+    "plugin": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"},
+    "items": {"type": "array"},
+    "dependencies": {"type": "array"},
+    "evaluations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog", "component"],
+      "properties": {
+        "catalog": {"const": "rhize-evaluations-v1"},
+        "component": {"type": "string", "pattern": "^[a-z][a-z0-9-]*$"}
+      }
+    }
+  }
+}

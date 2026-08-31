@@ -62,6 +62,14 @@ Before enabling any plugin's hooks, review:
 4. **MCP server configuration** (`<plugin>/.mcp.json`, if present) — what external service
    each server talks to, and what credentials it expects.
 
+The central evaluation phase has a separate execution boundary. The setup engine accepts only
+cataloged, repository-contained Python runners that declare `network: none`, `cost: free`, and a
+bounded timeout. It passes arguments without a shell, strips the ambient environment to a narrow
+allowlist, and rejects absolute paths, traversal, and symlink escapes. Live, paid, credentialed,
+scheduled, or externally mutating benchmarks require separate effect-specific authorization.
+Local evaluation state is private (`0700` directories and `0600` files); receipts store an HMAC
+fingerprint rather than raw inputs or source paths.
+
 If a hook or script does something you didn't expect from its description, treat that as a
 security bug and report it here rather than silently disabling it and moving on — the next
 installer won't know to check.

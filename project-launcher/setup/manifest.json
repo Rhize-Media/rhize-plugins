@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "project-launcher",
   "items": [],
   "dependencies": [
@@ -25,5 +25,9 @@
         "warning": "these are all skills from other Rhize (or third-party) plugins that already encode a tuned workflow for their specialty. Falling back to generic prompting loses that tuning — install the plugin that ships the skill instead of trying to replicate its prompt engineering ad hoc."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "project-launcher"
+  }
 }

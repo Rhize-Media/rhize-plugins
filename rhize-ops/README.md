@@ -101,7 +101,15 @@ Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump
 
 ### `/rhize-setup`
 
-Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in hook catalog (`<plugin>/setup/manifest.json`), reads back the target project's *effective* hook state (`.claude/settings.json` + `.claude/settings.local.json`, plus `ECC_DISABLED_HOOKS`/`ECC_GATEGUARD` env toggles), presents an opt-in menu via `AskUserQuestion`, smoke-tests each selected hook before wiring it, and writes the result into the target project's tracked `.claude/settings.json`. Installing a plugin never auto-wires its hooks — this wizard (or a manual edit) is the only way a manifest item starts firing. See [Setup manifest schema](#setup-manifest-schema) below for what a plugin ships to participate.
+Fleet-level setup wizard. It validates the central evaluation catalog against every published skill,
+groups components by product domain, establishes user-confirmed incumbent baselines, runs immediate
+free/offline deterministic seeds, records the requested capture policy, and provisions a
+privacy-safe receipt interface. It then reads every
+installed plugin's opt-in hook catalog and the target project's *effective* hook state
+(`.claude/settings.json` + `.claude/settings.local.json`, plus
+`ECC_DISABLED_HOOKS`/`ECC_GATEGUARD`), presents an opt-in menu, smoke-tests each selected hook, and
+writes only approved hooks into the tracked `.claude/settings.json`. Installation alone never starts
+capture, schedules work, runs live/paid benchmarks, or wires hooks.
 
 **Invoked as:** `/rhize-ops:rhize-setup`
 
@@ -116,11 +124,13 @@ owns preview/record semantics and returns `unavailable` while projection operati
 
 ## Setup manifest schema
 
-`rhize-ops` owns this spec — any Rhize plugin that wants its guardrail hooks discoverable by `/rhize-ops:rhize-setup` ships a `setup/manifest.json` at its plugin root conforming to it. Shipping a manifest never auto-wires anything; it only makes the hook *offerable* through the wizard.
+`rhize-ops` owns this spec. Every custom Rhize plugin ships a `setup/manifest.json` so the central
+wizard can account for its evaluation coverage; plugins with opt-in guardrails also declare them in
+the same file. Shipping a manifest never starts capture or auto-wires anything.
 
 ```jsonc
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "<plugin-directory-name>",
   "items": [
     {
@@ -134,10 +144,10 @@ owns preview/record semantics and returns `unavailable` while projection operati
       "default": false                                        // true = wizard marks it "(recommended)"; never pre-selects it
     }
   ],
-  "dependencies": [                                           // OPTIONAL — additive, schema stays 1
+  "dependencies": [                                           // always present; may be empty
     {
       "name": "Human-readable dependency name",
-      "kind": "plugin",                                       // "plugin" | "cli" | "mcp" | "data"
+      "kind": "plugin",                                       // plugin | cli | mcp | data | runtime | platform
       "purpose": "One line: what this unlocks",
       "required": false,                                      // false = plugin degrades gracefully without it
       "degradedBehavior": "What happens without it",
@@ -146,15 +156,30 @@ owns preview/record semantics and returns `unavailable` while projection operati
         "warning": "Explicit reinventing-the-wheel caveat — replacing a maintained upstream means taking on its maintenance and forgoing its updates; recommend installing the upstream outright"
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",                       // central catalog owned by rhize-ops
+    "component": "<plugin-directory-name>"                    // must match plugin
+  }
 }
 ```
+
+Schema 1 remains readable for its hook and dependency inventory during migration, but it reports
+`evaluation catalog missing` and cannot satisfy the release coverage gate. Schema 2 keeps runner
+paths out of distributed component manifests: the central
+`setup/evaluation-catalog.json` owns repository-relative paths, Arm A/Arm B definitions, domain
+taxonomy, and suite metadata. The validator rejects absolute paths, traversal, escaping symlinks,
+unknown runner types, networked/paid automatic suites, and timeouts above ten minutes.
+
+The catalog's product taxonomy deliberately separates ownership from subject matter. Obsidian,
+Context Manager, and Procedural Memory are **Knowledge & Context** components; Rhize Ops owns their
+shared setup/evidence engine but remains in the **Operations** domain.
 
 **Tier semantics:**
 - **T3 — advisory.** The hook injects `hookSpecificOutput.additionalContext` and never blocks the tool call.
 - **T4 — blocking.** The hook exits `2` to block the tool call, with stderr shown to the model as the reason.
 
-**Dependencies (optional):** any Rhize plugin can additionally declare a top-level `"dependencies"`
+**Dependencies:** any Rhize plugin can declare a top-level `"dependencies"`
 array describing the external plugins, CLIs, MCP servers, or data files it relies on — separate
 from the opt-in hooks in `"items"`. `/rhize-setup` reads this array (see the command's own doc)
 to probe presence, print a status table, and offer install/degrade/replace choices before the
@@ -164,6 +189,34 @@ how in `"degradedBehavior"`); `"required": true` means the dependent feature has
 pair the suggestion with a `"warning"` that names the maintenance tradeoff: replacing a maintained
 upstream means taking on its maintenance and forgoing its updates, so the warning should recommend
 installing the upstream outright rather than reinventing it.
+
+## Evaluation setup engine
+
+`scripts/evaluation_setup.py` is the deterministic interface behind the wizard:
+
+```bash
+python3 rhize-ops/scripts/evaluation_setup.py validate --repo-root /path/to/rhize-plugins
+python3 rhize-ops/scripts/evaluation_setup.py setup \
+  --repo-root /path/to/rhize-plugins \
+  --capture-mode deterministic_only \
+  --run-free-smoke
+python3 rhize-ops/scripts/evaluation_setup.py audit
+```
+
+The `setup` command can be scoped with repeated `--plugin` flags and accepts a private
+`--baseline-decisions` JSON produced by the interactive wizard. Confirmed baselines require an exact
+label, version/SHA/date, and validation method. Greenfield and declined states contain no invented
+identity. Reruns preserve unchanged baseline IDs and other components' state.
+
+Aggressive local capture stores an HMAC fingerprint of the input, never the input or its path.
+`reserve` appends a pending row before work; `finalize` appends a terminal row with strict common
+metrics. Missing token/tool counters require an explicit unavailable reason. `audit` reports stale
+pending reservations. Raw state stays under `~/.rhize/evals/` with 0700 directories and 0600 files.
+Natural rows remain observational; only matched controlled cohorts can support benefit claims.
+Recording `aggressive_local` is policy, not proof that a host lifecycle adapter is active. A
+component reports capture as active only after its eligible execution path actually invokes
+`reserve` before work and `finalize` afterward; otherwise setup must show
+`capture_adapter_unavailable` rather than implying background collection.
 
 **Wiring contract the wizard relies on:**
 - Every `PreToolUse`/`PostToolUse` item's `command` must read the tool-call payload from stdin and exit `0` on a no-op smoke test (`echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/x"}}' | <command>`). Items on `SessionStart`/`Stop`/`UserPromptSubmit` are smoke-tested with empty stdin instead. The wizard refuses to wire anything that fails this check.

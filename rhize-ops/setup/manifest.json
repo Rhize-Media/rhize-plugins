@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "rhize-ops",
   "items": [],
   "dependencies": [
@@ -58,5 +58,9 @@
         "warning": "OpenWolf already tracks this per-repo and evolves its own ledger format; a manual ledger silently drifts the moment that schema changes upstream."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-ops"
+  }
 }

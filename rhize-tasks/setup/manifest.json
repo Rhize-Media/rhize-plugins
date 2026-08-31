@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "rhize-tasks",
   "items": [],
   "dependencies": [
@@ -25,5 +25,9 @@
         "warning": "The plugin has no supported replacement for the macOS Keychain and EventKit integration."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-tasks"
+  }
 }
