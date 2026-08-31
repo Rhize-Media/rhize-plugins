@@ -3514,7 +3514,7 @@
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
     },
     {
-      "contentHash": "a731ef74167eaf2b4c280983e83083a02b88770d096373b5c8ea89b710601354",
+      "contentHash": "847ae69502b69bcbd243d0523b0a1192b3aa5d062151b098ed407a08cf21276d",
       "description": "Mine repeated CLI usage into redacted Functionize candidates, compile eligible candidates into inert isolated proposal bundles, or record a digest-bound human review. Use when asked to Functionize a repeated shell workflow, generate a reusable CLI-wrapper proposal, inspect gotcha-bearing command patterns, compile an exported Functionize candidate, or record a Functionize review. Generation never registers, trusts, approves, promotes, invokes, or runs the generated wrapper; use procedural-memory only after those separate gates are explicitly reached.",
       "id": "skill:procedural-memory/functionize",
       "kind": "skill",

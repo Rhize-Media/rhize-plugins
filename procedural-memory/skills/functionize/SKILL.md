@@ -48,7 +48,9 @@ bash scripts/functionize.sh review <candidate.json> <review.json> --ledger <path
 ```
 
 The launcher maps these to `rhize-skill functionize`, `functionize-generate`, and
-`functionize-review`. It deliberately has no registry or execution mode.
+`functionize-review`. Before dispatching user arguments, it probes the selected command's
+side-effect-free `--help` surface so a stale same-version CLI fails closed. It deliberately has no
+registry or execution mode.
 
 ## Report the gate you actually reached
 

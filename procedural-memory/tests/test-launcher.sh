@@ -63,7 +63,8 @@ assert_absent() {
     fi
 }
 
-mkdir -p "$WORK/empty-home" "$WORK/stub-old/bin" "$WORK/stub-good/bin"
+mkdir -p "$WORK/empty-home" "$WORK/stub-old/bin" "$WORK/stub-good/bin" \
+    "$WORK/stub-no-functionize/bin"
 
 cat > "$WORK/stub-old/bin/rhize-skill" <<'EOF'
 #!/bin/sh
@@ -83,6 +84,22 @@ EOF
 cat > "$WORK/stub-good/bin/python3" <<'EOF'
 #!/bin/sh
 echo "0.2.0"
+EOF
+
+cat > "$WORK/stub-no-functionize/bin/rhize-skill" <<'EOF'
+#!/bin/sh
+echo "invoked: $*" >> "$STUB_LOG"
+case "${1:-} ${2:-}" in
+  "functionize --help"|"functionize-generate --help"|"functionize-review --help")
+    echo "Error: no such command: ${1:-}" >&2
+    exit 2
+    ;;
+esac
+exit 0
+EOF
+cat > "$WORK/stub-no-functionize/bin/python3" <<'EOF'
+#!/bin/sh
+echo "0.1.0"
 EOF
 chmod +x "$WORK"/stub-*/bin/*
 
@@ -165,6 +182,28 @@ assert_contains "Test C3 generate maps to functionize-generate" "$WORK/stub-func
     "invoked: functionize-generate candidate.json --proposal-dir proposals"
 assert_contains "Test C3 review maps to functionize-review" "$WORK/stub-functionize-log.txt" \
     "invoked: functionize-review candidate.json review.json --ledger reviews.jsonl"
+
+echo
+echo "=== Test C3b: same-version CLI without Functionize fails the capability probe closed ==="
+rm -f "$WORK/stub-no-functionize-log.txt"
+set +e
+(cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
+    PATH="$WORK/stub-no-functionize/bin:/usr/bin:/bin" \
+    STUB_LOG="$WORK/stub-no-functionize-log.txt" \
+    bash "$FUNCTIONIZE_LAUNCHER" mine git --json) > "$WORK/testC3b.out" 2>&1
+code=$?
+set -e
+assert_eq "Test C3b exit code (capability refusal)" "78" "$code"
+assert_contains "Test C3b names the missing Functionize command" "$WORK/testC3b.out" \
+    "does not expose required compile-only subcommand 'functionize'"
+assert_contains "Test C3b probes only the help surface" "$WORK/stub-no-functionize-log.txt" \
+    "invoked: functionize --help"
+if grep -qF "invoked: functionize git --json" "$WORK/stub-no-functionize-log.txt"; then
+    echo "FAIL: Test C3b dispatched user arguments after a failed capability probe"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "ok:   Test C3b never dispatched user arguments"
+fi
 
 echo
 echo "=== Test C4: Functionize launcher refuses registry and execution commands before CLI resolution ==="

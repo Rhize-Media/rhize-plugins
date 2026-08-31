@@ -4,6 +4,9 @@
 
 - Rhize Plugins `v2.52.0` at `fd142a6` packages procedural-memory recall, run, promote, and verify surfaces, but its generated skill map has no Functionize node or command.
 - The currently resolved `rhize-skill` interface exposes `functionize`, `functionize-generate`, and `functionize-review`. Its help text states that generation emits inert proposals and never registers, approves, promotes, invokes, or executes them.
+- The runtime package reported `0.1.0` both before and after Functionize landed, so semver cannot
+  identify the required command surface by itself; the adapter must probe the selected command's
+  side-effect-free `--help` path before dispatching user arguments.
 - Functionize lives in the separate `Rhize-Media/procedural-memory` runtime. This repository owns only the cross-host skill and thin launcher/command adapters.
 - `.codegraph/` is absent. Structural discovery for this change used `rg` over the procedural-memory plugin, compiler, schema, query layer, generated artifacts, tests, and the runtime's local checkout.
 - Arm A regenerated deterministically and passed schema, freshness, fixture, router, relationship, orphan/unroutable, and duplicate checks. A realistic Functionize prompt cannot route because no Functionize surface exists.
@@ -66,6 +69,8 @@
 - `skill-neighborhood procedural-memory/functionize` covers every schema edge type in/out and returns the expected neighborhood.
 - Realistic operational and engineering Functionize prompts route to Functionize; a registry execution prompt still routes to procedural-memory.
 - The Functionize launcher maps only mine/generate/review and refuses promotion/approval/verification/run modes.
+- A stale same-version runtime without Functionize fails the capability probe before any user
+  arguments are dispatched.
 - Codex discovery includes the Functionize skill.
 - Generator determinism, schema, freshness, orphan/unroutable, duplicate/overlap, breadth, relationship, query, router, and traversal suites pass.
 - Full relevant repository validation and a cold diff review pass before commit/release.

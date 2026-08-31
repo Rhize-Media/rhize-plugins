@@ -15,7 +15,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   shared external runtime dependency, while an all-edge neighborhood query audits every schema
   relationship type in both directions. Focused routing and launcher contracts preserve the
   compile-only boundary: no registration, trust, approval, promotion, verification, invocation, or
-  execution edge or launcher mode was added.
+  execution edge or launcher mode was added. A side-effect-free command capability probe also
+  refuses stale same-version runtimes before dispatching Functionize arguments.
 - _2026-08-30_ coordinated article-improvements release — **obsidian-second-brain** 1.4.4 → 1.5.0; **procedural-memory** 0.3.1 → 0.3.2; **rhize-context-manager** 0.21.0 → 0.22.0; **rhize-devflow** 2.16.0 → 2.17.0; **rhize-ops** marketplace entry aligned at 0.14.0; **rhize-tasks** 0.3.0 → 0.3.1; marketplace 2.51.1 → 2.52.0.
 - _2026-08-30_ **article-derived agent infrastructure for Claude Code and Codex.** Added a
   dual-host task-graph contract and state-bound behavioral test evidence; deterministic native v2
