@@ -95,6 +95,9 @@ def main() -> int:
             "repetition": args.repetition,
             "order_position": position,
             "expected_decision": task["expected_decision"],
+            "isolated": True,
+            "live_mutation": False,
+            "feeds_rhize_v2_readiness": False,
         }
         (run_dir / "RUN_CONTEXT.json").write_text(json.dumps(context, indent=2) + "\n")
         if variant == "baseline":

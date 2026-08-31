@@ -94,6 +94,12 @@ rework, failures, refusals, collisions, and factual agent intervals. Unknown cou
 with a declared reason. No receipts are shipped, and this live implementation lane is
 observational context only—not causal comparison evidence.
 
+The group reservation is authoritative: validation rejects context drift in task identity/class,
+repetition, order, guide digest, isolation, mutation, or readiness boundaries, plus duplicate
+task/repetition groups. Actual overlap, concurrent-agent milliseconds, maximum concurrency, agent
+count, and collision totals are derived per variant from receipt intervals and counters; runners do
+not submit those summary claims directly.
+
 ## Package skill coverage
 
 `scripts/evaluate_ops_skills.py` runs the local/free routing and static quality contract for all

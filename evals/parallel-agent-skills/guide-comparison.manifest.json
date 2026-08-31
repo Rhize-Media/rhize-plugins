@@ -45,6 +45,13 @@
     "failures",
     "refusals"
   ],
+  "fair_routing_metrics": [
+    "actual_overlap_runs",
+    "concurrent_agent_milliseconds",
+    "maximum_concurrency",
+    "agent_count",
+    "collision_totals"
+  ],
   "evidence_boundaries": {
     "isolated": true,
     "live_mutation": false,
