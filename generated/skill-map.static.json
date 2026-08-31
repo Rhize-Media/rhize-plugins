@@ -279,6 +279,12 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "skill:procedural-memory/functionize",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "skill:procedural-memory/procedural-memory",
       "type": "contains"
     },
@@ -1223,6 +1229,30 @@
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "relations-catalog",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "frontmatter",
+      "to": "tag:stack/functionize",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "source": "relations-catalog",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on"
     },
     {
       "from": "skill:procedural-memory/procedural-memory",
@@ -2914,6 +2944,12 @@
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
     },
     {
+      "description": "Canonical Rhize-Media/procedural-memory runtime. The procedural-memory skill uses its registry-gated recall/run/promote/verify commands, while Functionize uses only its mining, inert proposal-generation, and review commands.",
+      "id": "external:rhize-skill-cli",
+      "kind": "external",
+      "name": "rhize-skill CLI"
+    },
+    {
       "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
       "id": "external:sanity-plugin",
       "kind": "external",
@@ -3303,7 +3339,7 @@
       "path": "obsidian-second-brain"
     },
     {
-      "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
+      "description": "Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code.",
       "id": "plugin:procedural-memory",
       "kind": "plugin",
       "name": "procedural-memory",
@@ -3437,6 +3473,14 @@
       "kind": "skill",
       "name": "vault-templates",
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
+    },
+    {
+      "contentHash": "9497609d8746b1de8606ee10e6eb157526b6bcd0943f0f68d2e8a4a8b54c7d9f",
+      "description": "Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through the rhize-skill CLI. Use when asked to \"Functionize\" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal, or review a Functionize candidate. This skill never registers, approves, promotes, verifies, or runs a generated artifact; use procedural-memory only when a later gate is separately authorized.",
+      "id": "skill:procedural-memory/functionize",
+      "kind": "skill",
+      "name": "functionize",
+      "path": "procedural-memory/skills/functionize/SKILL.md"
     },
     {
       "contentHash": "15d20f1b59c134066b7d13ec8db17e35d9f598d8425b78333800cf9fcca0fe3c",
@@ -3815,6 +3859,12 @@
       "description": "A static type check failed (tsc, mypy, or equivalent)",
       "id": "tag:condition/type-error",
       "kind": "tag"
+    },
+    {
+      "description": "Functionize CLI-pattern mining and inert proposal compilation",
+      "id": "tag:stack/functionize",
+      "kind": "tag",
+      "name": "functionize"
     },
     {
       "description": "Neo4j graph database tooling",

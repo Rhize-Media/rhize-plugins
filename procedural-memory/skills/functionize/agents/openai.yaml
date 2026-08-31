@@ -1,0 +1,4 @@
+interface:
+  display_name: "Functionize"
+  short_description: "Compile safe, inert CLI proposal bundles"
+  default_prompt: "Use $functionize to compile this repeated CLI pattern into an inert proposal without promoting or running it."

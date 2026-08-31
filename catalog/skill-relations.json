@@ -14,6 +14,12 @@
       "description": "npm CLI (Rhize-Media/skill-forge) providing the SkillOpt evolve/safety gate that refinement-pipeline's /skill-refine run step and third-party skill intake depend on."
     },
     {
+      "id": "external:rhize-skill-cli",
+      "kind": "external",
+      "name": "rhize-skill CLI",
+      "description": "Canonical Rhize-Media/procedural-memory runtime. The procedural-memory skill uses its registry-gated recall/run/promote/verify commands, while Functionize uses only its mining, inert proposal-generation, and review commands."
+    },
+    {
       "id": "external:humanizer-humanizer",
       "kind": "external",
       "name": "humanizer (humanizer plugin)",
@@ -124,6 +130,18 @@
     {
       "from": "skill:rhize-context-manager/refinement-pipeline",
       "to": "external:skill-forge",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "to": "external:rhize-skill-cli",
       "type": "depends-on",
       "source": "relations-catalog"
     },
