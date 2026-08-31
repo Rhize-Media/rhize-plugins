@@ -1,0 +1,16 @@
+[
+  {
+    "id": "quality-project-kickoff-unknown-facts",
+    "skill": "project-kickoff",
+    "prompt": "Prepare the four Cowork client-context file contents for a business named Acme when no offer, audience, voice sample, links, tools, or contacts have been provided. Do not invent facts; show how unknowns and inferred claims would be represented.",
+    "assertions": [
+      {"type": "contains", "value": "CLAUDE.md", "name": "Includes operating manual"},
+      {"type": "contains", "value": "BUSINESS.md", "name": "Includes business context"},
+      {"type": "contains", "value": "PERSONALITY.md", "name": "Includes voice context"},
+      {"type": "contains", "value": "INFO.md", "name": "Includes reference context"},
+      {"type": "contains", "value": "[TBD — confirm]", "name": "Leaves unknowns explicit"},
+      {"type": "contains", "value": "[inferred]", "name": "Documents inferred-fact label"},
+      {"type": "min_length", "value": 600, "name": "Substantive four-file output"}
+    ]
+  }
+]

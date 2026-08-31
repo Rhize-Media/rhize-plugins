@@ -1,0 +1,10 @@
+{
+  "_comment": "Offline lexical routing contract only. Every phrase must remain present in the target SKILL.md; live model routing is measured separately.",
+  "seo-site-audit": ["SEO audit", "what's wrong with my SEO"],
+  "keyword-intelligence": ["keyword research", "search volume"],
+  "backlink-intelligence": ["backlink"],
+  "serp-intelligence": ["SERP features"],
+  "content-seo": ["structured data"],
+  "aeo-geo-optimization": ["AI search visibility", "how to get cited by AI"],
+  "nextjs-sanity-seo": ["Next.js + Sanity"]
+}

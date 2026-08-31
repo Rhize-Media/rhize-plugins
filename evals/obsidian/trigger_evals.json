@@ -197,5 +197,45 @@
     "prompt": "review my project's code quality and test coverage — run the linter, check for type errors, and tell me which modules have less than 80% test coverage",
     "target_skill": "vault-alignment",
     "should_trigger": false
+  },
+  {
+    "id": "trigger-qmd-search-semantic",
+    "prompt": "set up local semantic search for my Obsidian vault so I can find related notes by meaning",
+    "target_skill": "qmd-search",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-qmd-search-neg-obsidian-text",
+    "prompt": "use the Obsidian command line to find notes whose filenames contain quarterly-plan",
+    "target_skill": "qmd-search",
+    "should_trigger": false,
+    "negative_reason": "Exact filename lookup is an Obsidian CLI operation, not semantic retrieval."
+  },
+  {
+    "id": "trigger-qmd-search-neg-codebase",
+    "prompt": "add a hosted vector database to my application for product recommendations",
+    "target_skill": "qmd-search",
+    "should_trigger": false,
+    "negative_reason": "Application vector infrastructure is not local-first Obsidian vault search."
+  },
+  {
+    "id": "trigger-knowledge-compiler-provenance",
+    "prompt": "compile these captured sources into a cited wiki page with claim provenance and an exact preview diff",
+    "target_skill": "knowledge-compiler",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-knowledge-compiler-neg-note-edit",
+    "prompt": "rewrite this ordinary Obsidian note for clarity and fix its headings",
+    "target_skill": "knowledge-compiler",
+    "should_trigger": false,
+    "negative_reason": "Ordinary note editing is explicitly outside the compiler boundary."
+  },
+  {
+    "id": "trigger-knowledge-compiler-neg-summary",
+    "prompt": "summarize this pasted article in five bullets without creating or updating a vault page",
+    "target_skill": "knowledge-compiler",
+    "should_trigger": false,
+    "negative_reason": "Unconstrained one-off summarization is not cited, invalidatable knowledge compilation."
   }
 ]

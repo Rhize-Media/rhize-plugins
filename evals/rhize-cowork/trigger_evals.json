@@ -1,0 +1,22 @@
+[
+  {
+    "id": "trigger-project-kickoff-context-files",
+    "prompt": "onboard this consulting client into Cowork and create the project context files from their strategy document",
+    "target_skill": "project-kickoff",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-project-kickoff-neg-software-prd",
+    "prompt": "start a new software app, interview me for requirements, write a PRD, and scaffold it for autonomous development",
+    "target_skill": "project-kickoff",
+    "should_trigger": false,
+    "negative_reason": "Software project planning and scaffolding belongs to project-launcher."
+  },
+  {
+    "id": "trigger-project-kickoff-neg-explain-file",
+    "prompt": "explain what a CLAUDE.md file does in a repository, but do not create or change anything",
+    "target_skill": "project-kickoff",
+    "should_trigger": false,
+    "negative_reason": "A conceptual explanation is not client/business workspace onboarding."
+  }
+]

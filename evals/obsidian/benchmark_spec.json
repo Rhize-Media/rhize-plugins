@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "component": "obsidian",
+  "arms": {
+    "arm_a": {
+      "id": "exact_pre_plugin_existing_implementation",
+      "definition": "Run the exact implementation/configuration used immediately before obsidian-second-brain was enabled, pinned by baseline commit and configuration hash. If no historical implementation exists, use the unchanged general assistant path with only this plugin disabled and record that fact. Keep prompt, model, model settings, tools, cwd, and repository state identical to Arm B; never substitute another plugin or combine arms."
+    },
+    "arm_b": {
+      "id": "plugin_path",
+      "definition": "Run the same pinned cases through the obsidian-second-brain plugin skill path and record the invoked skill."
+    }
+  },
+  "common_metrics": [
+    "correctness",
+    "accuracy",
+    "routing_precision",
+    "routing_recall",
+    "input_tokens",
+    "output_tokens",
+    "cache_tokens",
+    "elapsed_latency_ms",
+    "tool_calls",
+    "follow_up_reads",
+    "corrections_rework",
+    "failures_refusals"
+  ],
+  "receipt_required_fields": [
+    "run_id",
+    "arm",
+    "case_id",
+    "baseline_commit",
+    "plugin_commit",
+    "model",
+    "model_settings",
+    "started_at",
+    "completed_at",
+    "metrics"
+  ],
+  "live_run": {
+    "status": "pending",
+    "arm_ran": "none",
+    "reason": "No live or natural Arm A/Arm B benchmark was run because this task forbids paid and network calls.",
+    "immediate_local_gate": "python3 evals/obsidian/run_local_evals.py"
+  },
+  "results": []
+}

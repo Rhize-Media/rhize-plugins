@@ -1,0 +1,24 @@
+[
+  {
+    "id": "contract-project-launcher-six-phase-gate",
+    "skill": "project-launcher",
+    "target_file": "project-launcher/skills/project-launcher/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "The 6-Phase Pipeline", "name": "Defines end-to-end pipeline"},
+      {"type": "contains", "value": "Critical Gap Analysis", "name": "Includes gap analysis"},
+      {"type": "regex", "value": "Do \\*\\*not\\*\\* advance to scaffolding/code until the plan is approved", "name": "Requires approval before build"},
+      {"type": "contains", "value": "GSD v2 Handoff", "name": "Defines execution handoff"}
+    ]
+  },
+  {
+    "id": "contract-rhize-visual-plan-portable-review",
+    "skill": "rhize-visual-plan",
+    "target_file": "project-launcher/skills/rhize-visual-plan/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "plan.mdx", "name": "Uses the portable plan artifact"},
+      {"type": "regex", "value": "exactly one bottom `?<OpenQuestions>`?", "name": "Defines one question gate"},
+      {"type": "contains", "value": "adversarial self-review", "name": "Requires skeptical review"},
+      {"type": "contains", "value": "Do not author wireframes from memory", "name": "Requires wireframe reference"}
+    ]
+  }
+]

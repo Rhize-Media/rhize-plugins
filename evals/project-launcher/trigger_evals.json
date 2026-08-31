@@ -1,0 +1,42 @@
+[
+  {
+    "id": "trigger-project-launcher-prd",
+    "prompt": "help me launch a project for a new customer-support automation and create a PRD before any code",
+    "target_skill": "project-launcher",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-project-launcher-neg-visualize-approved",
+    "prompt": "turn this already-approved implementation plan into plan.mdx with a file map and wireframe",
+    "target_skill": "project-launcher",
+    "should_trigger": false,
+    "negative_reason": "Rendering an existing plan belongs to rhize-visual-plan, not the full launch pipeline."
+  },
+  {
+    "id": "trigger-project-launcher-neg-existing-fix",
+    "prompt": "fix the failing login test in this existing repository and keep the change scoped",
+    "target_skill": "project-launcher",
+    "should_trigger": false,
+    "negative_reason": "A bounded implementation fix is not a new project or PRD workflow."
+  },
+  {
+    "id": "trigger-rhize-visual-plan-mdx",
+    "prompt": "make this implementation plan a reviewable visual plan in plan.mdx with architecture and UI diagrams",
+    "target_skill": "rhize-visual-plan",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-rhize-visual-plan-neg-new-prd",
+    "prompt": "start a new automation project, research the domain, interview me, and write the requirements",
+    "target_skill": "rhize-visual-plan",
+    "should_trigger": false,
+    "negative_reason": "Research-to-requirements project launch belongs to project-launcher."
+  },
+  {
+    "id": "trigger-rhize-visual-plan-neg-generic-diagram",
+    "prompt": "generate a Mermaid entity relationship diagram from this database schema",
+    "target_skill": "rhize-visual-plan",
+    "should_trigger": false,
+    "negative_reason": "A standalone diagram without a plan review surface does not require the visual-plan format."
+  }
+]

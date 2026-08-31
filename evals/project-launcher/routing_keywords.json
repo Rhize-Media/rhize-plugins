@@ -1,0 +1,5 @@
+{
+  "_comment": "Offline lexical routing contract only. Every phrase must remain present in the target SKILL.md; live model routing is measured separately.",
+  "project-launcher": ["create a PRD", "launch a project"],
+  "rhize-visual-plan": ["visual plan", "plan.mdx"]
+}
