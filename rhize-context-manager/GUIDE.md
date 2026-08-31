@@ -98,8 +98,11 @@ the right one, and health-checks the whole thing.
 - **"Review these possible duplicate graph entities" / "reverse this SAME_AS decision"**
   → use `graph-memory` (`/graph-memory-review` in Claude) to inspect capability. The in-process
   lifecycle tests enforce proposal-only consolidation, leases, previews, CAS, enumerated rationale,
-  and reversal blockers, but shared state is not configured yet. Claude and Codex therefore receive
-  the same structured unavailable response and must not invent a ledger or claim acceptance.
+  reversal blockers, and actor-effective ACL lanes (`current review ACLs ∩ authenticated actor
+  ACLs`). An actor authorized for several lanes cannot widen a narrower review or observe hidden
+  members/dependencies through its preview or ledger. Shared state is not configured yet, so Claude
+  and Codex receive the same structured unavailable response and must not invent a ledger or claim
+  acceptance.
 
 - **"Preview why we approved this release/experiment/task effect"**
   → use `graph-memory` (`/graph-decision` in Claude) with a typed adapter from the owning workflow.

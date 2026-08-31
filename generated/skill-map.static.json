@@ -3532,7 +3532,7 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "009e302e5fe504de53f134e667287cd8f7acf1d766b3ea823428f5503f2225fe",
+      "contentHash": "1bf67261685f74ff8b06f04d2e57b35ba1530f78f594c5821899d21b31f1fa0c",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",

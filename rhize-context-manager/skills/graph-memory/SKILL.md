@@ -115,6 +115,11 @@ state schema, authenticate the actor/tenant/namespace boundary plus hashed candi
 processes, bind previews to current evidence, write atomically with restrictive permissions, and
 prove interruption/replay behavior before these operations can be enabled.
 
+Every review operation derives its effective ACL lane as the intersection of the current review's
+hashed ACL scopes and the authenticated actor's authorized scopes. Broader actor authorization must
+never widen a narrow review: preview members, dependency ids, transition hashes, supersession
+checks, ledger events, and reversal blockers all remain confined to that effective lane.
+
 When enabled, similarity and consolidation will still only propose reviews. `SAME_AS` will require
 an authenticated lease, current bounded preview, exact revision, enumerated rationale, and
 append-only reversible decision evidence. Quality output must remain aggregate-only, and every CLI

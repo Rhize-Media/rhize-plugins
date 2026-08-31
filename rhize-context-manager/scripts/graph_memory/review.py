@@ -147,13 +147,16 @@ class IdentityReviewStore:
                 if existing["state"] in {"pending", "leased", "deferred", "accepted"}:
                     if "identity_ingest" not in actor.roles:
                         raise ReviewError("stale candidate supersession requires identity_ingest authority")
+                    effective_acl_scope_hashes = self._effective_acl_scope_hashes(
+                        existing, actor
+                    )
                     before_edges = self._partition_edges_from_state(
                         same_as,
                         decision_partitions,
                         decision_acl_scopes,
                         existing["tenantHash"],
                         existing["namespaceHash"],
-                        actor.authorized_acl_scope_hashes,
+                        effective_acl_scope_hashes,
                     )
                     after_edges = dict(before_edges)
                     reversal_of = None
@@ -162,7 +165,11 @@ class IdentityReviewStore:
                         has_active_dependency = any(
                             reversal_of in event["dependsOnDecisionIds"]
                             and event["decisionId"] in same_as
-                            and self._can_access_acl(actor, event)
+                            and bool(
+                                set(event["aclScopeHashes"]).intersection(
+                                    effective_acl_scope_hashes
+                                )
+                            )
                             for event in ledger
                         )
                         if has_active_dependency:
@@ -319,7 +326,11 @@ class IdentityReviewStore:
                     and event["decisionId"] in self._same_as
                     and event["tenantHash"] == review["tenantHash"]
                     and event["namespaceHash"] == review["namespaceHash"]
-                    and self._can_access_acl(actor, event)
+                    and bool(
+                        set(event["aclScopeHashes"]).intersection(
+                            self._effective_acl_scope_hashes(review, actor)
+                        )
+                    )
                 )
                 blocked_dependencies = sorted(
                     item["dependencyHash"]
@@ -914,8 +925,25 @@ class IdentityReviewStore:
         return self._partition_edges(
             review["tenantHash"],
             review["namespaceHash"],
-            actor.authorized_acl_scope_hashes,
+            self._effective_acl_scope_hashes(review, actor),
         )
+
+    @staticmethod
+    def _effective_acl_scope_hashes(
+        review: Mapping[str, Any], actor: AuthenticatedActor
+    ) -> tuple[str, ...]:
+        """Limit graph state to the ACL lane shared by the actor and current review."""
+
+        effective = tuple(
+            sorted(
+                set(review["aclScopeHashes"]).intersection(
+                    actor.authorized_acl_scope_hashes
+                )
+            )
+        )
+        if not effective:
+            raise ReviewError("authenticated actor is not authorized for this ACL scope")
+        return effective
 
     def _partition_edges(
         self,

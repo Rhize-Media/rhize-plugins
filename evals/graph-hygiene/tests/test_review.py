@@ -394,6 +394,205 @@ class ReviewTests(unittest.TestCase):
             {tuple(restricted["candidateIds"])},
         )
 
+    def test_multi_authorized_actor_is_limited_to_current_review_acl_lane(self) -> None:
+        internal = candidate(
+            entity("a", "Context Compiler", acl=["rhize:internal"]),
+            entity("b", "Context Compiler", acl=["rhize:internal"]),
+        )
+        restricted = candidate(
+            entity("b", "Context Compiler", acl=["rhize:restricted"]),
+            entity("c", "Context Compiler", acl=["rhize:restricted"]),
+        )
+        restricted_reviewer = actor(
+            "identity_reviewer",
+            "restricted-lane",
+            acl_scope_hashes=frozenset({h("rhize:restricted")}),
+        )
+        multi_reviewer = actor(
+            "identity_reviewer",
+            "multi-lane",
+            acl_scope_hashes=frozenset(
+                {h("rhize:internal"), h("rhize:restricted")}
+            ),
+        )
+        internal_auditor = actor("identity_auditor", "internal-auditor")
+        store = IdentityReviewStore()
+
+        restricted_lease, restricted_leased = leased_review(
+            store,
+            restricted,
+            restricted_reviewer,
+            now="2026-08-30T15:00:00+00:00",
+            expires="2026-08-30T15:30:00+00:00",
+            key="restricted-lane-lease",
+        )
+        restricted_impact = preview(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            "accept_same_as",
+            now="2026-08-30T15:01:00+00:00",
+        )
+        restricted_receipt = decide(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            restricted_impact,
+            when="2026-08-30T15:02:00+00:00",
+            key="restricted-lane-accept",
+        )
+
+        internal_lease, internal_leased = leased_review(
+            store,
+            internal,
+            multi_reviewer,
+            now="2026-08-30T15:03:00+00:00",
+            expires="2026-08-30T15:33:00+00:00",
+            key="internal-lane-lease",
+        )
+        internal_impact = preview(
+            store,
+            internal_leased,
+            multi_reviewer,
+            internal_lease,
+            "accept_same_as",
+            now="2026-08-30T15:04:00+00:00",
+        )
+        serialized_preview = json.dumps(internal_impact, sort_keys=True)
+        self.assertEqual(
+            set(internal_impact["currentClusterMemberIds"]),
+            set(internal["candidateIds"]),
+        )
+        self.assertNotIn(h("entity:c"), serialized_preview)
+        self.assertNotIn(restricted_receipt["decisionId"], serialized_preview)
+
+        decide(
+            store,
+            internal_leased,
+            multi_reviewer,
+            internal_lease,
+            internal_impact,
+            when="2026-08-30T15:05:00+00:00",
+            key="internal-lane-accept",
+        )
+        internal_ledger = json.dumps(
+            store.ledger(
+                tenant_hash=internal["tenantHash"],
+                namespace_hash=internal["namespaceHash"],
+                actor=internal_auditor,
+            ),
+            sort_keys=True,
+        )
+        self.assertNotIn(h("entity:c"), internal_ledger)
+        self.assertNotIn(restricted_receipt["decisionId"], internal_ledger)
+
+    def test_multi_authorized_ingester_supersedes_only_current_review_acl_lane(self) -> None:
+        internal = candidate(
+            entity("a", "Context Compiler", acl=["rhize:internal"]),
+            entity("b", "Context Compiler", acl=["rhize:internal"]),
+        )
+        restricted = candidate(
+            entity("b", "Context Compiler", acl=["rhize:restricted"]),
+            entity("c", "Context Compiler", acl=["rhize:restricted"]),
+        )
+        internal_reviewer = actor("identity_reviewer", "internal-lane")
+        restricted_reviewer = actor(
+            "identity_reviewer",
+            "restricted-lane",
+            acl_scope_hashes=frozenset({h("rhize:restricted")}),
+        )
+        multi_ingester = replace(
+            actor(
+                "identity_reviewer",
+                "multi-lane-ingester",
+                acl_scope_hashes=frozenset(
+                    {h("rhize:internal"), h("rhize:restricted")}
+                ),
+            ),
+            roles=frozenset({"identity_reviewer", "identity_ingest"}),
+        )
+        store = IdentityReviewStore()
+
+        internal_lease, internal_leased = leased_review(
+            store,
+            internal,
+            internal_reviewer,
+            now="2026-08-30T16:00:00+00:00",
+            expires="2026-08-30T16:30:00+00:00",
+            key="internal-first-lease",
+        )
+        internal_impact = preview(
+            store,
+            internal_leased,
+            internal_reviewer,
+            internal_lease,
+            "accept_same_as",
+            now="2026-08-30T16:01:00+00:00",
+        )
+        internal_receipt = decide(
+            store,
+            internal_leased,
+            internal_reviewer,
+            internal_lease,
+            internal_impact,
+            when="2026-08-30T16:02:00+00:00",
+            key="internal-first-accept",
+        )
+
+        restricted_lease, restricted_leased = leased_review(
+            store,
+            restricted,
+            restricted_reviewer,
+            now="2026-08-30T16:03:00+00:00",
+            expires="2026-08-30T16:33:00+00:00",
+            key="restricted-second-lease",
+        )
+        restricted_impact = preview(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            "accept_same_as",
+            now="2026-08-30T16:04:00+00:00",
+        )
+        restricted_receipt = decide(
+            store,
+            restricted_leased,
+            restricted_reviewer,
+            restricted_lease,
+            restricted_impact,
+            when="2026-08-30T16:05:00+00:00",
+            key="restricted-second-accept",
+        )
+
+        changed_a = entity("a", "Context Compiler", acl=["rhize:internal"])
+        changed_a["sourceRevisionHash"] = h("revision:a:v2")
+        successor = candidate(
+            changed_a,
+            entity("b", "Context Compiler", acl=["rhize:internal"]),
+        )
+        result = store.enqueue_candidates(
+            [successor],
+            actor=multi_ingester,
+            occurred_at="2026-08-30T16:06:00+00:00",
+        )
+
+        self.assertEqual(
+            result,
+            {"queued": 1, "replayed": 0, "suppressed": 0, "superseded": 1},
+        )
+        supersession = store.ledger(
+            tenant_hash=internal["tenantHash"],
+            namespace_hash=internal["namespaceHash"],
+            actor=internal_reviewer,
+        )[-1]
+        serialized_event = json.dumps(supersession, sort_keys=True)
+        self.assertEqual(supersession["reversalOfDecisionId"], internal_receipt["decisionId"])
+        self.assertNotIn(h("entity:c"), serialized_event)
+        self.assertNotIn(restricted_receipt["decisionId"], serialized_event)
+
     def test_idempotency_keys_are_isolated_across_partitions_and_acl_lanes(self) -> None:
         tenant_b = h("tenant-b")
         namespace_b = h("namespace-b")

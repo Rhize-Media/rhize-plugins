@@ -18,6 +18,10 @@ Never physically merge source entities, mutate immutable Claims/provenance/ACL/t
 directly to live Neo4j, or infer `SAME_AS` from a score. A future consolidation adapter may only
 propose candidates; reversal will require its own current bounded preview.
 
+Preserve the actor-effective ACL lane (`current review ACLs ∩ authenticated actor ACLs`) for every
+preview, dependency, transition, supersession, ledger, and reversal operation. Broad actor grants
+must not widen the current review or reveal another lane's entities or decision identifiers.
+
 Do not invent a plugin-local ledger, hydrate private module fields, or claim a successful offline
 decision. The in-process lifecycle is test evidence only until its owning domain supplies a
 versioned private-state adapter with authenticated actor/partition bindings, CAS, atomic writes,
