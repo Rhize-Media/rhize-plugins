@@ -1,0 +1,19 @@
+{
+  "_comment": "Deterministic, source-bound routing phrases. Every phrase must remain verbatim in the corresponding SKILL.md frontmatter.",
+  "skill:context-compression": ["context compression", "structured summarization", "durable handoff summaries"],
+  "skill:context-degradation": ["context degradation", "lost-in-middle", "context poisoning"],
+  "skill:context-engineering": ["restore session", "save context", "context is getting heavy"],
+  "skill:context-fundamentals": ["anatomy of a context window", "u-shaped attention curve", "context quality matters more than quantity"],
+  "skill:context-optimization": ["context budgeting", "observation masking", "token-cost reduction"],
+  "skill:context-pack": ["code context preview", "automatic prompt injection", "exact source verification"],
+  "skill:context-stack": ["context is duplicated", "session start is slow", "set up context tooling", "where should this knowledge live"],
+  "skill:filesystem-context": ["durable scratchpads", "tool-output offloading", "cross-agent handoff files"],
+  "skill:graph-memory": ["graph ingestion", "duplicate identities", "neo4j canary"],
+  "skill:graphify": ["graphify query", "file relationships", "persistent knowledge graph"],
+  "skill:graphiti-memory": ["historical design reference", "temporal-memory ideas"],
+  "skill:learning-curation": ["session learning", "persistent storage", "retrieval-cue placement test"],
+  "skill:memory-context": ["private bounded preview", "approved memory lanes"],
+  "skill:memory-systems": ["persistent semantic memory", "cross-session knowledge retention", "memory benchmark selection"],
+  "skill:refinement-pipeline": ["refine skills", "drain the refinement queue"],
+  "skill:tool-design": ["tool descriptions", "tool schemas", "mcp server design"]
+}

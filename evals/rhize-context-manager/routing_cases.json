@@ -1,0 +1,65 @@
+[
+  {"id": "context-compression-positive", "target": "skill:context-compression", "prompt": "Use structured summarization and context compression to create durable handoff summaries for this long-running session.", "should_trigger": true},
+  {"id": "context-compression-negative-degradation", "target": "skill:context-compression", "prompt": "Diagnose why a verified fact keeps getting lost in the middle of a long prompt.", "should_trigger": false},
+  {"id": "context-compression-negative-optimization", "target": "skill:context-compression", "prompt": "Reduce token cost by masking old tool outputs while keeping them retrievable.", "should_trigger": false},
+
+  {"id": "context-degradation-positive", "target": "skill:context-degradation", "prompt": "Diagnose context degradation caused by lost-in-middle behavior and possible context poisoning.", "should_trigger": true},
+  {"id": "context-degradation-negative-fundamentals", "target": "skill:context-degradation", "prompt": "Explain how attention works in a language model to a new engineer.", "should_trigger": false},
+  {"id": "context-degradation-negative-optimization", "target": "skill:context-degradation", "prompt": "Create a token budget for retrieved documents and tool output.", "should_trigger": false},
+
+  {"id": "context-engineering-positive", "target": "skill:context-engineering", "prompt": "Please restore session state, then save context because context is getting heavy.", "should_trigger": true},
+  {"id": "context-engineering-negative-fundamentals", "target": "skill:context-engineering", "prompt": "Teach me the conceptual parts of a model's context window.", "should_trigger": false},
+  {"id": "context-engineering-negative-stack", "target": "skill:context-engineering", "prompt": "Help me choose between CodeGraph, Obsidian, and the memory assembler for this repository.", "should_trigger": false},
+
+  {"id": "context-fundamentals-positive", "target": "skill:context-fundamentals", "prompt": "Explain the anatomy of a context window, the U-shaped attention curve, and why context quality matters more than quantity.", "should_trigger": true},
+  {"id": "context-fundamentals-negative-degradation", "target": "skill:context-fundamentals", "prompt": "A false retrieved claim is now contaminating every answer; diagnose and recover the session.", "should_trigger": false},
+  {"id": "context-fundamentals-negative-compression", "target": "skill:context-fundamentals", "prompt": "Summarize this long conversation into a durable implementation handoff.", "should_trigger": false},
+
+  {"id": "context-optimization-positive", "target": "skill:context-optimization", "prompt": "Apply context budgeting, observation masking, and token-cost reduction without lowering answer quality.", "should_trigger": true},
+  {"id": "context-optimization-negative-degradation", "target": "skill:context-optimization", "prompt": "Determine whether irrelevant retrieved documents caused this recent accuracy collapse.", "should_trigger": false},
+  {"id": "context-optimization-negative-compression", "target": "skill:context-optimization", "prompt": "Write a structured end-of-session summary that preserves decisions, risks, and next steps.", "should_trigger": false},
+
+  {"id": "context-pack-positive", "target": "skill:context-pack", "prompt": "Build a bounded code context preview, then preserve exact source verification for critical contracts.", "should_trigger": true},
+  {"id": "context-pack-negative-trivial", "target": "skill:context-pack", "prompt": "Open the one configuration file I named and tell me its version string.", "should_trigger": false},
+  {"id": "context-pack-negative-dynamic", "target": "skill:context-pack", "prompt": "Trace this runtime plugin registry whose edges are created from network data.", "should_trigger": false},
+
+  {"id": "context-stack-positive", "target": "skill:context-stack", "prompt": "Which memory tool should this repo use? Context is duplicated and session start is slow.", "should_trigger": true},
+  {"id": "context-stack-negative-memory-architecture", "target": "skill:context-stack", "prompt": "Design temporal validity for a persistent semantic memory service.", "should_trigger": false},
+  {"id": "context-stack-negative-session", "target": "skill:context-stack", "prompt": "Resume yesterday's implementation session and list the pending files.", "should_trigger": false},
+
+  {"id": "filesystem-context-positive", "target": "skill:filesystem-context", "prompt": "Use durable scratchpads and tool-output offloading, then produce cross-agent handoff files.", "should_trigger": true},
+  {"id": "filesystem-context-negative-compression", "target": "skill:filesystem-context", "prompt": "Compress this conversation into an anchored summary without creating files.", "should_trigger": false},
+  {"id": "filesystem-context-negative-memory", "target": "skill:filesystem-context", "prompt": "Choose a vector store for cross-session entity tracking and temporal facts.", "should_trigger": false},
+
+  {"id": "graph-memory-positive", "target": "skill:graph-memory", "prompt": "Validate graph ingestion, inspect possible duplicate identities, and prepare a Neo4j canary.", "should_trigger": true},
+  {"id": "graph-memory-negative-graphify-query", "target": "skill:graph-memory", "prompt": "Query the existing graphify output to explain which files call this function.", "should_trigger": false},
+  {"id": "graph-memory-negative-graphiti", "target": "skill:graph-memory", "prompt": "Compare Graphiti's temporal fact model with another memory framework.", "should_trigger": false},
+
+  {"id": "graphify-positive", "target": "skill:graphify", "prompt": "Treat this architecture question as a graphify query over file relationships in the persistent knowledge graph.", "should_trigger": true},
+  {"id": "graphify-negative-governance", "target": "skill:graphify", "prompt": "Review identity resolution and tenancy before a governed Neo4j import.", "should_trigger": false},
+  {"id": "graphify-negative-graphiti", "target": "skill:graphify", "prompt": "Review the old decision not to adopt Graphiti and summarize its temporal concepts.", "should_trigger": false},
+
+  {"id": "graphiti-memory-positive", "target": "skill:graphiti-memory", "prompt": "Use the historical design reference to review the prior Graphiti decision and its temporal-memory ideas.", "should_trigger": true},
+  {"id": "graphiti-memory-negative-install", "target": "skill:graphiti-memory", "prompt": "Install Graphiti and connect it to our production database.", "should_trigger": false},
+  {"id": "graphiti-memory-negative-route", "target": "skill:graphiti-memory", "prompt": "Make Graphiti the default memory provider for all agent sessions.", "should_trigger": false},
+
+  {"id": "learning-curation-positive", "target": "skill:learning-curation", "prompt": "Decide whether this session learning deserves persistent storage using the retrieval-cue placement test.", "should_trigger": true},
+  {"id": "learning-curation-negative-architecture", "target": "skill:learning-curation", "prompt": "Design a knowledge graph with entity tracking and temporal validity.", "should_trigger": false},
+  {"id": "learning-curation-negative-handoff", "target": "skill:learning-curation", "prompt": "Produce a handoff summary of the files, decisions, and next steps from this session.", "should_trigger": false},
+
+  {"id": "memory-context-positive", "target": "skill:memory-context", "prompt": "Assemble a private bounded preview across authorized Rhize memory sources and approved memory lanes.", "should_trigger": true},
+  {"id": "memory-context-negative-curation", "target": "skill:memory-context", "prompt": "Decide whether this new correction should become a durable always-loaded rule.", "should_trigger": false},
+  {"id": "memory-context-negative-code-pack", "target": "skill:memory-context", "prompt": "Build a dependency-aware code pack for this one implementation task.", "should_trigger": false},
+
+  {"id": "memory-systems-positive", "target": "skill:memory-systems", "prompt": "Design persistent semantic memory for cross-session knowledge retention and choose a memory benchmark selection method.", "should_trigger": true},
+  {"id": "memory-systems-negative-filesystem", "target": "skill:memory-systems", "prompt": "Write a temporary scratchpad that another agent can read, then delete it after handoff.", "should_trigger": false},
+  {"id": "memory-systems-negative-compression", "target": "skill:memory-systems", "prompt": "Summarize this long session while preserving file paths and unresolved risks.", "should_trigger": false},
+
+  {"id": "refinement-pipeline-positive", "target": "skill:refinement-pipeline", "prompt": "Harvest learnings, drain the refinement queue, and refine skills through the gated pipeline.", "should_trigger": true},
+  {"id": "refinement-pipeline-negative-curation", "target": "skill:refinement-pipeline", "prompt": "Should this single correction be saved as a rule, hook, reference note, or nowhere?", "should_trigger": false},
+  {"id": "refinement-pipeline-negative-refactor", "target": "skill:refinement-pipeline", "prompt": "Refactor this TypeScript function to remove duplicated branches.", "should_trigger": false},
+
+  {"id": "tool-design-positive", "target": "skill:tool-design", "prompt": "Improve these tool descriptions and tool schemas, including actionable errors for an MCP server design.", "should_trigger": true},
+  {"id": "tool-design-negative-project", "target": "skill:tool-design", "prompt": "Choose the overall project pipeline, model mix, and delivery architecture.", "should_trigger": false},
+  {"id": "tool-design-negative-subagents", "target": "skill:tool-design", "prompt": "Should we split this job between several subagents or keep one agent?", "should_trigger": false}
+]

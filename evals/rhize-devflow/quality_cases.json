@@ -149,5 +149,59 @@
       {"type": "contains", "value": "distinct from `data-mutation-consistency`", "name": "Separates near-miss data mutation routing"},
       {"type": "contains", "value": "`cleanup_failed` returns `FAIL_REQUIRES_HUMAN`", "name": "Cleanup failure needs human recovery"}
     ]
+  },
+  {
+    "id": "quality-chrome-devtools-routing-boundary",
+    "target_file": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Use `/rhize-devflow:browser-qa`", "name": "Routes browser acceptance through browser-qa"},
+      {"type": "contains", "value": "defers to this skill only for DevTools-protocol tool mechanics", "name": "Owns only server mechanics"}
+    ]
+  },
+  {
+    "id": "quality-data-mutation-read-only-fail-closed",
+    "target_file": "rhize-devflow/skills/data-mutation-consistency/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Read-only, fail-closed", "name": "Declares read-only fail-closed mode"},
+      {"type": "contains", "value": "never edits source, never adds TODOs", "name": "Fix plan cannot edit source"},
+      {"type": "contains", "value": "non-zero exit and an explicit error", "name": "Scan failure cannot look successful"}
+    ]
+  },
+  {
+    "id": "quality-foundations-discovery-and-review-boundaries",
+    "target_file": "rhize-devflow/skills/dev-flow-foundations/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Use CodeGraph-first discovery", "name": "Uses existing structural index first"},
+      {"type": "contains", "value": "otherwise uses deterministic `rg`", "name": "Falls back without initializing a new index"},
+      {"type": "contains", "value": "never commits, pushes, merges", "name": "Review remains read-only"}
+    ]
+  },
+  {
+    "id": "quality-error-lifecycle-evidence-first-rca",
+    "target_file": "rhize-devflow/skills/error-lifecycle-management/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Perform root cause analysis", "name": "Requires root-cause analysis"},
+      {"type": "contains", "value": "Correlate Changes", "name": "Correlates failure with source/deployment evidence"},
+      {"type": "contains", "value": "Deploy and monitor", "name": "Includes post-fix verification"}
+    ]
+  },
+  {
+    "id": "quality-sanity-house-style-and-data-safety",
+    "target_file": "rhize-devflow/skills/sanity-development/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Named exports only", "name": "Requires named exports"},
+      {"type": "contains", "value": "SCREAMING_SNAKE_CASE for GROQ queries", "name": "Requires query naming convention"},
+      {"type": "contains", "value": "NEVER delete fields with production data", "name": "Protects populated fields"}
+    ]
+  },
+  {
+    "id": "quality-sentry-instrumentation-ownership",
+    "target_file": "rhize-devflow/skills/sentry-instrumentation/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "captureException", "name": "Covers exception capture"},
+      {"type": "contains", "value": "startSpan", "name": "Covers performance spans"},
+      {"type": "contains", "value": "logger.fmt", "name": "Covers structured logging"},
+      {"type": "contains", "value": "defer to the official sentry:* developer-kit skills", "name": "Defers full SDK setup"}
+    ]
   }
 ]

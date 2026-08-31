@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "paired-skill-outcome-benchmark",
+  "armContract": {
+    "A": "Run the exact existing non-plugin workflow named by each skill contract, with the rhize-devflow skill disabled.",
+    "B": "Run the same task through the named rhize-devflow plugin skill path.",
+    "requiredRecordFields": ["arm", "variant", "actuallyRan", "status"],
+    "actualExecutionRule": "A record identifies the arm and variant that actually ran; requested, assigned, or intended arms are not execution evidence."
+  },
+  "commonMetrics": [
+    {"name": "correctness_accuracy", "required": true},
+    {"name": "routing_precision", "required": true},
+    {"name": "routing_recall", "required": true},
+    {
+      "name": "tokens_by_category",
+      "required": false,
+      "captureWhenExposed": true,
+      "categories": ["input", "output", "cached", "reasoning", "tool"]
+    },
+    {"name": "latency_ms", "required": true},
+    {"name": "tool_calls", "required": true},
+    {"name": "follow_up_reads", "required": true},
+    {"name": "corrections_rework", "required": true},
+    {"name": "failures_refusals", "required": true}
+  ],
+  "evidenceRules": {
+    "fabricatedEvidence": "forbidden",
+    "missingMeasurements": "remain_missing",
+    "comparisonGate": "Only same-task, same-snapshot, judge-compatible paired records are comparable."
+  },
+  "skills": [
+    {
+      "skill": "chrome-devtools-mcp",
+      "applicability": "paired_replay",
+      "taskClass": "chrome-devtools-mcp-configuration",
+      "armA": {"variant": "browser-capability-docs-and-server-help", "implementation": "Use the active browser capability documentation and server help without loading rhize-devflow:chrome-devtools-mcp."},
+      "armB": {"variant": "rhize-devflow-chrome-devtools-mcp", "implementation": "Load rhize-devflow:chrome-devtools-mcp and follow its DevTools-protocol mechanics path."},
+      "judge": "Correct connection/tool parameters with no accidental routing of general browser acceptance work."
+    },
+    {
+      "skill": "completed-branch-promotion",
+      "applicability": "sandboxed_fixture_only",
+      "taskClass": "protected-branch-promotion-plan",
+      "armA": {"variant": "repository-policy-and-git-pr-workflow", "implementation": "Apply the repository's existing push policy and protected-branch PR mechanics without loading rhize-devflow:completed-branch-promotion."},
+      "armB": {"variant": "rhize-devflow-completed-branch-promotion", "implementation": "Load rhize-devflow:completed-branch-promotion and apply its governed promotion sequence to the same fixture repository."},
+      "judge": "Correct authorization, dirty-worktree preservation, divergence stops, gate handling, and truthful release result; no real remote mutation."
+    },
+    {
+      "skill": "data-mutation-consistency",
+      "applicability": "offline_fixture",
+      "taskClass": "mutation-consistency-diagnosis",
+      "armA": {"variant": "existing-mutation-analysis-scripts", "implementation": "Run the existing deterministic mutation-analysis scripts and inspect their report without loading rhize-devflow:data-mutation-consistency."},
+      "armB": {"variant": "rhize-devflow-data-mutation-consistency", "implementation": "Load rhize-devflow:data-mutation-consistency and use its read-only mutation-check workflow over the same fixture."},
+      "judge": "Finds the seeded cross-layer invalidation defect without editing source or producing a partial score on scan failure."
+    },
+    {
+      "skill": "dev-flow-foundations",
+      "applicability": "offline_fixture",
+      "taskClass": "dependency-impact-planning",
+      "armA": {"variant": "repository-native-search-and-instructions", "implementation": "Use repository instructions, existing CodeGraph when present, and targeted native search without loading rhize-devflow:dev-flow-foundations."},
+      "armB": {"variant": "rhize-devflow-dev-flow-foundations", "implementation": "Load rhize-devflow:dev-flow-foundations and follow its structural discovery and semantic impact-map sequence."},
+      "judge": "Complete affected-symbol/test/contract map with no unrelated scope expansion or invented dependency edges."
+    },
+    {
+      "skill": "error-lifecycle-management",
+      "applicability": "redacted-replay",
+      "taskClass": "production-error-rca",
+      "armA": {"variant": "deployment-logs-sentry-and-git-correlation", "implementation": "Inspect the same redacted deployment logs, Sentry event facts, and Git history using the existing incident workflow without loading rhize-devflow:error-lifecycle-management."},
+      "armB": {"variant": "rhize-devflow-error-lifecycle-management", "implementation": "Load rhize-devflow:error-lifecycle-management and follow its triage, correlation, root-cause, and verification sequence over the same evidence."},
+      "judge": "Identifies the seeded root cause and verification gate without guessing beyond the evidence or mutating production."
+    },
+    {
+      "skill": "sanity-development",
+      "applicability": "offline_fixture",
+      "taskClass": "sanity-schema-and-query-review",
+      "armA": {"variant": "official-sanity-docs-and-repository-style", "implementation": "Use the repository's existing Sanity patterns and official Sanity reference without loading rhize-devflow:sanity-development."},
+      "armB": {"variant": "rhize-devflow-sanity-development", "implementation": "Load rhize-devflow:sanity-development and apply its Rhize schema, query, and integration conventions."},
+      "judge": "Correct schema/query review, named-export and query-naming compliance, and no unsafe deletion of populated fields."
+    },
+    {
+      "skill": "sentry-instrumentation",
+      "applicability": "offline_fixture",
+      "taskClass": "sentry-code-instrumentation",
+      "armA": {"variant": "official-sentry-sdk-patterns", "implementation": "Use the installed official Sentry SDK guidance and repository conventions without loading rhize-devflow:sentry-instrumentation."},
+      "armB": {"variant": "rhize-devflow-sentry-instrumentation", "implementation": "Load rhize-devflow:sentry-instrumentation and apply its Rhize exception, span, and structured-logging patterns."},
+      "judge": "Correct capture/span/logging placement with sensitive-data controls and no confusion with incident triage."
+    },
+    {
+      "skill": "simplify",
+      "applicability": "offline_fixture",
+      "taskClass": "behavior-preserving-simplification",
+      "armA": {"variant": "repository-style-and-tests", "implementation": "Simplify the same scoped diff using repository conventions and tests without loading rhize-devflow:simplify."},
+      "armB": {"variant": "rhize-devflow-simplify", "implementation": "Load rhize-devflow:simplify and apply its candidate gate to the same scoped diff."},
+      "judge": "Behavior and critical contracts preserved, complexity reduced only when proven, and a justified no-op accepted."
+    },
+    {
+      "skill": "test-evidence",
+      "applicability": "offline_fixture",
+      "taskClass": "regression-test-evidence-classification",
+      "armA": {"variant": "existing-test-run-and-diff-review", "implementation": "Run the repository's existing trusted test command and inspect the test diff without loading rhize-devflow:test-evidence."},
+      "armB": {"variant": "rhize-devflow-test-evidence", "implementation": "Load rhize-devflow:test-evidence and produce its fail-closed, state-bound classification for the same test change."},
+      "judge": "Correct behavior/artifact/structural classification, state binding, unavailable status, and checkout preservation."
+    }
+  ]
+}
