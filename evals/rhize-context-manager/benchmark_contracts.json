@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "contractKind": "paired-skill-outcome-benchmark",
+  "armContract": {
+    "A": "Run the exact existing non-plugin implementation named by the skill specification, with that rhize-context-manager skill disabled.",
+    "B": "Run the same task and snapshot through the named rhize-context-manager plugin skill path.",
+    "requiredRecordFields": ["arm", "variant", "actuallyRan", "status"],
+    "actualExecutionRule": "Every record identifies the arm and variant that actually ran; requested, assigned, or intended arms never substitute for execution evidence."
+  },
+  "commonMetrics": [
+    {"name": "correctness_accuracy", "required": true},
+    {"name": "routing_precision", "required": true},
+    {"name": "routing_recall", "required": true},
+    {
+      "name": "tokens_by_category",
+      "required": false,
+      "captureWhenExposed": true,
+      "categories": ["input", "output", "cached", "reasoning", "tool"]
+    },
+    {"name": "latency_ms", "required": true},
+    {"name": "tool_calls", "required": true},
+    {"name": "follow_up_reads", "required": true},
+    {"name": "corrections_rework", "required": true},
+    {"name": "failures_refusals", "required": true}
+  ],
+  "naturalCaptureRules": {
+    "receiptSource": "real_redacted_only",
+    "fabricatedReceipts": "forbidden",
+    "dateOnlyOrdering": "indeterminate",
+    "incompleteCohort": "indeterminate",
+    "nonComparableCohort": "indeterminate",
+    "strictOrderingEvidence": "timestamped_run_bound_receipt",
+    "missingMeasurements": "remain_missing"
+  },
+  "existingHarnessBindings": [
+    {
+      "skill": "context-pack",
+      "runner": "evals/context-tools/run_native_context_evals.py",
+      "armA": "baseline-naive-supported-source",
+      "armB": "native-context-pack-v2"
+    }
+  ],
+  "skills": [
+    {
+      "skill": "context-compression",
+      "applicability": "replay_with_source_bound_probes",
+      "taskClass": "long-session-handoff",
+      "armA": {"variant": "existing-freeform-session-summary", "implementation": "Produce the repository's existing free-form handoff summary without loading rhize-context-manager:context-compression."},
+      "armB": {"variant": "rhize-context-manager-context-compression", "implementation": "Load rhize-context-manager:context-compression and produce its anchored structured summary over the same transcript fixture."},
+      "judge": "Source-bound probes for intent, files, decisions, failures, risks, next actions, and reconstruction accuracy."
+    },
+    {
+      "skill": "context-degradation",
+      "applicability": "offline_replay",
+      "taskClass": "context-failure-diagnosis",
+      "armA": {"variant": "existing-general-rca", "implementation": "Diagnose the same redacted agent trace with the existing general root-cause workflow without loading rhize-context-manager:context-degradation."},
+      "armB": {"variant": "rhize-context-manager-context-degradation", "implementation": "Load rhize-context-manager:context-degradation and classify/mitigate the same trace."},
+      "judge": "Correct failure-pattern classification, provenance-safe recovery, and no diagnosis from one noisy observation."
+    },
+    {
+      "skill": "context-engineering",
+      "applicability": "offline_replay",
+      "taskClass": "session-resume-and-close",
+      "armA": {"variant": "existing-repository-session-files", "implementation": "Resume and close from the repository's existing instruction/status files without loading rhize-context-manager:context-engineering."},
+      "armB": {"variant": "rhize-context-manager-context-engineering", "implementation": "Load rhize-context-manager:context-engineering and apply its session boundary and memory lifecycle over the same fixture."},
+      "judge": "Correct state restoration, no stale/superseded memory extraction, and complete handoff at the declared boundary."
+    },
+    {
+      "skill": "context-fundamentals",
+      "applicability": "paired_answer_replay",
+      "taskClass": "context-concepts-explanation",
+      "armA": {"variant": "base-model-with-approved-source-excerpts", "implementation": "Answer from the same approved source excerpts without loading rhize-context-manager:context-fundamentals."},
+      "armB": {"variant": "rhize-context-manager-context-fundamentals", "implementation": "Load rhize-context-manager:context-fundamentals and answer the same conceptual prompts."},
+      "judge": "Fact accuracy, conceptual completeness, correct operational-skill routing, and absence of unsupported numeric claims."
+    },
+    {
+      "skill": "context-optimization",
+      "applicability": "offline_replay",
+      "taskClass": "context-budget-optimization",
+      "armA": {"variant": "existing-unoptimized-context-assembly", "implementation": "Run the existing task-specific context assembly without loading rhize-context-manager:context-optimization."},
+      "armB": {"variant": "rhize-context-manager-context-optimization", "implementation": "Load rhize-context-manager:context-optimization and apply measured budgeting/masking to the same fixture."},
+      "judge": "Correctness non-inferiority, retrievability, token reduction by exposed category, and total tokens per completed task."
+    },
+    {
+      "skill": "context-pack",
+      "applicability": "existing_deterministic_harness",
+      "taskClass": "source-bound-code-context",
+      "armA": {"variant": "baseline-naive-supported-source", "implementation": "Use the existing complete supported-source baseline in evals/context-tools/run_native_context_evals.py without loading rhize-context-manager:context-pack."},
+      "armB": {"variant": "native-context-pack-v2", "implementation": "Load rhize-context-manager:context-pack through the native provider path in evals/context-tools/run_native_context_evals.py on the same snapshot."},
+      "judge": "Required-path recall, critical misses, accepted/rejected safety decision, token count, latency, and follow-up source reads."
+    },
+    {
+      "skill": "context-stack",
+      "applicability": "offline_routing_replay",
+      "taskClass": "context-tool-selection",
+      "armA": {"variant": "manual-installed-tool-inventory", "implementation": "Choose from the existing installed-tool inventory and repository instructions without loading rhize-context-manager:context-stack."},
+      "armB": {"variant": "rhize-context-manager-context-stack", "implementation": "Load rhize-context-manager:context-stack and route the same scenarios using its coexistence rules."},
+      "judge": "Correct tool/layer choice, no duplicate context layer, actual-health verification, and explicit conflict diagnosis."
+    },
+    {
+      "skill": "filesystem-context",
+      "applicability": "sandboxed_fixture",
+      "taskClass": "file-backed-context-offload",
+      "armA": {"variant": "existing-inline-tool-output-and-plan", "implementation": "Keep the fixture's tool output and plan in the existing prompt/history path without loading rhize-context-manager:filesystem-context."},
+      "armB": {"variant": "rhize-context-manager-filesystem-context", "implementation": "Load rhize-context-manager:filesystem-context and use isolated scratch files plus targeted re-reads for the same task."},
+      "judge": "Task correctness, no cross-agent file collision, retrievable offloaded facts, cleanup compliance, and tokens per task."
+    },
+    {
+      "skill": "graph-memory",
+      "applicability": "offline_fixture_only",
+      "taskClass": "governed-graph-validation",
+      "armA": {"variant": "existing-graphify-artifact-and-schema-review", "implementation": "Validate the same Graphify artifact from its existing source files/schemas without loading rhize-context-manager:graph-memory."},
+      "armB": {"variant": "rhize-context-manager-graph-memory", "implementation": "Load rhize-context-manager:graph-memory and run its offline manifest/validate/preview contracts on the same fixture."},
+      "judge": "Correct rejection/quarantine, tenant/ACL/source binding, no automatic identity merge, and no live Neo4j mutation claim."
+    },
+    {
+      "skill": "graphify",
+      "applicability": "offline_fixture",
+      "taskClass": "graph-artifact-query",
+      "armA": {"variant": "existing-targeted-repository-search", "implementation": "Answer the same file/architecture question with targeted repository search without loading rhize-context-manager:graphify."},
+      "armB": {"variant": "rhize-context-manager-graphify", "implementation": "Load rhize-context-manager:graphify and query the existing graphify-out artifact for the same question."},
+      "judge": "Answer accuracy, source traceability, path correctness, retrieval/tool cost, and no claim beyond the graph snapshot."
+    },
+    {
+      "skill": "graphiti-memory",
+      "applicability": "paired_answer_replay",
+      "taskClass": "historical-memory-design-review",
+      "armA": {"variant": "existing-decision-record-targeted-read", "implementation": "Read the existing Graphiti decision record directly without loading rhize-context-manager:graphiti-memory."},
+      "armB": {"variant": "rhize-context-manager-graphiti-memory", "implementation": "Load rhize-context-manager:graphiti-memory and review the same decision question."},
+      "judge": "Accurate historical comparison with no installation, active-routing, or adoption claim."
+    },
+    {
+      "skill": "learning-curation",
+      "applicability": "offline_fixture",
+      "taskClass": "learning-persistence-decision",
+      "armA": {"variant": "existing-manual-memory-edit-decision", "implementation": "Apply repository instructions manually to the same candidate learning without loading rhize-context-manager:learning-curation."},
+      "armB": {"variant": "rhize-context-manager-learning-curation", "implementation": "Load rhize-context-manager:learning-curation and apply its drop, redundancy, contradiction, and placement gates."},
+      "judge": "Correct persist/drop destination, no duplicate or contradictory rule, and preference for deterministic enforcement."
+    },
+    {
+      "skill": "memory-context",
+      "applicability": "offline_private_fixture",
+      "taskClass": "multi-source-memory-preview",
+      "armA": {"variant": "existing-authorized-source-targeted-reads", "implementation": "Read the same authorized memory source fixtures directly and reconcile them without loading rhize-context-manager:memory-context."},
+      "armB": {"variant": "rhize-context-manager-memory-context", "implementation": "Load rhize-context-manager:memory-context and assemble/verify its private bounded preview over the same adapter results."},
+      "judge": "Authority/conflict/scope/freshness/provenance preservation, source revision verification, and no write-back or automatic injection."
+    },
+    {
+      "skill": "memory-systems",
+      "applicability": "paired_design_replay",
+      "taskClass": "persistent-memory-architecture",
+      "armA": {"variant": "base-model-with-existing-requirements", "implementation": "Design from the same requirements and approved sources without loading rhize-context-manager:memory-systems."},
+      "armB": {"variant": "rhize-context-manager-memory-systems", "implementation": "Load rhize-context-manager:memory-systems and design the same persistent memory system."},
+      "judge": "Requirement coverage, temporal/entity/authority correctness, benchmark fitness, and correct routing of scratchpad/handoff needs."
+    },
+    {
+      "skill": "refinement-pipeline",
+      "applicability": "sandboxed_fixture_only",
+      "taskClass": "skill-refinement-queue-drain",
+      "armA": {"variant": "existing-manual-signal-review", "implementation": "Review the same synthetic queue fixture using existing repository rules without loading rhize-context-manager:refinement-pipeline."},
+      "armB": {"variant": "rhize-context-manager-refinement-pipeline", "implementation": "Load rhize-context-manager:refinement-pipeline and apply its triage/re-gate/hold rules without live writes."},
+      "judge": "Correct triage, no untriaged evolution, no forced HOLD, accurate target routing, and complete audit result."
+    },
+    {
+      "skill": "tool-design",
+      "applicability": "offline_fixture",
+      "taskClass": "agent-tool-interface-review",
+      "armA": {"variant": "existing-api-schema-and-code-review", "implementation": "Review the same tool schema and failure transcripts using existing code/API conventions without loading rhize-context-manager:tool-design."},
+      "armB": {"variant": "rhize-context-manager-tool-design", "implementation": "Load rhize-context-manager:tool-design and review the same tool catalog."},
+      "judge": "Routing accuracy, schema correctness, actionable error recovery, response efficiency, and justified consolidation without project-scope drift."
+    }
+  ]
+}

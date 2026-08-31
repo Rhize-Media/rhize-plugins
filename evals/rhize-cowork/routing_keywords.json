@@ -1,0 +1,4 @@
+{
+  "_comment": "Offline lexical routing contract only. Every phrase must remain present in the target SKILL.md; live model routing is measured separately.",
+  "project-kickoff": ["project context files", "build CLAUDE.md"]
+}

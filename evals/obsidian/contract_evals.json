@@ -1,0 +1,106 @@
+[
+  {
+    "id": "contract-obsidian-cli-runtime-boundary",
+    "skill": "obsidian-cli",
+    "target_file": "obsidian-second-brain/skills/obsidian-cli/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Obsidian must be running in the background", "name": "Declares CLI runtime dependency"},
+      {"type": "contains", "value": "obsidian create", "name": "Documents note creation"},
+      {"type": "contains", "value": "[skill:obsidian-cli]", "name": "Requires the routing watermark"}
+    ]
+  },
+  {
+    "id": "contract-obsidian-markdown-syntax",
+    "skill": "obsidian-markdown",
+    "target_file": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "YAML frontmatter", "name": "Covers properties"},
+      {"type": "regex", "value": "\\[\\[.+\\]\\]", "name": "Contains wikilink syntax"},
+      {"type": "contains", "value": "Block References", "name": "Covers block references"}
+    ]
+  },
+  {
+    "id": "contract-obsidian-bases-valid-yaml",
+    "skill": "obsidian-bases",
+    "target_file": "obsidian-second-brain/skills/obsidian-bases/SKILL.md",
+    "assertions": [
+      {"type": "regex", "value": "must be \\*\\*valid YAML\\*\\*", "name": "Requires valid YAML"},
+      {"type": "regex", "value": "`filters` must be a map", "name": "Defines valid filter shape"},
+      {"type": "contains", "value": "groupBy", "name": "Uses canonical group key"}
+    ]
+  },
+  {
+    "id": "contract-json-canvas-integrity",
+    "skill": "json-canvas",
+    "target_file": "obsidian-second-brain/skills/json-canvas/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "\"nodes\"", "name": "Requires nodes"},
+      {"type": "contains", "value": "\"edges\"", "name": "Requires edges"},
+      {"type": "contains", "value": "unique 16-character hexadecimal strings", "name": "Defines unique identifiers"},
+      {"type": "contains", "value": "Validation Checklist", "name": "Defines validation gate"}
+    ]
+  },
+  {
+    "id": "contract-defuddle-vault-pipeline",
+    "skill": "defuddle",
+    "target_file": "obsidian-second-brain/skills/defuddle/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "defuddle parse <url> --md", "name": "Extracts Markdown"},
+      {"type": "contains", "value": "Defuddle → Obsidian CLI Pipeline", "name": "Defines vault pipeline"},
+      {"type": "contains", "value": "[skill:defuddle]", "name": "Requires the routing watermark"}
+    ]
+  },
+  {
+    "id": "contract-second-brain-method-selection",
+    "skill": "second-brain",
+    "target_file": "obsidian-second-brain/skills/second-brain/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Zettelkasten Method", "name": "Covers Zettelkasten"},
+      {"type": "contains", "value": "PARA Method", "name": "Covers PARA"},
+      {"type": "contains", "value": "Maps of Content", "name": "Covers MOCs"},
+      {"type": "contains", "value": "When NOT to Be Atomic", "name": "Defines a restraint boundary"}
+    ]
+  },
+  {
+    "id": "contract-vault-templates-adaptation",
+    "skill": "vault-templates",
+    "target_file": "obsidian-second-brain/skills/vault-templates/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "adapt it to the user's existing vault conventions", "name": "Adapts rather than overwrites conventions"},
+      {"type": "contains", "value": "Meeting Notes", "name": "Covers meeting archetype"},
+      {"type": "contains", "value": "Weekly Review", "name": "Covers review archetype"}
+    ]
+  },
+  {
+    "id": "contract-vault-alignment-nondestructive",
+    "skill": "vault-alignment",
+    "target_file": "obsidian-second-brain/skills/vault-alignment/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Incremental, Non-Destructive Improvement", "name": "Requires incremental change"},
+      {"type": "contains", "value": "obsidian move", "name": "Preserves wikilinks on moves"},
+      {"type": "contains", "value": "obsidian tags:rename", "name": "Uses safe tag consolidation"}
+    ]
+  },
+  {
+    "id": "contract-qmd-search-local-modes",
+    "skill": "qmd-search",
+    "target_file": "obsidian-second-brain/skills/qmd-search/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "local-first search engine", "name": "Requires local-first behavior"},
+      {"type": "contains", "value": "BM25", "name": "Covers full-text mode"},
+      {"type": "contains", "value": "vector semantic search", "name": "Covers semantic mode"},
+      {"type": "contains", "value": "qmd embed vault", "name": "Documents embedding prerequisite"}
+    ]
+  },
+  {
+    "id": "contract-knowledge-compiler-preview-approval",
+    "skill": "knowledge-compiler",
+    "target_file": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
+    "assertions": [
+      {"type": "regex", "value": "`preview` is the normal synthesis boundary", "name": "Uses preview boundary"},
+      {"type": "regex", "value": "`apply` needs explicit approval", "name": "Requires named approval"},
+      {"type": "contains", "value": "stop stale", "name": "Fails closed on stale anchors"},
+      {"type": "contains", "value": "Never place compiler output", "name": "Keeps projections out of qmd"}
+    ]
+  }
+]

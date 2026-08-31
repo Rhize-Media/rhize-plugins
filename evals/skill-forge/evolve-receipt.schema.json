@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["run_id", "comparison_id", "variant", "arm_actual", "digest", "repetition", "order_position", "metrics"],
+  "properties": {
+    "run_id": {"type": "string", "format": "uuid"},
+    "comparison_id": {"type": "string", "format": "uuid"},
+    "variant": {"enum": ["pre", "post"]},
+    "arm_actual": {"enum": ["A", "B"]},
+    "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "repetition": {"type": "integer", "minimum": 1, "maximum": 3},
+    "order_position": {"type": "integer", "minimum": 1, "maximum": 2},
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "correctness_accuracy", "routing_precision", "routing_recall", "tokens_input", "tokens_output",
+        "tokens_cache_read", "tokens_cache_write", "latency_ms", "tool_calls", "follow_up_reads",
+        "corrections", "rework_events", "failures", "refusals"
+      ],
+      "properties": {
+        "correctness_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+        "routing_precision": {"type": "number", "minimum": 0, "maximum": 1},
+        "routing_recall": {"type": "number", "minimum": 0, "maximum": 1},
+        "tokens_input": {"type": "number", "minimum": 0},
+        "tokens_output": {"type": "number", "minimum": 0},
+        "tokens_cache_read": {"type": "number", "minimum": 0},
+        "tokens_cache_write": {"type": "number", "minimum": 0},
+        "latency_ms": {"type": "number", "minimum": 0},
+        "tool_calls": {"type": "number", "minimum": 0},
+        "follow_up_reads": {"type": "number", "minimum": 0},
+        "corrections": {"type": "number", "minimum": 0},
+        "rework_events": {"type": "number", "minimum": 0},
+        "failures": {"type": "number", "minimum": 0},
+        "refusals": {"type": "number", "minimum": 0}
+      }
+    }
+  }
+}

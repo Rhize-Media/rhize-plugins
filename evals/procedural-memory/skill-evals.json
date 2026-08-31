@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "procedural-memory",
+      "source": "procedural-memory/skills/procedural-memory/SKILL.md",
+      "include_patterns": [
+        "already .*?(?:proven|working).*?(?:tool|artifact)",
+        "run the registry version",
+        "promote (?:this|the) (?:captured )?script",
+        "re-verify (?:an|the) artifact",
+        "has this been automated before"
+      ],
+      "positive_cases": ["procedural-positive", "functionize-promotion-collision"],
+      "negative_cases": ["procedural-memory-search-negative", "procedural-generic-negative"],
+      "quality_contracts": [
+        {"id": "digest-gate", "patterns": ["digest no longer matches", "refuse unconditionally"]},
+        {"id": "trust-gate", "patterns": ["Never add `--approve-unreviewed`", "let the user decide"]},
+        {"id": "retrieval-boundary", "patterns": ["does not retrieve past conversations", "claude-mem"]}
+      ]
+    },
+    {
+      "id": "functionize",
+      "source": "procedural-memory/skills/functionize/SKILL.md",
+      "include_patterns": [
+        "functionize",
+        "repeated cli (?:usage|pattern|sequence)",
+        "mine repeated shell-history patterns",
+        "generate (?:a )?(?:safe |inert )?wrapper proposal",
+        "review a functionize candidate"
+      ],
+      "exclude_patterns": ["no repeated cli pattern", "do not functionize"],
+      "positive_cases": ["functionize-positive"],
+      "negative_cases": ["functionize-one-off-negative", "functionize-promotion-collision"],
+      "quality_contracts": [
+        {"id": "compile-only-modes", "patterns": ["exactly three modes", "mine", "generate", "review"]},
+        {"id": "source-free-history", "patterns": ["redacts and aggregates", "never evaluated or\\s+executed"]},
+        {"id": "proposal-boundary", "patterns": ["Stop at the proposal boundary", "grants no\\s+registration, trust, approval, promotion, verification, or execution authority"]}
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "procedural-positive",
+      "prompt": "Is there already a proven working artifact for this deployment task? Check the registry first.",
+      "expected": ["procedural-memory"]
+    },
+    {
+      "id": "procedural-memory-search-negative",
+      "prompt": "What did we discuss last week about Skill Forge? Search past conversations.",
+      "expected": []
+    },
+    {
+      "id": "procedural-generic-negative",
+      "prompt": "Write a one-line bash command that reverses a string.",
+      "expected": []
+    },
+    {
+      "id": "functionize-positive",
+      "prompt": "I keep running the same gh CLI sequence. Functionize it into an inert redacted proposal, but do not register or run it.",
+      "expected": ["functionize"]
+    },
+    {
+      "id": "functionize-one-off-negative",
+      "prompt": "Write a one-off wrapper around this curl command; there is no repeated CLI pattern to mine.",
+      "expected": []
+    },
+    {
+      "id": "functionize-promotion-collision",
+      "prompt": "Promote this captured script into the procedural registry; do not Functionize it.",
+      "expected": ["procedural-memory"]
+    }
+  ]
+}

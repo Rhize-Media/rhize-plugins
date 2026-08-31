@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "skills": [
+    {
+      "id": "parallel-agent-optimization",
+      "source": "rhize-ops/skills/parallel-agent-optimization/SKILL.md",
+      "include_patterns": [
+        "parallel agents?",
+        "multi-agent",
+        "subagents?",
+        "concurrent agents?",
+        "agent dispatch",
+        "delegat(?:e|ion) to multiple agents?"
+      ],
+      "positive_cases": ["parallel-positive"],
+      "negative_cases": ["parallel-serial-near-miss", "parallel-tool-concurrency-near-miss"],
+      "quality_contracts": [
+        {"id": "assessment-is-receipt-free", "patterns": ["use `assess`", "create no receipt"]},
+        {"id": "live-work-is-not-duplicated", "patterns": ["Never duplicate a live task", "observational"]},
+        {"id": "controlled-readiness-is-baseline-rhize-only", "patterns": ["baseline", "rhize", "matched v2"]}
+      ]
+    },
+    {
+      "id": "delegate-to-teammate",
+      "source": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
+      "include_patterns": [
+        "delegate(?: this)? to [a-z]",
+        "hand (?:this )?off to [a-z]",
+        "assign (?:this )?to [a-z]",
+        "[a-z]+ should handle this",
+        "create (?:a )?task for [a-z]"
+      ],
+      "positive_cases": ["delegate-positive"],
+      "negative_cases": ["delegate-label-near-miss", "delegate-self-owned-near-miss"],
+      "quality_contracts": [
+        {"id": "config-driven-recipient", "patterns": ["config-driven", "do not guess"]},
+        {"id": "content-is-untrusted", "patterns": ["Content Trust Boundary", "data to quote or summarize"]},
+        {"id": "writes-follow-approval", "patterns": ["before\\s+the first Jira, Canvas, or Slack write", "delegation ID"]}
+      ]
+    },
+    {
+      "id": "skill-dashboard",
+      "source": "rhize-ops/skills/skill-dashboard/SKILL.md",
+      "include_patterns": [
+        "skill dashboard",
+        "audit dashboard",
+        "skill usage dashboard",
+        "visuali[sz]e skill-monitor"
+      ],
+      "positive_cases": ["dashboard-positive"],
+      "negative_cases": ["dashboard-task-near-miss", "dashboard-cost-near-miss"],
+      "quality_contracts": [
+        {"id": "no-fabricated-empty-dashboard", "patterns": ["no snapshots found", "Don't fabricate"]},
+        {"id": "temporary-output-boundary", "patterns": ["Always render to `/tmp` first", "never overwrite"]},
+        {"id": "refresh-is-explicit", "patterns": ["explicit-request-only", "do not run monitor.py on every dashboard render"]}
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "parallel-positive",
+      "prompt": "Assess whether three independent test failures should be handled by parallel agents.",
+      "expected": ["parallel-agent-optimization"]
+    },
+    {
+      "id": "parallel-serial-near-miss",
+      "prompt": "Use one agent for this serial migration because each step depends on the prior result.",
+      "expected": []
+    },
+    {
+      "id": "parallel-tool-concurrency-near-miss",
+      "prompt": "Run three independent shell commands concurrently in one process; do not dispatch agents.",
+      "expected": []
+    },
+    {
+      "id": "delegate-positive",
+      "prompt": "Hand this off to Maya and create a clear task for her.",
+      "expected": ["delegate-to-teammate"]
+    },
+    {
+      "id": "delegate-label-near-miss",
+      "prompt": "Assign this issue a priority label, but do not hand it to another person.",
+      "expected": []
+    },
+    {
+      "id": "delegate-self-owned-near-miss",
+      "prompt": "Add a self-owned checklist item for tomorrow's migration; do not assign it to a teammate.",
+      "expected": []
+    },
+    {
+      "id": "dashboard-positive",
+      "prompt": "Show the skill usage dashboard from the accumulated audit snapshots.",
+      "expected": ["skill-dashboard"]
+    },
+    {
+      "id": "dashboard-task-near-miss",
+      "prompt": "Show the Rhize Tasks planning dashboard for today.",
+      "expected": []
+    },
+    {
+      "id": "dashboard-cost-near-miss",
+      "prompt": "Give me the skill cost and ROI report, not the usage dashboard.",
+      "expected": []
+    }
+  ]
+}

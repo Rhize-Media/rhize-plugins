@@ -8,6 +8,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-31_ version bump — **procedural-memory** 0.4.0 → 0.4.1 (patch); marketplace 2.53.0 → 2.53.1.
+- _2026-08-31_ **complete deterministic eval inventory and aggressive benchmark contracts.**
+  Added local/free routing, collision, and static quality coverage for all 56 published Rhize
+  plugin skills; exact existing-implementation versus plugin benchmark definitions; Tasks benefit
+  reservations; Functionize portable cases; and SkillForge safety, latency, version-drift, and
+  pre/post-evolve non-inferiority harnesses. A separate counterbalanced baseline/Superpowers/Rhize
+  guide protocol compares each guide with the same baseline without contaminating canonical Rhize
+  v2 readiness. No paid/live result was fabricated: unexecuted cohorts remain visibly pending.
 - _2026-08-31_ version bump — **procedural-memory** 0.3.2 → 0.4.0 (minor); marketplace 2.52.0 → 2.53.0.
 - _2026-08-31_ **procedural-memory Functionize skill-map boundary (RT-166).** Added a dedicated
   cross-host `functionize` skill for the RT-138 compile-only runtime: locally mine/redact repeated

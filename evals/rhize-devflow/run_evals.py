@@ -3,7 +3,7 @@
 the rhize-devflow plugin (Task 9, .claude/plans/rhize-devflow-v3-engineering-
 control-plane.md, "Add evals, usage measures, and release enforcement").
 
-Two eval kinds, both fixture-driven and offline -- neither invokes `claude -p`
+Three eval kinds, all fixture-driven and offline -- none invokes `claude -p`
 or any other live/paid model call, unlike evals/run_evals.py's house harness
 (the plan forbids live paid-service calls in automated tests):
 
@@ -20,6 +20,10 @@ or any other live/paid model call, unlike evals/run_evals.py's house harness
    evals/assertions.py's evaluate_all(), the same engine
    the house harness uses to grade live output -- here it grades static
    contract text instead.
+
+3. Benchmark contracts (benchmark_contracts.json): deterministic completeness
+   validation for exact Arm A / Arm B definitions, actual-arm record identity,
+   common outcome/efficiency metrics, and one applicability record per skill.
 
 Usage:
     python3 evals/rhize-devflow/run_evals.py            # human-readable report
@@ -55,6 +59,18 @@ sys.path.insert(0, str(EVAL_DIR.parent))
 from assertions import evaluate_all  # noqa: E402  (path insert must precede this import)
 
 TRIGGER_PRECISION_THRESHOLD = 0.90
+REQUIRED_BENCHMARK_METRICS = {
+    "correctness_accuracy",
+    "routing_precision",
+    "routing_recall",
+    "tokens_by_category",
+    "latency_ms",
+    "tool_calls",
+    "follow_up_reads",
+    "corrections_rework",
+    "failures_refusals",
+}
+REQUIRED_RECORD_FIELDS = {"arm", "variant", "actuallyRan", "status"}
 
 
 def target_source_path(target_id: str) -> Path:
@@ -174,7 +190,129 @@ def run_quality_evals(cases: list[dict]) -> dict:
     return {"cases": results, "total": total, "fully_passed": fully_passed}
 
 
-def print_report(drift: list[str], trigger: dict, quality: dict) -> None:
+def discovered_skill_names() -> set[str]:
+    return {
+        path.parent.name
+        for path in (DEVFLOW / "skills").glob("*/SKILL.md")
+        if path.is_file()
+    }
+
+
+def validate_skill_coverage(trigger_cases: list[dict], quality_cases: list[dict]) -> dict:
+    """Require every shipped skill to have routing collisions and a static contract."""
+    discovered = discovered_skill_names()
+    trigger_counts: dict[str, dict[str, int]] = {}
+    for case in trigger_cases:
+        target = case.get("target", "")
+        if not target.startswith("skill:"):
+            continue
+        skill = target.removeprefix("skill:")
+        bucket = trigger_counts.setdefault(skill, {"positive": 0, "negative": 0})
+        bucket["positive" if case.get("should_trigger") else "negative"] += 1
+
+    quality_skills = {
+        parts[2]
+        for case in quality_cases
+        if len(parts := Path(case.get("target_file", "")).parts) >= 4
+        and parts[:2] == ("rhize-devflow", "skills")
+    }
+    problems = []
+    for skill in sorted(discovered):
+        counts = trigger_counts.get(skill, {"positive": 0, "negative": 0})
+        if counts["positive"] < 1:
+            problems.append(f"{skill}: needs at least one positive routing case")
+        if counts["negative"] < 2:
+            problems.append(f"{skill}: needs at least two near-miss/collision negatives")
+        if skill not in quality_skills:
+            problems.append(f"{skill}: missing deterministic quality contract")
+    extras = (set(trigger_counts) | quality_skills) - discovered
+    for skill in sorted(extras):
+        problems.append(f"{skill}: eval coverage targets a skill that is not shipped")
+    return {
+        "discoveredSkills": sorted(discovered),
+        "triggerCounts": {name: trigger_counts.get(name, {"positive": 0, "negative": 0}) for name in sorted(discovered)},
+        "qualitySkills": sorted(quality_skills),
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def validate_benchmark_contracts(document: dict) -> dict:
+    discovered = discovered_skill_names()
+    problems = []
+    if document.get("schemaVersion") != 1:
+        problems.append("benchmark schemaVersion must be 1")
+
+    arm_contract = document.get("armContract", {})
+    for arm in ("A", "B"):
+        if not arm_contract.get(arm):
+            problems.append(f"benchmark armContract.{arm} must define the executed path")
+    record_fields = set(arm_contract.get("requiredRecordFields", []))
+    if not REQUIRED_RECORD_FIELDS.issubset(record_fields):
+        missing = sorted(REQUIRED_RECORD_FIELDS - record_fields)
+        problems.append(f"benchmark record contract missing fields: {missing}")
+    if "exact existing non-plugin" not in arm_contract.get("A", "").lower():
+        problems.append("benchmark Arm A must be the exact existing non-plugin implementation")
+    if "plugin" not in arm_contract.get("B", "").lower():
+        problems.append("benchmark Arm B must be the plugin implementation")
+    if "actually ran" not in arm_contract.get("actualExecutionRule", "").lower():
+        problems.append("benchmark records must identify the arm that actually ran")
+
+    metrics = {metric.get("name"): metric for metric in document.get("commonMetrics", [])}
+    missing_metrics = sorted(REQUIRED_BENCHMARK_METRICS - set(metrics))
+    if missing_metrics:
+        problems.append(f"benchmark common metrics missing: {missing_metrics}")
+    for name in REQUIRED_BENCHMARK_METRICS - {"tokens_by_category"}:
+        if metrics.get(name, {}).get("required") is not True:
+            problems.append(f"benchmark metric {name} must be required")
+    token_metric = metrics.get("tokens_by_category", {})
+    if token_metric.get("captureWhenExposed") is not True:
+        problems.append("tokens_by_category must be captured when exposed")
+    if not {"input", "output", "cached", "reasoning", "tool"}.issubset(
+        set(token_metric.get("categories", []))
+    ):
+        problems.append("tokens_by_category must enumerate input/output/cached/reasoning/tool")
+
+    specs = document.get("skills", [])
+    spec_names = [spec.get("skill") for spec in specs]
+    if len(spec_names) != len(set(spec_names)):
+        problems.append("benchmark skill records must be unique")
+    if set(spec_names) != discovered:
+        problems.append(
+            "benchmark skills must exactly match shipped skills: "
+            f"missing={sorted(discovered - set(spec_names))} extra={sorted(set(spec_names) - discovered)}"
+        )
+    for spec in specs:
+        skill = spec.get("skill", "<unknown>")
+        if not spec.get("applicability") or not spec.get("judge"):
+            problems.append(f"{skill}: benchmark applicability and judge are required")
+        for arm_key in ("armA", "armB"):
+            arm = spec.get(arm_key, {})
+            if not arm.get("variant") or not arm.get("implementation"):
+                problems.append(f"{skill}: {arm_key} needs exact variant and implementation")
+        arm_a = spec.get("armA", {})
+        arm_b = spec.get("armB", {})
+        if arm_a.get("variant") == arm_b.get("variant"):
+            problems.append(f"{skill}: Arm A and Arm B variants must be distinct")
+        if f"without loading rhize-devflow:{skill}" not in arm_a.get("implementation", "").lower():
+            problems.append(f"{skill}: Arm A must name the exact non-plugin path")
+        if f"rhize-devflow:{skill}" not in arm_b.get("implementation", "").lower():
+            problems.append(f"{skill}: Arm B must name the exact plugin skill path")
+
+    evidence_rules = document.get("evidenceRules", {})
+    if evidence_rules.get("fabricatedEvidence") != "forbidden":
+        problems.append("fabricated benchmark evidence must be forbidden")
+    if evidence_rules.get("missingMeasurements") != "remain_missing":
+        problems.append("missing benchmark measurements must remain missing")
+    return {
+        "skillCount": len(specs),
+        "metricNames": sorted(metrics),
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def print_report(drift: list[str], trigger: dict, quality: dict, coverage: dict, benchmark: dict) -> None:
     print("=" * 60)
     print("Dev Flow control-plane evals")
     print("=" * 60)
@@ -212,39 +350,69 @@ def print_report(drift: list[str], trigger: dict, quality: dict) -> None:
                     print(f"      - {r['name']}: {r['evidence']}")
     print(f"\n  {quality['fully_passed']}/{quality['total']} quality cases fully passed (target: 100%)")
 
+    print("\n-- Shipped-skill coverage --")
+    print(
+        f"  {len(coverage['discoveredSkills'])} skills discovered; "
+        f"{len(coverage['qualitySkills'])} have deterministic quality contracts."
+    )
+    for problem in coverage["problems"]:
+        print(f"  FAIL: {problem}")
+
+    print("\n-- Paired outcome benchmark contracts --")
+    status = "PASS" if benchmark["ok"] else "FAIL"
+    print(f"  [{status}] {benchmark['skillCount']} skill benchmark specifications")
+    for problem in benchmark["problems"]:
+        print(f"  FAIL: {problem}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--json", action="store_true", help="emit a machine-readable JSON report instead of text")
+    parser.add_argument("--no-write", action="store_true", help="do not write the optional timestamped report")
     args = parser.parse_args()
 
     keywords = load_json(EVAL_DIR / "keywords.json")
     trigger_cases = load_json(EVAL_DIR / "trigger_cases.json")
     quality_cases = load_json(EVAL_DIR / "quality_cases.json")
+    benchmark_contracts = load_json(EVAL_DIR / "benchmark_contracts.json")
 
     drift = check_keyword_drift(keywords)
     trigger = run_trigger_evals(trigger_cases, keywords)
     quality = run_quality_evals(quality_cases)
+    coverage = validate_skill_coverage(trigger_cases, quality_cases)
+    benchmark = validate_benchmark_contracts(benchmark_contracts)
 
     ok = (
         not drift
         and trigger["overall_precision"] >= TRIGGER_PRECISION_THRESHOLD
         and quality["fully_passed"] == quality["total"]
+        and coverage["ok"]
+        and benchmark["ok"]
     )
 
+    report = {
+        "drift": drift,
+        "trigger": trigger,
+        "quality": quality,
+        "coverage": coverage,
+        "benchmark": benchmark,
+        "ok": ok,
+    }
+
     if args.json:
-        print(json.dumps({"drift": drift, "trigger": trigger, "quality": quality, "ok": ok}, indent=2))
+        print(json.dumps(report, indent=2))
     else:
-        print_report(drift, trigger, quality)
+        print_report(drift, trigger, quality, coverage, benchmark)
         print("\n" + "=" * 60)
         print("RESULT:", "PASS" if ok else "FAIL")
         print("=" * 60)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
-    (RESULTS_DIR / f"rhize-devflow-{timestamp}.json").write_text(
-        json.dumps({"drift": drift, "trigger": trigger, "quality": quality, "ok": ok}, indent=2)
-    )
+    if not args.no_write:
+        RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+        (RESULTS_DIR / f"rhize-devflow-{timestamp}.json").write_text(
+            json.dumps(report, indent=2)
+        )
 
     return 0 if ok else 1
 

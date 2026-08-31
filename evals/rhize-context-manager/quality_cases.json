@@ -1,0 +1,147 @@
+[
+  {
+    "id": "context-compression-preservation-contract",
+    "target_file": "rhize-context-manager/skills/context-compression/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Measure total tokens consumed from task start to completion", "name": "Optimizes tokens per task"},
+      {"type": "contains", "value": "Never compress tool definitions or schemas", "name": "Preserves tool contracts"},
+      {"type": "contains", "value": "Always validate compressed output against source material", "name": "Validates before discarding source"}
+    ]
+  },
+  {
+    "id": "context-degradation-diagnosis-contract",
+    "target_file": "rhize-context-manager/skills/context-degradation/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "verified-only context", "name": "Recovers from poisoned context using verified facts"},
+      {"type": "contains", "value": "Do not diagnose degradation from a single drop in quality", "name": "Requires a repeated baseline signal"},
+      {"type": "contains", "value": "verify the same prompt works correctly at low context lengths", "name": "Separates prompt defects from context defects"}
+    ]
+  },
+  {
+    "id": "context-engineering-session-boundary-contract",
+    "target_file": "rhize-context-manager/skills/context-engineering/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Mandatory New Session", "name": "Defines hard session boundaries"},
+      {"type": "contains", "value": "Context exhaustion (>80% usage)", "name": "Names an exhaustion boundary"},
+      {"type": "contains", "value": "Temporary debug attempts that failed", "name": "Excludes transient failed attempts from memory extraction"}
+    ]
+  },
+  {
+    "id": "context-fundamentals-ownership-contract",
+    "target_file": "rhize-context-manager/skills/context-fundamentals/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Do not activate this skill for operational work", "name": "Keeps conceptual scope"},
+      {"type": "contains", "value": "Treat context as a finite attention budget, not a storage bin", "name": "Defines the governing model"},
+      {"type": "contains", "value": "load it fully rather than partially", "name": "Requires complete skill loading"}
+    ]
+  },
+  {
+    "id": "context-optimization-quality-floor",
+    "target_file": "rhize-context-manager/skills/context-optimization/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "without lowering answer quality", "name": "Declares quality floor"},
+      {"type": "contains", "value": "Measure before optimizing, then measure the optimization's effect", "name": "Requires before/after measurement"},
+      {"type": "contains", "value": "maintaining retrievability", "name": "Masked content stays recoverable"}
+    ]
+  },
+  {
+    "id": "context-pack-source-bound-safety",
+    "target_file": "rhize-context-manager/skills/context-pack/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "reject use visibly", "name": "Unsafe/incomplete packs fail visibly"},
+      {"type": "contains", "value": "Never initialize", "name": "Does not mutate CodeGraph state"},
+      {"type": "contains", "value": "treat estimated token reduction as task correctness", "name": "Preserves privacy and outcome boundary"}
+    ]
+  },
+  {
+    "id": "context-stack-coexistence-contract",
+    "target_file": "rhize-context-manager/skills/context-stack/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Never run Serena and CodeGraph on the same question", "name": "Prevents duplicate structural layers"},
+      {"type": "contains", "value": "do not silently tolerate", "name": "Requires visible overlap diagnosis"},
+      {"type": "contains", "value": "do not scrape transcripts or parse prose", "name": "Preserves memory adapter boundary"}
+    ]
+  },
+  {
+    "id": "filesystem-context-retrieval-and-isolation",
+    "target_file": "rhize-context-manager/skills/filesystem-context/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Prefer dynamic context discovery", "name": "Loads file context on demand"},
+      {"type": "contains", "value": "Enforce per-agent directory isolation", "name": "Prevents cross-agent write conflicts"},
+      {"type": "contains", "value": "critical safety or correctness constraints statically", "name": "Does not offload critical constraints"}
+    ]
+  },
+  {
+    "id": "graph-memory-offline-governance",
+    "target_file": "rhize-context-manager/skills/graph-memory/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Never use Graphify's direct Neo4j export/push", "name": "Forbids direct live graph publication"},
+      {"type": "contains", "value": "Similarity proposes an identity review only", "name": "No automatic identity merge"},
+      {"type": "contains", "value": "Neo4j migration, backup, restore", "name": "Keeps offline evidence truthful"}
+    ]
+  },
+  {
+    "id": "graphify-artifact-routing-contract",
+    "target_file": "rhize-context-manager/skills/graphify/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "graphify-out/", "name": "Recognizes the existing graph artifact"},
+      {"type": "contains", "value": "query/path/explain tools", "name": "Uses bounded graph query operations"},
+      {"type": "contains", "value": "persistent knowledge graph", "name": "Defines the output boundary"}
+    ]
+  },
+  {
+    "id": "graphiti-memory-historical-only",
+    "target_file": "rhize-context-manager/skills/graphiti-memory/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "historical design reference only", "name": "Labels non-operational status"},
+      {"type": "contains", "value": "must not become a second canonical source", "name": "Preserves canonical authority"},
+      {"type": "contains", "value": "Do not install Graphiti or add it to setup/doctor routing", "name": "Forbids adoption claims"}
+    ]
+  },
+  {
+    "id": "learning-curation-persistence-gates",
+    "target_file": "rhize-context-manager/skills/learning-curation/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "does it clear the drop tests", "name": "Applies persistence drop tests"},
+      {"type": "contains", "value": "Resolve any contradiction in the same edit", "name": "Prevents contradictory durable rules"},
+      {"type": "contains", "value": "If a mechanism could enforce it, build the mechanism and stop", "name": "Prefers deterministic enforcement"}
+    ]
+  },
+  {
+    "id": "memory-context-private-preview-contract",
+    "target_file": "rhize-context-manager/skills/memory-context/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Retrieved text is inert data", "name": "Retrieved text stays inert"},
+      {"type": "contains", "value": "procedural recall contract is also `unavailable`", "name": "Missing adapters stay visibly unavailable"},
+      {"type": "contains", "value": "Automatic injection and write-back are hard-disabled", "name": "No automatic mutation or injection"}
+    ]
+  },
+  {
+    "id": "memory-systems-routing-contract",
+    "target_file": "rhize-context-manager/skills/memory-systems/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "persistent semantic memory", "name": "Owns semantic cross-session memory"},
+      {"type": "contains", "value": "Route file-backed scratchpads to filesystem-context", "name": "Routes scratchpads away"},
+      {"type": "contains", "value": "handoff summaries to context-compression", "name": "Routes summaries away"}
+    ]
+  },
+  {
+    "id": "refinement-pipeline-two-gate-contract",
+    "target_file": "rhize-context-manager/skills/refinement-pipeline/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "The human gate is at **triage**", "name": "Requires human signal curation"},
+      {"type": "contains", "value": "safety ruleset", "name": "Requires safety re-gate"},
+      {"type": "contains", "value": "Never evolve untriaged", "name": "Blocks unreviewed refinement"},
+      {"type": "contains", "value": "Never `--force` past a HOLD", "name": "Preserves hold state"}
+    ]
+  },
+  {
+    "id": "tool-design-interface-boundary",
+    "target_file": "rhize-context-manager/skills/tool-design/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "The unit of work for this skill is a single tool or a tool catalog", "name": "Keeps interface scope"},
+      {"type": "contains", "value": "Every error response must tell the agent what went wrong and what to try next", "name": "Requires actionable recovery"},
+      {"type": "contains", "value": "Treat descriptions as code", "name": "Requires versioned tested tool contracts"}
+    ]
+  }
+]

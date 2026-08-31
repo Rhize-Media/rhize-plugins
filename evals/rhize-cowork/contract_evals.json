@@ -1,0 +1,17 @@
+[
+  {
+    "id": "contract-project-kickoff-four-files-and-truth",
+    "skill": "project-kickoff",
+    "target_file": "rhize-cowork/skills/project-kickoff/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "CLAUDE.md", "name": "Requires operating manual"},
+      {"type": "contains", "value": "BUSINESS.md", "name": "Requires business file"},
+      {"type": "contains", "value": "PERSONALITY.md", "name": "Requires voice file"},
+      {"type": "contains", "value": "INFO.md", "name": "Requires reference file"},
+      {"type": "contains", "value": "Never fabricate business facts", "name": "Prohibits fabrication"},
+      {"type": "contains", "value": "[TBD — confirm]", "name": "Marks unknown facts"},
+      {"type": "contains", "value": "[inferred]", "name": "Marks inferred facts"},
+      {"type": "contains", "value": "Not for software projects", "name": "Routes software projects away"}
+    ]
+  }
+]

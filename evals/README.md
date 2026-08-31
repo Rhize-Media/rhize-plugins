@@ -1,6 +1,6 @@
 # Plugin Eval Harness
 
-Programmatic testing and benchmarking for rhize-plugins. Measures two things:
+Programmatic testing and benchmarking for rhize-plugins. The live-model harness measures two things:
 
 1. **Trigger accuracy** — Do skills fire on the right prompts (and stay quiet on wrong ones)?
 2. **Output quality** — When skills run, do they produce useful, correct results?
@@ -19,10 +19,24 @@ evals/
 ├── obsidian/              # Obsidian Skills plugin evals
 │   ├── trigger_evals.json
 │   └── quality_evals.json
+├── project-launcher/      # Project Launcher live + deterministic evals
+├── rhize-cowork/          # Rhize Cowork live + deterministic evals
+├── rhize-devflow/         # Dev Flow deterministic contracts
+├── rhize-context-manager/ # Context Manager deterministic contracts
+├── rhize-tasks/           # Rhize Tasks deterministic contracts + benefit protocol
+├── procedural-memory/     # Procedural Memory deterministic contracts
+├── skill-forge/           # External SkillForge safety/evolve integration harness
+├── parallel-agent-skills/ # Rhize routing + isolated guide-comparison protocols
 └── results/               # Auto-generated benchmark reports
 ```
 
-Each plugin has its own subdirectory with `trigger_evals.json` and `quality_evals.json`. The harness auto-discovers plugin directories or you can target a specific one with `--plugin`.
+Directories with `trigger_evals.json` or `quality_evals.json` are auto-discovered by the live-model
+harness. Other components deliberately use offline runners with component-specific schemas so they
+cannot be swept into a paid model run by accident.
+
+The offline coverage gates account for all 56 currently published Rhize plugin skills. That is a
+coverage statement, not a benefit claim: most live and controlled Arm A/Arm B cohorts are still
+pending, and every checked-in benchmark contract says so explicitly.
 
 ## Prerequisites
 
@@ -48,13 +62,24 @@ python evals/run_evals.py --quality-only --skill seo-site-audit --runs 1
 
 # Full benchmark with baseline comparison
 python evals/run_evals.py --with-baseline --runs 3 --verbose
+
+# Immediate local/free coverage gates
+python3 evals/seo-aeo-geo/run_local_evals.py
+python3 evals/obsidian/run_local_evals.py
+python3 evals/project-launcher/run_local_evals.py
+python3 evals/rhize-cowork/run_local_evals.py
+python3 evals/rhize-devflow/run_evals.py
+python3 evals/rhize-context-manager/run_evals.py
+python3 evals/parallel-agent-skills/scripts/evaluate_ops_skills.py
+python3 evals/rhize-tasks/run_evals.py
+python3 evals/procedural-memory/run_evals.py
 ```
 
 ## CLI Flags
 
 | Flag | Description |
 | ---- | ----------- |
-| `--plugin <name>` | Target a specific plugin (`seo-aeo-geo`, `obsidian`) or `all` (default) |
+| `--plugin <name>` | Target one discovered live-model eval directory or `all` (default) |
 | `--trigger-only` | Run trigger accuracy tests only |
 | `--quality-only` | Run output quality tests only |
 | `--skill <name>` | Filter to a single skill (e.g., `seo-site-audit`, `obsidian-cli`) |
@@ -71,7 +96,9 @@ python evals/run_evals.py --with-baseline --runs 3 --verbose
 
 ### Trigger Detection
 
-The harness uses **deterministic detection** via `--output-format stream-json --verbose`. It parses the actual `tool_use` blocks from Claude's response stream, looking for `Skill` tool invocations. Each SKILL.md also includes a watermark instruction (`[skill:{name}]`) as a secondary signal. Detection: `triggered = skill_tool_called or has_watermark`.
+The harness uses **deterministic detection** via `--output-format stream-json --verbose`. It parses
+the actual `tool_use` blocks from Claude's response stream and treats a matching `Skill` tool call
+as the trigger signal. Token/turn heuristics are diagnostic only and do not decide pass/fail.
 
 All evals run from `REPO_ROOT` (the plugin directory) so skills are available. Tests measure selectivity — does the right skill fire, and do wrong skills stay quiet?
 
@@ -126,9 +153,13 @@ Results are saved to `evals/results/`:
 
 ### Adding a new plugin
 
-1. Create `evals/<plugin-name>/` directory
-2. Add `trigger_evals.json` and/or `quality_evals.json`
-3. The harness auto-discovers directories containing eval files
+1. Create `evals/<plugin-name>/`.
+2. Add `trigger_evals.json` and/or `quality_evals.json` for the live-model harness, or a clearly
+   named offline runner and documented schema for deterministic-only coverage.
+3. Require one positive and two meaningful near-miss/collision negatives for every trigger-capable
+   skill, plus a deterministic quality contract where feasible.
+4. Define exact Arm A/Arm B implementations and record which arm actually ran. Never check in
+   fabricated or placeholder results.
 
 ## Assertion Types
 
@@ -148,11 +179,38 @@ Results are saved to `evals/results/`:
 ### seo-aeo-geo
 
 - Quality evals call DataForSEO APIs — requires credentials
-- Trigger evals are self-contained (no API calls)
-- 22 trigger cases, 7 quality cases
+- Local routing/contracts are self-contained and make no API calls
+- 27 routing cases, 7 static contracts, and 7 live-quality definitions
 
 ### obsidian
 
 - All evals are self-contained (reference knowledge only, no MCP server needed)
 - Command evals (testing `/vault-search`, `/vault-setup`, etc.) are deferred — they require an Obsidian instance with the MCP Server connected
-- 32 trigger cases, 8 quality cases
+- 38 routing cases, 10 static contracts, and 10 live-quality definitions
+
+### project-launcher and rhize-cowork
+
+- Both ship immediate local/free routing and static contract gates plus live-quality definitions.
+- Live benchmark results remain pending until their exact existing implementations are confirmed.
+
+### devflow, context, ops, tasks, and procedural memory
+
+- Their offline runners validate complete skill inventories, collision cases, static behavior
+  contracts, and strict benchmark applicability without invoking a model.
+- Context Manager binds `context-pack` to the existing executable provider harness; other benefit
+  cohorts remain pending.
+- Procedural Memory's portable vendor cases remain authored but organization-gated; its local
+  deterministic runner and schema validator do not pretend to execute that vendor harness.
+
+### parallel-agent guide comparison
+
+`parallel-agent-skills/guide-comparison.manifest.json` defines separate isolated evidence for a
+common baseline, the Superpowers dispatch guide, and Rhize's custom optimizer. Each guide is
+compared with the same baseline in counterbalanced order. These rows never feed the canonical
+baseline-versus-Rhize v2 readiness decision.
+
+### SkillForge
+
+The Rhize-side integration harness requires an explicit checkout/binary path, detects version
+drift, measures a labeled safety precision/recall corpus and local scan latency, and defines a
+digest-pinned pre/post evolve non-inferiority protocol. It never edits or adopts into SkillForge.

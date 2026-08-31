@@ -2,13 +2,16 @@
 
 Deterministic, offline evals for the `rhize-devflow` plugin's control plane (Task 9 of
 [`.claude/plans/rhize-devflow-v3-engineering-control-plane.md`](../../.claude/plans/rhize-devflow-v3-engineering-control-plane.md)).
-Two things are measured:
+Three things are measured:
 
 1. **Trigger precision** — does a prompt's phrasing match the skill/command that *should*
    handle it, and stay quiet on near-miss prompts that shouldn't route to Dev Flow?
 2. **Output quality** — do the `/check`, `/review`, `simplify`, and
-   `completed-branch-promotion` contracts declare the required verdicts, safety rules,
+   all nine skill contracts declare their key verdicts, safety rules,
    scope/authority boundaries, and release stop conditions?
+3. **Benchmark readiness** — does every shipped skill name an exact existing/non-plugin
+   Arm A, the corresponding Dev Flow Arm B, a deterministic judge, actual-arm record
+   identity, and the common outcome/efficiency metrics needed for a paired comparison?
 
 ## Why this directory looks different from `evals/seo-aeo-geo/` and `evals/obsidian/`
 
@@ -26,6 +29,9 @@ tests must not make live paid-service calls**. This directory is fully offline i
   (`evals/assertions.py`'s `evaluate_all`), but against the **static contract text** of
   `check.md`, `review.md`, and the canonical `simplify` and `completed-branch-promotion` skills
   instead of live command output.
+- **Benchmark contracts** validate static specifications only. They do not fabricate a
+  result, authorize a remote mutation, or claim a skill benefit before comparable runs
+  exist.
 
 Consequently the fixture files here are named `trigger_cases.json` / `quality_cases.json`,
 **not** `trigger_evals.json` / `quality_evals.json`. That's deliberate: `evals/run_evals.py`
@@ -47,7 +53,7 @@ Also wired into the normal test suite as `tests/rhize-devflow/test_control_plane
 so `python3 -m pytest tests/ -q` fails the same way any other regression would.
 
 A per-run JSON snapshot is written to `evals/results/` (gitignored, matching the house
-harness's convention).
+harness's convention). Pass `--no-write` for validation runs that must not create one.
 
 ## Method and limits — trigger precision
 
@@ -102,8 +108,8 @@ session transcripts, not this synthetic heuristic.
 ## Method and limits — quality assertions
 
 `quality_cases.json` runs `evals/assertions.py`'s `contains`/`regex` assertion types against
-the raw text of `rhize-devflow/commands/check.md`, `review.md`, and the canonical `simplify` and
-`completed-branch-promotion` skills. Promotion fixtures cover explicit overrides, dev/dev-less
+the raw text of `rhize-devflow/commands/check.md`, `review.md`, and all nine shipped skills.
+Promotion fixtures cover explicit overrides, dev/dev-less
 flows, manual-push authorization, unrelated dirty work, divergence, failed gates, protected
 branches, and Vercel author-safe release commits.
 This deliberately overlaps with (and is a lighter-weight
@@ -113,6 +119,17 @@ mechanism (e.g. it also asserts there is no *rogue* verdict token outside the st
 vocabulary, which these lighter fixtures don't check). This eval's job is to make the "100%
 exact-verdict compliance" target measure directly reportable through the same eval-runner
 interface as trigger precision, not to duplicate every edge case pytest already covers.
+
+## Paired outcome benchmark contract
+
+`benchmark_contracts.json` closes the specification gap between deterministic contract
+coverage and a future measured benefit claim. Every shipped skill has one applicability
+record. Arm A is the exact existing non-plugin workflow; Arm B is the corresponding
+`rhize-devflow` skill path over the same task and snapshot. Result records must name the
+arm and variant that actually ran, and common metrics cover correctness/accuracy, routing
+precision/recall, exposed token categories, latency, tool calls, follow-up reads,
+correction/rework, and failures/refusals. Missing or non-comparable evidence remains
+missing; this suite performs no live, paid, network, deployment, or remote-write run.
 
 ## Target measures — observation window checklist (Task 11)
 

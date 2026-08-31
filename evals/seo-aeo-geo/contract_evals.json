@@ -1,0 +1,73 @@
+[
+  {
+    "id": "contract-seo-site-audit-prioritized-report",
+    "skill": "seo-site-audit",
+    "target_file": "seo-aeo-geo/skills/seo-site-audit/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "DataForSEO OnPage API", "name": "Names the audit data source"},
+      {"type": "contains", "value": "Generate Prioritized Report", "name": "Requires prioritization"},
+      {"type": "contains", "value": "Validate against Google Rich Results requirements", "name": "Validates structured data"}
+    ]
+  },
+  {
+    "id": "contract-keyword-intelligence-prioritization",
+    "skill": "keyword-intelligence",
+    "target_file": "seo-aeo-geo/skills/keyword-intelligence/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Classify Search Intent", "name": "Classifies intent"},
+      {"type": "contains", "value": "Cluster and Prioritize", "name": "Clusters and prioritizes"},
+      {"type": "contains", "value": "volume, difficulty, intent, CPC, trend", "name": "Requires common keyword metrics"}
+    ]
+  },
+  {
+    "id": "contract-backlink-intelligence-evidence",
+    "skill": "backlink-intelligence",
+    "target_file": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "DataForSEO Backlinks API", "name": "Names backlink evidence source"},
+      {"type": "contains", "value": "Anchor Text Analysis", "name": "Requires anchor analysis"},
+      {"type": "contains", "value": "Action Plan", "name": "Requires prioritized actions"}
+    ]
+  },
+  {
+    "id": "contract-serp-intelligence-reporting",
+    "skill": "serp-intelligence",
+    "target_file": "seo-aeo-geo/skills/serp-intelligence/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Real-Time SERP Check", "name": "Defines live SERP evidence step"},
+      {"type": "contains", "value": "Rank Tracking", "name": "Defines tracking behavior"},
+      {"type": "contains", "value": "AI Visibility Report", "name": "Includes AI surface reporting"}
+    ]
+  },
+  {
+    "id": "contract-content-seo-implementation",
+    "skill": "content-seo",
+    "target_file": "seo-aeo-geo/skills/content-seo/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Title Tag Optimization", "name": "Covers title optimization"},
+      {"type": "contains", "value": "Internal Linking", "name": "Covers internal links"},
+      {"type": "contains", "value": "Generate JSON-LD", "name": "Requires concrete structured data"}
+    ]
+  },
+  {
+    "id": "contract-aeo-geo-citation-workflow",
+    "skill": "aeo-geo-optimization",
+    "target_file": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "Audit Current AI Visibility", "name": "Audits before optimizing"},
+      {"type": "contains", "value": "Implement Structured Data for AI", "name": "Requires structured data"},
+      {"type": "contains", "value": "Note which sources are cited and why", "name": "Tracks citation evidence"}
+    ]
+  },
+  {
+    "id": "contract-nextjs-sanity-seo-code-surface",
+    "skill": "nextjs-sanity-seo",
+    "target_file": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
+    "assertions": [
+      {"type": "contains", "value": "generateMetadata", "name": "Covers dynamic metadata"},
+      {"type": "contains", "value": "app/sitemap.ts", "name": "Covers sitemap implementation"},
+      {"type": "contains", "value": "app/robots.ts", "name": "Covers robots implementation"},
+      {"type": "contains", "value": "JSON-LD Component", "name": "Covers structured data component"}
+    ]
+  }
+]

@@ -79,5 +79,18 @@
       {"type": "min_length", "value": 500, "name": "Substantive output (500+ chars)"},
       {"type": "has_data", "value": 3, "name": "Contains concrete optimization data"}
     ]
+  },
+  {
+    "id": "quality-nextjs-sanity-seo-code-review",
+    "skill": "nextjs-sanity-seo",
+    "prompt": "Review this hypothetical Next.js App Router + Sanity SEO setup without browsing or making network calls: the page has a static title only, app/sitemap.ts includes every document including noIndex entries, app/robots.ts is missing, and article pages have no JSON-LD. Return a concrete implementation plan with representative code snippets.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)generateMetadata", "name": "Uses dynamic metadata"},
+      {"type": "regex", "value": "(?i)(sitemap\\.ts|MetadataRoute\\.Sitemap)", "name": "Fixes the sitemap"},
+      {"type": "regex", "value": "(?i)(robots\\.ts|MetadataRoute\\.Robots)", "name": "Adds robots implementation"},
+      {"type": "regex", "value": "(?i)(JSON-LD|schema-dts|application/ld\\+json)", "name": "Adds structured data"},
+      {"type": "regex", "value": "(?i)(noIndex|noindex)", "name": "Respects no-index content"},
+      {"type": "min_length", "value": 600, "name": "Substantive implementation plan"}
+    ]
   }
 ]

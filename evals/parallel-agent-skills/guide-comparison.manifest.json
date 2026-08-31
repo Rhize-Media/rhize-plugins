@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "evaluation": "superpowers-rhize-isolated-guide-comparison",
+  "fixture_manifest": "manifest.json",
+  "repetitions": 3,
+  "variants": [
+    {
+      "id": "baseline",
+      "arm": "A",
+      "implementation": "standing host instructions plus the bounded TASK.md only; neither parallel-agent guide is loaded"
+    },
+    {
+      "id": "superpowers",
+      "arm": "B-superpowers",
+      "implementation": "an exact snapshot whose frontmatter name is dispatching-parallel-agents, applied as the sole parallel-agent guide"
+    },
+    {
+      "id": "rhize",
+      "arm": "B-rhize",
+      "implementation": "an exact snapshot whose frontmatter name is parallel-agent-optimization, applied as the sole parallel-agent guide"
+    }
+  ],
+  "order_by_repetition": {
+    "1": ["baseline", "superpowers", "rhize"],
+    "2": ["superpowers", "rhize", "baseline"],
+    "3": ["rhize", "baseline", "superpowers"]
+  },
+  "comparison_pairs": [
+    ["baseline", "superpowers"],
+    ["baseline", "rhize"]
+  ],
+  "common_metrics": [
+    "correctness_accuracy",
+    "routing_precision",
+    "routing_recall",
+    "tokens_input",
+    "tokens_output",
+    "tokens_cache_read",
+    "tokens_cache_write",
+    "latency_ms",
+    "tool_calls",
+    "follow_up_reads",
+    "corrections",
+    "rework_events",
+    "failures",
+    "refusals"
+  ],
+  "fair_routing_metrics": [
+    "actual_overlap_runs",
+    "concurrent_agent_milliseconds",
+    "maximum_concurrency",
+    "agent_count",
+    "collision_totals"
+  ],
+  "evidence_boundaries": {
+    "isolated": true,
+    "live_mutation": false,
+    "live_dispatch_is_observational_only": true,
+    "feeds_rhize_v2_readiness": false,
+    "rhize_v2_readiness_remains_baseline_vs_rhize_only": true
+  }
+}

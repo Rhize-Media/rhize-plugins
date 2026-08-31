@@ -1,0 +1,13 @@
+{
+  "_comment": "Offline lexical routing contract only. Every phrase must remain present in the target SKILL.md; live model routing is measured separately.",
+  "obsidian-cli": ["Obsidian CLI", "command line"],
+  "obsidian-markdown": ["nested callout", "YAML frontmatter"],
+  "obsidian-bases": [".base file", "Obsidian Base"],
+  "json-canvas": ["Obsidian canvas", "canvas file"],
+  "defuddle": ["Obsidian vault", "clip"],
+  "second-brain": ["Zettelkasten", "PARA"],
+  "vault-templates": ["meeting notes", "weekly review"],
+  "vault-alignment": ["orphan notes", "how healthy is my vault"],
+  "qmd-search": ["semantic search"],
+  "knowledge-compiler": ["claim provenance"]
+}

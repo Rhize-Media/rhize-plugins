@@ -1,7 +1,7 @@
 [
   {
     "id": "trigger-seo-audit-casual",
-    "prompt": "hey can you audit rhize.media for SEO problems? mainly interested in page speed and broken links",
+    "prompt": "hey can you run an SEO audit on rhize.media? mainly interested in page speed and broken links",
     "target_skill": "seo-site-audit",
     "should_trigger": true
   },
@@ -13,7 +13,7 @@
   },
   {
     "id": "trigger-seo-audit-vague",
-    "prompt": "whats wrong with my site's SEO? the url is acme.com and we just launched last month",
+    "prompt": "what's wrong with my SEO? the url is acme.com and we just launched last month",
     "target_skill": "seo-site-audit",
     "should_trigger": true
   },
@@ -21,23 +21,26 @@
     "id": "trigger-seo-audit-neg-scraper",
     "prompt": "write me a python script that scrapes google search results for 'best coffee shops in Austin' and saves them to csv",
     "target_skill": "seo-site-audit",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "A custom search-result scraper is implementation work, not a site-health audit."
   },
   {
     "id": "trigger-seo-audit-neg-analytics",
     "prompt": "help me set up Google Analytics 4 tracking on my Next.js app, I need pageview and click events",
     "target_skill": "seo-site-audit",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Analytics instrumentation is not SEO diagnosis."
   },
   {
     "id": "trigger-seo-audit-neg-gsc",
     "prompt": "check my Google Search Console data and tell me which pages are losing impressions this month compared to last month",
     "target_skill": "seo-site-audit",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Search Console trend analysis is analytics work unless the user asks for a site audit."
   },
   {
     "id": "trigger-keyword-research-casual",
-    "prompt": "I need keyword ideas for our SaaS project management tool, we're trying to rank for stuff related to team collaboration and task tracking",
+    "prompt": "I need keyword research for our SaaS project management tool, focused on team collaboration and task tracking",
     "target_skill": "keyword-intelligence",
     "should_trigger": true
   },
@@ -51,13 +54,15 @@
     "id": "trigger-keyword-neg-content",
     "prompt": "write a 1500 word blog post about sustainable fashion trends for 2026 targeting millennials",
     "target_skill": "keyword-intelligence",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Writing a supplied topic is content authoring, not keyword discovery or analysis."
   },
   {
     "id": "trigger-keyword-neg-ppc",
     "prompt": "help me find the best negative keywords for my Google Ads campaign selling running shoes, I want to exclude irrelevant clicks",
     "target_skill": "keyword-intelligence",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Paid-search negative-keyword campaign setup belongs to advertising, not organic SEO keyword intelligence."
   },
   {
     "id": "trigger-backlink-audit",
@@ -75,13 +80,15 @@
     "id": "trigger-backlink-neg-internal",
     "prompt": "audit the internal linking structure on our blog at /blog/ and suggest better cross-linking between related posts",
     "target_skill": "backlink-intelligence",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Internal links are an on-page content SEO concern, not inbound backlink analysis."
   },
   {
     "id": "trigger-backlink-neg-alttext",
     "prompt": "help me write alt text for all the images on our /about page, we have around 12 team member photos that need descriptive alt attributes",
     "target_skill": "backlink-intelligence",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Image alt text is on-page content SEO, not inbound link-profile work."
   },
   {
     "id": "trigger-serp-check",
@@ -93,7 +100,15 @@
     "id": "trigger-serp-neg-ads",
     "prompt": "help me set up Google Ads campaigns for our product launch, I need keyword targeting and ad copy suggestions",
     "target_skill": "serp-intelligence",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Paid campaign setup does not ask for organic ranking positions or SERP analysis."
+  },
+  {
+    "id": "trigger-serp-neg-site-audit",
+    "prompt": "crawl my website for broken links, duplicate titles, and missing canonical tags",
+    "target_skill": "serp-intelligence",
+    "should_trigger": false,
+    "negative_reason": "A crawl-based technical audit belongs to seo-site-audit, not SERP/rank tracking."
   },
   {
     "id": "trigger-content-seo-optimize",
@@ -105,17 +120,25 @@
     "id": "trigger-content-seo-neg-copywriting",
     "prompt": "rewrite our landing page copy to be more persuasive, focus on emotional triggers and clear CTAs for our fitness app",
     "target_skill": "content-seo",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "General persuasive copywriting without a ranking objective is not content SEO."
+  },
+  {
+    "id": "trigger-content-seo-neg-keyword-discovery",
+    "prompt": "find commercial-intent keyword clusters and search volumes for a payroll software content plan",
+    "target_skill": "content-seo",
+    "should_trigger": false,
+    "negative_reason": "Keyword discovery and metrics belong to keyword-intelligence before page optimization."
   },
   {
     "id": "trigger-aeo-geo-ai",
-    "prompt": "how visible is our brand in AI search results? check if ChatGPT and Perplexity mention us when people ask about headless CMS options",
+    "prompt": "how is our AI search visibility? check if ChatGPT and Perplexity mention us when people ask about headless CMS options",
     "target_skill": "aeo-geo-optimization",
     "should_trigger": true
   },
   {
     "id": "trigger-aeo-geo-optimize",
-    "prompt": "optimize our content so AI assistants are more likely to cite us as a source when answering questions about web development agencies",
+    "prompt": "show us how to get cited by AI when assistants answer questions about web development agencies",
     "target_skill": "aeo-geo-optimization",
     "should_trigger": true
   },
@@ -123,7 +146,15 @@
     "id": "trigger-aeo-geo-neg-chatbot",
     "prompt": "build me a customer support chatbot using the Claude API that can answer questions about our product catalog",
     "target_skill": "aeo-geo-optimization",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Building an AI product is application development, not optimizing third-party AI answer visibility."
+  },
+  {
+    "id": "trigger-aeo-geo-neg-serp-rank",
+    "prompt": "track our weekly Google positions for ten keywords and alert us when a result drops out of the top ten",
+    "target_skill": "aeo-geo-optimization",
+    "should_trigger": false,
+    "negative_reason": "Traditional keyword position monitoring belongs to serp-intelligence, not AEO/GEO."
   },
   {
     "id": "trigger-nextjs-sanity-seo",
@@ -135,6 +166,14 @@
     "id": "trigger-nextjs-sanity-neg-deploy",
     "prompt": "deploy my Next.js app to Vercel and set up the sanity webhook for on-demand revalidation",
     "target_skill": "nextjs-sanity-seo",
-    "should_trigger": false
+    "should_trigger": false,
+    "negative_reason": "Deployment and webhook configuration without an SEO implementation request is DevOps/CMS work."
+  },
+  {
+    "id": "trigger-nextjs-sanity-neg-studio-schema",
+    "prompt": "add a product document schema and preview configuration to my Sanity Studio",
+    "target_skill": "nextjs-sanity-seo",
+    "should_trigger": false,
+    "negative_reason": "Generic Sanity schema work without an SEO surface is CMS development, not Next.js/Sanity SEO."
   }
 ]

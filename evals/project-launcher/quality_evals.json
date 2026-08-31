@@ -1,0 +1,28 @@
+[
+  {
+    "id": "quality-project-launcher-gated-handoff",
+    "skill": "project-launcher",
+    "prompt": "Given a hypothetical idea for a local invoice-reminder automation, outline the complete project-launcher deliverables and gates without doing web research, installing anything, scaffolding files, or starting implementation.",
+    "assertions": [
+      {"type": "regex", "value": "(?i)(research|context brief)", "name": "Includes research/context phase"},
+      {"type": "contains", "value": "PRD", "name": "Includes requirements artifact"},
+      {"type": "regex", "value": "(?i)(gap analysis|risk|assumption)", "name": "Includes adversarial gap pass"},
+      {"type": "regex", "value": "(?i)(approval|approved)", "name": "Requires plan approval"},
+      {"type": "regex", "value": "(?i)(GSD|handoff)", "name": "Includes execution handoff"},
+      {"type": "min_length", "value": 600, "name": "Substantive launch plan"}
+    ]
+  },
+  {
+    "id": "quality-rhize-visual-plan-contract",
+    "skill": "rhize-visual-plan",
+    "prompt": "Draft the content structure for a reviewable plan.mdx for a risky multi-file checkout migration. Include architecture, file impact, a data contract, a decision, a wireframe placeholder, and exactly one open-questions block; do not write files.",
+    "assertions": [
+      {"type": "contains", "value": "plan.mdx", "name": "Uses portable artifact"},
+      {"type": "regex", "value": "(?i)(Diagram|Mermaid)", "name": "Includes architecture diagram"},
+      {"type": "contains", "value": "FileMap", "name": "Includes file map"},
+      {"type": "regex", "value": "(?i)(DataModel|ApiEndpoint)", "name": "Includes hard contract"},
+      {"type": "contains", "value": "OpenQuestions", "name": "Includes question gate"},
+      {"type": "min_length", "value": 500, "name": "Substantive visual-plan structure"}
+    ]
+  }
+]

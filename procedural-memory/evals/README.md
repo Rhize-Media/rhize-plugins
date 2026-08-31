@@ -184,6 +184,13 @@ evals/
     └── graders/skill-not-invoked.md
 ```
 
+Functionize adds three sibling cases: `functionize-trigger`,
+`functionize-negative-one-off`, and `functionize-negative-registry-promotion`. Together they cover
+the explicit repeated-CLI trigger, a cheap one-off near miss, and the most important collision:
+registry promotion belongs to `procedural-memory`, not Functionize. They are schema-validated
+locally with the rest of this suite and remain unexecuted by `claude plugin eval` until the same
+organization gate lifts.
+
 ## Why `happy-path-recall-run` is fixture-mode permanently, not "until the sandbox proves reachable"
 
 Even a sandbox that turns out to fully reach an absolute path and `localhost:5432` must never run

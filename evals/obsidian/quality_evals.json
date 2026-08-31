@@ -102,5 +102,29 @@
       {"type": "min_length", "value": 500, "name": "Substantive plan (500+ chars)"},
       {"type": "regex", "value": "(?i)(\\[skill:vault-alignment\\])", "name": "Skill watermark present"}
     ]
+  },
+  {
+    "id": "quality-qmd-search-mode-selection",
+    "skill": "qmd-search",
+    "prompt": "Explain an entirely local qmd setup for an Obsidian vault and choose among BM25, vector, and hybrid search for exact phrase lookup versus concept discovery. Include the indexing prerequisite and commands; do not run them.",
+    "assertions": [
+      {"type": "contains", "value": "BM25", "name": "Explains lexical mode"},
+      {"type": "regex", "value": "(?i)(vector|semantic)", "name": "Explains semantic mode"},
+      {"type": "contains", "value": "qmd embed", "name": "Includes embedding prerequisite"},
+      {"type": "regex", "value": "(?i)(local|on-device)", "name": "Preserves local-first boundary"},
+      {"type": "regex", "value": "(?i)(\\[skill:qmd-search\\])", "name": "Skill watermark present"}
+    ]
+  },
+  {
+    "id": "quality-knowledge-compiler-preview",
+    "skill": "knowledge-compiler",
+    "prompt": "Describe the safe workflow for compiling registered captured sources into a cited knowledge page when one source anchor may be stale. Explain preview artifacts, approval, apply, and the stale-anchor outcome without touching a vault.",
+    "assertions": [
+      {"type": "contains", "value": "preview", "name": "Uses preview boundary"},
+      {"type": "regex", "value": "(?i)(manifest|diff\\.patch|exact diff)", "name": "Names review artifacts"},
+      {"type": "regex", "value": "(?i)(explicit approval|approve)", "name": "Requires approval before apply"},
+      {"type": "regex", "value": "(?i)(stale|stop)", "name": "Fails closed on stale anchor"},
+      {"type": "min_length", "value": 400, "name": "Substantive safe workflow"}
+    ]
   }
 ]
