@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-31_ version bump — **procedural-memory** 0.3.2 → 0.4.0 (minor); marketplace 2.52.0 → 2.53.0.
+- _2026-08-31_ **procedural-memory Functionize skill-map boundary (RT-166).** Added a dedicated
+  cross-host `functionize` skill for the RT-138 compile-only runtime: locally mine/redact repeated
+  CLI shapes, compile inert proposal bundles, and record digest-bound human reviews. Its launcher
+  exposes only `mine`, `generate`, and `review`, probes the real installed command surface, and
+  cannot reach registration, approval, promotion, verification, or execution. The generated skill
+  map now carries the Functionize node, exact stack tag, canonical `rhize-skill` dependency, and a
+  schema-complete `skill-neighborhood` audit query; deterministic intent tests keep Functionize
+  routing separate from the registry-execution skill. RT-140/RT-145 remain later human gates.
 - _2026-08-30_ coordinated article-improvements release — **obsidian-second-brain** 1.4.4 → 1.5.0; **procedural-memory** 0.3.1 → 0.3.2; **rhize-context-manager** 0.21.0 → 0.22.0; **rhize-devflow** 2.16.0 → 2.17.0; **rhize-ops** marketplace entry aligned at 0.14.0; **rhize-tasks** 0.3.0 → 0.3.1; marketplace 2.51.1 → 2.52.0.
 - _2026-08-30_ **article-derived agent infrastructure for Claude Code and Codex.** Added a
   dual-host task-graph contract and state-bound behavioral test evidence; deterministic native v2

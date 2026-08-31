@@ -8,13 +8,22 @@ recomposed fresh instead of reused. The `procedural-memory` registry keeps prove
 for tasks like these, each one carrying a real safety contract (what it needs, what it touches,
 how it's been verified). This plugin is how you reach that registry from either Claude Code or
 Codex: find the right artifact, run it with the registry's trust/health gates intact, or add a new
-one once you've captured working code worth reusing.
+one once you've captured working code worth reusing. A second, deliberately separate skill can
+Functionize repeated CLI usage into an inert proposal for measurement without adding anything to
+that registry.
 
-Claude Code provides the four `/procedural-memory:*` commands and advisory session hooks. Codex uses
-the same natural-language skill through its self-relative launcher; it does not claim Claude Code's
-slash-command or hook lifecycle.
+Claude Code provides the four `/procedural-memory:*` registry commands and advisory session hooks.
+Claude Code and Codex share the `procedural-memory` and `functionize` natural-language skills through
+self-relative launchers; Codex does not claim Claude Code's slash-command or hook lifecycle.
 
 ## When to reach for what
+
+- **"Functionize this repeated CLI pattern" / "compile a safe wrapper proposal"**
+  → use the `functionize` skill. `mine` reads and redacts local history shapes, `generate`
+  compiles one candidate manifest, and `review` records a digest-bound decision. The result is an
+  inert proposal only: no registry entry, trust, approval, promotion, verification, or target
+  execution is created. A later registry action is a separate request through `procedural-memory`.
+  *Example: "Use Functionize to compile repeated `git status` usage into an inert proposal."*
 
 - **"Has this been automated before?" / "is there already a tool for X?"**
   → `/procedural-memory:recall "<task description>"`. Returns ranked hits with similarity
@@ -43,6 +52,9 @@ slash-command or hook lifecycle.
   *Example: "Verify n8n-safe-deploy — I think it self-quarantined."*
 
 ## The session automatically notices when you might have something to promote
+
+Functionize is not connected to this promotion nudge. Proposal compilation stops at its own output
+directory; the hooks do not register, trust, approve, promote, verify, or run it.
 
 In Claude Code, you don't have to remember to run `/procedural-memory:promote` right after writing
 something reusable. Two advisory hooks run in the background. Codex does not wire these Claude Code

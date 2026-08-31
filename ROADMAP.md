@@ -40,6 +40,8 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [ ] RT-155 and RT-156: collect host-stratified task-graph and test-evidence calibration before automatic promotion decisions.
 - [ ] RT-163: implement a trusted sandbox adapter before behavioral evidence can execute repository package scripts.
 - [ ] RT-157: measure compiled-knowledge maintenance and invalidation before scheduling rebuilds.
+- [x] RT-166: expose RT-138's compile-only Functionize surface as a separately routed skill-map node without crossing registry, trust, promotion, or execution gates.
+- [ ] RT-140/RT-145: prove material value with a real reviewed Functionize proposal before any registry promotion or broader plugin packaging claim.
 
 ### seo-aeo-geo
 - [ ] (none yet)

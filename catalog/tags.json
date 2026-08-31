@@ -29,6 +29,7 @@
   { "slug": "rank-tracking", "kind": "topic", "gloss": "SERP position and ranking monitoring" },
   { "slug": "ai-visibility", "kind": "topic", "gloss": "AI/answer-engine optimization and LLM citation visibility" },
   { "slug": "obsidian", "kind": "stack", "gloss": "Obsidian vault/app-specific skills" },
+  { "slug": "functionize", "kind": "stack", "gloss": "Functionize CLI-pattern mining and inert proposal compilation" },
   { "slug": "nextjs", "kind": "stack", "gloss": "Next.js codebases" },
   { "slug": "sanity", "kind": "stack", "gloss": "Sanity Studio/CMS" },
   { "slug": "seo", "kind": "stack", "gloss": "SEO/AEO/GEO domain tooling (DataForSEO-powered)" },

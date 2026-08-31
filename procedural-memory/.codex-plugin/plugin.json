@@ -1,13 +1,15 @@
 {
   "name": "procedural-memory",
-  "version": "0.3.2",
-  "description": "Recall and execute proven registry artifacts through one digest-, trust-, and health-gated skill shared by Claude Code and Codex.",
+  "version": "0.4.0",
+  "description": "Recall and execute proven registry artifacts, or compile inert Functionize proposals through a separately gated skill shared by Claude Code and Codex.",
   "author": {
     "name": "Rhize Media"
   },
   "homepage": "https://rhize.media",
   "keywords": [
     "procedural-memory",
+    "functionize",
+    "proposal-generation",
     "registry",
     "recall",
     "skill-reuse",
@@ -18,8 +20,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Procedural Memory",
-    "shortDescription": "Recall and run proven registry artifacts safely",
-    "longDescription": "Discover and execute already-proven Rhize registry artifacts through one host-neutral skill. Every call uses the canonical launcher and preserves content-digest, provenance, trust, health, and user-approval gates; similarity never grants execution authority.",
+    "shortDescription": "Reuse proven code or compile inert proposals safely",
+    "longDescription": "Use one host-neutral skill to discover and execute already-proven Rhize registry artifacts behind content-digest, provenance, trust, health, and approval gates. Use the separate Functionize skill only to mine redacted CLI shapes, compile inert proposals, and record reviews; generation never grants registry or execution authority.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [
@@ -30,7 +32,8 @@
     "defaultPrompt": [
       "Recall a proven registry artifact for this task.",
       "Run this reviewed registry artifact with its trust gates intact.",
-      "Promote this reusable script after checking its provenance contract."
+      "Promote this reusable script after checking its provenance contract.",
+      "Compile this repeated CLI pattern into an inert Functionize proposal without promoting or running it."
     ],
     "websiteURL": "https://rhize.media",
     "brandColor": "#7C3AED"

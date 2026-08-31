@@ -217,6 +217,7 @@ QUERY_CASES = [
     ("overlap-candidates", None),
     ("unroutable-skills", None),
     ("mcp-dependents", "dataforseo"),
+    ("skill-neighborhood", "procedural-memory/functionize"),
 ]
 
 

@@ -436,10 +436,12 @@ Seed queries:
 | `overlap-candidates` | — | Every `overlaps-with` edge in the map. |
 | `unroutable-skills` | — | Skills with no `topic-tag`/`stack-tag` edge — invisible to the router/disclosure hooks. |
 | `mcp-dependents` | mcp server name or `mcp:<name>` | Skills declaring a `depends-on` edge to that MCP server. |
+| `skill-neighborhood` | skill id | Every incoming and outgoing relationship, grouped by all schema edge types; empty groups remain visible so an audit can distinguish no edge from an uninspected edge. |
 
 ```bash
 python3 scripts/query_skill_map.py what-remediates build-failure
 python3 scripts/query_skill_map.py what-follows seo-aeo-geo/content-seo --resolved
+python3 scripts/query_skill_map.py skill-neighborhood procedural-memory/functionize
 python3 scripts/query_skill_map.py --list
 ```
 

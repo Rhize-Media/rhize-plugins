@@ -1,5 +1,5 @@
 {
-  "_comment": "Declarative walk specs for scripts/query_skill_map.py — the two-tier query layer's second tier (materialized generated/skill-map.indexes.json covers hot paths; these seven named queries cover everything else). Cypher-shaped without Cypher: start set -> edge steps -> output, so a spec ports mechanically if the map ever moves to a real graph DB. One Python walker interprets this file; hooks never use it (see docs/skill-map.md's query layer section).",
+  "_comment": "Declarative walk specs for scripts/query_skill_map.py — the two-tier query layer's second tier (materialized generated/skill-map.indexes.json covers hot paths; these named queries cover everything else). Cypher-shaped without Cypher: start set -> edge steps -> output, so a spec ports mechanically if the map ever moves to a real graph DB. One Python walker interprets this file; hooks never use it (see docs/skill-map.md's query layer section).",
   "queries": {
     "what-extends": {
       "description": "Given a skill id, what it extends (deepens) and what extends it.",
@@ -49,6 +49,41 @@
       "normalizeArg": "mcpId",
       "steps": [
         { "edge": "depends-on", "direction": "in", "as": "skills" }
+      ]
+    },
+    "skill-neighborhood": {
+      "description": "Given a skill id, return every incoming and outgoing relationship grouped by edge type for complete audit traversal.",
+      "arg": "skillId",
+      "normalizeArg": "skillId",
+      "steps": [
+        { "edge": "contains", "direction": "in", "as": "containsIn" },
+        { "edge": "contains", "direction": "out", "as": "containsOut" },
+        { "edge": "topic-tag", "direction": "in", "as": "topicTagIn" },
+        { "edge": "topic-tag", "direction": "out", "as": "topicTagOut" },
+        { "edge": "stack-tag", "direction": "in", "as": "stackTagIn" },
+        { "edge": "stack-tag", "direction": "out", "as": "stackTagOut" },
+        { "edge": "fork-of", "direction": "in", "as": "forkOfIn" },
+        { "edge": "fork-of", "direction": "out", "as": "forkOfOut" },
+        { "edge": "supersedes", "direction": "in", "as": "supersedesIn" },
+        { "edge": "supersedes", "direction": "out", "as": "supersedesOut" },
+        { "edge": "overlaps-with", "direction": "in", "as": "overlapsWithIn" },
+        { "edge": "overlaps-with", "direction": "out", "as": "overlapsWithOut" },
+        { "edge": "depends-on", "direction": "in", "as": "dependsOnIn" },
+        { "edge": "depends-on", "direction": "out", "as": "dependsOnOut" },
+        { "edge": "replaces", "direction": "in", "as": "replacesIn" },
+        { "edge": "replaces", "direction": "out", "as": "replacesOut" },
+        { "edge": "usage-cooccurs", "direction": "in", "as": "usageCooccursIn" },
+        { "edge": "usage-cooccurs", "direction": "out", "as": "usageCooccursOut" },
+        { "edge": "extends", "direction": "in", "as": "extendsIn" },
+        { "edge": "extends", "direction": "out", "as": "extendsOut" },
+        { "edge": "precedes", "direction": "in", "as": "precedesIn" },
+        { "edge": "precedes", "direction": "out", "as": "precedesOut" },
+        { "edge": "follows", "direction": "in", "as": "followsIn" },
+        { "edge": "follows", "direction": "out", "as": "followsOut" },
+        { "edge": "augments", "direction": "in", "as": "augmentsIn" },
+        { "edge": "augments", "direction": "out", "as": "augmentsOut" },
+        { "edge": "remediates", "direction": "in", "as": "remediatesIn" },
+        { "edge": "remediates", "direction": "out", "as": "remediatesOut" }
       ]
     }
   }

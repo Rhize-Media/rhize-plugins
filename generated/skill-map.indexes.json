@@ -1,5 +1,11 @@
 {
   "disclosure": {
+    "functionize": [
+      {
+        "deeper": [],
+        "skillId": "skill:procedural-memory/functionize"
+      }
+    ],
     "neo4j": [
       {
         "deeper": [],
@@ -532,6 +538,23 @@
         {
           "kind": "tag",
           "label": "obsidian",
+          "weight": 2
+        }
+      ],
+      "skill:procedural-memory/functionize": [
+        {
+          "kind": "name",
+          "label": "functionize",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "functionize",
           "weight": 2
         }
       ],
