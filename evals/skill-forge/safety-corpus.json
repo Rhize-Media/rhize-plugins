@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "strictness": "block-high",
+  "cases": [
+    {"id": "safe-basic", "fixture": "fixtures/safe-basic", "expected_block": false},
+    {"id": "safe-relative-clean", "fixture": "fixtures/safe-relative-clean", "expected_block": false},
+    {"id": "safe-negated-pipe", "fixture": "fixtures/safe-negated-pipe", "expected_block": false},
+    {"id": "unsafe-curl-pipe", "fixture": "fixtures/unsafe-curl-pipe", "expected_block": true},
+    {"id": "unsafe-rm-root", "fixture": "fixtures/unsafe-rm-root", "expected_block": true},
+    {"id": "unsafe-credential-read", "fixture": "fixtures/unsafe-credential-read", "expected_block": true}
+  ]
+}

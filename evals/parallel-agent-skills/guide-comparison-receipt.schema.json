@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Separate guide-comparison receipt. Never pool with canonical Rhize receipt v2 readiness.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "run_id", "comparison_id", "variant", "guide_sha256", "task_id",
+    "task_class", "repetition", "order_position", "status", "started_at", "completed_at",
+    "expected_decision", "decision", "correctness", "routing", "tokens",
+    "tokens_unavailable_reason", "latency_ms", "tool_calls", "tool_calls_unavailable_reason",
+    "follow_up_reads", "corrections", "rework_events", "failures", "refusals", "collisions",
+    "agents"
+  ],
+  "properties": {
+    "schema_version": {"const": "rhize-guide-comparison-v1"},
+    "run_id": {"type": "string", "format": "uuid"},
+    "comparison_id": {"type": "string", "format": "uuid"},
+    "variant": {"enum": ["baseline", "superpowers", "rhize"]},
+    "guide_sha256": {"type": ["string", "null"], "pattern": "^[a-f0-9]{64}$"},
+    "task_id": {"type": "string"},
+    "task_class": {"enum": ["parallel_read", "disjoint_write", "shared_state", "dependency_chain", "mixed_verification", "gated_live"]},
+    "repetition": {"type": "integer", "minimum": 1, "maximum": 3},
+    "order_position": {"type": "integer", "minimum": 1, "maximum": 3},
+    "status": {"enum": ["completed", "failed", "incomplete"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "expected_decision": {"enum": ["parallel", "sequential", "gated"]},
+    "decision": {"type": ["string", "null"], "enum": ["parallel", "sequential", "gated", null]},
+    "correctness": {
+      "type": "object", "additionalProperties": false,
+      "required": ["passed", "total", "accuracy"],
+      "properties": {"passed": {"type": ["integer", "null"]}, "total": {"type": ["integer", "null"]}, "accuracy": {"type": ["number", "null"]}}
+    },
+    "routing": {
+      "type": "object", "additionalProperties": false,
+      "required": ["true_positives", "false_positives", "false_negatives", "precision", "recall"],
+      "properties": {
+        "true_positives": {"type": ["integer", "null"]}, "false_positives": {"type": ["integer", "null"]},
+        "false_negatives": {"type": ["integer", "null"]}, "precision": {"type": ["number", "null"]},
+        "recall": {"type": ["number", "null"]}
+      }
+    },
+    "tokens": {
+      "type": "object", "additionalProperties": false,
+      "required": ["input", "output", "cache_read", "cache_write"],
+      "properties": {
+        "input": {"type": ["integer", "null"]}, "output": {"type": ["integer", "null"]},
+        "cache_read": {"type": ["integer", "null"]}, "cache_write": {"type": ["integer", "null"]}
+      }
+    },
+    "tokens_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
+    "latency_ms": {"type": ["integer", "null"]},
+    "tool_calls": {"type": ["integer", "null"]},
+    "tool_calls_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
+    "follow_up_reads": {"type": ["integer", "null"]},
+    "corrections": {"type": ["integer", "null"]},
+    "rework_events": {"type": ["integer", "null"]},
+    "failures": {"type": ["integer", "null"]},
+    "refusals": {"type": ["integer", "null"]},
+    "collisions": {"type": ["integer", "null"]},
+    "agents": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["started_at", "completed_at", "status"],
+        "properties": {
+          "started_at": {"type": "string", "format": "date-time"},
+          "completed_at": {"type": "string", "format": "date-time"},
+          "status": {"enum": ["completed", "failed", "cancelled"]}
+        }
+      }
+    }
+  }
+}

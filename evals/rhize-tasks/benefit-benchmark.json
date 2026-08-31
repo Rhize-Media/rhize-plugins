@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "repetitions": 3,
+  "arms": {
+    "baseline": "Arm A: standing host instructions and the bounded task fixture; no rhize-tasks skill is loaded",
+    "rhize": "Arm B: the exact canonical rhize-tasks skill named by the fixture is loaded; all service/dashboard safety boundaries remain active"
+  },
+  "skills": [
+    {"id": "manage-task-preferences", "task_contract": "explain and preview one bounded preference change without saving it"},
+    {"id": "plan-my-day", "task_contract": "interpret one fixture TodayView into a bounded chronological plan without connector writes"},
+    {"id": "reconcile-rhize-tasks", "task_contract": "classify fixture reconciliation entries and preserve exact operation IDs without submitting them"},
+    {"id": "review-task-opportunities", "task_contract": "rank fixture opportunities while keeping assigned work first and making no claim"},
+    {"id": "rhize-tasks-doctor", "task_contract": "diagnose a fixture degraded state read-only and avoid unsupported recovery claims"},
+    {"id": "rhize-tasks-setup", "task_contract": "produce a seven-stage fixture runbook without collecting secrets or activating setup"}
+  ],
+  "common_metrics": [
+    "correctness_accuracy", "routing_precision", "routing_recall", "tokens_input", "tokens_output",
+    "tokens_cache_read", "tokens_cache_write", "latency_ms", "tool_calls", "follow_up_reads",
+    "corrections", "rework_events", "failures", "refusals"
+  ],
+  "constraints": {
+    "fresh_fixture_per_arm": true,
+    "sequential_within_pair": true,
+    "counterbalanced_order": true,
+    "network": false,
+    "live_mutation": false,
+    "results_shipped": false
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "repetitions": 3,
+  "arm_a": "pre-evolve canonical skill pinned by SHA-256 digest",
+  "arm_b": "staged post-evolve proposal pinned by SHA-256 digest and evaluated before adoption",
+  "order_by_repetition": {"1": ["pre", "post"], "2": ["post", "pre"], "3": ["pre", "post"]},
+  "common_metrics": [
+    "correctness_accuracy", "routing_precision", "routing_recall", "tokens_input", "tokens_output",
+    "tokens_cache_read", "tokens_cache_write", "latency_ms", "tool_calls", "follow_up_reads",
+    "corrections", "rework_events", "failures", "refusals"
+  ],
+  "non_inferiority": {
+    "minimum_accuracy_delta": 0.0,
+    "minimum_routing_precision_delta": 0.0,
+    "minimum_routing_recall_delta": 0.0,
+    "maximum_latency_increase_fraction": 0.1,
+    "maximum_rework_increase": 0,
+    "maximum_failure_increase": 0
+  },
+  "constraints": {"isolated": true, "network": false, "adopt": false, "results_shipped": false}
+}

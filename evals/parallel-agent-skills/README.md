@@ -62,3 +62,41 @@ session IDs, or issue IDs. Parallelism is derived from intersecting nested-agent
 includes ECC, Superpowers, and combined candidate arms from the pre-consolidation investigation.
 It remains readable historical evidence but is non-comparable with v2, is never pooled into the
 current decision report, and is not a runtime dependency or a production benchmark.
+
+## Isolated Superpowers guide comparison
+
+`guide-comparison.manifest.json` defines a separate three-variant experiment over the same six
+bounded task classes. Arm A is the standing host plus `TASK.md`; Arm B-superpowers is an exact
+snapshot named `dispatching-parallel-agents`; Arm B-rhize is an exact snapshot named
+`parallel-agent-optimization`. The preparation script requires explicit guide paths, validates
+those identities, records their SHA-256 digests, and copies each into a fresh run directory. It
+never hard-codes an installed path.
+
+Each class runs three repetitions with a Latin rotation, so every variant appears once in each
+order position. Complete each group sequentially in its recorded order. The validator compares
+Superpowers and Rhize separately against the same baseline; it does not pool the two guide arms or
+feed this evidence into canonical Rhize v2 readiness.
+
+```bash
+python3 evals/parallel-agent-skills/scripts/prepare_guide_comparison.py \
+  --task parallel-read --repetition 1 --comparison-id "$(uuidgen | tr '[:upper:]' '[:lower:]')" \
+  --superpowers-guide /explicit/path/to/dispatching-parallel-agents/SKILL.md \
+  --rhize-guide rhize-ops/skills/parallel-agent-optimization/SKILL.md \
+  --output /private/tmp/parallel-guide-comparison/parallel-read-1
+
+python3 evals/parallel-agent-skills/scripts/validate_guide_receipts.py \
+  /private/tmp/parallel-guide-comparison --require-complete-cohort
+```
+
+Receipts record the variant actually assigned plus correctness/accuracy, routing
+precision/recall, exposed token categories, latency, tool calls, follow-up reads, corrections,
+rework, failures, refusals, collisions, and factual agent intervals. Unknown counters stay null
+with a declared reason. No receipts are shipped, and this live implementation lane is
+observational context only—not causal comparison evidence.
+
+## Package skill coverage
+
+`scripts/evaluate_ops_skills.py` runs the local/free routing and static quality contract for all
+three rhize-ops skills. It gives each trigger-capable skill one positive plus at least two
+near-miss/collision negatives. This deterministic gate is not presented as natural LLM trigger
+evidence.
