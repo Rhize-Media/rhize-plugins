@@ -13,8 +13,9 @@ EVAL = REPO / "evals/skill-forge"
 def fake_binary(path: Path, binary_version: str) -> None:
     path.write_text(
         "#!/usr/bin/env python3\n"
-        "import json, pathlib, sys\n"
+        "import json, os, pathlib, sys\n"
         f"VERSION = {binary_version!r}\n"
+        "if os.environ.get('RHIZE_EVAL_SENTINEL_SECRET'):\n    print('ambient secret inherited', file=sys.stderr); raise SystemExit(3)\n"
         "if sys.argv[1:] == ['--version']:\n    print(VERSION); raise SystemExit(0)\n"
         "target = pathlib.Path(sys.argv[2]).name\n"
         "blocked = target.startswith('unsafe-')\n"
@@ -32,9 +33,10 @@ def test_version_drift_is_detected_without_installing() -> None:
         (checkout / "package.json").write_text(json.dumps({"version": "0.14.0"}))
         binary = temp / "skill-forge"
         fake_binary(binary, "0.13.0")
+        environment = {**os.environ, "RHIZE_EVAL_SENTINEL_SECRET": "must-not-reach-version-probe"}
         completed = subprocess.run([
             "python3", str(EVAL / "integration_eval.py"), "inspect", "--checkout", str(checkout), "--binary", str(binary)
-        ], cwd=REPO, capture_output=True, text=True)
+        ], cwd=REPO, capture_output=True, text=True, env=environment)
         assert completed.returncode == 1
         assert json.loads(completed.stdout)["version_match"] is False
 
@@ -48,10 +50,11 @@ def test_labeled_safety_corpus_reports_precision_recall_and_latency() -> None:
         binary = temp / "skill-forge"
         fake_binary(binary, "0.14.0")
         output = temp / "result.json"
+        environment = {**os.environ, "RHIZE_EVAL_SENTINEL_SECRET": "must-not-reach-scanner"}
         completed = subprocess.run([
             "python3", str(EVAL / "integration_eval.py"), "safety", "--checkout", str(checkout),
             "--binary", str(binary), "--repetitions", "2", "--output", str(output)
-        ], cwd=REPO, capture_output=True, text=True)
+        ], cwd=REPO, capture_output=True, text=True, env=environment)
         assert completed.returncode == 0, completed.stdout + completed.stderr
         result = json.loads(output.read_text())
         assert result["corpus_cases"] == 6 and result["repetitions"] == 2
@@ -61,21 +64,39 @@ def test_labeled_safety_corpus_reports_precision_recall_and_latency() -> None:
 
 def test_evolve_pre_post_reservation_and_noninferiority_validator() -> None:
     with tempfile.TemporaryDirectory() as temporary:
-        root = Path(temporary) / "pair"
-        completed = subprocess.run([
-            "python3", str(EVAL / "evolve_contract.py"), "reserve", "--pre-digest", "a" * 64,
-            "--post-digest", "b" * 64, "--repetition", "1", "--comparison-id", str(uuid.uuid4()), "--output", str(root)
-        ], cwd=REPO, capture_output=True, text=True)
-        assert completed.returncode == 0, completed.stdout + completed.stderr
+        root = Path(temporary) / "cohort"
+        root.mkdir()
         metrics = {
-            "accuracy": 1.0, "routing_precision": 1.0, "routing_recall": 1.0,
+            "correctness_accuracy": 1.0, "routing_precision": 1.0, "routing_recall": 1.0,
             "tokens_input": 10, "tokens_output": 10, "tokens_cache_read": 0, "tokens_cache_write": 0,
             "latency_ms": 100, "tool_calls": 1, "follow_up_reads": 0, "corrections": 0,
             "rework_events": 0, "failures": 0, "refusals": 0
         }
-        for run_dir in (path for path in root.iterdir() if path.is_dir()):
-            context = json.loads((run_dir / "RUN_CONTEXT.json").read_text())
-            (run_dir / "receipt.json").write_text(json.dumps({**context, "metrics": metrics}) + "\n")
+        for repetition in (1, 2, 3):
+            pair = root / f"pair-{repetition}"
+            completed = subprocess.run([
+                "python3", str(EVAL / "evolve_contract.py"), "reserve", "--pre-digest", "a" * 64,
+                "--post-digest", "b" * 64, "--repetition", str(repetition),
+                "--comparison-id", str(uuid.uuid4()), "--output", str(pair)
+            ], cwd=REPO, capture_output=True, text=True)
+            assert completed.returncode == 0, completed.stdout + completed.stderr
+            for run_dir in (path for path in pair.iterdir() if path.is_dir()):
+                context = json.loads((run_dir / "RUN_CONTEXT.json").read_text())
+                (run_dir / "receipt.json").write_text(json.dumps({**context, "metrics": metrics}) + "\n")
         check = subprocess.run(["python3", str(EVAL / "evolve_contract.py"), "validate", str(root)], cwd=REPO, capture_output=True, text=True)
         assert check.returncode == 0, check.stdout + check.stderr
         assert all(json.loads(check.stdout)["non_inferiority"].values())
+
+
+def test_evolve_validator_rejects_an_incomplete_cohort() -> None:
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary) / "pair"
+        completed = subprocess.run([
+            "python3", str(EVAL / "evolve_contract.py"), "reserve", "--pre-digest", "a" * 64,
+            "--post-digest", "b" * 64, "--repetition", "1", "--comparison-id", str(uuid.uuid4()),
+            "--output", str(root)
+        ], cwd=REPO, capture_output=True, text=True)
+        assert completed.returncode == 0, completed.stdout + completed.stderr
+        check = subprocess.run(["python3", str(EVAL / "evolve_contract.py"), "validate", str(root)], cwd=REPO, capture_output=True, text=True)
+        assert check.returncode == 1
+        assert "incomplete-three-pair-cohort" in json.loads(check.stdout)["errors"]

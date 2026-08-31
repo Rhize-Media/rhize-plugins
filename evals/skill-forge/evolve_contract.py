@@ -12,17 +12,40 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 METRICS = {
-    "accuracy", "routing_precision", "routing_recall", "tokens_input", "tokens_output",
+    "correctness_accuracy", "routing_precision", "routing_recall", "tokens_input", "tokens_output",
     "tokens_cache_read", "tokens_cache_write", "latency_ms", "tool_calls", "follow_up_reads",
     "corrections", "rework_events", "failures", "refusals"
 }
+RESERVATION_FIELDS = {
+    "schema_version", "comparison_id", "repetition", "order", "digests", "arm_a", "arm_b",
+    "adopt", "network",
+}
+CONTEXT_FIELDS = {
+    "run_id", "comparison_id", "variant", "arm_actual", "digest", "repetition",
+    "order_position",
+}
+
+
+def canonical_uuid(value: str, label: str) -> str:
+    parsed = uuid.UUID(value)
+    if str(parsed) != value.lower():
+        raise ValueError(f"{label} must be a canonical lowercase UUID")
+    return value
+
+
+def valid_digest(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(char in "0123456789abcdef" for char in value)
+    )
 
 
 def reserve(args: argparse.Namespace) -> int:
     manifest = json.loads((ROOT / "evolve-benchmark.json").read_text())
     if args.repetition not in (1, 2, 3):
         raise ValueError("repetition must be 1, 2, or 3")
-    uuid.UUID(args.comparison_id)
+    canonical_uuid(args.comparison_id, "comparison-id")
     for digest in (args.pre_digest, args.post_digest):
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
             raise ValueError("digests must be lowercase SHA-256")
@@ -48,34 +71,100 @@ def reserve(args: argparse.Namespace) -> int:
 
 
 def validate(args: argparse.Namespace) -> int:
+    manifest = json.loads((ROOT / "evolve-benchmark.json").read_text())
+    expected_repetitions = set(range(1, manifest["repetitions"] + 1))
     rows = []
     errors = []
+    repetitions = set()
+    digest_sets = set()
     for reservation_path in sorted(args.root.rglob("PAIR_RESERVATION.json")):
+        reservation = json.loads(reservation_path.read_text())
+        if set(reservation) != RESERVATION_FIELDS:
+            errors.append("reservation-fields")
+            continue
+        repetition = reservation.get("repetition")
+        if not isinstance(repetition, int) or isinstance(repetition, bool):
+            errors.append("reservation-repetition")
+            continue
+        if repetition in repetitions:
+            errors.append("duplicate-repetition")
+        repetitions.add(repetition)
+        if repetition not in expected_repetitions:
+            errors.append("reservation-repetition")
+        expected_order = manifest["order_by_repetition"].get(str(repetition))
+        if reservation.get("order") != expected_order:
+            errors.append("reservation-order")
+        if reservation.get("schema_version") != "skill-forge-evolve-reservation-v1":
+            errors.append("reservation-schema")
+        try:
+            canonical_uuid(reservation.get("comparison_id"), "comparison_id")
+        except (ValueError, TypeError, AttributeError):
+            errors.append("reservation-comparison-id")
+        digests = reservation.get("digests")
+        if (
+            not isinstance(digests, dict)
+            or set(digests) != {"pre", "post"}
+            or not all(valid_digest(digests[variant]) for variant in ("pre", "post"))
+        ):
+            errors.append("reservation-digests")
+            digests = {}
+        else:
+            digest_sets.add((digests["pre"], digests["post"]))
+        if reservation.get("arm_a") != manifest["arm_a"] or reservation.get("arm_b") != manifest["arm_b"]:
+            errors.append("reservation-arms")
+        if reservation.get("adopt") is not False or reservation.get("network") is not False:
+            errors.append("reservation-boundary")
         seen = set()
         for run in sorted(path for path in reservation_path.parent.iterdir() if path.is_dir()):
             context = json.loads((run / "RUN_CONTEXT.json").read_text())
+            if set(context) != CONTEXT_FIELDS:
+                errors.append("context-fields")
+                continue
+            if context.get("comparison_id") != reservation.get("comparison_id") or context.get("repetition") != repetition:
+                errors.append("context-reservation")
+            variant = context.get("variant")
+            position = context.get("order_position")
+            if variant not in {"pre", "post"} or not isinstance(position, int) or isinstance(position, bool):
+                errors.append("context-order")
+            elif not isinstance(expected_order, list) or not 1 <= position <= 2 or expected_order[position - 1] != variant:
+                errors.append("context-order")
+            expected_arm = "A" if variant == "pre" else "B"
+            if context.get("arm_actual") != expected_arm or context.get("digest") != digests.get(variant):
+                errors.append("context-arm")
+            try:
+                canonical_uuid(context.get("run_id"), "run_id")
+            except (ValueError, TypeError, AttributeError):
+                errors.append("context-run-id")
             receipt_path = run / "receipt.json"
             if not receipt_path.exists():
                 errors.append("missing-receipt")
                 continue
             receipt = json.loads(receipt_path.read_text())
-            if any(receipt.get(key) != value for key, value in context.items()) or set(receipt.get("metrics", {})) != METRICS:
+            if set(receipt) != CONTEXT_FIELDS | {"metrics"} or any(receipt.get(key) != value for key, value in context.items()) or set(receipt.get("metrics", {})) != METRICS:
                 errors.append("receipt-contract")
                 continue
-            if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0 for value in receipt["metrics"].values()):
+            metrics = receipt["metrics"]
+            if not all(isinstance(value, (int, float)) and not isinstance(value, bool) and value >= 0 for value in metrics.values()):
                 errors.append("metric-values")
                 continue
-            seen.add(receipt["variant"])
+            if any(metrics[key] > 1 for key in ("correctness_accuracy", "routing_precision", "routing_recall")):
+                errors.append("metric-ratios")
+                continue
+            seen.add(variant)
             rows.append(receipt)
         if seen != {"pre", "post"}:
             errors.append("missing-arm")
+    if repetitions != expected_repetitions:
+        errors.append("incomplete-three-pair-cohort")
+    if len(digest_sets) != 1:
+        errors.append("cohort-digest-mismatch")
     by_variant = {variant: [row["metrics"] for row in rows if row["variant"] == variant] for variant in ("pre", "post")}
     result = {"status": "fail", "pairs": len(rows) // 2, "errors": errors, "non_inferiority": {}}
-    if by_variant["pre"] and by_variant["post"] and not errors:
+    if len(by_variant["pre"]) == len(by_variant["post"]) == manifest["repetitions"] and not errors:
         med = {variant: {metric: statistics.median(row[metric] for row in values) for metric in METRICS} for variant, values in by_variant.items()}
-        thresholds = json.loads((ROOT / "evolve-benchmark.json").read_text())["non_inferiority"]
+        thresholds = manifest["non_inferiority"]
         checks = {
-            "accuracy": med["post"]["accuracy"] - med["pre"]["accuracy"] >= thresholds["minimum_accuracy_delta"],
+            "correctness_accuracy": med["post"]["correctness_accuracy"] - med["pre"]["correctness_accuracy"] >= thresholds["minimum_accuracy_delta"],
             "routing_precision": med["post"]["routing_precision"] - med["pre"]["routing_precision"] >= thresholds["minimum_routing_precision_delta"],
             "routing_recall": med["post"]["routing_recall"] - med["pre"]["routing_recall"] >= thresholds["minimum_routing_recall_delta"],
             "latency": med["post"]["latency_ms"] <= med["pre"]["latency_ms"] * (1 + thresholds["maximum_latency_increase_fraction"]),

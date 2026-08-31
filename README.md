@@ -25,7 +25,7 @@ All plugins below will become available for installation. Each plugin may need i
 | [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.14.0 | 3 | Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-tasks](./rhize-tasks) | 0.3.1 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 | [rhize-cowork](./rhize-cowork) | 0.1.0 | 1 | Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging). | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
-| [procedural-memory](./procedural-memory) | 0.4.0 | 2 | Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
+| [procedural-memory](./procedural-memory) | 0.4.1 | 2 | Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
@@ -118,7 +118,7 @@ skill-map changes live under [`docs/superpowers/specs/`](./docs/superpowers/spec
 
 ## Repository Tooling
 
-- **[`evals/`](./evals/README.md)** — Python eval harnesses for trigger/output quality plus real-provider context-tool dogfood. Coverage remains partial; `evals/context-tools` keeps real benchmark rows separate from test-local failure doubles.
+- **[`evals/`](./evals/README.md)** — local/free coverage gates account for all 56 published plugin skills, alongside live trigger/output harnesses, real-provider context-tool dogfood, strict benefit-benchmark contracts, a separate Superpowers/Rhize guide comparison, and SkillForge safety/evolve integration. Complete deterministic inventory does not imply complete live evidence: pending cohorts stay explicit, and `evals/context-tools` keeps real benchmark rows separate from test-local failure doubles.
 - **[`skills/rhize-review/SKILL.md`](./skills/rhize-review/SKILL.md)** — a standalone merge-gate review skill that lives at the repo root, outside any plugin. It isn't installed through the marketplace and isn't listed in `marketplace.json`; it's a repo-local tool that dispatches specialist reviewer subagents before a production merge.
 - **`scripts/validate_plugin_configs.py`** — dependency-free lint over every plugin's `hooks/hooks.json` and `.mcp.json`, written after three separate 2026-08 incidents (unquoted `${CLAUDE_PLUGIN_ROOT}` word-splitting a hook command, a secret-shaped `${VAR}` left in a stdio MCP server's `env` block, a trailing-slash `*_BASE_URL` doubling every request path). Registered in `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` in default (warning) mode — only genuine errors block a release; run with `--strict` to promote warnings, or see the script's docstring for the per-finding suppression mechanism.
 
@@ -169,7 +169,7 @@ To add a new plugin:
 3. Register the plugin in `.claude-plugin/marketplace.json`, keeping its `version` in sync with the plugin's own `.claude-plugin/plugin.json`.
 4. Add an entry to the Plugin Catalog table above.
 5. Add a `CHANGELOG.md` entry.
-6. Consider adding eval coverage under `evals/` (see `evals/README.md`).
+6. Add complete eval coverage under `evals/` (see `evals/README.md`): routing cases, a local quality contract, and an exact benchmark applicability record for every new skill.
 
 Opening a pull request? The PR template (`.github/PULL_REQUEST_TEMPLATE.md`) walks through
 the curation and documentation checks above. Filing a bug or proposing a new plugin/skill?

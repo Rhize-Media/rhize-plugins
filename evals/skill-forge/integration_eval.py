@@ -17,12 +17,38 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 
 
+def isolated_environment(home: Path, temporary: Path) -> dict[str, str]:
+    """Expose process-launch essentials, never ambient credentials or config."""
+    environment = {
+        key: os.environ[key]
+        for key in ("PATH", "LANG", "LC_ALL")
+        if os.environ.get(key)
+    }
+    environment.update({
+        "HOME": str(home),
+        "SKILL_FORGE_HOME": str(home),
+        "TMPDIR": str(temporary),
+        "NO_COLOR": "1",
+    })
+    return environment
+
+
 def command_for(binary: Path) -> list[str]:
     return ["node", str(binary)] if binary.suffix == ".js" else [str(binary)]
 
 
 def version(command: list[str]) -> str:
-    result = subprocess.run(command + ["--version"], capture_output=True, text=True, check=False)
+    with tempfile.TemporaryDirectory(prefix="skill-forge-version-") as temporary:
+        temp = Path(temporary)
+        home = temp / "home"
+        home.mkdir()
+        result = subprocess.run(
+            command + ["--version"],
+            capture_output=True,
+            text=True,
+            check=False,
+            env=isolated_environment(home, temp),
+        )
     if result.returncode != 0:
         raise ValueError(f"Skill Forge version probe failed with exit {result.returncode}")
     return result.stdout.strip()
@@ -62,6 +88,8 @@ def parse_gate_output(stdout: str) -> dict[str, Any]:
 
 
 def safety(args: argparse.Namespace) -> int:
+    if args.repetitions < 1:
+        raise ValueError("repetitions must be at least 1")
     command, checkout_version, binary_version = resolve(args.checkout, args.binary)
     if checkout_version is not None and checkout_version != binary_version:
         raise ValueError(f"checkout {checkout_version} does not match executable {binary_version}")
@@ -78,7 +106,7 @@ def safety(args: argparse.Namespace) -> int:
             "skillsRoots": [str(skills_root)], "defaultTarget": str(skills_root),
             "quarantineDir": str(quarantine), "strictness": corpus["strictness"]
         }))
-        env = {**os.environ, "SKILL_FORGE_HOME": str(home)}
+        env = isolated_environment(home, temp)
         for case in corpus["cases"]:
             fixture = ROOT / case["fixture"]
             latencies = []

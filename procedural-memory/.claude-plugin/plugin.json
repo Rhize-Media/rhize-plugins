@@ -1,6 +1,6 @@
 {
   "name": "procedural-memory",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code.",
   "author": {
     "name": "Rhize Media"
