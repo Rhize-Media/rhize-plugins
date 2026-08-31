@@ -8,6 +8,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-31_ **centralized evaluation setup foundation.** Added a schema-2 setup binding and
+  central catalog for all nine custom plugin surfaces plus SkillForge; product-domain grouping;
+  exact incumbent/greenfield/declined baseline decisions; immediate free/offline smoke execution;
+  private idempotent local state; and append-only, source-free Arm A/Arm B receipt lifecycle tools.
+  The component setup wizards now delegate to the central evaluation subflow. Obsidian is grouped
+  with Context Manager and Procedural Memory under Knowledge & Context, while Rhize Ops owns the
+  shared engine. `aggressive_local` records capture policy but is not reported active until a
+  component lifecycle adapter actually calls reserve/finalize; live, paid, scheduled, credentialed,
+  and externally mutating seeds remain separately authorized.
 - _2026-08-31_ version bump — **procedural-memory** 0.4.0 → 0.4.1 (patch); marketplace 2.53.0 → 2.53.1.
 - _2026-08-31_ **complete deterministic eval inventory and aggressive benchmark contracts.**
   Added local/free routing, collision, and static quality coverage for all 56 published Rhize

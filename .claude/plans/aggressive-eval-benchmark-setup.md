@@ -1,6 +1,6 @@
 # Aggressive Eval Coverage and Benchmark Establishment
 
-Status: implementation plan
+Status: implementation in progress; deterministic coverage and centralized setup foundation built
 Owner: `rhize-ops` central setup, with component-owned eval adapters
 Scope: every published custom Rhize plugin skill plus `@rhize/skill-forge`
 Evidence rule: observational data may guide investigation, but product-benefit claims require a matched controlled Arm A/Arm B cohort.
@@ -162,14 +162,12 @@ Never estimate unavailable token/tool counters. Never treat lower token use as a
 
 ## Central setup-manifest contract
 
-Add an actual JSON Schema owned by `rhize-ops`, then migrate safely:
+The implementation uses one centralized, versioned catalog instead of duplicating runner and
+benchmark paths in every plugin manifest. `rhize-ops` owns the catalog, JSON Schemas, validator,
+local state, and receipt lifecycle; component repositories continue to own the eval runners and
+protocols referenced by the catalog.
 
-1. Teach the wizard and validator to accept existing schema 1 plus the new schema 2.
-2. Schema 1 remains readable during migration but reports `evaluation catalog missing` and cannot pass the release coverage gate.
-3. Migrate all seven current `setup/manifest.json` files to schema 2.
-4. Require schema 2 for newly published versions after every current plugin has migrated.
-
-Schema 2 preserves `items` and `dependencies` and adds one `evaluations` object:
+Schema 2 preserves `items` and `dependencies` and adds a strict catalog binding:
 
 ```jsonc
 {
@@ -178,34 +176,24 @@ Schema 2 preserves `items` and `dependencies` and adds one `evaluations` object:
   "items": [],
   "dependencies": [],
   "evaluations": {
-    "coverage": "setup/eval-coverage.json",
-    "suites": [
-      {
-        "id": "context-deterministic",
-        "kind": "python",
-        "path": "skills/context-stack/scripts/eval.py",
-        "args": ["--deterministic"],
-        "network": "none",
-        "cost": "free",
-        "timeoutSeconds": 120
-      }
-    ],
-    "benchmarks": [
-      {
-        "id": "context-existing-vs-stack",
-        "protocol": "setup/benchmarks/context-existing-vs-stack.json",
-        "captureAdapter": "setup/adapters/context-capture.json"
-      }
-    ]
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-context-manager"
   }
 }
 ```
 
+All nine current plugin surfaces now have schema-2 manifests, including the newly cataloged
+Procedural Memory and Rhize Cowork manifests. Schema 1 remains readable by the dependency/hook
+wizard during migration, but reports `evaluation catalog missing` and cannot pass the central
+evaluation validator. The central catalog also covers the SkillForge package as an explicit-input
+component without pretending that it is a plugin or automatically selecting an executable from
+`PATH`.
+
 Security constraints:
 
 - formalize the currently used `runtime` and `platform` dependency kinds alongside `plugin`, `cli`, `mcp`, and `data`, and give the wizard deterministic probes for each rather than accepting undocumented values;
-- `path` is a plugin-relative file path, not an arbitrary shell command;
-- the validator rejects traversal, absolute paths, symlinks escaping the plugin root, unknown runner kinds, and unbounded timeouts;
+- `path` is a repository-relative file path, not an arbitrary shell command;
+- the validator rejects traversal, absolute paths, symlinks escaping the repository root, unknown runner kinds, and unbounded timeouts;
 - `args` is an array passed without shell interpolation;
 - network and cost are explicit enums, and anything non-free or networked requires literal effect-specific authorization at run time;
 - setup never installs a dependency, schedules a job, wires a hook, or runs a live benchmark merely because a manifest declares it.
@@ -318,6 +306,29 @@ Coordinator-owned shared files:
 - document migration and failure states.
 
 Verify: schema tests, path-escape tests, exact-key/privacy tests, file modes, idempotent config migration, and real CLI interface runs.
+
+Implemented foundation impact map (exact coordinator-owned paths):
+
+- contracts and runtime: `rhize-ops/setup/evaluation-catalog.json`,
+  `rhize-ops/schemas/evaluation-catalog-v1.schema.json`,
+  `rhize-ops/schemas/evaluation-config-v1.schema.json`,
+  `rhize-ops/schemas/evaluation-receipt-v1.schema.json`,
+  `rhize-ops/schemas/setup-manifest-v2.schema.json`, and
+  `rhize-ops/scripts/evaluation_setup.py`;
+- central wizard/docs/security: `rhize-ops/commands/rhize-setup.md`, `rhize-ops/README.md`,
+  `rhize-ops/GUIDE.md`, `CHANGELOG.md`, `SECURITY.md`, `scripts/build_skill_map.py`, and the required
+  regenerated artifact `generated/skill-map.static.json`;
+- schema-2 manifests: `obsidian-second-brain/setup/manifest.json`,
+  `project-launcher/setup/manifest.json`, `procedural-memory/setup/manifest.json`,
+  `rhize-context-manager/setup/manifest.json`, `rhize-cowork/setup/manifest.json`,
+  `rhize-devflow/setup/manifest.json`, `rhize-ops/setup/manifest.json`,
+  `rhize-tasks/setup/manifest.json`, and `seo-aeo-geo/setup/manifest.json`;
+- component wizard handoffs: `obsidian-second-brain/commands/vault-setup.md`,
+  `rhize-context-manager/commands/context-setup.md`, `rhize-devflow/commands/devflow-setup.md`,
+  `rhize-ops/commands/delegate-setup.md`, and
+  `rhize-tasks/skills/rhize-tasks-setup/SKILL.md`;
+- benchmark/tests/plan: `evals/procedural-memory/benchmark_spec.json`,
+  `tests/rhize-ops/test_evaluation_setup.py`, and this plan.
 
 ### Phase 2 — component adapters (parallel after Phase 1)
 

@@ -1,0 +1,10 @@
+{
+  "schema": 2,
+  "plugin": "rhize-cowork",
+  "items": [],
+  "dependencies": [],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-cowork"
+  }
+}

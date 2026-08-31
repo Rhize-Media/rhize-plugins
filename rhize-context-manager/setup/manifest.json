@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "rhize-context-manager",
   "items": [
     {
@@ -165,5 +165,9 @@
         "warning": "this is the plugin's own documented fallback — CodeGraph indexing is the user's decision to opt into per repo, not something a hand-rolled index should try to replicate."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-context-manager"
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "obsidian-second-brain",
   "items": [],
   "dependencies": [
@@ -58,5 +58,9 @@
         "warning": "do not replace the deterministic engine with model-written hashing, policy, or transaction logic; that would break host parity and provenance guarantees."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "obsidian-second-brain"
+  }
 }

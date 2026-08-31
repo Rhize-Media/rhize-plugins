@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "plugin": "seo-aeo-geo",
   "items": [],
   "dependencies": [
@@ -14,5 +14,9 @@
         "warning": "DataForSEO aggregates and normalizes multiple upstream data sources (Google, Bing, backlink crawlers) behind one maintained API. A DIY scraper needs rebuilding every time a search engine changes its markup, and you'd lose DataForSEO's data-quality and dedup work entirely — get a DataForSEO account instead."
       }
     }
-  ]
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "seo-aeo-geo"
+  }
 }

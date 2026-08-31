@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "status": "pending",
+  "repetitions": 3,
+  "arm_a": "User-confirmed existing repeated workflow, script, checklist, or tool",
+  "arm_b": "procedural-memory or functionize path under evaluation",
+  "skills": ["functionize", "procedural-memory"],
+  "metrics": [
+    "correctness", "verification_completion", "routing_precision", "routing_recall",
+    "tokens_by_exposed_category", "latency_ms", "tool_calls", "follow_up_reads",
+    "corrections", "rework_events", "failures", "refusals"
+  ],
+  "constraints": [
+    "Use the same normalized task and validation contract for both arms.",
+    "Record the actual arm and exact implementation digest before execution.",
+    "Keep portable vendor cases separate from local deterministic routing contracts.",
+    "Do not claim benefit until all three matched pairs pass correctness and non-inferiority gates."
+  ],
+  "results": []
+}

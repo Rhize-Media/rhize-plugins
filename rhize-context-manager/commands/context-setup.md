@@ -130,6 +130,20 @@ or hook wiring, name it explicitly and point at `/rhize-setup` rather than attem
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+### Step 6 — Establish the evaluation baseline
+
+After writing and reporting the context stack, continue with:
+
+```text
+/rhize-ops:rhize-setup --plugin rhize-context-manager --evaluations
+```
+
+Register the exact pre-plugin context workflow and frozen version/SHA as Arm A. Preserve the
+existing strict comparability rules: immediate deterministic validation is recommended, natural
+capture is observational, and same-day rows are not a matched cohort without input identity,
+step timing, and ordered execution. This command still owns stack config only; the central Ops
+subflow owns evaluation state and receipts.
+
 ## Related Commands
 - `/context-doctor` — read-only health check; run this first if you want fresh probe data
 - `context-stack` skill — the routing/coexistence rules this command applies

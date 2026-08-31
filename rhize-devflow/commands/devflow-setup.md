@@ -119,6 +119,14 @@ Tell the user:
   this file is never auto-populated
 - Re-run this command in any other repo that needs the same local-tenant-file setup
 
+### 7. Establish the evaluation baseline
+
+Continue with `/rhize-ops:rhize-setup --plugin rhize-devflow --evaluations`. Ask the user to
+identify the exact incumbent review/test/debug workflow as Arm A, then run the free/offline seed.
+Correctness and rework are primary gates; token or latency reductions never compensate for a
+regression. Keep tenant-file contents, repository paths, error messages, and Sentry identifiers out
+of receipts.
+
 ## Related
 
 - `error-lifecycle-management` skill — reads the public `error-patterns.md` reference;

@@ -1,0 +1,22 @@
+{
+  "schema": 2,
+  "plugin": "procedural-memory",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "rhize-skill CLI",
+      "kind": "cli",
+      "purpose": "Provides the local procedural registry, recall, verification, and execution surface.",
+      "required": true,
+      "degradedBehavior": "The plugin can describe its contracts but cannot recall, verify, or execute registry artifacts.",
+      "replacement": {
+        "suggestion": "Install the supported rhize-skill CLI used by the plugin wrappers.",
+        "warning": "A second hand-built registry would split provenance and trust state; use the maintained CLI instead."
+      }
+    }
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "procedural-memory"
+  }
+}

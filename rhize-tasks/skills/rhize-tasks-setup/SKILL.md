@@ -20,5 +20,9 @@ Guide the user through the authenticated local dashboard's seven resumable stage
 4. Require an exact preview and explicit approval before expanding source scope or performing the reversible sample write.
 5. Show the displayed plan revision before approval. On a revision conflict, refresh and ask the user to review the new preview.
 6. Setup is active only after preferences are saved and the first plan is approved.
+7. After activation, continue with `/rhize-ops:rhize-setup --plugin rhize-tasks --evaluations`.
+   Confirm the exact incumbent task-capture/today workflow as Arm A and run the free/offline seed.
+   Never call Jira, Calendar, Reminders, or Slack merely to create benchmark data; eligible natural
+   receipts begin only on real approved work and contain no issue text, event labels, names, or IDs.
 
 Use the installed local CLI, service, or dashboard as the single planning authority. Do not call Jira, Google Calendar, Apple Reminders, or Slack directly. Preserve saved preferences, approval boundaries, and current revision; do not improvise connector writes.

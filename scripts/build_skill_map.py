@@ -647,7 +647,7 @@ def load_manifest_hooks(graph: Graph, plugin_name: str, plugin_dir: Path) -> Non
     data = json.loads(manifest_path.read_text())
     for item in data.get("items", []):
         # setup/manifest.json items are hooks in every plugin observed in
-        # this repo (schema 1: {id, title, tier, event, matcher?, command,
+        # this repo (schema 1/2 items: {id, title, tier, event, matcher?, command,
         # description, default}). Restrict to items that look like a hook
         # (have an "event" field) so this stays correct if a future manifest
         # schema adds non-hook item kinds; the schema is where event

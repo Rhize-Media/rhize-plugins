@@ -531,3 +531,21 @@ Add to the Skipped Items in the setup log:
 ```
 
 Say: "No problem — all commands work without qmd using keyword search. You can set it up anytime by running `npm install -g qmd` and then `/vault-setup resume` to pick up where we left off."
+
+---
+
+## Phase 8: Establish the evaluation baseline
+
+After the vault interface and optional qmd setup are settled, continue into the central evaluation
+subflow:
+
+```text
+/rhize-ops:rhize-setup --plugin obsidian-second-brain --evaluations
+```
+
+Recommend establishing the user's current vault-search, manual retrieval, or review workflow as
+Arm A before relying on the plugin as Arm B. Confirm the exact incumbent label/version and how the
+same-vault answer will be validated; do not infer them from vault contents. Run the free/offline
+deterministic seed immediately. Offer aggressive local receipt capture separately, without storing
+note text, vault paths, note names, or query bodies. Never run a live private-vault cohort merely to
+populate a benchmark.
