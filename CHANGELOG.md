@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-31_ version bump — **obsidian-second-brain** 1.5.0 → 1.6.0 (minor); **procedural-memory** 0.4.1 → 0.5.0 (minor); **project-launcher** 1.7.3 → 1.8.0 (minor); **rhize-context-manager** 0.22.0 → 0.23.0 (minor); **rhize-cowork** 0.1.0 → 0.2.0 (minor); **rhize-devflow** 2.17.0 → 2.18.0 (minor); **rhize-ops** 0.14.0 → 0.15.0 (minor); **rhize-tasks** 0.3.1 → 0.4.0 (minor); **seo-aeo-geo** 1.4.3 → 1.5.0 (minor); marketplace 2.53.1 → 2.54.0.
 - _2026-08-31_ **centralized evaluation setup foundation.** Added a schema-2 setup binding and
   central catalog for all nine custom plugin surfaces plus SkillForge; product-domain grouping;
   exact incumbent/greenfield/declined baseline decisions; immediate free/offline smoke execution;

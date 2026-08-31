@@ -329,6 +329,12 @@ Implemented foundation impact map (exact coordinator-owned paths):
   `rhize-tasks/skills/rhize-tasks-setup/SKILL.md`;
 - benchmark/tests/plan: `evals/procedural-memory/benchmark_spec.json`,
   `tests/rhize-ops/test_evaluation_setup.py`, and this plan.
+- release metadata: `.claude-plugin/marketplace.json` plus both
+  `<plugin>/.claude-plugin/plugin.json` and `<plugin>/.codex-plugin/plugin.json` for
+  `obsidian-second-brain`, `procedural-memory`, `project-launcher`, `rhize-context-manager`,
+  `rhize-cowork`, `rhize-devflow`, `rhize-ops`, `rhize-tasks`, and `seo-aeo-geo`, plus the
+  Rhize Tasks runtime mirrors `rhize-tasks/package.json` and
+  `rhize-tasks/native/reminders-helper/Resources/Info.plist`.
 
 ### Phase 2 — component adapters (parallel after Phase 1)
 
