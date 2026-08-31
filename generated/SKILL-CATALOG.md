@@ -103,5 +103,6 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 
 | Skill | Description | Topics |
 | --- | --- | --- |
+| `functionize` | Mine repeated CLI usage into redacted Functionize candidates, compile eligible candidates into inert isolated proposal bundles, or record a… | automation, functionize |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 <!-- SKILL-MAP:END -->

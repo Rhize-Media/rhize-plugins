@@ -33,6 +33,7 @@
   { "slug": "sanity", "kind": "stack", "gloss": "Sanity Studio/CMS" },
   { "slug": "seo", "kind": "stack", "gloss": "SEO/AEO/GEO domain tooling (DataForSEO-powered)" },
   { "slug": "testing", "kind": "stack", "gloss": "Browser/E2E testing tooling" },
+  { "slug": "functionize", "kind": "stack", "gloss": "Compile-only Functionize candidate mining, proposal generation, and review" },
   { "slug": "python", "kind": "stack", "gloss": "Python runtimes and tooling" },
   { "slug": "neo4j", "kind": "stack", "gloss": "Neo4j graph database tooling" },
   { "slug": "sentry", "kind": "stack", "gloss": "Sentry error tracking/instrumentation" },

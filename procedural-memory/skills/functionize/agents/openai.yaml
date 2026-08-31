@@ -1,0 +1,4 @@
+interface:
+  display_name: "Functionize"
+  short_description: "Compile repeated CLI patterns into inert proposals"
+  default_prompt: "Use $functionize to mine or compile this repeated CLI workflow into an inert proposal without registering, promoting, or executing it."

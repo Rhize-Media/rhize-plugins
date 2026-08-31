@@ -3,17 +3,17 @@
 Wraps the `rhize-skill` CLI from `Rhize-Media/procedural-memory` — a Git-backed registry of
 proven, working code (skills and CLI-library functions) indexed by description in
 Postgres + pgvector, so a task similar to one already solved re-executes the code that solved
-it instead of an LLM recomposing the workflow from scratch. This plugin is a thin client: it
-never reimplements the registry's provenance, trust-gating, digest-checking, or verification
-logic — every one of those lives in the CLI, and this plugin's job is to invoke it correctly and
-report its output honestly.
+it instead of an LLM recomposing the workflow from scratch. The same runtime also owns Functionize,
+which mines redacted repeated CLI shapes and compiles eligible candidates into inert proposals.
+This plugin is a thin client: it never reimplements registry gates or Functionize's parser,
+redactor, compiler, or review ledger.
 
 Distinct from claude-mem's session-search skills: those retrieve what happened in past
 conversations; this plugin executes proven code that already solves a task.
 
-The canonical skill and launcher contract are shared by Claude Code and Codex. Claude Code exposes
-the four slash commands and advisory hooks; Codex discovers the natural-language skill and its
-self-relative launcher, without claiming Claude's hook lifecycle. Unified memory may
+The two canonical skills and launcher contracts are shared by Claude Code and Codex. Claude Code
+exposes seven slash commands and advisory hooks; Codex discovers both natural-language skills and
+their self-relative launchers, without claiming Claude's hook lifecycle. Unified memory may
 consume procedural metadata only through the versioned, recall-only
 `rhize-procedural-recall-v1` contract. That adapter is not available yet, so memory assembly must
 report the procedural lane as unavailable. It must not parse human CLI output, query registry tables
@@ -34,10 +34,10 @@ python3 -m venv .venv
 This plugin never assumes that checkout lives at any particular path (see "How the CLI is
 resolved" below) — `doctor`'s job is entirely the registry's own readiness, not this plugin's.
 
-Every command or skill invocation here talks to Postgres at the CLI's own default DSN
-(`postgresql://<user>@localhost:5432/procedural_memory`) unless you pass `--dsn` through as an
-extra argument. No plugin-level configuration is needed beyond having a working `rhize-skill`
-somewhere this plugin can find it.
+Registry recall, execution, promotion, and verification use the CLI's own Postgres configuration.
+Functionize mining and compile-only proposal generation are local runtime paths and do not turn a
+proposal into registry state. No plugin-level configuration is needed beyond having a compatible
+`rhize-skill` somewhere this plugin can find it.
 
 ## How the CLI is resolved (portability)
 
@@ -73,10 +73,33 @@ rather than guessing — this degrades to "unchecked," never to a false pass.
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
+| `functionize` | Mine repeated CLI usage into redacted Functionize candidates, compile eligible candidates into inert isolated proposal bundles, or record a… | automation, functionize |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
 ## Commands
+
+### `/functionize`
+
+Mine and redact repeated CLI usage, optionally exporting one candidate or automatically compiling
+eligible candidates into isolated inert proposals. Compilation does not register, approve,
+promote, invoke, or run the generated wrapper.
+
+**Invoked as:** `/procedural-memory:functionize`
+
+### `/functionize-generate`
+
+Compile one exported v2 candidate into an inert proposal bundle. Reports grader status,
+promotability fields, and idempotency without crossing any later gate.
+
+**Invoked as:** `/procedural-memory:functionize-generate`
+
+### `/functionize-review`
+
+Validate and append one digest-bound human candidate decision. Recording review is not generation,
+registration, trust assignment, approval, promotion, verification, or execution.
+
+**Invoked as:** `/procedural-memory:functionize-review`
 
 ### `/promote`
 
@@ -126,11 +149,13 @@ read-only 90-day decay report) is reachable directly via
 procedural-memory/
 ├── .claude-plugin/plugin.json
 ├── .codex-plugin/plugin.json               # Codex skill discovery and UI metadata
-├── commands/{promote,recall,run,verify}.md   # thin wrappers — no reimplemented logic
-├── skills/procedural-memory/
-│   ├── SKILL.md                              # natural-language trigger, same 4 verbs
-│   ├── agents/openai.yaml                    # Codex skill presentation metadata
-│   └── scripts/procedural-memory.sh          # self-relative cross-host launcher
+├── commands/{functionize*,promote,recall,run,verify}.md  # thin wrappers
+├── skills/
+│   ├── procedural-memory/                    # registry reuse and execution gates
+│   └── functionize/                          # compile-only proposal and review surface
+│       ├── SKILL.md
+│       ├── agents/openai.yaml
+│       └── scripts/functionize.sh            # admits only mine/generate/review
 ├── scripts/rhize-skill-launcher.sh           # portable CLI resolver + version gate
 ├── hooks/
 │   ├── hooks.json                            # PostToolUse/Bash + Stop, wired

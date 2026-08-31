@@ -243,6 +243,24 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "command:procedural-memory/functionize",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/functionize-generate",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "command:procedural-memory/functionize-review",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "command:procedural-memory/promote",
       "type": "contains"
     },
@@ -274,6 +292,12 @@
       "from": "plugin:procedural-memory",
       "source": "marketplace",
       "to": "hook:procedural-memory/session-end-scan",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "skill:procedural-memory/functionize",
       "type": "contains"
     },
     {
@@ -1223,6 +1247,30 @@
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "relations-catalog",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "frontmatter",
+      "to": "tag:stack/functionize",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "source": "relations-catalog",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on"
     },
     {
       "from": "skill:procedural-memory/procedural-memory",
@@ -2375,6 +2423,27 @@
       "path": "obsidian-second-brain/commands/vault-setup.md"
     },
     {
+      "description": "Mine and redact repeated CLI usage, optionally exporting or automatically compiling inert Functionize proposals",
+      "id": "command:procedural-memory/functionize",
+      "kind": "command",
+      "name": "functionize",
+      "path": "procedural-memory/commands/functionize.md"
+    },
+    {
+      "description": "Compile one exported Functionize v2 candidate into an inert isolated proposal bundle",
+      "id": "command:procedural-memory/functionize-generate",
+      "kind": "command",
+      "name": "functionize-generate",
+      "path": "procedural-memory/commands/functionize-generate.md"
+    },
+    {
+      "description": "Validate and append a digest-bound human Functionize candidate decision without generating or promoting code",
+      "id": "command:procedural-memory/functionize-review",
+      "kind": "command",
+      "name": "functionize-review",
+      "path": "procedural-memory/commands/functionize-review.md"
+    },
+    {
       "description": "Verify, classify trust, write provenance, commit, and index a staged artifact into the procedural-memory registry",
       "id": "command:procedural-memory/promote",
       "kind": "command",
@@ -2914,6 +2983,12 @@
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
     },
     {
+      "description": "External procedural-memory runtime that owns registry recall/execution gates and the compile-only Functionize candidate, proposal, and review contracts. The packaged skills are thin adapters and do not reimplement or weaken this runtime.",
+      "id": "external:rhize-skill-cli",
+      "kind": "external",
+      "name": "rhize-skill CLI (Rhize-Media/procedural-memory)"
+    },
+    {
       "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
       "id": "external:sanity-plugin",
       "kind": "external",
@@ -3303,7 +3378,7 @@
       "path": "obsidian-second-brain"
     },
     {
-      "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
+      "description": "Wraps the Rhize-Media/procedural-memory runtime through two bounded surfaces: digest-, trust-, and health-gated registry reuse, plus compile-only Functionize mining, inert proposal generation, and digest-bound review. Functionize never registers, approves, promotes, invokes, or executes generated code.",
       "id": "plugin:procedural-memory",
       "kind": "plugin",
       "name": "procedural-memory",
@@ -3437,6 +3512,14 @@
       "kind": "skill",
       "name": "vault-templates",
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
+    },
+    {
+      "contentHash": "a731ef74167eaf2b4c280983e83083a02b88770d096373b5c8ea89b710601354",
+      "description": "Mine repeated CLI usage into redacted Functionize candidates, compile eligible candidates into inert isolated proposal bundles, or record a digest-bound human review. Use when asked to Functionize a repeated shell workflow, generate a reusable CLI-wrapper proposal, inspect gotcha-bearing command patterns, compile an exported Functionize candidate, or record a Functionize review. Generation never registers, trusts, approves, promotes, invokes, or runs the generated wrapper; use procedural-memory only after those separate gates are explicitly reached.",
+      "id": "skill:procedural-memory/functionize",
+      "kind": "skill",
+      "name": "functionize",
+      "path": "procedural-memory/skills/functionize/SKILL.md"
     },
     {
       "contentHash": "15d20f1b59c134066b7d13ec8db17e35d9f598d8425b78333800cf9fcca0fe3c",
@@ -3815,6 +3898,12 @@
       "description": "A static type check failed (tsc, mypy, or equivalent)",
       "id": "tag:condition/type-error",
       "kind": "tag"
+    },
+    {
+      "description": "Compile-only Functionize candidate mining, proposal generation, and review",
+      "id": "tag:stack/functionize",
+      "kind": "tag",
+      "name": "functionize"
     },
     {
       "description": "Neo4j graph database tooling",

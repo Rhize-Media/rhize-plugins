@@ -112,6 +112,12 @@
       "kind": "external",
       "name": "superpowers:finishing-a-development-branch (skill)",
       "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence."
+    },
+    {
+      "id": "external:rhize-skill-cli",
+      "kind": "external",
+      "name": "rhize-skill CLI (Rhize-Media/procedural-memory)",
+      "description": "External procedural-memory runtime that owns registry recall/execution gates and the compile-only Functionize candidate, proposal, and review contracts. The packaged skills are thin adapters and do not reimplement or weaken this runtime."
     }
   ],
   "edges": [
@@ -256,6 +262,18 @@
     {
       "from": "skill:rhize-devflow/completed-branch-promotion",
       "to": "external:superpowers-finishing-development-branch",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:procedural-memory/functionize",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:procedural-memory/procedural-memory",
+      "to": "external:rhize-skill-cli",
       "type": "depends-on",
       "source": "relations-catalog"
     }

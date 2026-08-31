@@ -1,6 +1,41 @@
 {
-  "_comment": "Declarative walk specs for scripts/query_skill_map.py — the two-tier query layer's second tier (materialized generated/skill-map.indexes.json covers hot paths; these seven named queries cover everything else). Cypher-shaped without Cypher: start set -> edge steps -> output, so a spec ports mechanically if the map ever moves to a real graph DB. One Python walker interprets this file; hooks never use it (see docs/skill-map.md's query layer section).",
+  "_comment": "Declarative walk specs for scripts/query_skill_map.py — the two-tier query layer's second tier (materialized generated/skill-map.indexes.json covers hot paths; named queries cover everything else). Cypher-shaped without Cypher: start set -> edge steps -> output, so a spec ports mechanically if the map ever moves to a real graph DB. One Python walker interprets this file; hooks never use it (see docs/skill-map.md's query layer section).",
   "queries": {
+    "skill-neighborhood": {
+      "description": "Given a skill id, list every incoming and outgoing neighbor grouped by every relationship type in the schema. This is an audit view, not a claim that every type applies to every skill.",
+      "arg": "skillId",
+      "normalizeArg": "skillId",
+      "steps": [
+        { "edge": "contains", "direction": "out", "as": "containsOut" },
+        { "edge": "contains", "direction": "in", "as": "containsIn" },
+        { "edge": "topic-tag", "direction": "out", "as": "topicTagOut" },
+        { "edge": "topic-tag", "direction": "in", "as": "topicTagIn" },
+        { "edge": "stack-tag", "direction": "out", "as": "stackTagOut" },
+        { "edge": "stack-tag", "direction": "in", "as": "stackTagIn" },
+        { "edge": "fork-of", "direction": "out", "as": "forkOfOut" },
+        { "edge": "fork-of", "direction": "in", "as": "forkOfIn" },
+        { "edge": "supersedes", "direction": "out", "as": "supersedesOut" },
+        { "edge": "supersedes", "direction": "in", "as": "supersedesIn" },
+        { "edge": "overlaps-with", "direction": "out", "as": "overlapsWithOut" },
+        { "edge": "overlaps-with", "direction": "in", "as": "overlapsWithIn" },
+        { "edge": "depends-on", "direction": "out", "as": "dependsOnOut" },
+        { "edge": "depends-on", "direction": "in", "as": "dependsOnIn" },
+        { "edge": "replaces", "direction": "out", "as": "replacesOut" },
+        { "edge": "replaces", "direction": "in", "as": "replacesIn" },
+        { "edge": "usage-cooccurs", "direction": "out", "as": "usageCooccursOut" },
+        { "edge": "usage-cooccurs", "direction": "in", "as": "usageCooccursIn" },
+        { "edge": "extends", "direction": "out", "as": "extendsOut" },
+        { "edge": "extends", "direction": "in", "as": "extendsIn" },
+        { "edge": "precedes", "direction": "out", "as": "precedesOut" },
+        { "edge": "precedes", "direction": "in", "as": "precedesIn" },
+        { "edge": "follows", "direction": "out", "as": "followsOut" },
+        { "edge": "follows", "direction": "in", "as": "followsIn" },
+        { "edge": "augments", "direction": "out", "as": "augmentsOut" },
+        { "edge": "augments", "direction": "in", "as": "augmentsIn" },
+        { "edge": "remediates", "direction": "out", "as": "remediatesOut" },
+        { "edge": "remediates", "direction": "in", "as": "remediatesIn" }
+      ]
+    },
     "what-extends": {
       "description": "Given a skill id, what it extends (deepens) and what extends it.",
       "arg": "skillId",

@@ -429,6 +429,7 @@ Seed queries:
 
 | Query | Arg | Answers |
 |---|---|---|
+| `skill-neighborhood` | skill id | Every incoming and outgoing neighbor, grouped across every edge type in the current schema. Empty groups are retained so an audit can distinguish "not applicable" from an omitted relationship type. |
 | `what-extends` | skill id | What it extends, and what extends it. |
 | `what-augments` | skill id or `tag:topic/<slug>` | Topics it augments, or skills augmenting a topic. |
 | `what-remediates` | condition slug or `tag:condition/<slug>` | Skills declaring a `remediates` edge to that condition. |
@@ -438,6 +439,7 @@ Seed queries:
 | `mcp-dependents` | mcp server name or `mcp:<name>` | Skills declaring a `depends-on` edge to that MCP server. |
 
 ```bash
+python3 scripts/query_skill_map.py skill-neighborhood procedural-memory/functionize
 python3 scripts/query_skill_map.py what-remediates build-failure
 python3 scripts/query_skill_map.py what-follows seo-aeo-geo/content-seo --resolved
 python3 scripts/query_skill_map.py --list

@@ -1,7 +1,7 @@
 {
   "name": "procedural-memory",
-  "version": "0.3.2",
-  "description": "Recall and execute proven registry artifacts through one digest-, trust-, and health-gated skill shared by Claude Code and Codex.",
+  "version": "0.3.3",
+  "description": "Recall and execute proven registry artifacts through digest-, trust-, and health-gated reuse, or compile repeated CLI patterns into inert Functionize proposals without registering or running them.",
   "author": {
     "name": "Rhize Media"
   },
@@ -13,13 +13,15 @@
     "skill-reuse",
     "provenance",
     "trust-gating",
+    "functionize",
+    "proposal-generation",
     "rhize"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Procedural Memory",
-    "shortDescription": "Recall and run proven registry artifacts safely",
-    "longDescription": "Discover and execute already-proven Rhize registry artifacts through one host-neutral skill. Every call uses the canonical launcher and preserves content-digest, provenance, trust, health, and user-approval gates; similarity never grants execution authority.",
+    "shortDescription": "Reuse proven artifacts or compile inert proposals",
+    "longDescription": "Use one host-neutral skill for digest-, trust-, and health-gated registry reuse and a separate Functionize skill for redacted CLI-pattern mining, inert proposal generation, and digest-bound review. Proposal generation never grants registration, trust, approval, promotion, or execution authority.",
     "developerName": "Rhize Media",
     "category": "Developer Tools",
     "capabilities": [
@@ -30,7 +32,8 @@
     "defaultPrompt": [
       "Recall a proven registry artifact for this task.",
       "Run this reviewed registry artifact with its trust gates intact.",
-      "Promote this reusable script after checking its provenance contract."
+      "Promote this reusable script after checking its provenance contract.",
+      "Compile this repeated CLI pattern into an inert Functionize proposal without running it."
     ],
     "websiteURL": "https://rhize.media",
     "brandColor": "#7C3AED"

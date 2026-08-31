@@ -26,6 +26,7 @@ set -eu
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 LAUNCHER="$SCRIPT_DIR/../scripts/rhize-skill-launcher.sh"
 SKILL_LAUNCHER="$SCRIPT_DIR/../skills/procedural-memory/scripts/procedural-memory.sh"
+FUNCTIONIZE_LAUNCHER="$SCRIPT_DIR/../skills/functionize/scripts/functionize.sh"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -135,6 +136,49 @@ set -e
 assert_eq "Test C2 exit code (success passthrough)" "0" "$code"
 assert_contains "Test C2 stub received the real argv" "$WORK/stub-skill-log.txt" \
     "invoked: verify artifact-name"
+
+echo
+echo "=== Test C3: Functionize launcher maps only its three compile-only modes ==="
+rm -f "$WORK/stub-functionize-log.txt"
+set +e
+(cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
+    PATH="$WORK/stub-good/bin:/usr/bin:/bin" STUB_LOG="$WORK/stub-functionize-log.txt" \
+    bash "$FUNCTIONIZE_LAUNCHER" mine git --json) > "$WORK/testC3-mine.out" 2>&1
+mine_code=$?
+(cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
+    PATH="$WORK/stub-good/bin:/usr/bin:/bin" STUB_LOG="$WORK/stub-functionize-log.txt" \
+    bash "$FUNCTIONIZE_LAUNCHER" generate candidate.json --proposal-dir proposals) \
+    > "$WORK/testC3-generate.out" 2>&1
+generate_code=$?
+(cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
+    PATH="$WORK/stub-good/bin:/usr/bin:/bin" STUB_LOG="$WORK/stub-functionize-log.txt" \
+    bash "$FUNCTIONIZE_LAUNCHER" review candidate.json review.json --ledger reviews.jsonl) \
+    > "$WORK/testC3-review.out" 2>&1
+review_code=$?
+set -e
+assert_eq "Test C3 mine exit code" "0" "$mine_code"
+assert_eq "Test C3 generate exit code" "0" "$generate_code"
+assert_eq "Test C3 review exit code" "0" "$review_code"
+assert_contains "Test C3 mine maps to functionize" "$WORK/stub-functionize-log.txt" \
+    "invoked: functionize git --json"
+assert_contains "Test C3 generate maps to functionize-generate" "$WORK/stub-functionize-log.txt" \
+    "invoked: functionize-generate candidate.json --proposal-dir proposals"
+assert_contains "Test C3 review maps to functionize-review" "$WORK/stub-functionize-log.txt" \
+    "invoked: functionize-review candidate.json review.json --ledger reviews.jsonl"
+
+echo
+echo "=== Test C4: Functionize launcher refuses registry and execution commands before CLI resolution ==="
+for forbidden in promote approve verify run; do
+    set +e
+    env -i HOME="$WORK/empty-home" PATH="/usr/bin:/bin" \
+        "$FUNCTIONIZE_LAUNCHER" "$forbidden" artifact-name \
+        > "$WORK/testC4-$forbidden.out" 2>&1
+    code=$?
+    set -e
+    assert_eq "Test C4 refuses $forbidden" "64" "$code"
+    assert_contains "Test C4 names compile-only boundary for $forbidden" \
+        "$WORK/testC4-$forbidden.out" "compile-only modes: mine, generate, review"
+done
 
 echo
 echo "=== Test D: RHIZE_SKILL_BIN set to a non-executable path -> loud refusal, exit 78 ==="

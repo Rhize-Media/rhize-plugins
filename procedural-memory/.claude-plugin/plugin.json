@@ -1,7 +1,7 @@
 {
   "name": "procedural-memory",
-  "version": "0.3.2",
-  "description": "Executes proven, working code from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a workflow from scratch. Wraps the `rhize-skill` CLI: /recall finds an artifact whose description matches a task (Postgres + pgvector semantic search), /run executes it (registry-only, digest-checked, trust-gated), /promote lands a new one, /verify re-runs its sandboxed smoke test. Every artifact carries a provenance contract (input schema, declared env/secrets, verification spec, trust tier); this plugin never bypasses that gate. Distinct from claude-mem/session-search skills — those retrieve what happened, this executes what already works.",
+  "version": "0.3.3",
+  "description": "Wraps the Rhize-Media/procedural-memory `rhize-skill` runtime through two bounded surfaces: digest-, trust-, and health-gated registry reuse, plus compile-only Functionize mining, inert proposal generation, and digest-bound review. Functionize never registers, approves, promotes, invokes, or executes generated code.",
   "author": {
     "name": "Rhize Media"
   },
@@ -14,6 +14,8 @@
     "provenance",
     "trust-gating",
     "pgvector",
+    "functionize",
+    "proposal-generation",
     "rhize"
   ]
 }

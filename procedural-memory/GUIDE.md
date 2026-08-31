@@ -8,13 +8,28 @@ recomposed fresh instead of reused. The `procedural-memory` registry keeps prove
 for tasks like these, each one carrying a real safety contract (what it needs, what it touches,
 how it's been verified). This plugin is how you reach that registry from either Claude Code or
 Codex: find the right artifact, run it with the registry's trust/health gates intact, or add a new
-one once you've captured working code worth reusing.
+one once you've captured working code worth reusing. When a repeated CLI pattern is not yet a
+registry artifact, the separate Functionize surface can mine it and compile an inert proposal for
+review without registering or running anything.
 
-Claude Code provides the four `/procedural-memory:*` commands and advisory session hooks. Codex uses
-the same natural-language skill through its self-relative launcher; it does not claim Claude Code's
-slash-command or hook lifecycle.
+Claude Code provides seven `/procedural-memory:*` commands and advisory session hooks. Codex uses
+the same two natural-language skills through self-relative launchers; it does not claim Claude
+Code's slash-command or hook lifecycle.
 
 ## When to reach for what
+
+- **"Turn this repeated CLI workflow into a reviewable proposal"**
+  → `/procedural-memory:functionize <cli> --auto-compile --proposal-dir <path>`. Mines and
+  redacts repeated CLI shapes, then compiles structurally eligible candidates into isolated inert
+  bundles. It never registers, trusts, approves, promotes, invokes, or runs them.
+
+- **"Compile this exported Functionize candidate"**
+  → `/procedural-memory:functionize-generate <candidate.json> --proposal-dir <path>`. Compiles
+  exactly one v2 candidate and reports grader/promotability evidence without crossing a later gate.
+
+- **"Record the completed human review for this candidate"**
+  → `/procedural-memory:functionize-review <candidate.json> <review.json> --ledger <path>`.
+  Appends a digest-bound decision; conversation prose is not substituted for the review manifest.
 
 - **"Has this been automated before?" / "is there already a tool for X?"**
   → `/procedural-memory:recall "<task description>"`. Returns ranked hits with similarity
@@ -46,7 +61,7 @@ slash-command or hook lifecycle.
 
 In Claude Code, you don't have to remember to run `/procedural-memory:promote` right after writing
 something reusable. Two advisory hooks run in the background. Codex does not wire these Claude Code
-hooks; invoke the shared skill explicitly when you want to recall, run, promote, or verify.
+hooks; invoke the appropriate shared skill explicitly for registry reuse or Functionize work.
 
 - Every time a Bash call in your session matches a known test/build command (`pytest`, `npm
   test`, `cargo test`, `go test`, `vitest`, `tsc`, and a few others) and completes, it's quietly
