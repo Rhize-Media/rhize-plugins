@@ -60,6 +60,30 @@ def test_default_config_round_trips_through_strict_parser() -> None:
     assert ExperimentConfig.from_dict(config.to_dict()) == config
 
 
+def test_continuous_mode_is_strict_disabled_by_default_and_needs_no_armed_runs(
+    tmp_path: Path,
+) -> None:
+    continuous = arm_capability(
+        ExperimentConfig(),
+        Capability.COMPILED_CONTEXT,
+        tmp_path,
+        0,
+        mode="continuous",
+        smoke_approved=True,
+    )
+    assert continuous.compiled_context.mode == "continuous"
+    assert continuous.compiled_context.enabled is True
+    assert continuous.compiled_context.armed_runs == 0
+    assert ExperimentConfig.from_dict(continuous.to_dict()) == continuous
+
+    malformed = continuous.to_dict()
+    malformed["experiments"]["compiledContext"]["armedRuns"] = 1
+    with pytest.raises(ValueError, match="continuous mode requires armedRuns=0"):
+        ExperimentConfig.from_dict(malformed)
+
+    assert ExperimentConfig().compiled_context.mode == "canary"
+
+
 def test_config_rejects_unknown_fields() -> None:
     value = ExperimentConfig().to_dict()
     value["mystery"] = True
@@ -165,6 +189,18 @@ def test_assignment_starts_with_b_then_alternates_to_a() -> None:
     )
     assert (first.live_variant, first.shadow_variant) == (Arm.EXPERIMENTAL, Arm.BASELINE)
     assert (second.live_variant, second.shadow_variant) == (Arm.BASELINE, Arm.EXPERIMENTAL)
+    continuous = assign_arms(
+        CapabilityConfig(
+            enabled=True,
+            mode="continuous",
+            shadow=True,
+            completed_runs=99,
+        )
+    )
+    assert (continuous.live_variant, continuous.shadow_variant) == (
+        Arm.EXPERIMENTAL,
+        Arm.BASELINE,
+    )
 
 
 def test_metric_requires_variant_role_and_compatible_evidence() -> None:

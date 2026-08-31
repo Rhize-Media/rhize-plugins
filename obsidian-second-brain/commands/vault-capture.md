@@ -41,3 +41,13 @@ Analyze "$ARGUMENTS" and determine the best capture method:
 - **Fallback (obsidian CLI missing):** Use `Write` to create the note as a `.md` file with YAML frontmatter (`type: literature-note`, `source: <url>`, `captured: <date>`, `tags: [...]`) directly under the appropriate `Areas/<Domain>/Resources/<Topic>/` folder. Update any `_index.md` MOC in that folder using `Edit` to add a link to the new note.
 
 Always confirm what was captured and where it was saved.
+
+## Optional compiled-knowledge registration
+
+When the user intends this capture to support a compiled knowledge page, load the
+`knowledge-compiler` skill after capture. Do not make every note compiler-managed. With an explicit
+project compiler config, run the deterministic `register` mode to bind the canonical note path to a
+project/tenant/scope, ACL, egress class, retention class, content hash, and private retained snapshot.
+
+Registration never compiles or publishes the note. If no approved compiler config exists, report
+that prerequisite instead of guessing a vault root, project identity, ACL, or retention policy.

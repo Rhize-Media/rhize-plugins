@@ -89,6 +89,7 @@ class Metric:
 class CapabilityConfig:
     enabled: bool = False
     armed_runs: int = 0
+    mode: str = "canary"
     eligible_repos: tuple[str, ...] = ()
     live_assignment: str = "alternate"
     shadow: bool = True
@@ -103,6 +104,7 @@ class CapabilityConfig:
         allowed = {
             "enabled",
             "armedRuns",
+            "mode",
             "eligibleRepos",
             "liveAssignment",
             "shadow",
@@ -118,6 +120,9 @@ class CapabilityConfig:
 
         enabled = _require_bool(value.get("enabled", False), "enabled")
         armed_runs = _require_int(value.get("armedRuns", 0), "armedRuns", 0, MAX_ARMED_RUNS)
+        mode = value.get("mode", "canary")
+        if mode not in {"canary", "continuous"}:
+            raise ValueError("mode must be 'canary' or 'continuous'")
         eligible_repos_value = value.get("eligibleRepos", [])
         if not isinstance(eligible_repos_value, list) or not all(
             isinstance(item, str) for item in eligible_repos_value
@@ -152,21 +157,24 @@ class CapabilityConfig:
             value.get("maxDurationSeconds", 30), "maxDurationSeconds", 1, 300
         )
 
+        if mode == "continuous" and armed_runs:
+            raise ValueError("continuous mode requires armedRuns=0")
         if armed_runs and not enabled:
             raise ValueError("armedRuns requires enabled=true")
-        if armed_runs and not eligible_repos:
-            raise ValueError("armedRuns requires at least one eligibleRepos entry")
-        if capability is Capability.MGREP and armed_runs and not network_approved:
-            raise ValueError("an armed mgrep experiment requires networkApproved=true")
-        if capability is Capability.MGREP and armed_runs and not store:
-            raise ValueError("an armed mgrep experiment requires a dedicated store")
+        live_authority = armed_runs > 0 or (mode == "continuous" and enabled)
+        if live_authority and not eligible_repos:
+            raise ValueError("live context mode requires at least one eligibleRepos entry")
+        if capability is Capability.MGREP and live_authority and not network_approved:
+            raise ValueError("a live mgrep experiment requires networkApproved=true")
+        if capability is Capability.MGREP and live_authority and not store:
+            raise ValueError("a live mgrep experiment requires a dedicated store")
         if capability is not Capability.MGREP and store is not None:
             raise ValueError(f"{capability.value} does not accept an mgrep store")
         if capability is Capability.LOCAL_RETRIEVAL and network_approved:
             raise ValueError("localRetrieval does not accept networkApproved=true")
         if (
             capability in {Capability.LOCAL_RETRIEVAL, Capability.COMPILED_CONTEXT}
-            and armed_runs
+            and live_authority
             and not smoke_approved
         ):
             raise ValueError(
@@ -176,6 +184,7 @@ class CapabilityConfig:
         return cls(
             enabled=enabled,
             armed_runs=armed_runs,
+            mode=mode,
             eligible_repos=tuple(eligible_repos),
             live_assignment=live_assignment,
             shadow=shadow,
@@ -190,6 +199,7 @@ class CapabilityConfig:
         return {
             "enabled": self.enabled,
             "armedRuns": self.armed_runs,
+            "mode": self.mode,
             "eligibleRepos": list(self.eligible_repos),
             "liveAssignment": self.live_assignment,
             "shadow": self.shadow,
@@ -412,6 +422,8 @@ class ExperimentReceipt:
     evidence_digest: str | None = None
     claim_pack_verified: bool | None = None
     final_pack_verification: str = "not_applicable"
+    terminal_reason: str | None = None
+    evidence_completeness: Mapping[str, Any] | None = None
     schema_version: int = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
@@ -449,6 +461,28 @@ class ExperimentReceipt:
             r"[a-f0-9]{64}", self.evidence_digest
         ):
             raise ValueError("evidenceDigest must be a SHA-256 digest or null")
+        if self.terminal_reason is not None and not _SAFE_ID.fullmatch(
+            self.terminal_reason
+        ):
+            raise ValueError("terminalReason must be a safe identifier or null")
+        if self.evidence_completeness is not None:
+            expected = {
+                "armAccountingComplete",
+                "evidenceState",
+                "packUseRecorded",
+                "packUseRequired",
+                "taskOutcomeRecorded",
+                "validationRecorded",
+            }
+            if set(self.evidence_completeness) != expected:
+                raise ValueError("evidenceCompleteness has an invalid shape")
+            if self.evidence_completeness["evidenceState"] not in {
+                "missing", "malformed", "valid"
+            }:
+                raise ValueError("evidenceCompleteness has an invalid evidenceState")
+            for key in expected - {"evidenceState"}:
+                if not isinstance(self.evidence_completeness[key], bool):
+                    raise TypeError(f"evidenceCompleteness.{key} must be a boolean")
         if self.schema_version == RECEIPT_SCHEMA_VERSION:
             if set(self.arms_executed) | set(skipped_arms) != set(self.arms_requested):
                 raise ValueError("receipt v2 must account for every requested arm")
@@ -487,6 +521,10 @@ class ExperimentReceipt:
                     "finalPackVerification": self.final_pack_verification,
                 }
             )
+            if self.terminal_reason is not None:
+                document["terminalReason"] = self.terminal_reason
+            if self.evidence_completeness is not None:
+                document["evidenceCompleteness"] = dict(self.evidence_completeness)
         return document
 
 

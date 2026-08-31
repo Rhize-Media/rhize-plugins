@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/test-evidence-v1.schema.json",
+  "title": "Rhize test evidence packet v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "runner_version", "generated_at", "repository", "contract", "mutation", "invocation", "lifecycle", "verdict", "baseline_test_exit_code", "mutation_test_exit_code", "final_test_exit_code", "cleanup"],
+  "properties": {
+    "schema_version": {"const": "rhize-test-evidence-v1"},
+    "runner_version": {"const": "1.1.0"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "repository": {"type": "object", "additionalProperties": false, "required": ["base_sha", "head_sha", "working_tree_fingerprint", "final_working_tree_fingerprint"], "properties": {"base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "working_tree_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "final_working_tree_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}},
+    "contract": {"type": "object", "additionalProperties": false, "required": ["class", "invariant_digest", "test_files", "production_files", "oracle"], "properties": {"class": {"enum": ["behavior", "artifact", "structural"]}, "invariant_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "test_files": {"$ref": "#/$defs/files"}, "production_files": {"$ref": "#/$defs/files"}, "oracle": {"type": "object", "additionalProperties": false, "required": ["kind", "evidence_digest"], "properties": {"kind": {"enum": ["independent", "artifact", "missing", "not_applicable"]}, "evidence_digest": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}}}},
+    "mutation": {"type": ["object", "null"], "additionalProperties": false, "required": ["target_path", "patch_digest", "state_before_fingerprint", "state_after_fingerprint"], "properties": {"target_path": {"type": "string", "minLength": 1}, "patch_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "state_before_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}, "state_after_fingerprint": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"}}},
+    "invocation": {"type": "object", "additionalProperties": false, "required": ["source", "name", "script_digest"], "properties": {"source": {"const": "package_script"}, "name": {"type": "string", "pattern": "^test(?::[A-Za-z0-9:_-]+)?$"}, "script_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "lifecycle": {"type": "object", "additionalProperties": false, "required": ["clean_before", "isolated", "lease_acquired", "clean_after", "final_clean_rerun"], "properties": {"clean_before": {"type": "boolean"}, "isolated": {"type": "boolean"}, "lease_acquired": {"type": "boolean"}, "clean_after": {"type": "boolean"}, "final_clean_rerun": {"type": "boolean"}}},
+    "verdict": {"enum": ["oracle_supported", "killed", "survived_mutation", "oracle_missing", "artifact_contract", "not_applicable", "mutation_unavailable", "mutation_unavailable_dirty_state", "stale_packet", "cleanup_failed", "execution_unavailable"]},
+    "baseline_test_exit_code": {"type": ["integer", "null"]}, "mutation_test_exit_code": {"type": ["integer", "null"]}, "final_test_exit_code": {"type": ["integer", "null"]},
+    "cleanup": {"type": "object", "additionalProperties": false, "required": ["status", "human_recovery_required"], "properties": {"status": {"enum": ["ok", "failed", "not_started"]}, "human_recovery_required": {"type": "boolean"}}}
+  },
+  "$defs": {"files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}}}
+}

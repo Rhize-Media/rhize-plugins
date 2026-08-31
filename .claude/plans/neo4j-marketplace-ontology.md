@@ -2,14 +2,19 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Offline governed release implemented; live Neo4j canary and rollback evidence pending |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-context-manager` (`graphify` integration) |
 | Supporting owners | Plugin-specific extension packs after the core canary |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for schema/migration/adapter work; Luna for fixtures and generated docs |
 | Cross-host surface | Canonical `rhize-context-manager:graph-memory` skill and host-neutral CLI; thin Claude adapters; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; canary/rollback and packaging decisions linked to RT-145 and RT-146 |
+| Jira tracking | RT-152 implementation; RT-159 live canary/rollback; linked to RT-145 and RT-146 |
+
+## Implemented review hardening
+
+Terminal ingest receipts (`accepted`, `rejected`, `superseded`, or `purged`) replay idempotently;
+only a genuinely `staged` compilation resumes publication.
 
 ## Decision
 

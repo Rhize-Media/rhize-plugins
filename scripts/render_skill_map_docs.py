@@ -55,7 +55,14 @@ SECTION_FILTERS = {
     # obsidian-bases, json-canvas, obsidian-cli) is a separate hand-written
     # table left untouched outside any marker.
     "obsidian-second-brain": lambda s: s["name"]
-    in {"second-brain", "vault-templates", "vault-alignment", "qmd-search", "defuddle"},
+    in {
+        "second-brain",
+        "vault-templates",
+        "vault-alignment",
+        "qmd-search",
+        "defuddle",
+        "knowledge-compiler",
+    },
 }
 
 

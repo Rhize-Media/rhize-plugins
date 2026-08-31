@@ -1,0 +1,4 @@
+interface:
+  display_name: "Graph Memory"
+  short_description: "Govern graph, identity, and decision projections"
+  default_prompt: "Use $graph-memory to validate a source-bound Graphify artifact, inspect the fail-closed offline identity-review capability boundary, or preview a consequential decision without inventing persistence, raw Cypher, or live Neo4j effects."

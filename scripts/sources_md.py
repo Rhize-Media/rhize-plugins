@@ -18,7 +18,8 @@ entry is:
   - **Upstream ref:** <value>
   - **License:** <value>
   - **Verb:** <value>              (FORK | DEFER | ADAPT | ... — free text)
-  - **Graph relation:** consumes   (OPTIONAL — DEFER+wrap provenance without a fork edge)
+  - **Graph relation:** consumes|provenance-only   (OPTIONAL — a maintained runtime dependency
+    or an attribution/update-review reference, either without a fork edge)
   - **Target:** <value>
   - **Took:** <value>
   - **Verified:** <value>

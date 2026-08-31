@@ -16,6 +16,10 @@ It's built for anyone running a Claude Code/Cowork setup who regularly delegates
 
 Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate-setup` — see [Commands Reference](#commands-reference) below. `skill-dashboard` and `parallel-agent-optimization` need no setup. The latter creates its private local receipt directory on first use.
 
+The same `parallel-agent-optimization` skill contract is discoverable in Claude Code and Codex.
+Restart the host after installing or updating the plugin before running a discovery smoke; commands
+are Claude adapters, while Codex routes through the canonical skill and its OpenAI metadata.
+
 ## Skills Reference
 
 ### delegate-to-teammate
@@ -48,15 +52,21 @@ default when at least two independent bounded lanes pass the isolation and coord
 gates. The skill keeps dependency chains, shared-state work, and approval-gated operations
 sequential even when the request asks for parallelism.
 
-**What it produces:** An `apply` run selects exactly one of baseline, ECC, Superpowers, or Rhize,
-executes it under a one-writer safety envelope, verifies the result, and appends one observational
-receipt. A `compare` run creates four isolated arms from the same seed, runs them in a
-counterbalanced order, and stores controlled receipts separately. There is no combined
-ECC+Superpowers arm, and the Rhize arm chooses at most one upstream resource.
+**What it produces:** An `apply` run uses the self-contained Rhize strategy under a one-writer
+safety envelope, verifies the result, and finalizes one observational receipt. A `compare` run
+creates isolated baseline and Rhize arms from the same seed, runs them sequentially in a
+counterbalanced order, and stores controlled receipts separately. Vendor skills are not loaded.
 
 Receipts include coarse task class, variant, timing/overlap, tool/token coverage, agent counts,
-verification, correctness, collisions, and rework. They cannot contain prompts, code, commands,
-paths, names, URLs, session IDs, or issue IDs.
+verification, correctness, collisions, and rework. Every accepted v2 run ends `completed`,
+`failed`, or `incomplete`; `audit-pending` exposes stale reservations. Receipts cannot contain
+prompts, code, commands, paths, names, URLs, session IDs, or issue IDs.
+
+For execution, sketch nodes and dependencies before dispatch. The canonical skill validates that
+file-disjoint work is also independent of checkout state, rate pools, approvals, and external
+effects. Unknown host capacity becomes a sequential wave, and a missing required result blocks the
+join. Claude Code and Codex share this host-neutral contract; neither host needs the other's hooks or
+environment variables.
 
 **Example prompt:**
 > "/rhize-ops:parallel-optimize assess would parallel agents help with this repository audit?"
@@ -72,9 +82,10 @@ For a controlled fixture:
 ### /parallel-optimize
 
 **What it's for:** The required entry point whenever parallel agents enter the conversation or
-execution. `assess` makes a non-executing routing decision; `apply` runs one strategy on the actual
-task; `compare` runs four separate arms only when the task is isolated and replayable; `report`
-renders observational and controlled evidence in separate sections.
+execution. `assess` makes a non-executing routing decision; `apply` runs the Rhize strategy once on
+the actual task; `compare` runs baseline versus Rhize only when the task is isolated and replayable;
+`report` separates observational, controlled, and legacy evidence; `audit-pending` finds accepted
+runs that still need factual terminal finalization.
 
 **Example usage:**
 > "/rhize-ops:parallel-optimize report all" — inspect accumulated evidence without rerunning any task.
@@ -135,7 +146,12 @@ Use `apply` for the actual live task.
 receipt keeps the field null with a reason and the report shows measured-run coverage instead of
 estimating a value.
 
-**Do direct ECC or Superpowers invocations add receipts?** No. Only runs routed through
-`/rhize-ops:parallel-optimize` use this receipt contract. The existing skill monitor may still count
-some direct Claude-host skill launches, but those historical counts do not contain matched outcome
-evidence and are not mixed into these reports.
+**Are ECC or Superpowers still invoked by this workflow?** No. They are provenance and
+`ai-stack-version-drift` review references only. The existing skill monitor may still contain old
+direct-launch counts, but those historical counts do not contain matched outcome evidence and are
+not mixed into v2 reports.
+
+**A receipt is evidence, not decision authority.** An authenticated coordinator may preview an
+experiment adoption/promotion/hold decision through `rhize-context-manager` only after binding the
+current Jira revision, predeclared thresholds, privacy-safe receipt/report digests, policy, and
+approval. Ops never writes a graph or shadow ledger and never updates Jira from a decision preview.

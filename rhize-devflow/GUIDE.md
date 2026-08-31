@@ -24,7 +24,7 @@ Every command and skill here exists to prevent one of those failure modes.
 
 The plugin has two kinds of components:
 
-**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All seven overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
+**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All eight overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
 
 **Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
 
@@ -41,7 +41,7 @@ section](./README.md#install) for the exact commands — the short version:
 
 Then start a brand-new session (not a resumed one) — plugin caches only refresh at session
 start. A quick way to tell it worked: ask "what `/rhize-devflow:` commands are available?" and
-confirm you see `impact-map`, `simplify`, `check`, `review`, `mutation-check`, `browser-qa`,
+confirm you see `impact-map`, `simplify`, `check`, `test-evidence`, `review`, `mutation-check`, `browser-qa`,
 `doctor`, and `devflow-setup` in the [Commands Reference](#commands-reference) below. If a command or skill is
 missing after an update, run `/rhize-devflow:doctor` (or
 `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` directly) — it names exactly what's
@@ -49,13 +49,14 @@ missing or stale — before assuming something is broken.
 
 ## Quick Mental Model
 
-The control-plane sequence is the spine; seven overlay skills feed it or run alongside it:
+The control-plane sequence is the spine; eight overlay skills feed it or run alongside it:
 
 | Stage/Cluster | Command or skills | Question it answers |
 |---------|--------|----------------------|
 | **1. Map** | `/rhize-devflow:impact-map` (backed by `dev-flow-foundations`) | "What already touches this area, and what's the intended change?" |
 | **Post-implementation** | `/rhize-devflow:simplify` (backed by `simplify`) | "Can this exact change have fewer sources of truth or less duplication without changing behavior?" |
 | **2. Validate** | `/rhize-devflow:check` | "Does this pass the tests and gates that actually apply to what changed?" |
+| **Pre-review evidence** | `test-evidence`, `/rhize-devflow:test-evidence` | "Does this regression test protect behavior, an exact artifact, or only its current implementation?" |
 | **3. Gate** | `/rhize-devflow:review` | "Is this safe to merge, and has someone other than me actually checked?" |
 | **Release** | `completed-branch-promotion` | "The work is done and authorized; what exact PR/deployment sequence ships it safely?" |
 | **Production errors** | `error-lifecycle-management`, `sentry-instrumentation` | "How do I instrument this so I find out when it breaks, and how do I triage it once it does?" |
@@ -104,6 +105,19 @@ evidence-backed no-op as success and never rewrites an applied migration for cle
 
 **Key insight:** Simplification is a behavior-preserving reduction, not a license for redesign.
 Fewer lines are useful only when the resulting ownership and safeguards are at least as clear.
+
+### test-evidence
+
+**When it activates:** Tests changed, a change claims regression coverage, or you ask whether a test
+actually protects behavior. It does not activate for cache/data mutation consistency.
+
+**What it knows:** The behavior, artifact, and structural contract classes; independent-oracle
+requirements; exact Git/file binding; protected-target denials; and the packet contract a future
+trusted sandbox must satisfy. The current runner does not execute package scripts: it returns
+`execution_unavailable` until RT-163 provides that sandbox.
+
+**Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
+contract and produce test evidence before review."
 
 ### completed-branch-promotion
 
@@ -224,6 +238,10 @@ normal completion remain blocked until `reconcile` returns `IN_SYNC` or
 **Examples:**
 - "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
 - "Reconcile the impact map against what actually changed" (after implementation).
+- "Build a local context pack from this persisted impact map" (optional when
+  `rhize-context-manager` is installed). The bridge passes the plan explicitly, records only
+  hash/count provenance, preserves CodeGraph health semantics, and falls back to `rg` without
+  initializing an index.
 
 #### /rhize-devflow:check
 
@@ -259,6 +277,19 @@ merge, deploy, migration, or external-write authority. A verified no-op is a suc
   relevant tests."
 - "Review `origin/dev..HEAD` for consolidation opportunities, but don't edit anything."
 - "Check these React changes for redundant state or Effects before review."
+
+#### /rhize-devflow:test-evidence
+
+**Usage:** `/rhize-devflow:test-evidence` with one to three explicit regression claims and a local
+run-spec boundary. Run it before `/review`, never from inside review.
+
+The command classifies each claim and digest-binds an approved `test`/`test:*` package-script
+declaration without executing it. It refuses dirty or protected targets, binds the packet to exact
+SHAs and file digests, and returns `execution_unavailable` on a clean checkout. Execution-backed
+verdicts remain invalid until RT-163 supplies a trusted sandbox; see `docs/test-evidence.md` for the
+canonical lifecycle and verdict contract.
+
+**Example:** "Run test evidence for the exact cache-key bug these two tests claim to prevent."
 
 #### /rhize-devflow:review
 
@@ -360,6 +391,13 @@ Vercel deploys and GitHub commits.
 implementation or as part of `/rhize-devflow:check`'s broader validation — not replacements for
 it. `data-mutation-consistency` and `chrome-devtools-mcp` are the reference knowledge behind each.
 
+**Test evidence is a separate pre-review lane:** use `/rhize-devflow:test-evidence` when changed
+tests claim to prevent a regression. It distinguishes observable behavior from exact artifact and
+structural contracts, then binds the classification and declared oracle to the exact Git state.
+The current runner reports execution unavailable, and `/review` treats that packet as unsupported;
+neither surface runs a mutant. This is intentionally separate from `/mutation-check`, which audits
+cache and data-write consistency.
+
 **Sanity development stands alongside, not inside:** `sanity-development` doesn't feed a slash
 command in this plugin — it's pure reference knowledge Claude applies automatically whenever
 you're editing schema or GROQ files in a Sanity codebase, the same way `sentry-instrumentation`
@@ -380,6 +418,11 @@ right before `/rhize-devflow:review`.
 not sufficient — it validates the in-progress change, not the shippability of the diff as a whole.
 `review`'s independent-reviewer requirement exists specifically because the session that authored
 a change is a bad judge of its own work.
+
+**Decision previews do not replace release authority.** After review, an authenticated coordinator
+may map the accepted Git/PR/deployment evidence and current policy/approval into
+`rhize-context-manager`'s typed decision preview. Dev Flow never writes a second ledger and an
+offline preview cannot be recorded or published; it cannot merge, deploy, or update Jira.
 
 **Mention the platform when it matters for mutation work.** "Check this mutation" triggers a
 generic pass; "check this Payload afterChange hook" or "check this React Query mutation" lets the

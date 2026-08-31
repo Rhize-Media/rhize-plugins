@@ -1,0 +1,35 @@
+{
+  "fixtureVersion": 1,
+  "cohorts": {
+    "tuning": [
+      {
+        "firstEntityId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "secondEntityId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "entityType": "Topic",
+        "scopeHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "firstIdentityKeyHash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "secondIdentityKeyHash": "1111111111111111111111111111111111111111111111111111111111111111",
+        "firstSourceRevisionHash": "2222222222222222222222222222222222222222222222222222222222222222",
+        "secondSourceRevisionHash": "3333333333333333333333333333333333333333333333333333333333333333",
+        "trustSummary": "high",
+        "expectedDisposition": "same",
+        "reviewerDisagreement": false
+      }
+    ],
+    "heldOut": [
+      {
+        "firstEntityId": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "secondEntityId": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "entityType": "Repository",
+        "scopeHash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "firstIdentityKeyHash": "4444444444444444444444444444444444444444444444444444444444444444",
+        "secondIdentityKeyHash": "5555555555555555555555555555555555555555555555555555555555555555",
+        "firstSourceRevisionHash": "6666666666666666666666666666666666666666666666666666666666666666",
+        "secondSourceRevisionHash": "7777777777777777777777777777777777777777777777777777777777777777",
+        "trustSummary": "high",
+        "expectedDisposition": "different",
+        "reviewerDisagreement": true
+      }
+    ]
+  }
+}

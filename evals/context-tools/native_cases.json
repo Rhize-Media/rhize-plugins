@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "providerRevision": "rhize-native-context-pack-v1",
+  "providerRevision": "rhize-native-context-pack-v2",
   "cases": [
     {
       "id": "native-typescript-static",
@@ -51,6 +51,41 @@
       "expectedEntries": ["dispatcher.js"],
       "expectedAccepted": false,
       "expectedWarnings": ["dynamic_dependency_edge"]
+    }
+  ],
+  "impactCases": [
+    {
+      "id": "impact-supported-recall",
+      "fixture": "impact-assisted",
+      "query": "refresh lifecycle behavior",
+      "impactHint": "plans/tenant-refresh.md",
+      "relevantFiles": ["tenant_policy.py"],
+      "criticalFiles": ["tenant_policy.py"],
+      "expectedAccepted": true,
+      "expectedWarnings": [],
+      "requiresRecallImprovement": true
+    },
+    {
+      "id": "impact-dynamic-fallback",
+      "fixture": "impact-assisted",
+      "query": "route notification event",
+      "impactHint": "plans/dynamic-route.md",
+      "relevantFiles": ["dynamic.js"],
+      "criticalFiles": ["dynamic.js"],
+      "expectedAccepted": false,
+      "expectedWarnings": ["dynamic_dependency_edge"],
+      "requiresRecallImprovement": false
+    },
+    {
+      "id": "impact-unsupported-fallback",
+      "fixture": "impact-assisted",
+      "query": "modernize legacy parser",
+      "impactHint": "plans/legacy-parser.md",
+      "relevantFiles": ["broken.py"],
+      "criticalFiles": ["broken.py"],
+      "expectedAccepted": false,
+      "expectedWarnings": ["unsupported_source_syntax"],
+      "requiresRecallImprovement": false
     }
   ]
 }

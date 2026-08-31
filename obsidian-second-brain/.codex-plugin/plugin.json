@@ -1,0 +1,36 @@
+{
+  "name": "obsidian-second-brain",
+  "version": "1.5.0",
+  "description": "Local-first Obsidian workflows, semantic search, and evidence-bound compiled knowledge for Claude Code and Codex.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "obsidian",
+    "knowledge-management",
+    "compiled-knowledge",
+    "provenance",
+    "qmd",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Obsidian Second Brain",
+    "shortDescription": "Evidence-bound Obsidian knowledge workflows",
+    "longDescription": "Local-first Obsidian workflows with evidence-bound compiled pages, stable source anchors, reviewable diffs, and shared Claude Code and Codex behavior.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Compile this captured source into a reviewable, cited knowledge-page preview.",
+      "Show the stale and conflicting compiled pages in this vault."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#7C3AED"
+  }
+}

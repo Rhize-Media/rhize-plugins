@@ -2,14 +2,20 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; live graph promotion and automatic injection remain gated |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-context-manager` |
 | Adapter owners | `procedural-memory`, `obsidian-second-brain`; later `rhize-devflow`, `rhize-ops`, `rhize-tasks` |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for cross-plugin contracts; Luna for adapters and fixtures after the contract is fixed |
 | Cross-host surface | Canonical `rhize-context-manager:memory-context` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child linked to RT-128; Neo4j and injection remain separate gated follow-ups |
+| Jira tracking | RT-151 implementation; RT-158 measurement/promotion; linked to RT-128 |
+
+## Implemented review hardening
+
+Pack identity and candidate envelopes are revalidated on reuse, the current source-ID/revision map is
+mandatory, interrupted identical writes repair the private revocation index, and purge also discovers
+validated orphan packs under the exact private store.
 
 ## Decision
 

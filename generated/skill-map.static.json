@@ -123,6 +123,12 @@
     {
       "from": "plugin:obsidian-second-brain",
       "source": "marketplace",
+      "to": "command:obsidian-second-brain/vault-compile",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
       "to": "command:obsidian-second-brain/vault-connect",
       "type": "contains"
     },
@@ -184,6 +190,12 @@
       "from": "plugin:obsidian-second-brain",
       "source": "marketplace",
       "to": "skill:obsidian-second-brain/json-canvas",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:obsidian-second-brain",
+      "source": "marketplace",
+      "to": "skill:obsidian-second-brain/knowledge-compiler",
       "type": "contains"
     },
     {
@@ -357,6 +369,24 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "command:rhize-context-manager/graph-decision",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/graph-memory",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/graph-memory-review",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "command:rhize-context-manager/impact-map",
       "type": "contains"
     },
@@ -364,6 +394,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "command:rhize-context-manager/learn-harvest",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "command:rhize-context-manager/memory-context",
       "type": "contains"
     },
     {
@@ -489,6 +525,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "skill:rhize-context-manager/context-pack",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "skill:rhize-context-manager/context-stack",
       "type": "contains"
     },
@@ -496,6 +538,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "skill:rhize-context-manager/filesystem-context",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/graph-memory",
       "type": "contains"
     },
     {
@@ -514,6 +562,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "skill:rhize-context-manager/learning-curation",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "skill:rhize-context-manager/memory-context",
       "type": "contains"
     },
     {
@@ -627,6 +681,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "command:rhize-devflow/test-evidence",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/inline-95242299",
       "type": "contains"
     },
@@ -718,6 +778,12 @@
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
       "to": "skill:rhize-devflow/simplify",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
+      "to": "skill:rhize-devflow/test-evidence",
       "type": "contains"
     },
     {
@@ -988,6 +1054,36 @@
       "from": "skill:obsidian-second-brain/json-canvas",
       "source": "frontmatter",
       "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:stack/obsidian",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:stack/python",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-management",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:topic/provenance",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -1329,6 +1425,18 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-context-manager/context-pack",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-pack",
+      "source": "frontmatter",
+      "to": "tag:topic/search",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-context-manager/context-stack",
       "source": "frontmatter",
       "to": "tag:stack/obsidian",
@@ -1370,6 +1478,36 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "skill:rhize-context-manager/graphify",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "tag:stack/neo4j",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/knowledge-graph",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/security",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-context-manager/graphify",
       "source": "frontmatter",
       "to": "tag:stack/obsidian",
@@ -1396,12 +1534,6 @@
     {
       "from": "skill:rhize-context-manager/graphiti-memory",
       "source": "frontmatter",
-      "to": "mcp:graphiti",
-      "type": "depends-on"
-    },
-    {
-      "from": "skill:rhize-context-manager/graphiti-memory",
-      "source": "frontmatter",
       "to": "tag:topic/knowledge-graph",
       "type": "topic-tag"
     },
@@ -1421,6 +1553,18 @@
       "from": "skill:rhize-context-manager/learning-curation",
       "source": "frontmatter",
       "to": "tag:topic/learning-curation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-context",
+      "source": "frontmatter",
+      "to": "tag:topic/context-engineering",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-context",
+      "source": "frontmatter",
+      "to": "tag:topic/memory-systems",
       "type": "topic-tag"
     },
     {
@@ -1793,6 +1937,30 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
+    },
+    {
+      "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/test-evidence",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-ops/delegate-to-teammate",
       "source": "frontmatter",
       "to": "mcp:atlassian",
@@ -1833,18 +2001,6 @@
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-ops/parallel-agent-optimization",
-      "source": "relations-catalog",
-      "to": "external:ecc-parallel-execution-optimizer",
-      "type": "depends-on"
-    },
-    {
-      "from": "skill:rhize-ops/parallel-agent-optimization",
-      "source": "relations-catalog",
-      "to": "external:superpowers-dispatching-parallel-agents",
-      "type": "depends-on"
     },
     {
       "from": "skill:rhize-ops/parallel-agent-optimization",
@@ -2163,6 +2319,13 @@
       "path": "obsidian-second-brain/commands/vault-capture.md"
     },
     {
+      "description": "Preview, apply, inspect, or rebuild evidence-bound compiled vault knowledge",
+      "id": "command:obsidian-second-brain/vault-compile",
+      "kind": "command",
+      "name": "vault-compile",
+      "path": "obsidian-second-brain/commands/vault-compile.md"
+    },
+    {
       "description": "Find and build missing connections between related vault notes",
       "id": "command:obsidian-second-brain/vault-connect",
       "kind": "command",
@@ -2317,6 +2480,27 @@
       "path": "rhize-context-manager/commands/done.md"
     },
     {
+      "description": "Preview or inspect a source-bound decision through the governed graph-memory contract",
+      "id": "command:rhize-context-manager/graph-decision",
+      "kind": "command",
+      "name": "graph-decision",
+      "path": "rhize-context-manager/commands/graph-decision.md"
+    },
+    {
+      "description": "Validate and preview a governed Graphify projection without live Neo4j access",
+      "id": "command:rhize-context-manager/graph-memory",
+      "kind": "command",
+      "name": "graph-memory",
+      "path": "rhize-context-manager/commands/graph-memory.md"
+    },
+    {
+      "description": "Review and reverse governed offline graph identity proposals",
+      "id": "command:rhize-context-manager/graph-memory-review",
+      "kind": "command",
+      "name": "graph-memory-review",
+      "path": "rhize-context-manager/commands/graph-memory-review.md"
+    },
+    {
       "description": "Deprecated — use /rhize-devflow:impact-map instead.",
       "id": "command:rhize-context-manager/impact-map",
       "kind": "command",
@@ -2329,6 +2513,13 @@
       "kind": "command",
       "name": "learn-harvest",
       "path": "rhize-context-manager/commands/learn-harvest.md"
+    },
+    {
+      "description": "Assemble or verify a private, scoped memory-context preview without injection",
+      "id": "command:rhize-context-manager/memory-context",
+      "kind": "command",
+      "name": "memory-context",
+      "path": "rhize-context-manager/commands/memory-context.md"
     },
     {
       "description": "Operate the gated skill-refinement pipeline — `review` triages queued signals to target skills; `run` evolves each targeted skill via skill-forge (SkillOpt + safety re-gate) with auto-promote for gate-passing SKILL.md edits",
@@ -2443,6 +2634,13 @@
       "path": "rhize-devflow/commands/simplify.md"
     },
     {
+      "description": "Produce fail-closed, state-bound metadata for explicit regression claims",
+      "id": "command:rhize-devflow/test-evidence",
+      "kind": "command",
+      "name": "test-evidence",
+      "path": "rhize-devflow/commands/test-evidence.md"
+    },
+    {
       "description": "",
       "id": "command:rhize-ops/bump-version",
       "kind": "command",
@@ -2457,7 +2655,7 @@
       "path": "rhize-ops/commands/delegate-setup.md"
     },
     {
-      "description": "Required entry point whenever parallel agents are discussed, planned, reviewed, or employed; assess first, then safely run or compare eligible work",
+      "description": "Required entry point whenever parallel agents are discussed, planned, reviewed, or employed; assess first, then use the self-contained Rhize strategy",
       "id": "command:rhize-ops/parallel-optimize",
       "kind": "command",
       "name": "parallel-optimize",
@@ -2637,12 +2835,6 @@
       "name": "ecc:kotlin-build-resolver (agent)"
     },
     {
-      "description": "Maintained ECC lane and dependency planning resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization.",
-      "id": "external:ecc-parallel-execution-optimizer",
-      "kind": "external",
-      "name": "ecc:parallel-execution-optimizer (skill)"
-    },
-    {
       "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
       "id": "external:ecc-react-build-resolver",
       "kind": "external",
@@ -2740,12 +2932,6 @@
       "name": "@rhize/skill-forge"
     },
     {
-      "description": "Maintained Superpowers focused dispatch resource consumed, but not copied or forked, by rhize-ops parallel-agent-optimization.",
-      "id": "external:superpowers-dispatching-parallel-agents",
-      "kind": "external",
-      "name": "superpowers:dispatching-parallel-agents (skill)"
-    },
-    {
       "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence.",
       "id": "external:superpowers-finishing-development-branch",
       "kind": "external",
@@ -2825,8 +3011,8 @@
       "matcher": "",
       "name": "context-experiment-finalizer",
       "owner": "rhize-context-manager",
-      "path": "rhize-context-manager/setup/manifest.json",
-      "status": "opt-in"
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
     },
     {
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
@@ -2836,8 +3022,8 @@
       "matcher": "",
       "name": "context-experiment-selector",
       "owner": "rhize-context-manager",
-      "path": "rhize-context-manager/setup/manifest.json",
-      "status": "opt-in"
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
     },
     {
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-window-monitor.js\"",
@@ -3085,11 +3271,6 @@
       "name": "github"
     },
     {
-      "id": "mcp:graphiti",
-      "kind": "mcp-server",
-      "name": "graphiti"
-    },
-    {
       "id": "mcp:obsidian-mcp-server",
       "kind": "mcp-server",
       "name": "obsidian-mcp-server"
@@ -3115,7 +3296,7 @@
       "name": "vercel"
     },
     {
-      "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health, Zettelkasten/PARA/MOC methodology, semantic search, MCP server, and CLI integration",
+      "description": "Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex",
       "id": "plugin:obsidian-second-brain",
       "kind": "plugin",
       "name": "obsidian-second-brain",
@@ -3136,7 +3317,7 @@
       "path": "project-launcher"
     },
     {
-      "description": "Context engineering and optimization — compression, management, retrieval, and storage. Orchestrates the Rhize context stack, ships a disabled-by-default real-provider retrieval/compiled-context dogfood harness, and adds a local mixed-language native context pack with explicit provenance and stale-pack verification. The pinned upstream Python compiler remains an eval provider.",
+      "description": "Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",
@@ -3150,14 +3331,14 @@
       "path": "rhize-cowork"
     },
     {
-      "description": "Rhize Media's engineering control-plane plugin — impact-map → implement → simplify → check → review → release. Adds exact-diff behavior-preserving simplification for Claude and Codex, evidence-driven validation, an independent production merge/release gate, authorized completed-branch promotion through repository-governed PR/deployment flows, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, and Sanity house style. Session/context engineering lives in rhize-context-manager.",
+      "description": "Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
       "path": "rhize-devflow"
     },
     {
-      "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Includes one-strategy live execution plus explicit isolated comparisons of baseline, ECC, Superpowers, and the Rhize routing policy.",
+      "description": "Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
@@ -3192,6 +3373,14 @@
       "kind": "skill",
       "name": "json-canvas",
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
+    },
+    {
+      "contentHash": "a458001a197fcf8b8d136f3843533f6f66f994cdd9ddc5b07e39d832e5043406",
+      "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
+      "id": "skill:obsidian-second-brain/knowledge-compiler",
+      "kind": "skill",
+      "name": "knowledge-compiler",
+      "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md"
     },
     {
       "contentHash": "44e4c6e099153a9f79b36c645c152dddc4567c855ad9a294d60e1ff3bc3fdac8",
@@ -3250,8 +3439,8 @@
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
     },
     {
-      "contentHash": "9a821e5d034a9200fca78447aef725111a7999a1d0d3532dd08827ee008fb090",
-      "description": "Execute a proven, already-working artifact from the procedural-memory registry (Rhize-Media/procedural-memory) instead of recomposing a task from scratch. Use when a task looks like something the registry may already have solved: recall() finds the closest match by semantic similarity over Postgres/pgvector (ranked with trust tier, health, and success rate), and run() executes it registry-only, content-digest-checked, and trust/health-gated — never a caller-supplied path, never a silently bypassed gate. Also covers promoting a newly captured script into the registry (verify -> classify trust -> write provenance -> commit -> index) and re-running an artifact's sandboxed smoke test to refresh its health state. This skill is about EXECUTING proven code with a provenance contract, not retrieving past conversation or session history — for \"what did we discuss/decide/do before\" use claude-mem's search/recall skills instead, and for a knowledge graph over an Obsidian vault use graphify. Trigger on \"is there already a tool for this\", \"run the registry version of X\", \"promote this script to the registry\", \"recall a proven artifact for <task>\", \"re-verify <artifact-name>\", or \"has this been automated before\".",
+      "contentHash": "15d20f1b59c134066b7d13ec8db17e35d9f598d8425b78333800cf9fcca0fe3c",
+      "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
       "name": "procedural-memory",
@@ -3318,8 +3507,16 @@
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
     },
     {
-      "contentHash": "7667d998748bee8ece409ec14f97b8c22435236019e750542fe3f24c596cd75f",
-      "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Graphiti, Obsidian), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
+      "contentHash": "83f94ac291a5c41cea71d50afac5dc3f041e8c982f3e3114dbaca27fc3b5692f",
+      "description": "Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or review task. Use when a bounded dependency-aware pack may reduce targeted reads without hiding critical contracts. Do not use for trivial lookups, highly dynamic code, automatic prompt injection, or as a replacement for exact source verification.",
+      "id": "skill:rhize-context-manager/context-pack",
+      "kind": "skill",
+      "name": "context-pack",
+      "path": "rhize-context-manager/skills/context-pack/SKILL.md"
+    },
+    {
+      "contentHash": "d458c7405d6243be4a3aaee460a592cb76673e721284a2f5abb350ead47cfed9",
+      "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
       "name": "context-stack",
@@ -3335,7 +3532,15 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "5c5794249270b5879d2408d18c9bb90e34981d7ed60d8cea62bc194630010c7a",
+      "contentHash": "1bf67261685f74ff8b06f04d2e57b35ba1530f78f594c5821899d21b31f1fa0c",
+      "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
+      "id": "skill:rhize-context-manager/graph-memory",
+      "kind": "skill",
+      "name": "graph-memory",
+      "path": "rhize-context-manager/skills/graph-memory/SKILL.md"
+    },
+    {
+      "contentHash": "aef43aaff1af71c7263d7077d340fa61c00b9c72a3de46557fc0d0aeb2192c15",
       "description": "Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, where the question should be treated as a graphify query first. Turns any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools.",
       "id": "skill:rhize-context-manager/graphify",
       "kind": "skill",
@@ -3343,8 +3548,8 @@
       "path": "rhize-context-manager/skills/graphify/SKILL.md"
     },
     {
-      "contentHash": "848f0974f5b0d5c33678c1ed18485b2f92e46387370e6f9d961b5c47f53f9a29",
-      "description": "Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. Use when the user wants queryable long-term agent memory with entities, relationships, and time-awareness (beyond claude-mem's observation stream), when setting up the Graphiti MCP server, or when deciding between Graphiti, claude-mem, graphify, and the Obsidian vault for a piece of knowledge. Graphiti is OPT-IN: this plugin documents the wiring but does not install or require it.",
+      "contentHash": "fab3cbf47bdfd2bcb4954a7ffc1ca45022bee7918d1c0f66647299e0db4c0e48",
+      "description": "Historical design reference for Graphiti concepts. Use only when reviewing the prior Graphiti decision or comparing its temporal-memory ideas with Rhize's governed Neo4j plans. Do not use this skill to install, configure, route to, or claim adoption of Graphiti.",
       "id": "skill:rhize-context-manager/graphiti-memory",
       "kind": "skill",
       "name": "graphiti-memory",
@@ -3359,8 +3564,16 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "e05050d3e4314939fc62558992e85abc2d90b8921343a2083634a04653807a89",
-      "contentHashNormalized": "9e2b38ffe9474ba19c93b3d75c80e683705d82e8a4b59af16d603d133bab8d2f",
+      "contentHash": "645d55b934ab397c1720e0e683158b82b506a85fe38b5041b584e92a324a9874",
+      "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
+      "id": "skill:rhize-context-manager/memory-context",
+      "kind": "skill",
+      "name": "memory-context",
+      "path": "rhize-context-manager/skills/memory-context/SKILL.md"
+    },
+    {
+      "contentHash": "c53c30d4ee22f521b279b4adec806f465a57b79c9574b291efe796fae37f557c",
+      "contentHashNormalized": "b8201ee1cdd68505e74ac55577b9a039b64c78981a30a980f61d7f4afa5d4bac",
       "description": "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization.",
       "id": "skill:rhize-context-manager/memory-systems",
       "kind": "skill",
@@ -3417,7 +3630,7 @@
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "a7934d5dcf7b48c0f0c55425934fe43844293c632ede5cdd9b0556d86b46347e",
+      "contentHash": "89adb28f00bb1ed38c334a9e69680f707cf97633c392ce06eb1bdf89ac56fa38",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
@@ -3458,6 +3671,14 @@
       "path": "rhize-devflow/skills/simplify/SKILL.md"
     },
     {
+      "contentHash": "289ad30bde02a9bb4e5b889089120b417b50c6036551503982658300780758f6",
+      "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including an explicit unavailable status while trusted test execution is not implemented. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
+      "id": "skill:rhize-devflow/test-evidence",
+      "kind": "skill",
+      "name": "test-evidence",
+      "path": "rhize-devflow/skills/test-evidence/SKILL.md"
+    },
+    {
       "contentHash": "b07a5da9cc65f6b4041ed943e5c92b3904178a5751e954226da867832361a112",
       "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"[name] should handle this\", \"send this to [name]\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json (run `/rhize-ops:delegate-setup` first if no config exists). This skill handles the full delegation pipeline: context gathering, optional meeting-transcript enrichment, task formatting, Jira issue creation, and Slack notification with a mention — gracefully skipping the Jira and/or Slack steps if those integrations aren't marked ready in the config.",
       "id": "skill:rhize-ops/delegate-to-teammate",
@@ -3466,8 +3687,8 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "11510eda429067739245d306dfe3bb104143d9d03673fca25f57cdf328383c63",
-      "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, prefer parallel execution when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Ordinary work runs exactly one strategy and records observational evidence; comparisons are explicit, isolated, and replayable. Never duplicate a live task or load ECC and Superpowers together for one arm.",
+      "contentHash": "b16f50f10906ff7172bce686cf60c1ac80bd4c3f4a828753596d6669bab5b261",
+      "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
       "name": "parallel-agent-optimization",
@@ -3596,6 +3817,12 @@
       "kind": "tag"
     },
     {
+      "description": "Neo4j graph database tooling",
+      "id": "tag:stack/neo4j",
+      "kind": "tag",
+      "name": "neo4j"
+    },
+    {
       "description": "Next.js codebases",
       "id": "tag:stack/nextjs",
       "kind": "tag",
@@ -3606,6 +3833,12 @@
       "id": "tag:stack/obsidian",
       "kind": "tag",
       "name": "obsidian"
+    },
+    {
+      "description": "Python runtimes and tooling",
+      "id": "tag:stack/python",
+      "kind": "tag",
+      "name": "python"
     },
     {
       "description": "Sanity Studio/CMS",
@@ -3704,6 +3937,12 @@
       "name": "data-consistency"
     },
     {
+      "description": "Verifiable artifacts supporting behavioral or operational claims",
+      "id": "tag:topic/evidence",
+      "kind": "tag",
+      "name": "evidence"
+    },
+    {
       "description": "Keyword discovery and opportunity scoring",
       "id": "tag:topic/keyword-research",
       "kind": "tag",
@@ -3746,16 +3985,34 @@
       "name": "project-planning"
     },
     {
+      "description": "Source lineage, evidence binding, and invalidation metadata",
+      "id": "tag:topic/provenance",
+      "kind": "tag",
+      "name": "provenance"
+    },
+    {
       "description": "SERP position and ranking monitoring",
       "id": "tag:topic/rank-tracking",
       "kind": "tag",
       "name": "rank-tracking"
     },
     {
+      "description": "Independent review, approval, and release decision workflows",
+      "id": "tag:topic/review",
+      "kind": "tag",
+      "name": "review"
+    },
+    {
       "description": "Semantic search and knowledge retrieval",
       "id": "tag:topic/search",
       "kind": "tag",
       "name": "search"
+    },
+    {
+      "description": "Security boundaries, access control, and threat-resistant workflows",
+      "id": "tag:topic/security",
+      "kind": "tag",
+      "name": "security"
     },
     {
       "description": "Site health and technical SEO auditing",

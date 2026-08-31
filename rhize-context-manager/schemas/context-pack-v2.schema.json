@@ -5,14 +5,18 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery",
-    "entries", "excludedCount", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
-    "reductionPercent", "buildMilliseconds", "sourceManifestHash", "policy", "warnings"
+    "schemaVersion", "packId", "repoId", "snapshot", "taskHash", "provider", "discovery", "impactHint",
+    "entries", "excludedCount", "exclusionLedger", "totalSourceFiles", "naiveDumpTokens", "compiledTokens",
+    "reductionPercent", "buildMilliseconds", "sourceManifestHash", "promptHash", "policy", "warnings"
   ],
   "properties": {
     "schemaVersion": { "const": 2 },
     "packId": { "$ref": "#/$defs/packId" },
-    "repoId": { "type": "string", "pattern": "^[a-f0-9]{16}$" },
+    "repoId": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$",
+      "description": "For native v2 packs, a path-independent digest of the snapshot and selected source manifest."
+    },
     "snapshot": { "$ref": "#/$defs/safeId" },
     "taskHash": { "$ref": "#/$defs/hash" },
     "provider": {
@@ -21,7 +25,7 @@
       "required": ["name", "revision"],
       "properties": {
         "name": { "const": "rhize-native" },
-        "revision": { "const": "rhize-native-context-pack-v1" }
+        "revision": { "const": "rhize-native-context-pack-v2" }
       }
     },
     "discovery": {
@@ -29,13 +33,24 @@
       "additionalProperties": false,
       "required": ["strategy", "queryHash", "targetPaths"],
       "properties": {
-        "strategy": { "enum": ["explicit", "baseline", "codegraph"] },
+        "strategy": { "enum": ["explicit", "baseline", "rg", "codegraph", "impact_rg", "impact_codegraph"] },
         "queryHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
         "targetPaths": {
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/relativePath" }
         }
+      }
+    },
+    "impactHint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contentHash", "present", "seedCount", "termSetHash"],
+      "properties": {
+        "contentHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" },
+        "present": { "type": "boolean" },
+        "seedCount": { "type": "integer", "minimum": 0 },
+        "termSetHash": { "type": ["string", "null"], "pattern": "^[a-f0-9]{64}$" }
       }
     },
     "entries": {
@@ -48,7 +63,7 @@
         "properties": {
           "path": { "$ref": "#/$defs/relativePath" },
           "role": { "enum": ["FULL", "INTERFACE"] },
-          "reason": { "enum": ["explicit_or_discovered_target", "static_dependency", "related_test", "nearby_configuration"] },
+          "reason": { "enum": ["explicit_or_discovered_target", "static_dependency", "related_test", "nearby_configuration", "interface_widened_to_full"] },
           "sourceHash": { "$ref": "#/$defs/hash" },
           "renderedHash": { "$ref": "#/$defs/hash" },
           "estimatedTokens": { "type": "integer", "minimum": 0 }
@@ -56,19 +71,46 @@
       }
     },
     "excludedCount": { "type": "integer", "minimum": 0 },
+    "exclusionLedger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reasonCounts", "reasonKindsTruncated", "privateIssueCount", "privateIssuesTruncated"],
+      "properties": {
+        "reasonCounts": {
+          "type": "object",
+          "maxProperties": 8,
+          "additionalProperties": { "type": "integer", "minimum": 1 }
+        },
+        "reasonKindsTruncated": { "type": "integer", "minimum": 0 },
+        "privateIssueCount": { "type": "integer", "minimum": 0 },
+        "privateIssuesTruncated": { "type": "integer", "minimum": 0 }
+      }
+    },
     "totalSourceFiles": { "type": "integer", "minimum": 1 },
     "naiveDumpTokens": { "type": "integer", "minimum": 0 },
     "compiledTokens": { "type": "integer", "minimum": 0 },
     "reductionPercent": { "type": "number" },
     "buildMilliseconds": { "type": "number", "minimum": 0 },
     "sourceManifestHash": { "$ref": "#/$defs/hash" },
+    "promptHash": { "$ref": "#/$defs/hash" },
     "policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["acceptedForUse", "maximumTokens", "rejectionReasons"],
+      "required": ["acceptedForUse", "maximumTokens", "eligibilityPolicy", "rejectionReasons"],
       "properties": {
         "acceptedForUse": { "type": "boolean" },
         "maximumTokens": { "type": "integer", "minimum": 1 },
+        "eligibilityPolicy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "maximumSourceFiles", "maximumScanBytes", "minimumProjectedReductionPercent"],
+          "properties": {
+            "version": { "const": "native-context-eligibility-v2" },
+            "maximumSourceFiles": { "type": "integer", "minimum": 1 },
+            "maximumScanBytes": { "type": "integer", "minimum": 1 },
+            "minimumProjectedReductionPercent": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
         "rejectionReasons": {
           "type": "array",
           "items": { "$ref": "#/$defs/safeId" }

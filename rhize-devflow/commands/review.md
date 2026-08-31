@@ -34,6 +34,9 @@ analyzes; it never ships.
 - **Distinguish introduced failures from pre-existing failures; report both, dismiss
   neither.** A failure this change did not cause is still reported — it is never silently
   attributed away, and it is never used to inflate this change's own verdict either.
+- **Review never runs mutations.** When tests changed or a regression claim is material, validate
+  the explicitly supplied local packet with `scripts/test_evidence.py validate`. Reject stale,
+  unknown, incomplete, unsupported, or cleanup-failed evidence. Never restore or edit from review.
 
 ## Triggers
 
@@ -82,6 +85,8 @@ uses. From the evidence packet:
   finalizing Phase 1's resolution and Phase 3's risk map.
 - `codegraph` — whether a healthy index exists, for cross-referencing structural evidence
   against the semantic impact map (when one exists for this change) in Phase 3.
+- `test_evidence_candidates` — advisory changed-test candidates. Classify the declared contract;
+  do not convert a raw `readFile`/`toContain` pattern into a blocking verdict without evidence.
 
 Never initialize `.codegraph/` — use it only when it already exists and is healthy.
 
@@ -167,7 +172,12 @@ user (human judgment required)" for anything landing in `FAIL_REQUIRES_HUMAN`.
   by this command, regardless of the rest of the diff's risk.
 - Never initialize `.codegraph/` — use it only when it already exists and is healthy.
 - An unavailable independent reviewer never becomes an unreported gap — the disclosed cold
-  review and its limitation must appear in the output.
+review and its limitation must appear in the output.
+
+When a behavior-regression claim is part of the change, report the packet verdict separately:
+`oracle_supported` or `killed` supports it; `survived_mutation`, `oracle_missing`, unavailable, or
+stale evidence is a fixable gap. `cleanup_failed` is `FAIL_REQUIRES_HUMAN`. An explicitly justified
+`artifact_contract` is valid only for the representation it names.
 
 ## Related Workflows
 

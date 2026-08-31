@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/memory-context-pack-v1.schema.json",
+  "title": "Rhize Private Memory Context Pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "packId", "createdAt", "expiresAt", "requestHash", "tenantHash",
+    "projectHash", "taskHash", "adapterStatuses", "candidates", "exclusionReasonCounts",
+    "exclusionReasonKindsTruncated", "totalEstimatedTokens", "payloadHash", "policy", "warnings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "packId": { "type": "string", "pattern": "^memory-[a-f0-9]{32}$" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "requestHash": { "$ref": "#/$defs/hash" },
+    "tenantHash": { "$ref": "#/$defs/hash" },
+    "projectHash": { "$ref": "#/$defs/hash" },
+    "taskHash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] },
+    "adapterStatuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "memoryType", "status", "reason"],
+        "properties": {
+          "name": { "$ref": "#/$defs/safeId" },
+          "memoryType": { "enum": ["working", "episodic", "semantic", "procedural"] },
+          "status": { "enum": ["available", "empty", "unavailable", "unauthorized", "timeout", "stale", "partial", "error"] },
+          "reason": { "$ref": "#/$defs/safeId" }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          { "$ref": "memory-envelope-v1.schema.json" },
+          {
+            "type": "object",
+            "required": ["rank", "estimatedTokens", "conflictGroupHash"],
+            "properties": {
+              "rank": { "type": "integer", "minimum": 1 },
+              "estimatedTokens": { "type": "integer", "minimum": 1 },
+              "conflictGroupHash": { "anyOf": [{ "$ref": "#/$defs/hash" }, { "type": "null" }] }
+            }
+          }
+        ]
+      }
+    },
+    "exclusionReasonCounts": { "type": "object", "maxProperties": 12, "additionalProperties": { "type": "integer", "minimum": 1 } },
+    "exclusionReasonKindsTruncated": { "type": "integer", "minimum": 0 },
+    "totalEstimatedTokens": { "type": "integer", "minimum": 0 },
+    "payloadHash": { "$ref": "#/$defs/hash" },
+    "policy": {
+      "const": { "version": "memory-context-ranking-v1", "automaticInjection": false, "writeBack": false }
+    },
+    "warnings": { "type": "array", "items": { "$ref": "#/$defs/safeId" } }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "safeId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$" }
+  }
+}

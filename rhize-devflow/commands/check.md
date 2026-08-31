@@ -78,6 +78,9 @@ From the evidence packet:
   exist.
 - `codegraph` — whether a healthy index exists, for cross-referencing structural evidence
   against the impact map from Phase 1, never for initializing one.
+- `test_evidence_candidates` — changed tests that need contract/oracle review. These are advisory
+  candidates, never proof of a bad test. When a change claims behavior-regression coverage, require
+  a validated local `rhize-devflow:test-evidence` packet or report the claim as unsupported.
 
 ## Phase 3: Select Checks
 
@@ -145,5 +148,8 @@ paraphrase, and never a command sourced from anywhere else.
 ## Related Workflows
 
 - `/rhize-devflow:impact-map` — run first; narrows which tests are "focused" in Phase 4.
+- `/rhize-devflow:test-evidence` — explicit classifier and state-bound packet writer. Execution is
+  unavailable until RT-163 supplies a trusted sandbox; this remains distinct from the
+  data-consistency `/mutation-check` command.
 - `/rhize-devflow:review` — run after `check` passes, for the production merge/release gate.
 - `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).

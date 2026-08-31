@@ -129,6 +129,11 @@ Normal conversation, pasted URLs, quoted markers, malformed fields, and messages
 
 Reconciliation is for ambiguous writes, revision drift, and interrupted connector calls. Restore the affected connector, refresh TodayView, select exact displayed operation IDs, and approve one bounded attempt. If the item returns to reconciliation, stop; do not keep retrying.
 
+A separately authenticated coordinator may later preview that approved routing/reconciliation choice
+through `rhize-context-manager` using only the plan revision, exact operation digest, current policy,
+and approval. The preview cannot approve, retry, or execute the connector operation, and Rhize Tasks
+does not copy its SQLite state into another decision store.
+
 ## Change preferences
 
 - Claude: “Use `/rhize-tasks:preferences` to add a Wednesday afternoon interval. Preserve every other saved value.”

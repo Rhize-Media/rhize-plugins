@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/decision-record-v1.schema.json",
+  "title": "Rhize decision accountability record v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["recordVersion", "decisionId", "tenantRef", "projectRef", "domain", "decisionClass", "source", "workflow", "actorHash", "acl", "sensitivity", "status", "sequence", "currentEventHash", "idempotencyKeyHash", "rationaleSummaryHash", "evidenceSet", "policySnapshot", "policyEvaluation", "approval", "effects", "outcomes", "corrections", "staleReasons", "createdAt", "updatedAt", "retentionUntil"],
+  "properties": {
+    "recordVersion": {"const": 1},
+    "decisionId": {"$ref": "#/$defs/hash"},
+    "tenantRef": {"$ref": "#/$defs/ref"},
+    "projectRef": {"$ref": "#/$defs/ref"},
+    "domain": {"$ref": "#/$defs/ref"},
+    "decisionClass": {"enum": ["promotion", "adoption", "policy_gate", "approval", "external_effect_routing", "release", "rollback", "provider_selection"]},
+    "source": {"$ref": "#/$defs/sourceBinding"},
+    "workflow": {"$ref": "#/$defs/workflowBinding"},
+    "actorHash": {"$ref": "#/$defs/hash"},
+    "acl": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/ref"}},
+    "sensitivity": {"enum": ["internal", "confidential", "restricted"]},
+    "status": {"enum": ["accepted", "corrected", "invalidated", "superseded", "reversed", "purged"]},
+    "sequence": {"type": "integer", "minimum": 1},
+    "currentEventHash": {"$ref": "#/$defs/hash"},
+    "idempotencyKeyHash": {"$ref": "#/$defs/hash"},
+    "rationaleSummaryHash": {"$ref": "#/$defs/hash"},
+    "evidenceSet": {"$ref": "#/$defs/evidenceSet"},
+    "policySnapshot": {"$ref": "#/$defs/policySnapshot"},
+    "policyEvaluation": {"$ref": "policy-evaluation-v1.schema.json"},
+    "approval": {"$ref": "#/$defs/approval"},
+    "effects": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/effect"}},
+    "outcomes": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/outcome"}},
+    "corrections": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/correction"}},
+    "staleReasons": {"type": "array", "maxItems": 128, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"}},
+    "createdAt": {"$ref": "#/$defs/time"},
+    "updatedAt": {"$ref": "#/$defs/time"},
+    "retentionUntil": {"$ref": "#/$defs/time"},
+    "purgedAt": {"anyOf": [{"$ref": "#/$defs/time"}, {"type": "null"}]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "purged"}}, "required": ["status"]},
+      "then": {"required": ["purgedAt"]},
+      "else": {"not": {"required": ["purgedAt"]}}
+    }
+  ],
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$"},
+    "time": {"type": "string", "format": "date-time", "maxLength": 64},
+    "sourceBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["system", "idHash", "revision", "digest"],
+      "properties": {"system": {"$ref": "#/$defs/ref"}, "idHash": {"$ref": "#/$defs/hash"}, "revision": {"$ref": "#/$defs/ref"}, "digest": {"$ref": "#/$defs/hash"}}
+    },
+    "workflowBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "revision"],
+      "properties": {"id": {"$ref": "#/$defs/ref"}, "revision": {"$ref": "#/$defs/ref"}}
+    },
+    "evidenceItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceId", "system", "idHash", "revision", "digest", "status"],
+      "properties": {"evidenceId": {"$ref": "#/$defs/hash"}, "system": {"$ref": "#/$defs/ref"}, "idHash": {"$ref": "#/$defs/hash"}, "revision": {"$ref": "#/$defs/ref"}, "digest": {"$ref": "#/$defs/hash"}, "status": {"enum": ["available", "stale", "unavailable", "invalidated"]}}
+    },
+    "evidenceSet": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidenceSetId", "digest", "items"],
+      "properties": {"evidenceSetId": {"$ref": "#/$defs/hash"}, "digest": {"$ref": "#/$defs/hash"}, "items": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/evidenceItem"}}}
+    },
+    "policySnapshot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policyIdHash", "version", "digest", "status"],
+      "properties": {"policyIdHash": {"$ref": "#/$defs/hash"}, "version": {"$ref": "#/$defs/ref"}, "digest": {"$ref": "#/$defs/hash"}, "status": {"enum": ["current", "stale", "unavailable"]}}
+    },
+    "approval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["approvalIdHash", "source", "revision", "digest", "actorHash", "scopes", "granted", "expiresAt"],
+      "properties": {"approvalIdHash": {"$ref": "#/$defs/hash"}, "source": {"$ref": "#/$defs/ref"}, "revision": {"$ref": "#/$defs/ref"}, "digest": {"$ref": "#/$defs/hash"}, "actorHash": {"$ref": "#/$defs/hash"}, "scopes": {"type": "array", "minItems": 1, "maxItems": 64, "uniqueItems": true, "items": {"$ref": "#/$defs/ref"}}, "granted": {"type": "boolean"}, "expiresAt": {"$ref": "#/$defs/time"}}
+    },
+    "effect": {
+      "type": "object", "additionalProperties": false,
+      "required": ["effectId", "system", "action", "idempotencyKeyHash", "status", "attemptedAt"],
+      "properties": {"effectId": {"$ref": "#/$defs/hash"}, "system": {"$ref": "#/$defs/ref"}, "action": {"$ref": "#/$defs/ref"}, "idempotencyKeyHash": {"$ref": "#/$defs/hash"}, "status": {"enum": ["attempted", "unknown", "reconciliation_required"]}, "attemptedAt": {"$ref": "#/$defs/time"}}
+    },
+    "outcome": {
+      "type": "object", "additionalProperties": false,
+      "required": ["observationId", "effectId", "sourceReceiptHash", "sourceRevision", "status", "observedAt"],
+      "properties": {"observationId": {"$ref": "#/$defs/hash"}, "effectId": {"$ref": "#/$defs/hash"}, "sourceReceiptHash": {"$ref": "#/$defs/hash"}, "sourceRevision": {"$ref": "#/$defs/ref"}, "status": {"enum": ["succeeded", "failed", "unknown", "reconciliation_required"]}, "observedAt": {"$ref": "#/$defs/time"}}
+    },
+    "correction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["correctionId", "kind", "reasonCode", "approvalIdHash", "recordedAt"],
+      "properties": {"correctionId": {"$ref": "#/$defs/hash"}, "kind": {"enum": ["corrected", "invalidated", "superseded", "reversed"]}, "reasonCode": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"}, "approvalIdHash": {"$ref": "#/$defs/hash"}, "recordedAt": {"$ref": "#/$defs/time"}, "supersedingDecisionId": {"$ref": "#/$defs/hash"}}
+    }
+  }
+}

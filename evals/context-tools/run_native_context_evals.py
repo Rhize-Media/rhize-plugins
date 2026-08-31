@@ -10,6 +10,7 @@ import shutil
 import statistics
 import sys
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -50,7 +51,9 @@ def evaluate_case(case: dict[str, Any], provider: NativeContextPackProvider) -> 
         snapshot = fixture_snapshot(repo)
         task_hash = hashlib.sha256(case["id"].encode()).hexdigest()
         targets = tuple(repo / value for value in case["targets"])
+        started = time.monotonic()
         first = provider.compile(repo, snapshot=snapshot, task_hash=task_hash, targets=targets)
+        build_milliseconds = round((time.monotonic() - started) * 1000, 3)
         second = provider.compile(repo, snapshot=snapshot, task_hash=task_hash, targets=targets)
         manifest = first.manifest
         actual_entries = [entry["path"] for entry in manifest["entries"]]
@@ -83,7 +86,7 @@ def evaluate_case(case: dict[str, Any], provider: NativeContextPackProvider) -> 
                 "variant": PROVIDER_REVISION,
                 "contextTokens": manifest["compiledTokens"],
                 "filesPresented": len(manifest["entries"]),
-                "buildMilliseconds": manifest["buildMilliseconds"],
+                "buildMilliseconds": build_milliseconds,
             },
             "reductionPercent": manifest["reductionPercent"],
             "acceptedForUse": manifest["policy"]["acceptedForUse"],
@@ -95,7 +98,82 @@ def evaluate_case(case: dict[str, Any], provider: NativeContextPackProvider) -> 
         }
 
 
-def evaluate_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
+def _recall(paths: list[str], relevant: list[str]) -> float:
+    if not relevant:
+        return 1.0
+    return round(len(set(paths) & set(relevant)) / len(set(relevant)), 6)
+
+
+def evaluate_impact_case(
+    case: dict[str, Any], provider: NativeContextPackProvider
+) -> dict[str, Any]:
+    source = EVAL_ROOT / "fixtures" / "native-context" / case["fixture"]
+    with tempfile.TemporaryDirectory(prefix=f"rhize-impact-{case['id']}-") as temporary:
+        repo = Path(temporary) / "repo"
+        shutil.copytree(source, repo)
+        snapshot = fixture_snapshot(repo)
+        task_hash = hashlib.sha256(case["id"].encode()).hexdigest()
+        baseline = provider.compile(
+            repo,
+            snapshot=snapshot,
+            task_hash=task_hash,
+            query=case["query"],
+        )
+        assisted = provider.compile(
+            repo,
+            snapshot=snapshot,
+            task_hash=task_hash,
+            query=case["query"],
+            impact_hint=repo / case["impactHint"],
+        )
+        baseline_paths = baseline.manifest["discovery"]["targetPaths"]
+        assisted_paths = assisted.manifest["discovery"]["targetPaths"]
+        relevant = case["relevantFiles"]
+        critical = case["criticalFiles"]
+        baseline_recall = _recall(baseline_paths, relevant)
+        assisted_recall = _recall(assisted_paths, relevant)
+        baseline_misses = sorted(set(critical) - set(baseline_paths))
+        assisted_misses = sorted(set(critical) - set(assisted_paths))
+        expected_warning_misses = sorted(
+            set(case["expectedWarnings"]) - set(assisted.manifest["warnings"])
+        )
+        improvement_ok = (
+            assisted_recall > baseline_recall
+            if case["requiresRecallImprovement"]
+            else assisted_recall >= baseline_recall
+        )
+        passed = (
+            improvement_ok
+            and not assisted_misses
+            and not expected_warning_misses
+            and assisted.manifest["policy"]["acceptedForUse"] is case["expectedAccepted"]
+        )
+        return {
+            "id": case["id"],
+            "providerRevision": PROVIDER_REVISION,
+            "baseline": {
+                "criticalMisses": baseline_misses,
+                "latencyMilliseconds": baseline.manifest["buildMilliseconds"],
+                "relevantFileRecall": baseline_recall,
+                "strategy": baseline.manifest["discovery"]["strategy"],
+            },
+            "impactAssisted": {
+                "acceptedForUse": assisted.manifest["policy"]["acceptedForUse"],
+                "criticalMisses": assisted_misses,
+                "latencyMilliseconds": assisted.manifest["buildMilliseconds"],
+                "relevantFileRecall": assisted_recall,
+                "strategy": assisted.manifest["discovery"]["strategy"],
+                "warnings": assisted.manifest["warnings"],
+            },
+            "expectedWarningsMissing": expected_warning_misses,
+            "passed": passed,
+        }
+
+
+def evaluate_gate(
+    results: list[dict[str, Any]], impact_results: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
+    impact_rows = impact_results or []
     accepted = [row for row in results if row["acceptedForUse"]]
     adversarial = [row for row in results if not row["acceptedForUse"]]
     median_reduction = round(statistics.median(row["reductionPercent"] for row in accepted), 3)
@@ -105,15 +183,21 @@ def evaluate_gate(results: list[dict[str, Any]]) -> dict[str, Any]:
         and all(row["passed"] for row in results)
         and all(not row["criticalEntriesMissing"] for row in results)
         and median_reduction >= 25
+        and all(row["passed"] for row in impact_rows)
+        and all(not row["impactAssisted"]["criticalMisses"] for row in impact_rows)
     )
     return {
-        "gateVersion": "native-context-phase-4-v1",
+        "gateVersion": "native-context-continuous-v2",
         "decision": "continue_to_explicit_dogfood" if passed else "pause",
         "caseCount": len(results),
         "acceptedCaseCount": len(accepted),
         "fallbackCaseCount": len(adversarial),
         "medianAcceptedReductionPercent": median_reduction,
         "criticalMissCount": sum(len(row["criticalEntriesMissing"]) for row in results),
+        "impactCaseCount": len(impact_rows),
+        "impactCriticalMissCount": sum(
+            len(row["impactAssisted"]["criticalMisses"]) for row in impact_rows
+        ),
     }
 
 
@@ -124,6 +208,9 @@ def build_report(cases_path: Path) -> dict[str, Any]:
     if not health.ready:
         raise RuntimeError(health.note)
     results = [evaluate_case(case, provider) for case in document["cases"]]
+    impact_results = [
+        evaluate_impact_case(case, provider) for case in document.get("impactCases", [])
+    ]
     upstream_case_count = len(
         json.loads((EVAL_ROOT / "cases.json").read_text())["contextCompiler"]
     )
@@ -133,11 +220,13 @@ def build_report(cases_path: Path) -> dict[str, Any]:
         "provider": health.to_dict(),
         "corpus": {
             "nativeCaseCount": len(results),
+            "impactCaseCount": len(impact_results),
             "upstreamCaseCount": upstream_case_count,
             "totalCompiledContextCaseCount": len(results) + upstream_case_count,
         },
         "results": results,
-        "gate": evaluate_gate(results),
+        "impactResults": impact_results,
+        "gate": evaluate_gate(results, impact_results),
     }
 
 

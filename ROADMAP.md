@@ -24,6 +24,22 @@ Tracked enhancements and future ideas for the Rhize Plugins marketplace.
 - [x] Decide the replacement's home — **plugin hook**, not a `@rhize/skill-forge` subcommand. The npm-CLI direction is right for user-invoked capability, but a `PreToolUse` hook pays an `npx` spawn on every matching tool call; a vendored node script has no such cost and versions with the marketplace.
 - [ ] Extend `KNOWN_WINDOWS` beyond `claude-opus-5` as other model windows are confirmed. Deliberately sparse — an unverified entry outranks the observed-usage evidence beneath it, so a wrong entry is worse than a missing one.
 - [ ] Consider widening the hook matcher past `Edit|Write`. Read/Bash results are the largest context consumers, but every added matcher is another node spawn; measure before broadening.
+- [x] Ship native v2 source-bound context packs and bounded multi-source memory previews for Claude Code and Codex.
+- [x] Ship an offline governed Graphify/Neo4j ontology, staged fake adapter, read-only memory adapter, reversible identity review, and decision-accountability extension.
+- [ ] RT-158: measure unified-memory preview benefit before any bounded injection canary; keep write-back disabled.
+- [ ] RT-159: run the isolated live Neo4j canary, backup/restore rehearsal, and driver/constraint verification before publication.
+- [ ] RT-160: calibrate identity review by entity type before considering any automatic `SAME_AS`; protected identities remain deterministic.
+- [ ] RT-161: validate durable decision recording/query/correction before enabling anything beyond offline preview.
+- [ ] RT-164: implement and validate an ACL-aware qmd adapter before compiled pages can enter qmd collections.
+
+### Cross-plugin agent workflow
+
+- [x] Ship dual-host ephemeral task-graph validation and terminal receipt-v2 lifecycle in `rhize-ops`.
+- [x] Ship dual-host test-contract classification and fail-closed, state-bound packet validation in `rhize-devflow`.
+- [x] Ship evidence-bound compiled knowledge in `obsidian-second-brain` with source authority retained outside derived pages/graphs.
+- [ ] RT-155 and RT-156: collect host-stratified task-graph and test-evidence calibration before automatic promotion decisions.
+- [ ] RT-163: implement a trusted sandbox adapter before behavioral evidence can execute repository package scripts.
+- [ ] RT-157: measure compiled-knowledge maintenance and invalidation before scheduling rebuilds.
 
 ### seo-aeo-geo
 - [ ] (none yet)

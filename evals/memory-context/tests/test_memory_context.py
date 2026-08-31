@@ -1,0 +1,366 @@
+from __future__ import annotations
+
+import json
+import threading
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+import memory_context.core as memory_core
+from memory_context.core import MemoryContextAssembler, MemoryStore, sha256, validate_manifest
+
+
+EVAL_ROOT = Path(__file__).resolve().parents[1]
+FIXED_NOW = datetime(2026, 8, 30, 12, 0, tzinfo=timezone.utc)
+
+
+def fixture() -> dict:
+    return json.loads((EVAL_ROOT / "fixtures" / "paired-input.json").read_text())
+
+
+def test_claude_and_codex_paths_produce_identical_deterministic_artifacts() -> None:
+    assembler = MemoryContextAssembler()
+    claude_manifest, claude_payload = assembler.assemble(fixture(), FIXED_NOW)
+    codex_manifest, codex_payload = assembler.assemble(fixture(), FIXED_NOW)
+
+    assert claude_manifest == codex_manifest
+    assert claude_payload == codex_payload
+    assert claude_manifest["policy"] == {
+        "version": "memory-context-ranking-v1",
+        "automaticInjection": False,
+        "writeBack": False,
+    }
+
+
+def test_conflicts_scope_and_untrusted_content_remain_visible_and_inert() -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+
+    conflict_groups = {
+        item["conflictGroupHash"] for item in manifest["candidates"] if item["conflictGroupHash"]
+    }
+    assert len(conflict_groups) == 1
+    assert sum(item["conflictGroupHash"] is not None for item in manifest["candidates"]) == 2
+    assert manifest["exclusionReasonCounts"]["scope_denied"] == 1
+    hostile = next(item for item in manifest["candidates"] if item["sourceSystem"] == "unknown-import")
+    decision = next(item for item in manifest["candidates"] if item["sourceSystem"] == "canonical-file")
+    assert hostile["authorityClass"] == "untrusted"
+    assert hostile["processingPolicy"] == "inert"
+    assert decision["authorityClass"] == "human-decision"
+    serialized_manifest = json.dumps(manifest)
+    assert "destructive command" not in serialized_manifest
+    assert any("destructive command" in content for content in payload["payloads"].values())
+
+
+def test_unsupported_host_and_procedural_adapters_are_unavailable_not_empty() -> None:
+    manifest, _ = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    statuses = {item["name"]: item for item in manifest["adapterStatuses"]}
+
+    assert statuses["host-episodic"]["status"] == "unavailable"
+    assert statuses["host-episodic"]["reason"] == "supported_api_not_supplied"
+    assert statuses["procedural-memory"]["status"] == "unavailable"
+    assert statuses["procedural-memory"]["reason"] == "machine_readable_recall_not_implemented"
+
+
+def test_private_write_verify_revision_and_exact_source_purge(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+
+    assert manifest_path.stat().st_mode & 0o777 == 0o600
+    assert payload_path.stat().st_mode & 0o777 == 0o600
+    current_source_state = {
+        "decision-blue": "rev-1",
+        "decision-red": "rev-2",
+        "hostile-note": "rev-1",
+    }
+    assert store.verify(
+        manifest_path,
+        payload_path,
+        now=FIXED_NOW,
+        source_state=current_source_state,
+    )["valid"] is True
+    missing_state = store.verify(manifest_path, payload_path, now=FIXED_NOW)
+    assert missing_state["valid"] is False
+    assert missing_state["reasons"] == ["source_state_required"]
+    source_state = {
+        "decision-blue": "rev-1",
+        "decision-red": "rev-2",
+        "hostile-note": "changed",
+    }
+    assert store.verify(
+        manifest_path, payload_path, now=FIXED_NOW, source_state=source_state
+    )["reasons"] == ["source_revision_changed"]
+
+    purge = store.purge("decision-blue", FIXED_NOW)
+    assert purge["invalidatedPackIds"] == [manifest["packId"]]
+    assert purge["rawSourceRetained"] is True
+    assert not manifest_path.exists()
+    index = json.loads(store.index_path.read_text())
+    assert sha256("decision-blue") in index["revokedSources"]
+    assert "decision-blue" not in store.index_path.read_text()
+
+
+def test_ttl_cleanup_and_payload_tamper_fail_closed(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+    payload_path.write_text('{"schemaVersion":1,"payloads":{}}\n')
+    payload_path.chmod(0o600)
+
+    result = store.verify(
+        manifest_path,
+        payload_path,
+        now=FIXED_NOW,
+        source_state={
+            "decision-blue": "rev-1",
+            "decision-red": "rev-2",
+            "hostile-note": "rev-1",
+        },
+    )
+    assert result["valid"] is False
+    assert "payload_hash_mismatch" in result["reasons"]
+    cleanup = store.cleanup_expired(datetime(2026, 8, 30, 14, 0, tzinfo=timezone.utc))
+    assert cleanup["removedPackIds"] == [manifest["packId"]]
+
+
+def test_ttl_cleanup_serializes_index_updates_with_concurrent_write(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assembler = MemoryContextAssembler()
+    expired_manifest, expired_payload = assembler.assemble(fixture(), FIXED_NOW)
+    fresh_manifest, fresh_payload = assembler.assemble(
+        fixture(), FIXED_NOW + timedelta(hours=2)
+    )
+    store = MemoryStore(tmp_path / "store")
+    store.write(expired_manifest, expired_payload)
+
+    cleanup_reading_index = threading.Event()
+    release_cleanup = threading.Event()
+    writer_finished = threading.Event()
+    original_read_index = store._read_index
+
+    def controlled_read_index() -> dict:
+        if threading.current_thread().name == "memory-cleanup":
+            cleanup_reading_index.set()
+            if not release_cleanup.wait(timeout=5):
+                raise RuntimeError("cleanup test release timed out")
+        return original_read_index()
+
+    monkeypatch.setattr(store, "_read_index", controlled_read_index)
+    cleanup_result: dict = {}
+    errors: list[BaseException] = []
+
+    def cleanup() -> None:
+        try:
+            cleanup_result.update(
+                store.cleanup_expired(FIXED_NOW + timedelta(hours=2))
+            )
+        except BaseException as exc:
+            errors.append(exc)
+
+    def write_fresh_pack() -> None:
+        try:
+            store.write(fresh_manifest, fresh_payload)
+        except BaseException as exc:
+            errors.append(exc)
+        finally:
+            writer_finished.set()
+
+    cleanup_thread = threading.Thread(target=cleanup, name="memory-cleanup")
+    cleanup_thread.start()
+    assert cleanup_reading_index.wait(timeout=5)
+    writer_thread = threading.Thread(target=write_fresh_pack, name="memory-writer")
+    writer_thread.start()
+    assert not writer_finished.wait(timeout=0.1)
+    release_cleanup.set()
+    cleanup_thread.join(timeout=5)
+    writer_thread.join(timeout=5)
+
+    assert not cleanup_thread.is_alive()
+    assert not writer_thread.is_alive()
+    assert errors == []
+    assert cleanup_result == {"removedPackIds": [expired_manifest["packId"]]}
+    index = json.loads(store.index_path.read_text())
+    assert all(
+        expired_manifest["packId"] not in pack_ids
+        for pack_ids in index["sourcePacks"].values()
+    )
+    assert fresh_manifest["packId"] in index["sourcePacks"][sha256("decision-blue")]
+
+
+def test_unknown_fields_and_available_candidates_on_failed_adapter_are_rejected() -> None:
+    document = fixture()
+    document["request"]["unexpected"] = True
+    with pytest.raises(ValueError, match="unknown fields"):
+        MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+    document = fixture()
+    document["adapters"][0]["status"] = "timeout"
+    with pytest.raises(ValueError, match="only an available or partial adapter"):
+        MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+    document = fixture()
+    document["adapters"][0]["candidates"][0]["contentRole"] = "system-instruction"
+    with pytest.raises(ValueError, match="contentRole"):
+        MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+
+@pytest.mark.parametrize(
+    "secret_shaped_revision",
+    (
+        "github_pat_" + "a" * 40,
+        "sntrys_" + "a" * 40,
+        "AKIA" + "A" * 16,
+    ),
+)
+def test_secret_shaped_source_revisions_never_reach_public_manifests(
+    secret_shaped_revision: str,
+) -> None:
+    document = fixture()
+    document["adapters"][0]["candidates"][0]["sourceRevision"] = secret_shaped_revision
+
+    with pytest.raises(ValueError, match="secret-shaped"):
+        MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+
+def test_lane_and_total_budgets_are_deterministic() -> None:
+    document = fixture()
+    document["request"]["laneBudgets"]["semantic"] = {"maxItems": 1, "maxTokens": 100}
+    manifest, _ = MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+    assert len(manifest["candidates"]) == 1
+    assert manifest["exclusionReasonCounts"]["lane_budget_exceeded"] == 2
+    assert manifest["candidates"][0]["sourceSystem"] == "canonical-file"
+
+
+def test_task_scope_and_not_yet_valid_candidates_fail_closed() -> None:
+    document = fixture()
+    document["request"]["task"] = None
+    document["adapters"][0]["candidates"][2]["validFrom"] = "2026-09-01T00:00:00Z"
+    manifest, _ = MemoryContextAssembler().assemble(document, FIXED_NOW)
+
+    assert manifest["candidates"] == []
+    assert manifest["exclusionReasonCounts"] == {
+        "not_yet_valid": 1,
+        "scope_denied": 3,
+    }
+    assert manifest["taskHash"] is None
+
+
+def test_pack_identity_includes_scope_time_and_ttl_window(tmp_path: Path) -> None:
+    assembler = MemoryContextAssembler()
+    first_manifest, first_payload = assembler.assemble(fixture(), FIXED_NOW)
+    second_manifest, second_payload = assembler.assemble(
+        fixture(), FIXED_NOW + timedelta(seconds=1)
+    )
+    store = MemoryStore(tmp_path / "store")
+
+    first_paths = store.write(first_manifest, first_payload)
+    second_paths = store.write(second_manifest, second_payload)
+
+    assert first_manifest["packId"] != second_manifest["packId"]
+    assert first_manifest["taskHash"] == sha256("rt-130")
+    assert all(path.exists() for path in (*first_paths, *second_paths))
+
+
+def test_runtime_manifest_validation_matches_persisted_adapter_schema() -> None:
+    manifest, _ = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    malformed = json.loads(json.dumps(manifest))
+    malformed["adapterStatuses"] = [{"name": "broken"}]
+    identity = {key: value for key, value in malformed.items() if key != "packId"}
+    malformed["packId"] = (
+        "memory-"
+        + sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")))[:32]
+    )
+
+    with pytest.raises(ValueError, match="adapter status has an invalid shape"):
+        validate_manifest(malformed)
+
+
+def test_write_rejects_unbound_payload_before_creating_artifacts(tmp_path: Path) -> None:
+    manifest, _ = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    malformed_payload = {"schemaVersion": 1, "payloads": {}}
+    malformed_manifest = json.loads(json.dumps(manifest))
+    malformed_manifest["payloadHash"] = sha256(
+        json.dumps(malformed_payload, sort_keys=True, separators=(",", ":"))
+    )
+    identity = {
+        key: value for key, value in malformed_manifest.items() if key != "packId"
+    }
+    malformed_manifest["packId"] = (
+        "memory-"
+        + sha256(json.dumps(identity, sort_keys=True, separators=(",", ":")))[:32]
+    )
+    store = MemoryStore(tmp_path / "store")
+
+    with pytest.raises(ValueError, match="payload_candidate_binding_mismatch"):
+        store.write(malformed_manifest, malformed_payload)
+
+    assert not store.root.exists()
+
+
+def test_private_pack_writer_completes_short_writes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    real_write = memory_core.os.write
+
+    def short_write(descriptor: int, content: bytes) -> int:
+        chunk = content[: max(1, len(content) // 2)]
+        return real_write(descriptor, chunk)
+
+    monkeypatch.setattr(memory_core.os, "write", short_write)
+    manifest_path, payload_path = store.write(manifest, payload)
+
+    assert json.loads(manifest_path.read_text()) == manifest
+    assert json.loads(payload_path.read_text()) == payload
+
+
+def test_retry_reconciles_orphan_index_and_purge_finds_valid_orphans(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+    store.index_path.unlink()
+
+    assert store.write(manifest, payload) == (manifest_path, payload_path)
+    indexed = json.loads(store.index_path.read_text())
+    assert manifest["packId"] in indexed["sourcePacks"][sha256("decision-blue")]
+
+    store.index_path.unlink()
+    purged = store.purge("decision-blue", FIXED_NOW)
+    assert purged["invalidatedPackIds"] == [manifest["packId"]]
+    assert not manifest_path.exists()
+    assert not payload_path.exists()
+
+
+def test_verify_rejects_manifest_identity_and_artifact_path_tampering(tmp_path: Path) -> None:
+    manifest, payload = MemoryContextAssembler().assemble(fixture(), FIXED_NOW)
+    store = MemoryStore(tmp_path / "store")
+    manifest_path, payload_path = store.write(manifest, payload)
+    source_state = {
+        "decision-blue": "rev-1",
+        "decision-red": "rev-2",
+        "hostile-note": "rev-1",
+    }
+
+    tampered = json.loads(manifest_path.read_text())
+    tampered["tenantHash"] = "f" * 64
+    manifest_path.write_text(json.dumps(tampered))
+    manifest_path.chmod(0o600)
+    with pytest.raises(ValueError, match="packId does not match"):
+        store.verify(manifest_path, payload_path, now=FIXED_NOW, source_state=source_state)
+
+    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.chmod(0o600)
+    alias = store.packs / f"memory-{'0' * 32}.json"
+    alias.write_text(manifest_path.read_text())
+    alias.chmod(0o600)
+    with pytest.raises(ValueError, match="artifact path does not match"):
+        store.verify(alias, payload_path, now=FIXED_NOW, source_state=source_state)
+
+    symlink = store.packs / f"memory-{'1' * 32}.json"
+    symlink.symlink_to(manifest_path)
+    with pytest.raises(ValueError, match="cannot be symlinks"):
+        store.verify(symlink, payload_path, now=FIXED_NOW, source_state=source_state)

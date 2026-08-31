@@ -2,13 +2,10 @@
 name: parallel-agent-optimization
 tier: custom
 domain: ops
-maturity: seedling
-consumes:
-  - ecc:parallel-execution-optimizer
-  - superpowers:dispatching-parallel-agents
+maturity: sapling
 provenance: parallel-agent-optimization
 description: |
-  Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, prefer parallel execution when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Ordinary work runs exactly one strategy and records observational evidence; comparisons are explicit, isolated, and replayable. Never duplicate a live task or load ECC and Superpowers together for one arm.
+  Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.
 metadata:
   rhize:
     topics: [automation, observability, workflow-patterns]
@@ -17,101 +14,124 @@ metadata:
 
 # Parallel Agent Optimization
 
-Use the smallest safe execution shape for the task, then record enough structured evidence to learn from the run without retaining task content.
+Choose the smallest safe execution graph, give every lane a bounded contract, and verify the joined
+result. This is the self-contained Rhize strategy; do not load another parallel-agent skill at
+runtime.
 
-Read [references/modes.md](references/modes.md) before choosing or executing a mode. Read [references/receipt-contract.md](references/receipt-contract.md) before recording or reporting evidence. [references/provenance.md](references/provenance.md) records the two maintained dependencies and Forge decision. The deterministic helper is `scripts/parallel_metrics.py` relative to this skill directory.
+Read [references/modes.md](references/modes.md) before execution. For a non-trivial dispatch, also
+read [references/task-graph-contract.md](references/task-graph-contract.md) and validate the ephemeral
+graph with `scripts/validate_task_graph.py` before dispatch. Read
+[references/receipt-contract.md](references/receipt-contract.md) before recording evidence.
+[references/provenance.md](references/provenance.md) records the authorized upstream consolidation
+and the update-review boundary. Resolve the canonical plugin root through the current host's skill
+discovery, then set a process-local `RHIZE_OPS_ROOT` for the examples below. In Claude Code that
+root is `CLAUDE_PLUGIN_ROOT`; in Codex it is the root containing the discovered skill and
+`.codex-plugin/plugin.json`.
 
-## Required trigger and default
+## Required trigger
 
 Invoke this skill whenever parallel agents are part of the conversation or execution, even when the
-user does not name this skill or command. This includes discussing whether parallel agents would
-help, proposing or reviewing a multi-agent plan, mentioning subagents or agent dispatch, delegating
-independent lanes to multiple agents, and actually spawning or managing agents. Invoke it before the
-first dispatch so lane ownership and protected state are declared up front.
+user does not name it. Discussion-only requests use `assess` and create no receipt. Before the
+first dispatch, classify dependencies, declare lane ownership and protected state, name the join
+point, and assign final verification to the coordinator.
 
-The invocation requirement is broader than the decision to parallelize. Discussion-only requests
-use `assess` and create no receipt. For execution, parallel agents are the default when there are at
-least two genuinely independent, bounded lanes; their inputs and outputs are clear; writes are
-read-only, disjoint, or isolated; the host supports agent dispatch; and the likely gain exceeds
-coordination overhead. If any condition fails, choose sequential or gated execution and say why.
-Host-level authorization and agent-tool policies still apply; this skill does not create permission
-to dispatch agents where the active environment forbids it.
+Host authorization and agent-tool policy still apply. This skill never creates permission to
+dispatch agents, mutate external state, commit, push, merge, deploy, or bypass an approval gate.
 
 ## Non-negotiable boundaries
 
-- Never duplicate a live task to create a benchmark. A live/current-worktree request may use only `apply` mode.
-- Never run controlled arms against production, shared external state, the user's current checkout, or an irreversible action.
-- Never load `ecc:parallel-execution-optimizer` and `superpowers:dispatching-parallel-agents` in the same arm. The Rhize arm selects at most one of them.
-- Enforce one writer per checkout. Multiple writing agents require isolated worktrees or copies with declared, non-overlapping territories. The coordinator alone integrates results.
-- Parallelize only independent work. Dependency chains, shared mutable state, approval gates, and final integration stay sequential.
-- Telemetry must not contain prompts, code, command text, repository or file paths, project names, user names, agent names, host names, session/thread IDs, issue IDs, URLs, or free text.
-- Do not infer parallelism from agent count. It occurred only when agent time intervals overlapped.
-- Missing token or tool counts stay missing with an allowed reason; never estimate them.
-- Keep observational and controlled evidence separate in storage and reports. Never pool them into one score.
+- Never duplicate a live task to create evidence. Real work uses `apply` once.
+- Never run controlled arms against production, shared external state, the current checkout, or an irreversible action.
+- Enforce one writer per checkout. Isolate concurrent writers in separate worktrees or copies with non-overlapping territories.
+- Keep dependency chains, shared mutable state, approval gates, integration, and final interpretation sequential.
+- Stop or replan dependent lanes when a discovered blocker invalidates their inputs.
+- Poll dispatched work deliberately; do not let a background process outlive the turn unless the user requested a continuing service.
+- Telemetry must not contain prompts, code, commands, paths, project/user/agent/host names, URLs, session/thread IDs, or issue IDs.
+- Prove concurrency from overlapping intervals, never from agent count.
+- Leave unavailable tool and token counts null with an allowed reason; never estimate them.
+- Keep observational, v2 controlled, and legacy-v1 screening evidence separate.
 
-## Mode selection
+## Modes
 
 Interpret `$ARGUMENTS` using this grammar:
 
 ```text
 assess <parallel-agent question or candidate task>
-apply [--variant baseline|ecc|superpowers|rhize] <task>
+apply <task>
 compare <replayable task or fixture>
 report [observational|controlled|all]
+audit-pending
 ```
-
-A discussion or planning request means `assess`. A bare task that asks to execute work means
-`apply <task>`.
 
 ### Assess
 
-Decide whether parallel agents are appropriate using the classification and eligibility rules in
-`references/modes.md`. State the proposed lanes, dependencies, write boundaries, protected state,
-join point, and verification owner. Do not dispatch agents, run a candidate strategy, assign an
-observational variant, or write a receipt. If execution follows in the same request, complete the
-assessment first and then continue in `apply` mode.
+Classify the task using `references/modes.md`. State objective and done signal, proposed lanes,
+dependencies, write boundaries, protected state, join point, and verification owner. Do not dispatch
+agents, reserve a run, or write a receipt.
 
 ### Apply
 
-Run exactly one strategy on the actual task. If `--variant` is absent, ask the helper for the least-used observational variant:
+Run the Rhize strategy exactly once on the real task. First render the bounded nodes, dependencies,
+read/write territories, resource capacities, authority gates, output contracts, and
+coordinator-owned verification into an ephemeral graph. Supply a verified-or-unknown Claude Code
+or Codex host profile and validate it before dispatch. Unknown concurrency degrades to sequential
+guidance; an unordered write collision, conflicting resource declaration, missing coordinator
+slot, invalid retry, or incomplete authority gate fails before dispatch. The host remains the
+scheduler and executor:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" assign
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/validate_task_graph.py" \
+  validate --graph /private/path/to/task-graph.json \
+  --capabilities /private/path/to/host-capabilities.json
 ```
 
-This balancing is exploratory assignment, not randomization and not controlled evidence. Tell the user which variant was assigned before executing it. Follow the selected arm contract in `references/modes.md`, finish the task, verify it, and append one observational receipt.
+After validation and before work, reserve the observational run:
 
-If the selected external skill is unavailable, do not imitate or copy it. Continue with the safety envelope, record `resource_used: none`, and disclose the degraded run.
+```bash
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+  begin --input /private/path/to/privacy-safe-begin.json
+```
+
+Use the returned random `run_id`. In a `finally` path, finalize it as `completed`, `failed`, or
+`incomplete`; never silently abandon an accepted run. If the normal result cannot be captured,
+finalize the known partial facts as `incomplete` rather than inventing counts.
 
 ### Compare
 
-Use only when the user explicitly requests comparison and the work can be replayed in isolated disposable environments with predeclared checks. If those conditions are absent, stop the comparison and explain what fixture or safe replay boundary is needed; do not downgrade the same live task into repeated arms.
-
-Create a comparison ID and counterbalanced arm order:
-
-```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" new-comparison
-```
-
-Before generating it, confirm both upstream resource skills are installed and callable. If either
-is missing, stop without writing controlled receipts; a degraded `resource_used: none` run is valid
-only for observational `apply`, not as evidence about an unavailable candidate.
-
-Run `baseline`, `ecc`, `superpowers`, and `rhize` as separate arms in the returned order. Use a fresh worktree/copy for every arm, run arms sequentially so their elapsed times do not compete for the same machine, and apply the same task input and checks to each. Never add a combined ECC+Superpowers arm. Record one controlled receipt per arm with the shared comparison ID.
-
-### Report
-
-Render stored results without running a task:
+Use only when the user explicitly requests comparison and a deterministic fixture can be replayed
+without live effects. Create a two-arm counterbalanced reservation:
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" report --evidence all --format markdown
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" new-comparison
 ```
 
-Pass the requested evidence class when specified. Present the two evidence classes separately and state coverage gaps, especially unavailable token/tool counts or incomplete verification.
+Run `baseline` and `rhize` sequentially in the reserved order, each in a fresh environment from the
+same seed. Baseline uses standing host/task instructions; Rhize uses this strategy. Use identical
+checks, reserve and finalize each arm, and never convert archived ECC/Superpowers smoke into v2.
+
+### Report and audit
+
+```bash
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+  report --evidence all --format markdown
+python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/parallel_metrics.py" \
+  audit-pending
+```
+
+Report required readiness metrics separately from optional token/tool coverage. Treat stale pending
+reservations as evidence failures requiring factual terminal finalization, not as completed runs.
 
 ## Finish every execution
 
-1. Verify the task with the predeclared checks.
-2. Record the outcome using the strict receipt contract. Receipt validation failure is a visible run failure; fix the structured input rather than weakening the schema.
-3. Report the variant, resource actually used, whether work truly overlapped, verification completeness, collisions/rework, and the evidence class.
-4. For controlled comparisons, compare only matched arms sharing a comparison ID. Do not treat observational medians as causal evidence.
+1. Validate every required result and output contract. Missing/failed required results or cleanup
+   failures block synthesis; optional omissions remain visible and never satisfy a dependency edge.
+   Use bounded hierarchical fan-in when the graph's item budget requires it.
+2. Verify the task with the predeclared checks.
+3. Finalize the accepted reservation with receipt v2's aggregate task-graph counts and factual
+   terminal status. Never persist the graph, node ids, descriptions, paths, or raw outputs. Receipt
+   validation failure is a visible run failure; fix the structured input rather than weakening the
+   schema.
+4. Report terminal status, routing decision, actual overlap, verification, collisions/rework, and
+   missing optional coverage.
+5. For controlled evidence, compare only matched v2 baseline/Rhize receipts that satisfy the same
+   fixture contract. Do not treat observational medians as causal evidence.

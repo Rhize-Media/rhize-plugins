@@ -10,6 +10,11 @@ metadata:
 
 # Memory System Design
 
+> **Rhize deployment boundary:** this curated framework survey is comparative reference material.
+> Graphiti was not implemented and is not an approved install/routing path. Rhize uses canonical
+> files/Obsidian plus explicit `memory-context` previews today; Neo4j is the only planned graph-memory
+> projection and remains gated by the separate ontology and hygiene plans.
+
 Memory provides the persistence layer that allows agents to maintain continuity across sessions and reason over accumulated knowledge. Simple agents rely entirely on context for memory, losing all state when sessions end. Sophisticated agents implement layered memory architectures that balance immediate context needs with long-term knowledge retention. The evolution from vector stores to knowledge graphs to temporal knowledge graphs represents increasing investment in structured memory for improved retrieval and reasoning.
 
 ## When to Activate
@@ -48,7 +53,9 @@ Select a framework based on the dominant retrieval pattern the agent requires. U
 | **LangMem** | Memory tools for LangGraph workflows | Teams already on LangGraph | Tightly coupled to LangGraph |
 | **File-system** | Plain files with naming conventions | Simple agents, prototyping | No semantic search, no relationships |
 
-Choose Zep/Graphiti when the agent needs bi-temporal modeling (tracking both when events occurred and when they were ingested) because its three-tier knowledge graph (episode, semantic entity, community subgraphs) excels at temporal queries. Choose Mem0 when the priority is fast time-to-production with managed infrastructure. Choose Letta when the agent needs deep self-introspection through its Agent Development Environment. Choose Cognee when the agent must build dense multi-layer semantic graphs — it layers text chunks and entity types as nodes with detailed relationship edges, and every core piece (ingestion, entity extraction, post-processing, retrieval) is customizable.
+For Rhize, use the Zep/Graphiti row only to compare bi-temporal concepts; do not install it. Apply
+those concepts through the governed Neo4j plans if the measured retrieval need justifies a graph.
+Choose other frameworks only for non-Rhize design analysis and after current evidence is verified.
 
 **Benchmark Performance Comparison**
 
@@ -103,7 +110,9 @@ Run consolidation periodically to prevent unbounded growth, because unchecked me
 
 1. **Prototype**: Use file-system memory. Store facts as structured JSON with timestamps. This validates agent behavior before committing to infrastructure.
 2. **Scale**: Move to Mem0 or a vector store with metadata when the agent needs semantic search and multi-tenant isolation, because file-based lookup cannot handle similarity queries.
-3. **Complex reasoning**: Add Zep/Graphiti when the agent needs relationship traversal, temporal validity, or cross-session synthesis. Graphiti uses structured ties with generic relations, keeping graphs simple and easy to reason about; Cognee builds denser multi-layer semantic graphs with detailed relationship edges — choose based on whether the agent needs temporal bi-modeling (Graphiti) or richer interconnected knowledge structures (Cognee).
+3. **Complex reasoning**: For Rhize, advance the governed Neo4j plan when measured retrieval needs
+   require relationship traversal or temporal validity. Do not add Graphiti as a fallback. Other
+   framework comparisons in this skill remain design reference for non-Rhize systems.
 4. **Full control**: Use Letta or Cognee when the agent must self-manage its own memory with deep introspection, because these frameworks expose memory operations as first-class agent actions.
 
 ### Integration with Context

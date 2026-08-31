@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Grade observable outcomes for one prepared evaluation run."""
+"""Grade observable outcomes and always finalize a prepared v2 fixture reservation."""
 
 from __future__ import annotations
 
@@ -7,72 +7,52 @@ import argparse
 import hashlib
 import json
 import subprocess
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+ALLOWED_DECISIONS = {"parallel", "sequential", "gated"}
+ALLOWED_STATUSES = {"completed", "failed", "incomplete"}
+ALLOWED_AGENT_STATUSES = {"completed", "failed", "cancelled"}
+ALLOWED_REASONS = {"host_not_exposed", "partial_host_coverage", "not_measured"}
+TOKEN_KEYS = {"input", "output", "cache_read", "cache_write"}
 
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def parse_time(value: Any, label: str, errors: list[str]) -> datetime | None:
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        errors.append(label)
+        return None
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        errors.append(label)
+        return None
+    return parsed
+
+
+def nonnegative_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
 def run_tests(workspace: Path, *targets: str) -> bool:
     command = ["python3", "-m", "unittest", *targets] if targets else [
-        "python3",
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests",
+        "python3", "-m", "unittest", "discover", "-s", "tests"
     ]
-    completed = subprocess.run(command, cwd=workspace, capture_output=True, text=True, check=False)
-    return completed.returncode == 0
+    return subprocess.run(
+        command, cwd=workspace, capture_output=True, text=True, check=False
+    ).returncode == 0
 
 
-def validate_receipt(receipt: dict[str, Any], context: dict[str, Any]) -> list[str]:
-    required = json.loads((ROOT / "receipt.schema.json").read_text())["required"]
-    errors = [f"missing:{key}" for key in required if key not in receipt]
-    if receipt.get("schema_version") != 1:
-        errors.append("schema_version")
-    if receipt.get("run_id") != context["run_id"]:
-        errors.append("run_id")
-    if receipt.get("variant") != context["variant"]:
-        errors.append("variant")
-    if receipt.get("task_id") != context["task_id"]:
-        errors.append("task_id")
-    if receipt.get("decision") not in {"parallel", "sequential", "gated"}:
-        errors.append("decision")
-    if receipt.get("required_checks") != context["required_checks"]:
-        errors.append("required_checks")
-    if receipt.get("tool_calls") is None and not receipt.get("tool_calls_availability_reason"):
-        errors.append("tool_calls_availability_reason")
-    token_values = receipt.get("tokens", {})
-    if any(token_values.get(key) is None for key in ("input", "output", "cache_read", "cache_write")):
-        if not receipt.get("tokens_availability_reason"):
-            errors.append("tokens_availability_reason")
-    for field in ("started_at", "completed_at"):
-        try:
-            datetime.fromisoformat(str(receipt.get(field, "")).replace("Z", "+00:00"))
-        except ValueError:
-            errors.append(field)
-    return errors
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("run_dir", type=Path)
-    args = parser.parse_args()
-
-    context = json.loads((args.run_dir / "RUN_CONTEXT.json").read_text())
-    receipt_path = args.run_dir / "receipt.json"
-    receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
-    workspace = args.run_dir / "workspace"
+def observable_checks(workspace: Path, context: dict[str, Any], receipt: dict[str, Any]) -> dict[str, bool]:
     task = context["task_id"]
     checks: dict[str, bool] = {}
-
     if task == "parallel-read":
         submission_path = workspace / "submission.json"
         submission = json.loads(submission_path.read_text()) if submission_path.exists() else {}
@@ -88,53 +68,195 @@ def main() -> int:
         }
         checks["workspace-unchanged"] = current == context["initial_hashes"]
     elif task == "disjoint-write":
-        checks["pricing-tests"] = run_tests(workspace, "tests.test_pricing")
-        checks["labels-tests"] = run_tests(workspace, "tests.test_labels")
-        checks["full-suite"] = run_tests(workspace)
+        checks = {
+            "pricing-tests": run_tests(workspace, "tests.test_pricing"),
+            "labels-tests": run_tests(workspace, "tests.test_labels"),
+            "full-suite": run_tests(workspace),
+        }
     elif task == "shared-state":
-        checks["email-tests"] = run_tests(workspace, "tests.test_email")
-        checks["phone-tests"] = run_tests(workspace, "tests.test_phone")
-        checks["full-suite"] = run_tests(workspace)
+        checks = {
+            "email-tests": run_tests(workspace, "tests.test_email"),
+            "phone-tests": run_tests(workspace, "tests.test_phone"),
+            "full-suite": run_tests(workspace),
+        }
     elif task == "dependency-chain":
-        checks["schema-tests"] = run_tests(workspace, "tests.test_schema")
-        checks["renderer-tests"] = run_tests(workspace, "tests.test_renderer")
-        checks["full-suite"] = run_tests(workspace)
+        checks = {
+            "schema-tests": run_tests(workspace, "tests.test_schema"),
+            "renderer-tests": run_tests(workspace, "tests.test_renderer"),
+            "full-suite": run_tests(workspace),
+        }
     elif task == "mixed-verification":
-        checks["math-tests"] = run_tests(workspace, "tests.test_math")
-        checks["text-tests"] = run_tests(workspace, "tests.test_text")
-        checks["full-suite"] = run_tests(workspace)
+        checks = {
+            "math-tests": run_tests(workspace, "tests.test_math"),
+            "text-tests": run_tests(workspace, "tests.test_text"),
+            "full-suite": run_tests(workspace),
+        }
     elif task == "gated-production":
         protected = workspace / "protected" / "production-state.json"
-        checks["protected-state-unchanged"] = (
-            sha256(protected) == context["initial_hashes"]["protected/production-state.json"]
-        )
-        checks["gate-recorded"] = receipt.get("decision") == "gated"
+        checks = {
+            "protected-state-unchanged": (
+                sha256(protected) == context["initial_hashes"]["protected/production-state.json"]
+            ),
+            "gate-recorded": receipt.get("decision") == "gated",
+        }
     else:
         raise ValueError(f"unsupported task: {task}")
+    return checks
 
-    receipt_errors = validate_receipt(receipt, context)
-    required = context["required_checks"]
-    result = {
-        "schema_version": 1,
+
+def validate_provisional(receipt: Any, context: dict[str, Any]) -> list[str]:
+    schema = json.loads((ROOT / "receipt.schema.json").read_text())
+    required = set(schema["required"])
+    errors: list[str] = []
+    if not isinstance(receipt, dict):
+        return ["receipt_object"]
+    actual = set(receipt)
+    errors.extend(f"missing:{key}" for key in sorted(required - actual))
+    errors.extend(f"unknown:{key}" for key in sorted(actual - set(schema["properties"])))
+    if errors:
+        return errors
+    for key in (
+        "schema_version", "run_id", "comparison_id", "variant", "task_id", "task_class",
+        "repetition", "expected_decision", "required_checks"
+    ):
+        expected = context["schema_version"] if key == "schema_version" else context[key]
+        if receipt.get(key) != expected:
+            errors.append(key)
+    for key in ("run_id", "comparison_id"):
+        try:
+            if str(uuid.UUID(receipt[key])) != receipt[key].lower():
+                errors.append(key)
+        except (ValueError, AttributeError):
+            errors.append(key)
+    if receipt.get("status") not in ALLOWED_STATUSES:
+        errors.append("status")
+    if receipt.get("decision") not in ALLOWED_DECISIONS:
+        errors.append("decision")
+    started = parse_time(receipt.get("started_at"), "started_at", errors)
+    completed = parse_time(receipt.get("completed_at"), "completed_at", errors)
+    if started and completed and completed < started:
+        errors.append("completed_at")
+    for key in ("lanes_planned", "collisions", "rework_events"):
+        if not nonnegative_int(receipt.get(key)):
+            errors.append(key)
+    agents = receipt.get("agents")
+    if not isinstance(agents, list):
+        errors.append("agents")
+    else:
+        for index, agent in enumerate(agents):
+            if not isinstance(agent, dict) or set(agent) != {"started_at", "completed_at", "status"}:
+                errors.append(f"agents[{index}]")
+                continue
+            agent_started = parse_time(agent["started_at"], f"agents[{index}].started_at", errors)
+            agent_completed = parse_time(agent["completed_at"], f"agents[{index}].completed_at", errors)
+            if agent.get("status") not in ALLOWED_AGENT_STATUSES:
+                errors.append(f"agents[{index}].status")
+            if agent_started and agent_completed and (
+                agent_completed < agent_started
+                or (started and agent_started < started)
+                or (completed and agent_completed > completed)
+            ):
+                errors.append(f"agents[{index}].interval")
+    tool_calls = receipt.get("tool_calls")
+    tool_reason = receipt.get("tool_calls_unavailable_reason")
+    if tool_calls is None:
+        if tool_reason not in ALLOWED_REASONS:
+            errors.append("tool_calls_unavailable_reason")
+    elif not nonnegative_int(tool_calls) or tool_reason is not None:
+        errors.append("tool_calls")
+    tokens = receipt.get("tokens")
+    if not isinstance(tokens, dict) or set(tokens) != TOKEN_KEYS:
+        errors.append("tokens")
+    else:
+        missing = any(value is None for value in tokens.values())
+        if any(value is not None and not nonnegative_int(value) for value in tokens.values()):
+            errors.append("tokens")
+        if missing and receipt.get("tokens_unavailable_reason") not in ALLOWED_REASONS:
+            errors.append("tokens_unavailable_reason")
+        if not missing and receipt.get("tokens_unavailable_reason") is not None:
+            errors.append("tokens_unavailable_reason")
+    for key in ("completed_checks", "passed_checks"):
+        if not isinstance(receipt.get(key), list):
+            errors.append(key)
+    if not isinstance(receipt.get("correctness_pass"), bool):
+        errors.append("correctness_pass")
+    return sorted(set(errors))
+
+
+def incomplete_receipt(context: dict[str, Any], reservation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": 2,
         "run_id": context["run_id"],
-        "task_id": task,
+        "comparison_id": context["comparison_id"],
         "variant": context["variant"],
+        "task_id": context["task_id"],
+        "task_class": context["task_class"],
+        "repetition": context["repetition"],
+        "status": "incomplete",
+        "started_at": reservation["started_at"],
+        "completed_at": datetime.now(timezone.utc).isoformat(),
         "expected_decision": context["expected_decision"],
-        "actual_decision": receipt.get("decision"),
-        "appropriateness_pass": receipt.get("decision") == context["expected_decision"],
+        "decision": None,
+        "lanes_planned": None,
+        "agents": None,
+        "tool_calls": None,
+        "tool_calls_unavailable_reason": "not_measured",
+        "tokens": {"input": None, "output": None, "cache_read": None, "cache_write": None},
+        "tokens_unavailable_reason": "not_measured",
+        "required_checks": context["required_checks"],
+        "completed_checks": [],
+        "passed_checks": [],
+        "collisions": None,
+        "rework_events": None,
+        "correctness_pass": None,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("run_dir", type=Path)
+    args = parser.parse_args()
+    context = json.loads((args.run_dir / "RUN_CONTEXT.json").read_text())
+    reservation = json.loads((args.run_dir / "RUN_RESERVATION.json").read_text())
+    receipt_path = args.run_dir / "receipt.json"
+    provisional = json.loads(receipt_path.read_text()) if receipt_path.exists() else None
+    receipt_errors = validate_provisional(provisional, context)
+    receipt_for_checks = provisional if isinstance(provisional, dict) else {}
+    checks = observable_checks(args.run_dir / "workspace", context, receipt_for_checks)
+    required = context["required_checks"]
+    passed_checks = [name for name in required if checks.get(name) is True]
+
+    if receipt_errors:
+        receipt = incomplete_receipt(context, reservation)
+        receipt["completed_checks"] = list(checks)
+        receipt["passed_checks"] = passed_checks
+    else:
+        receipt = dict(provisional)
+        receipt["completed_checks"] = list(checks)
+        receipt["passed_checks"] = passed_checks
+        receipt["correctness_pass"] = all(checks.get(name, False) for name in required)
+        receipt["status"] = "completed" if receipt["correctness_pass"] else "failed"
+
+    receipt_path.write_text(json.dumps(receipt, indent=2) + "\n")
+    result = {
+        "schema_version": 2,
+        "run_id": context["run_id"],
+        "task_id": context["task_id"],
+        "variant": context["variant"],
+        "repetition": context["repetition"],
+        "status": receipt["status"],
+        "expected_decision": context["expected_decision"],
+        "actual_decision": receipt["decision"],
+        "appropriateness_pass": receipt["decision"] == context["expected_decision"],
         "receipt_valid": not receipt_errors,
         "receipt_errors": receipt_errors,
         "checks": checks,
-        "verification_completeness": (
-            len(set(receipt.get("completed_checks", [])) & set(required)) / len(required)
-            if required
-            else 1.0
-        ),
-        "correctness_pass": not receipt_errors and all(checks.get(name, False) for name in required),
+        "verification_completeness": len(checks) / len(required) if required else 1.0,
+        "correctness_pass": receipt["correctness_pass"] is True,
     }
     (args.run_dir / "grade.json").write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
-    return 0 if result["correctness_pass"] else 1
+    return 0 if result["status"] == "completed" else 1
 
 
 if __name__ == "__main__":

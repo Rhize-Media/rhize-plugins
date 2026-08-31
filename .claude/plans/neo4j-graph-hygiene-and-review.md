@@ -2,14 +2,85 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Offline review/reversal release implemented; calibration and consolidation remain gated |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-context-manager` Neo4j adapter |
 | Prerequisite | `neo4j-marketplace-ontology.md` through governed-ingest acceptance |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for identity decisions/projection/reversal; Luna for labeled-pair fixtures and reporting |
 | Cross-host surface | Extend canonical `rhize-context-manager:graph-memory` skill/CLI; thin Claude review adapter; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; calibration, consolidation, and any automatic `SAME_AS` authority remain separate follow-ups |
+| Jira tracking | RT-153 implementation; RT-160 calibration/consolidation; automatic `SAME_AS` remains out of scope |
+
+## Current behavior and evidence
+
+Final security review of `0d75afcf6b58bf4d5afff705e46b8eac8e68b4f3` proved that
+`IdentityReviewStore._actor_visible_edges()` scopes graph state to every ACL held by the actor, even
+when the current review belongs to a narrower ACL lane. A reviewer authorized for both internal and
+restricted data could therefore preview an internal-only A-B review after a restricted-only B-C
+decision and observe restricted entity C. The same over-broad scope participates in accepted
+supersession dependency evaluation. Existing single-lane and internal-only-actor tests do not cover
+this multi-authorized-actor/narrow-review combination.
+
+## Intended semantic delta
+
+Derive one effective ACL lane for each review operation as the intersection of the current review's
+`aclScopeHashes` and the authenticated actor's authorized ACL hashes. Use only that intersection for
+preview clusters, dependency identifiers, transition hashes, and accepted-candidate supersession.
+Add the exact internal A-B/restricted B-C regression for a multi-authorized reviewer. No graph data,
+schema, external adapter, or automatic consolidation behavior changes.
+
+## Invariants and must-not-change boundaries
+
+- Tenant and namespace authorization remains mandatory before ACL evaluation.
+- An actor may operate only when at least one current-review ACL scope is authorized.
+- Hidden ACL lanes cannot affect previews, blockers, transition hashes, ledger dependencies, or
+  existence signals for the narrower review.
+- Source-bound entities, Claims, trust, provenance, append-only ledger semantics, reversal, and
+  fail-closed Neo4j boundaries remain unchanged.
+
+## Acceptance tests
+
+- Accept restricted-only B-C, then preview and accept internal-only A-B with an actor authorized for
+  both lanes; neither preview nor the internal ledger event contains C or the restricted decision id.
+- Accept internal-only A-B and restricted-only B-C, then supersede A-B with a multi-authorized
+  ingest actor; the restricted dependency cannot block or contaminate the internal supersession.
+- Existing internal-only/restricted-only isolation, concurrency, reversal, and idempotency suites
+  remain green.
+- The complete repository and plugin packaging gates remain green after documentation regeneration.
+
+## Explicitly unaffected paths
+
+- Candidate scoring, ontology translation, memory-to-graph projection, live Neo4j mutation, and
+  proposal-only consolidation thresholds are unchanged.
+- RT-160 continues to own calibration and measurement; this release fix closes authorization only.
+
+## Affected files
+
+- `rhize-context-manager/scripts/graph_memory/review.py`
+- `evals/graph-hygiene/tests/test_review.py`
+- `rhize-context-manager/README.md`
+- `rhize-context-manager/GUIDE.md`
+- `rhize-context-manager/commands/graph-memory-review.md`
+- `rhize-context-manager/skills/graph-memory/SKILL.md`
+- `generated/skill-map.static.json`
+- `.claude/plans/neo4j-graph-hygiene-and-review.md`
+
+## Implementation order
+
+1. Add the multi-authorized/narrow-review regression.
+2. Centralize effective ACL intersection and reuse it in preview and supersession paths.
+3. Run focused graph suites, final simplify, full repository validation, documentation parity audit,
+   and receipt reconciliation.
+
+## Implemented review hardening
+
+Candidate intersections now carry hashed ACL scopes in their revision and ledger identities. Every
+candidate read or transition enforces both tenant/namespace and an authorized ACL intersection;
+same-partition authority alone is insufficient. Proposal consolidation now requires one explicit
+authorized ACL lane; its watermark, backlog count, and suppressed-revision lookup cannot aggregate
+or block work from another ACL lane. Changed evidence supersedes an accepted candidate, removes its
+stale logical projection after dependency checks, and queues a fresh manual review with an append-only
+ledger event.
 
 ## Decision
 

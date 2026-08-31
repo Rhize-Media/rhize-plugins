@@ -1,45 +1,64 @@
-# Parallel-Agent Skill Evaluation
+# Parallel Routing Evaluation
 
-This harness compares four instruction variants against six deterministic task classes:
+This neutral harness evaluates two instruction variants against six deterministic task classes:
 
-- `baseline` — neither candidate loaded;
-- `arm_a` — ECC `parallel-execution-optimizer`;
-- `arm_b` — Superpowers `dispatching-parallel-agents`;
-- `arm_ab` — both candidates, with load order recorded per run.
+- `baseline` — standing host and fixture instructions only;
+- `rhize` — the self-contained `rhize-ops:parallel-agent-optimization` strategy.
 
-The evaluator copies one task fixture into an isolated temporary directory, then an independent
-agent completes `TASK.md` and writes `receipt.json`. `grade_run.py` checks observable outcomes and
-keeps routing quality separate from task correctness.
+The Rhize strategy validates its ephemeral dependency/resource graph before dispatch. Deterministic
+graph fixtures under `fixtures/task-graphs/` cover parallel reads, shared resources, hidden writes,
+partial fan-in, and layered fan-in. Runtime receipt v2 is owned under `rhize-ops`; this harness's
+receipt schema is limited to isolated fixture lifecycle and grading fields.
 
-## Prepare and grade
+Each task/variant cell runs three times. Baseline and Rhize for the same task/repetition share a
+random local comparison ID and run sequentially in counterbalanced order, using fresh copies from
+the same fixture seed. This is isolated controlled evidence, not a production benchmark.
+
+## Lifecycle
+
+`prepare_run.py` writes `RUN_RESERVATION.json` with status `pending`. The runner writes a
+privacy-safe provisional `receipt.json`; `grade_run.py` executes observable checks and always
+finalizes the accepted reservation as `completed`, `failed`, or `incomplete`. Missing or malformed
+runner metadata becomes an honest incomplete receipt instead of disappearing.
+
+Example pair:
 
 ```bash
+comparison_id="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 python3 evals/parallel-agent-skills/scripts/prepare_run.py \
-  --task parallel-read --variant baseline --output /private/tmp/parallel-eval/parallel-read-baseline
-
-python3 evals/parallel-agent-skills/scripts/grade_run.py \
-  /private/tmp/parallel-eval/parallel-read-baseline
+  --task parallel-read --variant baseline --repetition 1 \
+  --comparison-id "$comparison_id" --output /private/tmp/parallel-eval/parallel-read-baseline-1
+python3 evals/parallel-agent-skills/scripts/prepare_run.py \
+  --task parallel-read --variant rhize --repetition 1 \
+  --comparison-id "$comparison_id" --output /private/tmp/parallel-eval/parallel-read-rhize-1
 ```
 
-After all 24 cells are graded, create the privacy-safe aggregate:
+Run and grade the baseline directory before starting the Rhize directory. Generate all 36 cells
+from the manifest, then aggregate:
 
 ```bash
 python3 evals/parallel-agent-skills/scripts/aggregate_results.py \
   /private/tmp/parallel-eval \
-  --json-output evals/parallel-agent-skills/results/smoke.json \
-  --markdown-output evals/parallel-agent-skills/results/smoke.md
+  --json-output /private/tmp/parallel-eval/repeated.json \
+  --markdown-output /private/tmp/parallel-eval/repeated.md
 ```
 
-The aggregate derives actual parallelism from overlapping nested-agent timestamps. A parallel
-decision or an agent count greater than one is not treated as proof of concurrency.
+Keep evaluation output outside Git unless a reviewed evidence decision explicitly accepts it. The
+scripts never generate production benchmark rows.
 
-The harness never stores prompt text, source-repository paths, user content, secrets, or raw agent
-messages in aggregate receipts. Token and tool-call fields must be `null` with an availability
-reason when the host cannot expose authoritative counters.
+## Readiness contract
 
-## Boundaries
+Required metrics are predeclared in `manifest.json`: complete paired coverage, correctness,
+verification, routing, elapsed improvement, actual overlap, collisions, rework, and agent count.
+Token/tool counts are optional: unavailable host counters stay null with an allowed reason and are
+visible in the readiness report, but they do not block every decision.
 
-- All agent writes stay inside the prepared run directory.
-- Candidate skills are read from their installed plugin paths; they are not copied or edited.
-- The production-gate fixture is simulated and has a protected hash checked by the grader.
-- This harness does not create a scheduler, wrapper skill, or production integration.
+Receipt fields cannot contain prompts, code, commands, source/repository paths, names, URLs,
+session IDs, or issue IDs. Parallelism is derived from intersecting nested-agent intervals.
+
+## Legacy screening archive
+
+`results/2026-08-27-smoke.{json,md}` is the immutable one-cell, four-arm v1 screening result. It
+includes ECC, Superpowers, and combined candidate arms from the pre-consolidation investigation.
+It remains readable historical evidence but is non-comparable with v2, is never pooled into the
+current decision report, and is not a runtime dependency or a production benchmark.

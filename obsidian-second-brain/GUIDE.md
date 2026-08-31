@@ -16,8 +16,10 @@ The plugin contains two types of components:
 
 Before using this plugin, make sure the following are set up:
 
-**Required for commands:**
-The Obsidian MCP Server must be connected. This is the bridge that lets Claude read, search, and modify your vault in real time. Without it, the four slash commands will not function. You can install it from the MCP registry or via the Obsidian community plugins directory.
+**Required for MCP-backed commands:**
+The Obsidian MCP Server is the bridge that lets Claude read, search, and modify your vault in real
+time. Without it, MCP-backed workflows fall back where documented. The compiled-knowledge workflow
+does not use MCP, but it requires `python3`, an explicit project config, and approved local roots.
 
 **Required for CLI skill:**
 Obsidian v1.12.4 or later, with the CLI registered. Go to Settings → General → Command line interface → Register CLI. After registering, restart your terminal so the `obsidian` binary is on your PATH. Obsidian must be running in the background for CLI commands to execute — the CLI communicates with the running Obsidian instance over a local socket.
@@ -90,6 +92,51 @@ The Defuddle CLI must be installed globally: `npm install -g defuddle`. This is 
 - The `--md` flag gets markdown output; `-p title` extracts just the page title (useful for auto-naming notes).
 
 ## Commands Reference
+
+### knowledge-compiler and /vault-compile
+
+Use this workflow when several captured sources should become a maintained knowledge page rather
+than another one-off summary. Ask: “Use the knowledge compiler to preview a cited page from this
+registered source.” Claude Code and Codex both use the same deterministic engine.
+
+The workflow has four user-facing modes:
+
+- `preview` creates private artifacts and shows the exact proposed diff. It does not touch the
+  compiled page.
+- `apply` writes only a specifically approved, unexpired preview. It stops if the source or target
+  changed, the ACL/retention contract drifted, or a human edited the page.
+- `status` reports clean, stale, conflicting, and purged pages without exposing preview content. If
+  an authorized apply was interrupted, status first restores its journaled pre-transaction bytes;
+  if an authorized purge was interrupted, status resumes its forward-only deletion journal before
+  reporting. It never authors a new synthesis.
+- `rebuild` creates another preview; it never applies automatically.
+
+First, create an explicit project config from the disabled template printed by
+`python3 scripts/compiled_knowledge.py init-config --vault-root /approved/vault`. Create the listed
+source and output directories, replace every project/operator placeholder, and keep every automatic
+or graph adapter gate false. `qmd_enabled` must also remain false: qmd does not consume compiler ACL,
+freshness, retention, or purge decisions in this release. Keep both the compiler output and private
+state roots outside qmd collections. Then register an already captured note with its real ACL, local
+egress, and retention class. Do not reuse a source id after a privacy purge.
+
+The compiler may report prompt-like text in a source as an inert-content finding. That text is not
+executed or copied into policy: proposals accept only page, claim, citation, link, and contradiction
+fields. Every claim must cite exact inclusive source line numbers, and those line bytes are hashed.
+
+Example lifecycle:
+
+1. `/vault-capture <source>` and opt into compiler registration.
+2. `/vault-compile preview ...` and inspect the change brief plus diff.
+3. Explicitly approve the displayed preview id.
+4. `/vault-compile apply ...`, then `/vault-align check compiled`.
+
+Scheduled compilation, automatic apply, context injection, Graphify, and Neo4j promotion are not
+available in this release. A legal/privacy purge is a separate explicit operation requiring the exact
+`source_id:revision_hash`; it removes compiler-owned payloads and records only a non-sensitive
+tombstone. Purged status is committed only after private snapshots and derived payloads are gone.
+The receipt's `rawSourceRetained` boolean records whether the canonical human source note still
+existed at the terminal purge boundary. The compiler never deletes that source, but it does not
+claim retention when another actor removed it first.
 
 ### /vault-search
 
@@ -270,6 +317,10 @@ The Obsidian CLI can enable and disable these plugins but cannot install them. W
 
 **Use `/vault-align check` periodically.** It's the quickest way to find broken links, orphan notes, inconsistent tags, and structural issues before they accumulate. Focus on a specific area with `/vault-align check tags` or `/vault-align check orphans`.
 
+**Use `/vault-align check compiled` after source changes.** A stale Markdown page may still exist on
+disk. The compiler blocks its own downstream adapters, but it cannot retract content from a generic
+qmd collection; keep the compiled output root unindexed until an ACL-aware qmd adapter is available.
+
 ## Troubleshooting
 
 **Commands fail with "tool not found":** The Obsidian MCP Server isn't connected. Install it and ensure it appears in your MCP connections.
@@ -303,6 +354,17 @@ Get the key from Obsidian: Settings → Community plugins → Local REST API →
 **File deletion blocked in Cowork:** Cowork sandboxes block `rm` by default. Call `mcp__cowork__allow_cowork_file_delete` with the vault path first to enable deletion permissions for the session.
 
 **Nested .obsidian folder causing weird behavior:** A `.obsidian` directory inside a subfolder creates an accidental sub-vault. Find it with `find <vault> -mindepth 2 -name ".obsidian" -type d` and delete it (after backing up).
+
+**Compiler says the source changed after registration:** Register the new source revision, then build
+a new preview. Never edit the retained snapshot or force the old preview through.
+
+**Compiler says the target changed after preview:** A human or another session edited the compiled
+page. Preserve that edit, review the conflict, and create a new preview. The compiler intentionally
+has no force-overwrite mode.
+
+**Compiler reports a recovered transaction:** The previous apply was interrupted. Recovery restored
+the exact pre-transaction page/index/log state. Inspect `status`, then re-run the same approved apply
+or generate a new preview if its expiry or source binding changed.
 
 
 ### qmd-search

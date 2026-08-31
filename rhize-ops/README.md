@@ -6,9 +6,14 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
 The other skills and commands work with no prior configuration. `parallel-agent-optimization`
-stores opt-in, privacy-safe local receipts under `~/.rhize/parallel-agent-optimization/` only when
-it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
+stores opt-in, privacy-safe v2 lifecycle receipts under `~/.rhize/parallel-agent-optimization/`
+only when it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
 guardrail hooks are active in a project.
+
+Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
+Codex loads the same skill bodies from `.codex-plugin/plugin.json` and `agents/openai.yaml`.
+After installing or updating either host, start a fresh session before checking discovery so a
+previously cached plugin snapshot is not mistaken for the release.
 
 ## Skills
 
@@ -42,16 +47,23 @@ Renders the live skill-monitor audit dashboard — aggregates every per-run snap
 
 ### `parallel-agent-optimization`
 
-Routes a task through one baseline, ECC, Superpowers, or Rhize strategy and records a strict
-structured receipt so future runs compound into evidence. Ordinary `apply` runs execute one arm
-only and remain observational. An explicit `compare` runs baseline, ECC, Superpowers, and Rhize as
-separate, counterbalanced arms only in fresh replayable environments; it never repeats a live task
-or adds a combined ECC+Superpowers arm. The Rhize arm itself selects at most one upstream resource.
+Applies one self-contained Rhize routing strategy and records a strict lifecycle receipt so future
+runs compound into evidence. Ordinary `apply` runs execute once and remain observational. An
+explicit `compare` runs baseline and Rhize as separate, counterbalanced arms only in fresh
+replayable environments; it never repeats a live task. ECC and Superpowers are attribution/update
+references, not runtime resources.
 
-Receipts contain counts, coarse task class, timing intervals, verification, collisions/rework, and
-availability-marked token/tool metrics. They reject prompts, code, commands, repository/file paths,
-names, URLs, and session/thread/issue identifiers, and keep observational versus controlled results
-in separate files and report sections.
+Every accepted v2 run begins as a reservation and finalizes as `completed`, `failed`, or
+`incomplete`; `audit-pending` exposes stale reservations. Receipts contain counts, coarse task
+class, timing intervals, verification, collisions/rework, and availability-marked token/tool
+metrics. They reject prompts, code, commands, repository/file paths, names, URLs, and
+session/thread/issue identifiers. Archived v1 candidate smoke stays readable but non-comparable.
+
+Before dispatch, real work also passes through an ephemeral task graph that validates data and
+hidden shared-resource edges, host concurrency, coordinator capacity, authority gates, bounded
+outputs, retry safety, lifecycle state, and complete fan-in. Claude Code and Codex use the same
+schemas and Python validator. The host still schedules agents; only content-free receipt-v2 counts
+persist, while historical v1 receipts remain readable and labeled legacy.
 
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
@@ -67,10 +79,11 @@ gates; otherwise the skill selects sequential or gated execution and explains wh
 ### `/parallel-optimize`
 
 Thin command adapter for `parallel-agent-optimization`. Use `assess <question or task>` for a
-non-executing routing decision, `apply [--variant ...] <task>` for one real-task strategy, `compare
-<replayable task or fixture>` for an explicit isolated four-arm comparison, or `report
-[observational|controlled|all]` to inspect accumulated evidence without running work. The command
-grants no new production, external-write, commit, push, merge, or deploy authority.
+non-executing routing decision, `apply <task>` for one real-task strategy, `compare <replayable task
+or fixture>` for an explicit isolated baseline-versus-Rhize comparison, `report
+[observational|controlled|all]` to inspect evidence, or `audit-pending` to find unfinished
+reservations. The command grants no new production, external-write, commit, push, merge, or deploy
+authority.
 
 **Invoked as:** `/rhize-ops:parallel-optimize`
 
@@ -91,6 +104,15 @@ Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump
 Fleet-level guardrail wizard. Discovers every installed Rhize plugin's opt-in hook catalog (`<plugin>/setup/manifest.json`), reads back the target project's *effective* hook state (`.claude/settings.json` + `.claude/settings.local.json`, plus `ECC_DISABLED_HOOKS`/`ECC_GATEGUARD` env toggles), presents an opt-in menu via `AskUserQuestion`, smoke-tests each selected hook before wiring it, and writes the result into the target project's tracked `.claude/settings.json`. Installing a plugin never auto-wires its hooks — this wizard (or a manual edit) is the only way a manifest item starts firing. See [Setup manifest schema](#setup-manifest-schema) below for what a plugin ships to participate.
 
 **Invoked as:** `/rhize-ops:rhize-setup`
+
+## Decision-accountability adapter
+
+Ops may map a predeclared experiment adoption/promotion/hold decision into the shared graph-memory
+proposal using the Jira measurement revision, privacy-safe receipt/report digests, fixed thresholds,
+current policy, and explicit approval. It never upgrades observational evidence, mutates Jira, or
+creates a decision store. The canonical
+[typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
+owns preview/record semantics and returns `unavailable` while projection operations are disabled.
 
 ## Setup manifest schema
 

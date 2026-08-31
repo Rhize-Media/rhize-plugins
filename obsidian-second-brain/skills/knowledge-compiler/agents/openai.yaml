@@ -1,0 +1,4 @@
+interface:
+  display_name: "Knowledge Compiler"
+  short_description: "Compile cited vault knowledge safely"
+  default_prompt: "Use $knowledge-compiler to build a reviewable, source-bound knowledge-page preview."

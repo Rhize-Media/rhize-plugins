@@ -1,0 +1,11 @@
+{
+  "schema_version": "rhize-task-graph-v1",
+  "expected_checkout_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "concurrency_budget": 3,
+  "coordinator_slots_reserved": 1,
+  "context_item_budget": 4,
+  "nodes": [
+    {"id": "writer_a", "deliverable": "bounded edit", "inputs": [], "output_contract": {"kind": "files", "max_items": 1}, "depends_on": [], "reads": [], "writes": ["src"], "resources": [], "requires_approval": false, "external_effect": "none", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"},
+    {"id": "writer_b", "deliverable": "bounded edit", "inputs": [], "output_contract": {"kind": "files", "max_items": 1}, "depends_on": [], "reads": [], "writes": ["src/file.py"], "resources": [], "requires_approval": false, "external_effect": "none", "optional": false, "timeout_seconds": 60, "retry": {"max_attempts": 1, "idempotent": false, "renew_approval": false}, "verification_owner": "coordinator"}
+  ]
+}

@@ -21,6 +21,7 @@ from context_experiments.config import (
 from context_experiments.models import Arm, Capability, ExperimentConfig, ExperimentEvidence
 from context_experiments.receipt_store import EvidenceStore
 from context_experiments.runner import (
+    audit_pending_attempts,
     build_context_pack_preview,
     claim_hook_selection,
     finalize_hook_selection,
@@ -64,6 +65,17 @@ def armed_compiled_context(repo: Path) -> ExperimentConfig:
         Capability.COMPILED_CONTEXT,
         repo,
         1,
+        smoke_approved=True,
+    )
+
+
+def continuous_compiled_context(repo: Path) -> ExperimentConfig:
+    return arm_capability(
+        ExperimentConfig(),
+        Capability.COMPILED_CONTEXT,
+        repo,
+        0,
+        mode="continuous",
         smoke_approved=True,
     )
 
@@ -177,6 +189,7 @@ def test_compiled_context_pack_construction_alone_freezes_incomplete_run(
     (repo / "app.py").write_text(
         "from service import normalize\n\ndef run(value: str) -> str:\n    return normalize(value)\n"
     )
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -202,7 +215,7 @@ def test_compiled_context_pack_construction_alone_freezes_incomplete_run(
     )
     assert claimed is not None
     execution = claimed["pending"]["providerExecution"]
-    assert execution["providerRevision"] == "rhize-native-context-pack-v1"
+    assert execution["providerRevision"] == "rhize-native-context-pack-v2"
     assert (tmp_path / "data" / "packs" / execution["manifestFile"]).is_file()
     assert (tmp_path / "data" / "packs" / execution["promptFile"]).is_file()
     assert "prompt" not in claimed["pending"]
@@ -231,6 +244,7 @@ def test_review_sidecar_completes_only_evidenced_live_arm(tmp_path: Path) -> Non
     repo.mkdir()
     (repo / "service.py").write_text("def normalize(value):\n    return value.strip()\n")
     (repo / "app.py").write_text("from service import normalize\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -283,12 +297,196 @@ def test_review_sidecar_completes_only_evidenced_live_arm(tmp_path: Path) -> Non
     assert frozen.completed_runs == 1
 
 
+def test_continuous_success_releases_single_flight_and_stays_enabled(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(repo), "-c", "user.name=Rhize Tests",
+            "-c", "user.email=tests@rhize.media", "commit", "-qm", "fixture",
+        ],
+        check=True,
+    )
+    config_path = tmp_path / "config.json"
+    data_dir = tmp_path / "data"
+    write_config(continuous_compiled_context(repo), config_path)
+    provider_status = {Capability.COMPILED_CONTEXT: (True, True, "native provider")}
+    first_payload = {
+        "prompt": "Implement the application value behavior for this feature",
+        "cwd": str(repo),
+        "session_id": "continuous-one",
+    }
+    first = claim_hook_selection(
+        first_payload, load_config(config_path), provider_status, data_dir, config_path
+    )
+    assert first is not None
+    assert load_config(config_path).compiled_context.enabled is True
+    EvidenceStore(data_dir / "evidence").write(
+        ExperimentEvidence(
+            experiment_id=first["pending"]["experimentId"],
+            recorded_at="2026-08-30T12:00:00Z",
+            task_outcome="completed",
+            pack_use_observed=True,
+            validation_ids=("pytest-continuous",),
+            arms_executed=(Arm.EXPERIMENTAL,),
+            arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+        )
+    )
+    assert finalize_hook_selection(first_payload, data_dir, config_path) is True
+    completed = json.loads(next((data_dir / "receipts").glob("*.json")).read_text())
+    assert completed["status"] == "completed"
+    assert completed["terminalReason"] == "evidence_complete"
+    assert completed["evidenceCompleteness"] == {
+        "armAccountingComplete": True,
+        "evidenceState": "valid",
+        "packUseRecorded": True,
+        "packUseRequired": True,
+        "taskOutcomeRecorded": True,
+        "validationRecorded": True,
+    }
+    updated = load_config(config_path).compiled_context
+    assert updated.mode == "continuous"
+    assert updated.enabled is True
+    assert updated.armed_runs == 0
+    assert updated.completed_runs == 1
+    assert list((data_dir / "leases").glob("*.lease")) == []
+
+    second = claim_hook_selection(
+        {**first_payload, "session_id": "continuous-two"},
+        load_config(config_path),
+        provider_status,
+        data_dir,
+        config_path,
+    )
+    assert second is not None
+
+
+@pytest.mark.parametrize("evidence_kind", ["missing", "malformed", "failed", "stale"])
+def test_continuous_non_success_writes_terminal_receipt_and_freezes(
+    tmp_path: Path, evidence_kind: str
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(repo), "-c", "user.name=Rhize Tests",
+            "-c", "user.email=tests@rhize.media", "commit", "-qm", "fixture",
+        ],
+        check=True,
+    )
+    config_path = tmp_path / "config.json"
+    data_dir = tmp_path / "data"
+    write_config(continuous_compiled_context(repo), config_path)
+    payload = {
+        "prompt": "Review the application value behavior for regressions",
+        "cwd": str(repo),
+        "session_id": f"continuous-{evidence_kind}",
+    }
+    claimed = claim_hook_selection(
+        payload,
+        load_config(config_path),
+        {Capability.COMPILED_CONTEXT: (True, True, "native provider")},
+        data_dir,
+        config_path,
+    )
+    assert claimed is not None
+    experiment_id = claimed["pending"]["experimentId"]
+    if evidence_kind == "malformed":
+        evidence_dir = data_dir / "evidence"
+        evidence_dir.mkdir(parents=True)
+        (evidence_dir / f"{experiment_id}.json").write_text("{}\n")
+    elif evidence_kind in {"failed", "stale"}:
+        EvidenceStore(data_dir / "evidence").write(
+            ExperimentEvidence(
+                experiment_id=experiment_id,
+                recorded_at="2026-08-30T12:00:00Z",
+                task_outcome="failed" if evidence_kind == "failed" else "completed",
+                pack_use_observed=True,
+                validation_ids=("pytest-failed",),
+                arms_executed=(Arm.EXPERIMENTAL,),
+                arms_skipped=({"arm": "A", "reason": "no_comparable_shadow_evidence"},),
+            )
+        )
+        if evidence_kind == "stale":
+            (repo / "app.py").write_text("value = 2\n")
+    assert finalize_hook_selection(payload, data_dir, config_path) is True
+    receipt = json.loads(next((data_dir / "receipts").glob("*.json")).read_text())
+    assert receipt["status"] == ("failed" if evidence_kind == "failed" else "incomplete")
+    assert receipt["evidenceCompleteness"]["evidenceState"] == (
+        "valid" if evidence_kind in {"failed", "stale"} else evidence_kind
+    )
+    if evidence_kind == "stale":
+        assert receipt["terminalReason"] == "final_pack_stale"
+    frozen = load_config(config_path).compiled_context
+    assert frozen.enabled is False
+    assert frozen.armed_runs == 0
+
+
+def test_stale_pending_audit_terminalizes_and_freezes_continuous_attempt(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+    subprocess.run(
+        [
+            "git", "-C", str(repo), "-c", "user.name=Rhize Tests",
+            "-c", "user.email=tests@rhize.media", "commit", "-qm", "fixture",
+        ],
+        check=True,
+    )
+    config_path = tmp_path / "config.json"
+    data_dir = tmp_path / "data"
+    config = continuous_compiled_context(repo).with_capability(
+        Capability.COMPILED_CONTEXT,
+        replace(continuous_compiled_context(repo).compiled_context),
+    )
+    config = replace(config, lease_ttl_seconds=60)
+    write_config(config, config_path)
+    claimed = claim_hook_selection(
+        {
+            "prompt": "Diagnose the application value behavior regression",
+            "cwd": str(repo),
+            "session_id": "stale-continuous",
+        },
+        load_config(config_path),
+        {Capability.COMPILED_CONTEXT: (True, True, "native provider")},
+        data_dir,
+        config_path,
+    )
+    assert claimed is not None
+    pending_path = next((data_dir / "pending").glob("*.json"))
+    old = time.time() - 120
+    os.utime(pending_path, (old, old))
+
+    assert audit_pending_attempts(data_dir, config_path, now=old + 120) == 1
+    receipt = json.loads(next((data_dir / "receipts").glob("*.json")).read_text())
+    assert receipt["status"] == "incomplete"
+    assert receipt["terminalReason"] == "stale_pending_attempt"
+    assert not pending_path.exists()
+    assert load_config(config_path).compiled_context.enabled is False
+
+
 def test_repo_capability_lease_never_stale_reclaims_an_accepted_pending(
     tmp_path: Path,
 ) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -340,6 +538,7 @@ def test_dirty_repo_and_expired_duration_refuse_before_reservation(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -552,6 +751,7 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(
@@ -612,12 +812,42 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     assert receipt["evidenceDigest"] is None
 
 
+def test_plugin_hooks_auto_wire_selector_and_finalizer_for_claude_code_only() -> None:
+    hook_manifest = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
+    assert "Claude Code auto-wires" in hook_manifest["description"]
+    assert "Codex uses the same host-neutral skills and runners explicitly" in hook_manifest["description"]
+    hooks = hook_manifest["hooks"]
+    prompt_commands = [
+        hook["command"]
+        for group in hooks["UserPromptSubmit"]
+        for hook in group["hooks"]
+    ]
+    stop_commands = [
+        hook["command"]
+        for group in hooks["Stop"]
+        for hook in group["hooks"]
+    ]
+    assert any("context-experiment-selector.js" in value for value in prompt_commands)
+    assert any("context-experiment-finalizer.js" in value for value in stop_commands)
+
+
+def test_cross_host_docs_do_not_claim_codex_consumes_claude_hooks() -> None:
+    readme = (PLUGIN_ROOT / "README.md").read_text()
+    guide = (PLUGIN_ROOT / "GUIDE.md").read_text()
+    command = (PLUGIN_ROOT / "commands" / "context-experiment.md").read_text()
+    assert "Codex does not consume" in readme
+    assert "Claude hook manifest" in readme
+    assert "Codex uses the same host-neutral runner" in guide
+    assert "the Claude hook manifest is not a Codex runtime surface" in command
+
+
 def test_record_evidence_command_requires_pending_and_is_immutable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     (repo / "app.py").write_text("value = 1\n")
+    (repo / "unused.py").write_text("\n".join(f"unused_{index} = {index}" for index in range(80)))
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
     subprocess.run(

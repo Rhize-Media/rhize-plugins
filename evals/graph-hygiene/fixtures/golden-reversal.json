@@ -1,0 +1,13 @@
+{
+  "fixtureVersion": 1,
+  "before": {"logicalSameAsEdges": [], "sourceNodeCount": 3, "claimCount": 2},
+  "accepted": {
+    "logicalSameAsEdges": [
+      ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+      ["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"]
+    ],
+    "sourceNodeCount": 3,
+    "claimCount": 2
+  },
+  "reversed": {"logicalSameAsEdges": [], "sourceNodeCount": 3, "claimCount": 2}
+}

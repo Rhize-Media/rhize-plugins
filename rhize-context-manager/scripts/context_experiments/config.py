@@ -27,6 +27,20 @@ def default_data_dir() -> Path:
     return Path.home() / ".claude" / "rhize-context-manager" / "experiments"
 
 
+def default_context_pack_dir() -> Path:
+    """Host-neutral storage for explicit Claude Code/Codex context-pack previews."""
+
+    override = os.environ.get("RHIZE_CONTEXT_PACK_DATA_DIR")
+    if override:
+        return Path(override).expanduser()
+    context_home = os.environ.get("RHIZE_CONTEXT_HOME")
+    if context_home:
+        return Path(context_home).expanduser() / "context-packs"
+    data_home = os.environ.get("XDG_DATA_HOME")
+    base = Path(data_home).expanduser() if data_home else Path.home() / ".local" / "share"
+    return base / "rhize" / "context-manager" / "context-packs"
+
+
 def load_config(path: Path | None = None) -> ExperimentConfig:
     config_path = path or default_config_path()
     if not config_path.exists():
@@ -65,6 +79,7 @@ def arm_capability(
     repo_root: Path,
     runs: int,
     *,
+    mode: str = "canary",
     network_approved: bool = False,
     smoke_approved: bool = False,
     store: str | None = None,
@@ -76,6 +91,7 @@ def arm_capability(
         current,
         enabled=True,
         armed_runs=runs,
+        mode=mode,
         eligible_repos=repos,
         network_approved=network_approved if capability is Capability.MGREP else False,
         smoke_approved=(
@@ -115,8 +131,13 @@ def reserve_capability_run(
     with _config_lock(path):
         config = load_config(path)
         current = config.for_capability(capability)
-        if not current.enabled or current.armed_runs <= 0:
+        has_authority = current.enabled and (
+            current.mode == "continuous" or current.armed_runs > 0
+        )
+        if not has_authority:
             return None
+        if current.mode == "continuous":
+            return config
         updated_capability = replace(current, enabled=False, armed_runs=0)
         updated = config.with_capability(capability, updated_capability)
         write_config(updated, path)
@@ -129,8 +150,10 @@ def record_reserved_completion(path: Path, capability: Capability) -> Experiment
     with _config_lock(path):
         config = load_config(path)
         current = config.for_capability(capability)
-        if current.enabled or current.armed_runs != 0:
-            raise ValueError("completed reserved run requires a frozen capability")
+        if current.mode == "canary" and (current.enabled or current.armed_runs != 0):
+            raise ValueError("completed reserved canary requires a frozen capability")
+        if current.mode == "continuous" and current.armed_runs != 0:
+            raise ValueError("completed continuous run requires armedRuns=0")
         updated = config.with_capability(
             capability,
             replace(current, completed_runs=current.completed_runs + 1),

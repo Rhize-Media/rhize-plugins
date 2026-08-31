@@ -3,7 +3,7 @@ name: context-stack
 description: >-
   Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH
   context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK,
-  graphify, Graphiti, Obsidian), when two context layers appear to duplicate or conflict
+  graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict
   (same context injected twice, slow session start, stacked hooks), or when setting up a
   new repo and choosing which context tooling it should run. Triggers: "which memory
   tool", "context is duplicated", "session start is slow", "set up context tooling",
@@ -27,7 +27,7 @@ failure mode is running overlapping layers without noticing they compete.
 | Wire | **Headroom** (proxy `127.0.0.1:8787`) | per-repo (via `.claude/settings.local.json`) | Compresses API traffic; token savings on the wire |
 | Wire | **RTK** (`rtk` CLI proxy) | global (hook-rewritten commands) | Token-optimized CLI output (60–90% savings) |
 | Memory | **claude-mem** (plugin, dashboard `:37777`) | global, cross-session | Persistent observation memory + recall injection |
-| Memory | **Graphiti** (opt-in, see `graphiti-memory` skill) | project/org | Temporal knowledge-graph memory with entity relationships |
+| Memory routing | **memory-context** | explicit private preview | Source-bound, conflict-preserving context assembly; no write-back or injection |
 | File intel | **OpenWolf** (`.wolf/`) | per-repo (only where installed) | In-session file index + correction hooks |
 | Code nav | **Serena** (MCP) | per-repo | Symbol-level semantic navigation and edits |
 | Code nav | **CodeGraph** (`.codegraph/`, MCP + CLI) | per-repo (only where indexed) | Call-path + blast-radius answers in one query |
@@ -39,14 +39,15 @@ failure mode is running overlapping layers without noticing they compete.
 Skill/capability routing decisions (which skill to reach for, which skills are
 relevant to a repo) consult the generated skill map first — see
 `docs/skill-map.md` for the artifact/schema and `.claude/plans/skill-map-graph-substrate.md`
-for the rationale. Two consumers read it today: `skill-router.js` (opt-in,
+for the rationale. Claude Code has two hook consumers today: `skill-router.js` (opt-in,
 per-prompt suggestion) and `session-disclosure.js` (auto-wired SessionStart
 hook, stack-fingerprint-driven repo disclosure — replaces the four per-plugin
 SessionStart banners retired 2026-08-09). Both resolve
 `~/.claude/context-manager/skill-map.resolved.json`, falling back to
 `skill-map.static.json`. The flat plugin/skill listing (this file's tables,
 each plugin's README) is the fallback when the map is missing or stale — it
-is never the primary source once the map is installed.
+is never the primary source once the map is installed. Codex does not consume the Claude hook
+manifest; its agent inspects the same generated map and canonical skill metadata explicitly.
 
 ## Routing rules
 
@@ -74,8 +75,9 @@ Never run Serena and CodeGraph on the same question — pick by what's indexed.
 
 **Storing knowledge:** session-scoped facts → claude-mem captures automatically (don't
 duplicate by hand). Durable decisions/plans → Obsidian vault. Relationship-heavy
-knowledge (entities, timelines, cross-project) → graphify (vault graph) or Graphiti
-(queryable temporal graph) — graphify for human browsing, Graphiti for agent recall.
+knowledge (entities, timelines, cross-project) → Obsidian plus graphify for human browsing.
+Neo4j is available for a later governed read-only projection after its ontology and hygiene gates;
+Graphiti is not implemented and is not an active routing or setup option.
 
 **Compression:** never manually compress what a wire layer already handles. Headroom
 compresses API traffic; RTK compresses CLI output. In-context compression (compaction,
@@ -102,10 +104,12 @@ Run `/context-doctor` for a structured health check of the whole stack.
 
 ## New-repo setup guidance
 
-- Every repo: RTK (global) + claude-mem (global) come for free.
+- Every repo: use the context layers actually installed and healthy; never infer availability from a plan.
 - Heavy/long-lived repos: add Headroom (`.claude/settings.local.json` proxy config).
 - Large codebases needing semantic nav: `codegraph init` (preferred) or Serena.
 - Only add OpenWolf where its correction-hook value is proven — it overlaps claude-mem.
+- Use `memory-context` only for explicit, scoped previews over supported adapters. Missing episodic
+  or procedural read APIs remain `unavailable`; do not scrape transcripts or parse prose.
 
 Run `/context-setup` to have this reasoning applied automatically for a specific repo:
 it scans the repo, probes which layers are actually active, proposes enable/disable

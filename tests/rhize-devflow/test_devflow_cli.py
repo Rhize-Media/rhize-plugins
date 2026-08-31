@@ -634,6 +634,33 @@ def test_evidence_never_executes_package_scripts(tmp_path: Path) -> None:
     }
 
 
+def test_evidence_reports_changed_test_candidates_as_advisory_only(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    (repo / "src.css").write_text(".dark { color: white }\n")
+    (repo / "style.test.js").write_text(
+        "const text = readFile('src.css');\nexpect(text).toContain('.dark');\n"
+    )
+    commit_all(repo, "initial")
+    (repo / "style.test.js").write_text(
+        "const text = readFile('src.css');\nexpect(text).toContain('color');\n"
+    )
+
+    result = run_cli("evidence", "--repo", str(repo), "--json")
+    assert result.returncode == 0, result.stdout + result.stderr
+    candidates = json.loads(result.stdout)["test_evidence_candidates"]
+    assert candidates == [
+        {
+            "test_path": "style.test.js",
+            "related_production_files": [],
+            "declared_invariant": None,
+            "contract_class": None,
+            "oracle_status": "unreviewed",
+            "review_status": "advisory",
+            "signals": ["changed_test", "source_content_assertion"],
+        }
+    ]
+
+
 def test_evidence_package_manager_and_instruction_file_facts(tmp_path: Path) -> None:
     repo = make_git_repo(tmp_path)
     (repo / "package-lock.json").write_text("{}\n")

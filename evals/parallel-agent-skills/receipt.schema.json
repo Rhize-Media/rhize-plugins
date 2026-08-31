@@ -1,57 +1,48 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Isolated fixture lifecycle receipt. Runtime receipt v2 is owned by ../../rhize-ops/skills/parallel-agent-optimization/references/receipt-v2.schema.json.",
+  "x-rhize-canonical-v2": "../../rhize-ops/skills/parallel-agent-optimization/references/receipt-v2.schema.json",
   "type": "object",
+  "additionalProperties": false,
   "required": [
-    "schema_version",
-    "run_id",
-    "variant",
-    "task_id",
-    "started_at",
-    "completed_at",
-    "decision",
-    "decision_reason",
-    "lanes_planned",
-    "agents",
-    "tool_calls",
-    "tool_calls_availability_reason",
-    "tokens",
-    "tokens_availability_reason",
-    "required_checks",
-    "completed_checks",
-    "passed_checks",
-    "collisions",
-    "rework_events",
-    "correctness_claimed"
+    "schema_version", "run_id", "comparison_id", "variant", "task_id", "task_class",
+    "repetition", "status", "started_at", "completed_at", "expected_decision", "decision",
+    "lanes_planned", "agents", "tool_calls", "tool_calls_unavailable_reason", "tokens",
+    "tokens_unavailable_reason", "required_checks", "completed_checks", "passed_checks",
+    "collisions", "rework_events", "correctness_pass"
   ],
   "properties": {
-    "schema_version": {"const": 1},
-    "run_id": {"type": "string", "minLength": 1},
-    "variant": {"enum": ["baseline", "arm_a", "arm_b", "arm_ab"]},
+    "schema_version": {"const": 2},
+    "run_id": {"type": "string", "format": "uuid"},
+    "comparison_id": {"type": "string", "format": "uuid"},
+    "variant": {"enum": ["baseline", "rhize"]},
     "task_id": {"type": "string", "minLength": 1},
-    "started_at": {"type": "string", "minLength": 1},
-    "completed_at": {"type": "string", "minLength": 1},
-    "decision": {"enum": ["parallel", "sequential", "gated"]},
-    "decision_reason": {"type": "string", "minLength": 1},
-    "lanes_planned": {"type": "integer", "minimum": 0},
+    "task_class": {"enum": ["parallel_read", "disjoint_write", "shared_state", "dependency_chain", "mixed_verification", "gated_live"]},
+    "repetition": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["completed", "failed", "incomplete"]},
+    "started_at": {"type": "string", "format": "date-time"},
+    "completed_at": {"type": "string", "format": "date-time"},
+    "expected_decision": {"enum": ["parallel", "sequential", "gated"]},
+    "decision": {"type": ["string", "null"], "enum": ["parallel", "sequential", "gated", null]},
+    "lanes_planned": {"type": ["integer", "null"], "minimum": 0},
     "agents": {
-      "type": "array",
+      "type": ["array", "null"],
       "items": {
         "type": "object",
-        "required": ["name", "role", "write_territory", "started_at", "completed_at", "status"],
+        "additionalProperties": false,
+        "required": ["started_at", "completed_at", "status"],
         "properties": {
-          "name": {"type": "string"},
-          "role": {"type": "string"},
-          "write_territory": {"type": "array", "items": {"type": "string"}},
-          "started_at": {"type": ["string", "null"]},
-          "completed_at": {"type": ["string", "null"]},
-          "status": {"enum": ["completed", "failed", "interrupted"]}
+          "started_at": {"type": "string", "format": "date-time"},
+          "completed_at": {"type": "string", "format": "date-time"},
+          "status": {"enum": ["completed", "failed", "cancelled"]}
         }
       }
     },
     "tool_calls": {"type": ["integer", "null"], "minimum": 0},
-    "tool_calls_availability_reason": {"type": ["string", "null"]},
+    "tool_calls_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
     "tokens": {
       "type": "object",
+      "additionalProperties": false,
       "required": ["input", "output", "cache_read", "cache_write"],
       "properties": {
         "input": {"type": ["integer", "null"], "minimum": 0},
@@ -60,12 +51,24 @@
         "cache_write": {"type": ["integer", "null"], "minimum": 0}
       }
     },
-    "tokens_availability_reason": {"type": ["string", "null"]},
-    "required_checks": {"type": "array", "items": {"type": "string"}},
-    "completed_checks": {"type": "array", "items": {"type": "string"}},
-    "passed_checks": {"type": "array", "items": {"type": "string"}},
-    "collisions": {"type": "integer", "minimum": 0},
-    "rework_events": {"type": "integer", "minimum": 0},
-    "correctness_claimed": {"type": "boolean"}
-  }
+    "tokens_unavailable_reason": {"type": ["string", "null"], "enum": ["host_not_exposed", "partial_host_coverage", "not_measured", null]},
+    "required_checks": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "completed_checks": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "passed_checks": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "collisions": {"type": ["integer", "null"], "minimum": 0},
+    "rework_events": {"type": ["integer", "null"], "minimum": 0},
+    "correctness_pass": {"type": ["boolean", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "completed"}}},
+      "then": {
+        "properties": {
+          "decision": {"type": "string"}, "lanes_planned": {"type": "integer"},
+          "agents": {"type": "array"}, "collisions": {"type": "integer"},
+          "rework_events": {"type": "integer"}, "correctness_pass": {"type": "boolean"}
+        }
+      }
+    }
+  ]
 }

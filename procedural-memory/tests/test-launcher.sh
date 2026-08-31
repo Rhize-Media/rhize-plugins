@@ -25,6 +25,7 @@ set -eu
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 LAUNCHER="$SCRIPT_DIR/../scripts/rhize-skill-launcher.sh"
+SKILL_LAUNCHER="$SCRIPT_DIR/../skills/procedural-memory/scripts/procedural-memory.sh"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
@@ -121,6 +122,19 @@ set -e
 assert_eq "Test C exit code (success passthrough)" "0" "$code"
 assert_contains "Test C stub received the real argv" "$WORK/stub-good-log.txt" \
     "invoked: recall sync a GHL contact to Slack"
+
+echo
+echo "=== Test C2: self-relative skill launcher works from an unrelated cwd ==="
+rm -f "$WORK/stub-skill-log.txt"
+set +e
+(cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
+    PATH="$WORK/stub-good/bin:/usr/bin:/bin" STUB_LOG="$WORK/stub-skill-log.txt" \
+    bash "$SKILL_LAUNCHER" verify artifact-name) > "$WORK/testC2.out" 2>&1
+code=$?
+set -e
+assert_eq "Test C2 exit code (success passthrough)" "0" "$code"
+assert_contains "Test C2 stub received the real argv" "$WORK/stub-skill-log.txt" \
+    "invoked: verify artifact-name"
 
 echo
 echo "=== Test D: RHIZE_SKILL_BIN set to a non-executable path -> loud refusal, exit 78 ==="

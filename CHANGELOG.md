@@ -8,6 +8,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-08-30_ coordinated article-improvements release — **obsidian-second-brain** 1.4.4 → 1.5.0; **procedural-memory** 0.3.1 → 0.3.2; **rhize-context-manager** 0.21.0 → 0.22.0; **rhize-devflow** 2.16.0 → 2.17.0; **rhize-ops** marketplace entry aligned at 0.14.0; **rhize-tasks** 0.3.0 → 0.3.1; marketplace 2.51.1 → 2.52.0.
+- _2026-08-30_ **article-derived agent infrastructure for Claude Code and Codex.** Added a
+  dual-host task-graph contract and state-bound behavioral test evidence; deterministic native v2
+  context packs; evidence-bound Obsidian knowledge compilation; bounded unified-memory assembly;
+  governed Graphify-to-Neo4j ontology, ingest, read adapter, reversible identity review, and
+  decision-accountability contracts. Live Neo4j publication, automatic `SAME_AS`, automatic memory
+  injection/write-back, and decision recording remain disabled pending RT-155 through RT-161
+  measurement, canary, and promotion evidence.
+- _2026-08-30_ **review-gate hardening.** Compiled knowledge now rejects vault symlink and persisted
+  path-authority escapes and keeps qmd disabled until RT-164 supplies ACL-aware retrieval. Test
+  evidence no longer executes package scripts with ambient authority or accepts execution-backed
+  packets until RT-163 supplies a trusted sandbox. Native context reuse binds the private prompt,
+  unified-memory reuse requires current source revisions and recovers orphaned purge indexes, task
+  synthesis revalidates approvals/external state, graph ingest replays terminal receipts, identity
+  review enforces hashed ACL scopes, and decision-preview stdout is redacted.
 - _2026-08-30_ version bump — **rhize-ops** 0.13.5 → 0.13.6 (patch); marketplace 2.51.0 → 2.51.1.
 - _2026-08-30_ **mandatory fresh benchmark receipts.** The capture watchdog now independently
   validates strict `procedural-engineering-eval/v2` routine receipts alongside v1/graph receipts,
@@ -15,6 +30,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   by schema version. Every post-enforcement scheduled run now requires a fresh bound receipt;
   a later-dated Markdown row without one is actionable `receipt_missing`, while the existing
   pre-enforcement historical exception remains narrow and no evidence is backfilled.
+- _2026-08-30_ **rhize-ops 0.14.0 — self-contained parallel routing and v2 evidence lifecycle.**
+  Consolidated the useful dependency-graph, lane-lifecycle, focused-agent-brief, and integration
+  review practices from the installed MIT-licensed ECC 2.2.0 and Superpowers 6.3.0 skills into
+  Rhize's own concise runtime contract. New execution no longer loads either vendor skill or
+  evaluates a combined arm. Accepted runs reserve before work and finalize `completed`, `failed`,
+  or `incomplete`; stale pending reservations are auditable; deterministic task classes derive
+  expected routing; and decision readiness separates required correctness/verification/elapsed/
+  overlap/collision/rework/agent metrics from optional unavailable token/tool counts. The neutral
+  harness now predeclares three baseline-versus-Rhize repetitions for all six task classes. The
+  old four-arm v1 smoke remains immutable non-comparable screening evidence. Root marketplace and
+  generated skill-map artifacts require governed coordinator regeneration after integration.
 - _2026-08-30_ version bump — **rhize-context-manager** 0.20.0 → 0.21.0 (minor); marketplace 2.50.0 → 2.51.0.
 - _2026-08-30_ **rhize-context-manager — evidence-gated compiled-context canary.**
   Replaced the loose one-run arm counter with an atomic repository-and-capability single-flight

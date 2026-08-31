@@ -11,7 +11,7 @@ the right one, and health-checks the whole thing.
 
 - **"Which tool should hold this knowledge?" / "set up context tooling for this repo"**
   → the `context-stack` skill answers routing questions.
-  *Example: "Where should the client's evolving pricing decisions live — claude-mem, the vault, or Graphiti?"*
+  *Example: "Where should the client's evolving pricing decisions live, and what may be previewed?"*
 
 - **"Session start feels slow" / "I'm seeing the same context twice"**
   → `/context-doctor` — read-only health check + overlap flags across Headroom, RTK,
@@ -67,20 +67,49 @@ the right one, and health-checks the whole thing.
 
 - **"Build a compact source pack for this task" / "inspect compiled context"**
   → `/context-pack` — a local-only preview for Python, JavaScript, TypeScript, and mixed targets.
-  Give it one or more target files, or a task query; it uses CodeGraph first when the repository
-  already has `.codegraph/`, records why each FULL/INTERFACE entry was selected, and fails closed
-  on dynamic or stale dependencies. `verify-pack` must pass before reuse after any edit. The
-  automatic selector is separately opt-in and one-shot; no network provider is enabled by this
-  command.
+  Give it one or more target files, or a task query; it uses CodeGraph first only when an existing
+  `.codegraph/` is healthy/current, otherwise uses deterministic `rg`, records why each
+  FULL/INTERFACE entry was selected, and fails closed
+  on dynamic or stale dependencies. `verify-pack` must receive both the manifest and its private
+  prompt and pass their identity/content checks before reuse after any edit. The
+  optional `--impact-map .claude/plans/<name>.md` bridge adds semantic terms and source-file seeds
+  while recording only hashes/counts. Claude Code auto-wires the selector/finalizer hooks; Codex
+  exposes the same host-neutral runner through the `context-pack` and `context-experiment` skills
+  and must invoke it explicitly. Strict config disables all providers by default. Canary mode stays one-shot; explicitly enabled
+  continuous local mode stays live only after evidence-backed success and freezes on every
+  incomplete/failed/stale/malformed terminal state. No network provider is enabled by this command.
   *Example: "Run /context-pack for the account sync target, inspect the reasons, then verify it
   before using it in review."*
+
+- **"Assemble context from several memory sources" / "show memory conflicts"**
+  → `/memory-context` — a private, explicit preview that preserves source authority, scope,
+  conflicts, TTL, and unavailable adapters. It never scrapes host transcripts, executes recalled
+  procedures, writes back, or injects automatically. Verification requires an explicit current
+  source-ID/revision map; omission is a non-reusable failure, not a skipped freshness check.
 
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 
 - **"We need queryable long-term memory with relationships and time"**
-  → the `graphiti-memory` skill walks through opt-in Graphiti adoption (backend, MCP
-  wiring, usage patterns). Nothing is installed automatically.
+  → use the `graph-memory` ontology and bounded offline hygiene contracts; the `graphiti-memory`
+  skill is historical design context only. Graphiti was not implemented and must not be installed
+  or routed as a fallback. Live Neo4j projection remains behind RT-159.
+
+- **"Review these possible duplicate graph entities" / "reverse this SAME_AS decision"**
+  → use `graph-memory` (`/graph-memory-review` in Claude) to inspect capability. The in-process
+  lifecycle tests enforce proposal-only consolidation, leases, previews, CAS, enumerated rationale,
+  reversal blockers, and actor-effective ACL lanes (`current review ACLs ∩ authenticated actor
+  ACLs`). An actor authorized for several lanes cannot widen a narrower review or observe hidden
+  members/dependencies through its preview or ledger. Shared state is not configured yet, so Claude
+  and Codex receive the same structured unavailable response and must not invent a ledger or claim
+  acceptance.
+
+- **"Preview why we approved this release/experiment/task effect"**
+  → use `graph-memory` (`/graph-decision` in Claude) with a typed adapter from the owning workflow.
+  The offline release validates private, source-bound previews but does not record or publish them.
+  Record/explain/impact/precedent/correction operations return `unavailable` until the governed RT-161
+  projection canary; do not create a local fallback ledger. Claude and Codex use the same CLI and
+  [adapter contract](skills/graph-memory/references/typed-decision-adapters.md).
 
 - **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
   should I compress? where should a learning be stored?) → the curated library:
@@ -119,6 +148,10 @@ the right one, and health-checks the whole thing.
   (`session-init`, `duplicate-check`, `pre-commit-guard`) are opt-in — listed in
   `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
+- `context-experiment-selector.js` and `context-experiment-finalizer.js` are auto-wired for Claude
+  Code and no-op while capabilities are disabled. Codex uses the same host-neutral runner through
+  explicit skill invocation; it does not consume `hooks/hooks.json`. Remove older manually wired
+  Claude entries when updating; duplicate calls are state-safe but waste local provider work.
 - `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`)
   replaced the keyword-grep `skill-suggester` hook 2026-08-09 — it ranks the prompt
   against the compiled skill-map's topic/stack tags instead of a fixed keyword list, so
@@ -172,8 +205,9 @@ the right one, and health-checks the whole thing.
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
-- Graphiti is approved for Rhize adoption but needs its backend stood up first — until
-  then `graphiti-memory` is the design reference, not a working integration.
+- Graphiti was not implemented. Neo4j is available, but its live semantic-memory adapter remains
+  blocked on RT-159 even though ontology and private offline hygiene contracts now exist;
+  `memory-context` is preview-only in the meantime.
 
 ## Troubleshooting
 

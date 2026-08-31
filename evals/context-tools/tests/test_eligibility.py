@@ -17,6 +17,8 @@ from context_experiments.models import Capability, CapabilityConfig
         ("Map the impact of changing provider routing", "impact_analysis"),
         ("Where is the exact string", "deterministic_lookup"),
         ("Deploy this fix to production", "operations"),
+        ("Delete the database records for this customer", "operations"),
+        ("Run git reset --hard on this repository", "operations"),
         ("Tell me something interesting about this", "unknown"),
     ],
 )
@@ -50,6 +52,32 @@ def test_eligible_task_passes_all_gates(tmp_path: Path) -> None:
     decision = evaluate_eligibility(eligible_input(tmp_path))
     assert decision.eligible is True
     assert decision.reasons == ()
+
+
+@pytest.mark.parametrize(
+    "task_class", ["implementation", "diagnosis", "review", "impact_analysis"]
+)
+def test_continuous_mode_covers_every_explicitly_eligible_task_class(
+    tmp_path: Path, task_class: str
+) -> None:
+    original = eligible_input(tmp_path, Capability.COMPILED_CONTEXT)
+    config = CapabilityConfig(
+        **{
+            **original.capability_config.__dict__,
+            "mode": "continuous",
+            "armed_runs": 0,
+        }
+    )
+    decision = evaluate_eligibility(
+        EligibilityInput(
+            **{
+                **original.__dict__,
+                "capability_config": config,
+                "task_class": task_class,
+            }
+        )
+    )
+    assert decision.eligible is True
 
 
 @pytest.mark.parametrize(

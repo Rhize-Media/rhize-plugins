@@ -133,6 +133,15 @@ def test_aggregate_exposes_evidence_and_exact_arm_accounting() -> None:
             "evidenceDigest": "e" * 64,
             "claimPackVerified": True,
             "finalPackVerification": "valid",
+            "terminalReason": "evidence_complete",
+            "evidenceCompleteness": {
+                "armAccountingComplete": True,
+                "evidenceState": "valid",
+                "packUseRecorded": True,
+                "packUseRequired": True,
+                "taskOutcomeRecorded": True,
+                "validationRecorded": True,
+            },
             "metrics": [metric for metric in document["metrics"] if metric["variant"] == "B"],
         }
     )
@@ -140,6 +149,8 @@ def test_aggregate_exposes_evidence_and_exact_arm_accounting() -> None:
     group = aggregate_receipts([document])["groups"][0]
     assert group["evidenceBacked"] == 1
     assert group["comparableRuns"] == 0
+    assert group["evidenceStates"] == {"malformed": 0, "missing": 0, "valid": 1}
+    assert group["terminalReasons"] == {"evidence_complete": 1}
     assert group["armAccounting"] == {
         "A": {"executed": 0, "skipped": 1},
         "B": {"executed": 1, "skipped": 0},

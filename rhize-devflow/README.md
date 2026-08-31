@@ -22,15 +22,25 @@ Dev Flow is installed and code changed this session; otherwise it runs a disclos
 fallback checklist. See [rhize-context-manager's README](../rhize-context-manager/README.md) for
 the session-lifecycle side of this boundary.
 
+### Decision-accountability adapter
+
+Dev Flow may map an already reviewed release, rollback, or completed-branch promotion into the
+shared graph-memory decision proposal. Git/PR/deployment revisions, repository policy, evidence,
+and approval remain authoritative; Dev Flow does not own a decision ledger or Neo4j/Jira client.
+The adapter only calls the canonical
+[typed decision contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md),
+never deploys from a graph record, and preserves `unavailable` while the governed projection is off.
+
 ## Commands
 
 ### Canonical control-plane workflow
 
 | Command | Stage | Purpose |
 |---|---|---|
-| `/rhize-devflow:impact-map` | 1 — map | CodeGraph-first structural discovery paired with a semantic impact map (intended behavior, invariants, planned code, operational effects, acceptance tests, unaffected paths); reconciles graph/diff/map after implementation. |
+| `/rhize-devflow:impact-map` | 1 — map | CodeGraph-first structural discovery paired with a semantic impact map; optionally supplies hash-only semantic hints to rhize-context-manager's local native pack with deterministic `rg` fallback and no index creation; reconciles graph/diff/map after implementation. |
 | `/rhize-devflow:simplify` | post-implementation | Safely reduces duplication, accidental complexity, redundant React state/effects, and unnecessary work within the exact task diff. Uses a behavior-preservation candidate gate, validates applied changes, and treats a verified no-op as success. The command is a thin adapter over the canonical `simplify` skill so Claude and Codex share one contract. |
 | `/rhize-devflow:check` | 2 — validate | Evidence-driven mid-implementation validation. Builds a deterministic evidence packet (`devflow.py evidence`), selects checks only from repository instructions and known-safe declared package scripts, runs focused tests then repository-mandated gates, returns `PASS` / `PASS_WITH_WARNINGS` / `BLOCKED`. Never executes shell text parsed from prose. |
+| `/rhize-devflow:test-evidence` | pre-review evidence | Classifies behavior/artifact/structural test contracts and validates state-bound packets without touching the live checkout. The current runner never executes package scripts and returns `execution_unavailable` until RT-163 supplies a trusted sandbox adapter. |
 | `/rhize-devflow:review` | 3 — gate | Read-only production merge/release gate. Resolves the exact base/head comparison range, builds a risk map from actual diff evidence (deployment, data, security, authorization, billing, migration, cache, external-write), routes only relevant specialists, requires an independent skeptical reviewer for non-trivial work, returns `PASS` / `FAIL_WITH_FIXABLE_GAPS` / `FAIL_REQUIRES_HUMAN`. Never commits, pushes, merges, or deploys. |
 | `/rhize-devflow:mutation-check` | overlay | Read-only data-mutation consistency check — `PATH...` (scoped file(s)), `--all` (whole codebase), or `--fix-plan` (proposed changes only, never edits source). |
 | `/rhize-devflow:browser-qa` | overlay | Scenario-driven browser acceptance check (functional path, console/network errors, accessibility smoke, responsive layout, performance on request) against whichever browser tool is actually connected. |
@@ -83,9 +93,10 @@ mutation-analyze · mutation-fix
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
+| `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
 <!-- SKILL-MAP:END -->
 
-Each of these seven overlay skills carries only Rhize-specific policy or convention, not
+Each of these nine packaged skills carries only Rhize-specific policy or convention, not
 platform API reference — `sentry-instrumentation` and `sanity-development` explicitly defer to
 the official `sentry:*`/`sanity:*` plugins for SDK setup and exhaustive API docs, and
 `chrome-devtools-mcp` shrinks to DevTools-protocol mechanics for `/rhize-devflow:browser-qa`
@@ -230,11 +241,11 @@ you verify it. After any install or update:
 
 1. Start a **fresh** Claude Code session (not a resumed one).
 2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`impact-map`,
-   `simplify`, `check`, `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six
+   `simplify`, `check`, `test-evidence`, `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six
    deprecated adapters) —
    or run `claude plugin details rhize-devflow` for a non-interactive check of the installed
    component inventory.
-3. Confirm the eight skills above (`simplify`, `completed-branch-promotion`,
+3. Confirm the nine skills above (`simplify`, `test-evidence`, `completed-branch-promotion`,
    `dev-flow-foundations`, `data-mutation-consistency`,
    `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
    `chrome-devtools-mcp`) are discoverable in that session.
@@ -249,8 +260,10 @@ you verify it. After any install or update:
 
 ## Hooks
 
-The refactor-evidence workflow is auto-wired for every project that installs this plugin. Its
-state is shared by Claude and Codex:
+Claude Code auto-wires the refactor-evidence workflow through the plugin hook manifest. Codex does
+not consume that Claude hook manifest; it invokes the same host-neutral script runners explicitly
+through the shared skills and commands. Both hosts use the same receipt schema and state files, so
+their evidence remains interoperable without claiming identical lifecycle wiring.
 
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|

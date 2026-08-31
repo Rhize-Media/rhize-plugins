@@ -1,20 +1,14 @@
 ---
 name: procedural-memory
 description: >-
-  Execute a proven, already-working artifact from the procedural-memory registry
-  (Rhize-Media/procedural-memory) instead of recomposing a task from scratch. Use when a task
-  looks like something the registry may already have solved: recall() finds the closest match by
-  semantic similarity over Postgres/pgvector (ranked with trust tier, health, and success rate),
-  and run() executes it registry-only, content-digest-checked, and trust/health-gated — never a
-  caller-supplied path, never a silently bypassed gate. Also covers promoting a newly captured
-  script into the registry (verify -> classify trust -> write provenance -> commit -> index) and
-  re-running an artifact's sandboxed smoke test to refresh its health state. This skill is about
-  EXECUTING proven code with a provenance contract, not retrieving past conversation or session
-  history — for "what did we discuss/decide/do before" use claude-mem's search/recall skills
-  instead, and for a knowledge graph over an Obsidian vault use graphify. Trigger on "is there
-  already a tool for this", "run the registry version of X", "promote this script to the
-  registry", "recall a proven artifact for <task>", "re-verify <artifact-name>", or "has this
-  been automated before".
+  Execute a proven artifact from the procedural-memory registry instead of recomposing a task.
+  Use when the registry may already contain working code: recall ranks matches with trust, health,
+  and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also
+  use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill
+  executes code with a provenance contract; it does not retrieve past conversations or build vault
+  knowledge graphs. Trigger on "is there already a tool for this", "run the registry version",
+  "promote this script", "recall a proven artifact", "re-verify an artifact", or "has this been
+  automated before".
 metadata:
   rhize:
     topics: [automation, workflow-patterns]
@@ -31,6 +25,10 @@ environment as *parameters* (never a baked-in path), declared secrets (Keychain 
 only), a verification spec, and a trust tier — and `run`/`run --offline` refuse unconditionally
 if the on-disk content digest no longer matches what was verified.
 
+Claude Code and Codex use this same canonical skill and launcher contract; neither host gets a
+weaker recall or execution path. Claude Code's slash commands and hooks remain host-specific;
+Codex invokes this skill directly.
+
 ## This is execution, not retrieval — pick the right tool
 
 | You want to... | Use |
@@ -45,16 +43,18 @@ there already working code for this, and can I just run it", that's this skill's
 
 ## All invocations go through the launcher, never a raw path
 
-`${CLAUDE_PLUGIN_ROOT}/scripts/rhize-skill-launcher.sh` resolves the `rhize-skill` binary
-portably (env override -> PATH -> known dev-machine default -> loud refusal) and checks it isn't
-older than this plugin expects before every call. Never construct or hardcode a path to
-`rhize-skill` directly — always go through the launcher, in every command and here.
+Use the self-relative `scripts/procedural-memory.sh` from this skill. It resolves the installed
+plugin root and delegates to the canonical `scripts/rhize-skill-launcher.sh`, which finds the
+`rhize-skill` binary portably (env override -> PATH -> known dev-machine default -> loud refusal)
+and checks it is not older than this plugin expects before every call. Never construct or hardcode a
+path to `rhize-skill` directly. Claude Code's slash commands continue to reach the same canonical
+launcher through `${CLAUDE_PLUGIN_ROOT}`.
 
 ```
-${CLAUDE_PLUGIN_ROOT}/scripts/rhize-skill-launcher.sh recall "<task description>"
-${CLAUDE_PLUGIN_ROOT}/scripts/rhize-skill-launcher.sh run <name> [args...] [--offline]
-${CLAUDE_PLUGIN_ROOT}/scripts/rhize-skill-launcher.sh promote <path>
-${CLAUDE_PLUGIN_ROOT}/scripts/rhize-skill-launcher.sh verify <name> | --cli <cli> [--offline]
+bash scripts/procedural-memory.sh recall "<task description>"
+bash scripts/procedural-memory.sh run <name> [args...] [--offline]
+bash scripts/procedural-memory.sh promote <path>
+bash scripts/procedural-memory.sh verify <name> | --cli <cli> [--offline]
 ```
 
 The four slash commands (`/procedural-memory:recall`, `/procedural-memory:run`,
@@ -81,6 +81,18 @@ explicit slash command, and follow the same rules either way.
 `recall`'s output already reports trust, health, last-verified date, and success rate per hit —
 surface all of it, not just the name and similarity score. A high-similarity hit with
 `trust=unreviewed` or `health=degraded` is not a safe recommendation to run without saying so.
+
+## Unified-memory adapter boundary
+
+`rhize-context-manager:memory-context` may consume procedural metadata only through a supported,
+versioned, machine-readable read contract (`rhize-procedural-recall-v1`). The adapter is recall-only:
+it may expose artifact identity, trust, health, verification revision, and provenance as a
+`procedure-reference`, but it never runs the artifact or turns similarity into execution authority.
+
+Until `rhize-skill` exposes that exact JSON contract, memory assembly must report the procedural lane
+as `unavailable`. It must not scrape this skill, parse human CLI prose, query registry tables directly,
+or call `run` as a fallback. Execution remains exclusively behind this skill's existing digest,
+trust, health, and user-approval gates.
 
 ## Read the registry, never write to it directly
 

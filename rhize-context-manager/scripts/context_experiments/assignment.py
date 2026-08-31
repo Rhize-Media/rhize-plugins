@@ -14,7 +14,11 @@ def assign_arms(config: CapabilityConfig) -> Assignment:
 
     if config.live_assignment != "alternate":
         raise ValueError(f"unsupported live assignment: {config.live_assignment}")
-    live = Arm.EXPERIMENTAL if config.completed_runs % 2 == 0 else Arm.BASELINE
+    live = (
+        Arm.EXPERIMENTAL
+        if config.mode == "continuous" or config.completed_runs % 2 == 0
+        else Arm.BASELINE
+    )
     shadow = None
     requested = [live]
     if config.shadow:

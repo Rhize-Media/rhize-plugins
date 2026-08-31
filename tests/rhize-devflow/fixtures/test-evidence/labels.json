@@ -1,0 +1,8 @@
+[
+  {"id": "css-substring", "stack": "nextjs-react", "class": "behavior", "oracle": "missing", "claimed_contract": "dark mode renders correctly", "oracle_rationale": "source substrings do not observe rendered behavior", "blocking": false},
+  {"id": "exact-config-key", "stack": "plugin-schema", "class": "artifact", "oracle": "artifact", "claimed_contract": "the published config exposes the exact key", "oracle_rationale": "the serialized key is the external artifact contract", "blocking": false},
+  {"id": "query-key-observable-cache", "stack": "sanity-supabase", "class": "behavior", "oracle": "independent", "claimed_contract": "a write refreshes the visible query result", "oracle_rationale": "the observed post-write value is independent of query-key source shape", "blocking": false},
+  {"id": "python-output-contract", "stack": "python-automation", "class": "behavior", "oracle": "independent", "claimed_contract": "the automation emits the documented value", "oracle_rationale": "a known input-output pair is independent of the implementation", "blocking": false},
+  {"id": "sql-migration-text", "stack": "sql-config", "class": "artifact", "oracle": "artifact", "claimed_contract": "the migration contains the reviewed database operation", "oracle_rationale": "migration text is the deployable artifact and protected from mutation", "blocking": false},
+  {"id": "generated-map-relation", "stack": "generated-skill-map", "class": "structural", "oracle": "independent", "claimed_contract": "every canonical skill has one generated map entry", "oracle_rationale": "schema relationship checks do not copy source text", "blocking": false}
+]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Pack"
+  short_description: "Build a verified private code-context preview"
+  default_prompt: "Use $context-pack to build and verify a bounded context preview for this code task."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Parallel Agent Optimization"
+  short_description: "Validate safe task graphs and privacy-safe parallel evidence."
+  default_prompt: "Use $parallel-agent-optimization to assess or execute this multi-agent task with a validated ephemeral task graph."

@@ -41,7 +41,12 @@ _RECEIPT_REQUIRED_FIELDS = {
     "metrics",
     "warnings",
 }
-_RECEIPT_OPTIONAL_FIELDS = {"completedAt", "shadowVariant"}
+_RECEIPT_OPTIONAL_FIELDS = {
+    "completedAt",
+    "shadowVariant",
+    "terminalReason",
+    "evidenceCompleteness",
+}
 _RECEIPT_V2_REQUIRED_FIELDS = _RECEIPT_REQUIRED_FIELDS | {
     "evidenceDigest",
     "claimPackVerified",
@@ -68,6 +73,7 @@ _PENDING_FIELDS = {
     "leaseOwner",
     "providerExecution",
 }
+_PENDING_OPTIONAL_FIELDS = {"mode"}
 
 
 def evaluate_capture_health(
@@ -379,6 +385,26 @@ def evaluate_capture_health(
         "validEvidence": len(valid_evidence),
     }
     return {
+        "capabilityLifecycle": {
+            capability.value: {
+                "armedRuns": config.for_capability(capability).armed_runs,
+                "completedRuns": config.for_capability(capability).completed_runs,
+                "enabled": config.for_capability(capability).enabled,
+                "mode": config.for_capability(capability).mode,
+                "state": (
+                    "live"
+                    if config.for_capability(capability).enabled
+                    and (
+                        config.for_capability(capability).mode == "continuous"
+                        or config.for_capability(capability).armed_runs > 0
+                    )
+                    else "frozen"
+                ),
+            }
+            for capability in Capability
+        }
+        if config is not None
+        else {},
         "counts": counts,
         "issues": issues,
         "ok": not issues,
@@ -453,6 +479,8 @@ def _read_receipt(path: Path) -> ExperimentReceipt:
         final_pack_verification=document.get(
             "finalPackVerification", "not_applicable"
         ),
+        terminal_reason=document.get("terminalReason"),
+        evidence_completeness=document.get("evidenceCompleteness"),
         schema_version=schema_version,
     )
     skipped_arms = tuple(Arm(item["arm"]) for item in receipt.arms_skipped)
@@ -493,7 +521,9 @@ def _has_comparable_pair(receipt: ExperimentReceipt) -> bool:
 
 def _read_pending(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
-    document = _exact_mapping(value, _PENDING_FIELDS, "pending selection")
+    document = _mapping_fields(
+        value, _PENDING_FIELDS, _PENDING_OPTIONAL_FIELDS, "pending selection"
+    )
     _schema_version(document)
     capability = Capability(document["capability"])
     arms = _arms(document["armsRequested"], "armsRequested")

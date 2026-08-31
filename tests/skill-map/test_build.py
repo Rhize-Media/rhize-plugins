@@ -100,6 +100,15 @@ def test_every_plugin_and_skill_appears_once(doc: dict) -> None:
     )
 
 
+def test_wired_hooks_override_setup_migration_metadata(doc: dict) -> None:
+    nodes = {node["id"]: node for node in doc["nodes"]}
+    for hook_name in ("context-experiment-selector", "context-experiment-finalizer"):
+        node = nodes[f"hook:rhize-context-manager/{hook_name}"]
+        if node["status"] != "wired" or node["path"] != "rhize-context-manager/hooks/hooks.json":
+            raise AssertionError(f"{hook_name} did not retain its wired definition: {node}")
+    print("PASS test_wired_hooks_override_setup_migration_metadata")
+
+
 def main() -> int:
     failures = 0
     try:
@@ -109,7 +118,11 @@ def main() -> int:
         failures += 1
 
     doc = json.loads(ARTIFACT_PATH.read_text())
-    for test in (test_generated_artifact_valid, test_every_plugin_and_skill_appears_once):
+    for test in (
+        test_generated_artifact_valid,
+        test_every_plugin_and_skill_appears_once,
+        test_wired_hooks_override_setup_migration_metadata,
+    ):
         try:
             test(doc)
         except AssertionError as exc:

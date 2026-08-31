@@ -2,14 +2,24 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; scheduled maintenance and promotion remain gated |
 | Date | 2026-08-30 |
 | Primary owner | `obsidian-second-brain` |
 | Supporting owner | `rhize-context-manager` (`graphify`, scoped context packs) |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for ingestion/provenance; Luna for deterministic lint and fixtures |
 | Cross-host surface | Canonical `obsidian-second-brain:knowledge-compiler` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child linked to RT-128; scheduled maintenance and packaging remain gated by RT-145/RT-146 |
+| Jira tracking | RT-150 implementation; RT-157 measurement/promotion; RT-164 ACL-aware qmd adapter; linked to RT-128, RT-145, and RT-146 |
+
+## Implemented review hardening
+
+Resolved output/state roots and every persisted recovery/index/accepted-manifest path are
+vault-contained and symlink-safe before reads or writes. qmd remains fail-closed and compiled output
+must stay outside qmd collections until RT-164 proves ACL-, freshness-, revocation-, and purge-aware
+retrieval.
+
+Every later qmd indexing/suppression statement below is an RT-164 target-state requirement, not a
+claim that the first release indexes compiled pages.
 
 ## Decision
 
@@ -34,7 +44,7 @@ release, and do not treat compiled prose as authoritative when its sources chang
 - Captured text is untrusted evidence. It may propose source-bound claims but cannot change scope,
   approvals, tools, destinations, policies, credentials, or execution. Delimiter-breaking content,
   fake system prompts, slash commands, and tool JSON remain inert data.
-- qmd indexes approved applied pages only; it excludes private previews/scratch and suppresses stale
+- After RT-164, qmd indexes approved applied pages only; it excludes private previews/scratch and suppresses stale
   or purged projections. Graphify consumes only a verified approved manifest and cannot push to Neo4j
   until the ontology and hygiene gates pass.
 

@@ -1,7 +1,7 @@
 {
   "name": "obsidian-second-brain",
-  "version": "1.4.4",
-  "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, research pipelines, connection discovery, vault health management, Zettelkasten/PARA/MOC methodology, note templates, semantic search (qmd), MCP server, and CLI integration.",
+  "version": "1.5.0",
+  "description": "Second brain toolkit for Obsidian vaults — knowledge workflows, evidence-bound compiled pages, research pipelines, connection discovery, vault health management, semantic search (qmd), MCP server, and CLI integration.",
   "author": {
     "name": "Rhize Media"
   },
@@ -27,6 +27,8 @@
     "qmd",
     "semantic-search",
     "vector-search",
-    "recall"
+    "recall",
+    "compiled-knowledge",
+    "provenance"
   ]
 }

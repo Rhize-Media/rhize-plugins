@@ -2,7 +2,8 @@
 'use strict';
 
 // Thin, fail-silent Stop adapter. Interrupted real-provider selections get an explicit
-// incomplete receipt without consuming their armed run.
+// incomplete receipt and freeze further claims; completed continuous attempts
+// release single-flight while remaining enabled.
 
 const fs = require('fs');
 const path = require('path');

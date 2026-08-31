@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/identity-decision-ledger-v1.schema.json",
+  "title": "Rhize append-only identity decision ledger v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ledgerVersion", "eventId", "decisionId", "reviewId", "pairKey", "eventType",
+    "status", "tenantHash", "namespaceHash", "aclScopeHashes", "entityType", "actorHash", "occurredAt",
+    "rationaleCode", "candidateRevision", "priorReviewRevision", "newReviewRevision",
+    "sourceRevisionHashes", "projectionBeforeHash", "projectionAfterHash",
+    "projectionMemberIds", "dependsOnDecisionIds", "reversalOfDecisionId",
+    "dependencySnapshotHash", "idempotencyKeyHash"
+  ],
+  "properties": {
+    "ledgerVersion": {"const": 1},
+    "eventId": {"$ref": "#/$defs/hash"},
+    "decisionId": {"$ref": "#/$defs/hash"},
+    "reviewId": {"$ref": "#/$defs/hash"},
+    "pairKey": {"$ref": "#/$defs/hash"},
+    "eventType": {"enum": ["ACCEPT_SAME_AS", "REJECT_SAME_AS", "DEFER", "SUPERSEDE", "REVERSE_SAME_AS"]},
+    "status": {"enum": ["accepted", "rejected", "deferred", "superseded", "reversed"]},
+    "tenantHash": {"$ref": "#/$defs/hash"},
+    "namespaceHash": {"$ref": "#/$defs/hash"},
+    "aclScopeHashes": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "entityType": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,127}$"},
+    "actorHash": {"$ref": "#/$defs/hash"},
+    "occurredAt": {"type": "string", "format": "date-time", "maxLength": 64},
+    "rationaleCode": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"},
+    "candidateRevision": {"$ref": "#/$defs/hash"},
+    "priorReviewRevision": {"$ref": "#/$defs/hash"},
+    "newReviewRevision": {"$ref": "#/$defs/hash"},
+    "sourceRevisionHashes": {
+      "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "projectionBeforeHash": {"$ref": "#/$defs/hash"},
+    "projectionAfterHash": {"$ref": "#/$defs/hash"},
+    "projectionMemberIds": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "dependsOnDecisionIds": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/hash"}
+    },
+    "reversalOfDecisionId": {"anyOf": [{"$ref": "#/$defs/hash"}, {"type": "null"}]},
+    "dependencySnapshotHash": {"$ref": "#/$defs/hash"},
+    "idempotencyKeyHash": {"$ref": "#/$defs/hash"}
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/decision-query-receipt-v1.schema.json",
+  "title": "Rhize privacy-safe decision query receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["receiptVersion", "queryId", "queryHash", "operation", "status", "tenantHash", "principalHash", "resultCount", "truncated", "warnings", "contractVersion"],
+  "properties": {
+    "receiptVersion": {"const": 1},
+    "queryId": {"$ref": "#/$defs/hash"},
+    "queryHash": {"$ref": "#/$defs/hash"},
+    "operation": {"enum": ["explain", "impact", "precedents", "status"]},
+    "status": {"enum": ["ok", "not_found", "unavailable", "unauthorized", "budget_exceeded"]},
+    "tenantHash": {"$ref": "#/$defs/hash"},
+    "principalHash": {"$ref": "#/$defs/hash"},
+    "resultCount": {"type": "integer", "minimum": 0},
+    "truncated": {"type": "boolean"},
+    "warnings": {"type": "array", "maxItems": 64, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]{1,63}$"}},
+    "contractVersion": {"const": 1}
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

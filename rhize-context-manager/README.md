@@ -6,7 +6,7 @@ than forking them) and ships a curated, safety-gated skill library.
 
 ## Design: orchestrate, don't vendor
 
-Headroom, claude-mem, Serena, OpenWolf, RTK, CodeGraph, and Graphiti are living external
+Headroom, claude-mem, Serena, OpenWolf, RTK, and CodeGraph are living external
 tools with their own release cycles. This plugin owns the *decision layer* — which tool
 to use when, how they coexist, and how to health-check the stack — while the binaries
 and their own hook plugins stay externally installed and updated.
@@ -45,10 +45,13 @@ back to `rg`.
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
+| `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
+| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
-| `graphiti-memory` | Adoption and usage guide for Graphiti — Zep's temporal knowledge-graph memory layer for agents. | knowledge-graph, memory-systems |
+| `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
 | `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
+| `memory-context` | Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, c… | context-engineering, memory-systems |
 | `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | learning-curation, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
@@ -62,14 +65,14 @@ Per the marketplace curation rule, context/token budgeting, iterative retrieval,
 strategic compaction are NOT re-shipped here — `ecc@everything-claude-code` owns them.
 
 Coverage per feature goal: compression (context-compression), retrieval/budgeting
-(ecc's skills, by design), memory (memory-systems, graphiti-memory), degradation
+(ecc's skills, by design), memory (memory-systems, memory-context), degradation
 (context-degradation), refinement (refinement-pipeline, learning-curation).
 
 ## Commands
 
 | Command | Purpose |
 |---|---|
-| `/context-doctor` | Read-only health check of every layer (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph, Graphiti) + overlap flags. Asserts **capture liveness** (a layer is not `OK` because a port answers or a file mtime moved — claude-mem must show new observations, else `dead`, or `indeterminate` if no sessions ran) and flags **credentials expiring before the next scheduled run**. Persists each run to `~/.claude/context-manager/doctor/<YYYY-MM-DD-HHMM>.json`, prints a delta against the previous run, and — if the `ecc` plugin's `harness-audit` skill is available — chains into it as a final deeper pass (graceful one-line skip otherwise). |
+| `/context-doctor` | Read-only health check of the active stack layers (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph) + overlap flags. Asserts **capture liveness** and flags credentials expiring before the next scheduled run. |
 | `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |
@@ -77,8 +80,11 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/impact-map` | **Deprecated adapter** — use `/rhize-devflow:impact-map`. The executable workflow (CodeGraph-first discovery plus a semantic change/invariant map, synced and reconciled after implementation) moved to Dev Flow; this adapter remains only for the 2.12.0 compatibility window |
 | `/learn-harvest` | Harvest refinement signals (headroom learn dry-run, claude-mem, skill-monitor) into the pending queue — never writes skills or CLAUDE.md. Step 7 runs `scripts/harvest_noise_filter.py` so rephrased-but-known facts don't accumulate |
 | `/skill-refine` | `review`: human triage of queued signals · `run`: gated skill-forge evolve pass with auto-promote for SKILL.md-only ALLOW verdicts |
-| `/context-experiment` | Opt-in local retrieval, mgrep, and compiled-context dogfood control: provider health, bounded arming, real dry-run/eval/pack execution, redaction-safe receipts, and Arm A/B reports. No provider is enabled by default. |
-| `/context-pack` | Build and inspect a deterministic private pack. The local native provider supports Python, JavaScript, TypeScript, mixed targets, target discovery, FULL/INTERFACE roles, and stale-pack verification; the pinned upstream Python provider remains available for comparison. Preview mode never arms or injects. |
+| `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
+| `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
+| `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Reuse requires an explicit current source-ID/revision map; conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
+| `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process contracts enforce actor-effective ACL lanes (`review ∩ actor`) so broader actor grants cannot widen a narrow review; every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
+| `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until RT-161. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -126,8 +132,16 @@ that never ran.
 | `session-disclosure.js` | `SessionStart` | Fingerprints the CWD against a small set of cheap file/dir checks (`next.config.*` → nextjs, `sanity.config.*` → sanity, `vercel.json` → vercel, `.obsidian/` → obsidian), maps any detected stack to its stack-tag edges in the compiled skill-map artifact, and surfaces up to 8 relevant skills. Silent when no stack is detected. |
 | `remediation-suggester.js` | `PostToolUse` (`Bash`) | On a failing Bash command, matches `stdout`+`stderr` against the compiled skill-map's remediation-condition patterns (`build-failure`, `type-error`, `test-failure`, `lint-failure`, `merge-conflict`) and suggests the top remediating skill/agent via `additionalContext`. Silent when nothing matches. |
 | `next-step-suggester.js` | `PostToolUse` (`Skill`) | After a skill invocation, looks up the invoked skill's succession entry and suggests exactly one next step — the declared `precedes` successor, or the mined `follows` successor if no `precedes` exists. Silent when there's no successor. |
+| `context-experiment-selector.js` | `UserPromptSubmit` | Fail-silent Claude Code selector. Strict disabled-by-default config, allowlist, task, clean-repository, provider, snapshot, duration, and single-flight gates decide whether to emit an accepted local pack/evidence command. |
+| `context-experiment-finalizer.js` | `Stop` | Writes one evidence-backed terminal receipt. Completed continuous attempts remain enabled; failed, incomplete, stale, or malformed evidence freezes further claims. |
 
-All four hooks are auto-wired in `hooks/hooks.json` — they ship active by default.
+All six hooks are auto-wired for Claude Code in `hooks/hooks.json`. Codex does not consume this
+Claude hook manifest; it discovers the same canonical skills and must invoke the host-neutral
+context pack or experiment runner explicitly. Both paths remain behaviorally inert until strict
+configuration explicitly enables a capability for an allowlisted repository. Before Claude plugin
+migration, the coordinator must remove any duplicate manual selector/finalizer entries; duplicate
+calls are state-idempotent, but a second selector can waste a local provider build before the lease
+rejects it.
 `session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
 obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
 `.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
@@ -158,11 +172,13 @@ reports the agent-dispatch rows' named-rate/candidate-present/candidate-miss-rat
 separate section. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file
 path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
 
-### Opt-in hooks (`setup/manifest.json`)
+### Per-repository and migration hooks (`setup/manifest.json`)
 
-Nine hooks are declared in `setup/manifest.json` as opt-in items (`default: false`) for
-`/rhize-setup` (rhize-ops) to wire per-repo — none of the nine are in `hooks/hooks.json`
-and none do anything until enabled. Three generalized hooks live under
+Nine hooks remain declared in `setup/manifest.json` for backward-compatible setup inventory.
+Seven are opt-in per-repository items (`default: false`). The selector/finalizer rows are Claude
+Code migration metadata now that the scripts are auto-wired in `hooks/hooks.json`; do not wire a
+second Claude copy. Codex invokes the shared runner explicitly through its canonical skill.
+Three generalized hooks live under
 `skills/context-engineering/hooks/` and require project-specific files
 (`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
 every repo would be noise:
@@ -174,8 +190,8 @@ every repo would be noise:
 | `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
 | `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
 | `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory) | Claims one clean-repository attempt under a repository/capability single-flight lease. Accepted attempts atomically freeze the capability; rejected packs and elapsed preflights leave the arm intact. |
-| `context-experiment-finalizer` | `Stop` | T3 (advisory) | Verifies the native pack again and writes receipt v2. Pack construction alone is incomplete; completion requires an immutable source-free review sidecar, and every requested arm is explicitly executed or skipped. |
+| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory, auto-wired) | Claims one clean-repository attempt under a repository/capability single-flight lease. Canary claims freeze immediately; continuous claims stay enabled but cannot overlap. |
+| `context-experiment-finalizer` | `Stop` | T3 (advisory, auto-wired) | Verifies the native pack again and writes receipt v2 with terminal reason and source-free completeness fields. Only valid completion evidence releases a continuous attempt without freezing. |
 
 `skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
 `hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
@@ -251,22 +267,36 @@ evidence that a pack improves a coding task. The default checkout is
 `RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
 [`evals/context-tools`](../evals/context-tools/README.md).
 
-The default `/context-pack --provider native` path is Rhize-owned and local-only. It uses exact
-static imports for Python/JavaScript/TypeScript, includes explicit targets in full, renders static
-dependencies as interfaces, and adds related tests/configuration when they fit. Query discovery
-uses CodeGraph first when `.codegraph/` exists and records an explicit baseline fallback otherwise.
-Every manifest records provider revision, task/query hashes, source/rendered hashes, selection
-reasons, token budget, and warnings without source text. `verify-pack` rejects any snapshot or
+The default `/context-pack --provider native` path is Rhize-owned and local-only. Native v2 uses
+parser-backed multiline Python/JavaScript/TypeScript contracts, configured Python source roots,
+JS/TS aliases, workspace imports, and package exports. It includes explicit targets in full,
+renders safe dependencies as interfaces, widens uncertain interfaces to full source, and adds
+related tests/configuration when they fit. Query discovery uses CodeGraph only after an existing
+`.codegraph/` passes a read-only healthy/current status preflight; otherwise it records deterministic
+`rg` fallback and never creates an index. An optional `--impact-map <repository-local-markdown>`
+bridge expands semantic terms and consumes named source-file seeds while storing only the plan
+content hash, normalized term-set hash, and seed count—never plan content or an absolute path.
+Planned, dynamic, and unsupported edges remain untrusted and fail closed.
+Every manifest records provider revision, task/query hashes, source/rendered hashes, the private
+prompt hash, selection reasons, token budget, and warnings without source text. `verify-pack`
+requires the matching manifest and prompt paths and rejects any identity, prompt, snapshot, or
 entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
-context cases; native v1 passed its controlled gate with zero critical misses and a 39.02% median
-reduction across four accepted cases. This supports an advanced opt-in pilot, not default use.
+context cases. The prior native-v1 corpus remains historical evidence; v2 adds separate contract,
+alias/workspace, source-root, eligibility, exclusion-ledger, and hash-only impact-map/`rg` fixtures.
+The three assisted discovery cases must improve supported recall while continuing to reject
+dynamic or unsupported cases. This supports disabled-by-default controlled use, not an inference
+of task correctness.
 
 The live P4 gate is stricter than preview mode. Selection refuses a dirty repository, unresolved
 local dependency, truncated dependency traversal, required dependency omitted by budget, or a
 preflight that exceeds `maxDurationSeconds`. It verifies the pack immediately after writing it,
-then freezes the capability before returning context. The non-reclaiming lease prevents a second
+then reserves the configured canary/continuous authority before returning context. The
+non-reclaiming lease prevents a second
 session from claiming the same repository/capability even after the ordinary lease TTL. Any Stop
-outcome leaves the capability frozen for review; it is never automatically re-armed.
+outcome writes one terminal receipt: evidence-backed completion releases continuous single-flight
+and leaves it enabled, while failed, incomplete, stale, or malformed evidence freezes it. Canary
+mode preserves the prior one-shot freeze behavior. A later selector audit terminalizes expired
+pending attempts as incomplete instead of reclaiming them.
 
 On a compiled-context B claim, selector `additionalContext` prints the exact installed
 `runner.py` path, the real experiment id, and a shell-quoted `record-evidence` command. It also
@@ -290,7 +320,8 @@ python3 scripts/context_experiments/runner.py record-evidence \
 The sidecar contains only the experiment id, timestamp, outcome enum, pack-use boolean,
 source-free validation ids, and exact arm accounting. It rejects prompts, source/output, paths,
 URLs, duplicate writes, and evidence without a matching pending attempt. Receipt v2 binds its
-SHA-256 digest and the claim/final pack-verification results. The command records reviewer
+SHA-256 digest, the claim/final pack-verification results, a terminal reason, and source-free
+completeness state/booleans. The command records reviewer
 assertions; it does not infer task correctness. A comparable Arm A remains a separate evidence
 requirement, and `capture-health` flags a reviewed B-only run as non-comparable.
 
@@ -304,7 +335,8 @@ The command strictly parses every receipt, review sidecar, and pending selection
 sidecar digests and stored completed receipts against each capability's `completedRuns`; and keeps
 completed/incomplete/skipped Arm A and Arm B counts separate per capability. Legacy receipt v1
 still requires comparable A/B metrics. Receipt v2 requires exact arm accounting and reports
-evidence-backed, comparable, skipped, incomplete, and failed runs separately. It exits `2` for
+evidence state, terminal reasons, configured canary/continuous live/frozen state, comparable,
+skipped, incomplete, and failed runs separately. It exits `2` for
 malformed or mismatched artifacts, failed or incomplete receipts, missing-arm/metric/history
 evidence, non-comparable A/B measurements, orphan evidence, or a pending selection that outlived
 its lease without producing a receipt. It never generates benchmark evidence or substitutes a
@@ -403,7 +435,7 @@ metadata:
 | `extends` | Names an existing skill this one deliberately deepens/specializes (chains capped at depth 2 by the compiler). Also the declaration `skill-forge`'s `--skill-map` overlap gate checks for its exemption. |
 | `augments` | Names a topic (not a skill) this skill should run alongside/after — a cross-cutting modifier, distinct from `extends`. |
 | `remediates` | Names a `tag:condition/<slug>` this skill fixes when detected in failed tool output — feeds `remediation-suggester.js`. |
-| `dependsOn` | Runtime dependencies, e.g. `["mcp:graphiti"]` — mints an `mcp-server` node in the compiled map. |
+| `dependsOn` | Runtime dependencies, e.g. `["mcp:codegraph"]` — mints an `mcp-server` node in the compiled map. |
 
 `docs/skill-map.md` (repo root) is the authoritative schema/tagging reference; this table
 is the quick-lookup version for anyone editing a `SKILL.md` here.
@@ -431,7 +463,7 @@ artifact — required for anything touching `follows` edges or third-party nodes
 | Serena | semantic code navigation | MCP server (user scope) |
 | CodeGraph | code knowledge graph | `codegraph` CLI + MCP, `codegraph init` per repo |
 | graphify | vault knowledge graphs | skill (vendored here) |
-| Graphiti | temporal KG memory | opt-in — see `graphiti-memory` skill |
+| Neo4j | governed semantic projection | ontology, fake-adapter, and in-process identity-review contracts available; shared review state and the credentialed live canary/restore remain deferred to RT-159 |
 
 ### Per-repo stack config
 

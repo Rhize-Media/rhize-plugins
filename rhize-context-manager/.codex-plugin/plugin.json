@@ -1,0 +1,44 @@
+{
+  "name": "rhize-context-manager",
+  "version": "0.22.0",
+  "description": "Local-first context routing, private code and memory previews, and governed Graphify/Neo4j projection contracts for Claude and Codex.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "context-engineering",
+    "context-pack",
+    "memory-context",
+    "codegraph",
+    "graphify",
+    "neo4j",
+    "context-compression",
+    "context-optimization",
+    "memory",
+    "retrieval",
+    "knowledge-graph",
+    "rhize"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Rhize Context Manager",
+    "shortDescription": "Private, evidence-gated context routing and assembly",
+    "longDescription": "Build deterministic source-bound code context packs, scoped memory-context previews, and governed Graphify/Neo4j projections with explicit evidence, authority, conflict, reversal, TTL, purge, and unavailable-adapter behavior. Claude Code and Codex share the same skills and host-neutral runners.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Build and verify a private context pack for this implementation task.",
+      "Assemble a scoped memory-context preview without automatic injection.",
+      "Inspect continuous context capture health without enabling a provider.",
+      "Validate a governed Graphify projection and preview bounded graph review operations without touching live Neo4j."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#0F766E"
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/compiled-knowledge-manifest-v1.schema.json",
+  "title": "Rhize compiled knowledge manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "compiler",
+    "project",
+    "operator_id",
+    "preview",
+    "source_revisions",
+    "pages",
+    "policy",
+    "provenance",
+    "diff",
+    "adapters"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "rhize-compiled-knowledge" },
+        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tenant_id", "scope_id"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "tenant_id": { "$ref": "#/$defs/id" },
+        "scope_id": { "$ref": "#/$defs/id" }
+      }
+    },
+    "operator_id": { "$ref": "#/$defs/id" },
+    "preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at", "expires_at", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/hash" },
+        "created_at": { "$ref": "#/$defs/timestamp" },
+        "expires_at": { "$ref": "#/$defs/timestamp" },
+        "status": { "enum": ["preview", "accepted"] }
+      }
+    },
+    "source_revisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/source_revision" }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["vault_root", "state_root", "acl", "egress", "retention_class"],
+      "properties": {
+        "vault_root": { "type": "string", "minLength": 1 },
+        "state_root": { "type": "string", "minLength": 1 },
+        "acl": { "$ref": "#/$defs/acl" },
+        "egress": { "$ref": "#/$defs/id" },
+        "retention_class": { "$ref": "#/$defs/id" }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_hash", "source_metadata_hash", "source_to_derived", "inert_content_findings"],
+      "properties": {
+        "proposal_hash": { "$ref": "#/$defs/hash" },
+        "source_metadata_hash": { "$ref": "#/$defs/hash" },
+        "source_to_derived": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/id" },
+              "uniqueItems": true
+            }
+          }
+        },
+        "inert_content_findings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "diff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["base_hash", "rendered_hash", "unified_diff_hash", "change_brief_hash"],
+      "properties": {
+        "base_hash": { "$ref": "#/$defs/optional_hash" },
+        "rendered_hash": { "$ref": "#/$defs/hash" },
+        "unified_diff_hash": { "$ref": "#/$defs/hash" },
+        "change_brief_hash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "adapters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qmd", "context_pack", "graphify", "neo4j"],
+      "properties": {
+        "qmd": { "$ref": "#/$defs/adapter" },
+        "context_pack": { "$ref": "#/$defs/adapter" },
+        "graphify": { "$ref": "#/$defs/adapter" },
+        "neo4j": { "$ref": "#/$defs/adapter" }
+      }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$" },
+    "hash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "optional_hash": { "type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "acl": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/id" },
+      "uniqueItems": true
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start_line", "end_line", "content_hash"],
+      "properties": {
+        "start_line": { "type": "integer", "minimum": 1 },
+        "end_line": { "type": "integer", "minimum": 1 },
+        "content_hash": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "citation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "revision_hash", "anchor"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "revision_hash": { "$ref": "#/$defs/hash" },
+        "anchor": { "$ref": "#/$defs/anchor" }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "text", "citations"],
+      "properties": {
+        "claim_id": { "$ref": "#/$defs/id" },
+        "text": { "type": "string", "minLength": 1 },
+        "citations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/citation" }
+        }
+      }
+    },
+    "source_revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "path",
+        "revision_hash",
+        "content_bytes",
+        "captured_at",
+        "acl",
+        "egress",
+        "retention_class",
+        "status"
+      ],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/id" },
+        "path": { "type": "string", "minLength": 1 },
+        "revision_hash": { "$ref": "#/$defs/hash" },
+        "content_bytes": { "type": "integer", "minimum": 0 },
+        "captured_at": { "$ref": "#/$defs/timestamp" },
+        "acl": { "$ref": "#/$defs/acl" },
+        "egress": { "$ref": "#/$defs/id" },
+        "retention_class": { "$ref": "#/$defs/id" },
+        "status": { "enum": ["active", "removed", "purged", "expired"] }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page_id",
+        "path",
+        "title",
+        "ownership_marker",
+        "claims",
+        "links",
+        "contradiction_candidates"
+      ],
+      "properties": {
+        "page_id": { "$ref": "#/$defs/id" },
+        "path": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 },
+        "ownership_marker": { "type": "string", "pattern": "^<!-- rhize-compiled-knowledge:page-id=" },
+        "claims": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/claim" } },
+        "links": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "contradiction_candidates": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "$ref": "#/$defs/id" }
+          }
+        }
+      }
+    },
+    "adapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["eligible", "reason"],
+      "properties": {
+        "eligible": { "type": "boolean" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

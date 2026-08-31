@@ -1,0 +1,14 @@
+{
+  "evaluationVersion": 1,
+  "evaluationId": "3be0f99f93cc6ed0dfa2def08745cb5c250e587b071382590005bc3ed94cbf3d",
+  "policyIdHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "policyVersion": "policy-v1",
+  "policyDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "inputRefs": ["dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"],
+  "result": "deny",
+  "status": "reproduced",
+  "evaluatedAt": "2026-08-30T12:00:00Z",
+  "evaluatorVersion": "fixture-v1",
+  "deterministic": true,
+  "outputDigest": "1738c13376398996b76e2128914c45e90f646aeea546b413906382c39c8ee2da"
+}

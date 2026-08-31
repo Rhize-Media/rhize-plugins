@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Ontology Phase 5 addendum from independent source review; implementation pending Jira confirmation and graph prerequisites |
+| Status | Offline extension pack implemented; internal canary and promotion evidence pending |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-context-manager` governed Neo4j adapter |
 | Supporting owners | `rhize-devflow`, `rhize-ops`, `rhize-tasks`, and domain plugins only through typed adapters |
@@ -10,7 +10,12 @@
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for schema/provenance/query integration; Luna for bounded fixtures and docs |
 | Cross-host surface | Extend canonical `rhize-context-manager:graph-memory` skill/CLI; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 implementation child plus separate internal-canary/promotion follow-up linked to RT-146 |
+| Jira tracking | RT-154 implementation; RT-161 internal canary/promotion; linked to RT-146 |
+
+## Implemented review hardening
+
+Offline preview keeps the full proposal only in its mode-`0600` artifact. CLI stdout exposes a
+redacted receipt containing the preview ID, digest, expiry, and binding digest.
 
 ## Decision
 

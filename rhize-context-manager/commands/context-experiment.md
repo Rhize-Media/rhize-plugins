@@ -22,8 +22,15 @@ Supported operations:
 - `status` — print validated local configuration and provider readiness.
 - `doctor` — report invalid config, pinned local grepai/index readiness, pinned mgrep readiness,
   and upstream checkout integrity.
-- `arm --capability <localRetrieval|mgrep|compiledContext> --repo <absolute-path> --runs 1` — opt in
-  to a bounded automatic run. mgrep additionally requires `--network-approved` and
+- `arm --mode canary --capability <localRetrieval|mgrep|compiledContext> --repo <absolute-path>
+  --runs 1` — opt in to a bounded automatic run (the backward-compatible default mode).
+- `arm --mode continuous --capability compiledContext --repo <absolute-path>
+  --smoke-approved` — enable continuous local selection for every explicitly eligible
+  implementation, diagnosis, review, or impact-analysis task in that allowlisted repository.
+  Completed evidence-backed attempts increment history, release single-flight, and remain
+  enabled. Failed, incomplete, stale, or malformed evidence writes a terminal receipt and
+  freezes the capability. Continuous mode requires `armedRuns=0`.
+  mgrep additionally requires `--network-approved` and
   `--store rhize-dogfood-<repo>`; local retrieval and compiled context require
   `--smoke-approved`. Never infer either approval from a prior session.
 - `disarm --capability <localRetrieval|mgrep|compiledContext>` — set `enabled=false` and
@@ -40,12 +47,23 @@ Supported operations:
   independent, private file/hash inventory and invoke real `mgrep watch --dry-run`. It never
   uploads content and never counts as a completed semantic-search benchmark.
 - `report` — aggregate compatible receipt metrics by capability and live Arm A/B variant.
+- `capture-health` — audit strict receipt/evidence/pending shapes, terminal reasons, evidence
+  completeness, configured continuous/canary lifecycle state, and history reconciliation.
+- `audit-pending` — terminalize only accepted attempts older than `leaseTtlSeconds` as incomplete,
+  freeze their capability, and release their non-reclaiming lease. The selector runs this audit
+  before every new claim; this explicit command covers hosts that stopped before another prompt.
 
 Configuration is stored at
 `~/.claude/rhize-context-manager/context-experiments.json`; raw redaction-safe receipts
 are stored under `~/.claude/rhize-context-manager/experiments/`. Both locations can be
 redirected in tests with `RHIZE_CONTEXT_EXPERIMENT_CONFIG` and
 `RHIZE_CONTEXT_EXPERIMENT_DATA_DIR`.
+
+Claude Code auto-wires the selector and finalizer through `hooks/hooks.json`; strict config keeps
+them inert by default. Codex discovers the same canonical skill and invokes this host-neutral runner
+explicitly because the Claude hook manifest is not a Codex runtime surface. Before upgrading,
+remove any manually wired Claude selector/finalizer entries; duplicate invocations are
+state-idempotent but can repeat local pack construction.
 
 Set `RHIZE_CONTEXT_COMPILER_CHECKOUT` to avoid passing `--checkout` manually. Before `arm`,
 show the exact command and ask for confirmation. For mgrep, confirmation must explicitly

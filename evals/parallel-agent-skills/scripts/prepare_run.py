@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare one isolated parallel-agent skill evaluation run."""
+"""Prepare one isolated v2 baseline-versus-Rhize evaluation run."""
 
 from __future__ import annotations
 
@@ -7,32 +7,38 @@ import argparse
 import hashlib
 import json
 import shutil
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ARM_A = Path(
-    "/Users/jamesdeola/.codex/plugins/cache/ecc/ecc/2.2.0/skills/"
-    "parallel-execution-optimizer/SKILL.md"
-)
-ARM_B = Path(
-    "/Users/jamesdeola/.codex/plugins/cache/claude-plugins-official/superpowers/6.3.0/skills/"
-    "dispatching-parallel-agents/SKILL.md"
-)
 
 
 def file_hashes(root: Path) -> dict[str, str]:
-    hashes: dict[str, str] = {}
-    for path in sorted(root.rglob("*")):
-        if path.is_file():
-            hashes[str(path.relative_to(root))] = hashlib.sha256(path.read_bytes()).hexdigest()
-    return hashes
+    return {
+        str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    }
+
+
+def canonical_uuid(value: str, label: str) -> str:
+    try:
+        parsed = uuid.UUID(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"{label} must be a UUID") from exc
+    if str(parsed) != value.lower():
+        raise argparse.ArgumentTypeError(f"{label} must be canonical lowercase")
+    return value
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", required=True)
     parser.add_argument("--variant", required=True)
+    parser.add_argument("--repetition", type=int, required=True)
+    parser.add_argument("--comparison-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--run-id")
     args = parser.parse_args()
@@ -43,57 +49,68 @@ def main() -> int:
         parser.error(f"unknown task: {args.task}")
     if args.variant not in manifest["variants"]:
         parser.error(f"unknown variant: {args.variant}")
+    if not 1 <= args.repetition <= manifest["repetitions"]:
+        parser.error(f"repetition must be between 1 and {manifest['repetitions']}")
+    try:
+        comparison_id = canonical_uuid(args.comparison_id, "comparison-id")
+        run_id = canonical_uuid(args.run_id, "run-id") if args.run_id else str(uuid.uuid4())
+    except argparse.ArgumentTypeError as exc:
+        parser.error(str(exc))
     if args.output.exists():
         parser.error(f"output already exists: {args.output}")
 
     source = ROOT / "tasks" / args.task
     shutil.copytree(source, args.output)
-    run_id = args.run_id or f"{args.task}-{args.variant}"
+    started_at = datetime.now(timezone.utc).isoformat()
+    task = tasks[args.task]
     context = {
-        "schema_version": 1,
+        "schema_version": 2,
         "run_id": run_id,
+        "comparison_id": comparison_id,
         "task_id": args.task,
+        "task_class": task["task_class"],
         "variant": args.variant,
-        "expected_decision": tasks[args.task]["expected_decision"],
-        "required_checks": tasks[args.task]["required_checks"],
+        "repetition": args.repetition,
+        "expected_decision": task["expected_decision"],
+        "required_checks": task["required_checks"],
         "initial_hashes": file_hashes(args.output / "workspace"),
     }
-    task_index = [item["id"] for item in manifest["tasks"]].index(args.task)
-    if args.variant == "baseline":
-        skill_order: list[str] = []
-        variant_instruction = (
-            "Do not read or apply either candidate skill. Use only the standing host and task "
-            "instructions."
+    reservation = {
+        key: context[key]
+        for key in (
+            "schema_version", "run_id", "comparison_id", "task_id", "task_class", "variant",
+            "repetition", "expected_decision"
         )
-    elif args.variant == "arm_a":
-        skill_order = [str(ARM_A)]
-        variant_instruction = f"Read {ARM_A} completely before acting, then apply it to this task."
-    elif args.variant == "arm_b":
-        skill_order = [str(ARM_B)]
-        variant_instruction = f"Read {ARM_B} completely before acting, then apply it to this task."
-    else:
-        skill_order = [str(ARM_A), str(ARM_B)] if task_index % 2 == 0 else [str(ARM_B), str(ARM_A)]
-        variant_instruction = (
-            "Read both candidate skills completely in this order before acting, then apply both: "
-            + " -> ".join(skill_order)
-        )
-    context["skill_order"] = skill_order
+    }
+    reservation.update({"status": "pending", "started_at": started_at})
     (args.output / "RUN_CONTEXT.json").write_text(json.dumps(context, indent=2) + "\n")
+    (args.output / "RUN_RESERVATION.json").write_text(json.dumps(reservation, indent=2) + "\n")
     shutil.copy2(ROOT / "receipt.schema.json", args.output / "RECEIPT_SCHEMA.json")
-    instructions = f"""# Independent evaluation run
 
-Work only inside `{args.output}`. Do not inspect the parent investigation report, other run
-directories, or their results. The user explicitly authorizes parallel subagents when the task
-benefits from them, with a maximum of two nested agents at once.
+    if args.variant == "baseline":
+        variant_instruction = (
+            "Use only standing host and task instructions. Do not invoke the Rhize routing skill."
+        )
+    else:
+        variant_instruction = (
+            "Apply the Rhize self-contained routing strategy from "
+            "rhize-ops:parallel-agent-optimization; do not load any vendor parallel-agent skill."
+        )
+    instructions = f"""# Independent controlled evaluation run
 
-1. Record the UTC start time before task work.
-2. Read `RUN_CONTEXT.json`, `TASK.md`, and `RECEIPT_SCHEMA.json` completely.
-3. Variant instruction: {variant_instruction}
-4. Complete the task and its checks. All writes must stay inside this run directory.
-5. Write `receipt.json` matching the schema. Report only checks actually run. Agent entries cover
-   nested agents, not the coordinator. Use `null` plus an honest availability reason when the host
-   does not expose authoritative tool or token counts. Record collisions and rework factually.
-6. Record the UTC completion time after verification. Return a concise summary.
+Work only inside this prepared run directory. Do not inspect other run directories or results.
+The user authorizes at most two nested agents when the deterministic fixture benefits from them.
+
+1. Read `RUN_CONTEXT.json`, `RUN_RESERVATION.json`, `TASK.md`, and `RECEIPT_SCHEMA.json`.
+2. Variant instruction: {variant_instruction}
+3. Record factual timezone-aware start/completion and nested-agent intervals.
+4. Complete the fixture and its checks. Keep all writes inside this run directory.
+5. Write provisional `receipt.json` matching `RECEIPT_SCHEMA.json`. Use null plus an allowed
+   availability reason for authoritative tool/token counts the host does not expose. Never estimate.
+6. Run `grade_run.py` for this directory. The grader owns observable checks and always finalizes
+   the accepted reservation as completed, failed, or incomplete.
+
+Receipt data contains no prompts, code, commands, source paths, names, URLs, or external IDs.
 """
     (args.output / "RUN_INSTRUCTIONS.md").write_text(instructions)
     return 0

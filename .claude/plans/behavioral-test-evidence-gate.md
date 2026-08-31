@@ -2,13 +2,24 @@
 
 | Field | Value |
 |---|---|
-| Status | Hardened review complete; implementation pending Jira confirmation |
+| Status | Safe first release implemented; calibration and promotion evidence pending |
 | Date | 2026-08-30 |
 | Primary owner | `rhize-devflow` |
 | Planning/review tier | Sol |
 | Recommended implementation tier | Terra for gate integration; Luna for labeled fixtures and documentation |
 | Cross-host surface | Canonical `rhize-devflow:test-evidence` skill; thin Claude command; Codex skill discovery |
-| Jira tracking | Proposed RT-130 child; separate calibration/promotion follow-up linked to RT-145 and RT-146 |
+| Jira tracking | RT-149 implementation; RT-156 calibration/promotion; RT-163 trusted sandbox adapter; linked to RT-145 and RT-146 |
+
+## Implemented review hardening
+
+The first release classifies and validates packets but does not execute package scripts. A clean
+checkout returns `execution_unavailable`; a dirty checkout remains explicitly unavailable. Positive
+execution-backed verdicts are rejected until RT-163 supplies an exact-digest sandbox with restricted
+filesystem, environment, credential, process, and network authority. A disposable Git worktree is
+not treated as that sandbox.
+
+All execution/mutation lifecycle requirements below describe the RT-163 target state. They are not
+claims about the fail-closed first release.
 
 ## Decision
 
@@ -24,7 +35,7 @@ rule to every repository.
 
 - The test-evidence runner is an explicitly invoked pre-review writer. `/review` remains read-only,
   consumes only validated evidence, and never performs mutation testing itself.
-- Prefer a disposable worktree/copy bound to the exact target state. If a dirty/uncommitted target
+- After RT-163, prefer a sandboxed disposable worktree/copy bound to the exact target state. If a dirty/uncommitted target
   cannot be reproduced safely, return `mutation_unavailable_dirty_state`; never mutate the user's
   live checkout or restore it blindly.
 - Deny protected files, migrations, generated artifacts, `.env*`, CI, billing/payment, deployment,
@@ -91,10 +102,10 @@ opens a source file.
 |---|---|---|
 | Create | `rhize-devflow/schemas/test-evidence-v1.schema.json` | Contract, oracle, and mutation result shape |
 | Create | `rhize-devflow/docs/test-evidence.md` | Classification and safe mutation procedure |
-| Create | `rhize-devflow/commands/test-evidence.md` | Explicit one-writer mutation runner that emits evidence for read-only review |
+| Create | `rhize-devflow/commands/test-evidence.md` | Explicit evidence runner; execution remains unavailable until the trusted sandbox adapter exists |
 | Create | `rhize-devflow/skills/test-evidence/SKILL.md` | Canonical cross-host workflow and verdict contract |
 | Create | `rhize-devflow/skills/test-evidence/agents/openai.yaml` | Codex routing metadata for the canonical skill |
-| Create | `rhize-devflow/scripts/test_evidence.py` | Host-neutral isolation, lease, mutation/oracle, cleanup, and evidence runner |
+| Create | `rhize-devflow/scripts/test_evidence.py` | Host-neutral classifier/validator and fail-closed trusted-sandbox adapter boundary |
 | Modify | `rhize-devflow/scripts/devflow.py` | Emit deterministic candidates and evidence fields |
 | Modify | `rhize-devflow/commands/check.md` | Surface candidate test-quality gaps without overclaiming |
 | Modify | `rhize-devflow/commands/review.md` | Consume/verify test evidence without changing its hard read-only contract |
@@ -128,7 +139,9 @@ rejects stale, mismatched, unknown-version, incomplete, or cleanup-failed packet
 
 Verdicts are exact: `oracle_supported`, `killed`, `survived_mutation`, `oracle_missing`, `artifact_contract`,
 `not_applicable`, `mutation_unavailable`, `mutation_unavailable_dirty_state`, `stale_packet`, and
-`cleanup_failed`. `oracle_supported` or `killed` supports a stated behavior-regression claim. The
+`cleanup_failed`, plus `execution_unavailable` for the current no-sandbox boundary. Execution-backed
+positive verdicts are rejected in the first release; after RT-163, `oracle_supported` or `killed`
+may support a stated behavior-regression claim. The
 schema accepts `cleanup_failed` only as evidence of failed recovery; `/review` returns
 `FAIL_REQUIRES_HUMAN`, rejects the regression claim as supported, and performs no restoration. A
 surviving mutant or missing oracle blocks the claim. Classifier output alone remains advisory.
@@ -168,7 +181,7 @@ Acceptance:
 - packets are invalidated by any target-state, file-digest, runner, schema, or test-invocation drift;
 - local evidence contains no credentials and is never copied verbatim into Jira telemetry.
 
-### Phase 2 — Separate mutation evidence and read-only review
+### Phase 2 — Separate mutation evidence and read-only review (deferred to RT-163)
 
 When mutation evidence is authorized, `/test-evidence` attacks 1–3 explicit claims in a disposable,
 state-bound worktree/copy under an exclusive mutation lease. It emits only the specified verdicts,
@@ -225,6 +238,6 @@ Claude Code/Codex smokes. Link packaging to RT-145 and the reviewed promotion de
 - Exact-artifact tests retain a documented valid path.
 - Regression claims require an independent oracle or mutation evidence.
 - The installed plugin and repo-root review skill share one canonical contract.
-- Every eligible mutation run is isolated, state-bound, recoverable, and cleanly re-run.
+- Once RT-163 is accepted, every eligible mutation run is isolated, state-bound, recoverable, and cleanly re-run.
 - Claude Code and Codex consume the same evidence schema and verdict semantics.
 - Deferred calibration and promotion are explicit Jira work, not informal follow-up.

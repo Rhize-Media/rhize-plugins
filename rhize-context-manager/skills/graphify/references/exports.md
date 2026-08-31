@@ -1,6 +1,6 @@
 # graphify reference: extra exports and benchmark
 
-Load this when the user passed one of the export flags (`--wiki`, `--neo4j`, `--neo4j-push`, `--falkordb`, `--falkordb-push`, `--svg`, `--graphml`, `--mcp`), or when the corpus is large enough for the token-reduction benchmark. Each step runs only for its own flag.
+Load this when the user passed one of the export flags (`--wiki`, `--neo4j`, `--neo4j-push`, `--falkordb`, `--falkordb-push`, `--svg`, `--graphml`, `--mcp`), or when the corpus is large enough for the token-reduction benchmark. Each step runs only for its own flag. Neo4j flags use the governed graph-memory handoff below; they never invoke Graphify's direct Neo4j exporter for Rhize data.
 
 ### Step 6b - Wiki (only if --wiki flag)
 
@@ -12,21 +12,29 @@ Run this before Step 9 (cleanup) so `.graphify_labels.json` is still available.
 graphify export wiki
 ```
 
-### Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag)
+### Step 7 - Governed Neo4j handoff (only if --neo4j or --neo4j-push flag)
 
-**If `--neo4j`** - generate a Cypher file for manual import:
+Do **not** run `graphify export neo4j` or its `--push` form for Rhize governed data. Raw ids are not
+tenant identities, per-record autocommit is not atomic publication, and that export loses required
+provenance and parallel evidence.
 
-```bash
-graphify export neo4j
-```
+- For `--neo4j`, finish `graphify-out/graph.json`, then invoke the canonical
+  `rhize-context-manager:graph-memory` workflow to create a hashed manifest and run `validate` plus a
+  private `preview`. The governed adapter consumes the portable artifact; it never consumes generated
+  Cypher.
+- For `--neo4j-push`, explain that live push is unavailable in this release. RT-159 owns the first
+  credentialed canary, backup, restore rehearsal, and promotion decision. Do not ask for Neo4j
+  credentials or substitute Graphify's direct exporter.
 
-**If `--neo4j-push <uri>`** - push directly to a running Neo4j instance. Ask the user for credentials if not provided:
+The graph-memory fake adapter can exercise checksummed migrations, stage/publish, idempotency,
+bounded reads, purge, and restore without opening a network connection. That is verification—not a
+claim that live Neo4j changed.
 
-```bash
-graphify export neo4j --push bolt://localhost:7687 --user neo4j --password PASSWORD
-```
-
-Default URI is `bolt://localhost:7687`, default user is `neo4j`. Uses MERGE - safe to re-run without creating duplicates.
+If the portable artifact later produces possible duplicate identities, use `graph-memory hygiene
+status` to inspect capability. Stateful review is unavailable until its owning domain supplies a
+private-state adapter. Do not substitute a plugin-local ledger. Similarity and scheduled
+consolidation may eventually enqueue review proposals only; they can never export Cypher, alter
+`graph.json`, or create `SAME_AS` automatically.
 
 ### Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag)
 

@@ -700,6 +700,43 @@ def _changed_files(repo: Path, base: dict, head_sha: Optional[str]) -> list[dict
     return changed
 
 
+def _test_evidence_candidates(repo: Path, changed: list[dict]) -> list[dict]:
+    """Return advisory candidates for changed tests; never infer a blocking contract."""
+    candidates = []
+    seen: set[str] = set()
+    for item in changed:
+        path = item["path"]
+        lower = path.lower()
+        is_test = (
+            lower.startswith(("test/", "tests/", "__tests__/"))
+            or "/tests/" in lower
+            or any(marker in lower for marker in (".test.", ".spec.", "_test.py"))
+        )
+        if not is_test or path in seen:
+            continue
+        seen.add(path)
+        signals = ["changed_test"]
+        target = repo / path
+        if target.is_file():
+            text = _read_text(target)
+            if re.search(r"\b(readFile|read_text|open)\b", text) and re.search(
+                r"\b(toContain|assertIn|in\s+[^\n]+)\b", text
+            ):
+                signals.append("source_content_assertion")
+        candidates.append(
+            {
+                "test_path": path,
+                "related_production_files": [],
+                "declared_invariant": None,
+                "contract_class": None,
+                "oracle_status": "unreviewed",
+                "review_status": "advisory",
+                "signals": signals,
+            }
+        )
+    return sorted(candidates, key=lambda value: value["test_path"])
+
+
 def _package_manager_facts(repo: Path) -> dict:
     lockfiles = [name for name, fname in _LOCKFILES.items() if (repo / fname).is_file()]
     return {
@@ -831,6 +868,7 @@ def run_evidence(repo: Path, base_arg: Optional[str], as_json: bool) -> int:
         "package_manager": _package_manager_facts(repo_root),
         "package_scripts": package_scripts,
         "codegraph": codegraph,
+        "test_evidence_candidates": _test_evidence_candidates(repo_root, changed),
         "findings": findings,
         "healthy": is_healthy(findings),
     }

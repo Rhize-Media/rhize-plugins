@@ -16,7 +16,10 @@ def test_all_phase_one_json_documents_parse() -> None:
         PLUGIN_ROOT / "schemas" / "context-experiment-evidence-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v1.schema.json",
         PLUGIN_ROOT / "schemas" / "context-pack-v2.schema.json",
+        PLUGIN_ROOT / "schemas" / "memory-envelope-v1.schema.json",
+        PLUGIN_ROOT / "schemas" / "memory-context-pack-v1.schema.json",
         PLUGIN_ROOT / "setup" / "manifest.json",
+        PLUGIN_ROOT / ".codex-plugin" / "plugin.json",
     ]
     for path in paths:
         assert isinstance(json.loads(path.read_text()), dict), path
@@ -47,6 +50,7 @@ def test_receipt_v2_is_digest_bound_to_source_free_review_evidence() -> None:
         "claimPackVerified",
         "finalPackVerification",
     }.issubset(receipt["required"])
+    assert {"terminalReason", "evidenceCompleteness"}.issubset(receipt["properties"])
     evidence = json.loads(
         (PLUGIN_ROOT / "schemas" / "context-experiment-evidence-v1.schema.json").read_text()
     )
@@ -66,6 +70,10 @@ def test_config_schema_is_strict_and_caps_armed_runs() -> None:
     capability = schema["$defs"]["capability"]
     assert capability["additionalProperties"] is False
     assert capability["properties"]["armedRuns"]["maximum"] == 10
+    assert set(capability["properties"]["mode"]["enum"]) == {"canary", "continuous"}
+    continuous_rule = capability["allOf"][0]
+    assert continuous_rule["if"]["properties"]["mode"]["const"] == "continuous"
+    assert continuous_rule["then"]["properties"]["armedRuns"]["const"] == 0
 
 
 def test_context_pack_schema_matches_upstream_adapter_contract() -> None:
@@ -97,9 +105,28 @@ def test_native_context_pack_schema_is_provider_neutral_and_source_free() -> Non
     assert {"path", "role", "reason", "sourceHash", "renderedHash"}.issubset(entry["required"])
     assert set(entry["properties"]["role"]["enum"]) == {"FULL", "INTERFACE"}
     assert "content" not in entry["properties"]
+    assert schema["properties"]["provider"]["properties"]["revision"]["const"] == "rhize-native-context-pack-v2"
+    assert "exclusionLedger" in schema["required"]
+    impact = schema["properties"]["impactHint"]
+    assert impact["additionalProperties"] is False
+    assert "path" not in impact["properties"]
+    assert "content" not in impact["properties"]
 
 
-def test_opt_in_manifest_wires_both_fail_silent_hooks() -> None:
+def test_cross_host_skills_and_metadata_share_one_launcher() -> None:
+    for name in ("context-pack", "memory-context"):
+        root = PLUGIN_ROOT / "skills" / name
+        assert (root / "SKILL.md").exists()
+        assert (root / "agents" / "openai.yaml").exists()
+        assert (root / "scripts" / f"{name}.sh").exists()
+    codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+    assert codex["skills"] == "./skills/"
+    assert codex["version"] == json.loads(
+        (PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text()
+    )["version"]
+
+
+def test_setup_manifest_retains_migration_metadata_for_both_fail_silent_hooks() -> None:
     manifest = json.loads((PLUGIN_ROOT / "setup" / "manifest.json").read_text())
     by_id = {item["id"]: item for item in manifest["items"]}
     selector = by_id["context-experiment-selector"]
@@ -108,3 +135,11 @@ def test_opt_in_manifest_wires_both_fail_silent_hooks() -> None:
     assert finalizer["default"] is False and finalizer["event"] == "Stop"
     assert (PLUGIN_ROOT / "hooks" / "context-experiment-selector.js").exists()
     assert (PLUGIN_ROOT / "hooks" / "context-experiment-finalizer.js").exists()
+
+
+def test_codex_manifest_exposes_the_same_context_plugin_skills() -> None:
+    claude = json.loads((PLUGIN_ROOT / ".claude-plugin" / "plugin.json").read_text())
+    codex = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+    assert codex["name"] == claude["name"] == "rhize-context-manager"
+    assert codex["version"] == claude["version"]
+    assert codex["skills"] == "./skills/"

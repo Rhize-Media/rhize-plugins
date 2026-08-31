@@ -74,7 +74,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
-      "description": "Opt-in, fail-silent selector for the explicitly armed local-retrieval/mgrep/compiled-context dogfood program. Applies repository, task, provider-health, snapshot, network, and smoke-review gates before a live Arm A/B route. The compiled-context route automatically builds an accepted local Rhize-native pack; unsafe discovery stays silent and does not consume the arm. Retrieval health comes from pinned real grepai/Ollama or mgrep providers.",
+      "description": "Claude Code migration metadata for the fail-silent selector now auto-wired in hooks/hooks.json. Do not add a second manual Claude hook. Codex invokes the shared host-neutral runner explicitly through its skill. Strict disabled-by-default config gates allowlisted canary/continuous local selection; mgrep remains separately network-authorized.",
       "default": false
     },
     {
@@ -83,7 +83,7 @@
       "tier": "T3",
       "event": "Stop",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
-      "description": "Opt-in, fail-silent companion to context-experiment-selector. Verifies native packs again and finalizes only immutable source-free review evidence; missing evidence produces an explicit incomplete receipt while the accepted capability remains frozen. Enable and disable it together with the selector.",
+      "description": "Claude Code migration metadata for the fail-silent finalizer now auto-wired in hooks/hooks.json. Do not add a second manual Claude hook. Codex invokes the shared host-neutral runner explicitly through its skill. The finalizer writes a terminal receipt for every observed accepted Claude attempt; only evidence-backed continuous success remains enabled.",
       "default": false
     }
   ],
@@ -163,17 +163,6 @@
       "replacement": {
         "suggestion": "rely on grep/Read instead of an indexed knowledge graph",
         "warning": "this is the plugin's own documented fallback — CodeGraph indexing is the user's decision to opt into per repo, not something a hand-rolled index should try to replicate."
-      }
-    },
-    {
-      "name": "Graphiti",
-      "kind": "mcp",
-      "purpose": "Opt-in temporal knowledge-graph memory, adopted via the graphiti-memory skill — explicitly NOT a dependency of anything else in this plugin.",
-      "required": false,
-      "degradedBehavior": "No effect on any other skill or command — Graphiti is additive, opt-in memory, not something the plugin routes through by default.",
-      "replacement": {
-        "suggestion": "skip temporal memory entirely, or use claude-mem's non-temporal memory instead",
-        "warning": "if you specifically need temporal/graph-shaped memory, Graphiti is already built and maintained for that; a hand-rolled temporal store is a much larger undertaking than the other replacements on this list."
       }
     }
   ]

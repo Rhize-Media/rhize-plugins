@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "packVersion": "1.0.0",
+  "namespace": "rhize.knowledge-management",
+  "extendsCoreVersion": "1.0.0",
+  "description": "Bounded canary subtypes justified by source, correction, topic, and citation queries.",
+  "nodeSubtypes": [
+    {"name": "Topic", "parent": "Entity", "queryJustification": "Find claims and sources about a durable topic."},
+    {"name": "Correction", "parent": "Claim", "queryJustification": "Trace a correction to the claim and source it supersedes."},
+    {"name": "Citation", "parent": "Artifact", "queryJustification": "Resolve the evidence artifact supporting a claim."}
+  ],
+  "relationshipTypes": [
+    {"name": "CITES", "source": "Claim", "target": "Citation", "queryJustification": "Return evidence artifacts for a source-bound claim."},
+    {"name": "CORRECTS", "source": "Correction", "target": "Claim", "queryJustification": "Find the current correction for a disputed claim."}
+  ]
+}

@@ -1,5 +1,11 @@
 {
   "disclosure": {
+    "neo4j": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-context-manager/graph-memory"
+      }
+    ],
     "nextjs": [
       {
         "deeper": [],
@@ -38,6 +44,10 @@
       {
         "deeper": [],
         "skillId": "skill:obsidian-second-brain/defuddle"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/knowledge-compiler"
       },
       {
         "deeper": [],
@@ -85,6 +95,12 @@
       {
         "deeper": [],
         "skillId": "skill:rhize-ops/delegate-to-teammate"
+      }
+    ],
+    "python": [
+      {
+        "deeper": [],
+        "skillId": "skill:obsidian-second-brain/knowledge-compiler"
       }
     ],
     "sanity": [
@@ -161,6 +177,10 @@
       {
         "deeper": [],
         "skillId": "skill:rhize-devflow/simplify"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/test-evidence"
       },
       {
         "deeper": [],
@@ -262,6 +282,9 @@
       "skill:rhize-context-manager/context-optimization": [
         "skill:rhize-context-manager/context-fundamentals"
       ],
+      "skill:rhize-context-manager/graph-memory": [
+        "skill:rhize-context-manager/graphify"
+      ],
       "skill:rhize-devflow/completed-branch-promotion": [
         "skill:rhize-devflow/dev-flow-foundations"
       ],
@@ -275,6 +298,9 @@
         "skill:rhize-devflow/dev-flow-foundations"
       ],
       "skill:rhize-devflow/simplify": [
+        "skill:rhize-devflow/dev-flow-foundations"
+      ],
+      "skill:rhize-devflow/test-evidence": [
         "skill:rhize-devflow/dev-flow-foundations"
       ]
     },
@@ -320,6 +346,38 @@
         {
           "kind": "tag",
           "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:obsidian-second-brain/knowledge-compiler": [
+        {
+          "kind": "name",
+          "label": "knowledge-compiler",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-management",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "obsidian",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "provenance",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "python",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
           "weight": 2
         }
       ],
@@ -638,6 +696,23 @@
           "weight": 2
         }
       ],
+      "skill:rhize-context-manager/context-pack": [
+        {
+          "kind": "name",
+          "label": "context-pack",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "search",
+          "weight": 2
+        }
+      ],
       "skill:rhize-context-manager/context-stack": [
         {
           "kind": "name",
@@ -674,6 +749,33 @@
         {
           "kind": "tag",
           "label": "memory-systems",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/graph-memory": [
+        {
+          "kind": "name",
+          "label": "graph-memory",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "knowledge-graph",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "neo4j",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "security",
           "weight": 2
         }
       ],
@@ -735,6 +837,23 @@
         {
           "kind": "tag",
           "label": "learning-curation",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-context-manager/memory-context": [
+        {
+          "kind": "name",
+          "label": "memory-context",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "context-engineering",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "memory-systems",
           "weight": 2
         }
       ],
@@ -1024,6 +1143,28 @@
         {
           "kind": "tag",
           "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-devflow/test-evidence": [
+        {
+          "kind": "name",
+          "label": "test-evidence",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "evidence",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "review",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
           "weight": 2
         }
       ],
