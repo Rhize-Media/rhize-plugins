@@ -9,11 +9,12 @@ negatives. It also checks safety-critical workflow anchors in each canonical `SK
 python3 evals/rhize-tasks/run_evals.py
 ```
 
-This gate reports routing precision/recall and quality-contract coverage. It does not claim to
-measure an LLM's natural trigger behavior, macOS integration, dashboard behavior, connector I/O, or
-the user benefit of the skills. Those paths require isolated agent-mediated evaluation; the
-controlled benefit protocol in this directory reserves and validates those runs without making a
-live mutation or fabricating receipts.
+This gate reports routing precision/recall, quality-contract coverage, and independent positive and
+negative passed/total counts for every skill. It fails if any skill falls below or misroutes the
+`1+/2-` minimum. It does not claim to measure an LLM's natural trigger behavior, macOS integration,
+dashboard behavior, connector I/O, or the user benefit of the skills. Those paths require isolated
+agent-mediated evaluation; the controlled benefit protocol in this directory reserves and validates
+those runs without making a live mutation or fabricating receipts.
 
 `benefit-benchmark.json` defines exact Arm A and Arm B implementations, six bounded fixture task
 contracts, three repetitions, counterbalanced order, and the common metric set. Use

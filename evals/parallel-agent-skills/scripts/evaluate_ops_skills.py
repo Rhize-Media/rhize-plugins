@@ -35,16 +35,24 @@ def evaluate(manifest: dict[str, Any]) -> dict[str, Any]:
     tp = fp = fn = 0
 
     for skill_id, skill in skills.items():
-        if not skill.get("positive_cases") or len(skill.get("negative_cases", [])) < 2:
+        positive_cases = skill.get("positive_cases", [])
+        negative_cases = skill.get("negative_cases", [])
+        if len(positive_cases) < 1 or len(negative_cases) < 2:
             failures.append(f"{skill_id}:coverage-contract")
-        for case_id in skill.get("positive_cases", []) + skill.get("negative_cases", []):
+        if len(set(positive_cases)) != len(positive_cases) or len(set(negative_cases)) != len(negative_cases):
+            failures.append(f"{skill_id}:duplicate-coverage-case")
+        if set(positive_cases) & set(negative_cases):
+            failures.append(f"{skill_id}:ambiguous-coverage-case")
+        for case_id in positive_cases + negative_cases:
             if case_id not in cases:
                 failures.append(f"{skill_id}:unknown-case:{case_id}")
 
     case_results = []
+    predictions: dict[str, set[str]] = {}
     for case_id, case in cases.items():
         expected = set(case["expected"])
         predicted = {skill_id for skill_id, skill in skills.items() if matches(case["prompt"], skill)}
+        predictions[case_id] = predicted
         tp += len(expected & predicted)
         fp += len(predicted - expected)
         fn += len(expected - predicted)
@@ -55,6 +63,37 @@ def evaluate(manifest: dict[str, Any]) -> dict[str, Any]:
             "id": case_id,
             "expected": sorted(expected),
             "predicted": sorted(predicted),
+            "passed": passed,
+        })
+
+    routing_coverage = []
+    for skill_id, skill in skills.items():
+        positive_cases = skill.get("positive_cases", [])
+        negative_cases = skill.get("negative_cases", [])
+        positive_passed = sum(
+            case_id in cases
+            and skill_id in set(cases[case_id]["expected"])
+            and skill_id in predictions[case_id]
+            for case_id in positive_cases
+        )
+        negative_passed = sum(
+            case_id in cases
+            and skill_id not in set(cases[case_id]["expected"])
+            and skill_id not in predictions[case_id]
+            for case_id in negative_cases
+        )
+        passed = (
+            len(positive_cases) >= 1
+            and len(negative_cases) >= 2
+            and positive_passed == len(positive_cases)
+            and negative_passed == len(negative_cases)
+        )
+        if not passed:
+            failures.append(f"{skill_id}:routing-coverage")
+        routing_coverage.append({
+            "skill": skill_id,
+            "positive": {"passed": positive_passed, "total": len(positive_cases)},
+            "negative": {"passed": negative_passed, "total": len(negative_cases)},
             "passed": passed,
         })
 
@@ -80,6 +119,13 @@ def evaluate(manifest: dict[str, Any]) -> dict[str, Any]:
         "skills": len(skills),
         "cases": len(cases),
         "routing": {"true_positives": tp, "false_positives": fp, "false_negatives": fn, "precision": precision, "recall": recall},
+        "routing_coverage": {
+            "minimum_positive_cases": 1,
+            "minimum_negative_cases": 2,
+            "passed": sum(item["passed"] for item in routing_coverage),
+            "total": len(routing_coverage),
+            "results": routing_coverage,
+        },
         "case_results": case_results,
         "quality_contracts": {"passed": sum(item["passed"] for item in quality_results), "total": len(quality_results), "results": quality_results},
         "failures": failures,

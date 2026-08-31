@@ -6,7 +6,7 @@
       "source": "rhize-tasks/skills/manage-task-preferences/SKILL.md",
       "include_patterns": ["(?:change|update|review).*(?:working hours|buffers?|planning preferences|replanning rules?)", "manage task preferences"],
       "positive_cases": ["preferences-positive"],
-      "negative_cases": ["plan-positive", "setup-positive"],
+      "negative_cases": ["preferences-readme-near-miss", "preferences-calendar-near-miss"],
       "quality_contracts": [
         {"id": "platform-gate", "patterns": ["run `uname -s`", "If the result is not `Darwin`"]},
         {"id": "diff-before-write", "patterns": ["Preview the exact preference diff", "Require confirmation"]},
@@ -18,7 +18,7 @@
       "source": "rhize-tasks/skills/plan-my-day/SKILL.md",
       "include_patterns": ["plan my day", "morning plan", "what (?:should|do) i work on next", "carryover review", "catch-up after sleep"],
       "positive_cases": ["plan-positive"],
-      "negative_cases": ["preferences-positive", "doctor-positive"],
+      "negative_cases": ["plan-travel-near-miss", "plan-ci-near-miss"],
       "quality_contracts": [
         {"id": "single-routine", "patterns": ["routine morning", "routine catch-up", "Do not run both"]},
         {"id": "bounded-plan", "patterns": ["capacity", "buffer", "carryovers"]},
@@ -30,7 +30,7 @@
       "source": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md",
       "include_patterns": ["reconcile rhize tasks", "resolve.*(?:drift|duplicate)", "carryover mismatch", "source recovery"],
       "positive_cases": ["reconcile-positive"],
-      "negative_cases": ["doctor-positive", "plan-positive"],
+      "negative_cases": ["reconcile-csv-near-miss", "reconcile-git-near-miss"],
       "quality_contracts": [
         {"id": "today-view-is-preview", "patterns": ["There is no separate reconciliation-preview command", "TodayView"]},
         {"id": "exact-operation-ids", "patterns": ["exact existing `operationId`", "never submit operation objects"]},
@@ -42,7 +42,7 @@
       "source": "rhize-tasks/skills/review-task-opportunities/SKILL.md",
       "include_patterns": ["task opportunities", "urgent unassigned jira", "review.*unassigned suggestion", "additional work.*competenc"],
       "positive_cases": ["opportunities-positive"],
-      "negative_cases": ["plan-positive", "reconcile-positive"],
+      "negative_cases": ["opportunities-hiring-near-miss", "opportunities-assigned-jira-near-miss"],
       "quality_contracts": [
         {"id": "assigned-work-first", "patterns": ["Keep assigned work first", "never claim work"]},
         {"id": "capacity-deferral", "patterns": ["overfill capacity", "recommend deferring"]},
@@ -53,8 +53,9 @@
       "id": "rhize-tasks-doctor",
       "source": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md",
       "include_patterns": ["rhize tasks doctor", "diagnose.*rhize tasks", "dashboard.*(?:unavailable|degraded)", "failing routines?", "scheduling health"],
+      "exclude_patterns": ["marketing dashboard", "sales dashboard", "analytics dashboard"],
       "positive_cases": ["doctor-positive"],
-      "negative_cases": ["setup-positive", "reconcile-positive"],
+      "negative_cases": ["doctor-marketing-dashboard-near-miss", "doctor-cron-near-miss"],
       "quality_contracts": [
         {"id": "read-only", "patterns": ["read-only diagnostics", "without mutating connectors"]},
         {"id": "redacted-health", "patterns": ["doctor --json", "structured, redacted result"]},
@@ -66,7 +67,7 @@
       "source": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md",
       "include_patterns": ["set up rhize tasks", "install rhize tasks", "resume.*(?:wizard|setup)", "finish.*incomplete setup", "reconnect(?:ing)? a source"],
       "positive_cases": ["setup-positive"],
-      "negative_cases": ["doctor-positive", "preferences-positive"],
+      "negative_cases": ["setup-training-near-miss", "setup-diagram-near-miss"],
       "quality_contracts": [
         {"id": "secret-boundary", "patterns": ["Never ask for, repeat, paste", "Keychain"]},
         {"id": "seven-stages", "patterns": ["seven resumable stages", "first incomplete stage"]},
@@ -80,6 +81,18 @@
     {"id": "reconcile-positive", "prompt": "Resolve the duplicate suspicion and carryover mismatch in Rhize Tasks.", "expected": ["reconcile-rhize-tasks"]},
     {"id": "opportunities-positive", "prompt": "Review the urgent unassigned Jira task opportunities that fit Tom's competencies.", "expected": ["review-task-opportunities"]},
     {"id": "doctor-positive", "prompt": "The Rhize Tasks dashboard is unavailable and routines are failing; diagnose it read-only.", "expected": ["rhize-tasks-doctor"]},
-    {"id": "setup-positive", "prompt": "Resume the incomplete Rhize Tasks setup wizard and reconnect a source.", "expected": ["rhize-tasks-setup"]}
+    {"id": "setup-positive", "prompt": "Resume the incomplete Rhize Tasks setup wizard and reconnect a source.", "expected": ["rhize-tasks-setup"]},
+    {"id": "preferences-readme-near-miss", "prompt": "Update the office-hours copy in README; leave my task-planning settings unchanged.", "expected": []},
+    {"id": "preferences-calendar-near-miss", "prompt": "Review calendar availability for a meeting without changing scheduler defaults.", "expected": []},
+    {"id": "plan-travel-near-miss", "prompt": "Plan a Saturday day-trip itinerary and restaurant stops.", "expected": []},
+    {"id": "plan-ci-near-miss", "prompt": "Tell the CI worker which build step to run next.", "expected": []},
+    {"id": "reconcile-csv-near-miss", "prompt": "Deduplicate repeated rows in this CSV export; it is not Rhize Tasks data.", "expected": []},
+    {"id": "reconcile-git-near-miss", "prompt": "Recover the deleted Git branch history after a bad rebase.", "expected": []},
+    {"id": "opportunities-hiring-near-miss", "prompt": "Review hiring opportunities for contractors whose experience matches the role.", "expected": []},
+    {"id": "opportunities-assigned-jira-near-miss", "prompt": "Triage urgent assigned Jira bugs already owned by Maya.", "expected": []},
+    {"id": "doctor-marketing-dashboard-near-miss", "prompt": "Diagnose why the marketing dashboard cannot load; Rhize Tasks is healthy.", "expected": []},
+    {"id": "doctor-cron-near-miss", "prompt": "Check cron timing for the deployment scheduler outside Rhize Tasks.", "expected": []},
+    {"id": "setup-training-near-miss", "prompt": "Draft a Rhize Tasks setup training document without installing the product.", "expected": []},
+    {"id": "setup-diagram-near-miss", "prompt": "Reconnect an arrow to its source box in this architecture diagram.", "expected": []}
   ]
 }

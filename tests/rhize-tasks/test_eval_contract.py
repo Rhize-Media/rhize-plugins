@@ -15,11 +15,30 @@ def test_six_skill_routing_quality_and_benefit_contract() -> None:
     result = json.loads(completed.stdout)
     assert result["skills"] == 6
     assert result["routing"]["precision"] == result["routing"]["recall"] == 1.0
+    assert result["routing_coverage"]["passed"] == result["routing_coverage"]["total"] == 6
+    assert all(item["positive"] == {"passed": 1, "total": 1} for item in result["routing_coverage"]["results"])
+    assert all(item["negative"] == {"passed": 2, "total": 2} for item in result["routing_coverage"]["results"])
     assert result["quality_contracts"]["passed"] == result["quality_contracts"]["total"] == 18
     benchmark = json.loads((EVAL / "benefit-benchmark.json").read_text())
     assert len(benchmark["skills"]) == 6 and benchmark["repetitions"] == 3
     assert benchmark["arms"]["baseline"].startswith("Arm A:")
     assert benchmark["arms"]["rhize"].startswith("Arm B:")
+
+
+def test_tasks_runner_rejects_a_skill_with_fewer_than_two_negatives() -> None:
+    manifest = json.loads((EVAL / "skill-evals.json").read_text())
+    manifest["skills"][0]["negative_cases"] = manifest["skills"][0]["negative_cases"][:1]
+    with tempfile.TemporaryDirectory() as temporary:
+        path = Path(temporary) / "insufficient-negatives.json"
+        path.write_text(json.dumps(manifest))
+        completed = subprocess.run(
+            ["python3", str(EVAL / "run_evals.py"), "--manifest", str(path)],
+            cwd=REPO, capture_output=True, text=True,
+        )
+    assert completed.returncode == 1
+    result = json.loads(completed.stdout)
+    assert "manage-task-preferences:coverage-contract" in result["failures"]
+    assert result["routing_coverage"]["passed"] == 5
 
 
 def test_benefit_pair_records_actual_arm_and_validates() -> None:

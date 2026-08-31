@@ -104,5 +104,6 @@ not submit those summary claims directly.
 
 `scripts/evaluate_ops_skills.py` runs the local/free routing and static quality contract for all
 three rhize-ops skills. It gives each trigger-capable skill one positive plus at least two
-near-miss/collision negatives. This deterministic gate is not presented as natural LLM trigger
-evidence.
+near-miss/collision negatives and reports the passed/total counts for each skill independently.
+The run fails if any skill falls below or misroutes that coverage. This deterministic gate is not
+presented as natural LLM trigger evidence.
