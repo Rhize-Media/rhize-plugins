@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- _2026-09-01_ **Rhize Ops Codex manifest compatibility.** Added the required starter prompts for
+  delegation, parallel-agent assessment, and centralized benchmark setup so the generic Codex
+  plugin validator accepts the manifest.
+
 ### Added
 
 - _2026-09-01_ version bump — **rhize-devflow** 2.18.0 → 2.18.1 (patch); marketplace 2.54.0 → 2.54.1.

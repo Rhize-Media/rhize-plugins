@@ -26,6 +26,11 @@
       "Interactive",
       "Read",
       "Write"
+    ],
+    "defaultPrompt": [
+      "Prepare a safe delegation handoff for this task.",
+      "Assess whether this work should use parallel agents.",
+      "Set up Rhize benchmark baselines and evaluation capture."
     ]
   }
 }
