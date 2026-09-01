@@ -90,6 +90,25 @@ This project contains Claude Code skills (plugins). When a user's request matche
 - Full project launch pipeline — research, PRD, gap analysis, scaffold, GSD v2 handoff (`project-launcher`)
 - Commands: `/launch-project`, `/write-prd`, `/scaffold-gsd`, `/grill-prd`
 
+## CodeGraph Repository Index (IMPORTANT)
+
+This repository is intentionally CodeGraph-indexed. Use CodeGraph before `rg` or broad manual
+reads when locating supported source symbols, callers, callees, or affected tests:
+
+```bash
+codegraph status
+codegraph sync                 # only when status reports pending/stale source
+codegraph explore "<question>"
+codegraph affected <files...>
+```
+
+The SQLite database under `.codegraph/` is local, regenerable state and must never be committed;
+the tracked `.codegraph/.gitignore` is the only repository artifact. On a fresh clone, install the
+documented CodeGraph CLI and run `codegraph init -y` once. If status is unhealthy or the relevant
+edge is Markdown, JSON, generated, dynamic, or external, record that limitation and use `rg` plus
+targeted reads. Do not initialize other repositories without their owner's explicit decision, and
+do not run Serena for the same code-navigation question while CodeGraph is active here.
+
 ## Documentation Maintenance (IMPORTANT)
 
 This repo follows a strict README-vs-GUIDE.md convention, defined in full in the root [README.md](./README.md#documentation-hierarchy):

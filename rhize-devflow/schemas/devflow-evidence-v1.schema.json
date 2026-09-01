@@ -152,7 +152,7 @@
         "newest_source_mtime": { "type": ["number", "null"] },
         "stale": {
           "type": ["boolean", "null"],
-          "description": "true when db_mtime < newest_source_mtime. null when either mtime is unavailable."
+          "description": "CodeGraph's read-only status freshness verdict when available; otherwise true when db_mtime < newest_source_mtime. null when neither signal is available."
         }
       }
     },

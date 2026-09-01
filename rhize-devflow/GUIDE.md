@@ -250,8 +250,11 @@ normal completion remain blocked until `reconcile` returns `IN_SYNC` or
 Evidence-driven mid-implementation validation. Builds a deterministic evidence packet
 (`devflow.py evidence --json`) — changed files, protected-file matches, declared package
 scripts, package manager, impact-map status — then selects checks *only* from repository
-instructions and known-safe declared package-script names (`test`, `lint`, `typecheck`, `build`,
-`schema`, `codegen`). Never runs shell text parsed from a README, commit message, or generated
+instructions and known-safe declared checks. For an existing CodeGraph index, the packet trusts
+the CLI's read-only pending-change/index-state report and uses timestamps only when that status is
+unavailable; documentation files CodeGraph does not parse therefore cannot make a current index
+look stale. Known-safe declared package-script names are `test`, `lint`, `typecheck`, `build`,
+`schema`, and `codegen`. Never runs shell text parsed from a README, commit message, or generated
 report. Runs focused tests first, then repository-mandated broader gates. Returns `PASS`,
 `PASS_WITH_WARNINGS`, or `BLOCKED` with the exact evidence table.
 
