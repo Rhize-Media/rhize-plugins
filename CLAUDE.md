@@ -297,3 +297,63 @@ The bar on the unattended routine is unchanged.*
 *~2,500 tokens/session saved*
 - The `rtk find` wrapper does NOT support `-not`, `-exec`, or compound predicates. Always use `/usr/bin/find` directly for complex find operations.
 - `cat` on macOS does not support `-A` flag; use `cat -v` or `cat -e` instead.
+
+### Detected Loop Guardrails — Scratchpad & SCRATCH Variables
+*~245,000 tokens/session saved*
+- The SCRATCH/scratchpad pattern at `/private/tmp/claude-501/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/<session-id>/scratchpad/` is read 5x and appended 76x+ per session. Read the scratchpad ONCE at session start; maintain an in-memory copy of its state rather than re-reading after every write.
+- The SCRATCH bash one-liner (`SCRATCH=/private/tmp/...`) is repeated 40–76x per session. Define it once at the top of the session in a shell variable and reuse it; do not redefine on every Bash call.
+
+### File Structure Facts
+*~227,622 tokens/session saved*
+- `procedural-memory` Python package must be imported as `PYTHONPATH=src .venv/bin/python3` or installed via `pip install -e .` — bare `python3 -c 'from rhize_skill import...'` fails with ModuleNotFoundError.
+- `procedural-memory/src/rhize_skill/sandbox.py` triggers a `command_not_found` error when read via the standard Read tool due to line-number display formatting — use `cat -n` via Bash or `sed -n` instead.
+- The scratchpad directory is `/private/tmp/claude-501/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/<session-uuid>/scratchpad/`; the session UUID changes each session — always resolve it at session start rather than hard-coding.
+
+### Detected Loop Guardrails — Core Files
+*~120,000 tokens/session saved*
+- `procedural-memory/src/rhize_skill/runner.py` is read 38x and edited 55x per session. Read it ONCE with `sed -n '1,$p'` or `cat -n` to get the full file upfront; do not re-read to check edits.
+- `procedural-memory/STATE.md` is read 41x per session. Read it once in full at session start; do not re-read to find section headings — use `grep -n '^## '` instead.
+- `procedural-memory/src/rhize_skill/reindex.py`, `cli.py`, `graph_validate.py`, `verify.py`, and `sandbox.py` each exceed 10 re-reads per session. Read each once in full before editing; do not re-read after every edit.
+
+### Detected Loop Guardrails — Install & Config Files
+*~90,000 tokens/session saved*
+- `rhize-tasks/installer/install.mjs` is read 33x and edited 35x per session. Read once upfront; use targeted `grep -n` or `sed -n` for section inspection rather than full re-reads.
+- `scripts/build_skill_map.py` is read 44x and edited 60x per session. Read once; batch all edits before re-running the build script.
+- `rhize-tasks/service/src/connectors/slack.mjs` and `context.mjs` are each re-read 8x per session. Read once before any edit cycle.
+
+### Detected Loop Guardrails — Test Runners
+*~45,487 tokens/session saved*
+- `cd /Users/jamesdeola/dev-local/RHIZE/procedural-memory && .venv/bin/python -m pytest -q 2>&1 | tail -N` runs 58x per session. Run tests at most twice per fix cycle (once to confirm failure, once to confirm fix); do not re-run after every micro-edit.
+- `node --test tests/connectors/reminders-process.test.mjs 2>&1 | tail -20` and similar rhize-tasks node test invocations run 10–13x per session. Consolidate test runs; check all related test files in one pass.
+- `cd rhize-ops/skill-monitor && python3 -m pytest tests/ -q` runs 25x per session. Run once after a batch of edits, not after each individual change.
+
+### Detected Loop Guardrails — registry/runners and registry drivers
+*~45,487 tokens/session saved*
+- `procedural-memory/registry/runners/graph-runner/v1/driver.py` is read 17x and edited 19x per session. Read once in full (it is a large file); navigate with `grep -n` or `sed -n` for specific sections.
+- `procedural-memory/src/rhize_skill/graph_promote.py` and `provenance.py` each exceed 8 re-reads per session. Read once; do not re-read to verify an edit — use `grep` on the specific changed line instead.
+
+### Detected Loop Guardrails — refactor_gate.py
+*~45,487 tokens/session saved*
+- `refactor_gate.py prepare` fails with `BLOCKED: impact map missing required section: current behavior` if the plan lacks that section. Always include `## Current Behavior` in any plan passed to `refactor_gate.py prepare` before invoking it.
+- `python3 rhize-devflow/scripts/refactor_gate.py` is invoked 15x per session from different working directories; always `cd` to `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins` first or use the full path from that root.
+- The refactor gate requires a pre-existing plan with a SHA256 receipt. Run `refactor_gate.py prepare` exactly once per plan; do not re-run it to fix minor validation errors — fix the plan file first.
+
+### Detected Loop Guardrails — SKILL.md Files
+*~25,000 tokens/session saved*
+- `Documents/Claude/Scheduled/vault-inbox-processor/SKILL.md` is read 13x and edited 22x per session (~22 KB). Read once at session start; this file is large — always use `wc -l` first, then `sed -n` for relevant sections rather than full re-reads.
+- `Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md` is read 3x and edited 16x. Same pattern: read once, then edit in place without re-reading.
+
+### Environment
+*~12,908 tokens/session saved*
+- Python venv for `procedural-memory`: always use `.venv/bin/python` or `.venv/bin/pytest`, never bare `python3` (bare python3 lacks the installed packages).
+- PostgreSQL restart requires `LC_ALL=C` (or `LC_ALL=en_US.UTF-8`): `LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@18 start`. Bare `pg_ctl start` fails with locale errors.
+- `find` with `-not` or `-exec` fails with the `rtk` wrapper — use `/usr/bin/find` directly for compound predicates.
+- `cat` on macOS does not support `-A` flag; use `cat -e` or omit the flag.
+- `timeout` command is not available in the default PATH in sandbox environments; use `.venv/bin/python -c` or shell builtins instead.
+
+### Workflow Rules
+*~6,000 tokens/session saved*
+- Never `git push` from within agent sessions in this project; the orchestrator handles pushes. Commit locally only.
+- Before editing any file with the Edit tool, always Read it first in the same session — the Edit tool will fail with 'File has not been read yet' otherwise.
+- When running `refactor_gate.py prepare`, the plan file must contain sections `## Current Behavior`, `## Problem`, and `## Proposed Change` (check `REQUIRED_PLAN_SECTIONS` in the script). Missing sections cause an immediate BLOCKED exit.
+- `claude plugin eval` is org-gated on this machine and cannot be executed; build static validators instead of trying to invoke it.
