@@ -143,7 +143,10 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace PAT
   files, protected-file matches, detected package manager and declared package-script names/text,
   repository instruction-file presence, and existing-CodeGraph-index presence/health. `/check` and
   `/review` treat this output as facts, not permission: it never executes anything (no package
-  script, no shell text parsed from prose) on its own.
+  script, no shell text parsed from prose) on its own. When the CodeGraph CLI is available, its
+  read-only JSON status is authoritative for freshness; the older database-vs-tracked-file mtime
+  comparison remains only as a compatibility fallback, so newer unsupported Markdown/JSON does
+  not create a false-stale finding.
 - **`refactor_gate.py`** is the stateful Claude/Codex enforcement runtime. A material-change prompt
   creates pending workspace state; `prepare` validates and hashes the semantic map, discovers
   nested Git roots, runs an existing healthy CodeGraph index (or records the `rg` fallback), and

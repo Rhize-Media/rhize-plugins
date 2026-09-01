@@ -770,6 +770,51 @@ def _instruction_files(repo: Path) -> dict:
     return present
 
 
+def _codegraph_status_stale(repo: Path) -> Optional[bool]:
+    """Return CodeGraph's authoritative freshness verdict when available.
+
+    The database mtime is only a compatibility fallback: tracked Markdown or JSON can be newer
+    than the database without being part of CodeGraph's supported source inventory.
+    """
+    executable = shutil.which("codegraph")
+    if executable is None:
+        return None
+    try:
+        result = subprocess.run(
+            [executable, "status", "--json"],
+            cwd=repo,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        status = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return None
+
+    pending = status.get("pendingChanges")
+    index = status.get("index")
+    if status.get("initialized") is not True or not isinstance(pending, dict) or not isinstance(index, dict):
+        return None
+    counts = [pending.get(key) for key in ("added", "modified", "removed")]
+    if any(type(value) is not int or value < 0 for value in counts):
+        return None
+    pending_refs = index.get("pendingRefs")
+    if type(pending_refs) is not int or pending_refs < 0:
+        return None
+    return bool(
+        sum(counts)
+        or status.get("worktreeMismatch") is not None
+        or index.get("state") != "complete"
+        or index.get("reindexRecommended") is True
+        or pending_refs
+    )
+
+
 def _codegraph_evidence(repo: Path, findings: list[dict]) -> dict:
     cg_dir = repo / ".codegraph"
     exists = cg_dir.is_dir()
@@ -792,18 +837,23 @@ def _codegraph_evidence(repo: Path, findings: list[dict]) -> dict:
         ]
     newest_source_mtime = max((p.stat().st_mtime for p in tracked_paths if p.is_file()), default=None)
 
-    stale = None
-    if db_mtime is not None and newest_source_mtime is not None:
+    stale = _codegraph_status_stale(repo) if db_present else None
+    authoritative_status = stale is not None
+    if stale is None and db_mtime is not None and newest_source_mtime is not None:
         stale = db_mtime < newest_source_mtime
-        if stale:
-            findings.append(
-                make_finding(
-                    "codegraph-stale",
-                    "info",
-                    "CodeGraph index is older than the newest tracked source file — report only, never auto-initialized/rebuilt",
-                    db_path,
-                )
+    if stale:
+        if authoritative_status:
+            message = "CodeGraph reports pending, mismatched, or incomplete index state — report only, never auto-initialized/rebuilt"
+        else:
+            message = "CodeGraph index is older than the newest tracked source file — timestamp fallback only, never auto-initialized/rebuilt"
+        findings.append(
+            make_finding(
+                "codegraph-stale",
+                "info",
+                message,
+                db_path,
             )
+        )
 
     return {
         "exists": True,

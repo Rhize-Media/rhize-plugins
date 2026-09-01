@@ -590,6 +590,65 @@ def test_evidence_stale_codegraph_index(tmp_path: Path) -> None:
     assert not (cg_dir / "rebuilt").exists()
 
 
+def write_fake_codegraph_status(tmp_path: Path, *, added: int = 0, modified: int = 0, removed: int = 0) -> Path:
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    executable = bin_dir / "codegraph"
+    payload = json.dumps(
+        {
+            "initialized": True,
+            "pendingChanges": {"added": added, "modified": modified, "removed": removed},
+            "worktreeMismatch": None,
+            "index": {"state": "complete", "reindexRecommended": False, "pendingRefs": 0},
+        }
+    )
+    executable.write_text(f"#!/bin/sh\nprintf '%s\\n' '{payload}'\n")
+    executable.chmod(0o755)
+    return bin_dir
+
+
+def test_evidence_codegraph_status_ignores_newer_unsupported_documentation(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    (repo / "main.py").write_text("print('indexed')\n")
+    commit_all(repo, "source")
+    cg_dir = repo / ".codegraph"
+    cg_dir.mkdir()
+    db_path = cg_dir / "codegraph.db"
+    db_path.write_text("fake sqlite bytes")
+    (repo / "README.md").write_text("newer but unsupported by CodeGraph\n")
+    commit_all(repo, "documentation")
+    bin_dir = write_fake_codegraph_status(tmp_path)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"}
+
+    result = run_cli("evidence", "--repo", str(repo), "--json", env=env)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    assert doc["codegraph"]["db_mtime"] < doc["codegraph"]["newest_source_mtime"]
+    assert doc["codegraph"]["stale"] is False
+    assert not [finding for finding in doc["findings"] if finding["id"] == "codegraph-stale"]
+
+
+def test_evidence_codegraph_status_reports_pending_supported_source(tmp_path: Path) -> None:
+    repo = make_git_repo(tmp_path)
+    (repo / "main.py").write_text("print('pending')\n")
+    commit_all(repo, "source")
+    cg_dir = repo / ".codegraph"
+    cg_dir.mkdir()
+    (cg_dir / "codegraph.db").write_text("fake sqlite bytes")
+    bin_dir = write_fake_codegraph_status(tmp_path, modified=1)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"}
+
+    result = run_cli("evidence", "--repo", str(repo), "--json", env=env)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    assert doc["codegraph"]["stale"] is True
+    stale_findings = [finding for finding in doc["findings"] if finding["id"] == "codegraph-stale"]
+    assert len(stale_findings) == 1
+    assert "pending, mismatched, or incomplete" in stale_findings[0]["message"]
+
+
 def test_evidence_missing_codegraph_index_is_reported_absent(tmp_path: Path) -> None:
     repo = make_git_repo(tmp_path)
     (repo / "README.md").write_text("hello\n")
