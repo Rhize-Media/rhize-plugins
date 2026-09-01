@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-01_ version bump — **rhize-ops** 0.15.0 → 0.15.1 (patch); marketplace 2.54.1 → 2.54.2.
 - _2026-09-01_ version bump — **rhize-devflow** 2.18.0 → 2.18.1 (patch); marketplace 2.54.0 → 2.54.1.
 - _2026-09-01_ **repository-local CodeGraph activation.** Initialized the Rhize Plugins source
   graph for CodeGraph-first navigation, impact mapping, compiled-context discovery, and

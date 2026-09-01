@@ -1,6 +1,6 @@
 {
   "name": "rhize-ops",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization with ephemeral task-graph validation.",
   "author": {
     "name": "Rhize Media"
