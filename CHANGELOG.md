@@ -8,6 +8,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- _2026-09-01_ **Marketplace-wide documentation accuracy pass.** Audited every plugin's
+  README/GUIDE plus the root docs against on-disk reality (skill/command inventories, hook
+  wiring, versions, links). Fixes: root README catalog showed rhize-ops 0.15.0 and its layout
+  tree omitted rhize-cowork + procedural-memory; project-launcher README was missing the
+  `/visual-plan` command and `plan-discipline.md` reference rows; rhize-context-manager README
+  was missing the `/graph-memory` command row and its GUIDE never surfaced `/start` or
+  `/context-hygiene`; rhize-devflow README had a broken CLI-section anchor and used CodeGraph
+  15+ times without defining it; rhize-ops README implied a plugin-root `agents/openai.yaml`
+  that doesn't exist; seo-aeo-geo README's architecture tree claimed a removed SessionStart
+  hook and omitted the shared DataForSEO guide; obsidian-second-brain's GUIDE carried a stale
+  "Obsidian Skills" title and its README now discloses that the advisory vault hooks match a
+  hardcoded iCloud default-vault path; rhize-cowork README's tree omitted `setup/manifest.json`.
+
 - _2026-09-01_ **Rhize Ops Codex manifest compatibility.** Added the required starter prompts for
   delegation, parallel-agent assessment, and centralized benchmark setup so the generic Codex
   plugin validator accepts the manifest.

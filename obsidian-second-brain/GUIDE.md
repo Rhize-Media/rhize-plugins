@@ -1,6 +1,6 @@
-# Obsidian Skills Plugin — User Guide
+# Obsidian Second Brain — User Guide
 
-This guide explains what the Obsidian Skills plugin does, how each piece works, and how to get the most out of it across Claude Desktop Chat, Cowork, and Claude Code.
+This guide explains what the Obsidian Second Brain plugin does, how each piece works, and how to get the most out of it across Claude Desktop Chat, Cowork, and Claude Code.
 
 ## What This Plugin Does
 

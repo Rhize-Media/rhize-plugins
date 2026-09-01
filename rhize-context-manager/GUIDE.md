@@ -38,9 +38,21 @@ the right one, and health-checks the whole thing.
   `/rhize-setup` (rhize-ops) once that lands.
   *Example: "Run /context-setup on this repo — I want to know if OpenWolf is worth it here."*
 
-- **"Start / where were we / save context / context is getting heavy"**
-  → the `context-engineering` skill (sessions, memory extraction, hygiene). This moved
-  here from rhize-devflow; all triggers work as before.
+- **"Start / where were we / begin a new session"**
+  → `/start` — the session-opening bookend. Surfaces `STATE.md`, sprint/registry
+  freshness, active work, and (Step 0) any skills the compiled skill-map flags as
+  relevant to this repo's stack, before suggesting a next action.
+  *Example: "Let's start — where did we leave off?"*
+
+- **"Context is getting heavy / session feels slow / where were we mid-session"**
+  → `/context-hygiene` — mid-session cleanup: assesses what's stale vs. active,
+  proposes what to drop, and writes a checkpoint summary so a soft/hard reset
+  doesn't lose the thread.
+  *Example: "This session's dragging — run /context-hygiene."*
+
+  Both bookends, plus general session/memory/hygiene questions, are also covered by
+  the `context-engineering` skill (moved here from rhize-devflow; all prior triggers
+  still work).
 
 - **"Done / finished / ready to commit / wrap up"**
   → `/done` — the session-closure bookend. If this session changed code **and**
@@ -91,7 +103,8 @@ the right one, and health-checks the whole thing.
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).
 
 - **"We need queryable long-term memory with relationships and time"**
-  → use the `graph-memory` ontology and bounded offline hygiene contracts; the `graphiti-memory`
+  → use the `graph-memory` ontology and bounded offline hygiene contracts (`/graph-memory` runs
+  `validate`, then offers a private `preview`); the `graphiti-memory`
   skill is historical design context only. Graphiti was not implemented and must not be installed
   or routed as a fallback. Live Neo4j projection remains behind RT-159.
 

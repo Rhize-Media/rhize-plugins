@@ -18,6 +18,8 @@ rhize-cowork/
 │   └── plugin.json
 ├── README.md                          # This file (technical reference)
 ├── GUIDE.md                           # User-facing walkthrough
+├── setup/
+│   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
 └── skills/
     └── project-kickoff/
         ├── SKILL.md                   # Workflow: inventory inputs → confirm frame → gap interview → write files → hand off

@@ -189,9 +189,11 @@ seo-aeo-geo/
 │   ├── aeo-geo-optimization/          # + 3 reference files
 │   ├── backlink-intelligence/         # + 1 reference file
 │   ├── serp-intelligence/             # + 1 reference file
-│   └── nextjs-sanity-seo/            # Implementation patterns
+│   ├── nextjs-sanity-seo/            # Implementation patterns
+│   └── shared/
+│       └── dataforseo-api-guide.md    # Shared reference, linked from 5 of the 7 skills above
 ├── hooks/
-│   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
+│   ├── hooks.json                     # PreToolUse + PostToolUse (SessionStart banner moved to rhize-context-manager, see below)
 │   └── scripts/
 │       ├── seo-edit-hint.py           # PreToolUse Write|Edit implementation
 │       └── seo-read-hint.py           # PostToolUse Read implementation

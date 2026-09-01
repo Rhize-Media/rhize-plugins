@@ -51,8 +51,9 @@ never deploys from a graph record, and preserves `unavailable` while the governe
 push/PR/merge/deployment-verification sequence only after the user or an auto-push repository
 policy authorizes it, and always remains subordinate to repository-specific release rules.
 
-See [Doctor and evidence CLI](#doctor-and-evidence-cli-scriptsdevflowpy) below for the CLI
-`/rhize-devflow:doctor` wraps, and for the separate `evidence` subcommand `check`/`review` use.
+See [Doctor, evidence, and refactor-gate CLIs](#doctor-evidence-and-refactor-gate-clis) below
+for the CLI `/rhize-devflow:doctor` wraps, and for the separate `evidence` subcommand
+`check`/`review` use.
 
 ### Deprecated (2.12.0 compatibility window)
 
@@ -132,6 +133,12 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" status --workspace PATH [
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare --workspace PATH --plan PATH --query TEXT
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace PATH
 ```
+
+CodeGraph, referenced throughout this section, is a separate CLI that pre-indexes a target
+repository's code graph (symbols, callers, call paths) into a local `.codegraph/` directory for
+fast structural lookups. It is optional: every command below queries it when a healthy index is
+present and falls back to `rg` when it is absent, stale, or unhealthy — see each bullet for the
+exact fallback behavior.
 
 - **`doctor`** validates plugin health — manifests, canonical commands, referenced assets,
   duplicate command bodies, stale tokens, Python-script importability, hook syntax, and

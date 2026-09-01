@@ -83,6 +83,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
 | `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
 | `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Reuse requires an explicit current source-ID/revision map; conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
+| `/graph-memory` | Thin Claude adapter to the shared `graph-memory` CLI (`scripts/graph_memory/cli.py`). Defaults to `validate`, then offers a private `preview`. Never invokes `graphify export neo4j`, arbitrary Cypher, a Neo4j driver, or a live database this release; a live canary and restore rehearsal are deferred to RT-159. |
 | `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process contracts enforce actor-effective ACL lanes (`review ∩ actor`) so broader actor grants cannot widen a narrow review; every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
 | `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until RT-161. |
 
@@ -92,7 +93,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 subagent step in `/done`, and a `STATE.md` update step that the skill-side copies
 lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` originals.
 
-### Harvest noise filter (`scripts/harvest_noise_filter.py`)
+### Harvest noise filter (`scripts/harvest_noise_filter.py`, repo root)
 
 Queue entry ids are `sha1-12(source + pattern)`, so **a rephrasing of an already-known
 fact produces a new id and walks past id-dedupe**. Measured on 2026-08-14: 3 of 5

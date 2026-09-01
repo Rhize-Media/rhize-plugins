@@ -99,7 +99,11 @@ Lower-level skills that auto-trigger when you're working with specific Obsidian 
 > — Phase 3 of the skill-map plan (`docs/skill-map.md`). It surfaces this plugin's skills only
 > when a `.obsidian/` vault is detected in the repo, instead of on every session.
 
-All hooks are scoped to the vault path — files outside the vault pass through silently. Hooks fail silently on error (3s timeout) and never block operations.
+All hooks are scoped to the vault path — files outside the vault pass through silently. The match
+is a hardcoded path fragment (`iCloud~md~obsidian/Documents/Obsidian Vault`), so these advisory
+hints only fire for an iCloud-synced vault using Obsidian's default vault name; a local-only vault,
+a renamed vault, or a non-iCloud sync setup won't trigger them — commands and skills are
+unaffected either way. Hooks fail silently on error (3s timeout) and never block operations.
 
 The PreToolUse and PostToolUse hooks are implemented in `hooks/scripts/vault-write-hint.py` and
 `hooks/scripts/vault-read-hint.py`. They read the tool-call payload from stdin (as Claude Code

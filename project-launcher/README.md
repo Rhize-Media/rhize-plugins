@@ -10,6 +10,7 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 | `/write-prd` | Phases 1-4: research → interview → PRD → gap analysis |
 | `/scaffold-gsd` | Phases 5-6: create project directory + GSD v2 handoff from existing PRD |
 | `/grill-prd` | Phase 4 standalone: critical gap analysis of an existing PRD |
+| `/visual-plan` | Turn a plan or PRD into a reviewable `.mdx` visual plan (diagrams, wireframes, file maps, data/API contracts) via the `rhize-visual-plan` skill |
 
 ## Skills
 
@@ -28,6 +29,7 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 | `references/prd-template.md` | 14-section PRD structure template |
 | `references/claude-md-template.md` | CLAUDE.md generation template with post-phase verification |
 | `references/gsd-handoff-guide.md` | Complete guide to .planning/ docs and GSD v2 setup |
+| `references/plan-discipline.md` | Cross-cutting review-surface methodology (plan-as-approval-gate, lead-with-reuse, adversarial self-review) for Phases 3-4; shared with `rhize-visual-plan` |
 
 ## Integrated MCP Servers
 
