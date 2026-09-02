@@ -150,6 +150,8 @@ the same file. Shipping a manifest never starts capture or auto-wires anything.
     {
       "name": "Human-readable dependency name",
       "kind": "plugin",                                       // plugin | cli | mcp | data | runtime | platform
+      "capability": "kebab-capability-slug",                  // scopes degradation to exactly this capability
+      "binary": "executable-name",                            // kind: "cli" only — see below
       "purpose": "One line: what this unlocks",
       "required": false,                                      // false = plugin degrades gracefully without it
       "degradedBehavior": "What happens without it",
@@ -191,6 +193,14 @@ how in `"degradedBehavior"`); `"required": true` means the dependent feature has
 pair the suggestion with a `"warning"` that names the maintenance tradeoff: replacing a maintained
 upstream means taking on its maintenance and forgoing its updates, so the warning should recommend
 installing the upstream outright rather than reinventing it.
+
+**`kind: "cli"` detection:** an entry with `"kind": "cli"` is presence-checked with `shutil.which()`
+against its `"binary"` field (the literal executable name expected on `PATH` — e.g. `"codegraph"`),
+not against configured MCP servers. Omitting `"binary"` falls back to a slugified form of `"name"`,
+so declare `"binary"` explicitly rather than relying on that inference. Every other kind (`mcp`,
+`plugin`, `data`, `runtime`, `platform`) is detected by name-matching against configured MCP
+servers (`.mcp.json`, `~/.claude.json`, `~/.codex/config.toml`) — see rhize-devflow's
+`docs/codegraph-setup.md` for a worked `kind: "cli"` example end to end.
 
 ## Evaluation setup engine
 

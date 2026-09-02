@@ -6,6 +6,60 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- _2026-09-02_ **Obsidian vault-hint hooks resolve any vault, not just the iCloud default.**
+  `vault-write-hint.py` and `vault-read-hint.py` matched a hardcoded
+  `iCloud~md~obsidian/Documents/Obsidian Vault` path fragment, so a local-only, renamed, or
+  non-iCloud-synced vault got no advisory hints and no error explaining why. Both hooks now share
+  `hooks/scripts/vault_resolve.py`, which resolves in order: `OBSIDIAN_VAULT_PATH` (`:`-separated),
+  then Obsidian's own registered vaults from `~/Library/Application Support/obsidian/obsidian.json`,
+  then the legacy iCloud marker. Fail-silent contract, 3s timeout, and hint text are unchanged;
+  existing iCloud users see no difference. 13 new tests cover every branch plus subprocess
+  invocation from a foreign cwd.
+
+- _2026-09-02_ **CodeGraph is a declared, documented optional dependency of rhize-devflow.**
+  `setup/manifest.json` now carries a `kind: "cli"` entry for the CodeGraph binary against the
+  `codegraph-index` capability, so `/rhize-devflow:doctor` reports it present or degraded like the
+  four MCP dependencies — non-fatal either way, since every consumer falls back to `rg`. New
+  `rhize-devflow/docs/codegraph-setup.md` carries the install/init path a client team needs;
+  `rhize-ops/README.md`'s setup-manifest schema section documents the `kind: "cli"` shape and its
+  `shutil.which()` detection. The doctor-side detection code already supported CLI dependencies and
+  needed no change.
+
+- _2026-09-02_ **Client-facing release highlights.** New [`CHANGELOG.client.md`](./CHANGELOG.client.md)
+  summarizes what shipped in plain language for people using the plugins, and is linked ahead of
+  this engineering log in the README's documentation hierarchy. This file remains the full record.
+
+### Changed
+
+- _2026-09-02_ **Progressive disclosure is now a documented, binding standard.** The root README's
+  Documentation Hierarchy and `CLAUDE.md`'s Documentation Maintenance section define it: every doc
+  leads with what it is and how to start, then links to depth instead of inlining it; a README or
+  reference doc past roughly 400–500 lines is a split candidate; nothing is deleted in a split.
+  Dated records — archived proposals, plan/spec snapshots, release notes, and this changelog — are
+  explicitly exempt, since restructuring a point-in-time record would falsify it.
+
+- _2026-09-02_ **Three oversized documents split under that standard**, with no content removed and
+  every inbound link and anchor preserved: `rhize-context-manager/README.md` 486 → 231 lines (a
+  plain-language lead added ahead of the tool-stack framing; hook, context-experiment, and
+  harvest-filter internals moved to `rhize-context-manager/docs/`), and `docs/skill-map.md`
+  565 → 198 lines (edge semantics, query layer, agent-dispatch surface, and generated-docs
+  mechanics moved to `docs/skill-map/`).
+
+- _2026-09-02_ **rhize-tasks reads as a product rather than one person's tool.** The GUIDE, README,
+  a skill description, and the dashboard's setup wizard no longer address a named individual; the
+  `assignee-name` field id replaces `tom-name`, and a reconcile call that recorded a personal name
+  as the audit-trail `actor` now records `dashboard`, matching its five sibling calls. All
+  acceptance gating survives verbatim — a real end-user Mac acceptance run is still mandatory
+  before enabling writes.
+
+- _2026-09-02_ version bump — **rhize-ops** 0.15.1 → 0.15.2 (patch); marketplace 2.56.2 → 2.56.3.
+- _2026-09-02_ version bump — **rhize-tasks** 0.4.0 → 0.4.1 (patch); marketplace 2.56.1 → 2.56.2.
+- _2026-09-02_ version bump — **rhize-context-manager** 0.23.0 → 0.23.1 (patch); marketplace 2.56.0 → 2.56.1.
+- _2026-09-02_ version bump — **rhize-devflow** 2.18.1 → 2.19.0 (minor); marketplace 2.55.0 → 2.56.0.
+- _2026-09-02_ version bump — **obsidian-second-brain** 1.6.0 → 1.7.0 (minor); marketplace 2.54.2 → 2.55.0.
+
 ### Fixed
 
 - _2026-09-01_ **Marketplace-wide documentation accuracy pass.** Audited every plugin's

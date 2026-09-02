@@ -121,7 +121,7 @@ function addScopeChangeDecision(li, operation) {
 function addOpportunity(li, item) {
   const summary = document.createElement('span'); summary.textContent = `${item.title} · ${item.priority} · fit ${Math.round(item.fit * 100)}% · ${item.estimateMinutes} min · ${item.rationale} · impact: ${item.impact} `; li.append(summary);
   const button = document.createElement('button'); button.type = 'button'; button.textContent = 'Claim with approval';
-  button.addEventListener('click', async () => { const accountId = state.profile?.jira?.accountId; if (!accountId) { status('plan-status', 'Save Tom’s Jira account ID before claiming an opportunity.'); return; } button.disabled = true; try { await api(`/v1/opportunities/${encodeURIComponent(item.taskId)}/claim`, {method: 'POST', body: {planRevision: state.displayedRevision, actor: 'dashboard', accountId}}); await refreshToday(); } catch (error) { status('plan-status', error.message); } finally { button.disabled = false; } }); li.append(button);
+  button.addEventListener('click', async () => { const accountId = state.profile?.jira?.accountId; if (!accountId) { status('plan-status', 'Save the assignee’s Jira account ID before claiming an opportunity.'); return; } button.disabled = true; try { await api(`/v1/opportunities/${encodeURIComponent(item.taskId)}/claim`, {method: 'POST', body: {planRevision: state.displayedRevision, actor: 'dashboard', accountId}}); await refreshToday(); } catch (error) { status('plan-status', error.message); } finally { button.disabled = false; } }); li.append(button);
 }
 
 function addReconciliation(li, item, connector) {
@@ -132,7 +132,7 @@ function addReconciliation(li, item, connector) {
   button.addEventListener('click', async () => {
     if (!globalThis.confirm(`Resume exact operation ${item.operationId}? This starts one new bounded connector attempt.`)) return;
     button.disabled = true;
-    try { await api('/v1/reconcile', {method: 'POST', body: reconciliationRequest(state.displayedRevision, item.operationId, 'tom')}); await refreshToday(); }
+    try { await api('/v1/reconcile', {method: 'POST', body: reconciliationRequest(state.displayedRevision, item.operationId, 'dashboard')}); await refreshToday(); }
     catch (error) { status('plan-status', error.message); }
     finally { button.disabled = false; }
   });
@@ -212,7 +212,7 @@ function renderCompetencyRows(values = []) {
 }
 function applyStageData(number, data = {}) {
   if (number === 1) check('safety-confirmed', data.safetyConfirmed);
-  if (number === 2) { assign('tom-name', data.name); assign('timezone', data.timezone); assign('locale', data.locale); assign('jira-base-url', data.jiraBaseUrl); assign('jira-account-id', data.jiraAccountId); assign('slack-workspace-id', data.slackWorkspaceId); assign('slack-channel-id', data.slackChannelId); assign('slack-sender-ids', data.slackSenderIds?.join('\n')); }
+  if (number === 2) { assign('assignee-name', data.name); assign('timezone', data.timezone); assign('locale', data.locale); assign('jira-base-url', data.jiraBaseUrl); assign('jira-account-id', data.jiraAccountId); assign('slack-workspace-id', data.slackWorkspaceId); assign('slack-channel-id', data.slackChannelId); assign('slack-sender-ids', data.slackSenderIds?.join('\n')); }
   if (number === 3) { assign('jira-projects', data.projects?.join('\n')); assign('jira-issue-types', data.issueTypes?.join('\n')); assign('jira-excluded-types', data.excludedIssueTypes?.join('\n')); assign('project-importance', data.projectImportance && Object.entries(data.projectImportance).map(([key, value]) => `${key}=${value}`).join('\n')); if (data.competencies) renderCompetencyRows(data.competencies); assign('urgency-threshold', data.opportunityUrgencyThreshold); assign('max-suggestions', data.maxDailySuggestions); assign('scope-connector', data.scopeConnector); }
   if (number === 4) { assign('calendar-read-ids', data.readCalendarIds?.join('\n')); assign('focus-calendar-id', data.focusCalendarId); check('redact-outside-titles', data.redactOutsideTitles); assign('awareness-lists', data.awarenessLists?.map(item => `${item.id}|${item.protectedDurationMinutes}|${item.showTitles}`).join('\n')); assign('sample-list-id', data.tasksListId); check('show-outside-titles', data.showOutsideTitles); }
   if (number === 5) { if (data.workingIntervals) renderIntervalRows('working-interval-rows', data.workingIntervals, 'Working interval'); if (data.breaks) renderIntervalRows('break-interval-rows', data.breaks, 'Break'); assign('buffer-percent', data.bufferPercent); assign('max-daily-minutes', data.maxDailyMinutes); assign('focus-minutes', data.focusBlockMinutes); assign('minimum-block-minutes', data.minimumBlockMinutes); assign('meeting-buffer-minutes', data.meetingBufferMinutes); assign('freeze-window-minutes', data.freezeWindowMinutes); check('allow-splitting', data.allowSplitting); }
@@ -247,7 +247,7 @@ async function loadSetup() {
 }
 function stageData(number) {
   if (number === 1) return {safetyConfirmed: byId('safety-confirmed').checked};
-  if (number === 2) return {name: byId('tom-name').value.trim(), timezone: byId('timezone').value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone, locale: byId('locale').value.trim(), jiraBaseUrl: byId('jira-base-url').value.trim(), jiraAccountId: byId('jira-account-id').value.trim(), slackWorkspaceId: byId('slack-workspace-id').value.trim(), slackChannelId: byId('slack-channel-id').value.trim(), slackSenderIds: lines(byId('slack-sender-ids').value)};
+  if (number === 2) return {name: byId('assignee-name').value.trim(), timezone: byId('timezone').value.trim() || Intl.DateTimeFormat().resolvedOptions().timeZone, locale: byId('locale').value.trim(), jiraBaseUrl: byId('jira-base-url').value.trim(), jiraAccountId: byId('jira-account-id').value.trim(), slackWorkspaceId: byId('slack-workspace-id').value.trim(), slackChannelId: byId('slack-channel-id').value.trim(), slackSenderIds: lines(byId('slack-sender-ids').value)};
   if (number === 3) return {projects: lines(byId('jira-projects').value), issueTypes: lines(byId('jira-issue-types').value), excludedIssueTypes: lines(byId('jira-excluded-types').value), projectImportance: pairs(byId('project-importance').value, {number: true}), competencies: competencyRows(), opportunityUrgencyThreshold: byId('urgency-threshold').value, maxDailySuggestions: Number(byId('max-suggestions').value), scopeConnector: byId('scope-connector').value};
   if (number === 4) return {readCalendarIds: lines(byId('calendar-read-ids').value), focusCalendarId: byId('focus-calendar-id').value.trim(), redactOutsideTitles: byId('redact-outside-titles').checked, awarenessLists: awareness(byId('awareness-lists').value), tasksListId: byId('sample-list-id').value.trim(), showOutsideTitles: byId('show-outside-titles').checked};
   if (number === 5) return {workingIntervals: intervalRows('working-interval-rows'), breaks: intervalRows('break-interval-rows'), bufferPercent: Number(byId('buffer-percent').value), maxDailyMinutes: Number(byId('max-daily-minutes').value), focusBlockMinutes: Number(byId('focus-minutes').value), minimumBlockMinutes: Number(byId('minimum-block-minutes').value), allowSplitting: byId('allow-splitting').checked, meetingBufferMinutes: Number(byId('meeting-buffer-minutes').value), freezeWindowMinutes: Number(byId('freeze-window-minutes').value)};
@@ -313,7 +313,7 @@ function profileFromForm({setupComplete = false} = {}) {
 function connectorConfigFromForm() {
   const setup = stageData(2); const parts = [setup.slackWorkspaceId, setup.slackChannelId, ...setup.slackSenderIds];
   if (parts.every(value => !value)) return {slack: null};
-  if (!setup.slackWorkspaceId || !setup.slackChannelId || setup.slackSenderIds.length === 0) throw new Error('Slack fallback needs one workspace, #tom-tasks channel, and at least one recognized sender ID.');
+  if (!setup.slackWorkspaceId || !setup.slackChannelId || setup.slackSenderIds.length === 0) throw new Error('Slack fallback needs one workspace, one approved channel, and at least one recognized sender ID.');
   return {slack: {workspaceId: setup.slackWorkspaceId, channelId: setup.slackChannelId, senderIds: setup.slackSenderIds}};
 }
 async function savePreferences({setupComplete = false} = {}) {

@@ -1,6 +1,6 @@
 {
   "name": "rhize-context-manager",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "description": "Local-first context routing, private code and memory previews, and governed Graphify/Neo4j projection contracts for Claude and Codex.",
   "author": {
     "name": "Rhize Media"

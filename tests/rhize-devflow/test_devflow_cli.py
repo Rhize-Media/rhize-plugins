@@ -225,17 +225,20 @@ def test_doctor_text_output_is_not_json_but_runs_cleanly() -> None:
 
 
 def test_doctor_real_plugin_manifest_dependencies_are_optional() -> None:
-    """Task 3 also modifies rhize-devflow/setup/manifest.json: all four dependencies become
-    plugin-level optional (required: false) and each names the capability it enables."""
+    """Every dependency in rhize-devflow/setup/manifest.json is plugin-level optional
+    (required: false) and names the capability it enables. Covers both `kind: "mcp"`
+    dependencies and the `kind: "cli"` CodeGraph entry."""
     manifest = json.loads((REPO_ROOT / "rhize-devflow" / "setup" / "manifest.json").read_text())
     deps = manifest["dependencies"]
-    assert len(deps) == 4
     expected_capabilities = {
         "Sentry MCP server": "error-lifecycle",
         "Vercel MCP server": "deploy-correlation",
         "GitHub MCP server": "commit-pr-correlation",
         "Chrome DevTools MCP server": "browser-qa",
+        "CodeGraph CLI": "codegraph-index",
     }
+    assert len(deps) == len(expected_capabilities)
+    assert {dep["name"] for dep in deps} == set(expected_capabilities)
     for dep in deps:
         assert dep["required"] is False, dep["name"]
         assert dep.get("capability") == expected_capabilities[dep["name"]]

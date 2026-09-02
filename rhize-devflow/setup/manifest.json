@@ -89,6 +89,19 @@
         "suggestion": "drive a browser manually or script it with Playwright directly",
         "warning": "Chrome DevTools MCP already wraps a wait-aware Puppeteer client tuned for this workflow; a hand-rolled Playwright script duplicates that work and has to be maintained separately."
       }
+    },
+    {
+      "name": "CodeGraph CLI",
+      "kind": "cli",
+      "binary": "codegraph",
+      "capability": "codegraph-index",
+      "purpose": "Pre-indexes a target repository's code graph (symbols, callers, call paths) into a local .codegraph/ directory, used by /rhize-devflow:impact-map for structural discovery, by evidence for CodeGraph index presence/freshness, and by refactor_gate.py prepare/reconcile. See docs/codegraph-setup.md.",
+      "required": false,
+      "degradedBehavior": "impact-map, evidence, and refactor_gate.py fall back to rg-based text search — every consumer documents this fallback explicitly, so absence never blocks a command, but structural lookups lose call-path precision and can't follow dynamic-dispatch hops.",
+      "replacement": {
+        "suggestion": "rely on the built-in rg fallback rather than a hand-rolled alternative",
+        "warning": "rg finds text matches, not structural call paths, and can't follow dynamic dispatch (callbacks, re-renders) the way CodeGraph's index does; installing the CodeGraph CLI (see docs/codegraph-setup.md) is simpler than trying to replicate its indexing by hand."
+      }
     }
   ],
   "evaluations": {

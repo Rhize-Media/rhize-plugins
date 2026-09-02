@@ -160,7 +160,7 @@ because it isn't explained by any known harness behavior.
 
 ## Scheduled runs
 
-Wired into the `scheduled-tasks` MCP (skill: `weekly-skill-audit`). Fires Monday mornings. See `/Users/jamesdeola/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md`.
+Wired into the `scheduled-tasks` MCP (skill: `weekly-skill-audit`). Fires Monday mornings. See `~/Documents/Claude/Scheduled/weekly-skill-audit/SKILL.md` — that file lives outside this repo by design, as part of the operator's home-directory scheduled tasks.
 
 ### Daily benchmark-capture watchdog
 

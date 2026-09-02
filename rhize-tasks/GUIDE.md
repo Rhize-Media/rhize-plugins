@@ -1,4 +1,4 @@
-# Rhize Tasks Guide for Tom
+# Rhize Tasks — User Guide
 
 Rhize Tasks gives you one realistic answer to “what should I work on now?” without pretending that Jira is your calendar or that your personal calendar belongs to Rhize.
 
@@ -35,7 +35,7 @@ Read the safety summary. Rhize Tasks may plan only after you have saved preferen
 
 ### 2. Identify your accounts
 
-Save your name, timezone, locale, Jira site/account ID, and—if you use the Slack fallback—the exact workspace, `#tom-tasks` channel, and recognized bot/sender IDs.
+Save your name, timezone, locale, Jira site/account ID, and—if you use the Slack fallback—the exact workspace, configured channel, and recognized bot/sender IDs.
 
 Enter Jira, Google, and Slack credentials in the dashboard's Keychain forms. The fields clear before submission. If an assistant asks you to paste a token into chat, stop and return to the dashboard.
 
@@ -118,7 +118,7 @@ Treat opportunities as offers, not assignments. A high-fit marketing issue can s
 
 ## Use the Slack fallback correctly
 
-The fallback accepts only recognized structured delegation replies in the configured `#tom-tasks` channel from approved senders. Usually the delegation has a Jira issue. If it does not, Rhize Tasks creates an approval-required provisional item labeled `Needs Jira` and refuses to schedule it. Once a Jira issue contains the exact delegation marker, the local provisional record merges into that canonical task.
+The fallback accepts only recognized structured delegation replies in the configured Slack channel from approved senders. Usually the delegation has a Jira issue. If it does not, Rhize Tasks creates an approval-required provisional item labeled `Needs Jira` and refuses to schedule it. Once a Jira issue contains the exact delegation marker, the local provisional record merges into that canonical task.
 
 Normal conversation, pasted URLs, quoted markers, malformed fields, and messages from other channels/senders are ignored. Slack is not a second general-purpose task database.
 
@@ -180,7 +180,7 @@ npm run uninstall:local -- --delete-data --delete-items
 
 Deleting items is intentionally fail-closed. The installed runtime derives exact IDs/ownership markers from its own attempted operations, removes only matching records, verifies absence, and returns counts. If it cannot prove cleanup, uninstall stops before deleting local state.
 
-## Tom-Mac acceptance before enabling real writes
+## Real-Mac acceptance before enabling real writes
 
 Use an approved Jira test issue and disposable Calendar/Reminder containers. Complete all seven stages, approve one plan, create one block/reminder, move the block, complete the reminder, review Jira reconciliation, let one item carry over, pause/restart/catch up, revoke and restore one permission, and test the intended uninstall retention choice. Confirm unrelated records are unchanged.
 

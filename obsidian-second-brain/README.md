@@ -99,11 +99,15 @@ Lower-level skills that auto-trigger when you're working with specific Obsidian 
 > — Phase 3 of the skill-map plan (`docs/skill-map.md`). It surfaces this plugin's skills only
 > when a `.obsidian/` vault is detected in the repo, instead of on every session.
 
-All hooks are scoped to the vault path — files outside the vault pass through silently. The match
-is a hardcoded path fragment (`iCloud~md~obsidian/Documents/Obsidian Vault`), so these advisory
-hints only fire for an iCloud-synced vault using Obsidian's default vault name; a local-only vault,
-a renamed vault, or a non-iCloud sync setup won't trigger them — commands and skills are
-unaffected either way. Hooks fail silently on error (3s timeout) and never block operations.
+All hooks are scoped to the vault path — files outside the vault pass through silently. The vault
+path is resolved in order: (1) the `OBSIDIAN_VAULT_PATH` env var, if set (`:`-separated for
+multiple vaults); (2) vaults registered in Obsidian's own config
+(`~/Library/Application Support/obsidian/obsidian.json`); (3) the legacy iCloud default
+(`iCloud~md~obsidian/Documents/Obsidian Vault`), as a fallback so existing setups are unaffected.
+A local-only vault, a renamed vault, or a non-iCloud sync setup now triggers the hints as long as
+it's registered with Obsidian or set via the env var — commands and skills are unaffected either
+way. Resolution logic lives in `hooks/scripts/vault_resolve.py`, shared by both hook scripts.
+Hooks fail silently on error (3s timeout) and never block operations.
 
 The PreToolUse and PostToolUse hooks are implemented in `hooks/scripts/vault-write-hint.py` and
 `hooks/scripts/vault-read-hint.py`. They read the tool-call payload from stdin (as Claude Code
@@ -274,11 +278,13 @@ obsidian-second-brain/
 │   ├── hooks.json                     # SessionStart + PreToolUse + PostToolUse
 │   └── scripts/
 │       ├── vault-write-hint.py        # PreToolUse Write|Edit implementation
-│       └── vault-read-hint.py         # PostToolUse Read implementation
+│       ├── vault-read-hint.py         # PostToolUse Read implementation
+│       └── vault_resolve.py           # Shared vault-path resolution (env var → obsidian.json → iCloud)
 ├── setup/
 │   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
 ├── tests/
-│   └── test_compiled_knowledge.py     # Policy, CAS, recovery, purge, parity fixtures
+│   ├── test_compiled_knowledge.py     # Policy, CAS, recovery, purge, parity fixtures
+│   └── test_vault_resolve.py          # Vault-path resolution + hook-script integration tests
 └── README.md
 ```
 

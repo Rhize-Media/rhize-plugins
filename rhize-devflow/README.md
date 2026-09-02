@@ -138,7 +138,8 @@ CodeGraph, referenced throughout this section, is a separate CLI that pre-indexe
 repository's code graph (symbols, callers, call paths) into a local `.codegraph/` directory for
 fast structural lookups. It is optional: every command below queries it when a healthy index is
 present and falls back to `rg` when it is absent, stale, or unhealthy — see each bullet for the
-exact fallback behavior.
+exact fallback behavior. See [`docs/codegraph-setup.md`](docs/codegraph-setup.md) for how to
+install and initialize it in a client repo.
 
 - **`doctor`** validates plugin health — manifests, canonical commands, referenced assets,
   duplicate command bodies, stale tokens, Python-script importability, hook syntax, and
@@ -185,6 +186,7 @@ enables, so a missing tool degrades only that capability:
 | Vercel MCP server | `deploy-correlation` | Can't correlate an error with its causing deployment | `error-lifecycle-management` |
 | GitHub MCP server | `commit-pr-correlation` | Can't identify the causing commit/PR or auto-file a ticket | `error-lifecycle-management` |
 | Chrome DevTools MCP server | `browser-qa` | The `chrome-devtools-mcp` skill can't run at all (no documented non-MCP fallback for it specifically — `/rhize-devflow:browser-qa` itself degrades gracefully across whichever browser tool is connected) | `chrome-devtools-mcp`, one candidate for `/rhize-devflow:browser-qa` |
+| CodeGraph CLI | `codegraph-index` | Structural lookups fall back to `rg`-based text search (see [`docs/codegraph-setup.md`](docs/codegraph-setup.md)) | `/rhize-devflow:impact-map`, `evidence`, `refactor_gate.py` |
 
 Full purpose/degraded-behavior/replacement text for each entry lives in `setup/manifest.json`,
 read by the `/rhize-setup` wizard (in the `rhize-ops` plugin).
@@ -192,7 +194,9 @@ read by the `/rhize-setup` wizard (in the `rhize-ops` plugin).
 MCP-kind dependencies are detected across the repo-local `.mcp.json`, `~/.claude.json`
 (top-level `mcpServers` plus the per-project entry for the inspected repo), and
 `~/.codex/config.toml`'s `mcp_servers` table — see `/rhize-devflow:doctor`'s command doc for
-the full source list, redaction rules, and the `DEVFLOW_MCP_CONFIG_PATHS` override.
+the full source list, redaction rules, and the `DEVFLOW_MCP_CONFIG_PATHS` override. CLI-kind
+dependencies (currently only CodeGraph) are detected with `shutil.which()` against the
+manifest entry's declared `binary` — present/absent on `PATH`, nothing further to configure.
 
 ## Install
 

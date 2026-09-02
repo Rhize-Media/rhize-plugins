@@ -18,12 +18,12 @@ All plugins below will become available for installation. Each plugin may need i
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
 | [seo-aeo-geo](./seo-aeo-geo) | 1.5.0 | 7 | Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | 1.6.0 | 10 | Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.7.0 | 10 | Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
 | [project-launcher](./project-launcher) | 1.8.0 | 2 | End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | 2.18.1 | 9 | Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.23.0 | 16 | Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.15.1 | 3 | Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
-| [rhize-tasks](./rhize-tasks) | 0.4.0 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.19.0 | 9 | Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.23.1 | 16 | Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.15.2 | 3 | Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-tasks](./rhize-tasks) | 0.4.1 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 | [rhize-cowork](./rhize-cowork) | 0.2.0 | 1 | Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging). | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
 | [procedural-memory](./procedural-memory) | 0.5.0 | 2 | Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
@@ -45,7 +45,7 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **obsidian-second-brain** needs Obsidian running with the Local REST API plugin, an `OBSIDIAN_API_KEY` env var, the Obsidian CLI (v1.12.4+), Defuddle, and qmd. See its [README](./obsidian-second-brain/README.md#setup) for full setup.
 
-**rhize-tasks** is a macOS-local service and requires macOS 14+, Node.js 22+, a compatible Swift/Xcode toolchain, Apple Reminders permission, and credentials for the connector scopes Tom approves. It stores secrets only in Keychain and keeps Calendar/Reminders writes inside dedicated approved containers. See its [technical README](./rhize-tasks/README.md) and [Tom-facing guide](./rhize-tasks/GUIDE.md).
+**rhize-tasks** is a macOS-local service and requires macOS 14+, Node.js 22+, a compatible Swift/Xcode toolchain, Apple Reminders permission, and credentials for the connector scopes the end user approves. It stores secrets only in Keychain and keeps Calendar/Reminders writes inside dedicated approved containers. See its [technical README](./rhize-tasks/README.md) and [user guide](./rhize-tasks/GUIDE.md).
 
 **procedural-memory** needs a built `rhize-skill` CLI (from `Rhize-Media/procedural-memory`, not published to PyPI) and a local Postgres + pgvector instance. It never hardcodes a path to the CLI — resolve it via `RHIZE_SKILL_BIN`, `PATH`, or the documented convenience default. See its [README](./procedural-memory/README.md#setup) for full setup.
 
@@ -81,7 +81,7 @@ full list including optional numerator/orchestration sources.
 | rhize-ops | rtk, Headroom, claude-mem, OpenWolf | cli/plugin | No | Each is one numerator source in the scorecard; missing ones show "no data" |
 | rhize-tasks | macOS 14+, Node.js 22+, Swift/Xcode toolchain | platform/runtime | Yes | The local service and signed EventKit helper cannot be installed |
 | rhize-tasks | Jira, Google Calendar, Apple Reminders | direct connector | Yes | The affected source remains offline and its writes stay paused |
-| rhize-tasks | Slack bot in approved `#tom-tasks` scope | direct connector | No | Structured delegation fallback is disabled; Jira planning continues |
+| rhize-tasks | Slack bot in the approved delegation-channel scope | direct connector | No | Structured delegation fallback is disabled; Jira planning continues |
 
 ## Documentation Hierarchy
 
@@ -94,9 +94,35 @@ This repo uses one convention consistently across every plugin — know it once,
 | **Plugin `GUIDE.md`** | Someone using a plugin day-to-day | Plain-language walkthrough — what problem it solves, when to reach for which skill/command, example prompts, tips, troubleshooting |
 | **`SKILL.md`** (inside `skills/*/`) | Claude, at runtime | The actual instructions a skill executes when triggered — not primary human documentation, though readable if you're curious how a skill works |
 | **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
-| **`CHANGELOG.md`** | Anyone tracking releases | What shipped, by version |
+| **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped — start here |
+| **`CHANGELOG.md`** | Maintainers and contributors | The full engineering record: every fix and version bump, with internal references |
 
 **Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
+
+### Progressive disclosure
+
+Every document above is a **front door, not a warehouse.** Answer "what is this, and how do I
+start" in plain language at the top, then *link* to depth rather than inlining it. A reader should
+be able to stop after the first screen and still be oriented; anyone who needs the mechanics
+follows a link to the document that owns them.
+
+- **Link, don't inline.** Deep mechanics — schemas, gate internals, per-command option matrices,
+  design rationale — belong in a `docs/` or `references/` file linked at the point of need. This is
+  the discipline `SKILL.md` files already use with `references/`; it applies to READMEs, GUIDEs, and
+  `CLAUDE.md` files too.
+- **Split threshold.** A README or reference doc past roughly **400–500 lines** is a split
+  candidate, not a scrolling exercise. A GUIDE may run longer, since a walkthrough is read start to
+  finish, but the same "overview first, detail behind a link" shape still applies.
+- **One concept per document.** If a section could be replaced by three sentences and a link, it
+  should be.
+
+When splitting, nothing is deleted — content moves to the document that owns it and is linked from
+where the reader was. What remains must stand on its own.
+
+**Dated records are exempt.** Archived proposals, plan and spec snapshots, release notes, and the
+engineering `CHANGELOG.md` are point-in-time records, not living front doors. They are preserved as
+written regardless of length — restructuring them would falsify the record. The standard applies to
+documents a reader lands on for orientation.
 
 **Local/personal config:** a skill should never hardcode a real name, credential, ID, or other installer-specific value. Two patterns are used depending on lifetime: durable personal config that must survive plugin reinstalls (e.g. `rhize-ops`'s `delegate-to-teammate` recipient/credentials) lives in `$HOME/.claude/<plugin>/...`, generated by a setup wizard, with a committed JSON Schema documenting the shape; disposable repo-local reference material that's just extracted example content (e.g. `rhize-devflow`'s `.claude/*.local.md` files) lives inside the repo under `.claude/`, already covered by the root `.gitignore`. Pick based on whether the data needs to outlive this git checkout.
 

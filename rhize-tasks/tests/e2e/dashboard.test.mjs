@@ -64,7 +64,7 @@ test('dashboard has one heading, labeled navigation, seven resumable stages, and
   assert.match(html, /id="pause-automation"/);
   assert.match(html, /id="reconciliation-heading"/); assert.match(html, /id="reconciliation"/); assert.match(html, /Nothing retries automatically/);
   assert.match(html, /aria-live="polite"/);
-  for (const id of ['tom-name', 'jira-base-url', 'jira-projects', 'competency-rows', 'add-competency', 'slack-channel-id', 'calendar-read-ids', 'calendar-scope-explanation', 'awareness-lists', 'working-interval-rows', 'add-working-interval', 'break-interval-rows', 'add-break-interval', 'morning-time']) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ['assignee-name', 'jira-base-url', 'jira-projects', 'competency-rows', 'add-competency', 'slack-channel-id', 'calendar-read-ids', 'calendar-scope-explanation', 'awareness-lists', 'working-interval-rows', 'add-working-interval', 'break-interval-rows', 'add-break-interval', 'morning-time']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /Exclude a category/); assert.match(html, /focus calendar is automatically included once/i);
   assert.match(css, /:focus-visible/);
   assert.match(css, /prefers-reduced-motion/);

@@ -1,18 +1,18 @@
 # Rhize Tasks
 
-Rhize Tasks is the local-first unified planning authority for Tom's Rhize, client, other-company, and personal work. It reads approved Jira, Google Calendar, Apple Reminders, and structured Slack inputs, produces one today-first plan, and writes only approved focus blocks and reminders inside dedicated boundaries.
+Rhize Tasks is the local-first unified planning authority for the configured user's Rhize, client, other-company, and personal work. It reads approved Jira, Google Calendar, Apple Reminders, and structured Slack inputs, produces one today-first plan, and writes only approved focus blocks and reminders inside dedicated boundaries.
 
-The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is practical: keep assigned work visible, surface urgent work Tom is well suited to take on, fit the work into real capacity, and carry unfinished work forward without letting an automation silently take over his calendar or task systems.
+The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is practical: keep assigned work visible, surface urgent work the assignee is well suited to take on, fit the work into real capacity, and carry unfinished work forward without letting an automation silently take over their calendar or task systems.
 
 ## Safety model
 
-- SQLite on Tom's Mac is the planning authority. Jira remains the canonical work source.
+- SQLite on the configured user's Mac is the planning authority. Jira remains the canonical work source.
 - Preferences, scope discovery, the reversible access probe, and the first plan are reviewed locally.
 - Setup is inactive until preferences are saved and the first plan is approved.
 - Calendar writes are limited to one approved focus calendar. Reminder writes are limited to the exact approved `Rhize Tasks` list.
-- Awareness calendars and reminder lists are read-only. Outside titles are redacted unless Tom explicitly opts in to a label.
+- Awareness calendars and reminder lists are read-only. Outside titles are redacted unless the user explicitly opts in to a label.
 - Assigned Jira work is considered first. Unassigned work is only suggested when it is in approved projects/types, urgent enough, and compatible with non-excluded competencies.
-- Slack fallback reads only recognized structured delegation messages in the configured `#tom-tasks` channel from approved sender IDs. Items without Jira become approval-required `Needs Jira` records and are never scheduled.
+- Slack fallback reads only recognized structured delegation messages in the configured Slack channel from approved sender IDs. Items without Jira become approval-required `Needs Jira` records and are never scheduled.
 - Every write is revision-bound and idempotent. Ambiguous results stop in prompted reconciliation instead of retrying indefinitely.
 - A manual move of a plugin-owned focus block becomes protected local state; a later plan does not overwrite it.
 - Completing an exact plugin-created reminder records local completion and creates an approval-required Jira reconciliation comment. It never changes Jira without approval.
@@ -148,7 +148,7 @@ Scope expansion is previewed as an exact operation and requires approval. Expand
 
 Slack syncs are incremental: channel parents are always scanned over the full lookback window, while a persisted watermark gates the expensive per-thread reply pagination (a thread's replies are re-fetched only when its latest reply is newer than the watermark, with a 24-hour grace). The watermark advances only when a sync completes without truncation, so budget-capped syncs never silently skip messages, and new replies to old threads are still caught.
 
-The routine LaunchAgent invokes `routine catch-up` every 15 minutes and at load. The local routine evaluator decides whether morning, midday, or evening is actually due from Tom's saved times. A single-instance lock prevents overlapping runs and reclaims a stale lock only when its recorded process is no longer alive.
+The routine LaunchAgent invokes `routine catch-up` every 15 minutes and at load. The local routine evaluator decides whether morning, midday, or evening is actually due from the configured user's saved times. A single-instance lock prevents overlapping runs and reclaims a stale lock only when its recorded process is no longer alive.
 
 Carryover is intentionally bounded: the first miss is rescheduled once, the next asks for diagnosis, and repeated misses require a decision such as split, delegate, defer, or renegotiate. Local carryover, manual locks, reservations, and confirmed estimates survive ordinary Jira refreshes.
 
@@ -180,7 +180,7 @@ The same six skills are packaged for Claude and Codex:
 | `manage-task-preferences` | Review and update Rhize Tasks planning preferences through the authenticated local dashboard. | project-planning, workflow-patterns |
 | `plan-my-day` | Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. | automation, project-planning |
 | `reconcile-rhize-tasks` | Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. | data-consistency, workflow-patterns |
-| `review-task-opportunities` | Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. | project-planning, search |
+| `review-task-opportunities` | Review urgent unassigned Jira work suggested for the configured user by Rhize Tasks competency rules. | project-planning, search |
 | `rhize-tasks-doctor` | Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. | automation, observability |
 | `rhize-tasks-setup` | Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, a… | automation, project-planning, workflow-patterns |
 <!-- SKILL-MAP:END -->
@@ -231,8 +231,8 @@ python3 ../tests/rhize-ops/test_delegation_contract.py
 
 `npm run validate` is not a release gate — it only checks that `package.json` and `setup/manifest.json` are syntactically valid JSON. Treat it as a quick manifest sanity check, not a substitute for the tests above.
 
-Repository release validation also checks both plugin manifests, the marketplace, generated skill map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A real Tom-Mac acceptance remains mandatory before enabling writes: approve a disposable Jira issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample, exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
+Repository release validation also checks both plugin manifests, the marketplace, generated skill map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A real end-user Mac acceptance remains mandatory before enabling writes: approve a disposable Jira issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample, exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
 
 ## Current 0.x boundary
 
-Rhize Tasks is a Mac-local planning service, not a cloud sync product or a general Jira automation engine. The first release handles the exact completion signal from a plugin-created reminder by prompting an approval-required Jira comment. Choosing among site-specific Done/Blocked/Partial transitions still requires Tom to review the actual Jira workflow; the plugin does not guess transition IDs. Slack messages outside the strict delegation contract are ignored.
+Rhize Tasks is a Mac-local planning service, not a cloud sync product or a general Jira automation engine. The first release handles the exact completion signal from a plugin-created reminder by prompting an approval-required Jira comment. Choosing among site-specific Done/Blocked/Partial transitions still requires the user to review the actual Jira workflow; the plugin does not guess transition IDs. Slack messages outside the strict delegation contract are ignored.

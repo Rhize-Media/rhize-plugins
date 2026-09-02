@@ -1,6 +1,6 @@
 {
   "name": "rhize-devflow",
-  "version": "2.18.1",
+  "version": "2.19.0",
   "description": "Rhize Media's engineering control-plane skills for impact mapping, behavior-preserving simplification, state-bound test evidence, validation, independent production review, authorized completed-branch promotion, error lifecycle, mutation consistency, browser QA, Sentry instrumentation, and Sanity house style.",
   "author": {
     "name": "Rhize Media"

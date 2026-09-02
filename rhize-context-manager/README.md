@@ -1,8 +1,19 @@
 # rhize-context-manager
 
-Context engineering and optimization plugin: **compression, management, retrieval, and
-storage**. It orchestrates the external context tools already in the Rhize stack (rather
-than forking them) and ships a curated, safety-gated skill library.
+Long AI coding sessions get messy: context fills up, background tooling starts repeating
+itself, and nobody remembers where a decision or a lesson learned was supposed to be
+recorded. This plugin gives a session one place that watches for that, tells you when
+something's off, and keeps a running memory of decisions so they survive between sessions.
+In practice that's a handful of commands — check session health, open/close a session
+cleanly, capture what was learned — plus a quiet background layer that keeps the tools
+already installed for your stack from stepping on each other. Start with `/context-doctor`
+to see how your current setup is doing, or `/start` to begin a session with full context of
+where you left off.
+
+Under the hood, this is a context engineering and optimization plugin covering
+**compression, management, retrieval, and storage**. It orchestrates the external context
+tools already in the Rhize stack (rather than forking them) and ships a curated,
+safety-gated skill library.
 
 ## Design: orchestrate, don't vendor
 
@@ -83,9 +94,9 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/context-experiment` | Disabled-by-default local retrieval, mgrep, and compiled-context control: backward-compatible one-shot canaries or continuous allowlisted local mode, provider health, evidence-backed terminal receipts, and Arm A/B reports. |
 | `/context-pack` | Build and inspect a deterministic private pack. Native v2 supports parser-backed Python/JavaScript/TypeScript contracts, mixed targets, healthy-CodeGraph-first discovery, deterministic `rg` fallback, optional hash-only impact-map hints, FULL/INTERFACE roles, and stale-pack verification; preview mode never arms or injects. |
 | `/memory-context` | Assemble and verify a private scoped preview over explicit supported memory adapters. Reuse requires an explicit current source-ID/revision map; conflicts, authority, TTL, purge, and unavailable states remain visible; automatic injection and write-back are disabled. |
-| `/graph-memory` | Thin Claude adapter to the shared `graph-memory` CLI (`scripts/graph_memory/cli.py`). Defaults to `validate`, then offers a private `preview`. Never invokes `graphify export neo4j`, arbitrary Cypher, a Neo4j driver, or a live database this release; a live canary and restore rehearsal are deferred to RT-159. |
+| `/graph-memory` | Thin Claude adapter to the shared `graph-memory` CLI (`scripts/graph_memory/cli.py`). Defaults to `validate`, then offers a private `preview`. Never invokes `graphify export neo4j`, arbitrary Cypher, a Neo4j driver, or a live database this release; a live canary and restore rehearsal are deferred to a future release (tracked internally as RT-159). |
 | `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process contracts enforce actor-effective ACL lanes (`review ∩ actor`) so broader actor grants cannot widen a narrow review; every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
-| `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until RT-161. |
+| `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until a future release (tracked internally as RT-161). |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
@@ -95,35 +106,14 @@ lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` orig
 
 ### Harvest noise filter (`scripts/harvest_noise_filter.py`, repo root)
 
-Queue entry ids are `sha1-12(source + pattern)`, so **a rephrasing of an already-known
-fact produces a new id and walks past id-dedupe**. Measured on 2026-08-14: 3 of 5
-headroom entries restated facts folded into CLAUDE.md on 2026-08-12, and the two largest
-`est_savings` claims (235k, 45k) were the two most duplicative — roughly 30% of a day's
-yield spent re-litigating settled facts.
-
-Step 7 of `/learn-harvest` runs this filter, which matches on content instead of hash.
-Each candidate is scored by greedy set-cover: what fraction of its normalized content
-tokens are covered by up to `--max-blocks` (default 3) reference blocks, drawn from
-existing queue patterns (**any** status) and the CLAUDE.md files passed via `--reference`.
-
-| Outcome | Coverage | Action |
-|---|---|---|
-| `suppressed` | ≥ `--threshold` (0.75) | dropped — a restatement |
-| `flagged` | ≥ `--flag-threshold` (0.45) | **kept**, tagged with `filter_note` for triage |
-| `thin` | < 6 content tokens | dropped — a bare heading is not a signal |
-| `kept` | otherwise | appended normally |
-
-Thresholds are calibrated against the 44 human-labeled dispositions of 2026-08-14, where
-the populations separated as: real signals ≤ 0.70, fully-covered restatements ≥ 0.80.
-Reproduce with `--self-audit`. Composite entries (`Topic — Fact1. Fact2. Fact3.`) sit in
-the 0.46–0.56 band — each fact known, the bundle still part-novel — which is why that band
-flags for a human rather than auto-suppressing; no threshold separates them from genuine
-signals, so the filter declines to guess.
-
-Stdlib only (system `python3` has no `jsonschema`), deterministic, no network. The report
-is teed to `~/.claude/context-manager/harvest-logs/<date>-filter.txt`: suppression must
-leave a disk artifact, or "few new entries" becomes indistinguishable from a collector
-that never ran.
+Step 7 of `/learn-harvest` runs a content-based dedupe filter before anything reaches the
+queue, so a reworded restatement of an already-known fact doesn't count as a new signal —
+on 2026-08-14 this caught 3 of 5 candidate entries that were just rephrasings of facts
+already in CLAUDE.md. It scores each candidate against existing queue/CLAUDE.md content
+and either suppresses it, flags it for human triage, or keeps it; every decision is logged
+to `~/.claude/context-manager/harvest-logs/<date>-filter.txt` so a quiet harvest is never
+ambiguous. See [docs/harvest-noise-filter.md](docs/harvest-noise-filter.md) for the scoring
+algorithm, thresholds, and calibration data.
 
 ## Hooks
 
@@ -139,282 +129,37 @@ that never ran.
 All six hooks are auto-wired for Claude Code in `hooks/hooks.json`. Codex does not consume this
 Claude hook manifest; it discovers the same canonical skills and must invoke the host-neutral
 context pack or experiment runner explicitly. Both paths remain behaviorally inert until strict
-configuration explicitly enables a capability for an allowlisted repository. Before Claude plugin
-migration, the coordinator must remove any duplicate manual selector/finalizer entries; duplicate
-calls are state-idempotent, but a second selector can waste a local provider build before the lease
-rejects it.
-`session-disclosure.js` replaced the four per-plugin SessionStart banners (seo-aeo-geo,
-obsidian-second-brain, project-launcher, rhize-devflow) on 2026-08-09 — Phase 3 of
-`.claude/plans/skill-map-graph-substrate.md`. `remediation-suggester.js` and
-`next-step-suggester.js` were added 2026-08-09 as the runtime consumers for relationships v2
-(`docs/superpowers/specs/2026-08-09-skill-map-relationships-v2-design.md` section 7) — the
-first runtime consumer of `precedes`, and the first consumer of the `remediates`/`condition`
-data. All five resolve the compiled skill-map artifact the same way: the materialized indexes
-first (`~/.claude/context-manager/skill-map.indexes.resolved.json`, falling back to
-`skill-map.indexes.json`), and — for `skill-router.js`/`session-disclosure.js`/
-`agent-brief-router.js` only — a further fallback to the older
-`skill-map.resolved.json`/`skill-map.static.json` map-scan path when no indexes file exists at
-all. All five fail silently (exit 0, no output) on any missing or corrupt input. See
-`docs/skill-map.md` for the artifact/tagging conventions they depend on.
+configuration explicitly enables a capability for an allowlisted repository.
 
-`session-disclosure.js`, `remediation-suggester.js`, and `next-step-suggester.js` — plus
-`skill-router.js` and `agent-brief-router.js` below, both opt-in — also write a **suggestion
-log**, one JSON line per fired event, appended fail-silent to
-`~/.claude/context-manager/suggestion-log.jsonl`. Two row shapes share that file: the legacy
-`{"ts", "session_id", "hook", "suggested", "context_hash"}` shape the first four of these hooks write, and
-`agent-brief-router.js`'s `{"ts", "source": "agent-dispatch", "agentType", "briefHash",
-"briefLength", "namedSkills", "suggestedSkills", "advisoryEmitted"}` shape (no `hook` key —
-see below). No prompt/brief text, paths, or tool output is ever logged — ids, lengths, and
-truncated sha256 hashes only, matching skill-monitor's privacy precedent. `skill-router.js`
-additionally logs a 1-in-20 sample of no-suggestion prompts (`"suggested": null`) so silence
-precision has a denominator. `scripts/suggestion_log_report.py` (repo root) joins the legacy
-rows against skill-monitor usage data to report per-hook acceptance and ignore rates, and
-reports the agent-dispatch rows' named-rate/candidate-present/candidate-miss-rate in a
-separate section. Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file
-path) and `RHIZE_CONTEXT_MANAGER_DIR` (where the hooks look for the compiled map/indexes).
+The five map-reading hooks above (`session-disclosure`, `remediation-suggester`,
+`next-step-suggester`, plus opt-in `skill-router` and `agent-brief-router`) all resolve the same
+compiled skill-map artifact and fail silently on any missing/corrupt input, and the first four
+also write a privacy-preserving suggestion log (ids/hashes only, never prompt text) so
+acceptance/ignore rates are measurable. Beyond the auto-wired six, nine more hooks are declared
+in `setup/manifest.json` for opt-in per-repo use and Claude-plugin migration bookkeeping —
+`/rhize-ops:rhize-setup` wires them for you if that plugin is installed, otherwise see the
+snippet in [rhize-ops/README.md § Setup manifest schema](../rhize-ops/README.md#setup-manifest-schema).
+Two of those nine are refinement-pipeline hooks that detect "this skill doesn't work" style
+phrasing or a substantial session ending, and suggest capturing it via `/learn-harvest` →
+`/skill-refine review`.
 
-### Per-repository and migration hooks (`setup/manifest.json`)
-
-Nine hooks remain declared in `setup/manifest.json` for backward-compatible setup inventory.
-Seven are opt-in per-repository items (`default: false`). The selector/finalizer rows are Claude
-Code migration metadata now that the scripts are auto-wired in `hooks/hooks.json`; do not wire a
-second Claude copy. Codex invokes the shared runner explicitly through its canonical skill.
-Three generalized hooks live under
-`skills/context-engineering/hooks/` and require project-specific files
-(`COMPONENT_REGISTRY.md`, `CURRENT_SPRINT.md`) to be useful, so auto-wiring them for
-every repo would be noise:
-
-| id | Event | Tier | Purpose |
-|---|---|---|---|
-| `session-init` | `SessionStart` | T3 (advisory) | Session banner: project name, sprint/registry freshness, active work item, uncommitted count |
-| `duplicate-check` | `PreToolUse` (`Write`) | T4 (blocking, exit 2) | Blocks creating a new component/hook/utility whose name closely matches an existing `COMPONENT_REGISTRY.md` entry |
-| `pre-commit-guard` | `PreToolUse` (`Bash`) | T3 (advisory) | On `git commit`, flags unstaged related files via `additionalContext` — never blocks |
-| `skill-router` | `UserPromptSubmit` | T3 (advisory) | Ranks the prompt against the compiled skill-map's topic/stack tags and skill names, surfaces at most one suggested skill via `additionalContext` — never blocks |
-| `agent-brief-router` | `PreToolUse` (`^(Agent)$`) | T3 (advisory) | Logs which skills an outgoing subagent brief names vs. which the router index would suggest for it (`source: "agent-dispatch"` rows); a flag-gated advisory (`RHIZE_AGENT_BRIEF_ADVISORY=1`) is off by default — never blocks |
-| `context-experiment-selector` | `UserPromptSubmit` | T3 (advisory, auto-wired) | Claims one clean-repository attempt under a repository/capability single-flight lease. Canary claims freeze immediately; continuous claims stay enabled but cannot overlap. |
-| `context-experiment-finalizer` | `Stop` | T3 (advisory, auto-wired) | Verifies the native pack again and writes receipt v2 with terminal reason and source-free completeness fields. Only valid completion evidence releases a continuous attempt without freezing. |
-
-`skill-router` and `agent-brief-router` (`hooks/skill-router.js` and
-`hooks/agent-brief-router.js`, plugin root — not under `skills/context-engineering/hooks/`
-like the other three) both read the compiled skill-map artifact rather than a fixed keyword
-list. `skill-router` replaced the keyword-grep `skill-suggester.sh` on 2026-08-09 (Phase 2 of
-`.claude/plans/skill-map-graph-substrate.md`): it reads
-`~/.claude/context-manager/skill-map.resolved.json` (falling back to `skill-map.static.json`
-— installed via `scripts/build_skill_map.py --install`), requires 2+ distinct matching
-signals (topic/stack tag or skill-name word match) to fire at all, and fails silently — exit
-0, no output — if the map is missing or corrupt. `agent-brief-router` (2026-08-26) is a
-**measurement instrument, not a router** — a PreToolUse hook fires only after the brief is
-already written, so it cannot fix the dispatch it observes; it exists to measure, session over
-session, whether outgoing subagent briefs already name the skill route-core's scoring would
-suggest for their content. See `docs/skill-map.md`'s "Agent-dispatch surface" section for the
-spike verdicts, scoring details, and known limitations (Workflow `agent()` calls and
-scheduled-task sessions bypass this hook entirely — the CLAUDE.md dispatch rule is the only
-enforcement there, by design).
-
-`tier` follows the shared convention: T3 = advisory (never blocks, exits 0, must use
-`hookSpecificOutput.additionalContext` to reach Claude on events where plain stdout
-isn't auto-added to context), T4 = blocking (`exit 2`, stderr becomes the reason shown
-to Claude). Verified 2026-08-04 against `code.claude.com/docs/en/hooks`: `SessionStart`
-and `UserPromptSubmit` auto-add plain stdout as context, but `PreToolUse`/`PostToolUse`
-advisory hooks do not — plain stdout/stderr on `exit 0` there is invisible to the model.
-`pre-commit-guard.sh` and `skill-suggester.sh` were fixed to this contract 2026-08-04:
-the former printed warnings to stderr on `exit 0` (never reached Claude), the latter both
-read the wrong input field (`user_prompt` instead of `prompt` — a permanent no-op) and
-wrote its suggestion to `systemMessage` (user-only, not `hookSpecificOutput.additionalContext`).
-
-`setup/manifest.json` also declares a `dependencies` array (`@rhize/skill-forge`, `headroom`,
-`ecc:harness-audit`, and the orchestrated stack tools) that the wizard's dependency check reads.
-
-**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires these opt-in items and checks
-`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item manually
-per the snippet in [rhize-ops/README.md § Setup manifest
-schema](../rhize-ops/README.md#setup-manifest-schema).
-
-### Context-tool dogfood providers
-
-The experiment selector does not install the official mgrep agent instructions or replace
-CodeGraph/`rg`. The tested CLI is pinned to `@mixedbread/mgrep@0.1.13`; install and remove it
-explicitly with `npm install -g @mixedbread/mgrep@0.1.13` and
-`npm uninstall -g @mixedbread/mgrep`. `mgrep login` uses the vendor's device flow and writes
-its token to `~/.mgrep/token.json`; `/context-experiment doctor` refuses that login when the
-file is broader than mode `0600`. A dry-run may create or retrieve the named remote store but
-does not upload files. Actual repository indexing always requires a separately reviewed local
-manifest and explicit approval for the exact repository and `rhize-dogfood-*` store.
-
-The current dogfood gate is stricter: do not create a Mixedbread account, run `mgrep login`, or
-create a store until the dated provider-economics/privacy review in
-[`mgrep-context-compiler-dogfood.md`](../.claude/plans/mgrep-context-compiler-dogfood.md)
-passes. Mixedbread's published free-tier data-use language is contradictory, so the plan tests a
-pinned local semantic-retrieval candidate first and keeps managed mgrep as a separately measured,
-explicitly approved arm.
-
-The local comparison path pins grepai `0.35.0`, Ollama `0.33.1`, and
-`nomic-embed-text:v1.5`. It runs only with loopback Ollama, cloud features disabled, a reviewed
-configuration checksum, a GOB store, and a current independently generated snapshot marker.
-Direct `grepai watch` execution in a real main worktree is prohibited: 0.35.0 automatically
-discovers and initializes linked worktrees and has no supported opt-out. The first real isolated
-six-case benchmark also failed correctness non-inferiority (five critical misses versus zero for
-ripgrep), so `localRetrieval` remains disabled and unarmed pending a materially improved provider
-or configuration. See [`evals/context-tools`](../evals/context-tools/README.md).
-
-The Context Compiler adapter runs an unmodified checkout pinned to revision
-`4edb163911f9a6bc869f35970fa77acb3dd88b8f`, verifies the MIT license and source-file
-checksums, and emits deterministic, repository-relative private prompt packs. `/context-pack`
-is the explicit preview path and never injects its output. Repository-wide dynamic dispatch,
-event decorators, callback registration, or unsupported Python syntax force a baseline fallback;
-the 40,000-token, 50%-coverage, and 10-name-collision limits remain preliminary guardrails, not
-evidence that a pack improves a coding task. The default checkout is
-`~/.claude/rhize-context-manager/providers/context-compiler`; override it with
-`RHIZE_CONTEXT_COMPILER_CHECKOUT`. See
-[`evals/context-tools`](../evals/context-tools/README.md).
-
-The default `/context-pack --provider native` path is Rhize-owned and local-only. Native v2 uses
-parser-backed multiline Python/JavaScript/TypeScript contracts, configured Python source roots,
-JS/TS aliases, workspace imports, and package exports. It includes explicit targets in full,
-renders safe dependencies as interfaces, widens uncertain interfaces to full source, and adds
-related tests/configuration when they fit. Query discovery uses CodeGraph only after an existing
-`.codegraph/` passes a read-only healthy/current status preflight; otherwise it records deterministic
-`rg` fallback and never creates an index. An optional `--impact-map <repository-local-markdown>`
-bridge expands semantic terms and consumes named source-file seeds while storing only the plan
-content hash, normalized term-set hash, and seed count—never plan content or an absolute path.
-Planned, dynamic, and unsupported edges remain untrusted and fail closed.
-Every manifest records provider revision, task/query hashes, source/rendered hashes, the private
-prompt hash, selection reasons, token budget, and warnings without source text. `verify-pack`
-requires the matching manifest and prompt paths and rejects any identity, prompt, snapshot, or
-entry-hash drift. The five-case native corpus plus the nine upstream cases totals 14 compiled-
-context cases. The prior native-v1 corpus remains historical evidence; v2 adds separate contract,
-alias/workspace, source-root, eligibility, exclusion-ledger, and hash-only impact-map/`rg` fixtures.
-The three assisted discovery cases must improve supported recall while continuing to reject
-dynamic or unsupported cases. This supports disabled-by-default controlled use, not an inference
-of task correctness.
-
-The live P4 gate is stricter than preview mode. Selection refuses a dirty repository, unresolved
-local dependency, truncated dependency traversal, required dependency omitted by budget, or a
-preflight that exceeds `maxDurationSeconds`. It verifies the pack immediately after writing it,
-then reserves the configured canary/continuous authority before returning context. The
-non-reclaiming lease prevents a second
-session from claiming the same repository/capability even after the ordinary lease TTL. Any Stop
-outcome writes one terminal receipt: evidence-backed completion releases continuous single-flight
-and leaves it enabled, while failed, incomplete, stale, or malformed evidence freezes it. Canary
-mode preserves the prior one-shot freeze behavior. A later selector audit terminalizes expired
-pending attempts as incomplete instead of reclaiming them.
-
-On a compiled-context B claim, selector `additionalContext` prints the exact installed
-`runner.py` path, the real experiment id, and a shell-quoted `record-evidence` command. It also
-requires the agent to read and use the accepted prompt pack before implementation and validate
-the task before recording success, so neither command location nor working directory is guessed.
-The `validation-id-REPLACE_ME` token must be replaced with a source-free validation identifier;
-the evidence parser rejects the unchanged placeholder.
-
-A reviewer may record the minimum immutable task evidence while the attempt is pending:
-
-```bash
-python3 scripts/context_experiments/runner.py record-evidence \
-  --experiment-id exp-REDACTED \
-  --task-outcome completed \
-  --pack-used \
-  --validation-id pytest-context-tools \
-  --executed-arm B \
-  --skip-arm A:no_comparable_shadow_evidence
-```
-
-The sidecar contains only the experiment id, timestamp, outcome enum, pack-use boolean,
-source-free validation ids, and exact arm accounting. It rejects prompts, source/output, paths,
-URLs, duplicate writes, and evidence without a matching pending attempt. Receipt v2 binds its
-SHA-256 digest, the claim/final pack-verification results, a terminal reason, and source-free
-completeness state/booleans. The command records reviewer
-assertions; it does not infer task correctness. A comparable Arm A remains a separate evidence
-requirement, and `capture-health` flags a reviewed B-only run as non-comparable.
-
-Capture reliability is independently queryable and fail-closed:
-
-```bash
-python3 scripts/context_experiments/runner.py capture-health
-```
-
-The command strictly parses every receipt, review sidecar, and pending selection; reconciles
-sidecar digests and stored completed receipts against each capability's `completedRuns`; and keeps
-completed/incomplete/skipped Arm A and Arm B counts separate per capability. Legacy receipt v1
-still requires comparable A/B metrics. Receipt v2 requires exact arm accounting and reports
-evidence state, terminal reasons, configured canary/continuous live/frozen state, comparable,
-skipped, incomplete, and failed runs separately. It exits `2` for
-malformed or mismatched artifacts, failed or incomplete receipts, missing-arm/metric/history
-evidence, non-comparable A/B measurements, orphan evidence, or a pending selection that outlived
-its lease without producing a receipt. It never generates benchmark evidence or substitutes a
-provider double for a real dogfood run.
-
-### Refinement-pipeline hooks (also in `setup/manifest.json`)
-
-Two of the nine live under `hooks/` directly as refinement-pipeline hooks. They arrived on 2026-08-09, moved
-here from `rhize-devflow` (they predate this plugin and were stranded there by the 2.5.0
-command migration). Like the five above they are **not** wired in `hooks/hooks.json`, but
-`/rhize-setup` can now offer them per-repo the same way (ids `refinement-detector` and
-`refinement-session-end`) — no manual `.claude/settings.json` edit required unless you're
-wiring without `rhize-ops`.
-
-| Script | Event | Tier | Purpose |
-|---|---|---|---|
-| `refinement-pipeline__refinement-detector.sh` | `UserPromptSubmit` | T3 (advisory) | Detects "skill doesn't work" / "false positive" / "missing trigger" style phrasing and suggests `/rhize-context-manager:learn-harvest` → `/skill-refine review` |
-| `refinement-pipeline__session-end.sh` | `Stop` | T3 (advisory) | At session end, if the session was substantial (>20 tool calls, any error, >60min, or >10 files touched — computed from the transcript JSONL), suggests capturing a refinement via the same two commands |
-
-To enable one, add it to your project's `.claude/settings.json`, e.g.:
-
-```json
-{
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/refinement-pipeline__refinement-detector.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-Both suggest the same next step — `/rhize-context-manager:learn-harvest` to queue the signal,
-then `/skill-refine review` to triage it — rather than a bare `npx @rhize/skill-forge refine`,
-which would skip the human-gate/machine-gate trust model the `refinement-pipeline` skill
-documents.
-
-### Why this replaces ECC's `suggest-compact`
-
-ECC's hook sizes the window by sniffing the model id for a literal `[1m]`
-marker, defaulting to 200k. Opus 5 has a 1M window and carries no marker, so it
-divided ~195k by 200k and reported **97% when the true figure was 20%** —
-verified against the client's own context readout on 2026-07-28. It self-corrects
-only above 200k (its `tokens > 200_000 → assume 1M` fallback), so it is wrong for
-the entire run below that and the error is invisible from the message alone.
-
-A marker sniff can only detect windows a model id happens to advertise. This
-hook resolves in strongest-signal-first order — env override → `[1m]` marker →
-**verified known-model table** → observed-usage evidence → 200k default — and
-the table is the part upstream structurally cannot have.
-
-**Both hooks will fire unless you disable ECC's.** Add to `~/.claude/settings.json`:
+The `context-window-monitor.js` hook exists because ECC's equivalent hook sizes the context
+window by sniffing the model id for a literal `[1m]` marker — Opus 5 has a 1M window and no such
+marker, so ECC's hook reported 97% usage when the real figure was 20% (verified 2026-07-28).
+This hook instead resolves in strongest-signal-first order (env override → `[1m]` marker →
+verified known-model table → observed-usage evidence → 200k default). **Both hooks will fire
+unless you disable ECC's** — add to `~/.claude/settings.json`:
 
 ```json
 "env": { "ECC_DISABLED_HOOKS": "pre:edit-write:suggest-compact" }
 ```
 
-### Maintaining the known-model table
-
-`KNOWN_WINDOWS` in the hook is deliberately sparse — it holds only entries
-confirmed against a client readout or vendor docs. A wrong entry is worse than
-no entry, because it outranks the observed-usage evidence beneath it. An
-unlisted model degrades to the same heuristics ECC used, which is today's
-behaviour, not a regression.
-
-Verify any change with the built-in self-test (9 cases, including the exact
-197.3k-on-Opus-5 regression):
-
-```bash
-node hooks/context-window-monitor.js --self-test
-```
+See [docs/hooks-reference.md](docs/hooks-reference.md) for the full hook catalog (including the
+nine `setup/manifest.json` entries and the refinement-pipeline hooks with their wiring snippet),
+skill-map resolution order, suggestion-log schema, and how to extend the known-model table. See
+[docs/context-experiment-internals.md](docs/context-experiment-internals.md) for what the
+context-experiment selector/finalizer hooks actually gate: the dogfood retrieval providers, the
+live P4 selection gate, and how evidence receipts are recorded and verified.
 
 ## Skill-map frontmatter conventions
 
@@ -464,7 +209,7 @@ artifact — required for anything touching `follows` edges or third-party nodes
 | Serena | semantic code navigation | MCP server (user scope) |
 | CodeGraph | code knowledge graph | `codegraph` CLI + MCP, `codegraph init` per repo |
 | graphify | vault knowledge graphs | skill (vendored here) |
-| Neo4j | governed semantic projection | ontology, fake-adapter, and in-process identity-review contracts available; shared review state and the credentialed live canary/restore remain deferred to RT-159 |
+| Neo4j | governed semantic projection | ontology, fake-adapter, and in-process identity-review contracts available; shared review state and the credentialed live canary/restore remain deferred to a future release (tracked internally as RT-159) |
 
 ### Per-repo stack config
 

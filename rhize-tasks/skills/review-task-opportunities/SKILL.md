@@ -1,6 +1,6 @@
 ---
 name: review-task-opportunities
-description: Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.
+description: Review urgent unassigned Jira work suggested for the configured user by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.
 metadata:
   rhize:
     topics: [project-planning, search]

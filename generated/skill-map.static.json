@@ -3771,8 +3771,8 @@
       "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md"
     },
     {
-      "contentHash": "b304232d7ed06d66c7943fc1e6ce40e587021f4777b0c9397ee1f6e781868028",
-      "description": "Review urgent unassigned Jira work suggested for Tom by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
+      "contentHash": "89df99a57f4b9ff5dbb03d128821af02c40871759aacb0422875e8e1242d3406",
+      "description": "Review urgent unassigned Jira work suggested for the configured user by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
       "id": "skill:rhize-tasks/review-task-opportunities",
       "kind": "skill",
       "name": "review-task-opportunities",

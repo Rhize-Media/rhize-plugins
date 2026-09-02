@@ -1,6 +1,6 @@
 {
   "name": "rhize-ops",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization. Uses self-contained Rhize routing, terminal v2 receipt lifecycles, and isolated baseline-versus-Rhize comparisons.",
   "author": {
     "name": "Rhize Media"
