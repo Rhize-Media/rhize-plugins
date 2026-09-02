@@ -8,11 +8,11 @@ The plugin turns Claude into a full-stack search optimization practitioner — s
 
 It's built for anyone responsible for a site's visibility: SEO practitioners running audits and reporting on health, content teams optimizing pages before publish, marketers sizing up competitors, and developers who need to fix SEO issues directly in a Next.js + Sanity codebase.
 
-The plugin contains two types of components:
-
-**Skills** are reference knowledge that Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output. Think of skills as "expertise modules," each backed by a specific DataForSEO workflow.
-
-**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/seo-audit`). They run a full workflow end-to-end and hand you a finished report (or, for code-facing commands, finished edits).
+The plugin contains two types of components, skills and commands — see
+[START-HERE.md's glossary](../START-HERE.md#7-glossary) if those terms are new to you. Here, each
+skill is backed by a specific DataForSEO workflow, and each command (e.g. `/seo-audit`) runs a
+full workflow end-to-end and hands you a finished report (or, for code-facing commands, finished
+edits).
 
 ## Quick Mental Model
 

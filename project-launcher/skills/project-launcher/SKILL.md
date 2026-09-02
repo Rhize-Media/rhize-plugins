@@ -19,6 +19,7 @@ description: >
   with integrated MCP server orchestration and GSD v2 framework knowledge.
 metadata:
   rhize:
+    summary: "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."
     topics: [project-planning, workflow-patterns, automation]
     stacks: [obsidian]
     dependsOn: ["mcp:obsidian-mcp-server"]

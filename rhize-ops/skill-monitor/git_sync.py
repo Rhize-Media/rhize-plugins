@@ -12,13 +12,18 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
+import paths
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SNAPSHOTS_DIR = Path(__file__).resolve().parent / "data" / "snapshots"
 CONFIG_SYNC_REPOS = [
-    Path.home() / ".claude",
-    Path.home() / ".agents",
-    REPO_ROOT,
-    Path.home() / "dev-local" / "RHIZE" / "skill-forge",
+    p for p in (
+        Path.home() / ".claude",
+        Path.home() / ".agents",
+        REPO_ROOT,
+        # skill-forge is no longer a hardcoded ~/dev-local/RHIZE path — it's
+        # found by basename among the configured RHIZE_REPO_ROOTS, if any.
+        paths.repo_root("skill-forge"),
+    ) if p is not None
 ]
 
 
@@ -50,11 +55,28 @@ def pull_rebase(repo: Path = REPO_ROOT) -> None:
 
 
 def commit_and_push_snapshots(repo: Path = REPO_ROOT) -> None:
-    """Run after the monitor writes its snapshot. Commits only the snapshots dir."""
-    status = _run(["git", "status", "--porcelain", "--", str(SNAPSHOTS_DIR)], repo)
+    """Run after the monitor writes its snapshot. Commits only the snapshots
+    dir -- and only when that dir is actually inside this git work tree.
+
+    RHIZE_SKILL_MONITOR_HOME (or a fresh install with no checkout-local
+    data/) can point snapshots outside `repo` entirely, in which case there
+    is nothing here for git to track: refuse with a clear message instead of
+    running `git add`/`commit` against a path outside the repo.
+    """
+    snapshots_dir = paths.snapshots_dir()
+    try:
+        snapshots_dir.relative_to(repo)
+    except ValueError:
+        print(
+            f"[skill-monitor] snapshots dir {snapshots_dir} is outside the git "
+            f"repo {repo} — skipping snapshot auto-commit (this only applies "
+            f"to a dev checkout with data/ inside the repo)."
+        )
+        return
+    status = _run(["git", "status", "--porcelain", "--", str(snapshots_dir)], repo)
     if not status.stdout.strip():
         return
-    _run(["git", "add", "--", str(SNAPSHOTS_DIR)], repo)
+    _run(["git", "add", "--", str(snapshots_dir)], repo)
     msg = f"chore(skill-monitor): snapshot {date.today().isoformat()}"
     _commit_and_push(repo, msg, "snapshot")
 

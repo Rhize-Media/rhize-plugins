@@ -1,7 +1,7 @@
 {
   "name": "rhize-devflow",
-  "version": "2.19.0",
-  "description": "Rhize Media's engineering control-plane plugin: impact mapping, behavior-preserving simplification, state-bound test evidence, validation, independent production review, authorized completed-branch promotion, production error lifecycle (Sentry + Vercel), data-mutation consistency, browser QA, Sentry instrumentation, Sanity house style, and compounding safeguards — impact-map → implement → simplify → check → review → release.",
+  "version": "2.20.0",
+  "description": "Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.",
   "author": {
     "name": "Rhize Media"
   },

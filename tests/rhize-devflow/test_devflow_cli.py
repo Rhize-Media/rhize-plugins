@@ -169,6 +169,32 @@ def test_doctor_missing_asset_is_reported_and_blocks() -> None:
     assert "does_not_exist.py" in missing[0]["message"]
 
 
+def test_doctor_missing_docs_link_from_command_is_reported_and_blocks() -> None:
+    """A `docs/<name>.md` link referenced from `commands/*.md` (Markdown-link form here)
+    must resolve relative to the plugin root, same as the scripts/templates/etc. assets
+    `_ASSET_PATTERN` already checks — but `docs/` is not one of those prefixes, so this is
+    a dedicated check (`_check_referenced_assets`'s docs-link pass)."""
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_missing_docs_link"), "--json")
+    assert result.returncode == 1
+    doc = json.loads(result.stdout)
+    assert doc["healthy"] is False
+    missing = [f for f in doc["findings"] if f["id"] == "missing-asset"]
+    assert len(missing) == 1
+    assert missing[0]["severity"] == "error"
+    assert "docs/missing.md" in missing[0]["message"]
+    assert missing[0]["path"] == "commands/hello.md"
+
+
+def test_doctor_existing_docs_link_from_readme_is_healthy() -> None:
+    """The positive case: a `docs/<name>.md` link from the plugin's own README.md that
+    does resolve must not be reported as missing."""
+    result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_docs_link_ok"), "--json")
+    assert result.returncode == 0, result.stdout + result.stderr
+    doc = json.loads(result.stdout)
+    assert doc["healthy"] is True
+    assert not any(f["id"] == "missing-asset" for f in doc["findings"])
+
+
 def test_doctor_corrupt_manifest_is_reported_and_blocks() -> None:
     result = run_cli("doctor", "--plugin-root", str(FIXTURES / "doctor_corrupt_manifest"), "--json")
     assert result.returncode == 1

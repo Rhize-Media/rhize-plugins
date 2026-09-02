@@ -1,44 +1,11 @@
 # Rhize Tasks
 
+Rhize Tasks gives you one realistic answer to "what should I work on now?" — without pretending
+Jira is your calendar or that your personal calendar belongs to Rhize.
+
 Rhize Tasks is the local-first unified planning authority for the configured user's Rhize, client, other-company, and personal work. It reads approved Jira, Google Calendar, Apple Reminders, and structured Slack inputs, produces one today-first plan, and writes only approved focus blocks and reminders inside dedicated boundaries.
 
 The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is practical: keep assigned work visible, surface urgent work the assignee is well suited to take on, fit the work into real capacity, and carry unfinished work forward without letting an automation silently take over their calendar or task systems.
-
-## Safety model
-
-- SQLite on the configured user's Mac is the planning authority. Jira remains the canonical work source.
-- Preferences, scope discovery, the reversible access probe, and the first plan are reviewed locally.
-- Setup is inactive until preferences are saved and the first plan is approved.
-- Calendar writes are limited to one approved focus calendar. Reminder writes are limited to the exact approved `Rhize Tasks` list.
-- Awareness calendars and reminder lists are read-only. Outside titles are redacted unless the user explicitly opts in to a label.
-- Assigned Jira work is considered first. Unassigned work is only suggested when it is in approved projects/types, urgent enough, and compatible with non-excluded competencies.
-- Slack fallback reads only recognized structured delegation messages in the configured Slack channel from approved sender IDs. Items without Jira become approval-required `Needs Jira` records and are never scheduled.
-- Every write is revision-bound and idempotent. Ambiguous results stop in prompted reconciliation instead of retrying indefinitely.
-- A manual move of a plugin-owned focus block becomes protected local state; a later plan does not overwrite it.
-- Completing an exact plugin-created reminder records local completion and creates an approval-required Jira reconciliation comment. It never changes Jira without approval.
-- Pausing stops routines and connector writes. A stale or revoked connector pauses only that connector's writes where the remaining plan can still be evaluated safely.
-
-### Decision-accountability adapter
-
-Rhize Tasks may map an explicitly approved external-effect routing or reconciliation choice into the
-shared graph-memory proposal. The local plan/revision and exact approved operation remain canonical;
-Jira is referenced only through its current task identity/revision. The adapter cannot approve or
-execute an operation, contact a connector, copy SQLite state, or create another ledger. It uses the
-canonical [typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
-and preserves `unavailable` while governed projection operations are disabled.
-
-## Architecture and source split
-
-| Component | Authority | Read boundary | Write boundary |
-| --- | --- | --- | --- |
-| Jira | Canonical task state | Approved projects and issue types | Explicitly approved assignment, transition, comment, or create operations |
-| Slack | Delegation fallback | One workspace, one channel, recognized bot/sender IDs, strict v1 message format | None |
-| Google Calendar | Time awareness and focus blocks | Approved awareness calendars plus the focus calendar | Exact approved focus calendar only |
-| Apple Reminders | Awareness and daily execution | Approved awareness lists plus `Rhize Tasks` | Exact `Rhize Tasks` list only |
-| Local service | Unified plan, approvals, audit, carryover, setup | Local SQLite and connector snapshots | Local SQLite; approved operations delegated to connectors |
-| Dashboard/artifact | Human review | Sanitized TodayView | Dashboard uses authenticated API; artifact is read-only |
-
-The production runtime is split into a Node.js service and a small Swift EventKit helper. The helper runs as its own LaunchAgent (`media.rhize.tasks.reminders-helper`) serving newline-delimited JSON over a private Unix socket — making it its own TCC-responsible process, so the macOS Reminders permission prompt is attributed to the helper bundle and the grant holds for background routine runs. The service connects over the socket (falling back to direct stdin/stdout spawn when no socket is installed, e.g. in development), and the helper enforces the configured list ID either way. The service owns validation, planning, connector scopes, approval state, routine locks, and audit records. Claude and Codex skills call this same local authority; they do not independently reimplement Jira or scheduling logic.
 
 ## Requirements
 
@@ -104,6 +71,42 @@ The wizard sends credentials directly to the authenticated loopback Keychain rou
 The installer provisions the local API bearer if it is absent. Connector secrets are entered only in the local dashboard. Do not paste them into Claude, Codex, a shell history, a config file, or a plugin prompt.
 
 The EventKit helper requests full Reminders access because current macOS APIs require that authorization level. Application logic still narrows reads to configured awareness lists and narrows writes to the exact `Rhize Tasks` list. Google authorization is similarly narrowed in application code to approved calendar IDs and the one focus-calendar write target.
+
+## Safety model
+
+- SQLite on the configured user's Mac is the planning authority. Jira remains the canonical work source.
+- Preferences, scope discovery, the reversible access probe, and the first plan are reviewed locally.
+- Setup is inactive until preferences are saved and the first plan is approved.
+- Calendar writes are limited to one approved focus calendar. Reminder writes are limited to the exact approved `Rhize Tasks` list.
+- Awareness calendars and reminder lists are read-only. Outside titles are redacted unless the user explicitly opts in to a label.
+- Assigned Jira work is considered first. Unassigned work is only suggested when it is in approved projects/types, urgent enough, and compatible with non-excluded competencies.
+- Slack fallback reads only recognized structured delegation messages in the configured Slack channel from approved sender IDs. Items without Jira become approval-required `Needs Jira` records and are never scheduled.
+- Every write is revision-bound and idempotent. Ambiguous results stop in prompted reconciliation instead of retrying indefinitely.
+- A manual move of a plugin-owned focus block becomes protected local state; a later plan does not overwrite it.
+- Completing an exact plugin-created reminder records local completion and creates an approval-required Jira reconciliation comment. It never changes Jira without approval.
+- Pausing stops routines and connector writes. A stale or revoked connector pauses only that connector's writes where the remaining plan can still be evaluated safely.
+
+### Decision-accountability adapter
+
+Rhize Tasks may map an explicitly approved external-effect routing or reconciliation choice into the
+shared graph-memory proposal. The local plan/revision and exact approved operation remain canonical;
+Jira is referenced only through its current task identity/revision. The adapter cannot approve or
+execute an operation, contact a connector, copy SQLite state, or create another ledger. It uses the
+canonical [typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
+and preserves `unavailable` while governed projection operations are disabled.
+
+## Architecture and source split
+
+| Component | Authority | Read boundary | Write boundary |
+| --- | --- | --- | --- |
+| Jira | Canonical task state | Approved projects and issue types | Explicitly approved assignment, transition, comment, or create operations |
+| Slack | Delegation fallback | One workspace, one channel, recognized bot/sender IDs, strict v1 message format | None |
+| Google Calendar | Time awareness and focus blocks | Approved awareness calendars plus the focus calendar | Exact approved focus calendar only |
+| Apple Reminders | Awareness and daily execution | Approved awareness lists plus `Rhize Tasks` | Exact `Rhize Tasks` list only |
+| Local service | Unified plan, approvals, audit, carryover, setup | Local SQLite and connector snapshots | Local SQLite; approved operations delegated to connectors |
+| Dashboard/artifact | Human review | Sanitized TodayView | Dashboard uses authenticated API; artifact is read-only |
+
+The production runtime is split into a Node.js service and a small Swift EventKit helper. The helper runs as its own LaunchAgent (`media.rhize.tasks.reminders-helper`) serving newline-delimited JSON over a private Unix socket — making it its own TCC-responsible process, so the macOS Reminders permission prompt is attributed to the helper bundle and the grant holds for background routine runs. The service connects over the socket (falling back to direct stdin/stdout spawn when no socket is installed, e.g. in development), and the helper enforces the configured list ID either way. The service owns validation, planning, connector scopes, approval state, routine locks, and audit records. Claude and Codex skills call this same local authority; they do not independently reimplement Jira or scheduling logic.
 
 ## Local dashboard and API
 

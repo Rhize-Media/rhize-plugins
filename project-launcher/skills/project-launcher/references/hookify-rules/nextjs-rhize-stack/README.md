@@ -5,7 +5,7 @@ Reusable hookify rules tuned for Rhize's Next.js + Supabase + Sanity tech stack.
 ## Prerequisites
 
 - The `hookify` plugin (or `claude-plugins-official:hookify`) must be installed and enabled in the target project. It's what reads `.claude/hookify.*.local.md` and runs the rules.
-- For the PR-review rule: `/rhize-review` (preferred — prod merge-gate orchestrator), with `pr-review-toolkit:review-pr`, `code-review:code-review`, or `review` as fallback.
+- For the PR-review rule: `/rhize-devflow:review` (preferred — prod merge-gate orchestrator), with `pr-review-toolkit:review-pr`, `code-review:code-review`, or `review` as fallback.
 - For skill-hint rules: `sanity-plugin:*`, `seo-aeo-geo:*` (already in Rhize plugin set).
 
 ## The Rules

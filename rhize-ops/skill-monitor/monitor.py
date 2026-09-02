@@ -43,6 +43,7 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 import git_sync
+import paths
 
 HOME = Path.home()
 CLAUDE_PROJECTS = HOME / ".claude" / "projects"
@@ -52,29 +53,18 @@ COWORK_SESSIONS_ROOT = (
 COWORK_SESSION_META = (
     HOME / "Library" / "Application Support" / "Claude" / "claude-code-sessions"
 )
-DEFAULT_VAULT_REPORT_DIR = (
-    HOME
-    / "Library"
-    / "Mobile Documents"
-    / "iCloud~md~obsidian"
-    / "Documents"
-    / "Obsidian Vault"
-    / "Projects"
-    / "Rhize Media"
-    / "Rhize Tools"
-    / "Scheduled Agent Routines & Automations"
-    / "Skill-Audit-and-Monitoring"
-    / "weekly-reports"
-)
-SCRIPT_DIR = Path(__file__).resolve().parent
-DEFAULT_JSON_OUT = SCRIPT_DIR / "data" / "skill-usage.json"
-SNAPSHOTS_DIR = SCRIPT_DIR / "data" / "snapshots"
+# None when no single vault could be resolved (see paths.vault_root()) — the
+# --report-dir flag then has no usable default and main() skips the vault
+# write with a clear message instead of crashing.
+DEFAULT_VAULT_REPORT_DIR = paths.vault_report_dir("weekly-reports")
+DEFAULT_JSON_OUT = paths.data_dir() / "skill-usage.json"
+SNAPSHOTS_DIR = paths.snapshots_dir()
 
 # Skill-map Phase 3 (local overlay) consumer: scripts/build_local_skill_map.py
 # reads this snapshot to derive `usage-cooccurs` edges. Counts only — no
 # prompt text, no project paths, no per-event timestamps (see
 # build_cooccurrence()'s docstring for the privacy contract).
-DEFAULT_COOCCURRENCE_OUT = SCRIPT_DIR / "data" / "skill-cooccurrence.json"
+DEFAULT_COOCCURRENCE_OUT = paths.data_dir() / "skill-cooccurrence.json"
 
 # The canonical weekly cadence. Reports for this window keep the plain
 # `YYYY-MM-DD-skill-usage.md` filename; all other windows are suffixed with
@@ -1192,8 +1182,12 @@ def main() -> int:
                     help=("Cowork desktop-app sessions root. "
                           "Pass empty string to disable. "
                           f"default: {COWORK_SESSIONS_ROOT}"))
-    ap.add_argument("--report-dir", default=str(DEFAULT_VAULT_REPORT_DIR),
-                    help="where to write the markdown report (default: Obsidian vault)")
+    ap.add_argument("--report-dir",
+                    default=str(DEFAULT_VAULT_REPORT_DIR) if DEFAULT_VAULT_REPORT_DIR else None,
+                    help=("where to write the markdown report (default: the "
+                          "Obsidian vault, if exactly one is configured — see "
+                          "paths.vault_root(); omit or pass --report-dir to "
+                          "write elsewhere)"))
     ap.add_argument("--json-out", default=str(DEFAULT_JSON_OUT),
                     help=f"default: {DEFAULT_JSON_OUT}")
     ap.add_argument("--cooccurrence-out", default=str(DEFAULT_COOCCURRENCE_OUT),
@@ -1213,7 +1207,7 @@ def main() -> int:
 
     projects_root = Path(args.projects_dir).expanduser()
     cowork_root = Path(args.cowork_dir).expanduser() if args.cowork_dir else None
-    report_dir = Path(args.report_dir).expanduser()
+    report_dir = Path(args.report_dir).expanduser() if args.report_dir else None
     json_out = Path(args.json_out).expanduser()
     since = args.days if args.days and args.days > 0 else None
 
@@ -1395,19 +1389,29 @@ def main() -> int:
     # reference. Any other window (28d, all-time, custom) gets the same
     # -{window_tag} suffix the snapshot uses, so a same-day rerun (e.g. the
     # 4th-Monday `--days 28` pass) can't clobber the weekly report.
-    report_dir.mkdir(parents=True, exist_ok=True)
-    report_stem = f"{datetime.now().strftime('%Y-%m-%d')}-skill-usage"
-    if since != WEEKLY_WINDOW_DAYS:
-        report_stem += f"-{window_tag}"
-    md_path = report_dir / f"{report_stem}.md"
-    md_path.write_text(md)
+    md_path = None
+    if report_dir is None:
+        print(
+            "  ! no --report-dir given and no single Obsidian vault could be "
+            "resolved (see paths.vault_root()) — skipping the markdown report "
+            "write.",
+            file=sys.stderr,
+        )
+    else:
+        report_dir.mkdir(parents=True, exist_ok=True)
+        report_stem = f"{datetime.now().strftime('%Y-%m-%d')}-skill-usage"
+        if since != WEEKLY_WINDOW_DAYS:
+            report_stem += f"-{window_tag}"
+        md_path = report_dir / f"{report_stem}.md"
+        md_path.write_text(md)
 
     # Self-sync: commit + push the new snapshot so the tree can't drift again.
     git_sync.commit_and_push_snapshots()
 
     print(f"  ✓ JSON written  → {json_out}")
     print(f"  ✓ Snapshot      → {snap_path}")
-    print(f"  ✓ Markdown report → {md_path}")
+    if md_path is not None:
+        print(f"  ✓ Markdown report → {md_path}")
     print(
         f"  ✓ Co-occurrence  → {cooccurrence_out} "
         f"({len(cooccurrence['pairs'])} pairs, "

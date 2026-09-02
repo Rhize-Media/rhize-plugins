@@ -14,8 +14,10 @@ Five local data sources:
      assume a shared schema; it reports each note's own header verbatim.
   2. `~/.rhize/procedural-memory/runs/*.jsonl` run telemetry (streamed, never
      loaded wholesale).
-  3. `~/dev-local/RHIZE/procedural-memory/registry/.health/**/*.json` health
-     sidecars — the OFFLINE-AUTHORITATIVE health record. Deliberately does NOT
+  3. `<procedural-memory repo>/registry/.health/**/*.json` health sidecars
+     (the procedural-memory repo is found by basename among the configured
+     RHIZE_REPO_ROOTS — see paths.py) — the OFFLINE-AUTHORITATIVE health
+     record. Deliberately does NOT
      read `health` out of `*.provenance.json` (that field is stale there by
      design — health is excluded from the digest-hashed provenance document).
   4. Scheduler state: `~/.claude/scheduled-tasks/*/` (Claude Code CLI scheduler
@@ -67,6 +69,8 @@ from typing import Any
 from urllib import parse, request
 from zoneinfo import ZoneInfo
 
+import paths
+
 HOME = Path.home()
 BENCHMARK_TIMEZONE = ZoneInfo("America/New_York")
 # Timestamped, run-bound benchmark receipts shipped with the capture reliability
@@ -79,32 +83,47 @@ RECEIPT_ENFORCEMENT_STARTED_AT = datetime.fromisoformat(
 
 # --- Data source locations -------------------------------------------------
 
+# None when no single vault could be resolved (see paths.vault_root()) —
+# BENCHMARK_NOTES then becomes {} (nothing to check), matching how this
+# module already treats a note that doesn't exist on this machine.
+_vault_root = paths.vault_root()
 _VAULT_ROOT = (
-    HOME
-    / "Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault"
-    / "Projects/Rhize Media/Rhize Tools"
+    (_vault_root / "Projects/Rhize Media/Rhize Tools") if _vault_root else None
 )
-_SCHEDULED_ROUTINES_DIR = _VAULT_ROOT / "Scheduled Agent Routines & Automations"
+_SCHEDULED_ROUTINES_DIR = (
+    (_VAULT_ROOT / "Scheduled Agent Routines & Automations") if _VAULT_ROOT else None
+)
 
-BENCHMARK_NOTES: dict[str, Path] = {
-    "Vault Inbox Processor": _SCHEDULED_ROUTINES_DIR
-    / "Vault Inbox Processor"
-    / "Procedural Memory Benchmark.md",
-    "AI-Stack-Version-Drift": _SCHEDULED_ROUTINES_DIR
-    / "AI-Stack-Version-Drift"
-    / "Procedural Memory Benchmark.md",
-    "Daily Completed Summary": _SCHEDULED_ROUTINES_DIR
-    / "Daily Completed Summary"
-    / "Procedural Memory Benchmark.md",
-    "Content Engine": _VAULT_ROOT / "Content Engine" / "Procedural Memory Benchmark.md",
-}
+BENCHMARK_NOTES: dict[str, Path] = (
+    {
+        "Vault Inbox Processor": _SCHEDULED_ROUTINES_DIR
+        / "Vault Inbox Processor"
+        / "Procedural Memory Benchmark.md",
+        "AI-Stack-Version-Drift": _SCHEDULED_ROUTINES_DIR
+        / "AI-Stack-Version-Drift"
+        / "Procedural Memory Benchmark.md",
+        "Daily Completed Summary": _SCHEDULED_ROUTINES_DIR
+        / "Daily Completed Summary"
+        / "Procedural Memory Benchmark.md",
+        "Content Engine": _VAULT_ROOT / "Content Engine" / "Procedural Memory Benchmark.md",
+    }
+    if _VAULT_ROOT
+    else {}
+)
 
 RUNS_DIR = HOME / ".rhize" / "procedural-memory" / "runs"
-HEALTH_DIR = HOME / "dev-local" / "RHIZE" / "procedural-memory" / "registry" / ".health"
+# The procedural-memory repo's health dir is found by basename among the
+# configured RHIZE_REPO_ROOTS (see paths.py); None when that repo isn't
+# configured — load_health_sidecars() then reports "unavailable" rather than
+# assuming ~/dev-local/RHIZE/procedural-memory exists.
+_procedural_memory_repo = paths.repo_root("procedural-memory")
+HEALTH_DIR = (
+    (_procedural_memory_repo / "registry" / ".health") if _procedural_memory_repo else None
+)
 SCHEDULED_TASKS_DIR = HOME / ".claude" / "scheduled-tasks"
 DESKTOP_SESSIONS_ROOT = HOME / "Library" / "Application Support" / "Claude" / "local-agent-mode-sessions"
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR = paths.data_dir()
 OUTPUT_PATH = DATA_DIR / "benchmark-status.json"
 BENCHMARK_RECEIPTS_DIR = HOME / ".rhize" / "procedural-memory" / "benchmark-receipts"
 SENTRY_KEYCHAIN_SERVICE = "Rhize Agent Evals Sentry DSN"
@@ -830,11 +849,15 @@ def load_run_telemetry(runs_dir: Path = RUNS_DIR) -> dict[str, Any]:
 # --- 3. Health sidecars -------------------------------------------------------
 
 
-def load_health_sidecars(health_dir: Path = HEALTH_DIR) -> dict[str, Any]:
+def load_health_sidecars(health_dir: Path | None = HEALTH_DIR) -> dict[str, Any]:
     """Read every health_dir/**/*.json sidecar. This is the offline-authoritative
     health record — deliberately NOT the (stale) health field inside
     *.provenance.json."""
     result: dict[str, Any] = {"available": True, "error": None, "artifacts": {}}
+    if health_dir is None:
+        result["available"] = False
+        result["error"] = "procedural-memory repo not configured (see RHIZE_REPO_ROOTS)"
+        return result
     if not health_dir.exists():
         result["available"] = False
         result["error"] = f"health dir not found: {health_dir}"
@@ -1176,7 +1199,7 @@ def run_context_capture_health(
 def build_snapshot(
     notes: dict[str, Path] = BENCHMARK_NOTES,
     runs_dir: Path = RUNS_DIR,
-    health_dir: Path = HEALTH_DIR,
+    health_dir: Path | None = HEALTH_DIR,
     scheduled_tasks_dir: Path = SCHEDULED_TASKS_DIR,
     sessions_root: Path = DESKTOP_SESSIONS_ROOT,
     receipts_dir: Path = BENCHMARK_RECEIPTS_DIR,

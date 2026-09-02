@@ -15,6 +15,7 @@ description: >
   or any request to scaffold a structured note.
 metadata:
   rhize:
+    summary: "Provides ready-made note templates for meetings, book reviews, project briefs, and more."
     topics: [content-authoring, knowledge-management]
     stacks: [obsidian]
 

@@ -1,6 +1,8 @@
 # Roadmap
 
-Tracked enhancements and future ideas for the Rhize Plugins marketplace.
+Tracked enhancements and future ideas for the Rhize Plugins marketplace. Some items reference
+`RT-###` numbers — Rhize's internal Jira ticket IDs, useful for maintainers but not something you
+need to look up to understand the item.
 
 ## Backlog
 

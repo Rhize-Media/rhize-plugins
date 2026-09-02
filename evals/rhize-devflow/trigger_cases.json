@@ -226,6 +226,24 @@
     "should_trigger": true
   },
   {
+    "id": "trigger-review-pos-before-merge",
+    "target": "command:review",
+    "prompt": "Can you do a review before merge on this branch?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-review-pos-safe-to-ship",
+    "target": "command:review",
+    "prompt": "Is this safe to ship to production?",
+    "should_trigger": true
+  },
+  {
+    "id": "trigger-review-pos-production-code-review",
+    "target": "command:review",
+    "prompt": "I need a production code review before we merge this PR.",
+    "should_trigger": true
+  },
+  {
     "id": "trigger-review-neg-resume-feedback",
     "target": "command:review",
     "prompt": "Can you give me general feedback on my resume?",

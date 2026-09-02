@@ -141,21 +141,17 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+import paths
+
 HOME = Path.home()
-SCRIPT_DIR = Path(__file__).resolve().parent
-DATA_DIR = SCRIPT_DIR / "data"
-DEFAULT_OUT_PATH = DATA_DIR / "recurrence.json"
+DEFAULT_OUT_PATH = paths.data_dir() / "recurrence.json"
 
 DEFAULT_PROJECTS_DIR = HOME / ".claude" / "projects"
 
-# The 4 repos named in the brief — each has a CLAUDE.md with one or more
-# "## Headroom Learned Patterns" sections. Verified inputs; not re-derived.
-DEFAULT_REPOS: dict[str, Path] = {
-    "rhize-plugins": HOME / "dev-local" / "RHIZE" / "rhize-plugins",
-    "content-flywheel": HOME / "dev-local" / "RHIZE" / "content-flywheel",
-    "rhize-infra": HOME / "dev-local" / "RHIZE" / "rhize-infra",
-    "seo-report-automation": HOME / "dev-local" / "RHIZE" / "seo-report-automation",
-}
+# Each configured repo root (RHIZE_REPO_ROOTS — see paths.py) is a candidate:
+# any repo with a CLAUDE.md carrying one or more "## Headroom Learned
+# Patterns" sections is measured. [] configured -> {} (nothing measured).
+DEFAULT_REPOS: dict[str, Path] = {root.name: root for root in paths.repo_roots()}
 
 MIN_SESSIONS_PER_SIDE_DEFAULT = 3
 MIN_SIGNATURE_LEN = 4

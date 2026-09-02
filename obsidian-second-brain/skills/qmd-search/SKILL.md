@@ -14,6 +14,7 @@ description: >
   "find similar notes", or "natural language vault search".
 metadata:
   rhize:
+    summary: "Sets up and troubleshoots local semantic search over your Obsidian vault using qmd."
     topics: [search, knowledge-management]
     stacks: [obsidian]
     dependsOn: ["mcp:qmd"]

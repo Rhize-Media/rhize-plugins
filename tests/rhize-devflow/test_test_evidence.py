@@ -372,6 +372,79 @@ def test_labeled_corpus_records_contract_and_oracle_rationale():
     assert all(item["claimed_contract"] and item["oracle_rationale"] for item in labels)
 
 
+def test_default_output_path_has_expected_shape(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = repository(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    default = test_evidence.default_output_path(repo)
+    sha = git(repo, "rev-parse", "HEAD")
+    assert default == tmp_path / "home" / ".rhize" / "test-evidence" / "packets" / f"repo-{sha[:12]}.json"
+
+
+def test_repo_slug_lowercases_and_replaces_non_alphanumerics(tmp_path: Path):
+    repo = tmp_path / "My Cool_Repo!!"
+    repo.mkdir()
+    assert test_evidence.repo_slug(repo) == "my-cool-repo--"
+
+
+def test_default_output_used_when_flag_omitted(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    repo = repository(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec(repo)))
+    code = test_evidence.main([
+        "run", "--repo", str(repo), "--spec", str(spec_path),
+    ])
+    assert code == 0
+    default = test_evidence.default_output_path(repo)
+    assert default.is_file()
+    captured = capsys.readouterr()
+    assert str(default) in captured.err
+    result = json.loads(captured.out)
+    assert result["verdict"] == "execution_unavailable"
+
+
+def test_default_output_directories_and_file_permissions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = repository(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec(repo)))
+    assert test_evidence.main(["run", "--repo", str(repo), "--spec", str(spec_path)]) == 0
+    default = test_evidence.default_output_path(repo)
+    assert (default.stat().st_mode & 0o777) == 0o600
+    for directory in (default.parent, default.parent.parent, default.parent.parent.parent):
+        assert (directory.stat().st_mode & 0o777) == 0o700
+
+
+def test_default_output_never_overwrites_existing_packet(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    repo = repository(tmp_path)
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec(repo)))
+    args = ["run", "--repo", str(repo), "--spec", str(spec_path)]
+    assert test_evidence.main(args) == 0
+    default = test_evidence.default_output_path(repo)
+    before = default.read_text()
+    assert test_evidence.main(args) == 2
+    captured = capsys.readouterr()
+    assert "--output" in captured.err
+    assert default.read_text() == before
+
+
+def test_explicit_output_flag_still_honored(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    repo = repository(tmp_path)
+    unused_home = tmp_path / "unused-home"
+    monkeypatch.setenv("HOME", str(unused_home))
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(json.dumps(spec(repo)))
+    output_path = tmp_path / "custom" / "packet.json"
+    code = test_evidence.main([
+        "run", "--repo", str(repo), "--spec", str(spec_path), "--output", str(output_path),
+    ])
+    assert code == 0
+    assert output_path.is_file()
+    assert not (unused_home / ".rhize").exists()
+
+
 def test_claude_and_codex_share_the_canonical_test_evidence_skill():
     skill = (REPO / "rhize-devflow/skills/test-evidence/SKILL.md").read_text()
     command = (REPO / "rhize-devflow/commands/test-evidence.md").read_text()

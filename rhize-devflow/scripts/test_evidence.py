@@ -480,13 +480,44 @@ def validate_packet(raw: Any, repo: Path) -> dict[str, Any]:
     return {"valid": True, "packet_verdict": packet["verdict"], "review_verdict": review_verdict, "stale": stale}
 
 
+def repo_slug(repo: Path) -> str:
+    """Lowercase the repo directory name and map every non-alphanumeric char to '-'."""
+    name = repo.resolve().name.lower()
+    slug = "".join(char if char.isalnum() else "-" for char in name)
+    return slug or "repo"
+
+
+def default_output_path(repo: Path) -> Path:
+    """Default packet location when --output is omitted: ~/.rhize/test-evidence/packets/."""
+    return Path.home() / ".rhize/test-evidence/packets" / f"{repo_slug(repo)}-{head_sha(repo)[:12]}.json"
+
+
+def ensure_private_dir(path: Path) -> None:
+    """Create every missing directory in the chain with mode 0700, rejecting symlinks."""
+    reject_symlink_components(path, "output")
+    if not path.exists():
+        ensure_private_dir(path.parent)
+        path.mkdir(mode=0o700, exist_ok=True)
+
+
+def resolve_output_path(output: Path | None, repo: Path) -> Path:
+    if output is not None:
+        return output
+    default = default_output_path(repo)
+    if default.exists():
+        raise EvidenceError(f"packet already exists at {default}; pass --output to write elsewhere")
+    ensure_private_dir(default.parent)
+    print(f"test-evidence packet: {default}", file=sys.stderr)
+    return default
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     sub = result.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run")
     run.add_argument("--repo", type=Path, required=True)
     run.add_argument("--spec", type=Path, required=True)
-    run.add_argument("--output", type=Path, required=True)
+    run.add_argument("--output", type=Path, default=None)
     run.add_argument("--lease-root", type=Path, default=Path.home() / ".rhize/test-evidence/leases")
     validate = sub.add_parser("validate")
     validate.add_argument("--repo", type=Path, required=True)
@@ -504,10 +535,11 @@ def main(argv: list[str] | None = None) -> int:
             raise EvidenceError("repo is not a Git repository")
         if args.command == "run":
             spec = validate_spec(read_json_file(args.spec, "spec"), repo)
-            output = run_evidence(repo, spec, args.output, args.lease_root)
+            output_path = resolve_output_path(args.output, repo)
+            result = run_evidence(repo, spec, output_path, args.lease_root)
         else:
-            output = validate_packet(read_json_file(args.packet, "packet"), repo)
-        print(json.dumps(output, indent=2, sort_keys=True))
+            result = validate_packet(read_json_file(args.packet, "packet"), repo)
+        print(json.dumps(result, indent=2, sort_keys=True))
         return 0
     except (OSError, json.JSONDecodeError, EvidenceError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

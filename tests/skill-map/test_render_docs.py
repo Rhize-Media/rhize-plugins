@@ -41,7 +41,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 RENDER_SCRIPT = REPO_ROOT / "scripts" / "render_skill_map_docs.py"
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 
-MANAGED_FILES = [REPO_ROOT / "README.md", REPO_ROOT / "generated" / "SKILL-CATALOG.md"]
+MANAGED_FILES = [
+    REPO_ROOT / "README.md",
+    REPO_ROOT / "generated" / "SKILL-CATALOG.md",
+    REPO_ROOT / "docs" / "README.md",
+]
 
 
 def _plugin_readmes() -> list[Path]:
@@ -77,6 +81,7 @@ def _materialize_inputs(root: Path) -> list[Path]:
         Path("generated") / "SKILL-CATALOG.md",
         Path(".claude-plugin") / "marketplace.json",
         Path("README.md"),
+        Path("docs") / "README.md",
     ):
         dest = root / rel
         dest.parent.mkdir(parents=True, exist_ok=True)

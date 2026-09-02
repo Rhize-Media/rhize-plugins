@@ -6,11 +6,9 @@ This guide explains what the Obsidian Second Brain plugin does, how each piece w
 
 The plugin teaches Claude how to work with your Obsidian vault. Without it, Claude has no knowledge of Obsidian's syntax, file formats, or CLI. With it, Claude can create properly-formatted notes, build database views, design visual canvases, clip web content, automate vault operations from the terminal, and answer questions about Obsidian's features with accurate, up-to-date information.
 
-The plugin contains two types of components:
-
-**Skills** are reference knowledge that Claude loads automatically when your request matches certain trigger phrases. You don't invoke them directly — Claude reads them behind the scenes to produce better output. Think of skills as "expertise modules."
-
-**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/vault-search`). They execute a specific workflow using your connected tools (Obsidian MCP Server, CLI, or both).
+The plugin contains two types of components, skills and commands (invoked explicitly with a
+slash prefix, e.g. `/vault-search`) — see [START-HERE.md's glossary](../START-HERE.md#7-glossary)
+if those terms are new to you.
 
 ## Prerequisites
 
@@ -91,6 +89,32 @@ The Defuddle CLI must be installed globally: `npm install -g defuddle`. This is 
 - For batch operations, ask "save all these URLs as separate notes" — it will loop through them using the `defuddle → obsidian create` pipeline.
 - The `--md` flag gets markdown output; `-p title` extracts just the page title (useful for auto-naming notes).
 
+### second-brain
+
+**When it activates:** You mention knowledge management methodology, Zettelkasten, PARA, MOCs, Maps of Content, progressive summarization, atomic notes, evergreen notes, fleeting notes, literature notes, permanent notes, or ask how to organize your vault as a second brain.
+
+**What it knows:** The major PKM methodologies — Zettelkasten note types and processing workflows, PARA folder organization by actionability, Maps of Content design principles, progressive summarization layers, and atomic note standards. It also knows when to recommend each approach and how to combine them.
+
+**How to use it effectively:**
+
+- Ask "how should I organize my vault?" — it will recommend an approach based on your goals.
+- Ask "create a MOC for my machine learning notes" — it will build a curated map with grouped links and open questions.
+- Ask "help me process this article into permanent notes" — it will walk you through the Zettelkasten workflow.
+- Ask "should I use PARA or Zettelkasten?" — it will explain the tradeoffs and suggest a hybrid if appropriate.
+
+### vault-templates
+
+**When it activates:** You ask to create a specific type of note (meeting notes, book review, project brief, weekly review), want a template for a recurring note type, or ask about frontmatter conventions for different note types.
+
+**What it knows:** Proven note archetypes with complete frontmatter schemas, section structures, and linking conventions — meeting notes, literature notes, project briefs, weekly reviews, permanent/evergreen notes, daily note sections, and person/contact notes.
+
+**How to use it effectively:**
+
+- Ask "create a meeting note for today's standup" — it will scaffold the full template with attendees, decisions, and action items sections.
+- Ask "set up a book review template" — it will create a literature note structure with progressive summarization support.
+- Ask "what properties should a project note have?" — it will recommend the frontmatter schema.
+- The skill adapts to your existing conventions — it checks your vault for existing patterns before applying templates.
+
 ## Commands Reference
 
 ### knowledge-compiler and /vault-compile
@@ -111,13 +135,15 @@ The workflow has four user-facing modes:
   reporting. It never authors a new synthesis.
 - `rebuild` creates another preview; it never applies automatically.
 
-First, create an explicit project config from the disabled template printed by
-`python3 scripts/compiled_knowledge.py init-config --vault-root /approved/vault`. Create the listed
-source and output directories, replace every project/operator placeholder, and keep every automatic
-or graph adapter gate false. `qmd_enabled` must also remain false: qmd does not consume compiler ACL,
-freshness, retention, or purge decisions in this release. Keep both the compiler output and private
-state roots outside qmd collections. Then register an already captured note with its real ACL, local
-egress, and retention class. Do not reuse a source id after a privacy purge.
+First, generate a starter config with `python3 scripts/compiled_knowledge.py init-config
+--vault-root /approved/vault` — it prints a template with everything disabled by default, so
+nothing runs until you deliberately turn it on. Fill in your project's real directories and access
+rules — who can read it, where it's allowed to live, how long it's kept — and leave `qmd_enabled`
+set to false: qmd can't yet respect this compiler's access and retention rules, so turning it on
+would let compiled content leak into a search index those rules don't cover. See the
+[README](./README.md#evidence-bound-compiled-knowledge) for exactly what each config field means.
+Then register an already-captured note against that config. Once a source has gone through a
+privacy purge, don't reuse its id.
 
 The compiler may report prompt-like text in a source as an inert-content finding. That text is not
 executed or copied into policy: proposals accept only page, claim, citation, link, and contradiction
@@ -134,9 +160,9 @@ Scheduled compilation, automatic apply, context injection, Graphify, and Neo4j p
 available in this release. A legal/privacy purge is a separate explicit operation requiring the exact
 `source_id:revision_hash`; it removes compiler-owned payloads and records only a non-sensitive
 tombstone. Purged status is committed only after private snapshots and derived payloads are gone.
-The receipt's `rawSourceRetained` boolean records whether the canonical human source note still
-existed at the terminal purge boundary. The compiler never deletes that source, but it does not
-claim retention when another actor removed it first.
+After a purge, the receipt tells you plainly whether your original note is still there — the
+compiler itself never deletes your source note, but it won't falsely claim it's still there if
+something else deleted it first.
 
 ### /vault-search
 
@@ -174,50 +200,6 @@ Works with your daily note. The CLI resolves the correct daily note automaticall
 - `/vault-daily yesterday` — read yesterday's note
 - `/vault-daily path` — show where the daily note file lives on disk
 
-## How the Skills Work Together
-
-The skills are designed to cross-reference each other rather than operate in isolation. Here's how they connect:
-
-**Markdown + CLI:** The markdown skill teaches Claude the correct syntax for notes, and the CLI skill teaches it how to execute operations. When you ask "create a note with callouts and tags for my meeting notes," Claude uses markdown knowledge to format the content correctly and CLI knowledge to run `obsidian create` and `obsidian properties:set`.
-
-**Bases + CLI:** The bases skill teaches the `.base` file format, and the CLI skill provides the commands to populate the data. When you ask "set up a project tracker," Claude creates the `.base` file AND can use `obsidian properties:set` in a loop to add frontmatter to your existing notes so they appear in the base view.
-
-**Defuddle + CLI + Markdown:** When you clip web content, Defuddle extracts it, the CLI saves it to a note, and the markdown skill ensures the resulting note has proper frontmatter, tags, and formatting.
-
-**Commands use everything:** Each slash command draws on multiple skills. `/vault-capture` uses markdown formatting, CLI execution, and Defuddle extraction depending on what you're capturing.
-
-**Second Brain + Templates + Everything:** The second-brain skill provides the *methodology* (Zettelkasten, PARA, MOCs, progressive summarization) while vault-templates provides the *structures*. When you ask "create a literature note for this book," Claude uses second-brain methodology to decide the note type, vault-templates for the structure, markdown for the formatting, and CLI to create it. The new commands compose these skills: `/vault-research` uses defuddle + second-brain + templates + CLI to run a full research pipeline. `/vault-connect` uses second-brain's linking philosophy to make intelligent connection suggestions. `/vault-review` uses second-brain's periodic review patterns to surface what needs attention.
-
-## Skills Reference (New)
-
-### second-brain
-
-**When it activates:** You mention knowledge management methodology, Zettelkasten, PARA, MOCs, Maps of Content, progressive summarization, atomic notes, evergreen notes, fleeting notes, literature notes, permanent notes, or ask how to organize your vault as a second brain.
-
-**What it knows:** The major PKM methodologies — Zettelkasten note types and processing workflows, PARA folder organization by actionability, Maps of Content design principles, progressive summarization layers, and atomic note standards. It also knows when to recommend each approach and how to combine them.
-
-**How to use it effectively:**
-
-- Ask "how should I organize my vault?" — it will recommend an approach based on your goals.
-- Ask "create a MOC for my machine learning notes" — it will build a curated map with grouped links and open questions.
-- Ask "help me process this article into permanent notes" — it will walk you through the Zettelkasten workflow.
-- Ask "should I use PARA or Zettelkasten?" — it will explain the tradeoffs and suggest a hybrid if appropriate.
-
-### vault-templates
-
-**When it activates:** You ask to create a specific type of note (meeting notes, book review, project brief, weekly review), want a template for a recurring note type, or ask about frontmatter conventions for different note types.
-
-**What it knows:** Proven note archetypes with complete frontmatter schemas, section structures, and linking conventions — meeting notes, literature notes, project briefs, weekly reviews, permanent/evergreen notes, daily note sections, and person/contact notes.
-
-**How to use it effectively:**
-
-- Ask "create a meeting note for today's standup" — it will scaffold the full template with attendees, decisions, and action items sections.
-- Ask "set up a book review template" — it will create a literature note structure with progressive summarization support.
-- Ask "what properties should a project note have?" — it will recommend the frontmatter schema.
-- The skill adapts to your existing conventions — it checks your vault for existing patterns before applying templates.
-
-## Commands Reference (New)
-
 ### /vault-research
 
 **Usage:** `/vault-research <url or topic>`
@@ -253,6 +235,20 @@ Periodic review that summarizes recent vault activity, surfaces patterns, and fl
 - `/vault-review` or `/vault-review daily`
 - `/vault-review weekly`
 - `/vault-review monthly`
+
+## How the Skills Work Together
+
+The skills are designed to cross-reference each other rather than operate in isolation. Here's how they connect:
+
+**Markdown + CLI:** The markdown skill teaches Claude the correct syntax for notes, and the CLI skill teaches it how to execute operations. When you ask "create a note with callouts and tags for my meeting notes," Claude uses markdown knowledge to format the content correctly and CLI knowledge to run `obsidian create` and `obsidian properties:set`.
+
+**Bases + CLI:** The bases skill teaches the `.base` file format, and the CLI skill provides the commands to populate the data. When you ask "set up a project tracker," Claude creates the `.base` file AND can use `obsidian properties:set` in a loop to add frontmatter to your existing notes so they appear in the base view.
+
+**Defuddle + CLI + Markdown:** When you clip web content, Defuddle extracts it, the CLI saves it to a note, and the markdown skill ensures the resulting note has proper frontmatter, tags, and formatting.
+
+**Commands use everything:** Each slash command draws on multiple skills. `/vault-capture` uses markdown formatting, CLI execution, and Defuddle extraction depending on what you're capturing.
+
+**Second Brain + Templates + Everything:** The second-brain skill provides the *methodology* (Zettelkasten, PARA, MOCs, progressive summarization) while vault-templates provides the *structures*. When you ask "create a literature note for this book," Claude uses second-brain methodology to decide the note type, vault-templates for the structure, markdown for the formatting, and CLI to create it. `/vault-research` uses defuddle + second-brain + templates + CLI to run a full research pipeline. `/vault-connect` uses second-brain's linking philosophy to make intelligent connection suggestions. `/vault-review` uses second-brain's periodic review patterns to surface what needs attention.
 
 ## Setup & Alignment
 
@@ -331,7 +327,7 @@ qmd collection; keep the compiled output root unindexed until an ACL-aware qmd a
 
 Get the key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key. See the README's Connectors section for the full resolution order.
 
-**Every MCP tool returns `Not found: /<something>/` even though the API is up:** `OBSIDIAN_BASE_URL` has a trailing slash. `obsidian-mcp-server` joins the base URL and the path by plain string concatenation, so `https://127.0.0.1:27124/` + `/tags/` becomes `https://127.0.0.1:27124//tags/`, and the Local REST API returns `404` for the doubled path. The error message prints the *single-slash* path, so it reads like a missing note rather than a malformed URL. Fixed in the bundled `.mcp.json` as of 1.4.1 — if you overrode `OBSIDIAN_BASE_URL` yourself, drop the trailing slash. Quick check: `curl -k -H "Authorization: Bearer $KEY" https://127.0.0.1:27124//tags/` returns 404 while `.../tags/` returns 200.
+**Every MCP tool returns `Not found: /<something>/` even though the API is up:** `OBSIDIAN_BASE_URL` has a trailing slash. `obsidian-mcp-server` joins the base URL and the path by plain string concatenation, so `https://127.0.0.1:27124/` + `/tags/` becomes `https://127.0.0.1:27124//tags/`, and the Local REST API returns `404` for the doubled path. The error message prints the *single-slash* path, so it reads like a missing note rather than a malformed URL. The bundled `.mcp.json` already ships without the trailing slash — if you overrode `OBSIDIAN_BASE_URL` yourself, drop the trailing slash there too. Quick check: `curl -k -H "Authorization: Bearer $KEY" https://127.0.0.1:27124//tags/` returns 404 while `.../tags/` returns 200.
 
 **CLI commands return "command not found":** The CLI hasn't been registered. Open Obsidian → Settings → General → CLI → Register. Then restart your terminal.
 

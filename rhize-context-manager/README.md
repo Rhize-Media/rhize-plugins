@@ -97,12 +97,34 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/graph-memory` | Thin Claude adapter to the shared `graph-memory` CLI (`scripts/graph_memory/cli.py`). Defaults to `validate`, then offers a private `preview`. Never invokes `graphify export neo4j`, arbitrary Cypher, a Neo4j driver, or a live database this release; a live canary and restore rehearsal are deferred to a future release (tracked internally as RT-159). |
 | `/graph-memory-review` | Thin Claude adapter to the shared `graph-memory hygiene` capability CLI. In-process contracts enforce actor-effective ACL lanes (`review ∩ actor`) so broader actor grants cannot widen a narrow review; every stateful operation remains structured `unavailable` until the hygiene domain owns a private-state adapter. |
 | `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until a future release (tracked internally as RT-161). |
+| `/suggestion-report` | Read-only acceptance-rate report over the shared suggestion log: per-hook suggested/accepted/ignored/ext-unjoin counts and accept%, router silence samples, and the agent-dispatch named-rate/candidate-miss-rate section (with a `by_agent_type` breakdown). Thin adapter over `scripts/suggestion_log_report.py`. |
 
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
 2026-08-04 (they had drifted behind: `commands/` had gained frontmatter, a verifier-
 subagent step in `/done`, and a `STATE.md` update step that the skill-side copies
 lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` originals.
+
+### Scripts shipped with the plugin (`rhize-context-manager/scripts/`)
+
+Two skill-map scripts moved in from the repo root (2026-09-02, R3 task 8 of the
+portability-readiness plan) so they ship with the plugin instead of depending on a
+dev checkout:
+
+- **`suggestion_log_report.py`** — the acceptance-rate report behind `/suggestion-report`
+  above; also runnable directly (`python3 rhize-context-manager/scripts/
+  suggestion_log_report.py`).
+- **`build_local_skill_map.py`** — builds the machine-local overlay and resolved skill
+  map (`skill-map.local.json`, `skill-map.resolved.json`, `skill-map.indexes.resolved.json`
+  under `~/.claude/context-manager/`) from the committed static artifact plus optional
+  machine-local inputs (enabled plugins, stack config, skill-monitor co-occurrence data,
+  third-party plugin inventory). A future rhize-ops setup orchestrator's
+  `install-skill-map` step calls this script to build the overlay for installed users;
+  see `docs/skill-map.md` for the artifact shapes.
+
+Both scripts keep a two-line compatibility shim at their old repo-root `scripts/` path,
+so `python3 scripts/suggestion_log_report.py` and `python3 scripts/
+build_local_skill_map.py` still work — the shims forward to these copies unchanged.
 
 ### Harvest noise filter (`scripts/harvest_noise_filter.py`, repo root)
 

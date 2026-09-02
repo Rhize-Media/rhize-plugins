@@ -17,6 +17,7 @@ description: >
   Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.
 metadata:
   rhize:
+    summary: "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data."
     topics: [cms-development, content-optimization, seo-audit]
     stacks: [nextjs, sanity, seo]
 

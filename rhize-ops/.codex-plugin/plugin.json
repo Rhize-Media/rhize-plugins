@@ -1,7 +1,7 @@
 {
   "name": "rhize-ops",
-  "version": "0.15.2",
-  "description": "Operations skill set for delegation, hand-offs, team workflow automation, and privacy-safe parallel-agent optimization with ephemeral task-graph validation.",
+  "version": "0.16.0",
+  "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
   "author": {
     "name": "Rhize Media"
   },

@@ -34,15 +34,16 @@ from datetime import datetime
 from pathlib import Path
 
 import benchmark_status
+import paths
 import stack_metrics
 
-HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
-SNAPSHOTS_DIR = SCRIPT_DIR / "data" / "snapshots"
+SNAPSHOTS_DIR = paths.snapshots_dir()
+# Static plugin assets (template/source), not user data — stay repo-relative.
 COMPONENT_PATH = SCRIPT_DIR / "SkillDashboard.jsx"
 TEMPLATE_PATH = SCRIPT_DIR / "dashboard-template.html"
 KEEP_LIST_PATH = SCRIPT_DIR / "keep-list.yaml"
-CDN_CACHE_DIR = SCRIPT_DIR / "data" / "cdn-cache"
+CDN_CACHE_DIR = paths.cdn_cache_dir()
 
 # stack_metrics.py / benchmark_status.py write these pre-computed snapshots;
 # dashboard.py reads them (imported path constants, not a re-parse of their
@@ -54,7 +55,7 @@ BENCHMARK_STATUS_PATH = benchmark_status.OUTPUT_PATH
 # Cowork live-artifact panel (id "skill-audit-live"). The weekly-skill-audit
 # task renders this and calls update_artifact to keep the in-chat panel fresh.
 PANEL_TEMPLATE_PATH = SCRIPT_DIR / "panel-template.html"
-DEFAULT_PANEL_PATH = SCRIPT_DIR / "data" / "skill-audit-panel.html"
+DEFAULT_PANEL_PATH = paths.data_dir() / "skill-audit-panel.html"
 PANEL_DATA_MARKER = "/*__PANEL_DATA__*/"
 
 # Pinned CDN bundles loaded by dashboard-template.html. Versions are baked
@@ -70,20 +71,11 @@ _CDN_BUNDLES: list[str] = [
     "https://cdn.tailwindcss.com",
 ]
 
-DEFAULT_HTML_PATH = (
-    HOME
-    / "Library"
-    / "Mobile Documents"
-    / "iCloud~md~obsidian"
-    / "Documents"
-    / "Obsidian Vault"
-    / "Projects"
-    / "Rhize Media"
-    / "Rhize Tools"
-    / "Scheduled Agent Routines & Automations"
-    / "Skill-Audit-and-Monitoring"
-    / "dashboard.html"
-)
+# None when no single vault could be resolved (see paths.vault_root()) —
+# main() then requires an explicit --html-path instead of writing into a
+# vault it can't find.
+_vault_report_dir = paths.vault_report_dir("dashboard")
+DEFAULT_HTML_PATH = (_vault_report_dir / "dashboard.html") if _vault_report_dir else None
 
 
 def _snapshot_sort_key(p: Path) -> tuple[str, int]:
@@ -558,7 +550,10 @@ def render_panel(snapshots_dir: Path) -> str:
     template = PANEL_TEMPLATE_PATH.read_text()
     # Inject the live dashboard.html location as a copyable file:// URL so the
     # panel's "Copy dashboard path" button never goes stale on a vault reorg.
-    template = template.replace(DASH_URL_MARKER, _file_url(DEFAULT_HTML_PATH))
+    # No single vault resolved (paths.vault_root()) -> no default location to
+    # copy; the button gets a placeholder instead of a bogus "file://None".
+    dash_url = _file_url(DEFAULT_HTML_PATH) if DEFAULT_HTML_PATH else "(no vault configured — pass --html-path)"
+    template = template.replace(DASH_URL_MARKER, dash_url)
     data_json = json.dumps(build_panel_data(snapshots_dir), default=str)
     # Replace `/*__PANEL_DATA__*/<fallback literal>` up to the first `;` after
     # the marker's object. Simplest robust approach: swap the marker plus the
@@ -582,8 +577,11 @@ def main() -> int:
                     help=f"default: {SNAPSHOTS_DIR}")
     ap.add_argument("--keep-list", default=str(KEEP_LIST_PATH),
                     help=f"default: {KEEP_LIST_PATH}")
-    ap.add_argument("--html-path", default=str(DEFAULT_HTML_PATH),
-                    help=f"output path for --out html (default: {DEFAULT_HTML_PATH})")
+    ap.add_argument("--html-path",
+                    default=str(DEFAULT_HTML_PATH) if DEFAULT_HTML_PATH else None,
+                    help=("output path for --out html (default: the Obsidian "
+                          "vault, if exactly one is configured — see "
+                          "paths.vault_root(); required otherwise)"))
     ap.add_argument("--json-out", default="-",
                     help="output path for --out artifact JSX source ('-' = stdout, default)")
     ap.add_argument("--online", action="store_true",
@@ -619,6 +617,14 @@ def main() -> int:
         return 1
 
     if args.out == "html":
+        if not args.html_path:
+            print(
+                "  ! no --html-path given and no single Obsidian vault could "
+                "be resolved (see paths.vault_root()) — pass --html-path "
+                "explicitly.",
+                file=sys.stderr,
+            )
+            return 1
         dashboard_html = render_html(
             snapshots,
             keep_list,

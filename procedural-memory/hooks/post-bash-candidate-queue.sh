@@ -71,9 +71,9 @@
 # share bash 3.2's pathology. Truncating the (already short, already
 # extracted) command uses `${cmd:0:300}`, not `cut`. `date` remains the one
 # genuinely unavoidable fork (bash 3.2 predates the `printf '%(fmt)T'` and
-# `$EPOCHREALTIME` builtins that would otherwise avoid it) — but it, and the
-# one `grep` call, only run on the rare path where a candidate is actually
-# being written, never on every Bash call.
+# `$EPOCHREALTIME` builtins that would otherwise avoid it) — but it, the one
+# `grep` call, and the redaction `sed` call below, only run on the rare path
+# where a candidate is actually being written, never on every Bash call.
 #
 # This is still not a JSON parser: a `tool_input.command` containing a
 # literal, unescaped double-quote (e.g. `pytest -k "test_name"`) defeats
@@ -146,6 +146,14 @@ session_id="${session_id%%\"*}"
 cwd="${payload#*\"cwd\":\"}"
 cwd="${cwd%%\"*}"
 
+# Store cwd relative to $HOME so the queue file doesn't spell out the
+# operator's full home-directory path on every line (see the plugin
+# README's "What is recorded, and what is redacted").
+case "$cwd" in
+    "$HOME") cwd="~" ;;
+    "$HOME"/*) cwd="~${cwd#"$HOME"}" ;;
+esac
+
 # tool_use_id sits AFTER tool_response — the one field where a huge stdout
 # would make `${payload#*pattern}` pathological (see SUBPROCESS BUDGET).
 # `grep -o -m1` does a bounded linear scan instead; stops at first match.
@@ -157,9 +165,28 @@ tool_use_id="${tool_use_id#*:\"}"
 tool_use_id="${tool_use_id%\"}"
 [ -n "$tool_use_id" ] || tool_use_id="unknown-$$"
 
+# Redact secret-shaped values before recording the command (see the plugin
+# README's "What is recorded, and what is redacted"). Chained -e expressions,
+# in order: (1) named password/passwd/token/secret/api_key/apikey assignments
+# via `=` or `:`, quoted or bare, case-insensitive; (2) any
+# KEY/TOKEN/SECRET/PASSWORD-named env assignment; (3) `Bearer <token>`;
+# (4)-(8) standalone vendor secret shapes (AWS, OpenAI-style, GitHub, Slack,
+# Sentry). This runs on the full $cmd, before the 300-char truncation below,
+# so a secret straddling the truncation boundary can't leak an unredacted
+# partial value.
+cmd_redacted=$(printf '%s' "$cmd" | sed -E \
+    -e "s/(password|passwd|token|secret|api_key|apikey)([[:space:]]*[:=][[:space:]]*)(\"[^\"]*\"|'[^']*'|[^[:space:]]*)/\1\2[REDACTED]/gI" \
+    -e "s/([A-Za-z_][A-Za-z0-9_]*(KEY|TOKEN|SECRET|PASSWORD)[A-Za-z0-9_]*)=([^[:space:]]*)/\1=[REDACTED]/gI" \
+    -e "s/([Bb]earer)([[:space:]]+)[^[:space:]]+/\1\2[REDACTED]/g" \
+    -e 's/AKIA[0-9A-Z]{16}/[REDACTED]/g' \
+    -e 's/sk-[A-Za-z0-9_-]{16,}/[REDACTED]/g' \
+    -e 's/ghp_[A-Za-z0-9]{20,}/[REDACTED]/g' \
+    -e 's/xox[abp]-[A-Za-z0-9-]{10,}/[REDACTED]/g' \
+    -e 's/sntrys_[A-Za-z0-9_-]{10,}/[REDACTED]/g')
+
 # Truncate to keep the line comfortably short and the queue file greppable
-# — pure substring expansion on the already-short $cmd, not `cut`.
-cmd_trunc="${cmd:0:300}"
+# — pure substring expansion on the already-redacted $cmd_redacted, not `cut`.
+cmd_trunc="${cmd_redacted:0:300}"
 
 ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 

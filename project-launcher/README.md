@@ -2,6 +2,18 @@
 
 End-to-end project launcher for Rhize Media. Takes a project idea from napkin sketch through research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development.
 
+## Setup
+
+Install via the marketplace (see the root [README's Quick Start](../README.md#quick-start)) —
+there's no account to create and no credential this plugin itself requires before first use.
+
+The 13 MCP servers and 12 external skills listed below (Integrated MCP Servers, Integrated
+Skills) each add capability to one or more phases, but every one of them is optional: without a
+given server or skill connected, that phase's step is skipped or falls back to generic prompting
+instead of failing. Connect the ones relevant to your work — DataForSEO and `seo-aeo-geo:*` for
+content projects, Sentry/PostHog for apps you'll instrument, and so on — and run `/launch-project`
+or `/write-prd` with whatever subset you have.
+
 ## Commands
 
 | Command | Description |
@@ -17,8 +29,8 @@ End-to-end project launcher for Rhize Media. Takes a project idea from napkin sk
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `project-launcher` | ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a proje… | automation, obsidian, project-planning, workflow-patterns |
-| `rhize-visual-plan` | ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — a… | nextjs, obsidian, project-planning, visualization |
+| `project-launcher` | Takes a project idea through research, requirements, a PRD, and a scaffolded project folder. | automation, obsidian, project-planning, workflow-patterns |
+| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, visualization |
 <!-- SKILL-MAP:END -->
 
 ## Reference Docs

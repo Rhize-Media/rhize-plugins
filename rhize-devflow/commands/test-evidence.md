@@ -10,3 +10,7 @@ the explicit pre-review writer; it binds only authorized package-script declarat
 execute them until a trusted sandbox adapter exists. It never mutates the live checkout. Pass
 `$ARGUMENTS` unchanged as the requested claim/spec boundary. `/review` remains read-only and treats
 the resulting unavailable packet as unsupported.
+
+If the runner is invoked without `--output`, it writes the packet to a default location —
+`~/.rhize/test-evidence/packets/<repo-slug>-<head-sha12>.json` — and prints the resolved path;
+pass `--output` explicitly to choose a different location.

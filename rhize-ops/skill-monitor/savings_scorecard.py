@@ -13,7 +13,8 @@ MEASURED tier (real per-session token usage / real request-level compression):
 
 ESTIMATED tier (NEVER summed into a measured total; always labeled):
   - claude-mem (~/.claude-mem/claude-mem.db session_summaries.discovery_tokens)
-  - OpenWolf (<repo>/.wolf/token-ledger.json across ~/dev-local/RHIZE/*)
+  - OpenWolf (<repo>/.wolf/token-ledger.json across each configured
+    RHIZE_REPO_ROOTS entry — see paths.py)
   - headroom-learn digest (~/.headroom/learn-digest.md) — COUNT only, never summed.
 
 Every source gets a coverage line (last event timestamp + event count) so a
@@ -38,6 +39,7 @@ from pathlib import Path
 
 import benchmark_status
 import cost_metrics
+import paths
 import stack_metrics
 from stack_metrics import TrustClass
 
@@ -51,27 +53,13 @@ LEARN_DIGEST = HEADROOM_DIR / "learn-digest.md"
 
 CLAUDE_MEM_DB = HOME / ".claude-mem" / "claude-mem.db"
 
-DEV_LOCAL_RHIZE = HOME / "dev-local" / "RHIZE"
-
 # Mirrors monitor.py's DEFAULT_VAULT_REPORT_DIR pattern: same
 # Skill-Audit-and-Monitoring vault folder, sibling "cost-reports" subfolder so
 # the scorecard and skill_roi.py reports land "alongside" each other without
-# colliding with the weekly-reports/ skill-usage markdown.
-DEFAULT_VAULT_REPORT_DIR = (
-    HOME
-    / "Library"
-    / "Mobile Documents"
-    / "iCloud~md~obsidian"
-    / "Documents"
-    / "Obsidian Vault"
-    / "Projects"
-    / "Rhize Media"
-    / "Rhize Tools"
-    / "Scheduled Agent Routines & Automations"
-    / "Skill-Audit-and-Monitoring"
-    / "cost-reports"
-)
-DEFAULT_JSON_OUT_DIR = SCRIPT_DIR / "data" / "scorecards"
+# colliding with the weekly-reports/ skill-usage markdown. None when no
+# single vault could be resolved (see paths.vault_root()).
+DEFAULT_VAULT_REPORT_DIR = paths.vault_report_dir("cost-reports")
+DEFAULT_JSON_OUT_DIR = paths.scorecards_dir()
 
 
 def parse_iso(ts: str) -> datetime:
@@ -323,12 +311,19 @@ def load_claude_mem(days: int) -> dict:
 def load_openwolf(days: int) -> dict:
     """OpenWolf per-repo token-ledger.json. Label: heuristic
     anatomy_hits×200 + chars÷4 — this is the ledger's own self-reported
-    estimate, not a measured figure."""
+    estimate, not a measured figure.
+
+    Scans each configured repo root (RHIZE_REPO_ROOTS -- see paths.py) for a
+    top-level .wolf/token-ledger.json, replacing the old hardcoded
+    ~/dev-local/RHIZE/*/.wolf/token-ledger.json glob. [] configured -> {}."""
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     repos: dict = {}
-    if not DEV_LOCAL_RHIZE.exists():
-        return repos
-    for ledger in sorted(DEV_LOCAL_RHIZE.glob("*/.wolf/token-ledger.json")):
+    ledgers = sorted(
+        root / ".wolf" / "token-ledger.json"
+        for root in paths.repo_roots()
+        if (root / ".wolf" / "token-ledger.json").exists()
+    )
+    for ledger in ledgers:
         repo_name = ledger.parent.parent.name
         try:
             data = json.loads(ledger.read_text(encoding="utf-8", errors="replace"))
@@ -616,7 +611,7 @@ def render_markdown(days: int, data: dict) -> str:
                 f"{_fmt_int(d['window_session_count'])} | {_fmt_int(d['all_time_session_count'])} |"
             )
     else:
-        lines.append("- No `.wolf/token-ledger.json` found under `~/dev-local/RHIZE/*`.")
+        lines.append("- No `.wolf/token-ledger.json` found under any configured `RHIZE_REPO_ROOTS` entry.")
     lines.append("")
 
     lines.append(
@@ -758,8 +753,9 @@ def main() -> int:
     ap.add_argument("--days", type=int, default=7, help="window in days (default 7)")
     ap.add_argument(
         "--report-dir",
-        default=str(DEFAULT_VAULT_REPORT_DIR),
-        help="where to write the markdown report",
+        default=str(DEFAULT_VAULT_REPORT_DIR) if DEFAULT_VAULT_REPORT_DIR else None,
+        help=("where to write the markdown report (default: the Obsidian "
+              "vault, if exactly one is configured — see paths.vault_root())"),
     )
     ap.add_argument(
         "--json-out-dir",
@@ -783,17 +779,27 @@ def main() -> int:
 
     md = render_markdown(days, data)
 
-    report_dir = Path(args.report_dir).expanduser()
-    report_dir.mkdir(parents=True, exist_ok=True)
-    md_path = report_dir / f"{datetime.now().strftime('%Y-%m-%d')}-savings-scorecard-{days}d.md"
-    md_path.write_text(md)
+    md_path = None
+    if not args.report_dir:
+        print(
+            "  ! no --report-dir given and no single Obsidian vault could be "
+            "resolved (see paths.vault_root()) — skipping the markdown "
+            "report write.",
+            file=sys.stderr,
+        )
+    else:
+        report_dir = Path(args.report_dir).expanduser()
+        report_dir.mkdir(parents=True, exist_ok=True)
+        md_path = report_dir / f"{datetime.now().strftime('%Y-%m-%d')}-savings-scorecard-{days}d.md"
+        md_path.write_text(md)
 
     json_out_dir = Path(args.json_out_dir).expanduser()
     json_out_dir.mkdir(parents=True, exist_ok=True)
     json_path = json_out_dir / f"{datetime.now().strftime('%Y-%m-%d')}-savings-scorecard-{days}d.json"
     json_path.write_text(json.dumps(data, indent=2, default=str))
 
-    print(f"  ✓ Markdown report → {md_path}")
+    if md_path is not None:
+        print(f"  ✓ Markdown report → {md_path}")
     print(f"  ✓ JSON snapshot   → {json_path}")
     print("")
     print(md)

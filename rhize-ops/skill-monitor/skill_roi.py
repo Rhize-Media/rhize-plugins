@@ -46,29 +46,18 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import cost_metrics
+import paths
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-HOME = Path.home()
 
-DEFAULT_SKILL_USAGE_JSON = SCRIPT_DIR / "data" / "skill-usage.json"
+DEFAULT_SKILL_USAGE_JSON = paths.data_dir() / "skill-usage.json"
+# Static config the user edits directly, not generated data — stays repo-relative.
 DEFAULT_KEEP_LIST = SCRIPT_DIR / "keep-list.yaml"
 
 # Mirrors savings_scorecard.py's cost-reports folder — "alongside the
-# scorecard" per the task spec.
-DEFAULT_VAULT_REPORT_DIR = (
-    HOME
-    / "Library"
-    / "Mobile Documents"
-    / "iCloud~md~obsidian"
-    / "Documents"
-    / "Obsidian Vault"
-    / "Projects"
-    / "Rhize Media"
-    / "Rhize Tools"
-    / "Scheduled Agent Routines & Automations"
-    / "Skill-Audit-and-Monitoring"
-    / "cost-reports"
-)
+# scorecard" per the task spec. None when no single vault could be resolved
+# (see paths.vault_root()).
+DEFAULT_VAULT_REPORT_DIR = paths.vault_report_dir("cost-reports")
 
 
 def parse_iso(ts: str) -> datetime:
@@ -317,8 +306,9 @@ def main() -> int:
     )
     ap.add_argument(
         "--report-dir",
-        default=str(DEFAULT_VAULT_REPORT_DIR),
-        help="where to write the markdown report",
+        default=str(DEFAULT_VAULT_REPORT_DIR) if DEFAULT_VAULT_REPORT_DIR else None,
+        help=("where to write the markdown report (default: the Obsidian "
+              "vault, if exactly one is configured — see paths.vault_root())"),
     )
     ap.add_argument(
         "--cost-days",
@@ -354,14 +344,21 @@ def main() -> int:
 
     md = render_markdown(days_note, join, flags, keep_list)
 
-    report_dir = Path(args.report_dir).expanduser()
-    report_dir.mkdir(parents=True, exist_ok=True)
-    tag = f"{window_days}d" if window_days else "0d"
-    md_path = report_dir / f"{datetime.now().strftime('%Y-%m-%d')}-skill-roi-{tag}.md"
-    md_path.write_text(md)
-
     print(f"→ Skill ROI: {len(join['rows'])} skills joined against costs.jsonl")
-    print(f"  ✓ Markdown report → {md_path}")
+    if not args.report_dir:
+        print(
+            "  ! no --report-dir given and no single Obsidian vault could be "
+            "resolved (see paths.vault_root()) — skipping the markdown "
+            "report write.",
+            file=sys.stderr,
+        )
+    else:
+        report_dir = Path(args.report_dir).expanduser()
+        report_dir.mkdir(parents=True, exist_ok=True)
+        tag = f"{window_days}d" if window_days else "0d"
+        md_path = report_dir / f"{datetime.now().strftime('%Y-%m-%d')}-skill-roi-{tag}.md"
+        md_path.write_text(md)
+        print(f"  ✓ Markdown report → {md_path}")
     print("")
     print(md)
 

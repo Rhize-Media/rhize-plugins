@@ -80,11 +80,12 @@ search/recall skills). It doesn't build a knowledge graph over notes — that's 
 (rhize-context-manager). If the request is "what did we decide last week," you want claude-mem.
 If it's "is there working code for this, and can I just run it," you want this plugin.
 
-Unified memory can consume procedural metadata only through the versioned, recall-only
-`rhize-procedural-recall-v1` contract. That adapter is not available yet, so the procedural lane
-must report `unavailable`; it must not scrape prose, query registry tables directly, or execute an
-artifact as a fallback. Recall metadata never bypasses the normal digest, trust, health, or
-user-approval gates in either Claude Code or Codex.
+Unified memory (a cross-plugin feature still being built) isn't wired up to this registry yet —
+that adapter doesn't exist, so it correctly reports the procedural lane as unavailable rather than
+guessing at what's in here. When it does land, it will only ever read through a versioned recall
+contract, never scrape prose or query the registry's tables directly, and it still won't bypass
+the normal digest, trust, health, or user-approval gates. See the [README](./README.md) for the
+exact contract name.
 
 It also doesn't implement pruning or deletion. `rhize-skill stale` (a read-only decay report) is
 reachable directly through the launcher script if you want it; see

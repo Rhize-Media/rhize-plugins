@@ -1,5 +1,10 @@
 # procedural-memory
 
+An agent that re-solves the same small problem from scratch every time — the same deploy guard,
+the same data-conversion script, the same tagging routine — is slow and inconsistent. This plugin
+lets Claude find and re-run a previously verified script from a shared registry instead of
+recomposing it, with the registry's safety checks intact on what it's allowed to touch.
+
 Wraps the `rhize-skill` CLI from `Rhize-Media/procedural-memory` — a Git-backed registry of
 proven, working code (skills and CLI-library functions) indexed by description in
 Postgres + pgvector, so a task similar to one already solved re-executes the code that solved
@@ -212,6 +217,18 @@ which POSIX guarantees atomic on a local filesystem opened `O_APPEND` — concur
 interleave whole lines, never corrupt one. (`flock(1)` doesn't exist on macOS/BSD, so this is the
 portable equivalent, not a fallback.) Verified directly: 60 concurrent invocations against the
 same queue file produced exactly 60 valid, distinct JSON lines, zero corruption.
+
+**What is recorded, and what is redacted.** Each queue line stores the matched `pattern`, the
+Bash command (redacted, then truncated to 300 characters), the `cwd` (rewritten `~`-relative
+when it falls under `$HOME`, left absolute otherwise), the `session_id`, and a generated
+`tool_use_id` — never an exit code (see below) and never the command's stdout/stderr. Before
+truncation, the full command text passes through a redaction pass that replaces the *value* of
+any `password=`/`passwd=`/`token=`/`secret=`/`api_key=`/`apikey=` assignment (`=` or `:`
+separator, quoted or bare, case-insensitive), any `Bearer <token>`, any
+`[A-Z_]*(KEY|TOKEN|SECRET|PASSWORD)[A-Z_]*=<value>` environment assignment, and standalone
+vendor secret shapes (`AKIA…`, `sk-…`, `ghp_…`, `xox[abp]-…`, `sntrys_…`) with `[REDACTED]`. This
+is heuristic pattern-matching, not a secrets scanner: a key or token shape is redacted even when
+it wasn't actually sensitive, and a secret that doesn't match one of these shapes is not caught.
 
 **What was wrong in the brief.** The original wiring brief assumed the post-Bash hook could
 check whether a command "exited 0." Empirically, two things are true instead: the Bash

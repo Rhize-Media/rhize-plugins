@@ -8,6 +8,52 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-02_ version bump — **rhize-devflow** 2.19.0 → 2.20.0 (minor); **rhize-ops** 0.15.2 → 0.16.0 (minor); **rhize-context-manager** 0.23.1 → 0.24.0 (minor); **project-launcher** 1.8.0 → 1.8.1 (patch); **obsidian-second-brain** 1.7.0 → 1.7.1 (patch); **seo-aeo-geo** 1.5.0 → 1.5.1 (patch); **rhize-tasks** 0.4.1 → 0.4.2 (patch); **rhize-cowork** 0.2.0 → 0.2.1 (patch); **procedural-memory** 0.5.0 → 0.5.1 (patch); marketplace 2.56.3 → 2.57.0.
+- _2026-09-02_ **Portability readiness, release 1 — rollback, a front door, and the review
+  gate in one place.** Driven by the first outside-installer review (customizations made through
+  the plugins had no rollback story) and a docs audit that found no orientation document.
+  - **Git preflight.** New `rhize-ops/scripts/git_preflight.py`: `report` classifies every
+    customization surface (project `.claude/settings.json`, `.claude/skills/`, `.claude/commands/`,
+    `CLAUDE.md`; home `~/.claude/{skills,CLAUDE.md,settings.json}`; one level of `@file` imports;
+    skill-forge `skillsRoots`/`defaultTarget`) as `TRACKED | UNTRACKED | IGNORED | NOT_IN_REPO |
+    MISSING` (+ `MIXED` for directories) with a `COMMITTED | UNCOMMITTED | PARTIAL | NO_HEAD`
+    baseline, `dirty`, `other_staged`, `would_be_ignored`, and `rollback_ready`; `track` is the
+    only mutating subcommand — pathspec-limited, `--literal-pathspecs`, refuses `~/.claude` itself,
+    `plugins/`, `projects/`, and `settings.local.json`. `rhize-ops/templates/claude-home.gitignore`
+    is an allowlist template for a client's `~/.claude` (`settings.json` excluded by default; it can
+    carry tokens). rhize-ops README gains a **Rollback** section. 26 tests. The wizard step that
+    calls it ships in release 2. Companion: `@rhize/skill-forge@0.16.0` (published) — `init` now
+    reports each skill root's Git state and, only in a TTY and only on an explicit yes, offers a
+    pathspec-limited baseline; `config.json` (holds `licenseKey`) is written `0600`.
+  - **`rhize-review` lives only in Dev Flow.** The repo-root `skills/rhize-review` adapter is
+    deleted. Its gate-run lessons (stack-based specialist routing, the "name 1–3 claims per lane"
+    lever, Sentry-bot comment fold-in, confidence ≥ 80 aggregation, `.env.example` false-positive
+    rule, pre-merge clean-tree/cold-cache/divergence checks, no scratch files in the shared tree)
+    now live in `rhize-devflow/docs/review-lessons.md`, linked from `review.md`, whose description
+    absorbs the "review before merge / is this safe to ship / production code review" triggers
+    (evals updated, precision/recall 1.0). `devflow.py doctor` now checks `docs/<file>.md` links
+    from commands and the README (missing-doc fixture added). Hookify templates and the global
+    `~/.claude` config point at `/rhize-devflow:review`.
+  - **Docs front door.** New `START-HERE.md` (what each plugin is for, install profiles, the
+    context-file architecture as one table, setup, rollback, glossary) and `docs/README.md` (a
+    rendered per-plugin index — fourth managed target of `render_skill_map_docs.py`). Plugin
+    descriptions rewritten in plain language with `.claude-plugin/plugin.json` canonical and a
+    parity test over `marketplace.json` and `.codex-plugin/plugin.json`. SKILL.md frontmatter gains
+    `metadata.rhize.summary` (≤ 160 chars, no backticks, validated), populated for the 18
+    trigger-phrased skills so README tables read as sentences. Root README, root CLAUDE.md docs rule,
+    and a plain-language pass over every plugin README/GUIDE (Setup within the first screen, no
+    ticket IDs or dated asides in GUIDEs, verdict enums explained, shared GUIDE shape).
+  - **Inventory gaps closed.** `scaffold-gsd` offers its seven hookify rules through an opt-in
+    multi-select instead of copying all of them; `test_evidence.py` defaults packets to
+    `~/.rhize/test-evidence/packets/<repo-slug>-<sha>.json` (0700/0600, never overwrites);
+    `skill-monitor` is installable — every path resolves through `paths.py`
+    (`RHIZE_SKILL_MONITOR_HOME`, `OBSIDIAN_VAULT_PATH`, `RHIZE_REPO_ROOTS`), no hardcoded home or
+    vault paths remain, 24 new tests, and the shared `vault_resolve.py` gains a public
+    `resolve_vault_paths()`; `suggestion_log_report.py` and `build_local_skill_map.py` now ship
+    inside rhize-context-manager (root-path shims kept) with a new `/rhize-context-manager:
+    suggestion-report` command; `post-bash-candidate-queue.sh` redacts secret-shaped values
+    (`password=`, `token=`, `Bearer …`, AWS/OpenAI/GitHub/Slack/Sentry token shapes,
+    `*KEY|TOKEN|SECRET|PASSWORD=` assignments) and stores cwd `~`-relative (17 tests).
 - _2026-09-02_ **Obsidian vault-hint hooks resolve any vault, not just the iCloud default.**
   `vault-write-hint.py` and `vault-read-hint.py` matched a hardcoded
   `iCloud~md~obsidian/Documents/Obsidian Vault` path fragment, so a local-only, renamed, or

@@ -47,7 +47,8 @@ log**, one JSON line per fired event, appended fail-silent to
 prompt/brief text, paths, or tool output is ever logged — ids, lengths, and truncated sha256
 hashes only, matching skill-monitor's privacy precedent. `skill-router.js` additionally logs a
 1-in-20 sample of no-suggestion prompts (`"suggested": null`) so silence precision has a
-denominator. `scripts/suggestion_log_report.py` (repo root) joins the legacy rows against
+denominator. `rhize-context-manager/scripts/suggestion_log_report.py` (also reachable via a
+compatibility shim at `scripts/suggestion_log_report.py` in the repo root) joins the legacy rows against
 skill-monitor usage data to report per-hook acceptance and ignore rates, and reports the
 agent-dispatch rows' named-rate/candidate-present/candidate-miss-rate in a separate section.
 Two env overrides exist for tests/evals: `RHIZE_SUGGESTION_LOG` (log file path) and

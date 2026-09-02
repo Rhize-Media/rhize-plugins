@@ -1,7 +1,7 @@
 {
   "name": "rhize-tasks",
-  "version": "0.4.1",
-  "description": "Local-first planning for Rhize Jira work across Calendar and Reminders",
+  "version": "0.4.2",
+  "description": "Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.",
   "author": {
     "name": "Rhize Media"
   },

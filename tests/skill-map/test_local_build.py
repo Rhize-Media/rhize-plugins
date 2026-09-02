@@ -30,7 +30,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _util import load_module  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-BUILD_LOCAL_SCRIPT = REPO_ROOT / "scripts" / "build_local_skill_map.py"
+# Runs the plugin copy directly (moved from scripts/ 2026-09-02, R3 task 8 of the
+# portability-readiness plan) — keeps this test hermetic against the plugin's own
+# source rather than the root compatibility shim.
+BUILD_LOCAL_SCRIPT = REPO_ROOT / "rhize-context-manager" / "scripts" / "build_local_skill_map.py"
 VALIDATE_SCRIPT = REPO_ROOT / "scripts" / "validate_skill_map.py"
 STATIC_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
 

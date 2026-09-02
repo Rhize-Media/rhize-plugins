@@ -16,6 +16,7 @@ description: >
   issues during other vault operations.
 metadata:
   rhize:
+    summary: "Checks your Obsidian vault's health and organization against best practices."
     topics: [knowledge-management, observability]
     stacks: [obsidian]
 

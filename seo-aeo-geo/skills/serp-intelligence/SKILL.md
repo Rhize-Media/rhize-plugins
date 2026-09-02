@@ -17,6 +17,7 @@ description: >
   Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.
 metadata:
   rhize:
+    summary: "Tracks search rankings and analyzes search results pages to show where you rank and what's around you."
     topics: [rank-tracking, seo-audit]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]

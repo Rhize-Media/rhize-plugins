@@ -14,6 +14,7 @@ description: >
   nested tags, or Obsidian-specific markdown extensions.
 metadata:
   rhize:
+    summary: "Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter."
     topics: [content-authoring, knowledge-management]
     stacks: [obsidian]
 

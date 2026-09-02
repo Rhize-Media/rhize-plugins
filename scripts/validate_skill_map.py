@@ -125,6 +125,37 @@ def referentially_valid(doc):
     return True, None
 
 
+MAX_SUMMARY_LENGTH = 160
+
+
+def summary_fields_valid(doc):
+    """Every node's optional `summary` field (metadata.rhize.summary, carried
+    through by scripts/build_skill_map.py for human-facing doc tables — see
+    scripts/render_skill_map_docs.py) must be a short, plain sentence: at
+    most 160 characters, no backticks. additionalProperties on the node
+    schema means jsonschema alone can't enforce this, so it's a standalone
+    check here, same shape as referentially_valid() above.
+    """
+    errors = []
+    for i, node in enumerate(doc.get("nodes", [])):
+        summary = node.get("summary")
+        if summary is None:
+            continue
+        node_id = node.get("id", f"nodes[{i}]")
+        if not isinstance(summary, str):
+            errors.append(f"{node_id}: summary must be a string")
+            continue
+        if len(summary) > MAX_SUMMARY_LENGTH:
+            errors.append(
+                f"{node_id}: summary is {len(summary)} chars, max {MAX_SUMMARY_LENGTH}"
+            )
+        if "`" in summary:
+            errors.append(f"{node_id}: summary must not contain backticks")
+    if errors:
+        return False, "; ".join(errors)
+    return True, None
+
+
 def validate_document(doc, label: str) -> bool:
     schema = json.loads(SCHEMA_PATH.read_text())
     jsonschema_mod = try_import_jsonschema()
@@ -140,6 +171,11 @@ def validate_document(doc, label: str) -> bool:
     ref_ok, ref_err = referentially_valid(doc)
     if not ref_ok:
         print(f"FAIL {label}: referential integrity failed: {ref_err}")
+        return False
+
+    summary_ok, summary_err = summary_fields_valid(doc)
+    if not summary_ok:
+        print(f"FAIL {label}: summary field invalid: {summary_err}")
         return False
 
     print(f"PASS {label}: schema_valid=True, referentially_valid=True")

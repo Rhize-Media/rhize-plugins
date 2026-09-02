@@ -22,11 +22,13 @@ stale cache means a client sees wrong data, an uninstrumented error means nobody
 user complains, and a merge without an independent review is a merge nobody actually checked.
 Every command and skill here exists to prevent one of those failure modes.
 
-The plugin has two kinds of components:
-
-**Skills** are reference knowledge and workflows Claude and Codex load automatically when your request matches certain trigger phrases. You don't have to invoke them directly — the host reads them behind the scenes to produce better output. All eight overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and the active browser tool's own skill for platform API reference.
-
-**Commands** are actions you invoke explicitly with a slash prefix (e.g., `/rhize-devflow:check`). They drive a specific workflow, usually combining several skills and real tool calls (git, build commands, browser automation, subagents).
+The plugin has two kinds of components, skills and commands — see
+[START-HERE.md's glossary](../START-HERE.md#7-glossary) if those terms are new to you. All eight
+overlay skills here (everything except `dev-flow-foundations`, which is pure reference) carry only
+Rhize-specific policy or convention — they defer to the official `sentry:*`/`sanity:*` plugins and
+the active browser tool's own skill for platform API reference. Commands (invoked explicitly, e.g.
+`/rhize-devflow:check`) usually combine several skills and real tool calls (git, build commands,
+browser automation, subagents).
 
 ## Getting Started
 
@@ -74,12 +76,14 @@ Session lifecycle (`/start`, `/done`, `/context-hygiene`) is owned by the paired
 
 **When it activates:** You mention "design patterns", "workflow optimization", "prevent regression", "anti-patterns", "dependency mapping", "impact map", "CodeGraph", "component registry", "why did this break again", or want to set up durable development guardrails.
 
-**What it knows:** Six foundational workflow problems and their fixes — CodeGraph-first structural discovery paired with semantic impact mapping, a component/function registry to stop duplicate components from being built, context hygiene principles (CLAUDE.md as a <200-line router, not an essay), regression prevention (root-cause first, never patch blind), anti-pattern detection at write-time rather than at review, and a skill-refinement pattern for turning a repeated fix into a formal skill.
+**What it knows:** Six foundational workflow problems and their fixes — CodeGraph-first (a local
+indexed map of a codebase's symbols and call paths, in place of grep; see
+[glossary](../START-HERE.md#7-glossary)) structural discovery paired with semantic impact mapping, a component/function registry to stop duplicate components from being built, context hygiene principles (CLAUDE.md as a <200-line router, not an essay), regression prevention (root-cause first, never patch blind), anti-pattern detection at write-time rather than at review, and a skill-refinement pattern for turning a repeated fix into a formal skill.
 
 **How to use it effectively:**
 - Run `/rhize-devflow:impact-map` before implementing or materially changing a feature, bug fix, refactor, schema, migration, cache path, authorization rule, or cross-repository contract — it uses CodeGraph for the current call/dependency surface, then records only the semantic delta, invariants, risks, and acceptance tests a graph cannot express.
-- After implementation, the same command reconciles the completed graph and diff against the map (`IN_SYNC` / `IN_SYNC_WITH_EXCEPTIONS` / blocking `OUT_OF_SYNC`). A stale pre-change map is not completion evidence.
-- The Stop hook closes a successfully reconciled receipt as `completed`. A same-turn late source write still invalidates reconciliation, while an unrelated later task cannot inherit the old map; a new material prompt starts a new pending receipt.
+- After implementation, the same command reconciles the completed graph and diff against the map — cleanly (`IN_SYNC`), with noted deviations worth a second look (`IN_SYNC_WITH_EXCEPTIONS`), or blocked until the map and the diff actually agree (`OUT_OF_SYNC`). A stale pre-change map is not completion evidence.
+- Once reconciliation succeeds, the session closes that check out automatically — there's nothing for you to do. Editing more source afterward still invalidates it, and a genuinely new task always gets its own fresh check rather than reusing an old map.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
 - This is the reference layer behind the executable command, not a command surface itself — `/rhize-devflow:impact-map` (this plugin) implements the Dependency Graph foundation directly; `error-lifecycle-management` implements the Regression Prevention foundation as its triage workflow.
 
@@ -111,10 +115,11 @@ Fewer lines are useful only when the resulting ownership and safeguards are at l
 **When it activates:** Tests changed, a change claims regression coverage, or you ask whether a test
 actually protects behavior. It does not activate for cache/data mutation consistency.
 
-**What it knows:** The behavior, artifact, and structural contract classes; independent-oracle
-requirements; exact Git/file binding; protected-target denials; and the packet contract a future
-trusted sandbox must satisfy. The current runner does not execute package scripts: it returns
-`execution_unavailable` until RT-163 provides that sandbox.
+**What it knows:** How to tell whether a test actually protects behavior — versus just an artifact
+or today's implementation — and how to bind that judgment to the exact commit and files it was
+made against; see [`docs/test-evidence.md`](./docs/test-evidence.md) for the full contract. It
+doesn't run the test suite itself yet: it tells you plainly that live execution isn't available
+rather than fake-passing, until a trusted sandbox for that ships.
 
 **Example prompt:** "These new tests claim to prevent the query-key regression. Classify the
 contract and produce test evidence before review."
@@ -225,15 +230,16 @@ Maps a change before implementation, then reconciles the completed diff against 
 evidence. CodeGraph (when an existing healthy index is present) is authoritative for current
 structural truth — symbols, callers, tests, dependency paths. The map itself is authoritative
 for intended change — business behavior, invariants, planned symbols, operational effects, risks,
-acceptance criteria. Requires a post-implementation `IN_SYNC`, `IN_SYNC_WITH_EXCEPTIONS`, or
-blocking `OUT_OF_SYNC` verdict.
+acceptance criteria. After implementation it confirms your actual changes matched the map —
+cleanly, with noted deviations, or it blocks completion until they agree.
 
 For material implementation/refactor/simplification prompts, the installed plugin now enforces this sequence.
 It allows the plan to be written, then blocks source edits until the command's `prepare` step has
 validated the persisted map, queried every existing healthy CodeGraph index (or recorded the
 fallback), and read any component registry. After source changes begin, commit/push/merge and
-normal completion remain blocked until `reconcile` returns `IN_SYNC` or
-`IN_SYNC_WITH_EXCEPTIONS`. The receipt is shared between Claude and Codex.
+normal completion stay blocked until reconciliation confirms the diff matches the map — see the
+[README](./README.md#doctor-evidence-and-refactor-gate-clis) for the exact verdict names. The
+receipt is shared between Claude and Codex.
 
 **Examples:**
 - "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
@@ -287,10 +293,10 @@ merge, deploy, migration, or external-write authority. A verified no-op is a suc
 run-spec boundary. Run it before `/review`, never from inside review.
 
 The command classifies each claim and digest-binds an approved `test`/`test:*` package-script
-declaration without executing it. It refuses dirty or protected targets, binds the packet to exact
-SHAs and file digests, and returns `execution_unavailable` on a clean checkout. Execution-backed
-verdicts remain invalid until RT-163 supplies a trusted sandbox; see `docs/test-evidence.md` for the
-canonical lifecycle and verdict contract.
+declaration without executing it. It refuses dirty or protected targets, and binds its check to
+the exact commit and files at hand. It reports plainly that live execution isn't available yet
+rather than fake-passing, since that trusted sandbox hasn't shipped — see
+[`docs/test-evidence.md`](./docs/test-evidence.md) for the full lifecycle and verdict contract.
 
 **Example:** "Run test evidence for the exact cache-key bug these two tests claim to prevent."
 
@@ -299,12 +305,14 @@ canonical lifecycle and verdict contract.
 **Usage:** `/rhize-devflow:review` (invoke before merge/push/release)
 
 The read-only production merge/release gate — the executable successor to the retired
-`rhize-review` workflow. Resolves the exact base/head comparison range from explicit intent and
+`rhize-review` workflow (the repo-root compatibility adapter was removed in 2.20.0). Resolves
+the exact base/head comparison range from explicit intent and
 Git evidence (never assumes the default branch is the merge target), builds a risk map across
 deployment/data/security/authorization/billing/migration/cache/external-write categories from
 actual diff evidence, routes only the specialist reviews that risk map calls for, and requires an
 independent skeptical reviewer for any non-trivial change (a disclosed cold review if none is
-available). Returns exactly one of `PASS`, `FAIL_WITH_FIXABLE_GAPS`, `FAIL_REQUIRES_HUMAN`. Never
+available). It clears you to merge (`PASS`), hands back a fixable punch list to close first
+(`FAIL_WITH_FIXABLE_GAPS`), or stops and asks a person to weigh in (`FAIL_REQUIRES_HUMAN`). Never
 commits, pushes, merges, or deploys. The actual ship step stays separate and is executed by
 `completed-branch-promotion` only when the user or repository auto-push policy authorizes it.
 

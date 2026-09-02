@@ -94,7 +94,10 @@
     "production merge/release gate",
     "risk map from actual diff evidence",
     "independent skeptical reviewer",
-    "one merge verdict"
+    "one merge verdict",
+    "review before merge",
+    "is this safe to ship",
+    "production code review"
   ],
   "command:mutation-check": [
     "data-mutation consistency check",

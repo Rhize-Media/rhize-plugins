@@ -423,6 +423,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "command:rhize-context-manager/suggestion-report",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/agent-brief-router",
       "type": "contains"
     },
@@ -2566,6 +2572,13 @@
       "path": "rhize-context-manager/commands/start.md"
     },
     {
+      "description": "Show which skill/next-step suggestions the plugin's hooks made and how often, from the suggestion log",
+      "id": "command:rhize-context-manager/suggestion-report",
+      "kind": "command",
+      "name": "suggestion-report",
+      "path": "rhize-context-manager/commands/suggestion-report.md"
+    },
+    {
       "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-debug",
       "kind": "command",
@@ -2650,7 +2663,7 @@
       "path": "rhize-devflow/commands/mutation-fix.md"
     },
     {
-      "description": "Read-only production merge/release gate — resolves the exact comparison range, builds a risk map from actual diff evidence, routes only relevant specialist reviews, and returns one merge verdict backed by an independent skeptical reviewer",
+      "description": "Read-only production merge/release gate. Use for a review before merge, to answer \"is this safe to ship\", or for a production code review before a push, deploy, or release — resolves the exact comparison range, builds a risk map from actual diff evidence, routes only relevant specialist reviews, and returns one merge verdict backed by an independent skeptical reviewer",
       "id": "command:rhize-devflow/review",
       "kind": "command",
       "name": "review",
@@ -3332,83 +3345,85 @@
       "name": "vercel"
     },
     {
-      "description": "Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex",
+      "description": "Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.",
       "id": "plugin:obsidian-second-brain",
       "kind": "plugin",
       "name": "obsidian-second-brain",
       "path": "obsidian-second-brain"
     },
     {
-      "description": "Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code.",
+      "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
       "id": "plugin:procedural-memory",
       "kind": "plugin",
       "name": "procedural-memory",
       "path": "procedural-memory"
     },
     {
-      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
+      "description": "Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.",
       "id": "plugin:project-launcher",
       "kind": "plugin",
       "name": "project-launcher",
       "path": "project-launcher"
     },
     {
-      "description": "Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts",
+      "description": "Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.",
       "id": "plugin:rhize-context-manager",
       "kind": "plugin",
       "name": "rhize-context-manager",
       "path": "rhize-context-manager"
     },
     {
-      "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
+      "description": "Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.",
       "id": "plugin:rhize-cowork",
       "kind": "plugin",
       "name": "rhize-cowork",
       "path": "rhize-cowork"
     },
     {
-      "description": "Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex",
+      "description": "Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.",
       "id": "plugin:rhize-devflow",
       "kind": "plugin",
       "name": "rhize-devflow",
       "path": "rhize-devflow"
     },
     {
-      "description": "Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts",
+      "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
       "id": "plugin:rhize-ops",
       "kind": "plugin",
       "name": "rhize-ops",
       "path": "rhize-ops"
     },
     {
-      "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
+      "description": "Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.",
       "id": "plugin:rhize-tasks",
       "kind": "plugin",
       "name": "rhize-tasks",
       "path": "rhize-tasks"
     },
     {
-      "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
+      "description": "Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.",
       "id": "plugin:seo-aeo-geo",
       "kind": "plugin",
       "name": "seo-aeo-geo",
       "path": "seo-aeo-geo"
     },
     {
-      "contentHash": "c0eb07a5cef04b021ebef59bbb4945913e7f7411d6a3c8faf13c744e11d3f0fa",
+      "contentHash": "246c538b7ab30038c003d08b88eba0c5c0d56349503cf8ce0b914c86557c832c",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. Extract clean, readable markdown from web pages using the Defuddle CLI tool, stripping navigation, ads, and clutter. Use this skill when someone wants to save web content to their Obsidian vault, clip articles, extract clean text from URLs, convert web pages to markdown, or reduce token usage when processing web content. Also triggers on \"web clipper\", \"save article\", \"extract webpage\", \"clean HTML\", or \"convert URL to markdown\". Prefer Defuddle over raw WebFetch for standard web pages, articles, docs, and blog posts.",
       "id": "skill:obsidian-second-brain/defuddle",
       "kind": "skill",
       "name": "defuddle",
-      "path": "obsidian-second-brain/skills/defuddle/SKILL.md"
+      "path": "obsidian-second-brain/skills/defuddle/SKILL.md",
+      "summary": "Pulls clean, readable text from a web page for saving into your Obsidian vault."
     },
     {
-      "contentHash": "1b213bae1c64cfcb9e63c678dd01319472488109c577744f7646e6f5c299877e",
+      "contentHash": "063be869f23b102e00149ffabc17d7fb57b95f0b02c69405e492dc837cbfee7b",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0 with nodes, edges, groups, and visual connections. Use this skill when someone asks about creating or editing Obsidian canvases, building visual knowledge maps, node diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas files. Also triggers on \"JSON Canvas\", \"canvas file\", \"visual board\", \"Obsidian whiteboard\", or requests to create visual note connections.",
       "id": "skill:obsidian-second-brain/json-canvas",
       "kind": "skill",
       "name": "json-canvas",
-      "path": "obsidian-second-brain/skills/json-canvas/SKILL.md"
+      "path": "obsidian-second-brain/skills/json-canvas/SKILL.md",
+      "summary": "Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps."
     },
     {
       "contentHash": "a458001a197fcf8b8d136f3843533f6f66f994cdd9ddc5b07e39d832e5043406",
@@ -3419,60 +3434,67 @@
       "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md"
     },
     {
-      "contentHash": "44e4c6e099153a9f79b36c645c152dddc4567c855ad9a294d60e1ff3bc3fdac8",
+      "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. Create and edit Obsidian Base files (.base) for database-like views, filters, formulas, and data summaries within your vault. Use this skill whenever someone asks about Obsidian Bases, creating database views, filtering notes by properties, building task trackers, reading lists, project dashboards, or any structured data view in Obsidian. Also triggers on \".base files\", \"Obsidian database\", \"note database\", \"vault database\", or questions about filters, formulas, and summaries in the context of Obsidian.",
       "id": "skill:obsidian-second-brain/obsidian-bases",
       "kind": "skill",
       "name": "obsidian-bases",
-      "path": "obsidian-second-brain/skills/obsidian-bases/SKILL.md"
+      "path": "obsidian-second-brain/skills/obsidian-bases/SKILL.md",
+      "summary": "Creates and edits Obsidian Base files for database-like views, filters, and dashboards."
     },
     {
-      "contentHash": "630a08d5cb76630c16de5af6bc419c0d69c896544b584b19f9a3f22f6a861485",
+      "contentHash": "c38c59e9a97e43ba33543b089d9ef45e1a81d6dcdfb6f11ed45bbb01e25aabbb",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian CLI or terminal automation request. Execute Obsidian vault operations via the official command-line interface (v1.12.4+). Covers reading, creating, searching, and managing notes, tasks, properties, tags, links, daily notes, sync, publish, and plugin/theme development workflows. Use this skill whenever someone asks about Obsidian CLI commands, wants to automate vault operations from the terminal, build shell scripts for Obsidian, manage daily notes programmatically, develop Obsidian plugins/themes with CLI tooling, or integrate Obsidian with AI agents via the CLI. Also use when someone mentions \"obsidian\" combined with terminal, command line, shell, script, automation, cron, or developer tools.",
       "id": "skill:obsidian-second-brain/obsidian-cli",
       "kind": "skill",
       "name": "obsidian-cli",
-      "path": "obsidian-second-brain/skills/obsidian-cli/SKILL.md"
+      "path": "obsidian-second-brain/skills/obsidian-cli/SKILL.md",
+      "summary": "Automates Obsidian vault operations from the terminal using the official command-line tool."
     },
     {
-      "contentHash": "645eb0339982c5e7bdd25232f9351781d6d10eaf382d9fcf66945912be5ac937",
+      "contentHash": "ea45229586ee1962b642f5581a33de6ed25fdecd5537eb64e77a548d82c062d9",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian markdown syntax or formatting request. Create and edit Obsidian-flavored Markdown files (.md) with wikilinks, embeds, callouts, properties, block references, comments, and other Obsidian-specific syntax. Use this skill whenever someone asks about writing notes in Obsidian, formatting Obsidian markdown, using wikilinks or internal links, embedding files, creating callouts, managing YAML frontmatter/properties, or any Obsidian markdown syntax question. Also triggers on mentions of Obsidian note formatting, block references, nested tags, or Obsidian-specific markdown extensions.",
       "id": "skill:obsidian-second-brain/obsidian-markdown",
       "kind": "skill",
       "name": "obsidian-markdown",
-      "path": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md"
+      "path": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md",
+      "summary": "Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter."
     },
     {
-      "contentHash": "038311f827b9e3ff43bbf8ed5273db6ed4492a5c9fbe3d65c25e56c218951855",
+      "contentHash": "3dc4276b26cd107b68491b7121d2030132ad9aee159ca238609962a708ff8a45",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text, vector semantic search, and LLM re-ranking. Use this skill when someone asks about setting up qmd, configuring vault indexing, choosing between search modes (BM25 vs vector vs hybrid), connecting qmd's MCP server to Claude, troubleshooting search quality, or understanding how qmd works. Also triggers on \"semantic search\", \"vector search\", \"qmd\", \"embed vault\", \"vault indexing\", \"search my notes by meaning\", \"find similar notes\", or \"natural language vault search\".",
       "id": "skill:obsidian-second-brain/qmd-search",
       "kind": "skill",
       "name": "qmd-search",
-      "path": "obsidian-second-brain/skills/qmd-search/SKILL.md"
+      "path": "obsidian-second-brain/skills/qmd-search/SKILL.md",
+      "summary": "Sets up and troubleshoots local semantic search over your Obsidian vault using qmd."
     },
     {
-      "contentHash": "f69fff1a46042fbcce95d71e5656a8eac17027d99b0d13ee421008c93737282d",
+      "contentHash": "6113179919813b0f8346d4034e5ce3c2efd922eea4dcf3aaba613632548b48cb",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. Personal knowledge management methodology for Obsidian vaults — Zettelkasten, PARA, Maps of Content (MOCs), progressive summarization, and atomic notes. Use this skill whenever someone asks about organizing their vault as a second brain, building a knowledge system, creating MOCs or maps of content, linking notes together strategically, applying Zettelkasten or PARA methods, structuring a PKM workflow, deciding where a note should live, or asking \"how should I organize this?\" in the context of Obsidian. Also triggers on \"evergreen notes\", \"literature notes\", \"fleeting notes\", \"permanent notes\", \"note-taking system\", \"knowledge graph\", \"linking my thinking\", or \"connect my notes\".",
       "id": "skill:obsidian-second-brain/second-brain",
       "kind": "skill",
       "name": "second-brain",
-      "path": "obsidian-second-brain/skills/second-brain/SKILL.md"
+      "path": "obsidian-second-brain/skills/second-brain/SKILL.md",
+      "summary": "Applies knowledge-management methods like Zettelkasten and PARA to organize your vault."
     },
     {
-      "contentHash": "7b509cd00d8be8fb34076409556820fd923ab3c9fff2534a2022c6e7b26ad4c4",
+      "contentHash": "126c6badd5c389880d3b3d68d0bb2db029d893f0e7523c4df24310338fdc3c87",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. Vault health assessment and ongoing alignment with second-brain best practices. Use this skill when someone asks about improving their vault organization, wants to know if their vault follows best practices, asks \"how healthy is my vault\", mentions vault drift or inconsistency, wants to audit their knowledge system, or asks about maintaining their second brain over time. Also triggers on \"vault health\", \"organization check\", \"vault audit\", \"clean up my vault\", \"improve my vault\", \"vault maintenance\", \"align my vault\", \"reorganize my vault\", or \"my vault is messy\". Use this proactively when you notice vault organization issues during other vault operations.",
       "id": "skill:obsidian-second-brain/vault-alignment",
       "kind": "skill",
       "name": "vault-alignment",
-      "path": "obsidian-second-brain/skills/vault-alignment/SKILL.md"
+      "path": "obsidian-second-brain/skills/vault-alignment/SKILL.md",
+      "summary": "Checks your Obsidian vault's health and organization against best practices."
     },
     {
-      "contentHash": "6214fbc1a34b893e1d9b16ae5dee7f0189b47b18456a668d8ed49876cbd2a31b",
+      "contentHash": "215545ffbbd59b5d172847c86292c1531c5d74bb5db4a08fa5d19302467e06cc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. Library of proven note templates and archetypes for Obsidian vaults — meeting notes, book reviews, project briefs, weekly reviews, literature notes, permanent notes, and more. Use this skill when someone asks to create a specific type of note (e.g., \"meeting note\", \"book review\", \"project brief\"), wants a template for a recurring note type, asks about frontmatter conventions for different note types, or says things like \"set up a template for\", \"what properties should a X note have\", or \"create a note for my meeting/book/project/review\". Also triggers on \"note template\", \"note archetype\", \"weekly review template\", \"daily template\", or any request to scaffold a structured note.",
       "id": "skill:obsidian-second-brain/vault-templates",
       "kind": "skill",
       "name": "vault-templates",
-      "path": "obsidian-second-brain/skills/vault-templates/SKILL.md"
+      "path": "obsidian-second-brain/skills/vault-templates/SKILL.md",
+      "summary": "Provides ready-made note templates for meetings, book reviews, project briefs, and more."
     },
     {
       "contentHash": "9497609d8746b1de8606ee10e6eb157526b6bcd0943f0f68d2e8a4a8b54c7d9f",
@@ -3491,20 +3513,22 @@
       "path": "procedural-memory/skills/procedural-memory/SKILL.md"
     },
     {
-      "contentHash": "8cf53d110301420043a5eb6300f6540d288724a5827e0c26d3549f1a7a46c629",
+      "contentHash": "b86be763375c2f0a6720e4bfdfc1757f93fd2665c1a47ba5ccc4511245e6d76d",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
       "id": "skill:project-launcher/project-launcher",
       "kind": "skill",
       "name": "project-launcher",
-      "path": "project-launcher/skills/project-launcher/SKILL.md"
+      "path": "project-launcher/skills/project-launcher/SKILL.md",
+      "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."
     },
     {
-      "contentHash": "9fa58d64a4d38fd00b93678abb3e19a76740c40592434cb7e7f780129b92db75",
+      "contentHash": "7cc345ffbb94a61fcce05da9d1b1a0ce52fb29d9930cc1edfae5e12858d86945",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
       "id": "skill:project-launcher/rhize-visual-plan",
       "kind": "skill",
       "name": "rhize-visual-plan",
-      "path": "project-launcher/skills/rhize-visual-plan/SKILL.md"
+      "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
+      "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps."
     },
     {
       "contentHash": "9de885deef334253d4f2927d2341d64145c8b7d52edd74f53a1f18f7d1d4d220",
@@ -3795,60 +3819,67 @@
       "path": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md"
     },
     {
-      "contentHash": "ff4cdfdc84d6ce821a6b50f887742f958094482d3fc08b78e5043d3f5357e5cc",
+      "contentHash": "424916744ebdedcfa1c644de6f40fdf2573cfdf74212fea7238f56e97fba5cdc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/aeo-geo-optimization",
       "kind": "skill",
       "name": "aeo-geo-optimization",
-      "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md"
+      "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md",
+      "summary": "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content."
     },
     {
-      "contentHash": "49f903718ab2c788b19a60c9517a0c85b123bbc00a94557876bda13801d1841c",
+      "contentHash": "941e96cf2583a91746428fba5299532fd8c03fe8307a566afa8d870c140edc21",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/backlink-intelligence",
       "kind": "skill",
       "name": "backlink-intelligence",
-      "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md"
+      "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md",
+      "summary": "Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks."
     },
     {
-      "contentHash": "d556438bf9f864a79e05cb9f711c51b7e403a5742ff7291d33e82574fbdd6a83",
+      "contentHash": "659c2562538fed0d0edf61fdb7886d2f3458f2e43e59c10f7db7859fd175253b",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
       "id": "skill:seo-aeo-geo/content-seo",
       "kind": "skill",
       "name": "content-seo",
-      "path": "seo-aeo-geo/skills/content-seo/SKILL.md"
+      "path": "seo-aeo-geo/skills/content-seo/SKILL.md",
+      "summary": "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better."
     },
     {
-      "contentHash": "b8ef7e46de4e9fa43ea099c8ebf0651803f974c58df16af738e6280b46be86f6",
+      "contentHash": "ae319aada83d29f0b693a6db841ad9a4a9a69034cdc57b301eb5e701bffd4978",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data and Labs APIs. Triggers on: \"find keywords\", \"keyword research\", \"keyword analysis\", \"keyword gap analysis\", \"keyword clustering\", \"find search terms\", \"what keywords should I target\", \"competitor keyword analysis\", \"keyword difficulty check\", \"search volume data\", \"long-tail keywords\", \"question keywords\", \"People Also Ask keywords\", \"keyword opportunities\", \"content gap analysis\", \"what are people searching for\", \"keyword cannibalization check\", \"keyword mapping\", or any request involving discovering, analyzing, or prioritizing keywords for SEO or content strategy. Also triggers on \"decision-stage keywords\", \"commercial intent keywords\", \"informational keywords\", \"compare keywords\", \"keyword trends\", or \"seasonal keywords\". Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/keyword-intelligence",
       "kind": "skill",
       "name": "keyword-intelligence",
-      "path": "seo-aeo-geo/skills/keyword-intelligence/SKILL.md"
+      "path": "seo-aeo-geo/skills/keyword-intelligence/SKILL.md",
+      "summary": "Researches, clusters, and scores keywords to find what to target for SEO or content strategy."
     },
     {
-      "contentHash": "87cb6cd5a516ad0a784a93091017f0b3f0afbad5c48b846e6ef19a2c69e90997",
+      "contentHash": "46802cf15f90b84338355769d613894abf1d5a51d1232d0c6e7a4496cb44eb1d",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. SEO implementation patterns for Next.js and Sanity CMS codebases. Triggers on: \"Next.js SEO\", \"Sanity SEO\", \"Next.js metadata\", \"generateMetadata\", \"Sanity schema for SEO\", \"structured data in Next.js\", \"JSON-LD in Next.js\", \"sitemap.ts\", \"robots.ts\", \"next/image SEO\", \"Sanity GROQ for SEO\", \"Open Graph in Next.js\", \"hreflang in Next.js\", \"canonical URLs in Next.js\", \"SEO component\", \"Sanity SEO fields\", \"portable text SEO\", \"image alt text from Sanity\", \"dynamic metadata from CMS\", \"CMS-driven SEO\", \"headless CMS SEO\", \"Next.js sitemap generation\", \"Sanity redirect management\", \"SEO audit of Next.js codebase\", \"fix SEO in my Next.js app\", or any request involving implementing or fixing SEO in a Next.js + Sanity project. Also triggers on \"audit my codebase for SEO issues\", \"SEO code review\", or \"implement SEO best practices in code\". Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.",
       "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
       "kind": "skill",
       "name": "nextjs-sanity-seo",
-      "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md"
+      "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
+      "summary": "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data."
     },
     {
-      "contentHash": "3452c6a4add62acebc6744a8a1b7d93dfc53587790e282c0a6a27919f515a302",
+      "contentHash": "0b751c6950396cd5eaa1c4383a99fba3e04ac8ff84581d9f10e81c28631451ac",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on: \"audit a website for SEO\", \"run an SEO audit\", \"check SEO health\", \"find SEO issues\", \"crawl my site for problems\", \"what's wrong with my SEO\", \"technical SEO check\", \"on-page SEO analysis\", \"check my meta tags\", \"find broken links\", \"check my Core Web Vitals\", \"page speed analysis\", \"crawlability check\", \"indexation issues\", or any request involving diagnosing or improving a website's search engine optimization. Also triggers when the user shares a URL and asks about its SEO performance or ranking potential. Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/seo-site-audit",
       "kind": "skill",
       "name": "seo-site-audit",
-      "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md"
+      "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md",
+      "summary": "Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes."
     },
     {
-      "contentHash": "4561f390dc2b5f13c72f0a1e6013ef956c2ca6a5bb5217d7c8708130f2dedba1",
+      "contentHash": "2cf2eb6f71924f04b543854d659bdd7fbfd2df2c1a89cd824b051c0e0200eefe",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
       "id": "skill:seo-aeo-geo/serp-intelligence",
       "kind": "skill",
       "name": "serp-intelligence",
-      "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md"
+      "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md",
+      "summary": "Tracks search rankings and analyzes search results pages to show where you rank and what's around you."
     },
     {
       "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",

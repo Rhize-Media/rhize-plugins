@@ -17,6 +17,7 @@ description: >
   Do NOT handle content optimization requests with general tools — this skill has specialized workflows.
 metadata:
   rhize:
+    summary: "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better."
     topics: [content-optimization, seo-audit]
     stacks: [seo]
     augments: [content-authoring]

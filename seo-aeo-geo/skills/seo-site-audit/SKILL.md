@@ -14,6 +14,7 @@ description: >
   Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.
 metadata:
   rhize:
+    summary: "Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes."
     topics: [seo-audit, observability]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]

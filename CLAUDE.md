@@ -122,8 +122,21 @@ This repo follows a strict README-vs-GUIDE.md convention, defined in full in the
 2. Update the plugin's `GUIDE.md` (or create one if the plugin doesn't have one yet) so the new/changed capability is discoverable in plain language, with an example prompt.
 3. If you added or removed a whole plugin, update the root `README.md`'s Plugin Catalog table and `.claude-plugin/marketplace.json`, keeping the plugin's `version` in sync between its own `plugin.json` and the marketplace entry.
 4. If the change is user-visible, add a `CHANGELOG.md` entry.
+5. If the change affects what a first-time reader needs to know — a new plugin, a changed
+   install/setup step, a new cross-plugin mechanism — update `START-HERE.md` and/or
+   `docs/README.md` in the same change. `docs/README.md`'s managed section (between the
+   `SKILL-MAP` markers) is rendered by `scripts/render_skill_map_docs.py` from
+   `marketplace.json` and the skill map — never hand-edit it; the render runs after
+   `scripts/bump_version.py`, as part of the same release flow that refreshes the root
+   README's Plugin Catalog table and `generated/SKILL-CATALOG.md`.
 
 A skill/command/plugin change that ships without its README and GUIDE updated is incomplete — treat undocumented capability the same as an untested one.
+
+**A plugin's `description` is canonical in its own `.claude-plugin/plugin.json`.** The copy in
+`.claude-plugin/marketplace.json`'s entry for that plugin, and the copy in
+`.codex-plugin/plugin.json` where the plugin ships one, must be identical to it, character for
+character — `tests/config-lint/test_description_parity.py` enforces this. Changing a plugin's
+description means updating every copy in the same change, not just the one you happened to open.
 
 **Progressive disclosure is required, not optional** (see [Progressive disclosure](./README.md#progressive-disclosure)). Every doc is a front door, not a warehouse: lead with what it is and how to start, then link to depth instead of inlining it. Deep mechanics (schemas, gate internals, per-command option matrices, rationale) live in a `docs/` or `references/` file linked at the point of need — the same discipline `SKILL.md` files already use. **A README or reference doc past roughly 400–500 lines is a split candidate**; GUIDEs may run longer but keep the same overview-first shape. When you split, move content to the document that owns it and link from where the reader was — never delete, and never leave an overview that can't stand alone. When adding to an already-oversized doc, put the new material in a linked file rather than growing the offender.
 

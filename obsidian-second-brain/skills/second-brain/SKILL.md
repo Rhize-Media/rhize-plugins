@@ -16,6 +16,7 @@ description: >
   "linking my thinking", or "connect my notes".
 metadata:
   rhize:
+    summary: "Applies knowledge-management methods like Zettelkasten and PARA to organize your vault."
     topics: [knowledge-management, workflow-patterns]
     stacks: [obsidian]
 

@@ -105,7 +105,7 @@ together" from "these two skills are just both used a lot."
 
 Concretely: `rhize-ops/skill-monitor/monitor.py` writes a counts-only co-occurrence snapshot
 (`data/skill-cooccurrence.json` — no prompt text, no project paths, no per-event timestamps, only
-skill names and integer session counts) on every run. `scripts/build_local_skill_map.py` reads
+skill names and integer session counts) on every run. `rhize-context-manager/scripts/build_local_skill_map.py` reads
 that snapshot, resolves each `{a, b, sessions}` pair against the static artifact's skill nodes
 (pairs involving a skill outside this repo's plugins are dropped — the monitor observes usage
 across every repo on the machine), computes `jaccard`/`lift` from the snapshot's per-skill
@@ -147,7 +147,7 @@ segment): `plugin:<marketplace>/<name>`, `skill:<marketplace>/<plugin>/<skill-di
 `skill:everything-claude-code/ecc/frontend-design-direction`.
 
 **Truncation:** every third-party `description` is truncated to ~200 characters
-(`DESCRIPTION_TRUNCATE_LIMIT` in `scripts/build_local_skill_map.py`). Some installed plugins ship
+(`DESCRIPTION_TRUNCATE_LIMIT` in `rhize-context-manager/scripts/build_local_skill_map.py`). Some installed plugins ship
 hundreds of skills (`ecc` alone is 280+) — routing/overlap analysis needs the gist of what a
 third-party skill does, not its full trigger text, and the full text would bloat the overlay
 roughly linearly with the ecosystem's size for no analytical benefit.
@@ -237,7 +237,7 @@ frontmatter for Rhize skills, `catalog/skill-relations.json` for third-party cap
 Several seeded `remediates` edges (the `everything-claude-code` build-resolver family) originate
 from `external:` nodes rather than `skill:` nodes, because those capabilities are **agents**
 (`agents/*.md`), not skills — the skill-map schema has no `agent` node kind, and third-party
-agents aren't inventoried by `build_local_skill_map.py`'s third-party scan (which only walks
+agents aren't inventoried by `rhize-context-manager/scripts/build_local_skill_map.py`'s third-party scan (which only walks
 `skills/*/SKILL.md` and `commands/*.md`). Modeling them as `external` nodes reuses the same
 pattern `fork-of` already uses for upstream marketplaces, rather than adding a new node kind for
 a case outside this round's scope.

@@ -4,7 +4,30 @@ Comprehensive search optimization plugin powered by DataForSEO API. Covers tradi
 
 ## Setup
 
-### Credential Delivery
+This plugin needs DataForSEO credentials for anything that touches live data — audits, keyword
+research, backlink and SERP lookups. Get credentials at [dataforseo.com](https://dataforseo.com),
+then supply them as two environment variables, `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD`,
+either directly or via the macOS keychain (see below for both). Without them, live-data commands
+and skills fail; `/content-optimize` and the `content-seo`/`nextjs-sanity-seo` skills still work
+since they don't need a live API call.
+
+### Required Environment Variables
+
+Supply credentials one of two ways:
+
+**Anywhere (plain env vars, no keychain):**
+```bash
+export DATAFORSEO_USERNAME=your_username
+export DATAFORSEO_PASSWORD=your_password
+```
+
+**macOS with the keychain helper installed:**
+```bash
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -U -w
+security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -U -w
+```
+
+### Credential Delivery (how the shim finds them)
 
 `.mcp.json` does not put `DATAFORSEO_USERNAME`/`DATAFORSEO_PASSWORD` directly in the server's
 `env` block. `${VAR}` substitution in an MCP config only works when the variable happens to be
@@ -26,26 +49,8 @@ the macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
    Claude Code inherits from, the server runs with them. This is the path that makes the plugin
    work on Linux, in Claude Cowork, or on a teammate's machine without the keychain helper.
 3. **Neither available** — the shim refuses to start the server and exits 78, printing a
-   message naming the missing variables and both remedies below. It never launches a server it
+   message naming the missing variables and both remedies above. It never launches a server it
    knows cannot authenticate.
-
-### Required Environment Variables
-
-Supply credentials one of two ways:
-
-**macOS with the keychain helper installed:**
-```bash
-security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l "DATAFORSEO_USERNAME" -U -w
-security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -U -w
-```
-
-**Anywhere (plain env vars, no keychain):**
-```bash
-export DATAFORSEO_USERNAME=your_username
-export DATAFORSEO_PASSWORD=your_password
-```
-
-Get credentials at [dataforseo.com](https://dataforseo.com).
 
 ### DataForSEO Modules Enabled
 
@@ -71,13 +76,13 @@ SERP, Keywords Data, OnPage, DataForSEO Labs, Backlinks, AI Optimization, Domain
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `aeo-geo-optimization` | ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. | ai-visibility, seo, seo-audit |
-| `backlink-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. | backlink-analysis, seo, seo-audit |
-| `content-seo` | ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. | content-optimization, seo, seo-audit |
-| `keyword-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. | content-optimization, keyword-research, seo |
-| `nextjs-sanity-seo` | ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
-| `seo-site-audit` | ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. | observability, seo, seo-audit |
-| `serp-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. | rank-tracking, seo, seo-audit |
+| `aeo-geo-optimization` | Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content. | ai-visibility, seo, seo-audit |
+| `backlink-intelligence` | Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks. | backlink-analysis, seo, seo-audit |
+| `content-seo` | Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better. | content-optimization, seo, seo-audit |
+| `keyword-intelligence` | Researches, clusters, and scores keywords to find what to target for SEO or content strategy. | content-optimization, keyword-research, seo |
+| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
+| `seo-site-audit` | Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes. | observability, seo, seo-audit |
+| `serp-intelligence` | Tracks search rankings and analyzes search results pages to show where you rank and what's around you. | rank-tracking, seo, seo-audit |
 <!-- SKILL-MAP:END -->
 
 ## What's Included

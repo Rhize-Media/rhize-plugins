@@ -15,6 +15,7 @@ description: >
   with terminal, command line, shell, script, automation, cron, or developer tools.
 metadata:
   rhize:
+    summary: "Automates Obsidian vault operations from the terminal using the official command-line tool."
     topics: [automation, content-authoring]
     stacks: [obsidian]
 

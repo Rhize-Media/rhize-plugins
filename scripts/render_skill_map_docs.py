@@ -10,6 +10,13 @@ between `<!-- SKILL-MAP:BEGIN -->` / `<!-- SKILL-MAP:END -->` marker pairs in:
   - every plugin's `README.md` (its skill table)
   - the root `README.md` (the Plugin Catalog table)
   - `generated/SKILL-CATALOG.md` (full cross-plugin catalog)
+  - `docs/README.md` (the per-plugin index — name, version, description,
+    README/GUIDE links, skill count)
+
+Every human-facing skill table prefers a skill's `metadata.rhize.summary`
+frontmatter (see build_skill_map.py) over the mechanically-derived
+`first_sentence(description)` fallback, since `description` is a runtime
+trigger string ("ALWAYS invoke this skill...") rather than a human summary.
 
 Everything outside a marker pair is left byte-for-byte untouched. A target
 file that has no marker pair is a hard error — markers are inserted by hand,
@@ -115,6 +122,7 @@ class SkillMap:
             "id": skill_id,
             "name": node["name"],
             "description": node.get("description", ""),
+            "summary": node.get("summary", ""),
             "topics": topics,
             "fork_of": fork_of,
         }
@@ -123,7 +131,7 @@ class SkillMap:
 def render_skill_table(skills: list[dict]) -> str:
     lines = ["| Skill | Description | Topics |", "| --- | --- | --- |"]
     for s in sorted(skills, key=lambda x: x["name"]):
-        desc = first_sentence(s["description"]).replace("|", "\\|")
+        desc = (s.get("summary") or first_sentence(s["description"])).replace("|", "\\|")
         topics = ", ".join(s["topics"]) or "—"
         lines.append(f"| `{s['name']}` | {desc} | {topics} |")
     return "\n".join(lines)
@@ -151,6 +159,27 @@ def render_catalog_md(skill_map: SkillMap, marketplace: dict) -> str:
         plugin_id = f"plugin:{name}"
         skills = skill_map.skills_of(plugin_id)
         sections.append(f"## {name}\n\n{render_skill_table(skills)}" if skills else f"## {name}\n\n_No skills._")
+    return "\n\n".join(sections)
+
+
+def render_docs_index(skill_map: SkillMap, marketplace: dict) -> str:
+    """docs/README.md's per-plugin index: one block per marketplace plugin
+    with its version, canonical description, README/GUIDE links, and a skill
+    count linking into the full cross-plugin catalog."""
+    sections = []
+    for entry in marketplace["plugins"]:
+        name = entry["name"]
+        plugin_id = f"plugin:{name}"
+        count = len(skill_map.skills_of(plugin_id))
+        version = entry.get("version", "—")
+        desc = entry.get("description", "")
+        skill_word = "skill" if count == 1 else "skills"
+        sections.append(
+            f"### {name}\n\n"
+            f"Version {version}. {desc}\n\n"
+            f"[README](../{name}/README.md) · [GUIDE](../{name}/GUIDE.md) · "
+            f"[{count} {skill_word}](../generated/SKILL-CATALOG.md#{name})"
+        )
     return "\n\n".join(sections)
 
 
@@ -218,6 +247,13 @@ def main() -> int:
     try:
         if apply_markers(catalog_md, render_catalog_md(skill_map, marketplace)):
             changed.append(str(catalog_md.relative_to(REPO_ROOT)))
+    except RenderError as exc:
+        errors.append(str(exc))
+
+    docs_readme = REPO_ROOT / "docs" / "README.md"
+    try:
+        if apply_markers(docs_readme, render_docs_index(skill_map, marketplace)):
+            changed.append(str(docs_readme.relative_to(REPO_ROOT)))
     except RenderError as exc:
         errors.append(str(exc))
 

@@ -115,6 +115,33 @@ capture, schedules work, runs live/paid benchmarks, or wires hooks.
 
 **Invoked as:** `/rhize-ops:rhize-setup`
 
+### Rollback
+
+Git is the rollback story for everything the plugins write into your
+project's `.claude/` directory or your home `~/.claude/` config. `skill-forge
+refine rollback <backup-id>` only undoes a `skill-forge refine` promotion —
+for hook entries, skills, commands, and `CLAUDE.md` edits, a Git commit is
+the only way back.
+
+Check where you stand — tracked/dirty/committed/missing, plus other staged
+files, so nothing you didn't ask for gets swept into a commit:
+
+```bash
+python3 rhize-ops/scripts/git_preflight.py report --project /path/to/project
+```
+
+Nothing here runs `git init` on `~/.claude` for you — that's your call, since
+it's easy to commit the wrong things (transcripts, plugin caches, tokens in
+`settings.json`) into a directory that big. The recipe:
+
+```bash
+git init ~/.claude
+cp rhize-ops/templates/claude-home.gitignore ~/.claude/.gitignore
+# review the .gitignore, then:
+cd ~/.claude && git add .gitignore skills commands agents hooks CLAUDE.md
+git commit -m "chore: baseline before customization"
+```
+
 ## Decision-accountability adapter
 
 Ops may map a predeclared experiment adoption/promotion/hold decision into the shared graph-memory
@@ -236,4 +263,4 @@ component reports capture as active only after its eligible execution path actua
 
 ## Data Subsystem
 
-`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. Two companion scripts add cost visibility on top of that usage data: `savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings across ecc, rtk, Headroom, claude-mem, and OpenWolf) and `skill_roi.py` (joins skill invocations to session cost for a per-skill ROI view). `benchmark_status.py` now validates timestamped, exact-row benchmark receipts, invokes the context experiment's real capture-health eval, emits stable path-redacted measurement incidents, and closes with a Sentry Cron check-in only after alert delivery succeeds. `monitor.py` also writes a counts-only session-level skill co-occurrence snapshot (`data/skill-cooccurrence.json`) consumed by the repo-root `scripts/build_local_skill_map.py` to build the skill map's local overlay (see `docs/skill-map.md`). These monitors remain separate from the structured `parallel-agent-optimization` receipt store: invocation counts and outcome evidence answer different questions and are never silently joined. See `skill-monitor/README.md` for the exact contracts.
+`skill-monitor/` is not a skill — it's the audit tool `skill-dashboard` reads from. `monitor.py` walks Claude Code/Cowork transcripts to produce JSON snapshots (`data/snapshots/`), and `dashboard.py` aggregates those snapshots into the rendered dashboard. Two companion scripts add cost visibility on top of that usage data: `savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings across ecc, rtk, Headroom, claude-mem, and OpenWolf) and `skill_roi.py` (joins skill invocations to session cost for a per-skill ROI view). `benchmark_status.py` now validates timestamped, exact-row benchmark receipts, invokes the context experiment's real capture-health eval, emits stable path-redacted measurement incidents, and closes with a Sentry Cron check-in only after alert delivery succeeds. `monitor.py` also writes a counts-only session-level skill co-occurrence snapshot (`data/skill-cooccurrence.json`) consumed by `rhize-context-manager/scripts/build_local_skill_map.py` (also reachable via a compatibility shim at `scripts/build_local_skill_map.py` in the repo root) to build the skill map's local overlay (see `docs/skill-map.md`). These monitors remain separate from the structured `parallel-agent-optimization` receipt store: invocation counts and outcome evidence answer different questions and are never silently joined. See `skill-monitor/README.md` for the exact contracts.

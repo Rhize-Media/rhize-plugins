@@ -33,7 +33,7 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
   agent suggestion rather than a skill invocation.
 - `succession` — node id → `{precedes, follows}` from declared `precedes` edges. `follows` is
   always `[]` in the static indexes — mined `follows` edges are local-overlay only — and gets
-  filled in by `scripts/build_local_skill_map.py` at
+  filled in by `rhize-context-manager/scripts/build_local_skill_map.py` at
   `~/.claude/context-manager/skill-map.indexes.resolved.json`. Consumed by
   `next-step-suggester.js` (PostToolUse, matcher `Skill`): after a skill invocation, looks up the
   invoked skill's node id, prefers the first declared `precedes` successor, falls back to the

@@ -13,6 +13,7 @@ description: >
   whiteboard", or requests to create visual note connections.
 metadata:
   rhize:
+    summary: "Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps."
     topics: [visualization, knowledge-management]
     stacks: [obsidian]
     extends: [obsidian-markdown]

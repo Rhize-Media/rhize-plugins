@@ -17,6 +17,7 @@ description: >
   Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.
 metadata:
   rhize:
+    summary: "Researches, clusters, and scores keywords to find what to target for SEO or content strategy."
     topics: [keyword-research, content-optimization]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]

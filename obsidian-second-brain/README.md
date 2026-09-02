@@ -4,6 +4,26 @@ A second brain toolkit for Obsidian vaults — knowledge workflows, evidence-bou
 research pipelines, connection discovery, and vault health management, backed by semantic search
 (qmd), MCP server, CLI integration, and a deterministic local compiler.
 
+## Setup
+
+### Prerequisites
+
+- **Obsidian** running with Local REST API plugin enabled (for MCP server)
+- **`OBSIDIAN_API_KEY`** available to the MCP server — via the macOS keychain (see Connectors
+  below) or as a plain exported env var
+- **Obsidian CLI** (v1.12.4+) registered and on PATH
+- **Defuddle** (`npm install -g defuddle`) for the web clipping skill
+- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
+
+### Installation
+
+Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server.
+
+Claude Code discovers commands and skills from `.claude-plugin/plugin.json`; Codex discovers the
+same canonical skills from `.codex-plugin/plugin.json` and each skill's `agents/openai.yaml`.
+After an install or update, start a fresh Claude Code or Codex session before verifying discovery;
+an already-running host may retain the previous plugin snapshot.
+
 ## Knowledge Workflows
 
 The core of this plugin. These skills and commands turn your vault into an active thinking tool, not just a file store.
@@ -13,12 +33,12 @@ The core of this plugin. These skills and commands turn your vault into an activ
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `defuddle` | ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. | content-authoring, obsidian, web-clipping |
+| `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian, web-clipping |
 | `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, workflow-patterns |
-| `qmd-search` | ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. | knowledge-management, obsidian, search |
-| `second-brain` | ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. | knowledge-management, obsidian, workflow-patterns |
-| `vault-alignment` | ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. | knowledge-management, observability, obsidian |
-| `vault-templates` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. | content-authoring, knowledge-management, obsidian |
+| `qmd-search` | Sets up and troubleshoots local semantic search over your Obsidian vault using qmd. | knowledge-management, obsidian, search |
+| `second-brain` | Applies knowledge-management methods like Zettelkasten and PARA to organize your vault. | knowledge-management, obsidian, workflow-patterns |
+| `vault-alignment` | Checks your Obsidian vault's health and organization against best practices. | knowledge-management, observability, obsidian |
+| `vault-templates` | Provides ready-made note templates for meetings, book reviews, project briefs, and more. | content-authoring, knowledge-management, obsidian |
 <!-- SKILL-MAP:END -->
 
 ### Commands — Research & Connect
@@ -219,26 +239,6 @@ compiled-knowledge output root, or `.rhize/compiled-knowledge`; qmd does not enf
 ACL, freshness, retention, or purge metadata. An ACL-aware compiled-knowledge adapter is deferred.
 
 Once installed and the `qmd@qmd` plugin is enabled, `/vault-search`, `/vault-connect`, and `/vault-recall` automatically use semantic search. All commands gracefully fall back to MCP/CLI keyword search when qmd is not available.
-
-## Setup
-
-### Prerequisites
-
-- **Obsidian** running with Local REST API plugin enabled (for MCP server)
-- **`OBSIDIAN_API_KEY`** available to the MCP server — via the macOS keychain (see Connectors
-  above) or as a plain exported env var
-- **Obsidian CLI** (v1.12.4+) registered and on PATH
-- **Defuddle** (`npm install -g defuddle`) for the web clipping skill
-- **qmd** (`npm install -g qmd`) + **`qmd@qmd` plugin** enabled — optional, for semantic search only
-
-### Installation
-
-Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server.
-
-Claude Code discovers commands and skills from `.claude-plugin/plugin.json`; Codex discovers the
-same canonical skills from `.codex-plugin/plugin.json` and each skill's `agents/openai.yaml`.
-After an install or update, start a fresh Claude Code or Codex session before verifying discovery;
-an already-running host may retain the previous plugin snapshot.
 
 ## Architecture
 

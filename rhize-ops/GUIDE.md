@@ -52,15 +52,16 @@ default when at least two independent bounded lanes pass the isolation and coord
 gates. The skill keeps dependency chains, shared-state work, and approval-gated operations
 sequential even when the request asks for parallelism.
 
-**What it produces:** An `apply` run uses the self-contained Rhize strategy under a one-writer
-safety envelope, verifies the result, and finalizes one observational receipt. A `compare` run
-creates isolated baseline and Rhize arms from the same seed, runs them sequentially in a
-counterbalanced order, and stores controlled receipts separately. Vendor skills are not loaded.
+**What it produces:** An `apply` run does the real work once, using the built-in Rhize
+coordination strategy, checks the result, and saves one record of how it went. A `compare` run is
+a controlled experiment instead — it re-runs the same starting task twice, once with the strategy
+and once without, in randomized order so neither run gets an unfair advantage, and only against a
+safe, replayable fixture, never your live task.
 
-Receipts include coarse task class, variant, timing/overlap, tool/token coverage, agent counts,
-verification, correctness, collisions, and rework. Every accepted v2 run ends `completed`,
-`failed`, or `incomplete`; `audit-pending` exposes stale reservations. Receipts cannot contain
-prompts, code, commands, paths, names, URLs, session IDs, or issue IDs.
+Every run leaves behind a receipt — what kind of task it was, how long it took, whether agents
+overlapped, and whether the result checked out — but never the actual prompts, code, files, names,
+or IDs involved. A run that didn't finish cleanly shows up as `audit-pending` so you know to follow
+up on it. Full schema: [README](./README.md#parallel-agent-optimization).
 
 For execution, sketch nodes and dependencies before dispatch. The canonical skill validates that
 file-disjoint work is also independent of checkout state, rate pools, approvals, and external
@@ -119,7 +120,7 @@ Knowledge & Context; Ops hosts the setup engine without changing that product ta
 
 Two scripts under `skill-monitor/` give you cost visibility on top of the skill-usage data — not a skill or command you invoke directly, but part of the weekly audit (and runnable on demand).
 
-**`savings_scorecard.py`** — answers "what am I actually spending, and what's actually being saved?" It keeps two tiers strictly separate: **Measured** (real per-session spend from `costs.jsonl`, plus rtk and Headroom's own tracked savings) and **Estimated** (claude-mem, OpenWolf, and headroom-learn's self-reported heuristics) — the estimated numbers are never added into the measured total, because they're not counting the same thing.
+**`savings_scorecard.py`** — answers "what am I actually spending, and what's actually being saved?" It keeps two tiers strictly separate: **Measured** (real per-session spend from `costs.jsonl`, plus rtk and Headroom's own tracked savings) and **Estimated** (claude-mem, OpenWolf, and headroom-learn's self-reported heuristics) — the estimated numbers are never added into the measured total, because they're not counting the same thing. New to rtk/Headroom/claude-mem/OpenWolf? See [START-HERE's glossary](../START-HERE.md#7-glossary).
 
 **`skill_roi.py`** — answers "which skills are actually earning their session cost?" It joins skill invocations to the session cost they happened in and flags keep-listed skills sitting at zero invocations, plus skills that are expensive but rarely used.
 
@@ -155,7 +156,8 @@ estimating a value.
 direct-launch counts, but those historical counts do not contain matched outcome evidence and are
 not mixed into v2 reports.
 
-**A receipt is evidence, not decision authority.** An authenticated coordinator may preview an
-experiment adoption/promotion/hold decision through `rhize-context-manager` only after binding the
-current Jira revision, predeclared thresholds, privacy-safe receipt/report digests, policy, and
-approval. Ops never writes a graph or shadow ledger and never updates Jira from a decision preview.
+**A receipt is evidence, not a decision.** Receipts tell you what happened; they don't adopt,
+promote, or roll back a strategy on their own. Formally acting on a batch of receipts goes through
+`rhize-context-manager`'s reviewed decision process, not this plugin — see the
+[README](./README.md#decision-accountability-adapter) for exactly what that requires and what it
+never does.

@@ -1,5 +1,7 @@
 # Rhize Plugins
 
+New here? Read **[START-HERE.md](./START-HERE.md)** first.
+
 A curated collection of Claude and Codex plugins by [Rhize Media](https://rhize.media) — web development, SEO, knowledge management, development workflow, local-first planning, and internal operations tooling.
 
 ## Quick Start
@@ -17,15 +19,15 @@ All plugins below will become available for installation. Each plugin may need i
 <!-- SKILL-MAP:BEGIN -->
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
-| [seo-aeo-geo](./seo-aeo-geo) | 1.5.0 | 7 | Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | 1.7.0 | 10 | Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
-| [project-launcher](./project-launcher) | 1.8.0 | 2 | End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | 2.19.0 | 9 | Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.23.1 | 16 | Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.15.2 | 3 | Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
-| [rhize-tasks](./rhize-tasks) | 0.4.1 | 6 | Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
-| [rhize-cowork](./rhize-cowork) | 0.2.0 | 1 | Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging). | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
-| [procedural-memory](./procedural-memory) | 0.5.0 | 2 | Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
+| [seo-aeo-geo](./seo-aeo-geo) | 1.5.1 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.7.1 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [project-launcher](./project-launcher) | 1.8.1 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.20.0 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.24.0 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.16.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-tasks](./rhize-tasks) | 0.4.2 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
+| [rhize-cowork](./rhize-cowork) | 0.2.1 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
+| [procedural-memory](./procedural-memory) | 0.5.1 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
@@ -89,12 +91,15 @@ This repo uses one convention consistently across every plugin — know it once,
 
 | File | Audience | Contains |
 | --- | --- | --- |
+| **[`START-HERE.md`](./START-HERE.md)** | First-time readers | Start here — what this repo is, what each plugin is for in plain words, which plugins to install for your situation, and how the context-file architecture fits together |
 | **This README** | Anyone browsing the marketplace | Repo-wide navigation: what plugins exist, how to install, how the docs are organized |
 | **Plugin `README.md`** | Someone setting up or maintaining a plugin | Technical reference — installation, env vars, the full skill/command inventory, architecture, hooks |
 | **Plugin `GUIDE.md`** | Someone using a plugin day-to-day | Plain-language walkthrough — what problem it solves, when to reach for which skill/command, example prompts, tips, troubleshooting |
 | **`SKILL.md`** (inside `skills/*/`) | Claude, at runtime | The actual instructions a skill executes when triggered — not primary human documentation, though readable if you're curious how a skill works |
+| **[`docs/README.md`](./docs/README.md)** | Maintainers | Index into cross-plugin reference material and dated design records that don't belong to one plugin |
+| **[`generated/SKILL-CATALOG.md`](./generated/SKILL-CATALOG.md)** | Anyone looking for a specific skill | Full cross-plugin skill catalog, generated from the skill map — never hand-edited |
 | **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
-| **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped — start here |
+| **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped |
 | **`CHANGELOG.md`** | Maintainers and contributors | The full engineering record: every fix and version bump, with internal references |
 
 **Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
@@ -152,8 +157,7 @@ skill-map changes live under [`docs/superpowers/specs/`](./docs/superpowers/spec
   Flow and Context Manager consumers automatically use a healthy index first and retain their
   explicit `rg` fallback for unavailable, stale, unsupported, generated, or external edges.
 - **[`evals/`](./evals/README.md)** — local/free coverage gates account for all 56 published plugin skills, alongside live trigger/output harnesses, real-provider context-tool dogfood, strict benefit-benchmark contracts, a separate Superpowers/Rhize guide comparison, and SkillForge safety/evolve integration. Complete deterministic inventory does not imply complete live evidence: pending cohorts stay explicit, and `evals/context-tools` keeps real benchmark rows separate from test-local failure doubles.
-- **[`skills/rhize-review/SKILL.md`](./skills/rhize-review/SKILL.md)** — a standalone merge-gate review skill that lives at the repo root, outside any plugin. It isn't installed through the marketplace and isn't listed in `marketplace.json`; it's a repo-local tool that dispatches specialist reviewer subagents before a production merge.
-- **`scripts/validate_plugin_configs.py`** — dependency-free lint over every plugin's `hooks/hooks.json` and `.mcp.json`, written after three separate 2026-08 incidents (unquoted `${CLAUDE_PLUGIN_ROOT}` word-splitting a hook command, a secret-shaped `${VAR}` left in a stdio MCP server's `env` block, a trailing-slash `*_BASE_URL` doubling every request path). Registered in `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` in default (warning) mode — only genuine errors block a release; run with `--strict` to promote warnings, or see the script's docstring for the per-finding suppression mechanism.
+- **`scripts/validate_plugin_configs.py`** — dependency-free lint over every plugin's `hooks/hooks.json` and `.mcp.json`, catching known hook/MCP-config footguns (see the script's own docstring for the exact checks and the incidents behind them). Registered in `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` in default (warning) mode — only genuine errors block a release; run with `--strict` to promote warnings, or see the script's docstring for the per-finding suppression mechanism.
 
 ## Repository Layout
 
@@ -170,9 +174,11 @@ rhize-plugins/
 ├── rhize-tasks/                   # Plugin: local-first unified task planning
 ├── rhize-cowork/                  # Plugin: Cowork project context scaffolding
 ├── procedural-memory/             # Plugin: rhize-skill CLI wrapper (recall/promote/verify/run)
-├── skills/rhize-review/           # Standalone repo-root skill (not a plugin)
+├── docs/                          # Cross-plugin reference material for maintainers
+├── generated/                     # Generated artifacts (skill map, SKILL-CATALOG.md) — never hand-edited
 ├── evals/                         # Trigger/quality eval harness
 ├── scripts/                       # Maintainer scripts (e.g. version bump)
+├── START-HERE.md                  # First-time-reader orientation
 ├── ROADMAP.md                     # Active + planned work
 ├── CHANGELOG.md                   # Released changes
 └── README.md                      # You are here
@@ -202,7 +208,10 @@ To add a new plugin:
 1. Create a subdirectory with the standard plugin structure above.
 2. Write both a `README.md` (technical) and a `GUIDE.md` (user-facing) — see the [Documentation Hierarchy](#documentation-hierarchy) rule above for what goes where.
 3. Register the plugin in `.claude-plugin/marketplace.json`, keeping its `version` in sync with the plugin's own `.claude-plugin/plugin.json`.
-4. Add an entry to the Plugin Catalog table above.
+4. Do **not** hand-edit the Plugin Catalog table above or `generated/SKILL-CATALOG.md` — both are
+   rendered from `marketplace.json` and the skill map by `scripts/render_skill_map_docs.py`.
+   Registering the plugin in step 3 is what feeds them; the render itself runs as part of the
+   version-bump release flow (see the root CLAUDE.md's Documentation Maintenance section).
 5. Add a `CHANGELOG.md` entry.
 6. Add complete eval coverage under `evals/` (see `evals/README.md`): routing cases, a local quality contract, and an exact benchmark applicability record for every new skill.
 

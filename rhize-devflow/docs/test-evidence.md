@@ -37,6 +37,14 @@ Packet output and lease paths must live outside the target repository. Packets b
 checkout's initial and final fingerprints; a changed or incomplete binding is not accepted as
 regression evidence.
 
+When `--output` is omitted, the runner writes to a default packet location instead of requiring
+one: `~/.rhize/test-evidence/packets/<repo-slug>-<head-sha12>.json`, where `<repo-slug>` is the
+repository directory name lowercased with every non-alphanumeric character mapped to `-`, and
+`<head-sha12>` is the first 12 characters of the current `HEAD` SHA. Every directory in that path
+is created `0700` and the packet file itself `0600`. The runner never overwrites an existing
+packet at that path — it exits with an error naming the path and pointing at `--output` — and it
+prints the resolved path so the caller knows where the packet went.
+
 Packet paths and digests remain local. Jira receives only aggregate counts, version/SHA references,
 and the promotion decision—never the packet, invariant prose, source content, credentials, or paths.
 

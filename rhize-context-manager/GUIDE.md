@@ -14,8 +14,11 @@ the right one, and health-checks the whole thing.
   *Example: "Where should the client's evolving pricing decisions live, and what may be previewed?"*
 
 - **"Session start feels slow" / "I'm seeing the same context twice"**
-  → `/context-doctor` — read-only health check + overlap flags across Headroom, RTK,
-  claude-mem, OpenWolf, Serena/CodeGraph. Every run is saved to
+  → `/context-doctor` — read-only health check + overlap flags across every context/memory
+  tool this plugin orchestrates: Headroom (API-traffic compression), RTK (a token-saving
+  command proxy), claude-mem (cross-session memory), OpenWolf (a per-repo file index), and
+  Serena/CodeGraph (symbol-level code navigation) — see
+  [START-HERE's glossary](../START-HERE.md#7-glossary) for more on each. Every run is saved to
   `~/.claude/context-manager/doctor/`, so the next run shows you a delta ("Serena flag
   cleared since last time", "RTK savings dropped to zero") instead of a cold read every
   time. If the `ecc` plugin's `harness-audit` skill is installed, doctor chains into it
@@ -25,8 +28,8 @@ the right one, and health-checks the whole thing.
   It will not call a layer healthy just because its port answers: claude-mem has to show
   new observations since the last run, or it is reported `dead`. If no sessions ran at all,
   it says `indeterminate` rather than pretending a quiet week is a healthy one. It also warns
-  about credentials due to expire before the next weekly run — the failure mode that silently
-  killed memory capture for three days in August 2026.
+  about credentials due to expire before the next weekly run, so an expiring credential
+  doesn't silently stop memory capture without you noticing.
 
 - **"Set up context tooling for this repo" / "which layers should this repo actually run"**
   → `/context-setup` — scans the repo to infer its type, checks which stack layers are
@@ -72,8 +75,9 @@ the right one, and health-checks the whole thing.
   intended behavior, invariants, planned code, operational effects, acceptance tests, and
   explicitly unaffected paths. After implementation it syncs CodeGraph and reports whether the
   graph, diff, and map are in sync. Without `.codegraph/`, it falls back to `rg`; it never indexes
-  a repository without the owner's decision. This plugin's own `/impact-map` is a deprecation
-  adapter that points here for the 2.12.0 compatibility window only.
+  a repository without the owner's decision. This plugin's own `/impact-map` command is
+  deprecated — it just points you to the command above (see the
+  [README](./README.md#commands) for why).
   *Example: "Run /rhize-devflow:impact-map for this sponsor lifecycle change, then reconcile it
   after the fix."*
 
@@ -106,7 +110,8 @@ the right one, and health-checks the whole thing.
   → use the `graph-memory` ontology and bounded offline hygiene contracts (`/graph-memory` runs
   `validate`, then offers a private `preview`); the `graphiti-memory`
   skill is historical design context only. Graphiti was not implemented and must not be installed
-  or routed as a fallback. Live Neo4j projection remains behind RT-159.
+  or routed as a fallback. Live Neo4j projection isn't turned on yet — today you get validation
+  and private previews, not a queryable live graph.
 
 - **"Review these possible duplicate graph entities" / "reverse this SAME_AS decision"**
   → use `graph-memory` (`/graph-memory-review` in Claude) to inspect capability. The in-process
@@ -120,8 +125,9 @@ the right one, and health-checks the whole thing.
 - **"Preview why we approved this release/experiment/task effect"**
   → use `graph-memory` (`/graph-decision` in Claude) with a typed adapter from the owning workflow.
   The offline release validates private, source-bound previews but does not record or publish them.
-  Record/explain/impact/precedent/correction operations return `unavailable` until the governed RT-161
-  projection canary; do not create a local fallback ledger. Claude and Codex use the same CLI and
+  Record/explain/impact/precedent/correction operations report `unavailable` until that durable
+  projection ships — never invent a local fallback ledger in the meantime. Claude and Codex use
+  the same CLI and
   [adapter contract](skills/graph-memory/references/typed-decision-adapters.md).
 
 - **Deep context-engineering questions** (why does quality degrade at 100k tokens? how
@@ -165,23 +171,22 @@ the right one, and health-checks the whole thing.
   Code and no-op while capabilities are disabled. Codex uses the same host-neutral runner through
   explicit skill invocation; it does not consume `hooks/hooks.json`. Remove older manually wired
   Claude entries when updating; duplicate calls are state-safe but waste local provider work.
-- `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`)
-  replaced the keyword-grep `skill-suggester` hook 2026-08-09 — it ranks the prompt
-  against the compiled skill-map's topic/stack tags instead of a fixed keyword list, so
-  a newly tagged skill routes without a hook edit. It needs `scripts/build_skill_map.py
+- `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`) ranks the
+  prompt against the compiled skill-map's topic/stack tags, so a newly tagged skill routes
+  without a hook edit. It needs `scripts/build_skill_map.py
   --install` to have run at least once (installs the artifact to
   `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
   nothing.
-- `session-disclosure` (`hooks/session-disclosure.js`, auto-wired — not opt-in) replaced
-  the four per-plugin SessionStart banners on 2026-08-09: seo-aeo-geo,
-  obsidian-second-brain, project-launcher, and rhize-devflow no longer print anything on
-  session start. Instead, this one hook fingerprints the repo (a `next.config.*`,
-  `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up to 8 skills
-  tagged for that stack — silent in repos with none of those markers, same map
-  dependency as `skill-router`.
+- `session-disclosure` (`hooks/session-disclosure.js`, auto-wired — not opt-in) is the one
+  hook that prints a stack-aware skill banner at session start: it fingerprints the repo (a
+  `next.config.*`, `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up
+  to 8 skills tagged for that stack — silent in repos with none of those markers, same map
+  dependency as `skill-router`. It replaced four separate per-plugin banners (seo-aeo-geo,
+  obsidian-second-brain, project-launcher, rhize-devflow); see the
+  [README's Hooks section](./README.md#hooks) for that lineage.
 - `remediation-suggester` and `next-step-suggester` (`hooks/remediation-suggester.js`,
-  `hooks/next-step-suggester.js`, both auto-wired — not opt-in) landed 2026-08-09 as the
-  runtime layer for relationships v2. After a failing `Bash` command, the first hook
+  `hooks/next-step-suggester.js`, both auto-wired — not opt-in) are the runtime layer that
+  acts on the skill map's relationship data. After a failing `Bash` command, the first hook
   matches the output against the skill map's `remediates`/`condition` data and suggests a
   fix (e.g. "the ecc:build-error-resolver agent remediates build-failure"). After any
   `Skill` invocation, the second hook suggests the usual next step from that skill's
@@ -189,9 +194,9 @@ the right one, and health-checks the whole thing.
   next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at
   least once, same as `skill-router`; with no artifact present they fail silently.
 - All five map hooks (`skill-router`, `session-disclosure`, `remediation-suggester`,
-  `next-step-suggester`, `agent-brief-router`) log each fired event (2026-08-10, extended
-  2026-08-26) to `~/.claude/context-manager/suggestion-log.jsonl` — ids/hashes/lengths only,
-  never prompt or brief text — so "was this suggestion actually followed?" is finally
+  `next-step-suggester`, `agent-brief-router`) log each fired event to
+  `~/.claude/context-manager/suggestion-log.jsonl` — ids/hashes/lengths only,
+  never prompt or brief text — so "was this suggestion actually followed?" is
   measurable. The first four share one row shape (`{hook, suggested, ...}`);
   `agent-brief-router` logs a different one (`source: "agent-dispatch"`, no `hook` key — see
   below). Run `python3 scripts/suggestion_log_report.py` (repo root) for per-hook
@@ -209,7 +214,7 @@ the right one, and health-checks the whole thing.
   reviewed. See `docs/skill-map.md`'s "Agent-dispatch surface" section for the spike verdicts
   and known limitations (Workflow `agent()` calls and scheduled tasks bypass this hook
   entirely — by design, no hook covers them).
-- Two more opt-in hooks landed directly under `hooks/` (2026-08-09, moved from
+- Two more opt-in hooks live directly under `hooks/` (moved here from
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
   Both are now also in `setup/manifest.json` (ids `refinement-detector` /
@@ -218,15 +223,16 @@ the right one, and health-checks the whole thing.
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`
   tells you when upstreams have moved.
-- Graphiti was not implemented. Neo4j is available, but its live semantic-memory adapter remains
-  blocked on RT-159 even though ontology and private offline hygiene contracts now exist;
+- Graphiti was not implemented. Neo4j is available, but its live semantic-memory adapter isn't
+  turned on yet, even though the ontology and private offline hygiene contracts already exist;
   `memory-context` is preview-only in the meantime.
 
 ## Troubleshooting
 
 - **`/impact-map` is unknown, or only shows a deprecation notice** → the executable command is
   `/rhize-devflow:impact-map`; install/update the `rhize-devflow` plugin, then start a new session.
-  This plugin's own `/impact-map` is a deprecation adapter for the 2.12.0 compatibility window.
+  This plugin's own `/impact-map` is a deprecated adapter that only points you to the command
+  above.
 - **/graphify fires twice or behaves oddly** → you still have the old user-level skill;
   delete `~/.claude/skills/graphify`.
 - **Doctor says a layer is "dead" that you expect alive** → check the tool's own logs

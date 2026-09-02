@@ -17,6 +17,7 @@ description: >
   Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.
 metadata:
   rhize:
+    summary: "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content."
     topics: [ai-visibility, seo-audit]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]

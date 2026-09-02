@@ -23,6 +23,18 @@ OBSIDIAN_CONFIG_PATH = (
     Path.home() / "Library" / "Application Support" / "obsidian" / "obsidian.json"
 )
 
+# The legacy iCloud default vault, as a concrete path (rather than the
+# substring marker above) -- used by resolve_vault_paths() to decide whether
+# it is a real fallback candidate, not just a text match.
+ICLOUD_VAULT_PATH = (
+    Path.home()
+    / "Library"
+    / "Mobile Documents"
+    / "iCloud~md~obsidian"
+    / "Documents"
+    / "Obsidian Vault"
+)
+
 
 def _env_vault_paths() -> list[str]:
     try:
@@ -69,3 +81,29 @@ def is_vault_path(path: str) -> bool:
         return ICLOUD_VAULT_MARKER in path
     except Exception:
         return False
+
+
+def resolve_vault_paths() -> list[str]:
+    """Return every resolved Obsidian vault root, deduplicated, in order:
+
+    1. `OBSIDIAN_VAULT_PATH` env var entries (`:`-separated)
+    2. Vaults registered in Obsidian's own config (`obsidian.json`)
+    3. The legacy iCloud default vault, only if that path actually exists on
+       disk (unlike `is_vault_path()`'s substring marker, this is a concrete
+       path check -- a caller resolving "the" vault needs a real candidate,
+       not just a text match).
+
+    Never raises -- always returns a (possibly empty) list, same contract as
+    the rest of this module.
+    """
+    try:
+        seen: list[str] = []
+        for vault_path in (*_env_vault_paths(), *_registered_vault_paths()):
+            if vault_path not in seen:
+                seen.append(vault_path)
+        icloud = str(ICLOUD_VAULT_PATH)
+        if icloud not in seen and ICLOUD_VAULT_PATH.exists():
+            seen.append(icloud)
+        return seen
+    except Exception:
+        return []

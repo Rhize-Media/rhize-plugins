@@ -26,7 +26,7 @@ instrument, not a router** — default behavior is log-only. Each Agent-tool dis
 it (non-empty brief, usable map/index data) logs one `source: "agent-dispatch"` row to the shared
 suggestion log: which skills the brief named via the directive `Invoke <plugin:skill> first`
 (Task 1's convention) versus the single best-scoring candidate the router index would suggest for
-the brief's content. `scripts/suggestion_log_report.py`'s `agent_dispatch` section reports the
+the brief's content. `rhize-context-manager/scripts/suggestion_log_report.py`'s `agent_dispatch` section reports the
 named-rate, candidate-present count, and candidate-miss rate computed from that log, plus the
 same four numbers broken out per `agentType`. A one-line advisory
 (`hookSpecificOutput.additionalContext`, next-dispatch guidance only — it cannot retract the

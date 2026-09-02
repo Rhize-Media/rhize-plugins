@@ -1,7 +1,7 @@
 {
   "name": "rhize-devflow",
-  "version": "2.19.0",
-  "description": "Rhize Media's engineering control-plane skills for impact mapping, behavior-preserving simplification, state-bound test evidence, validation, independent production review, authorized completed-branch promotion, error lifecycle, mutation consistency, browser QA, Sentry instrumentation, and Sanity house style.",
+  "version": "2.20.0",
+  "description": "Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.",
   "author": {
     "name": "Rhize Media"
   },

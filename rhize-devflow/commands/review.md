@@ -1,5 +1,5 @@
 ---
-description: Read-only production merge/release gate — resolves the exact comparison range, builds a risk map from actual diff evidence, routes only relevant specialist reviews, and returns one merge verdict backed by an independent skeptical reviewer
+description: Read-only production merge/release gate. Use for a review before merge, to answer "is this safe to ship", or for a production code review before a push, deploy, or release — resolves the exact comparison range, builds a risk map from actual diff evidence, routes only relevant specialist reviews, and returns one merge verdict backed by an independent skeptical reviewer
 ---
 <!-- canonical: rhize-devflow:review -->
 
@@ -129,6 +129,10 @@ protected-file touch).
 | Deployment | Delivery/CI reviewer, informed by repository push/deploy policy |
 | Security (tracing/PII scrubbing) | Security reviewer, informed by this plugin's `sentry-instrumentation` conventions |
 
+For the finer-grained, stack-based routing table (React/TypeScript/Python/Go/Rust/Java/
+database/test/error-handling/type-design specialists) and the technique that produces
+the highest-value findings, see [`docs/review-lessons.md`](docs/review-lessons.md).
+
 ## Phase 5: Independent Skeptical Review
 
 For any non-trivial change (Phase 3), route to a separate agent/model that did not write the change
@@ -188,3 +192,6 @@ stale evidence is a fixable gap. `cleanup_failed` is `FAIL_REQUIRES_HUMAN`. An e
 - `agents/verifier.md` — the independent verifier this command routes to for non-trivial
   work (same plugin).
 - `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).
+- [`docs/review-lessons.md`](docs/review-lessons.md) — stack-based specialist routing,
+  the Sentry-bot PR-comment fold-in, aggregation rules, the `.env.example` false-positive
+  rule, and the pre-merge checklist distilled from prior gate runs.

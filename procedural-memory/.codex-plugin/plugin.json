@@ -1,7 +1,7 @@
 {
   "name": "procedural-memory",
-  "version": "0.5.0",
-  "description": "Recall and execute proven registry artifacts, or compile inert Functionize proposals through a separately gated skill shared by Claude Code and Codex.",
+  "version": "0.5.1",
+  "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
   "author": {
     "name": "Rhize Media"
   },

@@ -93,10 +93,11 @@ from pathlib import Path
 from typing import Iterable
 
 import cost_metrics
+import paths
 
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
-DATA_DIR = SCRIPT_DIR / "data"
+DATA_DIR = paths.data_dir()
 DEFAULT_OUT_PATH = DATA_DIR / "stack-metrics.json"
 
 HEADROOM_DIR = HOME / ".headroom"
@@ -105,24 +106,33 @@ DEFAULT_SAVINGS_EVENTS = HEADROOM_DIR / "savings_events.jsonl"
 
 DEFAULT_TRANSCRIPTS_DIR = HOME / ".claude" / "projects"
 DEFAULT_PROCEDURAL_MEMORY_DIR = HOME / ".rhize" / "procedural-memory" / "runs"
-DEFAULT_SKILL_USAGE_PATH = SCRIPT_DIR / "data" / "skill-usage.json"
+DEFAULT_SKILL_USAGE_PATH = DATA_DIR / "skill-usage.json"
 DEFAULT_RTK_DB = HOME / "Library" / "Application Support" / "rtk" / "history.db"
 DEFAULT_CLAUDE_MEM_DB = HOME / ".claude-mem" / "claude-mem.db"
-DEFAULT_OPENWOLF_ROOT = HOME / "dev-local" / "RHIZE"
+# The OpenWolf bounded-recursive scan (_find_wolf_ledgers, below) walks ONE
+# root looking for nested .wolf/ dirs (depth <= 5) — a workspace-style
+# ~/dev-local/RHIZE containing many repos, in the original design. With no
+# hardcoded ~/dev-local literal, this uses the parent of the first configured
+# RHIZE_REPO_ROOTS entry (so pointing at one repo still scans its siblings,
+# matching the old behavior); a nonexistent placeholder when nothing is
+# configured, so load_openwolf() reports "unavailable" exactly as it did
+# before ~/dev-local/RHIZE existed on a fresh machine.
+_configured_repo_roots = paths.repo_roots()
+DEFAULT_OPENWOLF_ROOT = (
+    _configured_repo_roots[0].parent if _configured_repo_roots
+    else HOME / ".rhize" / "skill-monitor" / "openwolf-scan-root-unconfigured"
+)
+# None when no single vault could be resolved (see paths.vault_root()).
+_vault_root = paths.vault_root()
 DEFAULT_CODEX_LOG_PATH = (
-    HOME
-    / "Library"
-    / "Mobile Documents"
-    / "iCloud~md~obsidian"
-    / "Documents"
-    / "Obsidian Vault"
+    _vault_root
     / "Projects"
     / "Rhize Media"
     / "Rhize Tools"
     / "Scheduled Agent Routines & Automations"
     / "Plans"
     / "Model Cost Reduction — Codex Trial Win-Loss Log.md"
-)
+) if _vault_root else None
 
 # rtk's known, upstream-acknowledged summary-text fabrication bugs (see
 # ~/.claude/RTK.md). The numeric columns in history.db are deterministic
@@ -1127,6 +1137,14 @@ def load_codex_trial_log(vault_path: Path | None = None) -> dict:
     metric. See CODEX_LOG_NOTE: do not manufacture a $ or token figure from
     qualitative prose."""
     path = vault_path if vault_path is not None else DEFAULT_CODEX_LOG_PATH
+    if path is None:
+        return {
+            "available": False,
+            "error": "no single Obsidian vault could be resolved (see paths.vault_root())",
+            "last_event_ts": None,
+            "event_count": 0,
+            "metrics": [],
+        }
     if not path.exists():
         return {
             "available": False,

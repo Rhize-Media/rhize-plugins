@@ -9,35 +9,35 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `aeo-geo-optimization` | ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. | ai-visibility, seo, seo-audit |
-| `backlink-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. | backlink-analysis, seo, seo-audit |
-| `content-seo` | ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. | content-optimization, seo, seo-audit |
-| `keyword-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. | content-optimization, keyword-research, seo |
-| `nextjs-sanity-seo` | ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
-| `seo-site-audit` | ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. | observability, seo, seo-audit |
-| `serp-intelligence` | ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. | rank-tracking, seo, seo-audit |
+| `aeo-geo-optimization` | Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content. | ai-visibility, seo, seo-audit |
+| `backlink-intelligence` | Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks. | backlink-analysis, seo, seo-audit |
+| `content-seo` | Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better. | content-optimization, seo, seo-audit |
+| `keyword-intelligence` | Researches, clusters, and scores keywords to find what to target for SEO or content strategy. | content-optimization, keyword-research, seo |
+| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
+| `seo-site-audit` | Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes. | observability, seo, seo-audit |
+| `serp-intelligence` | Tracks search rankings and analyzes search results pages to show where you rank and what's around you. | rank-tracking, seo, seo-audit |
 
 ## obsidian-second-brain
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `defuddle` | ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. | content-authoring, obsidian, web-clipping |
-| `json-canvas` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. | knowledge-management, obsidian, visualization |
+| `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian, web-clipping |
+| `json-canvas` | Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps. | knowledge-management, obsidian, visualization |
 | `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, workflow-patterns |
-| `obsidian-bases` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. | content-authoring, knowledge-management, obsidian |
-| `obsidian-cli` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian CLI or terminal automation request. | automation, content-authoring, obsidian |
-| `obsidian-markdown` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian markdown syntax or formatting request. | content-authoring, knowledge-management, obsidian |
-| `qmd-search` | ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. | knowledge-management, obsidian, search |
-| `second-brain` | ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. | knowledge-management, obsidian, workflow-patterns |
-| `vault-alignment` | ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. | knowledge-management, observability, obsidian |
-| `vault-templates` | ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. | content-authoring, knowledge-management, obsidian |
+| `obsidian-bases` | Creates and edits Obsidian Base files for database-like views, filters, and dashboards. | content-authoring, knowledge-management, obsidian |
+| `obsidian-cli` | Automates Obsidian vault operations from the terminal using the official command-line tool. | automation, content-authoring, obsidian |
+| `obsidian-markdown` | Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter. | content-authoring, knowledge-management, obsidian |
+| `qmd-search` | Sets up and troubleshoots local semantic search over your Obsidian vault using qmd. | knowledge-management, obsidian, search |
+| `second-brain` | Applies knowledge-management methods like Zettelkasten and PARA to organize your vault. | knowledge-management, obsidian, workflow-patterns |
+| `vault-alignment` | Checks your Obsidian vault's health and organization against best practices. | knowledge-management, observability, obsidian |
+| `vault-templates` | Provides ready-made note templates for meetings, book reviews, project briefs, and more. | content-authoring, knowledge-management, obsidian |
 
 ## project-launcher
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `project-launcher` | ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a proje… | automation, obsidian, project-planning, workflow-patterns |
-| `rhize-visual-plan` | ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — a… | nextjs, obsidian, project-planning, visualization |
+| `project-launcher` | Takes a project idea through research, requirements, a PRD, and a scaffolded project folder. | automation, obsidian, project-planning, workflow-patterns |
+| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, visualization |
 
 ## rhize-devflow
 

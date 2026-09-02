@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.56.3",
+  "version": "2.57.0",
   "description": "Curated Claude Code and Codex plugins by Rhize Media — knowledge, context, development workflow, operations, SEO, and web tooling",
   "owner": {
     "name": "Rhize Media"
@@ -10,8 +10,8 @@
     {
       "name": "seo-aeo-geo",
       "source": "./seo-aeo-geo",
-      "description": "Comprehensive SEO, AEO, and GEO plugin for auditing, analyzing, and optimizing codebases and websites",
-      "version": "1.5.0",
+      "description": "Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.",
+      "version": "1.5.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -26,8 +26,8 @@
     {
       "name": "obsidian-second-brain",
       "source": "./obsidian-second-brain",
-      "description": "Second brain toolkit for Obsidian vaults — evidence-bound compiled knowledge, research workflows, semantic search, connection discovery, and vault health shared by Claude Code and Codex",
-      "version": "1.7.0",
+      "description": "Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.",
+      "version": "1.7.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -51,8 +51,8 @@
     {
       "name": "project-launcher",
       "source": "./project-launcher",
-      "description": "End-to-end project launcher — research, PRD generation, critical gap analysis, project scaffolding, and GSD v2 handoff for autonomous development. Phase 3 renders the PRD into a rhize-visual-plan .mdx review/approval surface (diagrams, wireframes, file maps, data/API contracts) in Next.js and Obsidian; the PRD remains the GSD machine spec",
-      "version": "1.8.0",
+      "description": "Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.",
+      "version": "1.8.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -73,8 +73,8 @@
     {
       "name": "rhize-devflow",
       "source": "./rhize-devflow",
-      "description": "Rhize Media's engineering control plane — impact-map → implement → simplify → check → review → release, with state-bound behavioral test evidence, independent review, and governed promotion for Claude Code and Codex",
-      "version": "2.19.0",
+      "description": "Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.",
+      "version": "2.20.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -93,8 +93,8 @@
     {
       "name": "rhize-context-manager",
       "source": "./rhize-context-manager",
-      "description": "Local-first context engineering for Claude Code and Codex — parser-backed source-bound context packs, bounded multi-source memory assembly, and governed Graphify/Neo4j projections with reversible review contracts",
-      "version": "0.23.1",
+      "description": "Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.",
+      "version": "0.24.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -118,8 +118,8 @@
     {
       "name": "rhize-ops",
       "source": "./rhize-ops",
-      "description": "Operations skill set for delegation, hand-offs, and privacy-safe parallel-agent work with self-contained Rhize routing, ephemeral task-graph validation, and terminal v2 evidence receipts",
-      "version": "0.15.2",
+      "description": "Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.",
+      "version": "0.16.0",
       "author": {
         "name": "Rhize Media"
       },
@@ -141,8 +141,8 @@
     {
       "name": "rhize-tasks",
       "source": "./rhize-tasks",
-      "description": "Local-first unified planning for approved Jira work across Google Calendar and Apple Reminders, with structured Slack fallback, bounded replanning, and human approval controls",
-      "version": "0.4.1",
+      "description": "Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.",
+      "version": "0.4.2",
       "author": {
         "name": "Rhize Media"
       },
@@ -160,14 +160,14 @@
     {
       "name": "rhize-cowork",
       "source": "./rhize-cowork",
-      "description": "Cowork project skill set — client/project context scaffolding. Houses project-kickoff: stand up the standard four context files (CLAUDE.md, BUSINESS.md, PERSONALITY.md, INFO.md) for any new Cowork project from a website, strategy docs, or a guided interview — with strict no-fabrication rules ([inferred] / [TBD — confirm] tagging).",
-      "version": "0.2.0"
+      "description": "Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.",
+      "version": "0.2.1"
     },
     {
       "name": "procedural-memory",
       "source": "./procedural-memory",
-      "description": "Wraps the Rhize-Media/procedural-memory `rhize-skill` CLI through two separated surfaces: procedural-memory recalls, promotes, verifies, and runs registry artifacts behind digest/trust/health gates; Functionize mines repeated CLI shapes and compiles inert proposal bundles without registration, approval, promotion, or execution. Distinct from claude-mem/session search, which retrieves past conversations rather than reusable code.",
-      "version": "0.5.0",
+      "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
+      "version": "0.5.1",
       "author": {
         "name": "Rhize Media"
       },

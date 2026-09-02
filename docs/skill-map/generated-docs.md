@@ -16,6 +16,15 @@ and is never touched by the script.
 | Root `README.md` | The Plugin Catalog table (`Plugin \| Version \| Skill Count \| Description \| Docs`). |
 | Each plugin's `README.md` | Its skill table (`Skill \| Description \| Topics`). `rhize-context-manager`'s table covers only the Rhize-authored skills (those without a `fork-of` edge) — the curated-third-party group is prose, not a table, and stays hand-written. `obsidian-second-brain`'s table covers only the "Second Brain" group; "Format Skills" is a separate hand-written table left untouched. |
 | `generated/SKILL-CATALOG.md` | The full cross-plugin catalog, one section per plugin, in marketplace order. |
+| `docs/README.md` | The `docs/` index's per-plugin block — name, version, canonical description, README/GUIDE links, and a skill count linking into `generated/SKILL-CATALOG.md#<name>`. |
+
+Every skill table (plugin READMEs and `SKILL-CATALOG.md`) prefers a skill's `metadata.rhize.summary`
+frontmatter — a short, plain-language sentence written for a human reader — over the mechanically
+derived first sentence of its `description`, which is a runtime trigger string ("ALWAYS invoke this
+skill...") rather than a human summary. `summary` is optional; a skill without one still gets the
+`first_sentence(description)` fallback. `scripts/build_skill_map.py` reads it from
+`metadata.rhize.summary`; `scripts/validate_skill_map.py` enforces ≤160 characters and no backticks
+when it's present.
 
 **Regenerating:**
 

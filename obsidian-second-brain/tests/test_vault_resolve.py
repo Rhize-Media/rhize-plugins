@@ -139,6 +139,98 @@ class IsVaultPathTests(unittest.TestCase):
                 self.assertFalse(vault_resolve.is_vault_path("/tmp/whatever/n.md"))
 
 
+class ResolveVaultPathsTests(unittest.TestCase):
+    """Unit-level coverage of vault_resolve.resolve_vault_paths().
+
+    Shares IsVaultPathTests' isolation setup: a nonexistent config path and a
+    cleared OBSIDIAN_VAULT_PATH env var, so results depend only on what each
+    test configures -- never on this machine's real Obsidian setup.
+    """
+
+    def setUp(self) -> None:
+        self._config_patch = mock.patch.object(
+            vault_resolve, "OBSIDIAN_CONFIG_PATH", Path("/nonexistent/obsidian.json")
+        )
+        self._config_patch.start()
+        # Isolate from this machine's real iCloud vault too, so the "zero
+        # vaults" case is genuinely zero regardless of what's mounted.
+        self._icloud_patch = mock.patch.object(
+            vault_resolve, "ICLOUD_VAULT_PATH", Path("/nonexistent/icloud-vault")
+        )
+        self._icloud_patch.start()
+        self._env_patch = mock.patch.dict(os.environ, {}, clear=False)
+        self._env_patch.start()
+        os.environ.pop("OBSIDIAN_VAULT_PATH", None)
+
+    def tearDown(self) -> None:
+        self._config_patch.stop()
+        self._icloud_patch.stop()
+        self._env_patch.stop()
+
+    def test_zero_vaults_returns_empty_list(self) -> None:
+        self.assertEqual(vault_resolve.resolve_vault_paths(), [])
+
+    def test_one_vault_from_env_var(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["OBSIDIAN_VAULT_PATH"] = tmp
+            self.assertEqual(vault_resolve.resolve_vault_paths(), [tmp])
+
+    def test_multiple_vaults_env_then_registered_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            env_vault = os.path.join(tmp, "EnvVault")
+            other_vault = os.path.join(tmp, "OtherVault")
+            os.makedirs(env_vault)
+            os.makedirs(other_vault)
+            config_path = Path(tmp) / "obsidian.json"
+            config_path.write_text(
+                json.dumps({"vaults": {"x": {"path": other_vault}}}),
+                encoding="utf-8",
+            )
+            os.environ["OBSIDIAN_VAULT_PATH"] = env_vault
+            with mock.patch.object(vault_resolve, "OBSIDIAN_CONFIG_PATH", config_path):
+                self.assertEqual(
+                    vault_resolve.resolve_vault_paths(), [env_vault, other_vault]
+                )
+
+    def test_duplicate_env_and_registered_vault_deduped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            vault_dir = os.path.join(tmp, "SameVault")
+            os.makedirs(vault_dir)
+            config_path = Path(tmp) / "obsidian.json"
+            config_path.write_text(
+                json.dumps({"vaults": {"x": {"path": vault_dir}}}),
+                encoding="utf-8",
+            )
+            os.environ["OBSIDIAN_VAULT_PATH"] = vault_dir
+            with mock.patch.object(vault_resolve, "OBSIDIAN_CONFIG_PATH", config_path):
+                self.assertEqual(vault_resolve.resolve_vault_paths(), [vault_dir])
+
+    def test_duplicate_multiple_env_paths_deduped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["OBSIDIAN_VAULT_PATH"] = f"{tmp}:{tmp}"
+            self.assertEqual(vault_resolve.resolve_vault_paths(), [tmp])
+
+    def test_icloud_fallback_only_when_path_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            icloud_vault = Path(tmp) / "Obsidian Vault"
+            icloud_vault.mkdir()
+            with mock.patch.object(vault_resolve, "ICLOUD_VAULT_PATH", icloud_vault):
+                self.assertEqual(
+                    vault_resolve.resolve_vault_paths(), [str(icloud_vault)]
+                )
+
+    def test_icloud_fallback_absent_when_path_missing(self) -> None:
+        # ICLOUD_VAULT_PATH is patched to a nonexistent path in setUp().
+        self.assertEqual(vault_resolve.resolve_vault_paths(), [])
+
+    def test_never_raises_on_malformed_obsidian_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "obsidian.json"
+            config_path.write_text("{not valid json", encoding="utf-8")
+            with mock.patch.object(vault_resolve, "OBSIDIAN_CONFIG_PATH", config_path):
+                self.assertEqual(vault_resolve.resolve_vault_paths(), [])
+
+
 class HookScriptIntegrationTests(unittest.TestCase):
     """Subprocess-level coverage: the real hook scripts, real stdin/stdout,
     invoked from a different cwd than the script's own directory (mirrors

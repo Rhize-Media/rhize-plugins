@@ -9,6 +9,19 @@ references? That's [CHANGELOG.md](./CHANGELOG.md). This page is the short versio
 
 ## September 2026
 
+**Start here, roll back anything, and one review command.** There is now a
+[START-HERE.md](./START-HERE.md) that explains in plain words what each plugin is for, which ones
+to install, how the files you'll meet fit together, and a glossary — and a `docs/` index that
+points at every plugin's own docs. Anything the plugins write into your project or home config can
+be rolled back with Git: a new preflight tool tells you what is and isn't tracked (the setup wizard
+will run it for you in the next release), and skill-forge's `init` now offers to put your skill
+folders under version control. The production review gate is a single command,
+`/rhize-devflow:review`, with its hard-won routing and pre-merge checklist documented beside it.
+Under the hood: the skill-usage monitor works on any machine (no more paths that only existed on
+one laptop), the scaffold command asks before installing guardrail rules, test-evidence packets
+have a sensible default home, and the procedural-memory hook scrubs anything that looks like a
+secret before it records a command.
+
 **Documentation you can actually onboard from.** Every plugin's README and GUIDE was audited
 line-by-line against what the code really does, and the marketplace adopted a progressive-disclosure
 standard: each document leads with what it is and how to start, then links to depth instead of
@@ -39,8 +52,9 @@ push, PR, merge, and deployment verification — but only after you authorize it
 subordinate to that repository's own release rules.
 
 **Procedural memory.** When a task looks like one that was already solved, the system re-runs the
-artifact that solved it instead of having a model reinvent the solution. Registry entries are gated
-on digest, trust, and health checks.
+artifact that solved it instead of having a model reinvent the solution. Nothing in the registry
+runs until it passes a content-integrity check, a trust check, and a health check — being in the
+registry isn't, by itself, enough to be trusted.
 
 **Context engineering matured.** Deterministic, source-bound context packs; bounded multi-source
 memory assembly; and an opt-in experiment framework that measures whether a new retrieval path

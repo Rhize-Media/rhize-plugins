@@ -135,6 +135,12 @@ _ASSET_PATTERN = re.compile(
     r"`((?:%s)[A-Za-z0-9_\-./]+\.[A-Za-z0-9]+)`" % "|".join(re.escape(p) for p in _ASSET_PREFIXES)
 )
 
+# `docs/<name>.md` references are checked separately from `_ASSET_PATTERN` above: unlike
+# scripts/templates/etc. (which are scoped per-skill by `_asset_base_dir`), `docs/` always
+# lives at the plugin root, and a doc is as often linked as `[text](docs/x.md)` as it is
+# backticked — so this pattern accepts either form.
+_DOCS_LINK_PATTERN = re.compile(r"`(docs/[A-Za-z0-9_\-./]+\.md)`|\]\((docs/[A-Za-z0-9_\-./]+\.md)\)")
+
 _STALE_TOKEN_PATTERNS: dict[str, re.Pattern] = {
     "/path/to/skill": re.compile(re.escape("/path/to/skill")),
     "zen": re.compile(r"(?i)\bzen\b|zen_memory|mcp__zen__"),
@@ -242,6 +248,21 @@ def _check_commands_present(plugin_root: Path, findings: list[dict]) -> None:
         )
 
 
+def _docs_referencing_files(plugin_root: Path) -> list[Path]:
+    """`commands/*.md` plus the plugin's own `README.md` — the only places a `docs/<name>.md`
+    link is checked. Skill/agent Markdown is intentionally excluded here: docs/ is a
+    plugin-root concept, not a per-skill one, and `_markdown_files_to_scan` already covers
+    the skill-scoped assets `_ASSET_PATTERN` checks."""
+    files: list[Path] = []
+    commands_dir = plugin_root / "commands"
+    if commands_dir.is_dir():
+        files += sorted(commands_dir.glob("*.md"))
+    readme = plugin_root / "README.md"
+    if readme.is_file():
+        files.append(readme)
+    return files
+
+
 def _check_referenced_assets(plugin_root: Path, findings: list[dict]) -> None:
     for md_path in _markdown_files_to_scan(plugin_root):
         base_dir = _asset_base_dir(md_path, plugin_root)
@@ -254,6 +275,24 @@ def _check_referenced_assets(plugin_root: Path, findings: list[dict]) -> None:
                         "missing-asset",
                         "error",
                         f"references `{asset_rel}` which does not exist under {rel(plugin_root, base_dir)}",
+                        rel(plugin_root, md_path),
+                    )
+                )
+
+    for md_path in _docs_referencing_files(plugin_root):
+        text = _read_text(md_path)
+        seen: set[str] = set()
+        for match in _DOCS_LINK_PATTERN.finditer(text):
+            doc_rel = match.group(1) or match.group(2)
+            if doc_rel in seen:
+                continue
+            seen.add(doc_rel)
+            if not (plugin_root / doc_rel).exists():
+                findings.append(
+                    make_finding(
+                        "missing-asset",
+                        "error",
+                        f"references `{doc_rel}` which does not exist under the plugin root",
                         rel(plugin_root, md_path),
                     )
                 )

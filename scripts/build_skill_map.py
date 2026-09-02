@@ -41,7 +41,12 @@ Inputs and what they produce
 
 2. Each plugin's `skills/*/SKILL.md`
    -> one `skill` node per skill directory that has a SKILL.md (path,
-      description, contentHash = sha256 of the file's raw bytes), plus
+      description, contentHash = sha256 of the file's raw bytes), plus an
+      optional `summary` field carried verbatim from the file's
+      `metadata.rhize.summary` frontmatter (a short, plain-language sentence
+      for human-facing doc tables — see scripts/render_skill_map_docs.py and
+      scripts/validate_skill_map.py's length/backtick checks) — omitted from
+      the node when the frontmatter doesn't set it. Also emits
       `topic-tag` / `stack-tag` edges from that skill to `tag:topic/<slug>`
       and `tag:stack/<slug>` nodes, read from the file's
       `metadata.rhize.{topics,stacks}` frontmatter (source: frontmatter).
@@ -334,19 +339,20 @@ def load_skills(
             description = str(description)
         rel_path = str(skill_md.relative_to(REPO_ROOT))
         node_id = f"skill:{plugin_name}/{skill_name}"
-        graph.add_node(
-            {
-                "id": node_id,
-                "kind": "skill",
-                "name": skill_name,
-                "path": rel_path,
-                "description": description,
-                "contentHash": content_hash,
-            }
-        )
-        graph.add_edge(contains_edge(plugin_name, node_id))
-
         rhize_meta = (frontmatter.get("metadata") or {}).get("rhize") or {}
+        skill_node = {
+            "id": node_id,
+            "kind": "skill",
+            "name": skill_name,
+            "path": rel_path,
+            "description": description,
+            "contentHash": content_hash,
+        }
+        summary = rhize_meta.get("summary")
+        if summary:
+            skill_node["summary"] = str(summary).strip()
+        graph.add_node(skill_node)
+        graph.add_edge(contains_edge(plugin_name, node_id))
         topics = rhize_meta.get("topics") or []
         stacks = rhize_meta.get("stacks") or []
         for topic in topics:

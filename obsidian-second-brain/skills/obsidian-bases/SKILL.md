@@ -14,6 +14,7 @@ description: >
   in the context of Obsidian.
 metadata:
   rhize:
+    summary: "Creates and edits Obsidian Base files for database-like views, filters, and dashboards."
     topics: [knowledge-management, content-authoring]
     stacks: [obsidian]
     extends: [obsidian-markdown]

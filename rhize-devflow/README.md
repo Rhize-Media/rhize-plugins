@@ -1,5 +1,9 @@
 # rhize-devflow
 
+Keeps a change honest from the moment you start touching code to the moment it ships: plan the
+impact, implement it, simplify, check, get it independently reviewed, and release — one enforced
+workflow instead of separate ad hoc steps.
+
 Rhize Media's engineering control-plane plugin. It makes Rhize engineering policy executable
 and enforceable across the whole lifecycle of a change:
 
@@ -8,6 +12,80 @@ impact-map → implement → simplify → check → review → release
 ```
 
 Everything namespaces as `rhize-devflow:<skill>` and `/rhize-devflow:<command>`.
+
+## Install
+
+For the complete CodeGraph + semantic impact-map workflow, install both this plugin and
+`rhize-context-manager`.
+
+**Claude Code — first time on this machine (marketplace not yet configured):**
+
+```text
+/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+/plugin install rhize-devflow@rhize-plugins
+/plugin install rhize-context-manager@rhize-plugins
+```
+
+**Claude Code — `rhize-plugins` marketplace already configured (the common case on a Rhize dev
+machine):**
+
+```bash
+claude plugin install rhize-devflow@rhize-plugins
+claude plugin install rhize-context-manager@rhize-plugins
+```
+
+**Claude Code — updating an existing install:**
+
+```bash
+claude plugin marketplace update rhize-plugins
+claude plugin update rhize-devflow
+claude plugin update rhize-context-manager
+```
+
+`claude plugin marketplace update` refreshes the local `rhize-plugins` marketplace snapshot to
+the latest commit; `claude plugin update` then pulls each installed plugin up to that snapshot's
+version. Running only the second command against a stale snapshot silently no-ops.
+
+**Codex:**
+
+```bash
+codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
+codex plugin add rhize-devflow@rhize-plugins
+codex plugin add rhize-context-manager@rhize-plugins
+```
+
+Codex reaches the same canonical command bodies as Claude through `.codex-plugin/plugin.json`'s
+`skills: "./skills/"` router — there is no separate Codex-specific workflow body to keep in sync.
+
+Start a new Claude/Codex session after installing or updating so the refreshed skills, commands,
+and compiled cross-plugin relationship are loaded. Do not append a local cachebuster suffix
+(a throwaway branch ref, a `?v=` query string, a re-cloned temp path) to force a refresh for a
+published release — resolve through the named `rhize-plugins` marketplace entry and the update
+commands above.
+
+### Cache/reinstall smoke test
+
+Plugin caches only refresh on session start, so an update can silently fail to take effect until
+you verify it. After any install or update:
+
+1. Start a **fresh** Claude Code session (not a resumed one).
+2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`impact-map`,
+   `simplify`, `check`, `test-evidence`, `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six
+   deprecated adapters) —
+   or run `claude plugin details rhize-devflow` for a non-interactive check of the installed
+   component inventory.
+3. Confirm the nine skills above (`simplify`, `test-evidence`, `completed-branch-promotion`,
+   `dev-flow-foundations`, `data-mutation-consistency`,
+   `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
+   `chrome-devtools-mcp`) are discoverable in that session.
+4. Start a **fresh** Codex session and confirm the same skills load from
+   `.codex-plugin/plugin.json`'s `skills: "./skills/"` path.
+5. Run `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it should report `HEALTHY`
+   (informational findings are fine; anything else means the cache is stale or the install is
+   incomplete).
+6. If a command or skill is missing after an update, the installed plugin cache is likely pinned
+   behind this repo — re-run `claude plugin marketplace update rhize-plugins` then
+   `claude plugin update rhize-devflow`, then repeat steps 1–3 in a new session.
 
 ## Product boundary
 
@@ -78,7 +156,7 @@ mutation-analyze · mutation-fix
 | `/rhize-devflow:browser-test` | `/rhize-devflow:browser-qa` | Functional/responsive/accessibility scenarios. |
 | *(new, no predecessor)* | `/rhize-devflow:check` | Mid-implementation evidence-driven validation. |
 | Claude Code's built-in `/simplify` | `/rhize-devflow:simplify` | Additive Rhize/Codex adaptation: exact diff resolution, dirty-worktree protection, verified no-op results, React/Next.js checks, migration/external-contract safety, regression evidence, and explicit authority boundaries. |
-| *(new, no predecessor)* | `/rhize-devflow:review` | Production merge/release gate — the executable successor to the retired `rhize-review` skill workflow. |
+| *(new, no predecessor)* | `/rhize-devflow:review` | Production merge/release gate — the executable successor to the retired `rhize-review` skill workflow (the repo-root compatibility adapter was removed in 2.20.0). |
 | *(new, no predecessor)* | `/rhize-devflow:doctor` | Thin slash-command adapter over `scripts/devflow.py doctor` — plugin/install health. |
 
 ## Skills
@@ -197,80 +275,6 @@ MCP-kind dependencies are detected across the repo-local `.mcp.json`, `~/.claude
 the full source list, redaction rules, and the `DEVFLOW_MCP_CONFIG_PATHS` override. CLI-kind
 dependencies (currently only CodeGraph) are detected with `shutil.which()` against the
 manifest entry's declared `binary` — present/absent on `PATH`, nothing further to configure.
-
-## Install
-
-For the complete CodeGraph + semantic impact-map workflow, install both this plugin and
-`rhize-context-manager`.
-
-**Claude Code — first time on this machine (marketplace not yet configured):**
-
-```text
-/plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
-/plugin install rhize-devflow@rhize-plugins
-/plugin install rhize-context-manager@rhize-plugins
-```
-
-**Claude Code — `rhize-plugins` marketplace already configured (the common case on a Rhize dev
-machine):**
-
-```bash
-claude plugin install rhize-devflow@rhize-plugins
-claude plugin install rhize-context-manager@rhize-plugins
-```
-
-**Claude Code — updating an existing install:**
-
-```bash
-claude plugin marketplace update rhize-plugins
-claude plugin update rhize-devflow
-claude plugin update rhize-context-manager
-```
-
-`claude plugin marketplace update` refreshes the local `rhize-plugins` marketplace snapshot to
-the latest commit; `claude plugin update` then pulls each installed plugin up to that snapshot's
-version. Running only the second command against a stale snapshot silently no-ops.
-
-**Codex:**
-
-```bash
-codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins
-codex plugin add rhize-devflow@rhize-plugins
-codex plugin add rhize-context-manager@rhize-plugins
-```
-
-Codex reaches the same canonical command bodies as Claude through `.codex-plugin/plugin.json`'s
-`skills: "./skills/"` router — there is no separate Codex-specific workflow body to keep in sync.
-
-Start a new Claude/Codex session after installing or updating so the refreshed skills, commands,
-and compiled cross-plugin relationship are loaded. Do not append a local cachebuster suffix
-(a throwaway branch ref, a `?v=` query string, a re-cloned temp path) to force a refresh for a
-published release — resolve through the named `rhize-plugins` marketplace entry and the update
-commands above.
-
-### Cache/reinstall smoke test
-
-Plugin caches only refresh on session start, so an update can silently fail to take effect until
-you verify it. After any install or update:
-
-1. Start a **fresh** Claude Code session (not a resumed one).
-2. Confirm the `/rhize-devflow:` commands appear in the slash-command list (`impact-map`,
-   `simplify`, `check`, `test-evidence`, `review`, `mutation-check`, `browser-qa`, `devflow-setup`, and the six
-   deprecated adapters) —
-   or run `claude plugin details rhize-devflow` for a non-interactive check of the installed
-   component inventory.
-3. Confirm the nine skills above (`simplify`, `test-evidence`, `completed-branch-promotion`,
-   `dev-flow-foundations`, `data-mutation-consistency`,
-   `error-lifecycle-management`, `sentry-instrumentation`, `sanity-development`,
-   `chrome-devtools-mcp`) are discoverable in that session.
-4. Start a **fresh** Codex session and confirm the same skills load from
-   `.codex-plugin/plugin.json`'s `skills: "./skills/"` path.
-5. Run `python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor` — it should report `HEALTHY`
-   (informational findings are fine; anything else means the cache is stale or the install is
-   incomplete).
-6. If a command or skill is missing after an update, the installed plugin cache is likely pinned
-   behind this repo — re-run `claude plugin marketplace update rhize-plugins` then
-   `claude plugin update rhize-devflow`, then repeat steps 1–3 in a new session.
 
 ## Hooks
 

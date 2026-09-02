@@ -6,6 +6,22 @@ Tracks which Claude skills actually get invoked across all Claude Code / Cowork 
 
 Per [[Anthropic Runs Hundreds of Skills - Only 12 Run Weekly]]: most published skills never get invoked. You can't prune what you can't measure. This script measures.
 
+## Setup — paths and environment variables
+
+Every script here resolves its data/vault/repo paths through `paths.py`, a single resolver, instead of hardcoding a path that only exists on the author's own Mac. Three environment variables cover everything:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `RHIZE_SKILL_MONITOR_HOME` | `~/.rhize/skill-monitor` — see "Installed vs checkout" below | Base directory for this tool's own generated data: `data/skill-usage.json`, `data/snapshots/`, `data/scorecards/`, `data/cdn-cache/`. |
+| `OBSIDIAN_VAULT_PATH` | none | `:`-separated list of Obsidian vault roots — shared with the `obsidian-second-brain` plugin. The **first entry wins** for every vault write this tool makes (weekly markdown report, cost-reports, the live dashboard). |
+| `RHIZE_REPO_ROOTS` | none (nothing scanned) | `:`-separated list of repo directories to measure: `recurrence.py`'s CLAUDE.md/"Headroom Learned Patterns" check, OpenWolf `.wolf/token-ledger.json` ledgers (`savings_scorecard.py`/`stack_metrics.py`), and `git_sync.py`'s config-sync sweep (looked up by directory basename, e.g. `skill-forge`). |
+
+### Installed vs checkout
+
+- **A dev checkout that already has a `data/` directory next to these scripts** keeps using it, with zero configuration — this is what running the scripts straight out of a `git clone` of this repo looks like, and it's why `RHIZE_SKILL_MONITOR_HOME` is optional rather than required. The first script invocation in a process prints a one-line notice to stderr naming the directory it picked.
+- **A fresh marketplace install** (or any location with no existing `data/`) has no assumed layout at all: `RHIZE_SKILL_MONITOR_HOME` unset falls back to `~/.rhize/skill-monitor`, and `OBSIDIAN_VAULT_PATH`/`RHIZE_REPO_ROOTS` unset mean "nothing configured" rather than a guess at `~/dev-local/RHIZE/*` or a specific iCloud vault path. A script that needs a vault or a repo root it can't resolve skips that particular write with a clear message on stderr instead of crashing or writing somewhere unexpected.
+- **More than one Obsidian vault registered, with `OBSIDIAN_VAULT_PATH` unset**: vault resolution is deliberately ambiguous in this case (`paths.vault_root()` returns nothing) rather than guessing which one you meant — set `OBSIDIAN_VAULT_PATH` explicitly to the vault you want these reports to land in.
+
 ## What it does
 
 Walks two transcript trees, extracting every `tool_use` block where `name == "Skill"`:
@@ -33,7 +49,7 @@ Aggregates:
   the canonical `--days 7` weekly keeps that plain name; any other window self-suffixes
   (e.g. `YYYY-MM-DD-skill-usage-28d.md`, `-0d` for all-time), mirroring the snapshot
   naming so a same-day `--days 28` run can't overwrite the weekly report.
-- Writes raw JSON to `~/dev-local/RHIZE/rhize-plugins/rhize-ops/skill-monitor/data/skill-usage.json` (rolling latest, overwritten each run) and an immutable per-run snapshot to `~/dev-local/RHIZE/rhize-plugins/rhize-ops/skill-monitor/data/snapshots/YYYY-MM-DD-skill-usage-{N}d.json` (used by the live dashboard). The `-{N}d` suffix encodes the `--days` window so an ad-hoc `--days 0` run doesn't overwrite the canonical `--days 7` weekly snapshot.
+- Writes raw JSON to `<data dir>/skill-usage.json` (rolling latest, overwritten each run) and an immutable per-run snapshot to `<data dir>/snapshots/YYYY-MM-DD-skill-usage-{N}d.json` (used by the live dashboard) — see [Setup](#setup--paths-and-environment-variables) for where `<data dir>` resolves to. The `-{N}d` suffix encodes the `--days` window so an ad-hoc `--days 0` run doesn't overwrite the canonical `--days 7` weekly snapshot.
 - Writes a session-level skill co-occurrence snapshot to `data/skill-cooccurrence.json` (rolling
   latest, overwritten each run, gitignored) — **counts only**: no prompt text, no project paths,
   no per-event timestamps beyond the run's `windowDays` label. Shape:

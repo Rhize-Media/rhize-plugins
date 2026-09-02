@@ -8,11 +8,16 @@ Project Launcher takes you from "I have an idea" to "there's a scaffolded projec
 
 Without this plugin, "starting a project" usually means a scattered mix of a half-written doc, some Slack messages, and a folder you `mkdir`'d and forgot to configure. With it, Claude runs a proven pipeline: research the problem space first, ask you only the questions research couldn't answer, write a PRD that's specific enough for an autonomous agent to build from, stress-test that PRD before anyone writes code, turn it into a reviewable visual plan you actually sign off on, then scaffold a real directory with `CLAUDE.md`, `.planning/` docs, and the GSD v2 framework installed.
 
-The plugin contains two skills and five commands:
+The plugin contains two skills and five commands (each command runs a specific slice of the
+pipeline) — see [START-HERE.md's glossary](../START-HERE.md#7-glossary) if "skill" and "command"
+are new terms to you.
 
-**Skills** are reference knowledge Claude loads automatically when your request matches certain trigger phrases — you don't invoke them directly.
+## Setup
 
-**Commands** are actions you run explicitly with a slash prefix (e.g., `/launch-project`). Each command runs a specific slice of the pipeline.
+Install via the marketplace — there's no account to create and no credential this plugin itself
+requires. The MCP servers and skills it can call on along the way (DataForSEO, Sentry, Obsidian,
+and so on) are all optional: connect the ones relevant to your project and skip the rest. See the
+[README](./README.md#setup) for the full list and what happens when one isn't connected.
 
 ## The Pipeline, In Plain Language
 
