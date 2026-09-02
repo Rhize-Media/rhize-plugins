@@ -15,7 +15,7 @@ Version 1.5.2. Audits and improves how a website ranks in search engines and sho
 
 ### obsidian-second-brain
 
-Version 1.7.2. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.7.3. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 
@@ -39,13 +39,13 @@ Version 0.25.0. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.17.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.17.1. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
 ### rhize-tasks
 
-Version 0.4.3. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
+Version 0.4.4. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
 
 [README](../rhize-tasks/README.md) · [GUIDE](../rhize-tasks/GUIDE.md) · [6 skills](../generated/SKILL-CATALOG.md#rhize-tasks)
 

@@ -8,7 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-02_ version bump — **rhize-ops** 0.17.0 → 0.17.1 (patch); **rhize-tasks** 0.4.3 → 0.4.4 (patch); **obsidian-second-brain** 1.7.2 → 1.7.3 (patch); marketplace 2.58.0 → 2.58.1.
 - _2026-09-02_ version bump — **rhize-ops** 0.16.0 → 0.17.0 (minor); **rhize-context-manager** 0.24.0 → 0.25.0 (minor); **rhize-devflow** 2.20.0 → 2.20.1 (patch); **project-launcher** 1.8.1 → 1.8.2 (patch); **obsidian-second-brain** 1.7.1 → 1.7.2 (patch); **seo-aeo-geo** 1.5.1 → 1.5.2 (patch); **rhize-tasks** 0.4.2 → 0.4.3 (patch); **rhize-cowork** 0.2.1 → 0.2.2 (patch); **procedural-memory** 0.5.1 → 0.5.2 (patch); marketplace 2.57.0 → 2.58.0.
+- _2026-09-02_ **Release 2 follow-up from the advisor pass and a real-machine run.** Every
+  `wizard.skill` target now states what it does with the orchestrator's `--from-rhize-setup`
+  token — `vault-setup`, `rhize-tasks:setup`, and `delegate-setup` strip or ignore it and stop at
+  the end instead of suggesting further setup (previously only `devflow-setup` and `context-setup`
+  handled it, and `vault-setup` would have read the flag as one of its own keywords); a test now
+  checks all five. `setup_artifacts.py` resolves the marketplace root from an installed plugin
+  cache (it looked two directories up, which only holds in a checkout, and raised
+  `FileNotFoundError` from `~/.claude/plugins/cache/…`); `discover` and `hooks plan` were exercised
+  against this machine's real clone (every plugin's clone and installed versions match).
+  `setup_orchestrator.py` no longer reflows `.claude/settings.json` when a run wires nothing, and
+  a `wired (machine-specific path)` hook entry now carries a migration hint naming the
+  `$HOME`-portable prefix.
 - _2026-09-02_ **Portability readiness, release 2 — the hybrid setup wizard.** `/rhize-ops:
   rhize-setup` is now an orchestrator with eight phases: flags → discover → **select which
   installed plugins to set up** (multi-select, all enabled by default) → shared preflight

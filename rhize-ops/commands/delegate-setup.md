@@ -4,6 +4,11 @@ description: Interview-driven setup wizard for delegate-to-teammate — recipien
 
 # /rhize-ops:delegate-setup
 
+Also reachable from `/rhize-ops:rhize-setup --plugin rhize-ops`. When that orchestrator launches
+this wizard it passes `--from-rhize-setup` in `$ARGUMENTS`; ignore that token, and when the
+interview ends, stop rather than pointing the user at other setup commands — the orchestrator
+continues with its own remaining phases.
+
 Interview-driven setup wizard for the `delegate-to-teammate` skill. Writes
 `~/.claude/rhize-ops/delegate.config.json` — in your home directory, outside this plugin's install
 path and outside this repo entirely, so it survives plugin updates/reinstalls and never gets

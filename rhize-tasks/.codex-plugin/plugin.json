@@ -1,6 +1,6 @@
 {
   "name": "rhize-tasks",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.",
   "author": {
     "name": "Rhize Media"

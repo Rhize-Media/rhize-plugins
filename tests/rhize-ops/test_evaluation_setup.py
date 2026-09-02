@@ -284,3 +284,24 @@ def test_wizard_handshake_stops_when_invoked_by_the_orchestrator() -> None:
         assert "$ARGUMENTS" in contents
         assert "--from-rhize-setup" in contents
         assert "suggest" in contents.lower()
+
+
+def test_every_wizard_target_tolerates_the_handshake_flag() -> None:
+    """The orchestrator passes `--from-rhize-setup` to EVERY `wizard.skill` (the manifest
+    default when `args` is unset), so every target command must say what it does with the
+    token — the 2026-09-02 advisor pass found three targets that parsed $ARGUMENTS for their
+    own keywords and would have misread it."""
+    seen = 0
+    for manifest_path in sorted(REPO.glob("*/setup/manifest.json")):
+        wizard = json.loads(manifest_path.read_text()).get("wizard")
+        if not wizard:
+            continue
+        plugin, command = wizard["skill"].split(":", 1)
+        command_path = REPO / plugin / "commands" / f"{command}.md"
+        assert command_path.is_file(), wizard["skill"]
+        contents = command_path.read_text()
+        assert contents.startswith("---") and "description:" in contents.split("---", 2)[1], wizard["skill"]
+        assert "--from-rhize-setup" in contents, f"{wizard['skill']} never mentions the handshake token"
+        assert "$ARGUMENTS" in contents, f"{wizard['skill']} never reads $ARGUMENTS"
+        seen += 1
+    assert seen >= 5

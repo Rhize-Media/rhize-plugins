@@ -138,3 +138,32 @@ def test_no_artifacts_renders_a_placeholder_line(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stderr
     text = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
     assert "No plugin currently declares a setup artifact" in text
+
+
+def test_resolve_repo_root_falls_back_to_the_marketplace_clone_from_an_installed_cache(tmp_path: Path) -> None:
+    """From `~/.claude/plugins/cache/<mkt>/rhize-ops/<ver>/scripts/` two-parents-up is not the
+    marketplace, so the script must locate the clone under `~/.claude/plugins/marketplaces/`
+    (found live on 2026-09-02: the installed copy raised FileNotFoundError on --check)."""
+    home = tmp_path / "home"
+    cache_copy = home / ".claude" / "plugins" / "cache" / "rhize-plugins" / "rhize-ops" / "9.9.9" / "scripts" / "setup_artifacts.py"
+    cache_copy.parent.mkdir(parents=True)
+    cache_copy.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("setup_artifacts_installed", cache_copy)
+    installed = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(installed)
+
+    # No clone yet: falls back to the (wrong, but only) checkout guess rather than raising.
+    assert installed.resolve_repo_root(home=home) == cache_copy.resolve().parents[2]
+
+    clone = home / ".claude" / "plugins" / "marketplaces" / "rhize-plugins"
+    (clone / ".claude-plugin").mkdir(parents=True)
+    (clone / ".claude-plugin" / "marketplace.json").write_text("{}", encoding="utf-8")
+    (clone / "rhize-ops").mkdir()
+    other = home / ".claude" / "plugins" / "marketplaces" / "another-marketplace"
+    (other / ".claude-plugin").mkdir(parents=True)
+    (other / ".claude-plugin" / "marketplace.json").write_text("{}", encoding="utf-8")
+    assert installed.resolve_repo_root(home=home) == clone
+
+    # The dev checkout still wins when the script sits inside one.
+    assert setup_artifacts.resolve_repo_root(home=home) == REPO

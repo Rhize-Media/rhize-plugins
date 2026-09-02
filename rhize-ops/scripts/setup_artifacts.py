@@ -20,7 +20,26 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+def resolve_repo_root(home: Path | None = None) -> Path:
+    """Where the marketplace lives relative to THIS copy of the script.
+
+    From a dev checkout the marketplace root is two directories up. From an installed plugin
+    cache (`~/.claude/plugins/cache/<marketplace>/rhize-ops/<version>/scripts/`) it is not, so
+    fall back to the marketplace clone under `~/.claude/plugins/marketplaces/` that contains a
+    `rhize-ops` plugin. `--repo-root` overrides both.
+    """
+    checkout = Path(__file__).resolve().parents[2]
+    if (checkout / ".claude-plugin" / "marketplace.json").is_file():
+        return checkout
+    base = (home or Path.home()) / ".claude" / "plugins" / "marketplaces"
+    if base.is_dir():
+        for candidate in sorted(base.iterdir()):
+            if (candidate / ".claude-plugin" / "marketplace.json").is_file() and (candidate / "rhize-ops").is_dir():
+                return candidate
+    return checkout
+
+
+REPO_ROOT = resolve_repo_root()
 BEGIN = "<!-- SETUP-ARTIFACTS:BEGIN -->"
 END = "<!-- SETUP-ARTIFACTS:END -->"
 DOC_RELATIVE = Path("rhize-ops") / "docs" / "setup-artifacts.md"
