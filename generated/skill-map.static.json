@@ -2621,7 +2621,7 @@
       "path": "rhize-devflow/commands/check.md"
     },
     {
-      "description": "",
+      "description": "Interview-driven setup wizard for the per-repo local-tenant-file convention used by error-lifecycle-management",
       "id": "command:rhize-devflow/devflow-setup",
       "kind": "command",
       "name": "devflow-setup",
@@ -2684,14 +2684,14 @@
       "path": "rhize-devflow/commands/test-evidence.md"
     },
     {
-      "description": "",
+      "description": "Coordinated semver bump for the rhize-plugins marketplace — versions, marketplace manifest, and CHANGELOG in sync",
       "id": "command:rhize-ops/bump-version",
       "kind": "command",
       "name": "bump-version",
       "path": "rhize-ops/commands/bump-version.md"
     },
     {
-      "description": "",
+      "description": "Interview-driven setup wizard for delegate-to-teammate — recipients, Jira/Slack lookups, project mapping",
       "id": "command:rhize-ops/delegate-setup",
       "kind": "command",
       "name": "delegate-setup",
@@ -2705,7 +2705,7 @@
       "path": "rhize-ops/commands/parallel-optimize.md"
     },
     {
-      "description": "",
+      "description": "Fleet-level setup wizard — pick your plugins, run their own expert wizards, establish evaluation baselines, and wire opt-in guardrail hooks",
       "id": "command:rhize-ops/rhize-setup",
       "kind": "command",
       "name": "rhize-setup",

@@ -115,6 +115,20 @@ The Defuddle CLI must be installed globally: `npm install -g defuddle`. This is 
 - Ask "what properties should a project note have?" — it will recommend the frontmatter schema.
 - The skill adapts to your existing conventions — it checks your vault for existing patterns before applying templates.
 
+### qmd-search
+
+**When it activates:** You mention qmd, semantic search, vector search, vault indexing, embedding, finding similar notes by meaning, or connecting qmd's MCP server to Claude.
+
+**What it knows:** The complete qmd search engine — three search modes (BM25 lexical, vector semantic, hybrid with LLM re-ranking), collection management, embedding generation, MCP server configuration, and how to choose the right mode for different query types.
+
+**How to use it effectively:**
+- Ask "how do I set up qmd for my vault?" — it will walk you through installation, collection creation, and embedding.
+- Ask "what's the difference between qmd search and vsearch?" — it will explain BM25 vs vector with examples.
+- Ask "how do I connect qmd to Claude Desktop?" — it will provide the MCP config JSON.
+- Ask "my qmd searches aren't finding relevant notes" — it will help troubleshoot indexing and suggest the right search mode.
+
+**Key insight:** qmd runs entirely on-device with no cloud dependencies. Vector embeddings and LLM re-ranking use local models via node-llama-cpp.
+
 ## Commands Reference
 
 ### knowledge-compiler and /vault-compile
@@ -176,6 +190,13 @@ Searches your vault using the best strategy for the query type. Full-text querie
 - `/vault-search what links to my "Product Roadmap" note`
 - `/vault-search broken links`
 
+**With qmd installed** (see the `qmd-search` skill above), concept queries automatically use
+semantic search while tags, properties, and links keep using the structured MCP/CLI search. The
+command checks for qmd on every run and falls back cleanly when it isn't there:
+- `/vault-search strategies for improving client retention` → `qmd vsearch` (semantic)
+- `/vault-search meeting notes onboarding` → `qmd search` (exact terms)
+- `/vault-search #project` → CLI tag search (structured data, always)
+
 ### /vault-capture
 
 **Usage:** `/vault-capture <content>`
@@ -224,6 +245,10 @@ Actively builds missing connections in your knowledge graph. Point it at a note 
 - `/vault-connect machine learning`
 - `/vault-connect recent`
 
+With qmd installed, connection discovery uses vector similarity instead of keyword overlap, so it
+finds notes that are conceptually related even when they use completely different terminology —
+the non-obvious relationships and bridge notes between topic clusters.
+
 ### /vault-review
 
 **Usage:** `/vault-review [daily|weekly|monthly]`
@@ -235,6 +260,19 @@ Periodic review that summarizes recent vault activity, surfaces patterns, and fl
 - `/vault-review` or `/vault-review daily`
 - `/vault-review weekly`
 - `/vault-review monthly`
+
+### /vault-recall
+
+**Usage:** `/vault-recall <natural language question>`
+
+A "talk to your notes" interface. Ask a question in plain language and get a synthesized answer drawn from your vault, with `[[wikilink]]` citations to source notes. Uses qmd hybrid search (BM25 + vector + LLM re-ranking) for the highest quality retrieval, then reads the top results and composes an answer that attributes claims to specific notes, highlights contradictions, and identifies knowledge gaps. Falls back to keyword search when qmd isn't installed, but results are significantly better with qmd's semantic capabilities.
+
+**Examples:**
+
+- `/vault-recall What was our strategy for the Acme Co. SEO project?`
+- `/vault-recall What are my main takeaways about options trading?`
+- `/vault-recall Have I written anything about prompt engineering?`
+- `/vault-recall What decisions did we make about the API architecture?`
 
 ## How the Skills Work Together
 
@@ -361,47 +399,3 @@ has no force-overwrite mode.
 **Compiler reports a recovered transaction:** The previous apply was interrupted. Recovery restored
 the exact pre-transaction page/index/log state. Inspect `status`, then re-run the same approved apply
 or generate a new preview if its expiry or source binding changed.
-
-
-### qmd-search
-
-**When it activates:** You mention qmd, semantic search, vector search, vault indexing, embedding, finding similar notes by meaning, or connecting qmd's MCP server to Claude.
-
-**What it knows:** The complete qmd search engine — three search modes (BM25 lexical, vector semantic, hybrid with LLM re-ranking), collection management, embedding generation, MCP server configuration, and how to choose the right mode for different query types.
-
-**How to use it effectively:**
-- Ask "how do I set up qmd for my vault?" — it will walk you through installation, collection creation, and embedding.
-- Ask "what's the difference between qmd search and vsearch?" — it will explain BM25 vs vector with examples.
-- Ask "how do I connect qmd to Claude Desktop?" — it will provide the MCP config JSON.
-- Ask "my qmd searches aren't finding relevant notes" — it will help troubleshoot indexing and suggest the right search mode.
-
-**Key insight:** qmd runs entirely on-device with no cloud dependencies. Vector embeddings and LLM re-ranking use local models via node-llama-cpp.
-
-## Commands Reference (qmd-Enhanced)
-
-### /vault-search (qmd-enhanced)
-
-When qmd is installed and the vault is indexed, `/vault-search` automatically uses semantic search for concept queries while keeping MCP/CLI search for structured queries (tags, properties, links). It detects qmd availability on each invocation and falls back gracefully when qmd isn't present.
-
-**New examples with qmd:**
-- `/vault-search strategies for improving client retention` → uses `qmd vsearch` (semantic)
-- `/vault-search meeting notes onboarding` → uses `qmd search` (BM25, exact terms)
-- `/vault-search #project` → uses CLI tag search (structured data, always)
-
-### /vault-connect (qmd-enhanced)
-
-With qmd, connection discovery uses vector similarity instead of keyword overlap. This means `/vault-connect` can find notes that are conceptually related even when they use completely different terminology — a massive improvement for discovering non-obvious relationships and bridge notes between topic clusters.
-
-### /vault-recall (NEW)
-
-**Usage:** `/vault-recall <natural language question>`
-
-A "talk to your notes" interface. Ask a question in plain language and get a synthesized answer drawn from your vault, with `[[wikilink]]` citations to source notes. Uses qmd hybrid search (BM25 + vector + LLM re-ranking) for the highest quality retrieval, then reads the top results and composes an answer that attributes claims to specific notes, highlights contradictions, and identifies knowledge gaps.
-
-**Examples:**
-- `/vault-recall What was our strategy for the Acme Co. SEO project?`
-- `/vault-recall What are my main takeaways about options trading?`
-- `/vault-recall Have I written anything about prompt engineering?`
-- `/vault-recall What decisions did we make about the API architecture?`
-
-Falls back to keyword search when qmd isn't installed, but results are significantly better with qmd's semantic capabilities.

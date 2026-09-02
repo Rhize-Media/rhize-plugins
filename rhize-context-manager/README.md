@@ -107,10 +107,15 @@ lacked). `skills/context-engineering/SKILL.md` now links to the `commands/` orig
 
 ### Scripts shipped with the plugin (`rhize-context-manager/scripts/`)
 
-Two skill-map scripts moved in from the repo root (2026-09-02, R3 task 8 of the
-portability-readiness plan) so they ship with the plugin instead of depending on a
-dev checkout:
+Three scripts ship with the plugin instead of depending on a dev checkout (the first two moved
+in from the repo root on 2026-09-02, R3 task 8 of the portability-readiness plan; the third
+replaced a prose step the same day):
 
+- **`harvest_headroom.py`** — the `/learn-harvest` collector for captured `headroom learn`
+  reports. Parses every `###`/`####` block into one refinement-queue entry with the pattern
+  stored **verbatim** (title, savings estimate, full body), ids as `sha1-12(source + pattern)`,
+  and duplicate-safe re-runs; `--audit` lists pending entries that still look truncated. Written
+  after the 2026-08-26 run cut seven entries at exactly 550 characters mid-word.
 - **`suggestion_log_report.py`** — the acceptance-rate report behind `/suggestion-report`
   above; also runnable directly (`python3 rhize-context-manager/scripts/
   suggestion_log_report.py`).
@@ -118,9 +123,11 @@ dev checkout:
   map (`skill-map.local.json`, `skill-map.resolved.json`, `skill-map.indexes.resolved.json`
   under `~/.claude/context-manager/`) from the committed static artifact plus optional
   machine-local inputs (enabled plugins, stack config, skill-monitor co-occurrence data,
-  third-party plugin inventory). A future rhize-ops setup orchestrator's
-  `install-skill-map` step calls this script to build the overlay for installed users;
-  see `docs/skill-map.md` for the artifact shapes.
+  third-party plugin inventory). `/rhize-ops:rhize-setup` installs the compiled skill map
+  for this machine via `setup_orchestrator.py install-skill-map`, which calls this script
+  to build the overlay whenever it's available at the discovered source root (a dev
+  checkout; reported as unavailable from an installed marketplace clone); see
+  `docs/skill-map.md` for the artifact shapes.
 
 Both scripts keep a two-line compatibility shim at their old repo-root `scripts/` path,
 so `python3 scripts/suggestion_log_report.py` and `python3 scripts/

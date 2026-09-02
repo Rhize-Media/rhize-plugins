@@ -9,55 +9,55 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### seo-aeo-geo
 
-Version 1.5.1. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
+Version 1.5.2. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
 
 [README](../seo-aeo-geo/README.md) · [GUIDE](../seo-aeo-geo/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#seo-aeo-geo)
 
 ### obsidian-second-brain
 
-Version 1.7.1. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.7.2. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 
 ### project-launcher
 
-Version 1.8.1. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
+Version 1.8.2. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
 
 [README](../project-launcher/README.md) · [GUIDE](../project-launcher/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#project-launcher)
 
 ### rhize-devflow
 
-Version 2.20.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.20.1. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [9 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
-Version 0.24.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.25.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
 ### rhize-ops
 
-Version 0.16.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.17.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
 ### rhize-tasks
 
-Version 0.4.2. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
+Version 0.4.3. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
 
 [README](../rhize-tasks/README.md) · [GUIDE](../rhize-tasks/GUIDE.md) · [6 skills](../generated/SKILL-CATALOG.md#rhize-tasks)
 
 ### rhize-cowork
 
-Version 0.2.1. Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.
+Version 0.2.2. Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.
 
 [README](../rhize-cowork/README.md) · [GUIDE](../rhize-cowork/GUIDE.md) · [1 skill](../generated/SKILL-CATALOG.md#rhize-cowork)
 
 ### procedural-memory
 
-Version 0.5.1. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
+Version 0.5.2. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
 
 [README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#procedural-memory)
 <!-- SKILL-MAP:END -->
@@ -72,6 +72,9 @@ Version 0.5.1. Lets Claude find and reuse previously verified scripts and automa
   [`agent-dispatch-surface.md`](./skill-map/agent-dispatch-surface.md).
 - [`mcp-secret-launcher.md`](./mcp-secret-launcher.md) — how plugins deliver a credential to an
   MCP server without ever writing it into a file.
+- [`../rhize-ops/docs/setup-artifacts.md`](../rhize-ops/docs/setup-artifacts.md) — every file the
+  plugins write on a user's machine, rendered from each plugin's `setup/manifest.json`; the
+  schema itself is in the [rhize-ops README](../rhize-ops/README.md#setup-manifest-schema).
 
 ## Design records
 

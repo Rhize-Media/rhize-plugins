@@ -8,6 +8,40 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-02_ version bump — **rhize-ops** 0.16.0 → 0.17.0 (minor); **rhize-context-manager** 0.24.0 → 0.25.0 (minor); **rhize-devflow** 2.20.0 → 2.20.1 (patch); **project-launcher** 1.8.1 → 1.8.2 (patch); **obsidian-second-brain** 1.7.1 → 1.7.2 (patch); **seo-aeo-geo** 1.5.1 → 1.5.2 (patch); **rhize-tasks** 0.4.2 → 0.4.3 (patch); **rhize-cowork** 0.2.1 → 0.2.2 (patch); **procedural-memory** 0.5.1 → 0.5.2 (patch); marketplace 2.57.0 → 2.58.0.
+- _2026-09-02_ **Portability readiness, release 2 — the hybrid setup wizard.** `/rhize-ops:
+  rhize-setup` is now an orchestrator with eight phases: flags → discover → **select which
+  installed plugins to set up** (multi-select, all enabled by default) → shared preflight
+  (dependency check once; the version-control preflight via `git_preflight.py` with track / proceed /
+  recipe choices; skill-map install into `~/.claude/context-manager/` when rhize-context-manager is
+  selected; a `skill-forge init` hint) → **each selected plugin's own wizard**, invoked through the
+  Skill tool with `--from-rhize-setup` (a failed `required` wizard blocks that plugin's later phases;
+  optional/recommended failures only annotate) → evaluation baselines → hooks → post-write tracking →
+  a report with dependency, hook, evaluation, version-control, and **artifacts** tables plus one
+  "verify with `<doctor>`" line per plugin. The deterministic half lives in the new
+  `rhize-ops/scripts/setup_orchestrator.py` (`discover`, `hooks plan|apply`, `artifacts snapshot`,
+  `install-skill-map`, `report`; stdlib, argv-array subprocess, `--home`/`--project` overridable);
+  the command file keeps only questions, confirmations, and Skill invocations. Hook commands are
+  written `$HOME`-prefixed to the discovered marketplace clone (proven by an `sh -c` smoke test;
+  dev-repo paths flagged; existing machine-specific entries reported, never rewritten) and
+  `discover` flags a clone that is ahead of the installed plugin cache.
+  **Setup manifest schema 3** (rhize-ops owns it; schema 2 still validates, schema 1 is
+  inventory-only): optional `wizard {skill, purpose, when, args}`, `doctor {kind, value}`, and
+  `artifacts[] {id, path, kind, purpose, viewer, lifetime, confidentiality, source, tracked,
+  optional}` with `<project>|<home>|<vault>` placeholders only (`<vault>` resolved through the
+  obsidian plugin's `resolve_vault_paths()`), validated by the existing `evaluation_setup.py`
+  loader; a `wizard.skill` must name a command file that starts with `description:` frontmatter
+  (that is what makes a command Skill-tool-invocable with `$ARGUMENTS`, verified 2026-09-02) —
+  `devflow-setup`, `rhize-setup`, `delegate-setup`, and `bump-version` gained it, so
+  `claude plugin validate --strict` is now clean for every plugin. All nine manifests moved to
+  schema 3 with their artifacts declared; `rhize-ops/scripts/setup_artifacts.py` renders them into
+  `rhize-ops/docs/setup-artifacts.md` (managed section; `--check` registered as a
+  `bump_version.py` contract). `devflow-setup` and `context-setup` parse `$ARGUMENTS` and stop
+  when invoked by the orchestrator; `rhize-tasks:setup` and `vault-setup` note they are reachable
+  from the hub. 67 new tests. Docs: rhize-ops README (`/rhize-setup`, schema 3, "What setup
+  writes"), rhize-ops GUIDE walkthrough, START-HERE §5, root README hub paragraph and hierarchy row,
+  `docs/README.md`; the obsidian GUIDE's duplicated "(qmd-Enhanced)" command cluster is folded into
+  its base sections; the repo CLAUDE.md now states the refactor gate's real five-section contract.
 - _2026-09-02_ version bump — **rhize-devflow** 2.19.0 → 2.20.0 (minor); **rhize-ops** 0.15.2 → 0.16.0 (minor); **rhize-context-manager** 0.23.1 → 0.24.0 (minor); **project-launcher** 1.8.0 → 1.8.1 (patch); **obsidian-second-brain** 1.7.0 → 1.7.1 (patch); **seo-aeo-geo** 1.5.0 → 1.5.1 (patch); **rhize-tasks** 0.4.1 → 0.4.2 (patch); **rhize-cowork** 0.2.0 → 0.2.1 (patch); **procedural-memory** 0.5.0 → 0.5.1 (patch); marketplace 2.56.3 → 2.57.0.
 - _2026-09-02_ **Portability readiness, release 1 — rollback, a front door, and the review
   gate in one place.** Driven by the first outside-installer review (customizations made through

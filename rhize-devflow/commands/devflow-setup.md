@@ -1,3 +1,7 @@
+---
+description: Interview-driven setup wizard for the per-repo local-tenant-file convention used by error-lifecycle-management
+---
+
 # /rhize-devflow:devflow-setup
 
 Interview-driven setup wizard that establishes the **per-machine local-tenant-file
@@ -119,13 +123,17 @@ Tell the user:
   this file is never auto-populated
 - Re-run this command in any other repo that needs the same local-tenant-file setup
 
-### 7. Establish the evaluation baseline
+### 7. Hand back to the orchestrator, or suggest it
 
-Continue with `/rhize-ops:rhize-setup --plugin rhize-devflow --evaluations`. Ask the user to
-identify the exact incumbent review/test/debug workflow as Arm A, then run the free/offline seed.
-Correctness and rework are primary gates; token or latency reductions never compensate for a
-regression. Keep tenant-file contents, repository paths, error messages, and Sentry identifiers out
-of receipts.
+Parse `$ARGUMENTS`. If it contains `--from-rhize-setup`, stop here — `/rhize-ops:rhize-setup`
+invoked this wizard as part of its own run and continues on to its evaluation-baseline and
+hook-wiring phases itself; re-invoking it here would loop back into the same run. Otherwise
+(this wizard was run standalone), suggest `/rhize-ops:rhize-setup --plugin rhize-devflow` to
+establish the evaluation baseline — identify the exact incumbent review/test/debug workflow as
+Arm A, then run the free/offline seed. Correctness and rework are primary gates; token or latency
+reductions never compensate for a regression. Keep tenant-file contents, repository paths, error
+messages, and Sentry identifiers out of receipts. Any other argument in `$ARGUMENTS` is ignored
+with a note — this wizard stays standalone-runnable and remains the expert for its own setup.
 
 ## Related
 

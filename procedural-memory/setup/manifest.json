@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "procedural-memory",
   "items": [],
   "dependencies": [
@@ -13,6 +13,36 @@
         "suggestion": "Install the supported rhize-skill CLI used by the plugin wrappers.",
         "warning": "A second hand-built registry would split provenance and trust state; use the maintained CLI instead."
       }
+    }
+  ],
+  "doctor": {
+    "kind": "shell",
+    "value": "rhize-skill doctor"
+  },
+  "artifacts": [
+    {
+      "id": "candidate-queue",
+      "path": "<home>/.claude/procedural-memory/candidate-queue.jsonl",
+      "kind": "file",
+      "purpose": "Transcript-derived, redacted queue of candidate scripts/automations awaiting promotion.",
+      "viewer": "cat ~/.claude/procedural-memory/candidate-queue.jsonl",
+      "lifetime": "append-only",
+      "confidentiality": "personal",
+      "source": "transcript-derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "procedural-memory-runs",
+      "path": "<home>/.rhize/procedural-memory/runs/",
+      "kind": "directory",
+      "purpose": "Per-run state for procedural-memory's run/verify/promote CLI surface.",
+      "viewer": "ls ~/.rhize/procedural-memory/runs/",
+      "lifetime": "per-run",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
     }
   ],
   "evaluations": {

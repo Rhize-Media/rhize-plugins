@@ -1,4 +1,5 @@
 ---
+description: Coordinated semver bump for the rhize-plugins marketplace — versions, marketplace manifest, and CHANGELOG in sync
 model: haiku
 ---
 

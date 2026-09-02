@@ -1,16 +1,24 @@
+---
+description: Fleet-level setup wizard — pick your plugins, run their own expert wizards, establish evaluation baselines, and wire opt-in guardrail hooks
+---
+
 # /rhize-ops:rhize-setup
 
-Fleet-level setup wizard. Discovers every installed Rhize plugin's manifest
-(`<plugin>/setup/manifest.json`), validates complete evaluation coverage, establishes the user's
-existing implementation as a benchmark baseline, records a privacy-safe capture policy, shows
-what guardrails are already wired versus merely available, and lets the user turn hooks on for
-the **current project** without hand-writing hooks JSON or hunting for
-`${CLAUDE_PLUGIN_ROOT}` paths.
+Fleet-level setup wizard. Discovers installed Rhize plugins, lets you pick which ones to set up
+this run, then orchestrates: each selected plugin's own expert setup wizard (when it has one), a
+shared dependency and version-control preflight, evaluation-coverage baselines, and an opt-in
+guardrail-hook menu — finishing with one report of what's wired, what's tracked, and what to
+verify next.
 
 Installing a plugin never auto-wires guardrail hooks, starts capture, runs networked/paid work,
 or schedules a job. This wizard offers policy and hook choices separately, and active capture also
 requires a verified component adapter. Free deterministic validation is recommended immediately;
 every other effect remains an explicit user choice.
+
+Every deterministic step below calls `rhize-ops/scripts/setup_orchestrator.py`,
+`evaluation_setup.py`, or `git_preflight.py` by path — this file supplies the questions,
+confirmations, and Skill-tool invocations, not the discovery, path-resolution, or settings-merge
+logic itself.
 
 ## Tier semantics
 
@@ -19,93 +27,179 @@ every other effect remains an explicit user choice.
 - **T4 (blocking)** — exits 2 to block the tool call outright, with its stderr shown to the
   model as the reason.
 
-## Steps
+## Phase 0 — Flags
 
-### 1. Discover installed Rhize plugins
+- `--plugin <name>` (repeatable) — pre-select a plugin, skipping it in the Phase 2 picker.
+- `--all` — pre-select every enabled plugin; skips the Phase 2 picker entirely.
+- `--evaluations` — after Phase 5 (Evaluation baselines) completes for the selected plugins,
+  **stop** — do not run Phase 6 (Hooks) or later. This is what a plugin wizard's own handshake
+  suggests when run standalone (see `devflow-setup.md`/`context-setup.md`).
+- `--skip-plugin-wizards` — run every phase except Phase 4 (useful for re-running the hook menu
+  or evaluation baselines without re-running every plugin's interview wizard).
+- Any other flag is rejected, printing this list.
+- `--from-rhize-setup` is never accepted here — that token is what this orchestrator *passes to*
+  the plugin wizards it invokes in Phase 4, so they know to stop instead of re-invoking this
+  command. Accepting it here would let a plugin wizard's suggestion loop back into itself.
 
-- Look for the installed marketplace clone at `~/.claude/plugins/marketplaces/rhize-plugins/`.
-  If present, enumerate its top-level plugin directories — anything containing a
-  `.claude-plugin/plugin.json`.
-- Cross-reference `enabledPlugins` in `~/.claude/settings.json`. Only plugins with
-  `"<name>@rhize-plugins": true` are active; note disabled ones explicitly in the final report
-  (`skipped — disabled`) rather than silently omitting them.
-- If the marketplace clone is absent, fall back to the dev repo: use the current working
-  directory if it has `.claude-plugin/marketplace.json` at its root (i.e. you're running this
-  from inside the `rhize-plugins` repo itself), otherwise ask the user for the repo path — don't
-  guess a location.
+Generate one run id for the whole invocation and reuse it in every subcommand call below — the
+run state and the final report are keyed by it:
 
-### 2. Read manifests + effective hook state
+```bash
+RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+```
 
-- For each discovered (and enabled) plugin, read `<plugin-dir>/setup/manifest.json` if it
-  exists. A plugin without one simply contributes nothing to the menu — that's not an error.
-- Accept schema 1 for its existing hook/dependency fields, but report
-  `evaluation catalog missing` and do not call evaluation coverage complete. Schema 2 requires
-  a matching `evaluations` binding to the central `rhize-evaluations-v1` catalog. Skip (with a
-  warning in the final report) any manifest that doesn't parse or doesn't match the schema
-  documented in `rhize-ops/README.md`.
-- Read the **target project's** (the directory you're running this command in) effective hook
-  state — this is what's actually live, not what a manifest merely declares:
-  - `.claude/settings.json` `hooks` block (tracked, shared with the team)
-  - `.claude/settings.local.json` `hooks` block (untracked, personal)
-  - `env.ECC_DISABLED_HOOKS` (comma-separated hook-id list) in either settings file — a hook can
-    be wired and still be neutered by this
-  - `env.ECC_GATEGUARD` — `"off"` disables ECC's own gate hooks specifically (informational for
-    non-ECC items; doesn't affect them)
-- For each manifest item, resolve whether an existing hook entry's `command` (after resolving
-  `${CLAUDE_PLUGIN_ROOT}` to this plugin's actual install path) already appears under the
-  matching `event`/`matcher` in either settings file. Label every item as one of:
-  `not wired` · `wired` · `wired but disabled (ECC_DISABLED_HOOKS)` · `wired but ECC_GATEGUARD=off`.
+## Phase 1 — Discover
 
-### 3. Dependency check
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" discover --json --run "$RUN_ID"
+```
 
-- For every discovered (and enabled) plugin's manifest that has a top-level `"dependencies"`
-  array (see `rhize-ops/README.md` → "Setup manifest schema"), probe each entry's presence
-  according to its `"kind"`:
-  - `plugin` — check `enabledPlugins` in `~/.claude/settings.json` for `"<name>@<marketplace>": true`,
-    and confirm the plugin directory actually exists under the marketplace clone (or dev repo)
-    found in step 1. Treat "listed but directory missing" the same as missing.
-  - `cli` — `command -v <binary>` (use the dependency's `"name"` as the binary unless the
-    manifest text makes the actual command clear, e.g. "@rhize/skill-forge" → `command -v npx`
-    plus `npm ls -g @rhize/skill-forge` or a quick `npx --no-install @rhize/skill-forge --version`).
-  - `mcp` — check whether the server is listed among the currently configured/connected MCP
-    servers (the plugin's own `.mcp.json` if bundled, or the user/session MCP config).
-  - `data` — check the referenced file/credential exists (env var set, file present at the
-    stated path).
-- Print a present/missing table before touching the opt-in menu:
+Read `source` (`kind`: `"dev-repo"` or `"marketplace-clone"`; `clone_name`; `portability`),
+`plugins[]`, and `warnings[]`. For each plugin: `enabled`/`enabled_reason`; `clone_version` vs
+`installed_version` (`clone_ahead_of_installed: true` means `claude plugin marketplace update`
+ran more recently than `claude plugin update` — mention it once in Phase 8, it isn't blocking);
+`manifest.evaluation_status` (`"missing"` for a schema-1 manifest — flag it, never count it as
+evaluation coverage); and each item's `status` (`not wired` / `wired` / `wired but disabled
+(ECC_DISABLED_HOOKS)` / `wired but ECC_GATEGUARD=off` / `wired (machine-specific path)` — the
+last one means an existing entry already does the job with an absolute, non-portable path; never
+touch it, just don't re-offer it).
 
-  | plugin | dependency | kind | required | status |
-  | --- | --- | --- | --- | --- |
-  | `<plugin>` | `<name>` | `plugin\|cli\|mcp\|data` | yes/no | `present` / `missing` |
+## Phase 2 — Select
 
-- For every entry marked `missing`, use `AskUserQuestion` (one question per missing dependency,
-  or grouped by plugin if there are several) offering exactly these choices:
-  1. **Install the upstream now — recommended.** Show the dependency's one-line `"purpose"`
-     as the reason. If installing is itself automatable (e.g. a plugin install command, an
-     `npm install -g` for a CLI), do it on confirmation; otherwise tell the user the exact
-     command/step and wait for them to confirm it's done before continuing.
-  2. **Proceed degraded.** State the dependency's `"degradedBehavior"` verbatim so the user
-     knows exactly what won't work.
-  3. **Adopt the replacement suggestion** (only offered when the manifest entry has a
-     `"replacement"` object). Show `replacement.suggestion` as the option, and display
-     `replacement.warning` **verbatim** as part of the option's description — never paraphrase
-     or shorten that warning, it's the reinventing-the-wheel caveat the manifest author wrote
-     deliberately.
-- Record every choice (dependency name, choice made, and — for "proceed degraded" or "adopt
-  replacement" — the exact text shown) for the final report in step 6. A `"required": true`
-  dependency the user chooses to leave missing (degraded or replaced) still gets recorded
-  faithfully; the wizard doesn't refuse to continue, it just carries that risk into the report.
+Use `AskUserQuestion` (`multiSelect: true`) listing every plugin with `enabled: true`. Each
+option's description is that plugin's own `.claude-plugin/plugin.json` `description`, plus —
+when its manifest declares a `wizard` — the wizard's `when` tag in parentheses (e.g.
+"(required)"). Default: every enabled plugin pre-selected (`--plugin`/`--all` on the invocation
+line pre-answer this question instead of asking). Plugins with `enabled: false` are never
+offered; they appear in the final report as `skipped — disabled`. Plugins the user leaves
+unchecked appear as `skipped — not selected` and get no further phases.
 
-### 4. Establish evaluation baselines and capture
+## Phase 3 — Shared preflight
 
-Do this before the hook picker. When the user invokes the command with `--evaluations`, skip the
-hook picker after this phase. When `--plugin <name>` is supplied, scope evaluation questions and
-execution to that component while preserving the other components' existing local state.
+Run once for the union of every selected plugin, not once per plugin.
 
-1. Resolve the marketplace/repository root from step 1 and run the central validator using the
-   actual `rhize-ops` plugin path:
+### 3a. Dependency check
 
-   ```text
-   python3 <rhize-ops-root>/scripts/evaluation_setup.py validate --repo-root <marketplace-or-repo-root>
+For every selected plugin's `manifest.dependencies` (already in the Phase 1 JSON — don't
+re-read manifests), probe each entry's presence according to its `"kind"`:
+
+- `plugin` — check `enabledPlugins` in `~/.claude/settings.json` for
+  `"<name>@<marketplace>": true`, and confirm the plugin directory exists under the source root
+  from Phase 1. Treat "listed but directory missing" the same as missing.
+- `cli` — `command -v <binary>` (use the dependency's `"binary"` field, falling back to a
+  slugified `"name"` only when `"binary"` is absent).
+- `mcp` — check whether the server is listed among the currently configured/connected MCP
+  servers (the plugin's own `.mcp.json` if bundled, or the user/session MCP config).
+- `data` — check the referenced file/credential exists (env var set, file present at the
+  stated path).
+
+Print a present/missing table before asking anything:
+
+| plugin | dependency | kind | required | status |
+| --- | --- | --- | --- | --- |
+| `<plugin>` | `<name>` | `plugin\|cli\|mcp\|data` | yes/no | `present` / `missing` |
+
+For every entry marked `missing`, use `AskUserQuestion` (one question per missing dependency, or
+grouped by plugin if there are several) offering exactly these choices:
+
+1. **Install the upstream now — recommended.** Show the dependency's one-line `"purpose"` as
+   the reason. If installing is itself automatable (e.g. a plugin install command, an
+   `npm install -g` for a CLI), do it on confirmation; otherwise tell the user the exact
+   command/step and wait for them to confirm it's done before continuing.
+2. **Proceed degraded.** State the dependency's `"degradedBehavior"` verbatim so the user knows
+   exactly what won't work.
+3. **Adopt the replacement suggestion** (only offered when the manifest entry has a
+   `"replacement"` object). Show `replacement.suggestion` as the option, and display
+   `replacement.warning` **verbatim** — never paraphrase or shorten it.
+
+Record every choice for Phase 8, then persist the table:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" report record --run "$RUN_ID" \
+  --section dependency_check --data <path-to-a-json-file-shaped-like-{"rows":[...]}>
+```
+
+### 3b. Version-control preflight
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git_preflight.py" report --project "$(pwd)" --json
+```
+
+For each row that is not `rollback_ready`, one `AskUserQuestion`:
+
+1. **Track now — recommended** (existing paths inside a work tree): show the exact commands
+   `git_preflight.py track` will run, note `other_staged` if non-zero, and on confirmation call:
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git_preflight.py" track \
+     --path <path> --message "chore(setup): baseline before rhize-setup"
+   ```
+2. **Proceed without version control** — recorded verbatim in the report.
+3. **Show the recipe** (`NOT_IN_REPO` rows, including `~/.claude`): print the commands from
+   `rhize-ops/README.md` → Rollback, using the shipped allowlist template
+   `rhize-ops/templates/claude-home.gitignore`, then pause and re-run the `report` command above
+   to verify before continuing. **Never run `git init` on `~/.claude` yourself.**
+
+Persist the resulting table the same way as 3a, under `--section version_control`.
+
+### 3c. Skill-map install
+
+Only when `rhize-context-manager` is among the selected plugins:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" install-skill-map \
+  --source <Phase 1 source.root> --run "$RUN_ID"
+```
+
+Read `overlay_status` — `"local overlay unavailable in installed mode"` is expected and fine
+when running from an installed plugin (no `build_local_skill_map.py` available at that source
+root); `context-setup` keeps its config-only boundary and is never the one to install this.
+
+### 3d. skill-forge init hint
+
+If `npx --no-install @rhize/skill-forge --version` succeeds but
+`~/.skill-forge/config.json` is absent, print "run `npx @rhize/skill-forge init`" and pause for
+the user to run it (or explicitly skip) before continuing. This wizard never runs `init` for
+them — skill-forge's own init has its own interactive Git-preflight prompts.
+
+### 3e. Artifacts baseline snapshot
+
+Before any plugin wizard or hook write happens this run, snapshot what already exists:
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" artifacts snapshot --before \
+  --run "$RUN_ID" --plugin <each selected plugin, repeated>
+```
+
+## Phase 4 — Plugin wizards
+
+For every selected plugin whose Phase 1 manifest declares a `wizard`, in this fixed order:
+rhize-ops → rhize-context-manager → rhize-devflow → rhize-tasks → obsidian-second-brain → every
+other selected plugin with a wizard, alphabetically.
+
+For each:
+
+- State the wizard's `purpose` and `when` tag.
+- `when: "required"` runs without asking. `when: "optional"`/`"recommended"` ask once
+  (run it now / skip).
+- On "run", invoke `<wizard.skill>` via the **Skill tool** with `args: wizard.args` (the manifest
+  default is `["--from-rhize-setup"]` when `args` is omitted) — this is exactly the marker the
+  wizard's own handshake step checks for to avoid looping back into this command.
+- Record `completed` / `skipped (user)` / `failed: <reason>` per plugin.
+- A **failed `required`** wizard marks that plugin `blocked — required setup failed`: skip its
+  Phase 5 and Phase 6 entirely, and say why in Phase 8. A failed optional/recommended wizard only
+  annotates the report — the plugin's other phases still run.
+
+Persist the outcome the same way as 3a, under `--section plugin_wizards`.
+
+## Phase 5 — Evaluation baselines
+
+Do this for every selected, non-`blocked` plugin. When the user invoked this command with
+`--evaluations`, **stop after this phase** — do not run Phase 6 or later.
+
+1. Resolve the marketplace/repository root from Phase 1 and run the central validator:
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/evaluation_setup.py" validate --repo-root <source.root>
    ```
 
    Stop the evaluation phase on a validation failure. Do not bypass an omitted skill, unsafe
@@ -133,11 +227,11 @@ execution to that component while preserving the other components' existing loca
    - **Deterministic gates only (`deterministic_only`):** run local change/setup gates without
      observing natural runs.
    - **Disabled (`disabled`):** retain the user's explicit choice and make no evidence claim.
-5. Write the answers to a private temporary decisions JSON, invoke
-   `evaluation_setup.py setup` with the selected component(s), capture mode, decisions file, and
-   `--run-free-smoke`, then remove the temporary file. The setup engine writes only to
-   `~/.rhize/evals/` (0700 directories, 0600 files). It executes only cataloged free/offline
-   Python runners with no shell interpolation and an environment allowlist.
+5. Write the answers to a private temporary decisions JSON, invoke `evaluation_setup.py setup`
+   with the selected component(s), capture mode, decisions file, and `--run-free-smoke`, then
+   remove the temporary file. The setup engine writes only to `~/.rhize/evals/` (0700
+   directories, 0600 files). It executes only cataloged free/offline Python runners with no
+   shell interpolation and an environment allowlist.
 6. Configuration alone does not instrument a component. Verify that its eligible execution path
    actually reads the policy and invokes `reserve` before work plus `finalize` afterward. Until
    that adapter exists and is enabled, report `capture_adapter_unavailable`; never call capture
@@ -148,76 +242,72 @@ execution to that component while preserving the other components' existing loca
    Offer the three-pair seed separately after the deterministic smoke, with literal authorization
    for any networked, credentialed, paid, scheduled, or externally mutating effect.
 
-### 5. Present the opt-in menu
+Persist the resulting table the same way as 3a, under `--section evaluations`.
 
-- Use `AskUserQuestion` with `multiSelect: true`. Group questions by plugin (one question block
-  per plugin, or a combined block if the total item count is small).
-- Each option's label is the item's `title`; its description is
-  `<tier> · <event>[/<matcher>] — <description>`. Append `" (recommended)"` to the title for any
-  item with `"default": true` in its manifest — `AskUserQuestion` itself has no pre-selection
-  mechanism, so this is how the recommendation surfaces.
-- Items already labeled `wired` in step 2 are shown in the final report table for visibility but
-  are **not** re-offered as toggles unless the user explicitly asks to review already-wired
-  items.
+## Phase 6 — Hooks
 
-### 6. Wire selected items
+For every selected, non-`blocked` plugin's items with `status: "not wired"` in Phase 1:
 
-For every newly selected item, in order:
-
-1. **Resolve** `${CLAUDE_PLUGIN_ROOT}` in the item's `command` to that plugin's real installed
-   path from step 1 (the marketplace clone directory, or the dev repo path).
-2. **Smoke-test** the resolved command before wiring anything. For `PreToolUse`/`PostToolUse`
-   items (which read a tool-call payload from stdin):
+1. Use `AskUserQuestion` with `multiSelect: true`. Group questions by plugin (one question block
+   per plugin, or a combined block if the total item count is small). Each option's label is the
+   item's `title`; its description is `<tier> · <event>[/<matcher>] — <description>`. Append
+   `" (recommended)"` to the title for any item with `"default": true` — `AskUserQuestion` has no
+   pre-selection mechanism, so this is how the recommendation surfaces. Items already labeled
+   `wired`/`wired but disabled`/`wired but ECC_GATEGUARD=off`/`wired (machine-specific path)` in
+   Phase 1 are shown in the final report for visibility but not re-offered.
+2. For every newly selected item:
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" hooks plan \
+     --plugin <plugin> --item <id> --json --run "$RUN_ID"
    ```
-   echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/x"}}' | <resolved command>
+   Read `smoke_test.passed`. **Never proceed to wire an item whose smoke test failed** — record
+   it as `smoke-test failed` in the final table instead of silently skipping it.
+3. Collect every passing plan's `{plugin, item, event, matcher, resolved_command}` into one JSON
+   array and apply them together in a single call:
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" hooks apply \
+     --plan <path-to-the-plans-array.json> --run "$RUN_ID"
    ```
-   For items on events with no stdin contract (`SessionStart`, `Stop`, `UserPromptSubmit`), run
-   with empty stdin instead: `echo '' | <resolved command>`. In both cases, require **exit code
-   0**. **Never wire an item that fails this smoke test** — record it as `smoke-test failed` in
-   the final table instead of silently skipping it.
-3. On a passing smoke test, append a hook entry to the target project's `.claude/settings.json`
-   `hooks` block, in the correct Claude Code hooks JSON shape:
-   ```json
-   {
-     "matcher": "<item.matcher, or omit the key entirely if the item has none>",
-     "hooks": [{ "type": "command", "command": "<resolved command>" }]
-   }
-   ```
-   Merge this into any existing array under `hooks.<event>` — never overwrite the file's other
-   hook entries, and never touch `.claude/settings.local.json` (this wizard always writes to the
-   tracked file so the guardrail is shared with the rest of the team, not just wired locally).
+   This merges into the target project's tracked `.claude/settings.json` `hooks` block only —
+   never `.claude/settings.local.json` — and never rewrites an existing entry, including a
+   `wired (machine-specific path)` one.
 
-### 7. Print the final report
+## Phase 7 — Post-write tracking
 
-Two tables. First, the dependency-check outcome from step 3 — one row per manifest dependency
-across every discovered plugin, including entries that were already `present`:
+Re-run the version-control preflight, scoped to whatever this run just created (e.g.
+`.claude/settings.json` if Phase 6 wired anything for the first time, or a plugin wizard's own
+config file):
 
-| plugin | dependency | required | status | choice |
-| --- | --- | --- | --- | --- |
-| `<plugin>` | `<name>` | yes/no | `present` / `missing` | `—` (present) / `installed` / `proceed degraded` / `adopted replacement` |
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/git_preflight.py" report --project "$(pwd)" \
+  --paths <path-this-run-created> --json
+```
 
-Then the opt-in hook table — one row per manifest item across every discovered plugin (wired or
-not):
+Offer the same track/proceed/recipe choices as 3b, running any confirmed `track` through
+`git_preflight.py` — never a raw `git` command written into this file.
 
-| item | tier | event/matcher | wired where | status |
-| --- | --- | --- | --- | --- |
-| `<id>` | T3/T4 | `<event>`/`<matcher or —>` | `.claude/settings.json` or `—` | `wired` / `already wired` / `skipped (user declined)` / `smoke-test failed` / `plugin disabled` |
+## Phase 8 — Report
 
-Keep the table complete even for items the user didn't select — that's what makes it a fleet-wide
-guardrail inventory, not just a summary of this run's changes.
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" artifacts snapshot --after \
+  --run "$RUN_ID" --plugin <each selected plugin, repeated>
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/setup_orchestrator.py" report --run "$RUN_ID"
+```
 
-Finish with an evaluation table:
+Print the rendered tables from `report` (dependency, hook, evaluation, version-control, and
+artifacts — `declared | present-before | present-after`, never claiming "written this run" for a
+row that already existed). Do not merge deterministic coverage, observational natural receipts,
+and controlled benefit evidence into one status — a benefit claim remains unavailable until its
+matched controlled cohort passes the predeclared gates.
 
-| component | domain | skills | deterministic seed | Arm A | capture policy | capture status / blocker |
-| --- | --- | ---: | --- | --- | --- | --- |
-| `<component>` | `<domain>` | `<count>` | `pass/fail/not run/blocked` | `confirmed/greenfield/declined/unconfirmed` | `aggressive local/deterministic only/disabled` | `active/inactive/<reason>` |
-
-Do not merge deterministic coverage, observational natural receipts, and controlled benefit
-evidence into one status. A benefit claim remains unavailable until its matched controlled cohort
-passes the predeclared gates.
+Finish with one "verify with `<doctor>`" line per selected plugin whose manifest declares a
+`doctor`: `kind: "skill"` → tell the user to run that command; `kind: "shell"` → print the exact
+command line, never execute it yourself.
 
 ## Manifest schema reference
 
 See `rhize-ops/README.md` → "Setup manifest schema" for the canonical `setup/manifest.json`
-shape this command reads. `rhize-ops` owns that spec; other plugins ship manifests conforming to
-it, not the other way around.
+shape this command reads (schema 3: the same `items`/`dependencies`/`evaluations` as schema 2,
+plus the optional `wizard`, `doctor`, and `artifacts` blocks this wizard drives Phases 4 and 8
+from). `rhize-ops` owns that spec; other plugins ship manifests conforming to it, not the other
+way around.

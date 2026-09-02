@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "rhize-tasks",
   "items": [],
   "dependencies": [
@@ -24,6 +24,53 @@
         "suggestion": "Use a Mac running macOS 14 or newer.",
         "warning": "The plugin has no supported replacement for the macOS Keychain and EventKit integration."
       }
+    }
+  ],
+  "wizard": {
+    "skill": "rhize-tasks:setup",
+    "purpose": "Install the local Rhize Tasks planning service, its signed Swift EventKit helper, and both LaunchAgents.",
+    "when": "required"
+  },
+  "doctor": {
+    "kind": "skill",
+    "value": "rhize-tasks:doctor"
+  },
+  "artifacts": [
+    {
+      "id": "application-support",
+      "path": "<home>/Library/Application Support/Rhize Tasks/",
+      "kind": "directory",
+      "purpose": "Rhize Tasks' SQLite state, versioned runtime, install manifest, routine lock, logs, and the Swift helper bundle. Secrets live in Keychain, not here.",
+      "viewer": "cat \"~/Library/Application Support/Rhize Tasks/installation.json\"",
+      "lifetime": "persistent",
+      "confidentiality": "personal",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "routine-launch-agent",
+      "path": "<home>/Library/LaunchAgents/media.rhize.tasks.plist",
+      "kind": "file",
+      "purpose": "LaunchAgent invoking the routine catch-up evaluator every 15 minutes and at load.",
+      "viewer": "launchctl print gui/$(id -u)/media.rhize.tasks",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "helper-launch-agent",
+      "path": "<home>/Library/LaunchAgents/media.rhize.tasks.reminders-helper.plist",
+      "kind": "file",
+      "purpose": "LaunchAgent serving the signed Swift EventKit helper's Unix socket, owning the macOS Reminders permission grant.",
+      "viewer": "launchctl print gui/$(id -u)/media.rhize.tasks.reminders-helper",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
     }
   ],
   "evaluations": {

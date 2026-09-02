@@ -1,6 +1,6 @@
 {
   "name": "rhize-tasks",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "description": "Local-first planning for Rhize Jira work across Calendar and Reminders",
   "type": "module",

@@ -1,0 +1,26 @@
+Headroom learn — dry run (sample capture, trimmed)
+
+## rhize-plugins
+
+### Codex Harness — exec output truncates at ~41KB (read narrow ranges)
+*~219,199 tokens/session saved*
+In Codex sessions, `tools.exec_command` output is capped near 40960 bytes — dozens of `nl -ba`/`sed -n`/`git diff` results return exactly 40960–42686 bytes, which is silent truncation, and the agent then re-reads the same file to see the rest. Read TARGETED ranges sized to stay under ~40KB (`sed -n 'A,Bp' file`), and for a large file plan non-overlapping windows up front instead of dumping the whole thing and re-fetching. A 41KB result is a truncation signal, not a complete read. This sentence exists so the block is longer than five hundred and fifty characters and would have been cut by the old collector, which is exactly the defect the parser under test must not reproduce. Padding padding padding padding padding padding padding padding padding.
+
+### Shell Gotchas (zsh)
+*~600 tokens/session saved*
+The Bash tool runs zsh, so `nomatch` is on: an unmatched glob ABORTS the whole command.
+  Guard with a literal-safe path or `setopt +o nomatch`.
+
+#### A block with no savings line
+  Body only, indented, two lines
+  that must be joined with a single space.
+
+### Heading with an empty body
+
+──────────────────────────────────────────────────
+
+## another repo
+
+### Repeated title
+*~5 tokens/session saved*
+Same text as before produces the same id and is skipped on re-ingest.

@@ -181,6 +181,11 @@ class PluginContractCheckTests(unittest.TestCase):
                 ],
                 [
                     bump_version.sys.executable,
+                    str(ROOT / "rhize-ops/scripts/setup_artifacts.py"),
+                    "--check",
+                ],
+                [
+                    bump_version.sys.executable,
                     str(ROOT / "scripts/validate_plugin_configs.py"),
                 ],
             ],
@@ -199,6 +204,7 @@ class PluginContractCheckTests(unittest.TestCase):
                 "CodeGraph + impact-map contract failed",
                 "Dev Flow test suite failed",
                 "skill-map freshness failed",
+                "Setup-artifacts freshness failed",
                 "Plugin config lint failed",
             ],
         )

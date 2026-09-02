@@ -56,9 +56,22 @@ target, matching every pre-existing entry.
      its own — `~/.headroom/learn-captures/` and `learn.log` are written by a
      separate weekly sweep wrapper — so an uncaptured run's output dies with the
      shell and its LLM spend is unrecoverable.
-   - Parse each recommendation/pattern block into one queue entry
-     (`source: headroom-learn`). Keep headroom's savings estimates in
-     `est_savings` when present.
+   - Turn the captured report into queue entries with the shipped parser — never by
+     reading and re-typing the blocks yourself:
+
+     ```bash
+     python3 "$CLAUDE_PLUGIN_ROOT/scripts/harvest_headroom.py" \
+       ~/.claude/context-manager/harvest-logs/<date>-headroom.txt \
+       --repo <repo-name> --json
+     ```
+
+     It stores every block's `pattern` verbatim (title, headroom's savings estimate in
+     `est_savings`, and the full body), derives `id` as `sha1-12(source + pattern)`, and
+     skips ids already in the queue, so re-running is safe. On 2026-08-26 the previous
+     prose version of this step produced seven entries cut at exactly 550 characters
+     mid-word; `python3 "$CLAUDE_PLUGIN_ROOT/scripts/harvest_headroom.py" --audit` lists
+     any pending entry that still looks truncated so it can be recovered from its
+     harvest log.
 3. **claude-mem**: search recent observations (last 7 days) for
    correction/friction shaped entries — bugfix loops, repeated retries, user
    corrections of agent behavior. Take at most the top 10, one queue entry each

@@ -107,14 +107,35 @@ runs that still need factual terminal finalization.
 
 ### /rhize-setup
 
-**What it's for:** A fleet-wide guardrail wizard. Installing a Rhize plugin never turns on any of its hooks by itself — this command finds every installed plugin's opt-in hook catalog, shows you what's already wired vs. just available in the current project, and lets you pick which ones to turn on without hand-editing `.claude/settings.json`. Every hook it offers gets smoke-tested before it's wired, so a broken hook script can't get wired silently.
+**What it's for:** The one place to set up as many (or as few) Rhize plugins as you want in one
+pass. It discovers every installed plugin, asks you which ones you actually want to set up this
+run, then hands each selected plugin's own setup wizard the wheel for its part — running a
+shared dependency check and version-control check once instead of per plugin, establishing
+evaluation baselines, and finishing with an opt-in guardrail-hook menu. Installing a Rhize plugin
+never turns on any of its hooks by itself; every hook this wizard offers gets smoke-tested before
+it's wired, so a broken hook script can't get wired silently.
+
+**Pick your plugins:** Run it with no flags and you'll see a checklist of every enabled plugin,
+pre-checked by default — uncheck anything you don't want touched this run. Already know what you
+want? `/rhize-ops:rhize-setup --plugin obsidian-second-brain --plugin rhize-devflow` skips the
+checklist and goes straight to those two; `--all` does the same for everything enabled.
 
 **Example usage:**
-> "/rhize-ops:rhize-setup" — validate all published skill coverage, confirm the exact workflow each plugin is replacing, run the immediate free/offline seed, choose aggressive local capture or deterministic-only mode, then review the per-plugin guardrail menu. The final report keeps deterministic coverage, observational receipts, and controlled benefit readiness separate.
+> "/rhize-ops:rhize-setup" — pick your plugins from the checklist (or accept the default of
+> everything enabled), work through each selected plugin's own interview (Obsidian's vault
+> setup, Rhize Tasks' local install, and so on — whichever ones you picked), confirm baselines
+> and the free/offline evaluation seed, review the guardrail-hook menu, and get a final report:
+> what's wired, what's tracked in Git, and — for every plugin with one — a one-line "verify with"
+> pointer to its own health-check command.
 
-Use `/rhize-ops:rhize-setup --plugin obsidian-second-brain --evaluations` for the evaluation-only
-subflow after `/vault-setup`. Obsidian is grouped with Context Manager and Procedural Memory under
-Knowledge & Context; Ops hosts the setup engine without changing that product taxonomy.
+Only want the evaluation subflow, without touching hooks? `/rhize-ops:rhize-setup --plugin
+obsidian-second-brain --evaluations` runs just that for one plugin — this is what
+`/vault-setup` itself suggests when you run it standalone. Obsidian is grouped with Context
+Manager and Procedural Memory under Knowledge & Context; Ops hosts the setup engine without
+changing that product taxonomy.
+
+**What gets written where?** Every plugin's setup wizard (and its day-to-day use) is documented
+in one table — see [`rhize-ops/docs/setup-artifacts.md`](./docs/setup-artifacts.md).
 
 ## Cost & Savings Reports
 

@@ -1,8 +1,58 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "rhize-cowork",
   "items": [],
   "dependencies": [],
+  "artifacts": [
+    {
+      "id": "cowork-claude-md",
+      "path": "<project>/CLAUDE.md",
+      "kind": "file",
+      "purpose": "The Cowork client's operating manual, scaffolded by project-kickoff.",
+      "viewer": "cat CLAUDE.md",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "authored",
+      "tracked": "project",
+      "optional": false
+    },
+    {
+      "id": "cowork-business-md",
+      "path": "<project>/BUSINESS.md",
+      "kind": "file",
+      "purpose": "The Cowork client's business, offer, and market description.",
+      "viewer": "cat BUSINESS.md",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "authored",
+      "tracked": "project",
+      "optional": false
+    },
+    {
+      "id": "cowork-personality-md",
+      "path": "<project>/PERSONALITY.md",
+      "kind": "file",
+      "purpose": "The Cowork client's voice and personality guide.",
+      "viewer": "cat PERSONALITY.md",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "authored",
+      "tracked": "project",
+      "optional": false
+    },
+    {
+      "id": "cowork-info-md",
+      "path": "<project>/INFO.md",
+      "kind": "file",
+      "purpose": "Reference facts about the Cowork client that don't fit the other three files.",
+      "viewer": "cat INFO.md",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "authored",
+      "tracked": "project",
+      "optional": false
+    }
+  ],
   "evaluations": {
     "catalog": "rhize-evaluations-v1",
     "component": "rhize-cowork"

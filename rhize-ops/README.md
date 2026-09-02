@@ -103,17 +103,27 @@ Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump
 
 ### `/rhize-setup`
 
-Fleet-level setup wizard. It validates the central evaluation catalog against every published skill,
-groups components by product domain, establishes user-confirmed incumbent baselines, runs immediate
-free/offline deterministic seeds, records the requested capture policy, and provisions a
-privacy-safe receipt interface. It then reads every
-installed plugin's opt-in hook catalog and the target project's *effective* hook state
-(`.claude/settings.json` + `.claude/settings.local.json`, plus
-`ECC_DISABLED_HOOKS`/`ECC_GATEGUARD`), presents an opt-in menu, smoke-tests each selected hook, and
-writes only approved hooks into the tracked `.claude/settings.json`. Installation alone never starts
-capture, schedules work, runs live/paid benchmarks, or wires hooks.
+Fleet-level setup wizard. Discovers installed plugins, lets you pick which ones to set up this
+run, then orchestrates eight phases: discover → select → a shared dependency/version-control/
+skill-map preflight → each selected plugin's own expert setup wizard (invoked via the Skill
+tool) → evaluation-coverage baselines → an opt-in guardrail-hook menu (smoke-tested before
+anything is wired) → post-write version-control tracking → one final report. Installation alone
+never starts capture, schedules work, runs live/paid benchmarks, or wires hooks — every effect is
+an explicit choice. `rhize-ops/scripts/setup_orchestrator.py` does the deterministic
+discovery/path-resolution/settings-merge work; the command itself only asks questions,
+confirms choices, and invokes plugin wizards. See `rhize-ops/commands/rhize-setup.md` for the
+full phase-by-phase spec.
 
 **Invoked as:** `/rhize-ops:rhize-setup`
+
+### What setup writes
+
+Every file or directory a plugin's setup wizard (or day-to-day use) can write is declared in
+that plugin's `setup/manifest.json` `artifacts` array and rendered into one table by
+`rhize-ops/scripts/setup_artifacts.py --markdown` — see
+[`docs/setup-artifacts.md`](./docs/setup-artifacts.md) for the full list (artifact, producer,
+path, how to view, lifetime, confidentiality, source, and whether it's tracked). Nothing on that
+list is written just by installing a plugin.
 
 ### Rollback
 
@@ -159,7 +169,7 @@ the same file. Shipping a manifest never starts capture or auto-wires anything.
 
 ```jsonc
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "<plugin-directory-name>",
   "items": [
     {
@@ -188,6 +198,30 @@ the same file. Shipping a manifest never starts capture or auto-wires anything.
       }
     }
   ],
+  "wizard": {                                                 // optional — declares this plugin's own expert setup wizard
+    "skill": "<plugin>:<command>",                            // a plugin:command the Skill tool can invoke
+    "purpose": "One line: what running it does",
+    "when": "recommended",                                    // "optional" | "recommended" | "required"
+    "args": ["--from-rhize-setup"]                            // optional — this is the default when omitted
+  },
+  "doctor": {                                                 // optional — the verification step shown in the final report
+    "kind": "skill",                                          // "skill" (a plugin:command) | "shell" (printed, never executed)
+    "value": "<plugin>:doctor"
+  },
+  "artifacts": [                                              // optional; if "wizard" is present this must be non-empty
+    {
+      "id": "kebab-id",                                       // unique within the plugin
+      "path": "<home>/.rhize/widgets/config.json",            // only <project>, <home>, <vault> placeholders; no absolute paths or ".."
+      "kind": "file",                                         // file | directory | glob
+      "purpose": "One line: what this is",
+      "viewer": "cat ~/.rhize/widgets/config.json",           // how a human looks at it
+      "lifetime": "persistent",                               // persistent | per-run | append-only | regenerated
+      "confidentiality": "config",                            // none | config | personal | client | secret
+      "source": "authored",                                   // authored | derived | transcript-derived
+      "tracked": "outside-repo",                               // project | home | ignored | outside-repo
+      "optional": false                                       // false = expected to exist once the plugin is used
+    }
+  ],
   "evaluations": {
     "catalog": "rhize-evaluations-v1",                       // central catalog owned by rhize-ops
     "component": "<plugin-directory-name>"                    // must match plugin
@@ -195,12 +229,37 @@ the same file. Shipping a manifest never starts capture or auto-wires anything.
 }
 ```
 
-Schema 1 remains readable for its hook and dependency inventory during migration, but it reports
-`evaluation catalog missing` and cannot satisfy the release coverage gate. Schema 2 keeps runner
+Schema 1 (`{schema, plugin, items, dependencies}` — no `evaluations` key at all) remains readable
+for its hook and dependency inventory during migration, but it reports `evaluation catalog
+missing` and cannot satisfy the release coverage gate. Schema 2 adds the exact five keys above
+through `evaluations`, no more, no less. Schema 3 allows those same five keys plus any of the
+optional `wizard`/`doctor`/`artifacts` blocks — nothing else. Both schema 2 and 3 keep runner
 paths out of distributed component manifests: the central
 `setup/evaluation-catalog.json` owns repository-relative paths, Arm A/Arm B definitions, domain
 taxonomy, and suite metadata. The validator rejects absolute paths, traversal, escaping symlinks,
 unknown runner types, networked/paid automatic suites, and timeouts above ten minutes.
+
+**`wizard.skill` must be Skill-tool-invocable.** A plugin command is only reachable via the Skill
+tool — with `args` substituted into its `$ARGUMENTS` — when its `.md` file opens with a `---`
+frontmatter block containing a `description:` key (verified empirically 2026-09-02). The
+validator checks both that `<plugin>/commands/<command>.md` exists and that it starts with that
+frontmatter; a `wizard.skill` pointing at a slash-only command (no frontmatter) fails validation
+rather than silently invoking nothing at wizard time. `args` defaults to
+`["--from-rhize-setup"]` — the token a wizard's own command checks for to stop instead of
+re-invoking `/rhize-setup` (see `devflow-setup.md`/`context-setup.md` for the pattern).
+
+**`artifacts[].path` placeholders.** `<project>` is the directory `/rhize-setup` was run in;
+`<home>` is `$HOME`; `<vault>` resolves through
+`obsidian-second-brain/hooks/scripts/vault_resolve.py`'s `resolve_vault_paths()` — exactly one
+vault must resolve for the placeholder to fill in, otherwise it's reported
+`unresolved (<reason>)`. A path may use only one of these three placeholders, as its first
+segment; absolute paths, `~`, and `..` are all rejected outright.
+
+**A plugin that never writes anything personal or client-specific** (like `seo-aeo-geo`, which
+only reads env vars) should still ship an explicit empty `"artifacts": []` rather than omitting
+the key — that documents the absence instead of leaving it unstated. A plugin that declares a
+`wizard`, though, must give it a *non-empty* `artifacts` array: a plugin with its own setup
+wizard by definition writes something worth declaring.
 
 The catalog's product taxonomy deliberately separates ownership from subject matter. Obsidian,
 Context Manager, and Procedural Memory are **Knowledge & Context** components; Rhize Ops owns their

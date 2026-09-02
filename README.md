@@ -19,19 +19,23 @@ All plugins below will become available for installation. Each plugin may need i
 <!-- SKILL-MAP:BEGIN -->
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
-| [seo-aeo-geo](./seo-aeo-geo) | 1.5.1 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | 1.7.1 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
-| [project-launcher](./project-launcher) | 1.8.1 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | 2.20.0 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.24.0 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.16.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
-| [rhize-tasks](./rhize-tasks) | 0.4.2 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
-| [rhize-cowork](./rhize-cowork) | 0.2.1 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
-| [procedural-memory](./procedural-memory) | 0.5.1 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
+| [seo-aeo-geo](./seo-aeo-geo) | 1.5.2 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.7.2 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [project-launcher](./project-launcher) | 1.8.2 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.20.1 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.25.0 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.17.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-tasks](./rhize-tasks) | 0.4.3 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
+| [rhize-cowork](./rhize-cowork) | 0.2.2 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
+| [procedural-memory](./procedural-memory) | 0.5.2 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
-**Why rhize-ops is the hub:** it hosts `/rhize-setup`, the only wizard that wires any other
-plugin's opt-in `setup/manifest.json` hooks and dependencies into a project — without it those
+**Why rhize-ops is the hub:** it hosts `/rhize-setup`, the one wizard that reads every other
+plugin's `setup/manifest.json`, lets you pick which installed plugins to set up, runs the shared
+checks once (dependencies, whether your customizations are under version control, the skill-map
+install), hands off to each selected plugin's own wizard, wires the opt-in hooks into
+`.claude/settings.json`, and reports what was written where
+([`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md)) — without it those
 manifests are documentation only, and you'd hand-edit `.claude/settings.json` yourself following
 the snippets each plugin's README shows. It also hosts the cost/ROI reporting (`savings_scorecard.py`,
 `skill_roi.py`) that the other plugins' value story leans on. Every other plugin still installs,
@@ -98,6 +102,7 @@ This repo uses one convention consistently across every plugin — know it once,
 | **`SKILL.md`** (inside `skills/*/`) | Claude, at runtime | The actual instructions a skill executes when triggered — not primary human documentation, though readable if you're curious how a skill works |
 | **[`docs/README.md`](./docs/README.md)** | Maintainers | Index into cross-plugin reference material and dated design records that don't belong to one plugin |
 | **[`generated/SKILL-CATALOG.md`](./generated/SKILL-CATALOG.md)** | Anyone looking for a specific skill | Full cross-plugin skill catalog, generated from the skill map — never hand-edited |
+| **[`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md)** | Anyone who ran setup | Every file the plugins write on your machine — path, purpose, how to view it, sensitivity, Git tracking — rendered from each plugin's setup manifest |
 | **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
 | **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped |
 | **`CHANGELOG.md`** | Maintainers and contributors | The full engineering record: every fix and version bump, with internal references |

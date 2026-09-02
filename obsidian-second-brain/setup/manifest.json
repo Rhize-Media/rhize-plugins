@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "obsidian-second-brain",
   "items": [],
   "dependencies": [
@@ -57,6 +57,37 @@
         "suggestion": "install a current Python 3 runtime and invoke the bundled script with python3",
         "warning": "do not replace the deterministic engine with model-written hashing, policy, or transaction logic; that would break host parity and provenance guarantees."
       }
+    }
+  ],
+  "wizard": {
+    "skill": "obsidian-second-brain:vault-setup",
+    "purpose": "Interview you and build a personalized vault system — folders, templates, dashboards, and community-plugin recommendations.",
+    "when": "optional"
+  },
+  "artifacts": [
+    {
+      "id": "vault-setup-log",
+      "path": "<vault>/_vault-setup-log.md",
+      "kind": "file",
+      "purpose": "Records the archetype choices from /vault-setup so /vault-align knows what the vault should look like.",
+      "viewer": "open the note in Obsidian, or cat <vault>/_vault-setup-log.md",
+      "lifetime": "persistent",
+      "confidentiality": "personal",
+      "source": "authored",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "compiled-knowledge",
+      "path": "<vault>/.rhize/compiled-knowledge/",
+      "kind": "directory",
+      "purpose": "Evidence-bound compiled-knowledge output from the knowledge-compiler skill and /vault-compile.",
+      "viewer": "ls <vault>/.rhize/compiled-knowledge/",
+      "lifetime": "regenerated",
+      "confidentiality": "personal",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
     }
   ],
   "evaluations": {

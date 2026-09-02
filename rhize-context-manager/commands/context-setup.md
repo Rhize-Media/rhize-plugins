@@ -130,18 +130,17 @@ or hook wiring, name it explicitly and point at `/rhize-setup` rather than attem
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-### Step 6 — Establish the evaluation baseline
+### Step 6 — Hand back to the orchestrator, or suggest it
 
-After writing and reporting the context stack, continue with:
-
-```text
-/rhize-ops:rhize-setup --plugin rhize-context-manager --evaluations
-```
-
-Register the exact pre-plugin context workflow and frozen version/SHA as Arm A. Preserve the
-existing strict comparability rules: immediate deterministic validation is recommended, natural
-capture is observational, and same-day rows are not a matched cohort without input identity,
-step timing, and ordered execution. This command still owns stack config only; the central Ops
+Parse `$ARGUMENTS`. If it contains `--from-rhize-setup`, stop here — `/rhize-ops:rhize-setup`
+invoked this wizard as part of its own run and continues on to its evaluation-baseline and
+hook-wiring phases itself; re-invoking it here would loop back into the same run. Otherwise
+(this wizard was run standalone), suggest `/rhize-ops:rhize-setup --plugin rhize-context-manager`
+to establish the evaluation baseline — register the exact pre-plugin context workflow and frozen
+version/SHA as Arm A. Preserve the existing strict comparability rules: immediate deterministic
+validation is recommended, natural capture is observational, and same-day rows are not a matched
+cohort without input identity, step timing, and ordered execution. Any other argument in
+`$ARGUMENTS` is ignored with a note. This command still owns stack config only; the central Ops
 subflow owns evaluation state and receipts.
 
 ## Related Commands

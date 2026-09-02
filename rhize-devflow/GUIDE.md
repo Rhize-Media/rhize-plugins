@@ -241,6 +241,27 @@ normal completion stay blocked until reconciliation confirms the diff matches th
 [README](./README.md#doctor-evidence-and-refactor-gate-clis) for the exact verdict names. The
 receipt is shared between Claude and Codex.
 
+**When the gate blocks you — what each message means and what to do.** The gate is four hooks
+around one receipt file per workspace (`~/.claude/rhize-devflow/refactor-gate/`); every message
+below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" status
+--workspace <repo>` always tells you which state you are in.
+
+| You see | It means | Do this |
+| --- | --- | --- |
+| `source edits require a prepared refactor-evidence receipt` | Your prompt was classed as material work and no map has been prepared yet | Persist the impact map under `.claude/plans/<name>.md` (it needs the five sections the command template already has: current behavior, intended semantic delta, invariants, acceptance tests, implementation order), then run `refactor_gate.py prepare --workspace <repo> --plan <that file> --query "<symbols/behavior>"` |
+| `impact map changed after preparation; run prepare again` | You edited the map after preparing it (every source write is blocked until you do) | Run `prepare` again — it keeps the original baseline, so nothing already implemented is lost |
+| `actual changed files are missing from the impact map: <paths>` (from `reconcile`) | Files changed that the map never named | Add those paths to the map, `prepare` again, then `reconcile` |
+| `commit/push/merge requires a reconciled refactor-evidence receipt` | Source changed since `prepare` and you have not reconciled | Run `reconcile --workspace <repo>`; a `git -C <other-repo> …` command is checked against that repo's own receipt, so use a literal path, not a shell variable |
+| Stop hook: `implementation changed after preparation but has not been reconciled` | Same as above, at the end of a turn | `reconcile`, then finish; if subagents are still writing, expect to reconcile again |
+| `reconcile` says `no prepared impact-map receipt exists` | A reconciled receipt was closed as `completed` when a turn ended | Run `prepare` again (new baseline from the current tree), then `reconcile` |
+
+Plan files under `.claude/plans/`, `CLAUDE.md`/`AGENTS.md`/`STATE.md`, and config files (`.json`,
+`.yaml`, `.toml`, lockfiles, ignore files) are never gated. To set a receipt aside deliberately, run
+`refactor_gate.py dismiss --workspace <repo> --reason "<why>"`; `RHIZE_REFACTOR_GATE=off` in the
+environment is the emergency bypass, and both leave a record. Bash commands whose text contains a
+release command (`git commit`, `git push`, `git merge`) are checked even when they only write a file
+that quotes those words — use the Write/Edit tools for such content.
+
 **Examples:**
 - "Map the impact of adding a `refundStatus` field to the order schema before I touch anything."
 - "Reconcile the impact map against what actually changed" (after implementation).

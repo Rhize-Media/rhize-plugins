@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "project-launcher",
   "items": [],
   "dependencies": [
@@ -24,6 +24,44 @@
         "suggestion": "have Claude do that phase's work directly, without the specialist skill",
         "warning": "these are all skills from other Rhize (or third-party) plugins that already encode a tuned workflow for their specialty. Falling back to generic prompting loses that tuning — install the plugin that ships the skill instead of trying to replicate its prompt engineering ad hoc."
       }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "prd-directory",
+      "path": "<project>/prd/",
+      "kind": "directory",
+      "purpose": "Written PRDs (and their gap-analysis v2 revisions) produced by /write-prd and /grill-prd.",
+      "viewer": "cat prd/<name>.md",
+      "lifetime": "persistent",
+      "confidentiality": "none",
+      "source": "authored",
+      "tracked": "project",
+      "optional": true
+    },
+    {
+      "id": "planning-directory",
+      "path": "<project>/.planning/",
+      "kind": "directory",
+      "purpose": "GSD v2 planning docs (PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md) scaffolded by /scaffold-gsd.",
+      "viewer": "cat .planning/STATE.md",
+      "lifetime": "persistent",
+      "confidentiality": "none",
+      "source": "authored",
+      "tracked": "project",
+      "optional": true
+    },
+    {
+      "id": "hookify-local-rules",
+      "path": "<project>/.claude/hookify.*.local.md",
+      "kind": "glob",
+      "purpose": "Copied hookify rule files (secret-leak and PR-review enforcement) for the nextjs-rhize-stack, opt-in per project.",
+      "viewer": "cat .claude/hookify.<rule-id>.local.md",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "authored",
+      "tracked": "ignored",
+      "optional": true
     }
   ],
   "evaluations": {

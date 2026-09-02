@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "rhize-context-manager",
   "items": [
     {
@@ -164,6 +164,113 @@
         "suggestion": "rely on grep/Read instead of an indexed knowledge graph",
         "warning": "this is the plugin's own documented fallback — CodeGraph indexing is the user's decision to opt into per repo, not something a hand-rolled index should try to replicate."
       }
+    }
+  ],
+  "wizard": {
+    "skill": "rhize-context-manager:context-setup",
+    "purpose": "Scan this repo, probe which context-stack layers are actually active, and write a tailored per-repo stack configuration.",
+    "when": "recommended"
+  },
+  "doctor": {
+    "kind": "skill",
+    "value": "rhize-context-manager:context-doctor"
+  },
+  "artifacts": [
+    {
+      "id": "stack-config",
+      "path": "<home>/.claude/rhize-context-manager/stack.config.json",
+      "kind": "file",
+      "purpose": "Per-repo context-stack layer enable/disable decisions written by /context-setup.",
+      "viewer": "cat ~/.claude/rhize-context-manager/stack.config.json",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "authored",
+      "tracked": "ignored",
+      "optional": false
+    },
+    {
+      "id": "doctor-history",
+      "path": "<home>/.claude/context-manager/doctor/",
+      "kind": "directory",
+      "purpose": "Persisted /context-doctor run JSON, used to show deltas against the previous run.",
+      "viewer": "ls ~/.claude/context-manager/doctor/",
+      "lifetime": "per-run",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "refinement-queue",
+      "path": "<home>/.claude/context-manager/refinement-queue.jsonl",
+      "kind": "file",
+      "purpose": "Queued skill-refinement signals from /learn-harvest, consumed by /skill-refine.",
+      "viewer": "cat ~/.claude/context-manager/refinement-queue.jsonl",
+      "lifetime": "append-only",
+      "confidentiality": "none",
+      "source": "transcript-derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "harvest-logs",
+      "path": "<home>/.claude/context-manager/harvest-logs/",
+      "kind": "directory",
+      "purpose": "Per-day filter logs recording why a /learn-harvest run found nothing, so a quiet harvest is never silent.",
+      "viewer": "cat ~/.claude/context-manager/harvest-logs/<date>-filter.txt",
+      "lifetime": "append-only",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "skill-refine-runs",
+      "path": "<home>/.claude/context-manager/runs/",
+      "kind": "directory",
+      "purpose": "Per-run /skill-refine reports (one Markdown file per review pass).",
+      "viewer": "cat ~/.claude/context-manager/runs/<date>.md",
+      "lifetime": "per-run",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "suggestion-log",
+      "path": "<home>/.claude/context-manager/suggestion-log.jsonl",
+      "kind": "file",
+      "purpose": "Skill-router and agent-brief-router suggestion/coverage log — ids, hashes, and lengths only.",
+      "viewer": "cat ~/.claude/context-manager/suggestion-log.jsonl",
+      "lifetime": "append-only",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "skill-map-static",
+      "path": "<home>/.claude/context-manager/skill-map.static.json",
+      "kind": "file",
+      "purpose": "Compiled skill-map artifact installed for this machine so the skill-router hook can suggest skills without a repo checkout.",
+      "viewer": "cat ~/.claude/context-manager/skill-map.static.json",
+      "lifetime": "regenerated",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "context-experiments",
+      "path": "<home>/.claude/rhize-context-manager/context-experiments.json",
+      "kind": "file",
+      "purpose": "Context-experiment selector/finalizer state for the allowlisted canary/continuous local selection gate.",
+      "viewer": "cat ~/.claude/rhize-context-manager/context-experiments.json",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "ignored",
+      "optional": true
     }
   ],
   "evaluations": {

@@ -1,3 +1,7 @@
+---
+description: Interview-driven setup wizard for delegate-to-teammate — recipients, Jira/Slack lookups, project mapping
+---
+
 # /rhize-ops:delegate-setup
 
 Interview-driven setup wizard for the `delegate-to-teammate` skill. Writes

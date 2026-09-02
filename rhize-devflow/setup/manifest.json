@@ -1,5 +1,5 @@
 {
-  "schema": 2,
+  "schema": 3,
   "plugin": "rhize-devflow",
   "items": [
     {
@@ -102,6 +102,65 @@
         "suggestion": "rely on the built-in rg fallback rather than a hand-rolled alternative",
         "warning": "rg finds text matches, not structural call paths, and can't follow dynamic dispatch (callbacks, re-renders) the way CodeGraph's index does; installing the CodeGraph CLI (see docs/codegraph-setup.md) is simpler than trying to replicate its indexing by hand."
       }
+    }
+  ],
+  "wizard": {
+    "skill": "rhize-devflow:devflow-setup",
+    "purpose": "Set up the per-repo local-tenant-file convention error-lifecycle-management uses to keep client-specific error patterns out of a shared repo.",
+    "when": "optional"
+  },
+  "doctor": {
+    "kind": "skill",
+    "value": "rhize-devflow:doctor"
+  },
+  "artifacts": [
+    {
+      "id": "error-patterns-local",
+      "path": "<project>/.claude/error-patterns.local.md",
+      "kind": "file",
+      "purpose": "Machine-local, gitignored client-specific error patterns supplementing the public error-lifecycle-management reference.",
+      "viewer": "cat .claude/error-patterns.local.md",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "authored",
+      "tracked": "ignored",
+      "optional": true
+    },
+    {
+      "id": "refactor-gate-state",
+      "path": "<home>/.claude/rhize-devflow/refactor-gate/",
+      "kind": "directory",
+      "purpose": "Prepared refactor-gate impact-map receipts, keyed by canonical workspace path, shared by Claude Code and Codex.",
+      "viewer": "ls ~/.claude/rhize-devflow/refactor-gate/",
+      "lifetime": "per-run",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "test-evidence-packets",
+      "path": "<home>/.rhize/test-evidence/packets/",
+      "kind": "directory",
+      "purpose": "Fail-closed, state-bound test-evidence packets produced by /rhize-devflow:test-evidence.",
+      "viewer": "cat ~/.rhize/test-evidence/packets/<packet>.json",
+      "lifetime": "per-run",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "test-evidence-leases",
+      "path": "<home>/.rhize/test-evidence/leases",
+      "kind": "file",
+      "purpose": "Lease state preventing two concurrent test-evidence runs from validating the same working tree.",
+      "viewer": "cat ~/.rhize/test-evidence/leases",
+      "lifetime": "regenerated",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
     }
   ],
   "evaluations": {

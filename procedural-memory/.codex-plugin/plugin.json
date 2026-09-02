@@ -1,6 +1,6 @@
 {
   "name": "procedural-memory",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
   "author": {
     "name": "Rhize Media"

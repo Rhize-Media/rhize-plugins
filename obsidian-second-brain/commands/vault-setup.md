@@ -8,6 +8,8 @@ Interactive setup wizard that interviews you, understands your workflow, and bui
 
 This wizard has 6 phases. At each phase, present results and get confirmation before proceeding. The user can skip any phase, and skipped items are logged for `/vault-align` to revisit later.
 
+Also reachable from `/rhize-ops:rhize-setup --plugin obsidian-second-brain`.
+
 Parse "$ARGUMENTS":
 - `new` → skip vault audit, go straight to interview
 - `existing` → run full audit before generating archetype

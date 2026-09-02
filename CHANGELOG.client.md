@@ -9,6 +9,15 @@ references? That's [CHANGELOG.md](./CHANGELOG.md). This page is the short versio
 
 ## September 2026
 
+**Set up only the plugins you want, and see what setup wrote.** `/rhize-ops:rhize-setup` now
+starts by asking which of your installed plugins to set up, runs the shared checks once
+(dependencies, whether your customizations are under version control, the skill map), then hands
+off to each plugin's own setup wizard before wiring the optional guardrails you choose. It ends with
+a report of every file it and the plugins created — and
+[`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md) is the standing
+reference: what each plugin writes on your machine, where, how to look at it, how sensitive it
+is, and whether Git tracks it. Each plugin's wizard still runs on its own if you only want that one.
+
 **Start here, roll back anything, and one review command.** There is now a
 [START-HERE.md](./START-HERE.md) that explains in plain words what each plugin is for, which ones
 to install, how the files you'll meet fit together, and a glossary — and a `docs/` index that

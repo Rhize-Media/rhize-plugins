@@ -269,3 +269,18 @@ def test_wizards_delegate_to_central_scoped_evaluation_setup() -> None:
         contents = (REPO / relative_path).read_text()
         assert f"--plugin {component}" in contents
         assert "rhize-setup" in contents
+
+
+def test_wizard_handshake_stops_when_invoked_by_the_orchestrator() -> None:
+    """devflow-setup and context-setup are invoked by the central orchestrator via the
+    Skill tool with args=["--from-rhize-setup"] (hybrid-setup-wizard.md R2). They must
+    parse $ARGUMENTS and stop rather than re-invoking /rhize-ops:rhize-setup, which would
+    loop back into the same run; a standalone run instead suggests it."""
+    for relative_path in (
+        "rhize-devflow/commands/devflow-setup.md",
+        "rhize-context-manager/commands/context-setup.md",
+    ):
+        contents = (REPO / relative_path).read_text()
+        assert "$ARGUMENTS" in contents
+        assert "--from-rhize-setup" in contents
+        assert "suggest" in contents.lower()

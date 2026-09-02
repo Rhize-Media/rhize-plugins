@@ -133,22 +133,27 @@ action you run explicitly by typing `/plugin-name:command-name`.
 ## 5. Setting up
 
 1. Install `rhize-ops` from this marketplace (see the root [README's Quick Start](./README.md#quick-start) for the exact install command for your host).
-2. Run `/rhize-ops:rhize-setup` and follow its prompts — it wires each installed plugin's optional
-   hooks and dependencies into your project for you.
+2. Run `/rhize-ops:rhize-setup`. It asks which of your installed plugins to set up (all of them by
+   default), checks their dependencies once, checks whether the files it is about to change are
+   under version control and offers to track them, hands off to each selected plugin's own setup
+   wizard, then wires the optional guardrail hooks you pick into your project — and ends with a
+   report of what was written where and how to look at it. Each plugin's wizard also runs on its
+   own if you only want that one.
 3. Follow each plugin's own README Setup/Install section for anything the wizard doesn't cover
    (API credentials, external CLIs): [seo-aeo-geo](./seo-aeo-geo/README.md#setup) ·
    [obsidian-second-brain](./obsidian-second-brain/README.md#setup) ·
+   [project-launcher](./project-launcher/README.md#setup) ·
    [rhize-devflow](./rhize-devflow/README.md#install) ·
    [rhize-context-manager](./rhize-context-manager/README.md#install) ·
    [rhize-ops](./rhize-ops/README.md#setup) ·
    [rhize-tasks](./rhize-tasks/README.md#install) ·
    [rhize-cowork](./rhize-cowork/README.md#setup) ·
-   [procedural-memory](./procedural-memory/README.md#setup) ·
-   [project-launcher](./project-launcher/README.md) (no dedicated setup section yet).
+   [procedural-memory](./procedural-memory/README.md#setup).
 
-A per-plugin selection menu inside the setup wizard, and a rendered reference showing exactly what
-setup writes and where, are planned for a later release — today, step 3 above is how you find that
-information.
+**What setup writes, and where to look:** every plugin declares the files it creates in its setup
+manifest, and [`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md) is the
+rendered list — path, purpose, how to view it, how long it lives, how sensitive it is, and whether
+it is tracked in Git.
 
 ## 6. Rolling back
 

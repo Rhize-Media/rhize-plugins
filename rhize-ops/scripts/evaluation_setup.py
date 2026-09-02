@@ -8,6 +8,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import site
 import stat
@@ -29,6 +30,30 @@ BASELINE_STATUSES = {"confirmed", "greenfield", "declined"}
 TERMINAL_STATUSES = {"completed", "failed", "incomplete"}
 UNAVAILABLE_REASONS = {"host_not_exposed", "not_measured", None}
 DEPENDENCY_KINDS = {"plugin", "cli", "mcp", "data", "runtime", "platform"}
+
+# Setup manifest schema 3 (hybrid-setup-wizard.md) — schema 2 keeps the exact
+# four-plus-evaluations key set; schema 3 allows the same core keys plus the
+# optional wizard/doctor/artifacts blocks. Schema 1 (inventory-only, no
+# evaluation binding) is handled separately by read_manifest_inventory().
+MANIFEST_SCHEMA1_KEYS = {"schema", "plugin", "items", "dependencies"}
+MANIFEST_CORE_KEYS = {"schema", "plugin", "items", "dependencies", "evaluations"}
+MANIFEST_V3_OPTIONAL_KEYS = {"wizard", "doctor", "artifacts"}
+WIZARD_KEYS = {"skill", "purpose", "when", "args"}
+WIZARD_REQUIRED_KEYS = {"skill", "purpose", "when"}
+WIZARD_WHEN_VALUES = {"optional", "recommended", "required"}
+DOCTOR_KEYS = {"kind", "value"}
+DOCTOR_KINDS = {"skill", "shell"}
+ARTIFACT_KEYS = {
+    "id", "path", "kind", "purpose", "viewer", "lifetime",
+    "confidentiality", "source", "tracked", "optional",
+}
+ARTIFACT_KINDS = {"file", "directory", "glob"}
+ARTIFACT_LIFETIMES = {"persistent", "per-run", "append-only", "regenerated"}
+ARTIFACT_CONFIDENTIALITY_LEVELS = {"none", "config", "personal", "client", "secret"}
+ARTIFACT_SOURCES = {"authored", "derived", "transcript-derived"}
+ARTIFACT_TRACKED_VALUES = {"project", "home", "ignored", "outside-repo"}
+ARTIFACT_PLACEHOLDERS = ("<project>", "<home>", "<vault>")
+SKILL_REF_RE = re.compile(r"^[a-z][a-z0-9-]*:[a-z][a-z0-9-]*$")
 METRIC_KEYS = {
     "correctness_pass", "verification_required", "verification_completed",
     "verification_passed", "routing_true_positives", "routing_false_positives",
@@ -132,14 +157,153 @@ def validate_suite(repo_root: Path, suite: Any, label: str) -> dict[str, Any]:
     return suite
 
 
-def validate_manifest(repo_root: Path, component_id: str) -> None:
+def command_has_description_frontmatter(text: str) -> bool:
+    """True if `text` opens with a `---`-delimited frontmatter block containing a
+    `description:` key -- the contract that makes a plugin command Skill-tool-invocable
+    with `args` substituted into `$ARGUMENTS` (verified empirically 2026-09-02)."""
+    stripped = text.lstrip("﻿")
+    lines = stripped.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return False
+    body: list[str] = []
+    closed = False
+    for line in lines[1:]:
+        if line.strip() == "---":
+            closed = True
+            break
+        body.append(line)
+    if not closed:
+        return False
+    return any(re.match(r"^description\s*:", line) for line in body)
+
+
+def resolve_skill_command_path(repo_root: Path, skill: Any, label: str) -> Path:
+    """Resolve a `plugin:command` reference to its command file and confirm it exists
+    and carries the `description:` frontmatter the Skill tool requires."""
+    if not isinstance(skill, str) or not SKILL_REF_RE.match(skill):
+        raise SetupError(f"{label} must be a 'plugin:command' reference")
+    plugin_dir, command_name = skill.split(":", 1)
+    command_path = repo_root / plugin_dir / "commands" / f"{command_name}.md"
+    if not command_path.is_file():
+        raise SetupError(f"{label} references a command that does not exist: {command_path}")
+    try:
+        text = command_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SetupError(f"{label} command file is not readable: {exc}") from exc
+    if not command_has_description_frontmatter(text):
+        raise SetupError(
+            f"{label} command {command_path} must start with frontmatter containing "
+            "'description' to be Skill-tool-invocable"
+        )
+    return command_path
+
+
+def validate_wizard(repo_root: Path, wizard: Any, label: str) -> dict[str, Any]:
+    if (
+        not isinstance(wizard, dict)
+        or not WIZARD_REQUIRED_KEYS <= set(wizard)
+        or set(wizard) - WIZARD_KEYS
+    ):
+        raise SetupError(f"{label} must contain {sorted(WIZARD_REQUIRED_KEYS)} and only optionally 'args'")
+    resolve_skill_command_path(repo_root, wizard["skill"], f"{label}.skill")
+    if not isinstance(wizard["purpose"], str) or not wizard["purpose"].strip():
+        raise SetupError(f"{label}.purpose must be a non-empty string")
+    if wizard["when"] not in WIZARD_WHEN_VALUES:
+        raise SetupError(f"{label}.when must be one of {sorted(WIZARD_WHEN_VALUES)}")
+    if "args" in wizard:
+        args = wizard["args"]
+        if not isinstance(args, list) or not args or not all(isinstance(item, str) and item for item in args):
+            raise SetupError(f"{label}.args must be a non-empty string array")
+    return wizard
+
+
+def validate_doctor(doctor: Any, label: str) -> dict[str, Any]:
+    doctor = exact_keys(doctor, DOCTOR_KEYS, label)
+    if doctor["kind"] not in DOCTOR_KINDS:
+        raise SetupError(f"{label}.kind must be one of {sorted(DOCTOR_KINDS)}")
+    if not isinstance(doctor["value"], str) or not doctor["value"].strip():
+        raise SetupError(f"{label}.value must be a non-empty string")
+    return doctor
+
+
+def validate_artifact_path(path: Any, label: str) -> str:
+    if not isinstance(path, str) or not path:
+        raise SetupError(f"{label}.path must be a non-empty string")
+    if path.startswith("/") or path.startswith("~") or "\\" in path:
+        raise SetupError(f"{label}.path must not be an absolute path")
+    placeholder = next(
+        (p for p in ARTIFACT_PLACEHOLDERS if path == p or path.startswith(p + "/")), None,
+    )
+    if placeholder is None:
+        raise SetupError(f"{label}.path must start with <project>, <home>, or <vault>")
+    remainder = path[len(placeholder):]
+    if "<" in remainder or ">" in remainder:
+        raise SetupError(f"{label}.path must not contain additional placeholders")
+    segments = [segment for segment in remainder.split("/") if segment]
+    if ".." in segments:
+        raise SetupError(f"{label}.path must not contain '..'")
+    return path
+
+
+def validate_artifact(artifact: Any, label: str) -> dict[str, Any]:
+    artifact = exact_keys(artifact, ARTIFACT_KEYS, label)
+    if not isinstance(artifact["id"], str) or not re.fullmatch(r"[a-z][a-z0-9]*(-[a-z0-9]+)*", artifact["id"]):
+        raise SetupError(f"{label}.id must be a kebab-case string")
+    validate_artifact_path(artifact["path"], label)
+    if artifact["kind"] not in ARTIFACT_KINDS:
+        raise SetupError(f"{label}.kind must be one of {sorted(ARTIFACT_KINDS)}")
+    for field in ("purpose", "viewer"):
+        if not isinstance(artifact[field], str) or not artifact[field].strip():
+            raise SetupError(f"{label}.{field} must be a non-empty string")
+    if artifact["lifetime"] not in ARTIFACT_LIFETIMES:
+        raise SetupError(f"{label}.lifetime must be one of {sorted(ARTIFACT_LIFETIMES)}")
+    if artifact["confidentiality"] not in ARTIFACT_CONFIDENTIALITY_LEVELS:
+        raise SetupError(f"{label}.confidentiality must be one of {sorted(ARTIFACT_CONFIDENTIALITY_LEVELS)}")
+    if artifact["source"] not in ARTIFACT_SOURCES:
+        raise SetupError(f"{label}.source must be one of {sorted(ARTIFACT_SOURCES)}")
+    if artifact["tracked"] not in ARTIFACT_TRACKED_VALUES:
+        raise SetupError(f"{label}.tracked must be one of {sorted(ARTIFACT_TRACKED_VALUES)}")
+    if not isinstance(artifact["optional"], bool):
+        raise SetupError(f"{label}.optional must be boolean")
+    return artifact
+
+
+def validate_artifacts(artifacts: Any, label: str) -> list[dict[str, Any]]:
+    # An empty array is valid on its own (a plugin declaring "I write nothing
+    # personal" — e.g. seo-aeo-geo, env vars only). validate_manifest enforces
+    # non-empty separately, only when the manifest also declares a wizard.
+    if not isinstance(artifacts, list):
+        raise SetupError(f"{label} must be an array")
+    seen_ids: set[str] = set()
+    validated: list[dict[str, Any]] = []
+    for index, artifact in enumerate(artifacts):
+        validated_artifact = validate_artifact(artifact, f"{label}[{index}]")
+        if validated_artifact["id"] in seen_ids:
+            raise SetupError(f"{label} ids must be unique, duplicate: {validated_artifact['id']}")
+        seen_ids.add(validated_artifact["id"])
+        validated.append(validated_artifact)
+    return validated
+
+
+def validate_manifest(repo_root: Path, component_id: str) -> dict[str, Any]:
+    """Strict validator: requires schema 2 or 3 with a valid evaluation binding.
+    Schema 1 (inventory-only, no evaluation binding) is read separately by
+    read_manifest_inventory() -- it never satisfies this function's coverage gate."""
     manifest_path = repo_root / component_id / "setup" / "manifest.json"
     manifest = load_json(manifest_path, f"{component_id} setup manifest")
     if not isinstance(manifest, dict) or manifest.get("plugin") != component_id:
         raise SetupError(f"{component_id} setup manifest plugin mismatch")
-    if manifest.get("schema") != 2:
-        raise SetupError(f"{component_id} setup manifest has no schema-2 evaluation catalog binding")
-    exact_keys(manifest, {"schema", "plugin", "items", "dependencies", "evaluations"}, f"{component_id} setup manifest")
+    schema = manifest.get("schema")
+    if schema not in (2, 3):
+        raise SetupError(f"{component_id} setup manifest has no evaluation catalog binding (schema 2 or 3 required)")
+    keys = set(manifest)
+    if schema == 2:
+        exact_keys(manifest, MANIFEST_CORE_KEYS, f"{component_id} setup manifest")
+    elif not MANIFEST_CORE_KEYS <= keys or keys - MANIFEST_CORE_KEYS - MANIFEST_V3_OPTIONAL_KEYS:
+        raise SetupError(
+            f"{component_id} setup manifest must contain {sorted(MANIFEST_CORE_KEYS)} "
+            f"and only optionally {sorted(MANIFEST_V3_OPTIONAL_KEYS)}"
+        )
     if not isinstance(manifest["items"], list) or not isinstance(manifest["dependencies"], list):
         raise SetupError(f"{component_id} setup manifest arrays are invalid")
     for index, dependency in enumerate(manifest["dependencies"]):
@@ -148,6 +312,58 @@ def validate_manifest(repo_root: Path, component_id: str) -> None:
     evaluations = exact_keys(manifest["evaluations"], {"catalog", "component"}, f"{component_id}.evaluations")
     if evaluations != {"catalog": "rhize-evaluations-v1", "component": component_id}:
         raise SetupError(f"{component_id} evaluation binding is invalid")
+    if schema == 3:
+        if "wizard" in manifest:
+            validate_wizard(repo_root, manifest["wizard"], f"{component_id}.wizard")
+            if not manifest.get("artifacts"):
+                raise SetupError(f"{component_id} declares a wizard but no artifacts")
+        if "doctor" in manifest:
+            validate_doctor(manifest["doctor"], f"{component_id}.doctor")
+        if "artifacts" in manifest:
+            validate_artifacts(manifest["artifacts"], f"{component_id}.artifacts")
+    return manifest
+
+
+def read_manifest_inventory(repo_root: Path, component_id: str) -> dict[str, Any]:
+    """Lenient manifest read for hook/dependency inventory purposes (the
+    setup_orchestrator.py `discover` subcommand). Accepts schema 1 -- reported
+    with evaluation_status "missing" and never counted as coverage -- alongside
+    schema 2 and 3, which are delegated to the strict validate_manifest() above."""
+    manifest_path = repo_root / component_id / "setup" / "manifest.json"
+    manifest = load_json(manifest_path, f"{component_id} setup manifest")
+    if not isinstance(manifest, dict) or manifest.get("plugin") != component_id:
+        raise SetupError(f"{component_id} setup manifest plugin mismatch")
+    schema = manifest.get("schema")
+    if schema == 1:
+        exact_keys(manifest, MANIFEST_SCHEMA1_KEYS, f"{component_id} setup manifest")
+        if not isinstance(manifest["items"], list) or not isinstance(manifest["dependencies"], list):
+            raise SetupError(f"{component_id} setup manifest arrays are invalid")
+        for index, dependency in enumerate(manifest["dependencies"]):
+            if not isinstance(dependency, dict) or dependency.get("kind") not in DEPENDENCY_KINDS:
+                raise SetupError(f"{component_id} dependency {index} has an unknown kind")
+        return {
+            "schema": 1,
+            "plugin": component_id,
+            "items": manifest["items"],
+            "dependencies": manifest["dependencies"],
+            "wizard": None,
+            "doctor": None,
+            "artifacts": [],
+            "evaluation_status": "missing",
+        }
+    if schema in (2, 3):
+        validated = validate_manifest(repo_root, component_id)
+        return {
+            "schema": schema,
+            "plugin": component_id,
+            "items": validated["items"],
+            "dependencies": validated["dependencies"],
+            "wizard": validated.get("wizard"),
+            "doctor": validated.get("doctor"),
+            "artifacts": validated.get("artifacts", []),
+            "evaluation_status": "bound",
+        }
+    raise SetupError(f"{component_id} setup manifest has an unsupported schema: {schema!r}")
 
 
 def validate_catalog(repo_root: Path, catalog_path: Path | None = None) -> dict[str, Any]:

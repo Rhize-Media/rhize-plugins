@@ -206,7 +206,8 @@ The bar on the unattended routine is unchanged.*
   read ONCE, note key facts, refer to notes — some were re-read 6–13× per session.
 - Hot files measured since that list was written — read ONCE, then `grep -n` for edit sites:
   - skill-map pipeline: `scripts/build_skill_map.py` (~25–30KB, hit 16× in one session),
-    `scripts/build_local_skill_map.py` (~28KB), `scripts/validate_skill_map.py`,
+    `rhize-context-manager/scripts/build_local_skill_map.py` (~28KB; the root
+    `scripts/build_local_skill_map.py` is a two-line shim since 2026-09-02), `scripts/validate_skill_map.py`,
     `docs/skill-map.md` (~13–21KB), `catalog/{tags,skill-relations,queries}.json`,
     `rhize-ops/skill-monitor/monitor.py` (~48–55KB).
   - skill-forge: `src/commands/gatePipeline.ts`, `src/gate/{skillMapDrift,skillMap,mapOverlap}.ts`,
@@ -349,7 +350,8 @@ The bar on the unattended routine is unchanged.*
 
 ### Detected Loop Guardrails — refactor_gate.py
 *~45,487 tokens/session saved*
-- `refactor_gate.py prepare` fails with `BLOCKED: impact map missing required section: current behavior` if the plan lacks that section. Always include `## Current Behavior` in any plan passed to `refactor_gate.py prepare` before invoking it.
+- `refactor_gate.py prepare` fails with `BLOCKED: impact map missing required section: <name>` unless the plan text contains all five substrings `current behavior`, `intended semantic delta`, `invariants`, `acceptance tests`, and `implementation order` (case-insensitive — `REQUIRED_PLAN_SECTIONS` in the script; the `/rhize-devflow:impact-map` output template already has them). Corrected 2026-09-02: earlier notes here claimed a "Current Behavior / Problem / Proposed Change" trio, which the gate never checked.
+- Reconciliation matches every changed path (or its basename) against the plan text, so list full paths for everything an executor will touch; editing the plan while executors are writing blocks every write until `prepare` runs again, and the Stop hook closes a `reconciled` receipt as `completed`, after which `reconcile` needs a fresh `prepare` (new baseline).
 - `python3 rhize-devflow/scripts/refactor_gate.py` is invoked 15x per session from different working directories; always `cd` to `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins` first or use the full path from that root.
 - The refactor gate requires a pre-existing plan with a SHA256 receipt. Run `refactor_gate.py prepare` exactly once per plan; do not re-run it to fix minor validation errors — fix the plan file first.
 
@@ -370,5 +372,6 @@ The bar on the unattended routine is unchanged.*
 *~6,000 tokens/session saved*
 - Never `git push` from within agent sessions in this project; the orchestrator handles pushes. Commit locally only.
 - Before editing any file with the Edit tool, always Read it first in the same session — the Edit tool will fail with 'File has not been read yet' otherwise.
-- When running `refactor_gate.py prepare`, the plan file must contain sections `## Current Behavior`, `## Problem`, and `## Proposed Change` (check `REQUIRED_PLAN_SECTIONS` in the script). Missing sections cause an immediate BLOCKED exit.
+- When running `refactor_gate.py prepare`, the plan must contain the five impact-map sections named under "Detected Loop Guardrails — refactor_gate.py" above (not a "Current Behavior / Problem / Proposed Change" trio — that older note was wrong). Missing sections cause an immediate BLOCKED exit.
+- Test fixtures that build git repos must pass `-c core.excludesFile=/dev/null`: this machine's `~/.config/git/ignore` contains `**/.claude/settings.local.json`, and `GIT_CONFIG_GLOBAL=/dev/null` does not override the excludes file (found 2026-09-02 by `tests/rhize-ops/test_git_preflight.py`).
 - `claude plugin eval` is org-gated on this machine and cannot be executed; build static validators instead of trying to invoke it.

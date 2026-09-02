@@ -1,6 +1,6 @@
 {
   "name": "rhize-context-manager",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.",
   "author": {
     "name": "Rhize Media"
