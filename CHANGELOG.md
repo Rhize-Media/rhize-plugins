@@ -62,6 +62,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- _2026-09-02_ **`pytest tests/` is no longer a write operation.**
+  `tests/skill-map/test_render_docs.py::test_idempotent` ran the real
+  `scripts/render_skill_map_docs.py` with `cwd=REPO_ROOT` and never restored anything, despite a
+  docstring claiming it did. When the committed managed sections were stale — as they are after a
+  `bump_version.py` run without a follow-up render — running the test suite silently rewrote
+  `README.md` and `generated/SKILL-CATALOG.md` instead of reporting the staleness. Discovered when a
+  verification pass mutated the tree it was verifying. The test now materializes the renderer's
+  input set into a temp tree and runs there, and additionally asserts the real files were untouched,
+  so the hermeticity contract is enforced rather than claimed. Both assertions were mutation-tested:
+  a corrupted managed section still fails the test, and a write inside the repo is still caught.
+
 - _2026-09-01_ **Marketplace-wide documentation accuracy pass.** Audited every plugin's
   README/GUIDE plus the root docs against on-disk reality (skill/command inventories, hook
   wiring, versions, links). Fixes: root README catalog showed rhize-ops 0.15.0 and its layout
