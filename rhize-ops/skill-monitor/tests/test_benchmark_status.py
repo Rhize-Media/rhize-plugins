@@ -1678,3 +1678,16 @@ def test_cli_refuses_a_healthy_checkin_without_alert_delivery(tmp_path):
 
     assert raised.value.code == 2
     assert not (tmp_path / "snapshot.json").exists()
+
+
+def test_dashboard_snapshot_refresh_is_registered_as_sixth_note():
+    """Instrumented 2026-09-03 as the Arm-A pre-check cohort: the note, the
+    Desktop scheduler key and the receipt id must all be wired, or the
+    routine would run instrumented and unmonitored (the Weekly Skill Audit
+    gap all over again)."""
+    name = "Rhize Dashboard Snapshot Refresh"
+    assert name in bs.BENCHMARK_NOTES
+    assert bs.BENCHMARK_NOTES[name].parts[-2:] == ("Project-Dashboard", "Procedural Memory Benchmark.md")
+    assert bs.ROUTINE_SCHEDULER_KEYS[name] == ["rhize-dashboard-snapshot-refresh"]
+    assert bs.ROUTINE_RECEIPT_IDS[name] == "rhize-dashboard-snapshot-refresh"
+    assert set(bs.BENCHMARK_NOTES) == set(bs.ROUTINE_SCHEDULER_KEYS) == set(bs.ROUTINE_RECEIPT_IDS)

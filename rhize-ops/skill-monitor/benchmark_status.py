@@ -9,8 +9,8 @@ failed silently at least once — this module exists to turn "did it land?" into
 queryable JSON snapshot instead of something discovered by eyeballing a table.
 
 Six local data sources:
-  1. The five benchmark notes' `## Metrics log` markdown tables (vault paths
-     below). The five notes have DIFFERENT column sets — this module does not
+  1. The six benchmark notes' `## Metrics log` markdown tables (vault paths
+     below). The six notes have DIFFERENT column sets — this module does not
      assume a shared schema; it reports each note's own header verbatim.
   2. `~/.rhize/procedural-memory/runs/*.jsonl` run telemetry (streamed, never
      loaded wholesale).
@@ -116,6 +116,11 @@ BENCHMARK_NOTES: dict[str, Path] = (
         "Weekly Skill Audit": _SCHEDULED_ROUTINES_DIR
         / "Skill-Audit-and-Monitoring"
         / "Procedural Memory Benchmark.md",
+        # Arm-A pre-check cohort (instrumented 2026-09-03): weekday 07:00 ET on
+        # the Desktop scheduler; its note lives in the Project-Dashboard folder.
+        "Rhize Dashboard Snapshot Refresh": _SCHEDULED_ROUTINES_DIR
+        / "Project-Dashboard"
+        / "Procedural Memory Benchmark.md",
     }
     if _VAULT_ROOT
     else {}
@@ -162,6 +167,7 @@ ROUTINE_SCHEDULER_KEYS: dict[str, list[str]] = {
     # testing, not real scheduled runs. Recency instead comes entirely from
     # the routine-state run-start signal (see ROUTINE_STATE_DIR / GAP 2).
     "Weekly Skill Audit": [],
+    "Rhize Dashboard Snapshot Refresh": ["rhize-dashboard-snapshot-refresh"],
 }
 ROUTINE_RECEIPT_IDS: dict[str, str] = {
     "Vault Inbox Processor": "vault-inbox-processor",
@@ -169,6 +175,7 @@ ROUTINE_RECEIPT_IDS: dict[str, str] = {
     "Daily Completed Summary": "daily-completed-summary",
     "Content Engine": "content-engine",
     "Weekly Skill Audit": "weekly-skill-audit",
+    "Rhize Dashboard Snapshot Refresh": "rhize-dashboard-snapshot-refresh",
 }
 
 
