@@ -62,8 +62,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   shared receipt-snapshot test helper now isolates `routine_state_dir`. Found while fixing the
   `bench-append` capture crash (procedural-memory: `datetime.UTC` is 3.11+, Cowork's host
   `python3` is 3.9.6 — every scheduled append 2026-08-31 → 09-02 landed a row with no receipt).
-  The pinned wrapper in claude-routines (`run-pinned-benchmark-status.sh`) still runs rhize-ops
-  0.13.6; a release plus pin update is needed before the weekly routine picks this up.
+  The weekly routine's wrapper in claude-routines (`run-pinned-benchmark-status.sh`) now runs
+  the standalone `Rhize-Media/rhize-skill-monitor` checkout pinned to tag `v1.0.0` plus the
+  script digest (claude-routines `8525d2e`), which carries this change.
 
 ### Removed
 
