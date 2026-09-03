@@ -167,6 +167,14 @@ def add_unresolved(unresolved_links: list[str], value: str) -> None:
         unresolved_links.append(value)
 
 
+def display_name(target: str) -> str:
+    """The last "/"-separated segment of a wikilink/embed target — used whenever there is
+    no alias, so a folder-qualified target like "Projects/Sub/Deep Note" renders as "Deep
+    Note" instead of leaking the vault folder structure. The full target is kept separately
+    in unresolved_links and for ledger lookup."""
+    return target.rsplit("/", 1)[-1]
+
+
 def transform_body(body: str, ledger: dict[str, Any]) -> tuple[str, list[dict[str, str]], list[str]]:
     binaries: list[dict[str, str]] = []
     unresolved_links: list[str] = []
@@ -178,9 +186,9 @@ def transform_body(body: str, ledger: dict[str, Any]) -> tuple[str, list[dict[st
         if ext is None or ext == "md":
             entry = ledger_lookup(ledger, target)
             if entry is not None:
-                return f"[{alias or target}]({entry['url']})"
+                return f"[{alias or display_name(target)}]({entry['url']})"
             add_unresolved(unresolved_links, target)
-            return f"(see: {alias or target})"
+            return f"(see: {alias or display_name(target)})"
         add_binary(binaries, os.path.basename(target), binary_kind(ext))
         return ""
 
@@ -196,9 +204,9 @@ def transform_body(body: str, ledger: dict[str, Any]) -> tuple[str, list[dict[st
         alias = match.group(2).strip() if match.group(2) else None
         entry = ledger_lookup(ledger, target)
         if entry is not None:
-            return f"[{alias or target}]({entry['url']})"
+            return f"[{alias or display_name(target)}]({entry['url']})"
         add_unresolved(unresolved_links, target)
-        return alias or target
+        return alias or display_name(target)
 
     def replace_md_link(match: re.Match[str]) -> str:
         text = match.group(1)

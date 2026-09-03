@@ -30,7 +30,7 @@ secure equivalent. The result must be a lowercase UUIDv4 matching:
 ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
 ```
 
-Generate it once before the task's first Jira, Canvas, or Slack side effect. Keep it in memory
+Generate it once before the task's first Confluence, Jira, Canvas, or Slack side effect. Keep it in memory
 for the entire operation, use the same value in Jira and Slack, and never regenerate it after a
 timeout, retry, or ambiguous response. Different tasks in one batch require distinct IDs.
 

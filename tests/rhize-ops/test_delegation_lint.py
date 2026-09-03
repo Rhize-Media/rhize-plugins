@@ -15,7 +15,23 @@ delegation_lint = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(delegation_lint)
 
+TEMPLATE_PATH = (
+    REPO / "rhize-ops" / "skills" / "delegate-to-teammate" / "references"
+    / "handoff-brief-template.md"
+)
+
 VALID_UUID = "11111111-1111-4111-8111-111111111111"
+
+
+def full_task_package_block() -> str:
+    """The real "Full Task Package" fenced template from the reference doc — it contains
+    a "## Step-by-Step Instructions" heading, which is exactly what --allow-steps must
+    suppress (C1)."""
+    text = TEMPLATE_PATH.read_text(encoding="utf-8")
+    start = text.index("## Full Task Package")
+    fence_start = text.index("```markdown", start) + len("```markdown\n")
+    fence_end = text.index("```", fence_start)
+    return text[fence_start:fence_end]
 
 
 def run(text: str, kind: str, monkeypatch, capsys, *, extra_args: list[str] | None = None):
@@ -164,13 +180,69 @@ def test_too_long_fails_over_max_chars(monkeypatch, capsys):
 
 
 def test_url_token_exempt_from_path_rules(monkeypatch, capsys):
-    text = "See https://example.atlassian.net/wiki/spaces/RHI/pages/1/Some+Page.md for details.\n"
+    text = "See https://example.atlassian.net/wiki/spaces/EX/pages/1/Some+Page.md for details.\n"
     code, out = run(text, "slack-message", monkeypatch, capsys)
     assert code == 0
     assert "absolute-path" not in out
     assert "obsidian-url" not in out
     assert "vault-note-path" not in out
     assert "bare-note-file" not in out
+
+
+def test_spaced_vault_note_path_fails(monkeypatch, capsys):
+    text = "See Ideas/Live Meeting Canvas — Validation Brief.md for background.\n"
+    code, out = run(text, "slack-message", monkeypatch, capsys)
+    assert code == 1
+    assert "FAIL vault-note-path" in out
+
+
+def test_directory_path_fails(monkeypatch, capsys):
+    text = (
+        "Vault folder: Projects/Rhize Media/Rhize Tools/Content Engine/"
+        "Articles/2026-08-procedural-memory/\n"
+    )
+    code, out = run(text, "slack-message", monkeypatch, capsys)
+    assert code == 1
+    assert "FAIL directory-path" in out
+
+
+def test_slash_path_without_note_suffix_does_not_fail(monkeypatch, capsys):
+    code, out = run("SEO/AEO/GEO review\n", "slack-message", monkeypatch, capsys)
+    assert code == 0
+    assert "vault-note-path" not in out
+    assert "directory-path" not in out
+
+
+def test_url_with_md_suffix_does_not_fail_vault_note_path(monkeypatch, capsys):
+    text = "https://example.atlassian.net/wiki/spaces/EX/pages/1/Some+Page.md\n"
+    code, out = run(text, "slack-message", monkeypatch, capsys)
+    assert code == 0
+    assert "vault-note-path" not in out
+    assert "directory-path" not in out
+
+
+def test_forward_slash_windows_drive_path_fails_absolute_path(monkeypatch, capsys):
+    code, out = run("See C:/Users/jim/report.txt for details.\n", "slack-message", monkeypatch, capsys)
+    assert code == 1
+    assert "FAIL absolute-path" in out
+
+
+def test_allow_steps_suppresses_steps_in_jira(monkeypatch, capsys):
+    text = full_task_package_block() + f"\nrhize-delegation:v1:{VALID_UUID}\n"
+
+    code, out = run(
+        text, "jira-description", monkeypatch, capsys,
+        extra_args=["--max-chars", "32000", "--allow-steps"],
+    )
+    assert code == 0
+    assert out.strip().splitlines()[-1] == "PASS"
+
+    code, out = run(
+        text, "jira-description", monkeypatch, capsys,
+        extra_args=["--max-chars", "32000"],
+    )
+    assert code == 1
+    assert "FAIL steps-in-jira" in out
 
 
 def test_json_output_parses_and_mirrors_human_findings(monkeypatch, capsys):

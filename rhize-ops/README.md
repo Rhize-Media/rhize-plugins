@@ -108,7 +108,7 @@ authority.
 
 ### `/delegate-setup`
 
-Interview-driven setup wizard for `delegate-to-teammate`. Asks who the recipient is and their technical context, then looks up Jira/Slack identifiers automatically where those MCP servers are connected (cloud ID, account ID, channel ID) instead of making you hunt for them by hand. It also resolves the Confluence space and "Delegations" parent page (same Atlassian MCP as Jira). If Jira, Slack, or Confluence isn't connected, marks that integration `incomplete` rather than guessing. Writes `~/.claude/rhize-ops/delegate.config.json` — outside this repo, so it's never published if you fork or contribute back to this plugin. Re-run any time to update the recipient or fix a stale ID (single recipient only).
+Interview-driven setup wizard for `delegate-to-teammate`. Asks who the recipient is and their technical context, then looks up Jira/Slack identifiers automatically where those MCP servers are connected (cloud ID, account ID, channel ID) instead of making you hunt for them by hand. It also resolves the Confluence space and "Delegations" parent page (same Atlassian MCP as Jira). If Jira, Slack, or Confluence isn't connected, marks that integration `incomplete` rather than guessing. Writes `~/.claude/rhize-ops/delegate.config.json` — outside this repo, so it's never published if you fork or contribute back to this plugin. Re-run any time to update the recipient or fix a stale ID.
 
 **Invoked as:** `/rhize-ops:delegate-setup`
 

@@ -59,7 +59,7 @@ Copy-paste these into Claude Code or Cowork to get going:
 > "[Prompt 2 — a follow-up prompt for the next phase of the task]"
 
 ## Reference Links
-- [Any relevant URLs, docs, Obsidian notes, or tracker links]
+- [Confluence context pages, public URLs, or tracker links — never a local, vault-relative, or repo-relative path]
 ```
 
 ## Confluence Handoff Brief Page
@@ -75,11 +75,12 @@ Body = a metadata table, then the full task package above.
 | Delegation ID | [delegation-id] — plain text, never the `rhize-delegation:v1:` marker line |
 | Jira issue | [added after creation — Step 7.3] |
 
-On this page, the **Reference Links** section of the full package above may contain only Confluence pages, public URLs, and the Fireflies link — never a local, vault-relative, or repo-relative path.
+The **Reference Links** section of the full package above may contain only Confluence pages, public URLs, and the Fireflies link — never a local, vault-relative, or repo-relative path.
 
 ## Confluence Context Page (per vault document)
 
 - **Created under:** `confluence.parentPageId` in `confluence.spaceId` (see Step 6.2)
 - **Title:** `[Context] <title>`
-- **Body:** the exporter's `body_markdown`, verbatim — no additional wrapper
-- **Files to request from the delegator:** a closing section listing the exporter's `binaries` (by name) and any `unresolved_links` — things the recipient will need to ask the delegator for directly, since they couldn't be exported
+- **Body:** the exporter's `body_markdown`, verbatim — no additional wrapper. The exporter already appends its own "Files to request from the delegator" section listing `binaries`; the page carries nothing else.
+
+`unresolved_links` are never published to a Confluence page — they're reported to the delegator in Step 10 only.

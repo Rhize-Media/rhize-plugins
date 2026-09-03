@@ -212,6 +212,28 @@ def test_corrupt_ledger_exits_2(roots, capsys, tmp_path):
     assert err.strip() != ""
 
 
+def test_folder_qualified_wikilink_displays_last_segment_only(roots, capsys):
+    root1, _root2 = roots
+    write_note(root1, "Referrer.md", "See [[Projects/Sub/Deep Note]] for details.\n")
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert "Deep Note" in result["body_markdown"]
+    assert "Projects/Sub" not in result["body_markdown"]
+    assert result["unresolved_links"] == ["Projects/Sub/Deep Note"]
+
+
+def test_folder_qualified_embed_displays_last_segment_only(roots, capsys):
+    root1, _root2 = roots
+    write_note(root1, "Referrer.md", "See ![[Projects/Sub/Deep Note]] for details.\n")
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert "(see: Deep Note)" in result["body_markdown"]
+    assert "Projects/Sub" not in result["body_markdown"]
+    assert result["unresolved_links"] == ["Projects/Sub/Deep Note"]
+
+
 def test_code_fenced_wikilink_left_untouched(roots, capsys):
     root1, _root2 = roots
     write_note(

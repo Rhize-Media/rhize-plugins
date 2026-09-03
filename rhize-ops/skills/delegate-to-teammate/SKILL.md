@@ -19,7 +19,7 @@ This skill turns work from the current session into a clearly structured handoff
 
 ## Setup Required
 
-This skill is **config-driven** — it has no hardcoded recipient, workspace, or project data. Before first use, run `/rhize-ops:delegate-setup` to interview you and write `~/.claude/rhize-ops/delegate.config.json`. This lives in your home directory, outside this plugin's install path and outside this repo entirely — so it survives plugin updates/reinstalls, and your team/recipient details never get published if you fork or contribute back to this plugin.
+This skill is **config-driven** — it has no hardcoded recipient, workspace, or project data. Before first use, run `/rhize-ops:delegate-setup` to interview you and write `~/.claude/rhize-ops/delegate.config.json`. This lives outside this repo and the plugin's install path — it survives plugin updates/reinstalls, and your recipient details are never published if you fork or contribute back.
 
 If the config file doesn't exist when this skill triggers, tell the user and offer to run `/rhize-ops:delegate-setup` first instead of proceeding with guesses.
 
@@ -87,7 +87,7 @@ Pull context from three sources to build a complete picture of what the recipien
 - **Context list:** record every vault note the delegation relies on, in memory, as `{ title, vaultRelativePath, whyItMatters }`. The path exists only to feed the exporter on the delegator's machine (Step 6). **No local path, vault-relative path, or repo-relative path may appear in any Jira, Slack, or Confluence output.** When a document cannot be exported, write "Ask <delegator's name> for: <document title>" instead of a path.
 
 **C) Git History (if applicable)**
-- If the task involves code changes, check recent Git commits for relevant context
+- For code-change tasks, check recent Git commits for context
 - Note branch names, recent changes, and deployment status
 
 ### Step 2: Check for Relevant Meeting Transcripts
@@ -175,9 +175,9 @@ The `<delegation-id>` is the same in-memory ID from Step 5a; the ID, brief URL, 
 
 Beyond what was used in the delegator's session, think about what else would help the recipient:
 
-- Scan the available skills list and identify any that are relevant to the delegated task but weren't used in the current session
-- Consider MCP servers that could provide useful data or automation
-- Think about the recipient's skill level (per `recipient.technicalContext` in the config) — recommend tools that will make the task easier, not harder
+- Scan the available skills list for ones relevant to the task but not used this session
+- Consider useful MCP servers
+- Match the recipient's skill level (per `recipient.technicalContext`) — tools that make the task easier, not harder
 
 Add these to the "Tools & Skills You'll Need" section with a note like: "Not used in the current session, but it could help you with [specific part of the task]."
 
@@ -202,7 +202,7 @@ producer-generated ID is the only value used for the task's Jira and Slack write
 
 ### Step 6: Publish Context Documents (Confluence Pages and Slack Canvases)
 
-**Lint before every external write:** run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delegation_lint.py"`, `--kind` matching the destination (`jira-description`, `confluence-body`, or `slack-message`), on that text. A FAIL is fixed in the text; nothing is sent with a known leak.
+**Lint before every external write:** run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/delegation_lint.py"`, `--kind` matching the destination (`jira-description`, `confluence-body`, or `slack-message`), on that text (pipe it on stdin or pass `--file <scratch path>`). A FAIL is fixed in the text; nothing is sent with a known leak.
 
 The recipient cannot access the delegator's local Obsidian vault. For each entry in the context list built in Step 1:
 
@@ -226,7 +226,7 @@ If `slack.status` is not `"ready"`, skip step 3 (the Canvas) only — the Conflu
 The Jira create is the single write that carries the delegation marker — no Confluence page ever does:
 
 1. If `confluence.status` is `ready`: create the brief page under `confluence.parentPageId` in `confluence.spaceId`, title `<task title>`, `contentFormat: markdown` — body and layout per the Confluence Handoff Brief Page section of `references/handoff-brief-template.md`. Lint with `--kind confluence-body` first.
-2. Create the Jira issue with the concise brief from Step 4 (`contentFormat: markdown`), brief/context links filled in, marker as the final nonblank line. Lint with `--kind jira-description` first. If `confluence.status` is not `ready`, the description is instead today's full package ending with the marker, linted with `--kind jira-description --max-chars 32000` (length rule relaxed only in this fallback; path rules are not).
+2. Create the Jira issue with the concise brief from Step 4 (`contentFormat: markdown`), brief/context links filled in, marker as the final nonblank line. Lint with `--kind jira-description` first. If `confluence.status` is not `ready`, the description is instead today's full package ending with the marker, linted with `--kind jira-description --max-chars 32000 --allow-steps` (length rule relaxed only in this fallback; path rules are not).
 
    Use the Jira MCP, cloud ID from `jira.cloudId`. **Each task may go to a different tracker project** (Step 3). For each task:
    - **Project:** selected for this task in Step 3
@@ -286,12 +286,12 @@ Delegated · [date]
 > [1-2 sentence summary]
 
 :page_facing_up: *Shared Documents:* (if context documents were published in Step 6)
-<[Confluence URL 1]|[Document Title 1]> (<[Canvas URL 1]|canvas>) · <[Confluence URL 2]|[Document Title 2]> (<[Canvas URL 2]|canvas>)
+<[Confluence URL 1]|[Document Title 1]> (<[Canvas URL 1]|canvas>) · <[Canvas URL 2]|[Document Title 2]> (Canvas only — no Confluence page)
 
 :thread: *Full instructions, starter prompts, and gotchas are in the thread below — start there!*
 ```
 
-Omit the `:book:` fragment for a task with no brief, and omit whichever of the Confluence/Canvas links doesn't exist for a document.
+Omit the `:book:` fragment for a task with no brief, and omit whichever of a document's Confluence/Canvas links doesn't exist — a Canvas-only document uses its title as the link text, never a title-less `(canvas)` link.
 
 **IMPORTANT:** Capture the `ts` (timestamp) from the response of this first message. You'll need it for Step 9's thread replies.
 
@@ -381,7 +381,7 @@ After everything is created, give a summary. Be explicit about what actually hap
 - List the Confluence handoff brief URL per task — or that Confluence isn't ready and the full package went into the Jira description instead
 - List each context page (created / updated / reused) with its Confluence URL and Canvas URL if one was shared
 - Confirm the Slack messages sent: main message + [N] thread replies — or that Slack was skipped (`slack.status` not `ready`)
-- List "Files to request from the delegator" — things the recipient will need to ask the delegator for directly, since they couldn't be exported
+- List "Files to request from the delegator" — things the recipient will need to ask the delegator for directly, since they couldn't be exported; also list any wikilinks that could not be resolved, for the delegator to confirm
 - Note whether Fireflies/Obsidian context snippets were included
 - Report lint results: all PASS, or what was fixed after a FAIL
 - Note any issues needing manual follow-up
@@ -389,6 +389,6 @@ After everything is created, give a summary. Be explicit about what actually hap
 ## Recipient's Technical Context
 
 When writing instructions, use `recipient.technicalContext` from the config to calibrate depth:
-- **`knowsWell`** — domains where a light touch is fine, no need to over-explain
-- **`learning`** — stacks/tools where instructions should over-explain, spelling out the "why" and exact commands, not just the "what"
+- **`knowsWell`** — domains needing only a light touch
+- **`learning`** — stacks/tools needing the "why" and exact commands spelled out, not just the "what"
 - **`writingTone`** — how much to spell out and how to frame the handoff
