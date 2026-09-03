@@ -8,9 +8,9 @@ run, or did it silently no-op? The capture pipeline (`bench-append`) has already
 failed silently at least once — this module exists to turn "did it land?" into a
 queryable JSON snapshot instead of something discovered by eyeballing a table.
 
-Five local data sources:
-  1. The four benchmark notes' `## Metrics log` markdown tables (vault paths
-     below). The four notes have DIFFERENT column sets — this module does not
+Six local data sources:
+  1. The five benchmark notes' `## Metrics log` markdown tables (vault paths
+     below). The five notes have DIFFERENT column sets — this module does not
      assume a shared schema; it reports each note's own header verbatim.
   2. `~/.rhize/procedural-memory/runs/*.jsonl` run telemetry (streamed, never
      loaded wholesale).
@@ -27,6 +27,13 @@ Five local data sources:
   5. Private timestamped `bench-append` receipts (legacy v1 and strict routine
      v2) and, when `--context-runner` is supplied, the context experiment's
      strict `capture-health` report.
+  6. Private routine-state run-start files at
+     `~/.rhize/procedural-memory/routine-state/*.json` — written at the START
+     of every strict lifecycle run, before any capture can fail, so it is an
+     honest "a run began" instant even when a scheduler registry is silent or
+     wrong. Used as an additional, scheduler-independent source of run
+     recency (e.g. Weekly Skill Audit, whose canonical scheduler persists no
+     on-disk `lastRunAt` — see ROUTINE_SCHEDULER_KEYS below).
 
 The default run is local-only. `--alert-sentry` explicitly sends stable,
 path-redacted measurement incidents using an on-demand env/Keychain DSN, and
@@ -63,7 +70,7 @@ import secrets
 import stat
 import subprocess
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 from urllib import parse, request
@@ -106,12 +113,19 @@ BENCHMARK_NOTES: dict[str, Path] = (
         / "Daily Completed Summary"
         / "Procedural Memory Benchmark.md",
         "Content Engine": _VAULT_ROOT / "Content Engine" / "Procedural Memory Benchmark.md",
+        "Weekly Skill Audit": _SCHEDULED_ROUTINES_DIR
+        / "Skill-Audit-and-Monitoring"
+        / "Procedural Memory Benchmark.md",
     }
     if _VAULT_ROOT
     else {}
 )
 
 RUNS_DIR = HOME / ".rhize" / "procedural-memory" / "runs"
+# Private routine-state run-start files (GAP 2): written at the START of every
+# strict lifecycle run, before any capture can fail — an honest "a run began"
+# instant independent of any scheduler registry. See load_routine_state_runs().
+ROUTINE_STATE_DIR = HOME / ".rhize" / "procedural-memory" / "routine-state"
 # The procedural-memory repo's health dir is found by basename among the
 # configured RHIZE_REPO_ROOTS (see paths.py); None when that repo isn't
 # configured — load_health_sidecars() then reports "unavailable" rather than
@@ -138,12 +152,23 @@ ROUTINE_SCHEDULER_KEYS: dict[str, list[str]] = {
     "AI-Stack-Version-Drift": ["ai-stack-version-drift", "drift-benchmark"],
     "Daily Completed Summary": ["daily-completed-summary", "daily-summary-benchmark"],
     "Content Engine": [],
+    # Weekly Skill Audit's CANONICAL scheduler is Registry-B (the Claude Code
+    # CLI/MCP scheduler at ~/.claude/scheduled-tasks/weekly-skill-audit/),
+    # which persists no lastRunAt on disk — there is nothing to match here.
+    # The Desktop registry does hold a copy of this task, but it is PAUSED
+    # (enabled=false) and its lastRunAt reflects only manual runs which, per
+    # the routine's own contract, never append a benchmark row — matching it
+    # by Desktop id would produce false row_missing verdicts against manual
+    # testing, not real scheduled runs. Recency instead comes entirely from
+    # the routine-state run-start signal (see ROUTINE_STATE_DIR / GAP 2).
+    "Weekly Skill Audit": [],
 }
 ROUTINE_RECEIPT_IDS: dict[str, str] = {
     "Vault Inbox Processor": "vault-inbox-processor",
     "AI-Stack-Version-Drift": "ai-stack-version-drift",
     "Daily Completed Summary": "daily-completed-summary",
     "Content Engine": "content-engine",
+    "Weekly Skill Audit": "weekly-skill-audit",
 }
 
 
@@ -933,60 +958,183 @@ def load_scheduler_status(
     return result
 
 
-def find_scheduler_last_run(routine_name: str, scheduler_status: dict[str, Any]) -> dict[str, Any]:
-    """Match a routine's known id-substrings against the Desktop registry's task
-    ids, and return the MOST RECENT lastRunAt among all matches."""
-    keys = ROUTINE_SCHEDULER_KEYS.get(routine_name, [])
-    if not keys:
-        return {
-            "matched": False,
-            "last_run_at": None,
-            "matched_ids": [],
-            "reason": f"no scheduler keys configured for '{routine_name}' (on-demand routine by design)",
-        }
+# --- routine-state: scheduler-independent run-start signal (GAP 2) -----------
 
-    matches = [
-        t
-        for t in scheduler_status["desktop_tasks"]
-        if t.get("id") and any(key in t["id"].lower() for key in keys)
-    ]
-    if not matches:
-        return {
-            "matched": False,
-            "last_run_at": None,
-            "matched_ids": [],
-            "reason": f"no desktop scheduler entry matched keys {keys}",
-        }
 
-    parsed: list[tuple[datetime, dict]] = []
-    for m in matches:
-        lra = m.get("lastRunAt")
-        if not lra:
+def load_routine_state_runs(state_dir: Path = ROUTINE_STATE_DIR) -> dict[str, Any]:
+    """Read every private routine-state file under state_dir.
+
+    Each strict lifecycle run writes one `<routineId>-<UTCstamp>-<8hex>.json`
+    file at the START of the run, before any capture can fail — an honest
+    "a run began" instant that stays valid even when a scheduler registry is
+    silent or wrong. Sibling `*.metadata.json` / `*.input.json` files and
+    dotfiles (lock/temp files) are ignored; only the newest startedAtEpochMs
+    per routineId is kept.
+
+    Never raises: a missing dir is reported as unavailable, and an
+    unreadable/malformed/non-schemaVersion-1 file is skipped and counted in
+    `skipped` rather than treated as a fatal error.
+
+    Returns {"available": bool, "error": str|None, "skipped": int,
+    "routines": {routine_id: {"started_at": <ISO-8601 UTC string>,
+    "state_file": <basename only>, "append_completed": bool|None,
+    "run_count": int}}}. Only basenames are ever stored — never absolute
+    paths — because this snapshot is shared.
+    """
+    result: dict[str, Any] = {"available": True, "error": None, "skipped": 0, "routines": {}}
+    if not state_dir.exists():
+        result["available"] = False
+        result["error"] = f"routine-state dir not found: {state_dir}"
+        return result
+
+    try:
+        entries = sorted(state_dir.glob("*.json"))
+    except OSError as e:
+        result["available"] = False
+        result["error"] = str(e)
+        return result
+
+    skipped = 0
+    counts: dict[str, int] = {}
+    newest: dict[str, dict[str, Any]] = {}
+    for fp in entries:
+        name = fp.name
+        if name.startswith(".") or name.endswith(".metadata.json") or name.endswith(".input.json"):
             continue
         try:
-            parsed.append((datetime.fromisoformat(lra.replace("Z", "+00:00")), m))
-        except ValueError:
+            data = json.loads(fp.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            skipped += 1
+            continue
+        if not isinstance(data, dict) or data.get("schemaVersion") != 1:
+            skipped += 1
+            continue
+        routine_id = data.get("routineId")
+        started_at_ms = data.get("startedAtEpochMs")
+        if (
+            not isinstance(routine_id, str)
+            or not routine_id
+            or isinstance(started_at_ms, bool)
+            or not isinstance(started_at_ms, int)
+        ):
+            skipped += 1
             continue
 
-    matched_ids = [m.get("id") for m in matches]
-    enabled = any(m.get("enabled") is True for m in matches)
-    if not parsed:
+        counts[routine_id] = counts.get(routine_id, 0) + 1
+        current = newest.get(routine_id)
+        if current is None or started_at_ms > current["_epoch_ms"]:
+            seconds, millis = divmod(started_at_ms, 1000)
+            started_at_dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(milliseconds=millis)
+            append_completed = data.get("appendCompleted")
+            newest[routine_id] = {
+                "_epoch_ms": started_at_ms,
+                "started_at": started_at_dt.isoformat().replace("+00:00", "Z"),
+                "state_file": name,
+                "append_completed": append_completed if isinstance(append_completed, bool) else None,
+            }
+
+    result["skipped"] = skipped
+    result["routines"] = {
+        routine_id: {**{k: v for k, v in info.items() if k != "_epoch_ms"}, "run_count": counts[routine_id]}
+        for routine_id, info in newest.items()
+    }
+    return result
+
+
+def find_scheduler_last_run(
+    routine_name: str,
+    scheduler_status: dict[str, Any],
+    routine_state_runs: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Match a routine's known id-substrings against the Desktop registry's task
+    ids, AND look up its routine-state run-start signal (GAP 2 — an honest
+    "a run began" instant written before any scheduler registry can be
+    consulted, see load_routine_state_runs()). The run instant used for
+    liveness is the NEWEST of whichever source(s) are available; `sources`
+    names which one(s) supplied it.
+    """
+    keys = ROUTINE_SCHEDULER_KEYS.get(routine_name, [])
+
+    # --- Desktop registry match (unchanged from the original implementation) ---
+    desktop_matched = False
+    desktop_last_run_at: datetime | None = None
+    matched_ids: list[str] = []
+    enabled: bool | None = None
+    desktop_reason: str | None = None
+
+    if keys:
+        matches = [
+            t
+            for t in scheduler_status["desktop_tasks"]
+            if t.get("id") and any(key in t["id"].lower() for key in keys)
+        ]
+        if matches:
+            desktop_matched = True
+            matched_ids = [m.get("id") for m in matches]
+            enabled = any(m.get("enabled") is True for m in matches)
+            parsed: list[datetime] = []
+            for m in matches:
+                lra = m.get("lastRunAt")
+                if not lra:
+                    continue
+                try:
+                    parsed.append(datetime.fromisoformat(lra.replace("Z", "+00:00")))
+                except ValueError:
+                    continue
+            if parsed:
+                parsed.sort()
+                desktop_last_run_at = parsed[-1]
+        else:
+            desktop_reason = f"no desktop scheduler entry matched keys {keys}"
+
+    # --- Routine-state match (GAP 2) --------------------------------------------
+    receipt_id = ROUTINE_RECEIPT_IDS.get(routine_name)
+    routine_state_matched = False
+    routine_state_started_at: datetime | None = None
+    routine_state_started_at_str: str | None = None
+    if receipt_id and routine_state_runs:
+        entry = routine_state_runs.get("routines", {}).get(receipt_id)
+        if entry and entry.get("started_at"):
+            routine_state_started_at_str = entry["started_at"]
+            try:
+                routine_state_started_at = datetime.fromisoformat(
+                    routine_state_started_at_str.replace("Z", "+00:00")
+                )
+                routine_state_matched = True
+            except ValueError:
+                routine_state_matched = False
+
+    sources: list[str] = []
+    if desktop_matched:
+        sources.append("desktop")
+    if routine_state_matched:
+        sources.append("routine-state")
+
+    if not sources:
+        if not keys:
+            reason = f"no scheduler keys configured for '{routine_name}' (on-demand routine by design)"
+        else:
+            reason = desktop_reason or f"no desktop scheduler entry matched keys {keys}"
         return {
-            "matched": True,
+            "matched": False,
             "last_run_at": None,
-            "matched_ids": matched_ids,
-            "enabled": enabled,
-            "reason": None,
+            "matched_ids": [],
+            "reason": reason,
+            "sources": [],
+            "routine_state_started_at": None,
         }
 
-    parsed.sort(key=lambda x: x[0])
-    newest_dt, _ = parsed[-1]
+    candidates = [dt for dt in (desktop_last_run_at, routine_state_started_at) if dt is not None]
+    newest_dt = max(candidates) if candidates else None
+
     return {
         "matched": True,
         "last_run_at": newest_dt,
         "matched_ids": matched_ids,
         "enabled": enabled,
         "reason": None,
+        "sources": sources,
+        "routine_state_started_at": routine_state_started_at_str,
     }
 
 
@@ -1204,6 +1352,7 @@ def build_snapshot(
     sessions_root: Path = DESKTOP_SESSIONS_ROOT,
     receipts_dir: Path = BENCHMARK_RECEIPTS_DIR,
     context_runner: Path | None = None,
+    routine_state_dir: Path = ROUTINE_STATE_DIR,
 ) -> dict[str, Any]:
     note_summaries = load_all_note_summaries(notes)
     run_telemetry = load_run_telemetry(runs_dir)
@@ -1212,10 +1361,11 @@ def build_snapshot(
     capture_receipts = load_benchmark_receipts(receipts_dir)
     capture_receipts["unbound"] = []
     context_capture_health = run_context_capture_health(context_runner)
+    routine_state = load_routine_state_runs(routine_state_dir)
 
     liveness: dict[str, Any] = {}
     for routine_name in notes:
-        lookup = find_scheduler_last_run(routine_name, scheduler_status)
+        lookup = find_scheduler_last_run(routine_name, scheduler_status, routine_state)
         candidate_receipts = [
             receipt
             for receipt in capture_receipts["by_note_id"].get(
@@ -1270,6 +1420,8 @@ def build_snapshot(
             "scheduler_matched_ids": lookup.get("matched_ids", []),
             "scheduler_last_run_at": lookup.get("last_run_at"),
             "scheduler_enabled": lookup.get("enabled"),
+            "sources": lookup.get("sources", []),
+            "routine_state_started_at": lookup.get("routine_state_started_at"),
         }
 
     snapshot = {
@@ -1278,6 +1430,7 @@ def build_snapshot(
         "run_telemetry": run_telemetry,
         "health": health,
         "scheduler": scheduler_status,
+        "routine_state": routine_state,
         "capture_receipts": capture_receipts,
         "context_capture_health": context_capture_health,
         "liveness": liveness,
@@ -1566,7 +1719,9 @@ def render_human(snapshot: dict[str, Any]) -> str:
 
     lines.append("Liveness by routine:")
     for name, v in snapshot["liveness"].items():
-        lines.append(f"  [{v['status']:>11}] {name} — {v['reason']}")
+        sources = v.get("sources") or []
+        via = f" (via {'+'.join(sources)})" if sources else ""
+        lines.append(f"  [{v['status']:>11}] {name}{via} — {v['reason']}")
     lines.append("")
 
     lines.append("Benchmark notes:")

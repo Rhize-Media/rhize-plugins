@@ -194,10 +194,19 @@ failed, incomplete, missing-arm, missing-metric, non-comparable, missing-history
 expired-pending evidence.
 
 The receipt store also accepts procedural-memory graph variants `G`, `G1`, `G2`, and `G3`.
-They are counted separately in `capture_receipts.by_variant` and never participate in the four
+They are counted separately in `capture_receipts.by_variant` and never participate in the five
 A/B note-liveness calculations. Graph receipts may use `rowDateSource=captured_local_date` when
 they carry a run ID; A/B receipts remain row-dated. This keeps one operational receipt store
 without mixing graph-cohort evidence into context/search performance claims.
+
+Run recency comes from whichever of two independent sources are available, per routine: the
+Desktop app's scheduler registry (`lastRunAt`), and a private routine-state run-start file
+under `~/.rhize/procedural-memory/routine-state/*.json` that every strict lifecycle run writes
+at the START of the run, before capture can fail. The newest of the two wins, and the human
+report names which source(s) supplied it (e.g. `via desktop+routine-state`). This closes a gap
+for `weekly-skill-audit`: its canonical scheduler (the Claude Code CLI/MCP scheduler) persists
+no on-disk `lastRunAt`, and the Desktop registry only holds a paused copy of it whose manual
+runs never append — so routine-state is its sole source of run recency.
 
 ```bash
 python3 benchmark_status.py \

@@ -359,6 +359,95 @@ def test_scheduler_reads_valid_json(tmp_path):
     assert result["desktop_tasks"][0]["id"] == "vault-inbox-processor"
 
 
+# --- routine-state: scheduler-independent run-start signal (GAP 2) ------------
+
+
+def _routine_state_file(
+    dir_path: Path,
+    routine_id: str,
+    started_at_epoch_ms: int,
+    *,
+    append_completed: bool = True,
+    scheduler_run_id: str | None = None,
+    name: str,
+) -> Path:
+    payload = {
+        "schemaVersion": 1,
+        "routineId": routine_id,
+        "schedulerRunId": scheduler_run_id or f"{routine_id}-run",
+        "startedAtEpochMs": started_at_epoch_ms,
+        "steps": [],
+        "appendCompleted": append_completed,
+    }
+    path = dir_path / name
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_routine_state_missing_dir_no_crash(tmp_path):
+    result = bs.load_routine_state_runs(tmp_path / "does-not-exist")
+    assert result["available"] is False
+    assert "not found" in result["error"]
+    assert result["routines"] == {}
+
+
+def test_routine_state_picks_newest_per_routine(tmp_path):
+    state_dir = tmp_path / "routine-state"
+    state_dir.mkdir()
+    _routine_state_file(state_dir, "daily-completed-summary", 1_000_000, name="daily-completed-summary-a.json")
+    _routine_state_file(state_dir, "daily-completed-summary", 2_000_000, name="daily-completed-summary-b.json")
+    _routine_state_file(state_dir, "weekly-skill-audit", 1_500_000, name="weekly-skill-audit-a.json")
+
+    result = bs.load_routine_state_runs(state_dir)
+
+    assert result["available"] is True
+    assert result["error"] is None
+    dcs = result["routines"]["daily-completed-summary"]
+    assert dcs["state_file"] == "daily-completed-summary-b.json"
+    assert dcs["run_count"] == 2
+    assert dcs["append_completed"] is True
+    assert "/" not in dcs["state_file"] and "\\" not in dcs["state_file"]
+    wsa = result["routines"]["weekly-skill-audit"]
+    assert wsa["run_count"] == 1
+
+
+def test_routine_state_skips_sibling_and_dotfiles(tmp_path):
+    state_dir = tmp_path / "routine-state"
+    state_dir.mkdir()
+    _routine_state_file(state_dir, "weekly-skill-audit", 1_000_000, name="weekly-skill-audit-a.json")
+    # Sibling metadata/input files share the routine id and carry a later
+    # startedAtEpochMs, but must never be read as run records.
+    (state_dir / "weekly-skill-audit-a.metadata.json").write_text(
+        json.dumps({"schemaVersion": 1, "routineId": "weekly-skill-audit", "startedAtEpochMs": 9_000_000}),
+        encoding="utf-8",
+    )
+    (state_dir / "weekly-skill-audit-a.input.json").write_text("{}", encoding="utf-8")
+    (state_dir / ".weekly-skill-audit-a.json.lock").write_text("", encoding="utf-8")
+
+    result = bs.load_routine_state_runs(state_dir)
+
+    wsa = result["routines"]["weekly-skill-audit"]
+    assert wsa["run_count"] == 1
+    assert wsa["state_file"] == "weekly-skill-audit-a.json"
+
+
+def test_routine_state_tolerates_malformed_and_wrong_schema(tmp_path):
+    state_dir = tmp_path / "routine-state"
+    state_dir.mkdir()
+    _routine_state_file(state_dir, "weekly-skill-audit", 1_000_000, name="weekly-skill-audit-a.json")
+    (state_dir / "corrupt.json").write_text("{not valid json", encoding="utf-8")
+    (state_dir / "wrong-schema.json").write_text(
+        json.dumps({"schemaVersion": 2, "routineId": "weekly-skill-audit", "startedAtEpochMs": 9_000_000}),
+        encoding="utf-8",
+    )
+
+    result = bs.load_routine_state_runs(state_dir)
+
+    assert result["available"] is True
+    assert result["skipped"] == 2
+    assert result["routines"]["weekly-skill-audit"]["run_count"] == 1
+
+
 # --- liveness: one test per status value ----------------------------------------
 
 
@@ -554,6 +643,84 @@ def test_find_scheduler_last_run_content_engine_is_on_demand():
     assert "on-demand" in lookup["reason"]
 
 
+def test_find_scheduler_last_run_routine_state_only_when_no_scheduler_keys():
+    # Weekly Skill Audit: ROUTINE_SCHEDULER_KEYS is deliberately empty (its
+    # canonical scheduler persists no on-disk lastRunAt), so recency must come
+    # entirely from the routine-state signal.
+    scheduler_status = {"desktop_tasks": []}
+    routine_state_runs = {
+        "available": True,
+        "error": None,
+        "routines": {
+            "weekly-skill-audit": {
+                "started_at": "2026-08-31T22:35:44Z",
+                "state_file": "weekly-skill-audit-20260831T223544Z-37960689.json",
+                "append_completed": True,
+                "run_count": 1,
+            }
+        },
+    }
+
+    lookup = bs.find_scheduler_last_run("Weekly Skill Audit", scheduler_status, routine_state_runs)
+
+    assert lookup["matched"] is True
+    assert lookup["sources"] == ["routine-state"]
+    assert lookup["last_run_at"] == datetime.fromisoformat("2026-08-31T22:35:44+00:00")
+    assert lookup["routine_state_started_at"] == "2026-08-31T22:35:44Z"
+
+
+def test_find_scheduler_last_run_combines_desktop_and_routine_state_newest_wins():
+    scheduler_status = {
+        "desktop_tasks": [
+            {"id": "daily-completed-summary", "enabled": True, "lastRunAt": "2026-09-01T00:02:28Z"},
+        ]
+    }
+    routine_state_runs = {
+        "available": True,
+        "error": None,
+        "routines": {
+            "daily-completed-summary": {
+                "started_at": "2026-09-03T00:03:47Z",
+                "state_file": "daily-completed-summary-20260903T000347Z-8bfa5cfc.json",
+                "append_completed": False,
+                "run_count": 5,
+            }
+        },
+    }
+
+    lookup = bs.find_scheduler_last_run("Daily Completed Summary", scheduler_status, routine_state_runs)
+
+    assert lookup["matched"] is True
+    assert set(lookup["sources"]) == {"desktop", "routine-state"}
+    assert lookup["last_run_at"] == datetime.fromisoformat("2026-09-03T00:03:47+00:00")
+
+
+def test_find_scheduler_last_run_desktop_newer_than_routine_state():
+    scheduler_status = {
+        "desktop_tasks": [
+            {"id": "daily-completed-summary", "enabled": True, "lastRunAt": "2026-09-03T12:00:00Z"},
+        ]
+    }
+    routine_state_runs = {
+        "available": True,
+        "error": None,
+        "routines": {
+            "daily-completed-summary": {
+                "started_at": "2026-09-01T00:02:28Z",
+                "state_file": "daily-completed-summary-20260901T000228Z-3ed3ccc2.json",
+                "append_completed": False,
+                "run_count": 1,
+            }
+        },
+    }
+
+    lookup = bs.find_scheduler_last_run("Daily Completed Summary", scheduler_status, routine_state_runs)
+
+    assert lookup["matched"] is True
+    assert set(lookup["sources"]) == {"desktop", "routine-state"}
+    assert lookup["last_run_at"] == datetime.fromisoformat("2026-09-03T12:00:00+00:00")
+
+
 # --- integration: row_missing fires end-to-end via build_snapshot ---------------
 
 
@@ -609,6 +776,54 @@ def test_build_snapshot_end_to_end_row_missing(tmp_path):
 
     assert snapshot["liveness"]["Daily Completed Summary"]["status"] == "row_missing"
     assert snapshot["notes"]["Daily Completed Summary"]["total_rows"] == 0
+
+
+def test_build_snapshot_row_missing_from_routine_state_only_signal(tmp_path):
+    """Weekly Skill Audit has no Desktop lastRunAt to trust (its canonical
+    scheduler persists none on disk; the paused Desktop copy's manual runs
+    never append per the routine's own contract). Liveness must still fire
+    row_missing when the routine-state run-start signal (GAP 2) is newer than
+    the newest note row."""
+    notes_dir = tmp_path / "notes"
+    notes_dir.mkdir()
+    note_path = notes_dir / "Procedural Memory Benchmark.md"
+    note_path.write_text(NOTE_ZERO_ROWS, encoding="utf-8")
+
+    runs_dir = tmp_path / "runs"
+    runs_dir.mkdir()
+    health_dir = tmp_path / ".health"
+    health_dir.mkdir()
+    cli_dir = tmp_path / "scheduled-tasks"
+    cli_dir.mkdir()
+    sessions_root = tmp_path / "sessions"
+    (sessions_root / "acct" / "space").mkdir(parents=True)
+    (sessions_root / "acct" / "space" / "scheduled-tasks.json").write_text(
+        json.dumps({"scheduledTasks": []}), encoding="utf-8"
+    )
+    receipts_dir = tmp_path / "receipts"
+    receipts_dir.mkdir()
+    state_dir = tmp_path / "routine-state"
+    state_dir.mkdir()
+    _routine_state_file(
+        state_dir,
+        "weekly-skill-audit",
+        1_788_215_744_357,
+        name="weekly-skill-audit-20260831T223544Z-37960689.json",
+    )
+
+    snapshot = bs.build_snapshot(
+        notes={"Weekly Skill Audit": note_path},
+        runs_dir=runs_dir,
+        health_dir=health_dir,
+        scheduled_tasks_dir=cli_dir,
+        sessions_root=sessions_root,
+        receipts_dir=receipts_dir,
+        routine_state_dir=state_dir,
+    )
+
+    assert snapshot["liveness"]["Weekly Skill Audit"]["status"] == "row_missing"
+    assert snapshot["liveness"]["Weekly Skill Audit"]["sources"] == ["routine-state"]
+    assert snapshot["routine_state"]["routines"]["weekly-skill-audit"]["run_count"] == 1
 
 
 # --- live data: real vault notes must match verified ground truth ---------------
@@ -1048,6 +1263,12 @@ def _build_receipt_snapshot(
         scheduled_tasks_dir=scheduled,
         sessions_root=tmp_path / "sessions",
         receipts_dir=receipt_dir,
+        # Isolated (nonexistent) on purpose: without this, build_snapshot's
+        # routine_state_dir default reads the real machine's
+        # ~/.rhize/procedural-memory/routine-state, which can contain a real
+        # 'daily-completed-summary' run newer than this fixture's controlled
+        # scheduler/note dates and change the liveness verdict under test.
+        routine_state_dir=tmp_path / "routine-state",
     )
 
 
@@ -1135,6 +1356,40 @@ def test_build_snapshot_rejects_a_receipt_without_matching_run_telemetry(tmp_pat
         item for item in bs.actionable_findings(snapshot) if item["status"] == "unbound_receipt"
     )
     assert finding["arm"] == "A"
+
+
+# --- render_human: names which source(s) supplied each routine's run instant ---
+
+
+def test_render_human_shows_source_for_each_routine():
+    snapshot = {
+        "liveness": {
+            "Weekly Skill Audit": {
+                "status": "row_missing",
+                "reason": "a run happened and no row landed",
+                "sources": ["routine-state"],
+            },
+            "Daily Completed Summary": {
+                "status": "ok",
+                "reason": "newest row covers scheduler's last run",
+                "sources": ["desktop", "routine-state"],
+            },
+            "Content Engine": {
+                "status": "unknown",
+                "reason": "on-demand routine by design",
+                "sources": [],
+            },
+        },
+        "notes": {},
+        "run_telemetry": {"available": False, "error": "n/a"},
+        "health": {"available": False, "error": "n/a"},
+    }
+
+    output = bs.render_human(snapshot)
+
+    assert "Weekly Skill Audit (via routine-state)" in output
+    assert "Daily Completed Summary (via desktop+routine-state)" in output
+    assert "Content Engine —" in output  # no sources -> no "(via ...)" suffix
 
 
 # --- actionable eval findings + Sentry event transport -------------------------
