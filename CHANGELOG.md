@@ -7,6 +7,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- _2026-09-03_ **rhize-ops/skill-monitor:** the benchmark watchdog now watches the
+  Rhize Dashboard Snapshot Refresh Arm-A pre-check — a sixth note
+  (`Project-Dashboard/Procedural Memory Benchmark.md`, Desktop scheduler key
+  `rhize-dashboard-snapshot-refresh`), registered the day the routine was instrumented
+  (claude-routines `a6e65a1`) so it is never instrumented and unmonitored; a registration
+  test asserts the note, scheduler-key and receipt-id maps share one key set.
 
 - _2026-09-03_ version bump — **rhize-ops** 0.17.1 → 0.18.0 (minor); marketplace 2.58.1 → 2.59.0.
 - _2026-09-03_ **rhize-ops:** `delegate-to-teammate` progressive disclosure — Jira now gets a
