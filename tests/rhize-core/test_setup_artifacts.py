@@ -1,6 +1,12 @@
-"""test_setup_artifacts.py — rhize-ops/scripts/setup_artifacts.py (hybrid-setup-wizard.md R2
-§5). Same hermetic idempotency pattern as tests/skill-map/test_render_docs.py: --check copies
-its exact input set into a temp tree and never writes inside the real repo.
+"""test_setup_artifacts.py — rhize-core/scripts/setup_artifacts.py (hybrid-setup-wizard.md R2
+§5; moved from rhize-ops in repo-shape R-B). Same hermetic idempotency pattern as
+tests/skill-map/test_render_docs.py: --check copies its exact input set into a temp tree and
+never writes inside the real repo.
+
+Fixtures use fake "widgets"/"gadgets" plugins with no real rhize-core directory present, so
+doc_relative_path() falls back to this script's own plugin directory (rhize-core, since SCRIPT
+below points there) for every fixture in this file — see tests/config-lint/
+test_platform_fallback_drift.py for the rhize-core-preferred-when-present branch.
 """
 from __future__ import annotations
 
@@ -12,7 +18,7 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "rhize-ops" / "scripts" / "setup_artifacts.py"
+SCRIPT = REPO / "rhize-core" / "scripts" / "setup_artifacts.py"
 SPEC = importlib.util.spec_from_file_location("setup_artifacts", SCRIPT)
 setup_artifacts = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -41,7 +47,7 @@ def make_repo(tmp_path: Path, artifacts_by_plugin: dict[str, list[dict]]) -> Pat
                         "evaluations": {"catalog": "rhize-evaluations-v1", "component": plugin}}),
             encoding="utf-8",
         )
-    doc_path = root / "rhize-ops" / "docs" / "setup-artifacts.md"
+    doc_path = root / "rhize-core" / "docs" / "setup-artifacts.md"
     doc_path.parent.mkdir(parents=True)
     doc_path.write_text(MARKER_DOC, encoding="utf-8")
     return root
@@ -63,7 +69,7 @@ def test_render_inserts_a_row_per_artifact(tmp_path: Path) -> None:
     root = make_repo(tmp_path, {"widgets": [sample_artifact("cfg")], "gadgets": []})
     completed = run_cli("--markdown", "--repo-root", str(root))
     assert completed.returncode == 0, completed.stderr
-    text = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    text = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     assert "cfg" in text
     assert "widgets" in text
     assert "<!-- SETUP-ARTIFACTS:BEGIN -->" in text and "<!-- SETUP-ARTIFACTS:END -->" in text
@@ -72,10 +78,10 @@ def test_render_inserts_a_row_per_artifact(tmp_path: Path) -> None:
 def test_render_is_idempotent(tmp_path: Path) -> None:
     root = make_repo(tmp_path, {"widgets": [sample_artifact("cfg")]})
     run_cli("--markdown", "--repo-root", str(root))
-    before = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    before = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     completed = run_cli("--markdown", "--repo-root", str(root))
     assert "No changes" in completed.stdout
-    after = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    after = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     assert before == after
 
 
@@ -84,13 +90,13 @@ def test_render_escapes_pipe_characters(tmp_path: Path) -> None:
     artifact["viewer"] = "Contains a | pipe and a\nnewline."
     root = make_repo(tmp_path, {"widgets": [artifact]})
     run_cli("--markdown", "--repo-root", str(root))
-    text = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    text = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     assert "Contains a \\| pipe and a newline." in text
 
 
 def test_refuses_without_markers(tmp_path: Path) -> None:
     root = make_repo(tmp_path, {"widgets": [sample_artifact()]})
-    (root / "rhize-ops" / "docs" / "setup-artifacts.md").write_text("# No markers\n", encoding="utf-8")
+    (root / "rhize-core" / "docs" / "setup-artifacts.md").write_text("# No markers\n", encoding="utf-8")
     completed = run_cli("--markdown", "--repo-root", str(root))
     assert completed.returncode != 0
     assert "marker pair" in completed.stderr
@@ -113,19 +119,19 @@ def test_check_fails_when_stale(tmp_path: Path) -> None:
     manifest["artifacts"].append(sample_artifact("cfg-2"))
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
-    committed_before = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    committed_before = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     completed = run_cli("--check", "--repo-root", str(root))
     assert completed.returncode == 1
     assert "stale" in completed.stderr
 
     # --check must never write inside the real repo tree.
-    assert (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text() == committed_before
+    assert (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text() == committed_before
 
 
 def test_check_never_writes_the_real_repo() -> None:
     """Hermeticity, mirroring tests/skill-map/test_render_docs.py's own guardrail: running
     --check against the actual rhize-plugins repo must not modify its committed doc."""
-    doc_path = REPO / "rhize-ops" / "docs" / "setup-artifacts.md"
+    doc_path = REPO / "rhize-core" / "docs" / "setup-artifacts.md"
     before = doc_path.read_text(encoding="utf-8")
     completed = run_cli("--check")
     assert doc_path.read_text(encoding="utf-8") == before
@@ -136,16 +142,16 @@ def test_no_artifacts_renders_a_placeholder_line(tmp_path: Path) -> None:
     root = make_repo(tmp_path, {"widgets": []})
     completed = run_cli("--markdown", "--repo-root", str(root))
     assert completed.returncode == 0, completed.stderr
-    text = (root / "rhize-ops" / "docs" / "setup-artifacts.md").read_text()
+    text = (root / "rhize-core" / "docs" / "setup-artifacts.md").read_text()
     assert "No plugin currently declares a setup artifact" in text
 
 
 def test_resolve_repo_root_falls_back_to_the_marketplace_clone_from_an_installed_cache(tmp_path: Path) -> None:
-    """From `~/.claude/plugins/cache/<mkt>/rhize-ops/<ver>/scripts/` two-parents-up is not the
+    """From `~/.claude/plugins/cache/<mkt>/rhize-core/<ver>/scripts/` two-parents-up is not the
     marketplace, so the script must locate the clone under `~/.claude/plugins/marketplaces/`
     (found live on 2026-09-02: the installed copy raised FileNotFoundError on --check)."""
     home = tmp_path / "home"
-    cache_copy = home / ".claude" / "plugins" / "cache" / "rhize-plugins" / "rhize-ops" / "9.9.9" / "scripts" / "setup_artifacts.py"
+    cache_copy = home / ".claude" / "plugins" / "cache" / "rhize-plugins" / "rhize-core" / "9.9.9" / "scripts" / "setup_artifacts.py"
     cache_copy.parent.mkdir(parents=True)
     cache_copy.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
     spec = importlib.util.spec_from_file_location("setup_artifacts_installed", cache_copy)
@@ -159,7 +165,7 @@ def test_resolve_repo_root_falls_back_to_the_marketplace_clone_from_an_installed
     clone = home / ".claude" / "plugins" / "marketplaces" / "rhize-plugins"
     (clone / ".claude-plugin").mkdir(parents=True)
     (clone / ".claude-plugin" / "marketplace.json").write_text("{}", encoding="utf-8")
-    (clone / "rhize-ops").mkdir()
+    (clone / "rhize-core").mkdir()
     other = home / ".claude" / "plugins" / "marketplaces" / "another-marketplace"
     (other / ".claude-plugin").mkdir(parents=True)
     (other / ".claude-plugin" / "marketplace.json").write_text("{}", encoding="utf-8")
@@ -167,3 +173,26 @@ def test_resolve_repo_root_falls_back_to_the_marketplace_clone_from_an_installed
 
     # The dev checkout still wins when the script sits inside one.
     assert setup_artifacts.resolve_repo_root(home=home) == REPO
+
+
+def test_resolve_repo_root_also_accepts_a_rhize_ops_only_clone(tmp_path: Path) -> None:
+    """A pre-repo-shape-R-B marketplace clone (rhize-ops only, no rhize-core yet) must still be
+    recognised — the same OR-of-signature-plugins rule setup_orchestrator.is_rhize_marketplace()
+    uses, applied to setup_artifacts' own clone-detection fallback. Uses the same
+    installed-cache-copy trick as the test above, since `__file__` (not cwd) drives the "am I
+    inside a dev checkout" branch."""
+    home = tmp_path / "home"
+    cache_copy = home / ".claude" / "plugins" / "cache" / "rhize-plugins" / "rhize-ops" / "9.9.9" / "scripts" / "setup_artifacts.py"
+    cache_copy.parent.mkdir(parents=True)
+    cache_copy.write_text(SCRIPT.read_text(encoding="utf-8"), encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("setup_artifacts_installed_ops_only", cache_copy)
+    installed = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(installed)
+
+    clone = home / ".claude" / "plugins" / "marketplaces" / "rhize-plugins"
+    (clone / ".claude-plugin").mkdir(parents=True)
+    (clone / ".claude-plugin" / "marketplace.json").write_text("{}", encoding="utf-8")
+    (clone / "rhize-ops").mkdir()  # no rhize-core dir at all in this clone
+
+    assert installed.resolve_repo_root(home=home) == clone

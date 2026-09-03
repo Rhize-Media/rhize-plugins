@@ -1,6 +1,6 @@
 {
   "name": "project-launcher",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.",
   "author": {
     "name": "Rhize Media"

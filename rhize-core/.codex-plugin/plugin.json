@@ -1,0 +1,36 @@
+{
+  "name": "rhize-core",
+  "version": "1.0.0",
+  "description": "The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "setup",
+    "control-plane",
+    "evaluation",
+    "hooks",
+    "onboarding",
+    "version-control",
+    "platform",
+    "rhize"
+  ],
+  "interface": {
+    "displayName": "Rhize Core",
+    "shortDescription": "The marketplace control plane — fleet setup, evaluation baselines, and opt-in guardrail hooks.",
+    "longDescription": "Discovers every installed Rhize plugin, runs each one's own expert setup wizard, establishes free/offline evaluation-coverage baselines against the central catalog, and offers an opt-in, smoke-tested guardrail-hook menu — never auto-wiring anything or starting capture on install alone.",
+    "developerName": "Rhize Media",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Set up my Rhize plugins.",
+      "Establish evaluation baselines for the plugins I've enabled.",
+      "Show me what /rhize-core:setup would wire before I confirm anything."
+    ]
+  }
+}

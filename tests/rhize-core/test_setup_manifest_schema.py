@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "rhize-ops" / "scripts" / "evaluation_setup.py"
+SCRIPT = REPO / "rhize-core" / "scripts" / "evaluation_setup.py"
 SPEC = importlib.util.spec_from_file_location("evaluation_setup", SCRIPT)
 evaluation_setup = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

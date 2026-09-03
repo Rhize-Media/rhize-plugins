@@ -45,7 +45,7 @@ END = "<!-- SKILL-MAP:END -->"
 # Plugins that get the ⭐ hub annotation in the root Plugin Catalog table.
 # Not derivable from marketplace.json (no "hub" field exists there) — a
 # hand-declared exception, kept here rather than invented as new schema.
-HUB_PLUGINS = {"rhize-ops"}
+HUB_PLUGINS = {"rhize-core"}
 
 # Per-(plugin, marker-location) skill subsets that don't match "all skills
 # in the plugin" — real hand-curated groupings that predate the skill map

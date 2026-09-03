@@ -1,6 +1,6 @@
 # Setup artifacts
 
-Every file or directory a Rhize plugin's setup wizard or day-to-day use can write is declared in that plugin's `setup/manifest.json` and rendered into the table below by `rhize-ops/scripts/setup_artifacts.py --markdown`. Nothing here is written just by installing a plugin — a wizard, a hook, or a command has to actually run first.
+Every file or directory a Rhize plugin's setup wizard or day-to-day use can write is declared in that plugin's `setup/manifest.json` and rendered into the table below by `rhize-core/scripts/setup_artifacts.py --markdown`. Nothing here is written just by installing a plugin — a wizard, a hook, or a command has to actually run first.
 
 <!-- SETUP-ARTIFACTS:BEGIN -->
 | artifact | producer | path | how to view | lifetime | confidentiality | source | tracked |
@@ -20,6 +20,12 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | skill-refine-runs | rhize-context-manager | <home>/.claude/context-manager/runs/ | cat ~/.claude/context-manager/runs/<date>.md | per-run | none | derived | outside-repo |
 | stack-config | rhize-context-manager | <home>/.claude/rhize-context-manager/stack.config.json | cat ~/.claude/rhize-context-manager/stack.config.json | persistent | config | authored | ignored |
 | suggestion-log | rhize-context-manager | <home>/.claude/context-manager/suggestion-log.jsonl | cat ~/.claude/context-manager/suggestion-log.jsonl | append-only | none | derived | outside-repo |
+| evals-config | rhize-core | <home>/.rhize/evals/config.json | cat ~/.rhize/evals/config.json | persistent | config | derived | outside-repo |
+| evals-hmac-key | rhize-core | <home>/.rhize/evals/hmac.key | not human-readable — presence and 0600 permissions only | persistent | secret | derived | outside-repo |
+| evals-receipts | rhize-core | <home>/.rhize/evals/receipts/ | cat ~/.rhize/evals/receipts/<month>.jsonl | append-only | none | derived | outside-repo |
+| project-settings | rhize-core | <project>/.claude/settings.json | cat .claude/settings.json | persistent | config | authored | project |
+| runtime-home | rhize-core | <home>/.rhize/evals/runtime-home/ | ls ~/.rhize/evals/runtime-home/ | persistent | none | derived | outside-repo |
+| setup-runs | rhize-core | <home>/.rhize/setup/runs/ | python3 rhize-core/scripts/setup_orchestrator.py report --run <id> | per-run | config | derived | outside-repo |
 | cowork-business-md | rhize-cowork | <project>/BUSINESS.md | cat BUSINESS.md | persistent | client | authored | project |
 | cowork-claude-md | rhize-cowork | <project>/CLAUDE.md | cat CLAUDE.md | persistent | client | authored | project |
 | cowork-info-md | rhize-cowork | <project>/INFO.md | cat INFO.md | persistent | client | authored | project |
@@ -30,12 +36,7 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | test-evidence-packets | rhize-devflow | <home>/.rhize/test-evidence/packets/ | cat ~/.rhize/test-evidence/packets/<packet>.json | per-run | none | derived | outside-repo |
 | delegate-config | rhize-ops | <home>/.claude/rhize-ops/delegate.config.json | cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing) | persistent | personal | authored | ignored |
 | delegate-confluence-index | rhize-ops | <home>/.claude/rhize-ops/delegate.confluence-index.json | cat ~/.claude/rhize-ops/delegate.confluence-index.json (redact identifiers before sharing) | persistent | personal | derived | ignored |
-| evals-config | rhize-ops | <home>/.rhize/evals/config.json | cat ~/.rhize/evals/config.json | persistent | config | derived | outside-repo |
-| evals-hmac-key | rhize-ops | <home>/.rhize/evals/hmac.key | not human-readable — presence and 0600 permissions only | persistent | secret | derived | outside-repo |
-| evals-receipts | rhize-ops | <home>/.rhize/evals/receipts/ | cat ~/.rhize/evals/receipts/<month>.jsonl | append-only | none | derived | outside-repo |
 | parallel-agent-optimization-receipts | rhize-ops | <home>/.rhize/parallel-agent-optimization/ | /rhize-ops:parallel-optimize report all | append-only | none | derived | outside-repo |
-| project-settings | rhize-ops | <project>/.claude/settings.json | cat .claude/settings.json | persistent | config | authored | project |
-| setup-runs | rhize-ops | <home>/.rhize/setup/runs/ | python3 rhize-ops/scripts/setup_orchestrator.py report --run <id> | per-run | config | derived | outside-repo |
 | skill-monitor-data | rhize-ops | <home>/.rhize/skill-monitor/ | python3 rhize-ops/skill-monitor/dashboard.py | regenerated | none | derived | outside-repo |
 | application-support | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/ | cat "~/Library/Application Support/Rhize Tasks/installation.json" | persistent | personal | derived | outside-repo |
 | helper-launch-agent | rhize-tasks | <home>/Library/LaunchAgents/media.rhize.tasks.reminders-helper.plist | launchctl print gui/$(id -u)/media.rhize.tasks.reminders-helper | persistent | config | derived | outside-repo |

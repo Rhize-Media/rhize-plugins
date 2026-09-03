@@ -8,7 +8,7 @@ Interactive setup wizard that interviews you, understands your workflow, and bui
 
 This wizard has 6 phases. At each phase, present results and get confirmation before proceeding. The user can skip any phase, and skipped items are logged for `/vault-align` to revisit later.
 
-Also reachable from `/rhize-ops:rhize-setup --plugin obsidian-second-brain`. When that
+Also reachable from `/rhize-core:setup --plugin obsidian-second-brain`. When that
 orchestrator launches this wizard it passes `--from-rhize-setup`; strip that token from
 `$ARGUMENTS` before parsing the rest, and when the run ends, stop instead of suggesting further
 setup commands — the orchestrator continues with its own remaining phases.
@@ -545,7 +545,7 @@ After the vault interface and optional qmd setup are settled, continue into the 
 subflow:
 
 ```text
-/rhize-ops:rhize-setup --plugin obsidian-second-brain --evaluations
+/rhize-core:setup --plugin obsidian-second-brain --evaluations
 ```
 
 Recommend establishing the user's current vault-search, manual retrieval, or review workflow as

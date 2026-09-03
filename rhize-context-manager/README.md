@@ -84,7 +84,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | Command | Purpose |
 |---|---|
 | `/context-doctor` | Read-only health check of the active stack layers (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph) + overlap flags. Asserts **capture liveness** and flags credentials expiring before the next scheduled run. |
-| `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-setup` (rhize-ops). |
+| `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-core:setup` (rhize-core). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |
 | `/context-hygiene` | Mid-session context cleanup when a session gets heavy (moved from rhize-devflow) |
@@ -123,7 +123,7 @@ replaced a prose step the same day):
   map (`skill-map.local.json`, `skill-map.resolved.json`, `skill-map.indexes.resolved.json`
   under `~/.claude/context-manager/`) from the committed static artifact plus optional
   machine-local inputs (enabled plugins, stack config, skill-monitor co-occurrence data,
-  third-party plugin inventory). `/rhize-ops:rhize-setup` installs the compiled skill map
+  third-party plugin inventory). `/rhize-core:setup` installs the compiled skill map
   for this machine via `setup_orchestrator.py install-skill-map`, which calls this script
   to build the overlay whenever it's available at the discovered source root (a dev
   checkout; reported as unavailable from an installed marketplace clone); see
@@ -166,8 +166,8 @@ compiled skill-map artifact and fail silently on any missing/corrupt input, and 
 also write a privacy-preserving suggestion log (ids/hashes only, never prompt text) so
 acceptance/ignore rates are measurable. Beyond the auto-wired six, nine more hooks are declared
 in `setup/manifest.json` for opt-in per-repo use and Claude-plugin migration bookkeeping —
-`/rhize-ops:rhize-setup` wires them for you if that plugin is installed, otherwise see the
-snippet in [rhize-ops/README.md § Setup manifest schema](../rhize-ops/README.md#setup-manifest-schema).
+`/rhize-core:setup` wires them for you if that plugin is installed, otherwise see the
+snippet in [rhize-core/README.md § Setup manifest schema](../rhize-core/README.md#setup-manifest-schema).
 Two of those nine are refinement-pipeline hooks that detect "this skill doesn't work" style
 phrasing or a substantial session ending, and suggest capturing it via `/learn-harvest` →
 `/skill-refine review`.

@@ -267,7 +267,7 @@ enables, so a missing tool degrades only that capability:
 | CodeGraph CLI | `codegraph-index` | Structural lookups fall back to `rg`-based text search (see [`docs/codegraph-setup.md`](docs/codegraph-setup.md)) | `/rhize-devflow:impact-map`, `evidence`, `refactor_gate.py` |
 
 Full purpose/degraded-behavior/replacement text for each entry lives in `setup/manifest.json`,
-read by the `/rhize-setup` wizard (in the `rhize-ops` plugin).
+read by the `/rhize-core:setup` wizard (in the `rhize-core` plugin).
 
 MCP-kind dependencies are detected across the repo-local `.mcp.json`, `~/.claude.json`
 (top-level `mcpServers` plus the per-project entry for the inspected repo), and
@@ -338,14 +338,14 @@ opt-in** through `setup/manifest.json`:
 | `protect-files.sh` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit` | T4 (blocks) | Blocks edits to CI workflows/`.env*`/billing paths and leaked `NEXT_PUBLIC_*` secrets or client-side Supabase service-role keys. Local copy of the same gate the global `~/.claude/hooks/protect-files.sh` already runs for every session — wire this one in only for environments without that global hook installed. |
 
 Full metadata (id, exact command, description) for the four opt-in hooks above lives in
-**`setup/manifest.json`**, read by the `/rhize-setup` wizard (in the `rhize-ops` plugin) so a
+**`setup/manifest.json`**, read by the `/rhize-core:setup` wizard (in the `rhize-core` plugin) so a
 project can pick which guard hooks to wire in without hand-editing `.claude/settings.json`. The
 manifest also declares the capability-scoped `dependencies` array documented above.
 
-**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
-`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item
-manually per the snippet in [rhize-ops/README.md § Setup manifest
-schema](../rhize-ops/README.md#setup-manifest-schema).
+**Fleet setup:** `/rhize-core:setup` is what actually wires opt-in items and checks
+`dependencies` for you — it requires the `rhize-core` plugin. Without it, wire an item
+manually per the snippet in [rhize-core/README.md § Setup manifest
+schema](../rhize-core/README.md#setup-manifest-schema).
 
 ## Lineage
 

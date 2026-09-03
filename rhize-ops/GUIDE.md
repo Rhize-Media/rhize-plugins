@@ -105,37 +105,13 @@ runs that still need factual terminal finalization.
 **Example usage:**
 > "/rhize-ops:bump-version" — then confirm the proposed plan, and it applies the bump and shows you the diff to review before you commit.
 
-### /rhize-setup
+### Setup moved to rhize-core
 
-**What it's for:** The one place to set up as many (or as few) Rhize plugins as you want in one
-pass. It discovers every installed plugin, asks you which ones you actually want to set up this
-run, then hands each selected plugin's own setup wizard the wheel for its part — running a
-shared dependency check and version-control check once instead of per plugin, establishing
-evaluation baselines, and finishing with an opt-in guardrail-hook menu. Installing a Rhize plugin
-never turns on any of its hooks by itself; every hook this wizard offers gets smoke-tested before
-it's wired, so a broken hook script can't get wired silently.
-
-**Pick your plugins:** Run it with no flags and you'll see a checklist of every enabled plugin,
-pre-checked by default — uncheck anything you don't want touched this run. Already know what you
-want? `/rhize-ops:rhize-setup --plugin obsidian-second-brain --plugin rhize-devflow` skips the
-checklist and goes straight to those two; `--all` does the same for everything enabled.
-
-**Example usage:**
-> "/rhize-ops:rhize-setup" — pick your plugins from the checklist (or accept the default of
-> everything enabled), work through each selected plugin's own interview (Obsidian's vault
-> setup, Rhize Tasks' local install, and so on — whichever ones you picked), confirm baselines
-> and the free/offline evaluation seed, review the guardrail-hook menu, and get a final report:
-> what's wired, what's tracked in Git, and — for every plugin with one — a one-line "verify with"
-> pointer to its own health-check command.
-
-Only want the evaluation subflow, without touching hooks? `/rhize-ops:rhize-setup --plugin
-obsidian-second-brain --evaluations` runs just that for one plugin — this is what
-`/vault-setup` itself suggests when you run it standalone. Obsidian is grouped with Context
-Manager and Procedural Memory under Knowledge & Context; Ops hosts the setup engine without
-changing that product taxonomy.
-
-**What gets written where?** Every plugin's setup wizard (and its day-to-day use) is documented
-in one table — see [`rhize-ops/docs/setup-artifacts.md`](./docs/setup-artifacts.md).
+The fleet-level "pick your plugins, run their wizards, establish evaluation baselines, wire
+opt-in hooks" workflow moved to the `rhize-core` plugin as `/rhize-core:setup` — see [its own
+GUIDE](../rhize-core/GUIDE.md). `/rhize-ops:rhize-setup` still works for one release: it forwards
+to `rhize-core:setup` when that plugin is installed, otherwise it runs the same wizard from a
+fallback copy — install `rhize-core@rhize-plugins` to get the canonical copy.
 
 ## Cost & Savings Reports
 

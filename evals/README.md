@@ -23,6 +23,7 @@ evals/
 ├── rhize-cowork/          # Rhize Cowork live + deterministic evals
 ├── rhize-devflow/         # Dev Flow deterministic contracts
 ├── rhize-context-manager/ # Context Manager deterministic contracts
+├── rhize-core/            # Platform control-plane offline test-suite gate
 ├── rhize-tasks/           # Rhize Tasks deterministic contracts + benefit protocol
 ├── procedural-memory/     # Procedural Memory deterministic contracts
 ├── skill-forge/           # External SkillForge safety/evolve integration harness
@@ -70,6 +71,7 @@ python3 evals/project-launcher/run_local_evals.py
 python3 evals/rhize-cowork/run_local_evals.py
 python3 evals/rhize-devflow/run_evals.py
 python3 evals/rhize-context-manager/run_evals.py
+python3 evals/rhize-core/run_evals.py
 python3 evals/parallel-agent-skills/scripts/evaluate_ops_skills.py
 python3 evals/rhize-tasks/run_evals.py
 python3 evals/procedural-memory/run_evals.py
@@ -275,6 +277,19 @@ Grades all shipped `rhize-context-manager` skills: routing-keyword presence in e
 contract, and a paired benchmark specification (Arm A/Arm B, common metric schema) per skill. Run
 with `python3 evals/rhize-context-manager/run_evals.py` (add `--json` for machine output). Writes
 no receipt or result file — it makes no model, network, provider, or live-mutation calls.
+
+### rhize-core
+
+Grades the `rhize-core` plugin -- the marketplace control plane (the fleet setup wizard
+and its four platform scripts) -- by running its own offline `tests/rhize-core` pytest
+suite via subprocess and reporting the result in the same JSON shape
+`evaluate_ops_skills.py` emits. rhize-core ships no skills, so there is no
+routing/collision contract to grade the way skill-bearing plugins are graded; this suite
+grades the platform code itself instead (schema validation, the setup orchestrator, the
+artifacts renderer, git-preflight, and the rhize-ops fallback drift/self-containment
+contract). Run with `python3 evals/rhize-core/run_evals.py` (add `--json` for machine
+output). Writes nothing to disk; `benchmark_spec.json` fixes a `greenfield` Arm A/Arm B
+pair (no confirmed pre-split baseline), but no arm has run.
 
 ### rhize-cowork
 

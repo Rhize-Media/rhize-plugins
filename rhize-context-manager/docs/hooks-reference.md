@@ -95,10 +95,10 @@ enforcement there, by design).
 `setup/manifest.json` also declares a `dependencies` array (`@rhize/skill-forge`, `headroom`,
 `ecc:harness-audit`, and the orchestrated stack tools) that the wizard's dependency check reads.
 
-**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires these opt-in items and checks
-`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item manually
-per the snippet in [rhize-ops/README.md § Setup manifest
-schema](../../rhize-ops/README.md#setup-manifest-schema).
+**Fleet setup:** `/rhize-core:setup` is what actually wires these opt-in items and checks
+`dependencies` for you — it requires the `rhize-core` plugin. Without it, wire an item manually
+per the snippet in [rhize-core/README.md § Setup manifest
+schema](../../rhize-core/README.md#setup-manifest-schema).
 
 See [context-experiment-internals.md](context-experiment-internals.md) for what the
 context-experiment selector/finalizer actually gate — the dogfood providers, the live P4 gate,
@@ -109,9 +109,9 @@ and how evidence is recorded and verified.
 Two of the nine live under `hooks/` directly as refinement-pipeline hooks. They arrived on 2026-08-09, moved
 here from `rhize-devflow` (they predate this plugin and were stranded there by the 2.5.0
 command migration). Like the five above they are **not** wired in `hooks/hooks.json`, but
-`/rhize-setup` can now offer them per-repo the same way (ids `refinement-detector` and
+`/rhize-core:setup` can now offer them per-repo the same way (ids `refinement-detector` and
 `refinement-session-end`) — no manual `.claude/settings.json` edit required unless you're
-wiring without `rhize-ops`.
+wiring without `rhize-core`.
 
 | Script | Event | Tier | Purpose |
 |---|---|---|---|

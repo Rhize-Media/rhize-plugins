@@ -27,6 +27,15 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-03_ version bump — **rhize-ops** 0.18.0 → 0.19.0 (minor); **obsidian-second-brain** 1.7.4 → 1.7.5 (patch); **project-launcher** 1.8.2 → 1.8.3 (patch); **rhize-context-manager** 0.25.1 → 0.25.2 (patch); **rhize-devflow** 2.20.2 → 2.20.3 (patch); **seo-aeo-geo** 1.5.2 → 1.5.3 (patch); **rhize-cowork** 0.2.2 → 0.2.3 (patch); marketplace 2.59.1 → 2.60.0.
+- _2026-09-03_ **Repo-shape R-B: the setup hub moved into its own plugin.** New `rhize-core`
+  plugin (1.0.0) owns `/rhize-core:setup`, the setup orchestrator, the evaluation setup engine,
+  the setup-artifacts registry, the Git preflight, the manifest schemas, and a written stability
+  contract (`rhize-core/docs/contract.md`). `rhize-ops` keeps a drift-tested, self-contained
+  fallback copy plus a forwarding `/rhize-ops:rhize-setup` for one release, and its manifest keeps
+  the tool dependencies it actually probes. Platform scripts resolve their assets from `rhize-core/`
+  when present, else from their own plugin directory. Cross-plugin docs, `START-HERE.md`, the root
+  README, `evals/rhize-core/`, and `tests/rhize-core/` follow the move.
 - _2026-09-03_ version bump — **rhize-ops** 0.17.1 → 0.18.0 (minor); marketplace 2.58.1 → 2.59.0.
 - _2026-09-03_ version bump — **obsidian-second-brain** 1.7.3 → 1.7.4 (patch); **procedural-memory** 0.5.2 → 0.5.3 (patch); **rhize-context-manager** 0.25.0 → 0.25.1 (patch); **rhize-devflow** 2.20.1 → 2.20.2 (patch); marketplace 2.58.1 → 2.58.2.
 - _2026-09-03_ **Repo-shape R-A hygiene pass.** Tests consolidated under `tests/`; every plugin

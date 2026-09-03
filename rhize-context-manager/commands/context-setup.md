@@ -13,10 +13,10 @@ to the file the `context-stack` skill reads.
 It writes `$HOME/.claude/rhize-context-manager/stack.config.json` (which layers this
 repo should use) and nothing else. It does **not** install any tool, does not start any
 process, and does not wire any Claude Code hook. Hook wiring across all plugins is
-`/rhize-setup` (in `rhize-ops`, a fleet-level wizard that reads every plugin's
+`/rhize-core:setup` (in `rhize-core`, a fleet-level wizard that reads every plugin's
 `setup/manifest.json` and lets the user opt in per hook). If a probe below finds a tool
 that isn't installed, or flags a hook this plugin ships as opt-in
-(`rhize-context-manager/setup/manifest.json`), say so and point at `/rhize-setup` —
+(`rhize-context-manager/setup/manifest.json`), say so and point at `/rhize-core:setup` —
 don't attempt to install or wire it yourself.
 
 ## Triggers
@@ -104,7 +104,7 @@ Print what was written (file path, which layers/overrides changed) and what the 
 should expect to see change (e.g. "Headroom's proxy is not yet running — the config now
 says this repo wants it, but you still need to start Headroom itself; run
 `/context-doctor` after starting it to confirm"). If any probed layer needs installation
-or hook wiring, name it explicitly and point at `/rhize-setup` rather than attempting it.
+or hook wiring, name it explicitly and point at `/rhize-core:setup` rather than attempting it.
 
 ## Output Format
 
@@ -124,7 +124,7 @@ or hook wiring, name it explicitly and point at `/rhize-setup` rather than attem
 ✅ Written: ~/.claude/rhize-context-manager/stack.config.json
   [summary of what changed]
 
-⚠️ Not handled here (see /rhize-setup):
+⚠️ Not handled here (see /rhize-core:setup):
   [any hook-wiring or install steps still needed]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -132,10 +132,10 @@ or hook wiring, name it explicitly and point at `/rhize-setup` rather than attem
 
 ### Step 6 — Hand back to the orchestrator, or suggest it
 
-Parse `$ARGUMENTS`. If it contains `--from-rhize-setup`, stop here — `/rhize-ops:rhize-setup`
+Parse `$ARGUMENTS`. If it contains `--from-rhize-setup`, stop here — `/rhize-core:setup`
 invoked this wizard as part of its own run and continues on to its evaluation-baseline and
 hook-wiring phases itself; re-invoking it here would loop back into the same run. Otherwise
-(this wizard was run standalone), suggest `/rhize-ops:rhize-setup --plugin rhize-context-manager`
+(this wizard was run standalone), suggest `/rhize-core:setup --plugin rhize-context-manager`
 to establish the evaluation baseline — register the exact pre-plugin context workflow and frozen
 version/SHA as Arm A. Preserve the existing strict comparability rules: immediate deterministic
 validation is recommended, natural capture is observational, and same-day rows are not a matched
@@ -146,4 +146,4 @@ subflow owns evaluation state and receipts.
 ## Related Commands
 - `/context-doctor` — read-only health check; run this first if you want fresh probe data
 - `context-stack` skill — the routing/coexistence rules this command applies
-- `/rhize-setup` (rhize-ops) — fleet-level opt-in hook wiring, separate from this command's config-only scope
+- `/rhize-core:setup` (rhize-core) — fleet-level opt-in hook wiring, separate from this command's config-only scope

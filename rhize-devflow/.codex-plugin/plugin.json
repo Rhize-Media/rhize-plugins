@@ -1,6 +1,6 @@
 {
   "name": "rhize-devflow",
-  "version": "2.20.2",
+  "version": "2.20.3",
   "description": "Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.",
   "author": {
     "name": "Rhize Media"

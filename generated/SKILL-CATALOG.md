@@ -5,6 +5,10 @@ Generated cross-plugin index of every skill in this marketplace, grouped by plug
 `python3 scripts/render_skill_map_docs.py` (see `docs/skill-map.md` for the full pipeline).
 
 <!-- SKILL-MAP:BEGIN -->
+## rhize-core
+
+_No skills._
+
 ## seo-aeo-geo
 
 | Skill | Description | Topics |

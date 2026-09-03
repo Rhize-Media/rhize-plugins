@@ -601,6 +601,12 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-core",
+      "source": "marketplace",
+      "to": "command:rhize-core/setup",
+      "type": "contains"
+    },
+    {
       "from": "plugin:rhize-cowork",
       "source": "marketplace",
       "to": "skill:rhize-cowork/project-kickoff",
@@ -2579,6 +2585,13 @@
       "path": "rhize-context-manager/commands/suggestion-report.md"
     },
     {
+      "description": "Fleet-level setup wizard — pick your plugins, run their own expert wizards, establish evaluation baselines, and wire opt-in guardrail hooks",
+      "id": "command:rhize-core/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "rhize-core/commands/setup.md"
+    },
+    {
       "description": "Deprecated — use /rhize-devflow:browser-qa instead.",
       "id": "command:rhize-devflow/browser-debug",
       "kind": "command",
@@ -3373,6 +3386,13 @@
       "path": "rhize-context-manager"
     },
     {
+      "description": "The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.",
+      "id": "plugin:rhize-core",
+      "kind": "plugin",
+      "name": "rhize-core",
+      "path": "rhize-core"
+    },
+    {
       "description": "Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.",
       "id": "plugin:rhize-cowork",
       "kind": "plugin",
@@ -3583,7 +3603,7 @@
       "path": "rhize-context-manager/skills/context-pack/SKILL.md"
     },
     {
-      "contentHash": "d458c7405d6243be4a3aaee460a592cb76673e721284a2f5abb350ead47cfed9",
+      "contentHash": "291c24fc1850a121b701db8dbfb68ded0bc28877733e09125f993c8ab1abbc89",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",

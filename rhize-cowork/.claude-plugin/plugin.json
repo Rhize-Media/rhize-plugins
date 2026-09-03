@@ -1,6 +1,6 @@
 {
   "name": "rhize-cowork",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand.",
   "author": {
     "name": "Rhize Media"

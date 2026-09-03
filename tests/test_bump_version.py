@@ -184,7 +184,7 @@ class PluginContractCheckTests(unittest.TestCase):
                 ],
                 [
                     bump_version.sys.executable,
-                    str(ROOT / "rhize-ops/scripts/setup_artifacts.py"),
+                    str(ROOT / "rhize-core/scripts/setup_artifacts.py"),
                     "--check",
                 ],
                 [

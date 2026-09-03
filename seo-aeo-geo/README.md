@@ -166,17 +166,17 @@ setup step is required to use them.
 ## Setup Manifest
 
 `setup/manifest.json` lists opt-in capabilities this plugin could offer beyond what's
-auto-wired in `hooks/hooks.json` — read by the `/rhize-setup` wizard (in the `rhize-ops`
+auto-wired in `hooks/hooks.json` — read by the `/rhize-core:setup` wizard (in the `rhize-core`
 plugin) so a project can pick which ones to wire into its `.claude/settings.json`. It's
 currently empty: every hook this plugin ships is already scoped tightly (SEO file patterns
 only, 3s timeout, advisory-only) and auto-wired, so there's nothing here that needs to be
 opt-in rather than on-by-default. It does declare a `dependencies` array (the DataForSEO
 MCP server) that the wizard's dependency check reads.
 
-**Fleet setup:** `/rhize-ops:rhize-setup` is what actually wires opt-in items and checks
-`dependencies` for you — it requires the `rhize-ops` plugin. Without it, wire an item
-manually per the snippet in [rhize-ops/README.md § Setup manifest
-schema](../rhize-ops/README.md#setup-manifest-schema).
+**Fleet setup:** `/rhize-core:setup` is what actually wires opt-in items and checks
+`dependencies` for you — it requires the `rhize-core` plugin. Without it, wire an item
+manually per the snippet in [rhize-core/README.md § Setup manifest
+schema](../rhize-core/README.md#setup-manifest-schema).
 
 ## Architecture
 
@@ -203,6 +203,6 @@ seo-aeo-geo/
 │       ├── seo-edit-hint.py           # PreToolUse Write|Edit implementation
 │       └── seo-read-hint.py           # PostToolUse Read implementation
 ├── setup/
-│   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
+│   └── manifest.json                  # Opt-in capabilities for /rhize-core:setup (currently empty)
 └── README.md
 ```

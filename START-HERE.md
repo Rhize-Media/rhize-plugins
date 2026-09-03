@@ -44,8 +44,13 @@ been solved. Start with → [GUIDE](./procedural-memory/GUIDE.md).
 
 ### Operations
 
-**rhize-ops** ⭐ — Rhize Media's internal operations toolkit, and the **hub plugin everyone
-should install first** (see [§3](#3-which-should-i-install)). For anyone who delegates work,
+**rhize-core** ⭐ — the **hub plugin everyone should install first** (see
+[§3](#3-which-should-i-install)). It is the setup wizard (`/rhize-core:setup`) that finds the Rhize
+plugins you have installed, runs each one's own setup, and wires the optional hooks you choose — and
+nothing else: no skills of its own, run once per project and again after upgrades. Start with →
+[GUIDE](./rhize-core/GUIDE.md).
+
+**rhize-ops** — Rhize Media's internal operations toolkit. For anyone who delegates work,
 wants visibility into which skills are actually earning their keep, or runs several Claude agents
 in parallel and wants that done safely. Reach for it when handing a task to a teammate, checking
 skill usage, or coordinating parallel agent work. Start with → [GUIDE](./rhize-ops/GUIDE.md).
@@ -96,18 +101,18 @@ it's added). You don't install it as a plugin — some plugins' commands will te
 
 ## 3. Which should I install?
 
-**rhize-ops is the hub:** it's the only plugin that ships the setup wizard
-(`/rhize-ops:rhize-setup`) able to wire every other plugin's *optional* hooks and dependencies
+**rhize-core is the hub:** it's the only plugin that ships the setup wizard
+(`/rhize-core:setup`) able to wire every other plugin's *optional* hooks and dependencies
 into your project — without it, those hooks stay documentation-only and you'd have to hand-edit
 `.claude/settings.json` yourself. Every plugin still installs and works without it; you'd just be
-doing setup and cost visibility by hand. Install it first, regardless of which profile below fits
-you.
+doing setup by hand. Install it first, regardless of which profile below fits you. (Already have
+rhize-ops? `/rhize-ops:rhize-setup` keeps working for one release and simply forwards to it.)
 
 | Profile | Recommended set |
 | --- | --- |
-| **Solo developer** — building your own projects | rhize-ops, rhize-devflow, rhize-context-manager. Add obsidian-second-brain if you keep notes in Obsidian, and project-launcher when an idea is ready to become a real project. |
-| **Client engineering team** — shipping software for clients | rhize-ops, rhize-devflow, rhize-context-manager, project-launcher, rhize-cowork (client kickoff), and rhize-tasks if the team plans work off Jira. |
-| **Content / SEO team** — auditing and optimizing sites, no code shipping | rhize-ops, seo-aeo-geo, and obsidian-second-brain if research and reports live in a vault. |
+| **Solo developer** — building your own projects | rhize-core, rhize-ops, rhize-devflow, rhize-context-manager. Add obsidian-second-brain if you keep notes in Obsidian, and project-launcher when an idea is ready to become a real project. |
+| **Client engineering team** — shipping software for clients | rhize-core, rhize-ops, rhize-devflow, rhize-context-manager, project-launcher, rhize-cowork (client kickoff), and rhize-tasks if the team plans work off Jira. |
+| **Content / SEO team** — auditing and optimizing sites, no code shipping | rhize-core, seo-aeo-geo, and obsidian-second-brain if research and reports live in a vault. |
 
 procedural-memory and `@rhize/skill-forge` are power-user tools — add them once you notice the
 specific need (repeated one-off scripts, or wanting to check a skill for upstream drift) rather
@@ -126,21 +131,22 @@ action you run explicitly by typing `/plugin-name:command-name`.
 | Project instructions | Standing instructions specific to one project/repo | You | `CLAUDE.md` at the project root | Yes, with the project | — |
 | Plugin docs for you | Human-readable documentation — the README is setup and technical reference, the GUIDE is the day-to-day walkthrough | The plugin's maintainer | `<plugin>/README.md`, `<plugin>/GUIDE.md` | Yes | [Documentation Hierarchy](./README.md#documentation-hierarchy) |
 | Plugin instructions for Claude | The actual instructions a skill or command executes | The plugin's maintainer | Skills: `<plugin>/skills/*/SKILL.md` (triggered automatically by what you ask). Commands: `<plugin>/commands/*.md` (run by typing `/plugin:command`) | Yes | [Documentation Hierarchy](./README.md#documentation-hierarchy) |
-| Hooks | Small scripts the harness runs automatically before or after a tool call — e.g. to block a risky edit or log an event | The plugin's maintainer (auto-wired hooks); you, via the setup wizard (optional/opt-in hooks) | Declared in `<plugin>/hooks/hooks.json` (auto-wired) or `<plugin>/setup/manifest.json` (opt-in); optional guardrail hooks get wired into your project's `.claude/settings.json` by `/rhize-ops:rhize-setup` | The declarations are yes; what gets wired into *your* project's `.claude/settings.json` is your project's own file | [rhize-ops README § Setup manifest schema](./rhize-ops/README.md#setup-manifest-schema) |
+| Hooks | Small scripts the harness runs automatically before or after a tool call — e.g. to block a risky edit or log an event | The plugin's maintainer (auto-wired hooks); you, via the setup wizard (optional/opt-in hooks) | Declared in `<plugin>/hooks/hooks.json` (auto-wired) or `<plugin>/setup/manifest.json` (opt-in); optional guardrail hooks get wired into your project's `.claude/settings.json` by `/rhize-ops:rhize-setup` | The declarations are yes; what gets wired into *your* project's `.claude/settings.json` is your project's own file | [rhize-ops README § Setup manifest schema](./rhize-core/README.md#setup-manifest-schema) |
 | Private/local files | Content specific to one installer or tenant that should never be hardcoded into a shared skill | You, usually via a setup wizard | Durable personal config: `~/.claude/<plugin>/...`. Disposable repo-local reference material: `.claude/*.local.md` inside a project | No — both paths are gitignored | [README § Progressive disclosure](./README.md#progressive-disclosure) |
 | Derived state | Generated artifacts a plugin reads or writes at runtime — caches, receipts, indexes | The plugin itself, automatically | `~/.rhize/`, `~/.claude/context-manager/`, `~/.skill-forge/`, `~/Library/Application Support/Rhize Tasks/` | No | — |
 
 ## 5. Setting up
 
-1. Install `rhize-ops` from this marketplace (see the root [README's Quick Start](./README.md#quick-start) for the exact install command for your host).
-2. Run `/rhize-ops:rhize-setup`. It asks which of your installed plugins to set up (all of them by
+1. Install `rhize-core` from this marketplace (see the root [README's Quick Start](./README.md#quick-start) for the exact install command for your host).
+2. Run `/rhize-core:setup`. It asks which of your installed plugins to set up (all of them by
    default), checks their dependencies once, checks whether the files it is about to change are
    under version control and offers to track them, hands off to each selected plugin's own setup
    wizard, then wires the optional guardrail hooks you pick into your project — and ends with a
    report of what was written where and how to look at it. Each plugin's wizard also runs on its
    own if you only want that one.
 3. Follow each plugin's own README Setup/Install section for anything the wizard doesn't cover
-   (API credentials, external CLIs): [seo-aeo-geo](./seo-aeo-geo/README.md#setup) ·
+   (API credentials, external CLIs): [rhize-core](./rhize-core/README.md#setup) ·
+   [seo-aeo-geo](./seo-aeo-geo/README.md#setup) ·
    [obsidian-second-brain](./obsidian-second-brain/README.md#setup) ·
    [project-launcher](./project-launcher/README.md#setup) ·
    [rhize-devflow](./rhize-devflow/README.md#install) ·
@@ -151,7 +157,7 @@ action you run explicitly by typing `/plugin-name:command-name`.
    [procedural-memory](./procedural-memory/README.md#setup).
 
 **What setup writes, and where to look:** every plugin declares the files it creates in its setup
-manifest, and [`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md) is the
+manifest, and [`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md) is the
 rendered list — path, purpose, how to view it, how long it lives, how sensitive it is, and whether
 it is tracked in Git.
 
@@ -161,7 +167,7 @@ Git is the rollback for almost everything a plugin writes into your project or y
 commit before you run a setup wizard, and `git diff`/`git checkout` gets you back. The one
 exception is a skill refinement applied by skill-forge, which has its own undo:
 `skill-forge refine rollback <backup-id>`. See
-[rhize-ops README § Rollback](./rhize-ops/README.md#rollback) for the full recipe, including how
+[rhize-core README § Rollback](./rhize-core/README.md#rollback) for the full recipe, including how
 to check what's tracked before you commit.
 
 ## 7. Glossary

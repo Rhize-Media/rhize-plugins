@@ -115,5 +115,5 @@ Run `/context-setup` to have this reasoning applied automatically for a specific
 it scans the repo, probes which layers are actually active, proposes enable/disable
 decisions with one-line reasons (including catching cases like Serena+CodeGraph both
 active), and writes the confirmed result to `stack.config.json` above. `/context-setup`
-owns stack CONFIG only — it does not wire hooks; that's `/rhize-setup` (rhize-ops), a
+owns stack CONFIG only — it does not wire hooks; that's `/rhize-core:setup`, a
 separate fleet-level wizard for opt-in hooks declared in each plugin's `setup/manifest.json`.

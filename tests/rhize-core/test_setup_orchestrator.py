@@ -1,7 +1,13 @@
-"""test_setup_orchestrator.py — rhize-ops/scripts/setup_orchestrator.py (hybrid-setup-wizard.md
-R2 §2, §6). Every fixture is hermetic: a throwaway --home and --project tree, never the real
-machine or the real repo (except the one dry-run test at the bottom of this file, which only
-reads the real repo and never writes to it).
+"""test_setup_orchestrator.py — rhize-core/scripts/setup_orchestrator.py (hybrid-setup-wizard.md
+R2 §2, §6; moved from rhize-ops in repo-shape R-B). Every fixture is hermetic: a throwaway --home
+and --project tree, never the real machine or the real repo (except the one dry-run test at the
+bottom of this file, which only reads the real repo and never writes to it).
+
+Every fixture here builds a synthetic marketplace with a fake `rhize-ops` plugin dir as the
+"is this a rhize-plugins root" signature — that keeps working unchanged because
+is_rhize_marketplace() accepts EITHER `rhize-core` or `rhize-ops` (RHIZE_SIGNATURE_PLUGIN /
+RHIZE_SIGNATURE_FALLBACK_PLUGIN), so these fixtures double as regression coverage for a
+pre-rhize-core (or rhize-ops-only) marketplace.
 """
 from __future__ import annotations
 
@@ -14,7 +20,7 @@ from pathlib import Path
 import pytest
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "rhize-ops" / "scripts" / "setup_orchestrator.py"
+SCRIPT = REPO / "rhize-core" / "scripts" / "setup_orchestrator.py"
 SPEC = importlib.util.spec_from_file_location("setup_orchestrator", SCRIPT)
 setup_orchestrator = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -177,17 +183,18 @@ def test_discover_reports_schema_1_as_evaluation_missing(tmp_path: Path) -> None
     assert any("evaluation catalog missing" in warning for warning in result["warnings"])
 
 
-def test_discover_dry_run_against_the_real_dev_repo_finds_all_nine_plugins(tmp_path: Path) -> None:
+def test_discover_dry_run_against_the_real_dev_repo_finds_all_ten_plugins(tmp_path: Path) -> None:
     """Verification step from the task brief: a dry run against this dev repo (read-only —
-    --home/--project point at throwaway fixtures) must print all nine plugins."""
+    --home/--project point at throwaway fixtures) must print all ten plugins, including the new
+    rhize-core split (repo-shape R-B)."""
     home = tmp_path / "home"
     code, result = run_cli("discover", "--json", "--home", str(home), "--project", str(REPO))
     assert code == 0, result
     assert result["source"]["kind"] == "dev-repo"
-    assert len(result["plugins"]) == 9
+    assert len(result["plugins"]) == 10
     assert {p["name"] for p in result["plugins"]} == {
         "obsidian-second-brain", "procedural-memory", "project-launcher", "rhize-context-manager",
-        "rhize-cowork", "rhize-devflow", "rhize-ops", "rhize-tasks", "seo-aeo-geo",
+        "rhize-core", "rhize-cowork", "rhize-devflow", "rhize-ops", "rhize-tasks", "seo-aeo-geo",
     }
 
 

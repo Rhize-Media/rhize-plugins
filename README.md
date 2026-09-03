@@ -19,27 +19,32 @@ All plugins below will become available for installation. Each plugin may need i
 <!-- SKILL-MAP:BEGIN -->
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
-| [seo-aeo-geo](./seo-aeo-geo) | 1.5.2 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | 1.7.4 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
-| [project-launcher](./project-launcher) | 1.8.2 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | 2.20.2 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.25.1 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
-| [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.18.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
+| [rhize-core](./rhize-core) ⭐ **hub — recommended base install** | 1.0.0 | 0 | The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command. | [README](./rhize-core/README.md) · [GUIDE](./rhize-core/GUIDE.md) |
+| [seo-aeo-geo](./seo-aeo-geo) | 1.5.3 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.7.5 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [project-launcher](./project-launcher) | 1.8.3 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.20.3 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.25.2 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-ops](./rhize-ops) | 0.19.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-tasks](./rhize-tasks) | 0.4.4 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
-| [rhize-cowork](./rhize-cowork) | 0.2.2 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
+| [rhize-cowork](./rhize-cowork) | 0.2.3 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
 | [procedural-memory](./procedural-memory) | 0.5.3 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
-**Why rhize-ops is the hub:** it hosts `/rhize-setup`, the one wizard that reads every other
+**Why rhize-core is the hub:** it hosts `/rhize-core:setup`, the one wizard that reads every other
 plugin's `setup/manifest.json`, lets you pick which installed plugins to set up, runs the shared
 checks once (dependencies, whether your customizations are under version control, the skill-map
 install), hands off to each selected plugin's own wizard, wires the opt-in hooks into
 `.claude/settings.json`, and reports what was written where
-([`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md)) — without it those
+([`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md)) — without it those
 manifests are documentation only, and you'd hand-edit `.claude/settings.json` yourself following
-the snippets each plugin's README shows. It also hosts the cost/ROI reporting (`savings_scorecard.py`,
-`skill_roi.py`) that the other plugins' value story leans on. Every other plugin still installs,
-loads, and works fully without rhize-ops — it just means doing setup and cost visibility by hand.
+the snippets each plugin's README shows. It ships no skills of its own, and its 1.0.0 contract
+([`rhize-core/docs/contract.md`](./rhize-core/docs/contract.md)) is what every other plugin's setup
+command is written against. rhize-ops stays the internal-operations toolkit and keeps the cost/ROI
+reporting (`savings_scorecard.py`, `skill_roi.py`) that the other plugins' value story leans on;
+its `/rhize-ops:rhize-setup` forwards to the hub for one more release. Every other plugin still
+installs, loads, and works fully without rhize-core — it just means doing setup and cost visibility
+by hand.
 
 ### Plugin-specific prerequisites
 
@@ -55,13 +60,13 @@ export DATAFORSEO_PASSWORD="your_api_password"
 
 **procedural-memory** needs a built `rhize-skill` CLI (from `Rhize-Media/procedural-memory`, not published to PyPI) and a local Postgres + pgvector instance. It never hardcodes a path to the CLI — resolve it via `RHIZE_SKILL_BIN`, `PATH`, or the documented convenience default. See its [README](./procedural-memory/README.md#setup) for full setup.
 
-The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
+The other plugins (project-launcher, rhize-devflow, rhize-context-manager, rhize-ops, rhize-core) have no required external credentials beyond the MCP servers/tools each plugin's README calls out. rhize-context-manager orchestrates externally installed tools (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK) — each is optional and documented in its [README](./rhize-context-manager/README.md).
 
 ### Dependency matrix
 
 Each plugin's `setup/manifest.json` now carries a machine-readable `"dependencies"` array (see
-[rhize-ops/README.md § Setup manifest schema](./rhize-ops/README.md#setup-manifest-schema)) that
-`/rhize-setup` probes and reports on before its opt-in hook menu. This table is the human-readable
+[rhize-core/README.md § Setup manifest schema](./rhize-core/README.md#setup-manifest-schema)) that
+`/rhize-core:setup` probes and reports on before its opt-in hook menu. This table is the human-readable
 summary — one row per *required* or structurally central dependency; see each manifest for the
 full list including optional numerator/orchestration sources.
 
@@ -102,7 +107,7 @@ This repo uses one convention consistently across every plugin — know it once,
 | **`SKILL.md`** (inside `skills/*/`) | Claude, at runtime | The actual instructions a skill executes when triggered — not primary human documentation, though readable if you're curious how a skill works |
 | **[`docs/README.md`](./docs/README.md)** | Maintainers | Index into cross-plugin reference material and dated design records that don't belong to one plugin |
 | **[`generated/SKILL-CATALOG.md`](./generated/SKILL-CATALOG.md)** | Anyone looking for a specific skill | Full cross-plugin skill catalog, generated from the skill map — never hand-edited |
-| **[`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md)** | Anyone who ran setup | Every file the plugins write on your machine — path, purpose, how to view it, sensitivity, Git tracking — rendered from each plugin's setup manifest |
+| **[`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md)** | Anyone who ran setup | Every file the plugins write on your machine — path, purpose, how to view it, sensitivity, Git tracking — rendered from each plugin's setup manifest |
 | **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
 | **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped |
 | **`CHANGELOG.md`** | Maintainers and contributors | Marketplace-level record: version bumps and cross-plugin programs; each plugin keeps its own `CHANGELOG.md`, and everything before 2026-09-03 is preserved in [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) |
@@ -178,6 +183,7 @@ rhize-plugins/
 ├── project-launcher/              # Plugin: project research → PRD → scaffold
 ├── rhize-devflow/                 # Plugin: dev workflow
 ├── rhize-context-manager/         # Plugin: context engineering & optimization
+├── rhize-core/                    # Plugin: setup hub — the control plane, no skills of its own
 ├── rhize-ops/                     # Plugin: internal ops
 ├── rhize-tasks/                   # Plugin: local-first unified task planning
 ├── rhize-cowork/                  # Plugin: Cowork project context scaffolding

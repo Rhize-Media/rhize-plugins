@@ -6,6 +6,29 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-03_ version bump — 0.18.0 → 0.19.0 (minor); marketplace 2.59.1 → 2.60.0.
+
+### Changed
+
+- _2026-09-03_ **rhize-ops: setup engine split out to `rhize-core` (repo-shape R-B).**
+  `/rhize-ops:rhize-setup`, the four platform scripts, `setup/evaluation-catalog.json`,
+  `schemas/*.json`, `templates/claude-home.gitignore`, and `docs/setup-artifacts.md` moved to the
+  new `rhize-core` plugin. `rhize-ops/commands/rhize-setup.md` is now a **one-release
+  compatibility adapter**: it forwards to `rhize-core:setup` when that plugin is installed and
+  stops, otherwise it runs a byte-identical fallback copy of the same orchestrator prose against
+  byte-identical fallback copies of the four scripts plus `setup/evaluation-catalog.json`,
+  `templates/claude-home.gitignore`, and `schemas/*.json` — drift-tested by `tests/config-lint/
+  test_platform_fallback_drift.py`. **This adapter and its fallback assets are scheduled for
+  removal in the next `rhize-ops` minor version** (0.19.0) — install `rhize-core@rhize-plugins`
+  before then. `rhize-ops/setup/manifest.json` keeps its five skill-monitor/savings-scorecard
+  dependencies (ecc, rtk, Headroom, claude-mem, OpenWolf) and its `delegate-setup` wizard
+  unchanged; only the platform artifacts (`evals-config`, `evals-receipts`, `evals-hmac-key`,
+  `setup-runs`, and `project-settings`) moved to `rhize-core`'s manifest, alongside a new
+  `runtime-home` artifact documenting the isolated per-suite HOME the evaluation engine already
+  used but never declared.
+
+### Added
+
 - _2026-09-03_ **rhize-ops/skill-monitor:** the benchmark watchdog now watches the
   Rhize Dashboard Snapshot Refresh Arm-A pre-check — a sixth note
   (`Project-Dashboard/Procedural Memory Benchmark.md`, Desktop scheduler key

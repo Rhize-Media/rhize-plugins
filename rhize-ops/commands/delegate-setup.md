@@ -4,7 +4,7 @@ description: Interview-driven setup wizard for delegate-to-teammate — recipien
 
 # /rhize-ops:delegate-setup
 
-Also reachable from `/rhize-ops:rhize-setup --plugin rhize-ops`. When that orchestrator launches
+Also reachable from `/rhize-core:setup --plugin rhize-ops`. When that orchestrator launches
 this wizard it passes `--from-rhize-setup` in `$ARGUMENTS`; ignore that token, and when the
 interview ends, stop rather than pointing the user at other setup commands — the orchestrator
 continues with its own remaining phases.
@@ -183,7 +183,7 @@ unprompted. Then remind them:
 ### 10. Establish the evaluation baseline
 
 After recipient and integration setup succeeds, continue with
-`/rhize-ops:rhize-setup --plugin rhize-ops --evaluations`. Offer the user's current delegation
+`/rhize-core:setup --plugin rhize-ops --evaluations`. Offer the user's current delegation
 handoff as Arm A, but never create Jira issues or send Slack messages solely to seed a benchmark.
 The immediate deterministic suite is free/offline. Any natural capture must exclude recipient,
 issue, channel, project, and session identifiers.

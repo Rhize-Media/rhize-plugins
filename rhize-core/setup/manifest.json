@@ -1,0 +1,104 @@
+{
+  "schema": 3,
+  "plugin": "rhize-core",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "git",
+      "kind": "cli",
+      "binary": "git",
+      "purpose": "Backs git_preflight.py's report/track subcommands -- checking and, on explicit confirmation, baselining version-control state for the .claude/ and project config files this wizard writes.",
+      "required": true,
+      "degradedBehavior": "git_preflight.py exits 2 immediately (\"git is not installed or not on PATH\"). Phase 3b/Phase 7's version-control preflight and the Rollback recipe are unavailable, and this wizard cannot verify whether its own writes are ever recoverable."
+    },
+    {
+      "name": "@rhize/skill-forge",
+      "kind": "cli",
+      "purpose": "Phase 3d's init hint checks for a skill-forge checkout (`npx --no-install @rhize/skill-forge --version`) so a fresh machine is nudged toward running its own `init` before other plugins (e.g. rhize-context-manager's /skill-refine) depend on it.",
+      "required": false,
+      "degradedBehavior": "Phase 3d's hint is silently skipped; any selected plugin whose own setup wizard actually needs skill-forge surfaces that as its own dependency separately.",
+      "replacement": {
+        "suggestion": "hand-edit SKILL.md files and manually vet third-party skill sources instead of running skill-forge's own gates",
+        "warning": "skill-forge's SkillOpt gate and safety re-gate are the actual safety mechanism behind auto-promoting a skill edit. Hand-editing without it means shipping unreviewed skill changes — install @rhize/skill-forge rather than skip the gate."
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "evals-config",
+      "path": "<home>/.rhize/evals/config.json",
+      "kind": "file",
+      "purpose": "Evaluation coverage and capture-mode configuration written by evaluation_setup.py setup.",
+      "viewer": "cat ~/.rhize/evals/config.json",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "evals-receipts",
+      "path": "<home>/.rhize/evals/receipts/",
+      "kind": "directory",
+      "purpose": "Append-only monthly JSONL receipts recording reserved/finalized evaluation runs — HMAC-fingerprinted inputs only, never raw content.",
+      "viewer": "cat ~/.rhize/evals/receipts/<month>.jsonl",
+      "lifetime": "append-only",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "evals-hmac-key",
+      "path": "<home>/.rhize/evals/hmac.key",
+      "kind": "file",
+      "purpose": "Per-machine HMAC key used to fingerprint evaluation receipt inputs without ever storing them.",
+      "viewer": "not human-readable — presence and 0600 permissions only",
+      "lifetime": "persistent",
+      "confidentiality": "secret",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "runtime-home",
+      "path": "<home>/.rhize/evals/runtime-home/",
+      "kind": "directory",
+      "purpose": "Isolated per-suite HOME/TMPDIR used while executing free offline evaluation runner suites (evaluation_setup.py's run_suite()), so a suite's subprocess never touches the real home directory.",
+      "viewer": "ls ~/.rhize/evals/runtime-home/",
+      "lifetime": "persistent",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "setup-runs",
+      "path": "<home>/.rhize/setup/runs/",
+      "kind": "directory",
+      "purpose": "Per-run state for /rhize-core:setup — discovery, hook plans, and artifact snapshots — rendered by setup_orchestrator.py report.",
+      "viewer": "python3 rhize-core/scripts/setup_orchestrator.py report --run <id>",
+      "lifetime": "per-run",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "project-settings",
+      "path": "<project>/.claude/settings.json",
+      "kind": "file",
+      "purpose": "Tracked project settings file where /rhize-core:setup wires opt-in guardrail hooks (setup_orchestrator.py hooks apply).",
+      "viewer": "cat .claude/settings.json",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "authored",
+      "tracked": "project",
+      "optional": false
+    }
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-core"
+  }
+}

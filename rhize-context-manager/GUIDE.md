@@ -38,7 +38,7 @@ the right one, and health-checks the whole thing.
   indexed here"), and on your confirmation writes the decision to
   `~/.claude/rhize-context-manager/stack.config.json`. It only touches that config file —
   it won't install a tool or wire a hook for you; for hook wiring across plugins, run
-  `/rhize-setup` (rhize-ops) once that lands.
+  `/rhize-core:setup`.
   *Example: "Run /context-setup on this repo — I want to know if OpenWolf is worth it here."*
 
 - **"Start / where were we / begin a new session"**
@@ -208,7 +208,7 @@ the right one, and health-checks the whole thing.
   suggested for its content. It's a measurement instrument, not a router — a PreToolUse hook
   fires only after the brief is written, so it can't fix the dispatch it's observing, only
   inform the next one. Read the numbers via `suggestion_log_report.py`'s agent-dispatch
-  section (above). Enable it the same way as `skill-router`, via `/rhize-setup` or a manual
+  section (above). Enable it the same way as `skill-router`, via `/rhize-core:setup` or a manual
   `.claude/settings.json` entry keyed `agent-brief-router`; a one-line next-dispatch advisory
   exists behind `RHIZE_AGENT_BRIEF_ADVISORY=1` but stays off until the logged data has been
   reviewed. See `docs/skill-map.md`'s "Agent-dispatch surface" section for the spike verdicts
@@ -218,7 +218,7 @@ the right one, and health-checks the whole thing.
   `rhize-devflow`): `refinement-pipeline__refinement-detector.sh` (prompt-keyword
   detector) and `refinement-pipeline__session-end.sh` (Stop-hook session-stats prompt).
   Both are now also in `setup/manifest.json` (ids `refinement-detector` /
-  `refinement-session-end`), so `/rhize-setup` can wire them the same as the others —
+  `refinement-session-end`), so `/rhize-core:setup` can wire them the same as the others —
   see README.md's Hooks section for the manual `.claude/settings.json` snippet if you're
   wiring without `rhize-ops`.
 - The third-party skills are safety-gated snapshots; `npx @rhize/skill-forge watch`

@@ -4,6 +4,23 @@ description: Fleet-level setup wizard — pick your plugins, run their own exper
 
 # /rhize-ops:rhize-setup
 
+**One-release compatibility adapter (repo-shape R-B, Codex F6).** This wizard's canonical home
+moved to the `rhize-core` plugin as `/rhize-core:setup`. If `rhize-core` is installed — its
+`.claude-plugin/plugin.json` exists under the discovered marketplace root, or `enabledPlugins` in
+`~/.claude/settings.json` lists `rhize-core@<marketplace>`: `true` — invoke `rhize-core:setup` via
+the **Skill tool** with `$ARGUMENTS` and **stop**; the rest of this file never runs. Otherwise,
+continue with the full orchestrator prose below (a verbatim copy of `rhize-core/commands/
+setup.md`, kept byte-identical and drift-tested by `tests/config-lint/
+test_platform_fallback_drift.py`) so this plugin keeps working standalone, and at the end
+(Phase 8), recommend `claude plugin install rhize-core@rhize-plugins` so the next run uses the
+canonical, actively-developed copy. This adapter — and the four fallback scripts, the fallback
+`setup/evaluation-catalog.json`, `templates/claude-home.gitignore`, and `schemas/*.json` it
+depends on — are scheduled for removal in the next `rhize-ops` minor version; see CHANGELOG.md.
+
+---
+
+# /rhize-core:setup
+
 Fleet-level setup wizard. Discovers installed Rhize plugins, lets you pick which ones to set up
 this run, then orchestrates: each selected plugin's own expert setup wizard (when it has one), a
 shared dependency and version-control preflight, evaluation-coverage baselines, and an opt-in
@@ -15,7 +32,7 @@ or schedules a job. This wizard offers policy and hook choices separately, and a
 requires a verified component adapter. Free deterministic validation is recommended immediately;
 every other effect remains an explicit user choice.
 
-Every deterministic step below calls `rhize-ops/scripts/setup_orchestrator.py`,
+Every deterministic step below calls `rhize-core/scripts/setup_orchestrator.py`,
 `evaluation_setup.py`, or `git_preflight.py` by path — this file supplies the questions,
 confirmations, and Skill-tool invocations, not the discovery, path-resolution, or settings-merge
 logic itself.
@@ -135,8 +152,8 @@ For each row that is not `rollback_ready`, one `AskUserQuestion`:
    ```
 2. **Proceed without version control** — recorded verbatim in the report.
 3. **Show the recipe** (`NOT_IN_REPO` rows, including `~/.claude`): print the commands from
-   `rhize-ops/README.md` → Rollback, using the shipped allowlist template
-   `rhize-ops/templates/claude-home.gitignore`, then pause and re-run the `report` command above
+   `rhize-core/README.md` → Rollback, using the shipped allowlist template
+   `rhize-core/templates/claude-home.gitignore`, then pause and re-run the `report` command above
    to verify before continuing. **Never run `git init` on `~/.claude` yourself.**
 
 Persist the resulting table the same way as 3a, under `--section version_control`.
@@ -205,13 +222,15 @@ Do this for every selected, non-`blocked` plugin. When the user invoked this com
    Stop the evaluation phase on a validation failure. Do not bypass an omitted skill, unsafe
    runner path, unknown dependency kind, or missing benchmark protocol.
 2. Present the catalog grouped by product domain. The canonical grouping is:
+   - **Platform:** Rhize Core (this setup engine itself).
    - **Knowledge & Context:** Obsidian Second Brain, Rhize Context Manager, Procedural Memory.
    - **Operations:** Rhize Ops, Rhize Tasks.
    - **Engineering & Delivery:** Rhize Devflow, Project Launcher, Rhize Cowork.
    - **Content Intelligence:** SEO/AEO/GEO.
    - **Toolchain:** SkillForge.
 
-   Rhize Ops owns this setup engine; that does not make every component an operations product.
+   Rhize Core owns this setup engine and is itself the Platform domain's one component; every
+   other domain groups by subject matter, not by which plugin happens to run the engine.
 3. For each selected benchmark, ask the user to classify Arm A as one of:
    - an exact existing manual workflow/checklist;
    - an exact existing script, command, skill, or tool;
@@ -306,8 +325,8 @@ command line, never execute it yourself.
 
 ## Manifest schema reference
 
-See `rhize-ops/README.md` → "Setup manifest schema" for the canonical `setup/manifest.json`
+See `rhize-core/README.md` → "Setup manifest schema" for the canonical `setup/manifest.json`
 shape this command reads (schema 3: the same `items`/`dependencies`/`evaluations` as schema 2,
 plus the optional `wizard`, `doctor`, and `artifacts` blocks this wizard drives Phases 4 and 8
-from). `rhize-ops` owns that spec; other plugins ship manifests conforming to it, not the other
+from). `rhize-core` owns that spec; other plugins ship manifests conforming to it, not the other
 way around.

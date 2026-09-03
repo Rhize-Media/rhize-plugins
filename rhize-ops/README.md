@@ -7,8 +7,9 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
 The other skills and commands work with no prior configuration. `parallel-agent-optimization`
 stores opt-in, privacy-safe v2 lifecycle receipts under `~/.rhize/parallel-agent-optimization/`
-only when it runs; `/rhize-setup` is itself a wizard, run whenever you want to review or change which plugin
-guardrail hooks are active in a project.
+only when it runs. Fleet-level setup (picking which plugins to set up, reviewing guardrail hooks,
+evaluation baselines) moved to the `rhize-core` plugin's `/rhize-core:setup` — see
+[Setup moved to rhize-core](#setup-moved-to-rhize-core) below.
 
 Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
 Codex loads the same skill bodies from `.codex-plugin/plugin.json`; skills with Codex-specific
@@ -118,56 +119,17 @@ Coordinated semver bump for the `rhize-plugins` marketplace. Wraps `scripts/bump
 
 **Invoked as:** `/rhize-ops:bump-version`
 
-### `/rhize-setup`
+### Setup moved to rhize-core
 
-Fleet-level setup wizard. Discovers installed plugins, lets you pick which ones to set up this
-run, then orchestrates eight phases: discover → select → a shared dependency/version-control/
-skill-map preflight → each selected plugin's own expert setup wizard (invoked via the Skill
-tool) → evaluation-coverage baselines → an opt-in guardrail-hook menu (smoke-tested before
-anything is wired) → post-write version-control tracking → one final report. Installation alone
-never starts capture, schedules work, runs live/paid benchmarks, or wires hooks — every effect is
-an explicit choice. `rhize-ops/scripts/setup_orchestrator.py` does the deterministic
-discovery/path-resolution/settings-merge work; the command itself only asks questions,
-confirms choices, and invokes plugin wizards. See `rhize-ops/commands/rhize-setup.md` for the
-full phase-by-phase spec.
-
-**Invoked as:** `/rhize-ops:rhize-setup`
-
-### What setup writes
-
-Every file or directory a plugin's setup wizard (or day-to-day use) can write is declared in
-that plugin's `setup/manifest.json` `artifacts` array and rendered into one table by
-`rhize-ops/scripts/setup_artifacts.py --markdown` — see
-[`docs/setup-artifacts.md`](./docs/setup-artifacts.md) for the full list (artifact, producer,
-path, how to view, lifetime, confidentiality, source, and whether it's tracked). Nothing on that
-list is written just by installing a plugin.
-
-### Rollback
-
-Git is the rollback story for everything the plugins write into your
-project's `.claude/` directory or your home `~/.claude/` config. `skill-forge
-refine rollback <backup-id>` only undoes a `skill-forge refine` promotion —
-for hook entries, skills, commands, and `CLAUDE.md` edits, a Git commit is
-the only way back.
-
-Check where you stand — tracked/dirty/committed/missing, plus other staged
-files, so nothing you didn't ask for gets swept into a commit:
-
-```bash
-python3 rhize-ops/scripts/git_preflight.py report --project /path/to/project
-```
-
-Nothing here runs `git init` on `~/.claude` for you — that's your call, since
-it's easy to commit the wrong things (transcripts, plugin caches, tokens in
-`settings.json`) into a directory that big. The recipe:
-
-```bash
-git init ~/.claude
-cp rhize-ops/templates/claude-home.gitignore ~/.claude/.gitignore
-# review the .gitignore, then:
-cd ~/.claude && git add .gitignore skills commands agents hooks CLAUDE.md
-git commit -m "chore: baseline before customization"
-```
+The fleet-level setup wizard (`/rhize-setup`), its "What setup writes" artifact table, the
+Rollback recipe, the setup manifest schema, and the evaluation setup engine all moved to the new
+`rhize-core` plugin as `/rhize-core:setup` (repo-shape R-B, 2026-09-03) — see [rhize-core's
+README](../rhize-core/README.md). `rhize-ops/commands/rhize-setup.md` keeps a **working,
+drift-tested fallback copy for one release**: it forwards to `rhize-core:setup` when that plugin
+is installed, otherwise it runs the same orchestrator prose from byte-identical fallback copies
+of the four platform scripts and their static assets, scheduled for removal in the next
+`rhize-ops` minor — see `CHANGELOG.md`. Install `rhize-core@rhize-plugins` to get the canonical,
+actively-developed copy.
 
 ## Decision-accountability adapter
 
@@ -177,165 +139,6 @@ current policy, and explicit approval. It never upgrades observational evidence,
 creates a decision store. The canonical
 [typed adapter contract](../rhize-context-manager/skills/graph-memory/references/typed-decision-adapters.md)
 owns preview/record semantics and returns `unavailable` while projection operations are disabled.
-
-## Setup manifest schema
-
-`rhize-ops` owns this spec. Every custom Rhize plugin ships a `setup/manifest.json` so the central
-wizard can account for its evaluation coverage; plugins with opt-in guardrails also declare them in
-the same file. Shipping a manifest never starts capture or auto-wires anything.
-
-```jsonc
-{
-  "schema": 3,
-  "plugin": "<plugin-directory-name>",
-  "items": [
-    {
-      "id": "kebab-id",                                       // stable, unique within the plugin
-      "title": "Human-readable name shown in the picker",
-      "tier": "T3",                                           // "T3" (advisory) | "T4" (blocking)
-      "event": "PreToolUse",                                  // PreToolUse | PostToolUse | SessionStart | Stop | UserPromptSubmit
-      "matcher": "Write|Edit",                                // omit the key entirely if N/A (e.g. SessionStart)
-      "command": "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/x.sh",  // resolved to the plugin's real install path at wire time
-      "description": "One line shown next to the tier in the picker",
-      "default": false                                        // true = wizard marks it "(recommended)"; never pre-selects it
-    }
-  ],
-  "dependencies": [                                           // always present; may be empty
-    {
-      "name": "Human-readable dependency name",
-      "kind": "plugin",                                       // plugin | cli | mcp | data | runtime | platform
-      "capability": "kebab-capability-slug",                  // scopes degradation to exactly this capability
-      "binary": "executable-name",                            // kind: "cli" only — see below
-      "purpose": "One line: what this unlocks",
-      "required": false,                                      // false = plugin degrades gracefully without it
-      "degradedBehavior": "What happens without it",
-      "replacement": {                                        // optional — only when a DIY alternative is plausible
-        "suggestion": "The custom/DIY alternative",
-        "warning": "Explicit reinventing-the-wheel caveat — replacing a maintained upstream means taking on its maintenance and forgoing its updates; recommend installing the upstream outright"
-      }
-    }
-  ],
-  "wizard": {                                                 // optional — declares this plugin's own expert setup wizard
-    "skill": "<plugin>:<command>",                            // a plugin:command the Skill tool can invoke
-    "purpose": "One line: what running it does",
-    "when": "recommended",                                    // "optional" | "recommended" | "required"
-    "args": ["--from-rhize-setup"]                            // optional — this is the default when omitted
-  },
-  "doctor": {                                                 // optional — the verification step shown in the final report
-    "kind": "skill",                                          // "skill" (a plugin:command) | "shell" (printed, never executed)
-    "value": "<plugin>:doctor"
-  },
-  "artifacts": [                                              // optional; if "wizard" is present this must be non-empty
-    {
-      "id": "kebab-id",                                       // unique within the plugin
-      "path": "<home>/.rhize/widgets/config.json",            // only <project>, <home>, <vault> placeholders; no absolute paths or ".."
-      "kind": "file",                                         // file | directory | glob
-      "purpose": "One line: what this is",
-      "viewer": "cat ~/.rhize/widgets/config.json",           // how a human looks at it
-      "lifetime": "persistent",                               // persistent | per-run | append-only | regenerated
-      "confidentiality": "config",                            // none | config | personal | client | secret
-      "source": "authored",                                   // authored | derived | transcript-derived
-      "tracked": "outside-repo",                               // project | home | ignored | outside-repo
-      "optional": false                                       // false = expected to exist once the plugin is used
-    }
-  ],
-  "evaluations": {
-    "catalog": "rhize-evaluations-v1",                       // central catalog owned by rhize-ops
-    "component": "<plugin-directory-name>"                    // must match plugin
-  }
-}
-```
-
-Schema 1 (`{schema, plugin, items, dependencies}` — no `evaluations` key at all) remains readable
-for its hook and dependency inventory during migration, but it reports `evaluation catalog
-missing` and cannot satisfy the release coverage gate. Schema 2 adds the exact five keys above
-through `evaluations`, no more, no less. Schema 3 allows those same five keys plus any of the
-optional `wizard`/`doctor`/`artifacts` blocks — nothing else. Both schema 2 and 3 keep runner
-paths out of distributed component manifests: the central
-`setup/evaluation-catalog.json` owns repository-relative paths, Arm A/Arm B definitions, domain
-taxonomy, and suite metadata. The validator rejects absolute paths, traversal, escaping symlinks,
-unknown runner types, networked/paid automatic suites, and timeouts above ten minutes.
-
-**`wizard.skill` must be Skill-tool-invocable.** A plugin command is only reachable via the Skill
-tool — with `args` substituted into its `$ARGUMENTS` — when its `.md` file opens with a `---`
-frontmatter block containing a `description:` key (verified empirically 2026-09-02). The
-validator checks both that `<plugin>/commands/<command>.md` exists and that it starts with that
-frontmatter; a `wizard.skill` pointing at a slash-only command (no frontmatter) fails validation
-rather than silently invoking nothing at wizard time. `args` defaults to
-`["--from-rhize-setup"]` — the token a wizard's own command checks for to stop instead of
-re-invoking `/rhize-setup` (see `devflow-setup.md`/`context-setup.md` for the pattern).
-
-**`artifacts[].path` placeholders.** `<project>` is the directory `/rhize-setup` was run in;
-`<home>` is `$HOME`; `<vault>` resolves through
-`obsidian-second-brain/hooks/scripts/vault_resolve.py`'s `resolve_vault_paths()` — exactly one
-vault must resolve for the placeholder to fill in, otherwise it's reported
-`unresolved (<reason>)`. A path may use only one of these three placeholders, as its first
-segment; absolute paths, `~`, and `..` are all rejected outright.
-
-**A plugin that never writes anything personal or client-specific** (like `seo-aeo-geo`, which
-only reads env vars) should still ship an explicit empty `"artifacts": []` rather than omitting
-the key — that documents the absence instead of leaving it unstated. A plugin that declares a
-`wizard`, though, must give it a *non-empty* `artifacts` array: a plugin with its own setup
-wizard by definition writes something worth declaring.
-
-The catalog's product taxonomy deliberately separates ownership from subject matter. Obsidian,
-Context Manager, and Procedural Memory are **Knowledge & Context** components; Rhize Ops owns their
-shared setup/evidence engine but remains in the **Operations** domain.
-
-**Tier semantics:**
-- **T3 — advisory.** The hook injects `hookSpecificOutput.additionalContext` and never blocks the tool call.
-- **T4 — blocking.** The hook exits `2` to block the tool call, with stderr shown to the model as the reason.
-
-**Dependencies:** any Rhize plugin can declare a top-level `"dependencies"`
-array describing the external plugins, CLIs, MCP servers, or data files it relies on — separate
-from the opt-in hooks in `"items"`. `/rhize-setup` reads this array (see the command's own doc)
-to probe presence, print a status table, and offer install/degrade/replace choices before the
-opt-in hook menu. `"required": false` means the plugin keeps working without it (describe exactly
-how in `"degradedBehavior"`); `"required": true` means the dependent feature has no fallback path.
-`"replacement"` is optional — include it only when a plausible DIY alternative exists, and always
-pair the suggestion with a `"warning"` that names the maintenance tradeoff: replacing a maintained
-upstream means taking on its maintenance and forgoing its updates, so the warning should recommend
-installing the upstream outright rather than reinventing it.
-
-**`kind: "cli"` detection:** an entry with `"kind": "cli"` is presence-checked with `shutil.which()`
-against its `"binary"` field (the literal executable name expected on `PATH` — e.g. `"codegraph"`),
-not against configured MCP servers. Omitting `"binary"` falls back to a slugified form of `"name"`,
-so declare `"binary"` explicitly rather than relying on that inference. Every other kind (`mcp`,
-`plugin`, `data`, `runtime`, `platform`) is detected by name-matching against configured MCP
-servers (`.mcp.json`, `~/.claude.json`, `~/.codex/config.toml`) — see rhize-devflow's
-`docs/codegraph-setup.md` for a worked `kind: "cli"` example end to end.
-
-## Evaluation setup engine
-
-`scripts/evaluation_setup.py` is the deterministic interface behind the wizard:
-
-```bash
-python3 rhize-ops/scripts/evaluation_setup.py validate --repo-root /path/to/rhize-plugins
-python3 rhize-ops/scripts/evaluation_setup.py setup \
-  --repo-root /path/to/rhize-plugins \
-  --capture-mode deterministic_only \
-  --run-free-smoke
-python3 rhize-ops/scripts/evaluation_setup.py audit
-```
-
-The `setup` command can be scoped with repeated `--plugin` flags and accepts a private
-`--baseline-decisions` JSON produced by the interactive wizard. Confirmed baselines require an exact
-label, version/SHA/date, and validation method. Greenfield and declined states contain no invented
-identity. Reruns preserve unchanged baseline IDs and other components' state.
-
-Aggressive local capture stores an HMAC fingerprint of the input, never the input or its path.
-`reserve` appends a pending row before work; `finalize` appends a terminal row with strict common
-metrics. Missing token/tool counters require an explicit unavailable reason. `audit` reports stale
-pending reservations. Raw state stays under `~/.rhize/evals/` with 0700 directories and 0600 files.
-Natural rows remain observational; only matched controlled cohorts can support benefit claims.
-Recording `aggressive_local` is policy, not proof that a host lifecycle adapter is active. A
-component reports capture as active only after its eligible execution path actually invokes
-`reserve` before work and `finalize` afterward; otherwise setup must show
-`capture_adapter_unavailable` rather than implying background collection.
-
-**Wiring contract the wizard relies on:**
-- Every `PreToolUse`/`PostToolUse` item's `command` must read the tool-call payload from stdin and exit `0` on a no-op smoke test (`echo '{"tool_name":"Write","tool_input":{"file_path":"/tmp/x"}}' | <command>`). Items on `SessionStart`/`Stop`/`UserPromptSubmit` are smoke-tested with empty stdin instead. The wizard refuses to wire anything that fails this check.
-- `${CLAUDE_PLUGIN_ROOT}` in `command` is a template token — plugin authors write it literally; the wizard resolves it to the actual install path (marketplace clone or dev repo) at wire time. Don't hardcode an absolute path in a manifest.
 
 ## Data Subsystem
 

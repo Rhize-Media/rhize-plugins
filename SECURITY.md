@@ -43,7 +43,7 @@ for older plugin versions.
 
 Adding this marketplace and enabling a plugin does **not** by itself run anything — hooks are
 opt-in. But once a hook is wired into a project's `.claude/settings.json` (by hand, or via the
-`rhize-ops:rhize-setup` wizard — see `rhize-ops/commands/rhize-setup.md`), it executes local
+`rhize-core:setup` wizard — see `rhize-core/commands/setup.md`), it executes local
 shell commands automatically on matching events (`PreToolUse`, `UserPromptSubmit`, etc.),
 with your OS user's permissions.
 

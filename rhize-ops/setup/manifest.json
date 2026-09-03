@@ -66,42 +66,6 @@
   },
   "artifacts": [
     {
-      "id": "evals-config",
-      "path": "<home>/.rhize/evals/config.json",
-      "kind": "file",
-      "purpose": "Evaluation coverage and capture-mode configuration written by evaluation_setup.py setup.",
-      "viewer": "cat ~/.rhize/evals/config.json",
-      "lifetime": "persistent",
-      "confidentiality": "config",
-      "source": "derived",
-      "tracked": "outside-repo",
-      "optional": false
-    },
-    {
-      "id": "evals-receipts",
-      "path": "<home>/.rhize/evals/receipts/",
-      "kind": "directory",
-      "purpose": "Append-only monthly JSONL receipts recording reserved/finalized evaluation runs — HMAC-fingerprinted inputs only, never raw content.",
-      "viewer": "cat ~/.rhize/evals/receipts/<month>.jsonl",
-      "lifetime": "append-only",
-      "confidentiality": "none",
-      "source": "derived",
-      "tracked": "outside-repo",
-      "optional": false
-    },
-    {
-      "id": "evals-hmac-key",
-      "path": "<home>/.rhize/evals/hmac.key",
-      "kind": "file",
-      "purpose": "Per-machine HMAC key used to fingerprint evaluation receipt inputs without ever storing them.",
-      "viewer": "not human-readable — presence and 0600 permissions only",
-      "lifetime": "persistent",
-      "confidentiality": "secret",
-      "source": "derived",
-      "tracked": "outside-repo",
-      "optional": false
-    },
-    {
       "id": "parallel-agent-optimization-receipts",
       "path": "<home>/.rhize/parallel-agent-optimization/",
       "kind": "directory",
@@ -138,18 +102,6 @@
       "optional": true
     },
     {
-      "id": "setup-runs",
-      "path": "<home>/.rhize/setup/runs/",
-      "kind": "directory",
-      "purpose": "Per-run state for /rhize-ops:rhize-setup — discovery, hook plans, and artifact snapshots — rendered by setup_orchestrator.py report.",
-      "viewer": "python3 rhize-ops/scripts/setup_orchestrator.py report --run <id>",
-      "lifetime": "per-run",
-      "confidentiality": "config",
-      "source": "derived",
-      "tracked": "outside-repo",
-      "optional": false
-    },
-    {
       "id": "skill-monitor-data",
       "path": "<home>/.rhize/skill-monitor/",
       "kind": "directory",
@@ -160,18 +112,6 @@
       "source": "derived",
       "tracked": "outside-repo",
       "optional": true
-    },
-    {
-      "id": "project-settings",
-      "path": "<project>/.claude/settings.json",
-      "kind": "file",
-      "purpose": "Tracked project settings file where /rhize-ops:rhize-setup wires opt-in guardrail hooks.",
-      "viewer": "cat .claude/settings.json",
-      "lifetime": "persistent",
-      "confidentiality": "config",
-      "source": "authored",
-      "tracked": "project",
-      "optional": false
     }
   ],
   "evaluations": {

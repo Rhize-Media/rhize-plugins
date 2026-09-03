@@ -9,7 +9,7 @@ import pytest
 
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "rhize-ops" / "scripts" / "git_preflight.py"
+SCRIPT = REPO / "rhize-core" / "scripts" / "git_preflight.py"
 SPEC = importlib.util.spec_from_file_location("git_preflight", SCRIPT)
 git_preflight = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

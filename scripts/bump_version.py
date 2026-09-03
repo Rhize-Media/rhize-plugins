@@ -34,7 +34,7 @@ REPOSITORY_CONTRACTS = (
     ("CodeGraph + impact-map contract", "tests/rhize-devflow/test_impact_map_contract.py"),
     ("Dev Flow test suite", "tests/rhize-devflow", "-q"),
     ("skill-map freshness", "scripts/validate_skill_map.py", "--check-stale"),
-    ("Setup-artifacts freshness", "rhize-ops/scripts/setup_artifacts.py", "--check"),
+    ("Setup-artifacts freshness", "rhize-core/scripts/setup_artifacts.py", "--check"),
     # Default (non-strict) mode deliberately: this contract exits non-zero only on
     # ERROR-severity findings (path-like unquoted ${VAR}, secret-shaped stdio env
     # values). A false positive in a release gate blocks every bump including

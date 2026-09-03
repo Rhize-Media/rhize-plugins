@@ -9,6 +9,14 @@ references? That's [CHANGELOG.md](./CHANGELOG.md). This page is the short versio
 
 ## September 2026
 
+**One small plugin owns setup.** The wizard that finds your installed Rhize plugins, runs each one's
+own setup, and wires the optional guardrails now lives in its own plugin, `rhize-core`, as
+`/rhize-core:setup`. Install it first; it has no skills of its own and you run it once per project
+and again after upgrades. If you already run `/rhize-ops:rhize-setup`, it keeps working for one more
+release and simply forwards. rhize-ops goes back to being the operations toolkit. The list of what
+setup writes moved with it to
+[`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md).
+
 **A tidier repository to read and contribute to.** Every plugin now keeps its own `CHANGELOG.md`
 (the long engineering record before today lives in `docs/release/CHANGELOG-history.md`), all tests
 live in one `tests/` tree instead of eight places, `evals/README.md` explains what each evaluation
@@ -21,7 +29,7 @@ starts by asking which of your installed plugins to set up, runs the shared chec
 (dependencies, whether your customizations are under version control, the skill map), then hands
 off to each plugin's own setup wizard before wiring the optional guardrails you choose. It ends with
 a report of every file it and the plugins created — and
-[`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md) is the standing
+[`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md) (then under rhize-ops) is the standing
 reference: what each plugin writes on your machine, where, how to look at it, how sensitive it
 is, and whether Git tracks it. Each plugin's wizard still runs on its own if you only want that one.
 

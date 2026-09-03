@@ -8,7 +8,7 @@ import pytest
 
 
 REPO = Path(__file__).resolve().parents[2]
-SCRIPT = REPO / "rhize-ops" / "scripts" / "evaluation_setup.py"
+SCRIPT = REPO / "rhize-core" / "scripts" / "evaluation_setup.py"
 SPEC = importlib.util.spec_from_file_location("evaluation_setup", SCRIPT)
 evaluation_setup = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
@@ -61,15 +61,16 @@ def test_catalog_covers_every_skill_and_groups_obsidian_with_context() -> None:
     assert completed.returncode == 0, completed.stdout + completed.stderr
     result = json.loads(completed.stdout)
     assert result["plugin_skills"] == 56
-    assert result["components"] == 10
+    assert result["components"] == 11
     assert result["domains"]["knowledge-context"] == [
         "obsidian-second-brain", "rhize-context-manager", "procedural-memory"
     ]
     assert "rhize-ops" not in result["domains"]["knowledge-context"]
+    assert result["domains"]["platform"] == ["rhize-core"]
 
 
 def test_catalog_rejects_runner_path_traversal(tmp_path: Path) -> None:
-    catalog = json.loads((REPO / "rhize-ops/setup/evaluation-catalog.json").read_text())
+    catalog = json.loads((REPO / "rhize-core/setup/evaluation-catalog.json").read_text())
     catalog["components"][0]["suites"][0]["path"] = "../outside.py"
     path = tmp_path / "catalog.json"
     path.write_text(json.dumps(catalog))
@@ -78,7 +79,7 @@ def test_catalog_rejects_runner_path_traversal(tmp_path: Path) -> None:
 
 
 def test_catalog_rejects_component_domain_disagreement(tmp_path: Path) -> None:
-    catalog = json.loads((REPO / "rhize-ops/setup/evaluation-catalog.json").read_text())
+    catalog = json.loads((REPO / "rhize-core/setup/evaluation-catalog.json").read_text())
     catalog["components"][0]["domain"] = "operations"
     path = tmp_path / "catalog.json"
     path.write_text(json.dumps(catalog))
@@ -253,8 +254,10 @@ def test_setup_rejects_corrupt_existing_config(tmp_path: Path) -> None:
     assert "must contain exactly" in completed.stderr
 
 
-def test_wizards_delegate_to_central_scoped_evaluation_setup() -> None:
-    central = (REPO / "rhize-ops/commands/rhize-setup.md").read_text()
+def test_central_orchestrator_delegates_to_scoped_evaluation_setup() -> None:
+    """/rhize-core:setup (repo-shape R-B; moved verbatim from /rhize-ops:rhize-setup) is the
+    canonical orchestrator every wizard's own evaluation-baseline suggestion points back at."""
+    central = (REPO / "rhize-core/commands/setup.md").read_text()
     assert "--run-free-smoke" in central
     assert "aggressive_local" in central
     assert "observational" in central
@@ -271,10 +274,32 @@ def test_wizards_delegate_to_central_scoped_evaluation_setup() -> None:
         assert "rhize-setup" in contents
 
 
+def test_rhize_ops_adapter_forwards_when_core_present_and_continues_when_absent() -> None:
+    """The rhize-ops one-release compatibility adapter (repo-shape R-B, Codex F6) covers both
+    branches: forward to rhize-core:setup when it's installed and stop, or run the same
+    orchestrator prose from its own byte-identical fallback copies when it isn't."""
+    adapter = (REPO / "rhize-ops/commands/rhize-setup.md").read_text()
+    # Branch 1: forwards to rhize-core:setup when rhize-core is installed.
+    assert "rhize-core" in adapter
+    assert "rhize-core:setup" in adapter
+    assert "stop" in adapter.lower()
+    # Branch 2: otherwise runs the full orchestrator prose itself -- the same markers
+    # test_central_orchestrator_delegates_to_scoped_evaluation_setup checks on the canonical copy.
+    assert "--run-free-smoke" in adapter
+    assert "aggressive_local" in adapter
+    assert "observational" in adapter
+    # And the fallback body is byte-identical to rhize-core's canonical copy (drift-tested more
+    # thoroughly by tests/config-lint/test_platform_fallback_drift.py for the scripts/assets;
+    # this pins the command-body half of that same contract).
+    central_body = (REPO / "rhize-core/commands/setup.md").read_text().split("# /rhize-core:setup", 1)[1]
+    adapter_body = adapter.split("# /rhize-core:setup", 1)[1]
+    assert central_body == adapter_body
+
+
 def test_wizard_handshake_stops_when_invoked_by_the_orchestrator() -> None:
     """devflow-setup and context-setup are invoked by the central orchestrator via the
     Skill tool with args=["--from-rhize-setup"] (hybrid-setup-wizard.md R2). They must
-    parse $ARGUMENTS and stop rather than re-invoking /rhize-ops:rhize-setup, which would
+    parse $ARGUMENTS and stop rather than re-invoking /rhize-core:setup, which would
     loop back into the same run; a standalone run instead suggests it."""
     for relative_path in (
         "rhize-devflow/commands/devflow-setup.md",

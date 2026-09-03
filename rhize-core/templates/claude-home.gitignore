@@ -1,0 +1,33 @@
+# Allowlist gitignore for a client's ~/.claude. Ignore everything, then
+# re-include only what the setup wizards manage. Copy to ~/.claude/.gitignore.
+# See rhize-ops/README.md "Rollback" for the recipe this template supports.
+
+# Ignore everything by default.
+*
+
+# Re-include the directories the wizards write into.
+!.gitignore
+!skills/
+!skills/**
+!commands/
+!commands/**
+!agents/
+!agents/**
+!hooks/
+!hooks/**
+!CLAUDE.md
+
+# Re-ignore these even when they sit inside a re-included directory (a later
+# pattern wins in gitignore, so these must come after the re-includes above).
+settings.local.json
+*.jsonl
+
+# settings.json can carry API tokens and MCP server headers in its "env"
+# blocks. Review its contents for secrets before including it, then:
+# !settings.json
+
+# Never include these, even after review:
+#   settings.local.json - local machine overrides, not meant to be shared
+#   projects/           - session transcripts, can contain anything you typed
+#   plugins/             - installed plugin caches, large and not yours to track
+#   *.jsonl              - transcript and log files
