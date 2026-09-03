@@ -35,7 +35,7 @@
       "quality_contracts": [
         {"id": "config-driven-recipient", "patterns": ["config-driven", "do not guess"]},
         {"id": "content-is-untrusted", "patterns": ["Content Trust Boundary", "data to quote or summarize"]},
-        {"id": "writes-follow-approval", "patterns": ["before\\s+the first Jira, Canvas, or Slack write", "delegation ID"]}
+        {"id": "writes-follow-approval", "patterns": ["before\\s+the first Confluence, Jira, Canvas, or Slack write", "delegation ID"]}
       ]
     },
     {

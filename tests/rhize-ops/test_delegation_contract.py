@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -18,6 +19,10 @@ REFERENCE = (
 README = REPO_ROOT / "rhize-ops/README.md"
 GUIDE = REPO_ROOT / "rhize-ops/GUIDE.md"
 PARSER = REPO_ROOT / "rhize-tasks/service/src/connectors/delegation-parser.mjs"
+TEMPLATE_REFERENCE = (
+    REPO_ROOT
+    / "rhize-ops/skills/delegate-to-teammate/references/handoff-brief-template.md"
+)
 
 READY_FIXTURE = """*Task:* Audit paid search
 *Due:* 2026-08-17
@@ -197,6 +202,60 @@ def test_plugin_docs_explain_the_strict_fallback() -> None:
         assert "arbitrary Slack" in text
 
 
+def test_jira_description_template_is_a_concise_brief() -> None:
+    skill = SKILL.read_text()
+    block = fenced_block_after(skill, "Jira description template")
+    assert not any(re.match(r"^#{1,6}\s*Step-by-Step", line) for line in block.splitlines())
+    assert sum(1 for line in block.splitlines() if "Paste into Claude:" in line) == 1
+    assert "Handoff brief" in block
+    assert block.rstrip().endswith("rhize-delegation:v1:<delegation-id>")
+
+
+def test_skill_bans_paths_in_output() -> None:
+    skill = SKILL.read_text()
+    assert (
+        "No local path, vault-relative path, or repo-relative path may appear in any "
+        "Jira, Slack, or Confluence output."
+    ) in skill
+    assert "delegation_lint.py" in skill
+
+
+def test_skill_uses_current_obsidian_tool_names() -> None:
+    skill = SKILL.read_text()
+    for banned in ("obsidian_global_search", "obsidian_read_note", "session_info__read_transcript"):
+        assert banned not in skill
+    for required in ("obsidian_search_notes", "obsidian_get_note"):
+        assert required in skill
+
+
+def test_confluence_brief_before_jira_and_marker_never_on_confluence() -> None:
+    skill = SKILL.read_text()
+    assert skill.index("Create the Confluence Handoff Brief") < skill.index("Create a Jira Issue")
+    assert "Never put the marker on any Confluence page" in skill
+
+
+def test_slack_templates_unchanged_envelope() -> None:
+    skill = SKILL.read_text()
+    ready = fenced_block_after(skill, "Jira-ready per-task Slack reply")
+    needs_jira = fenced_block_after(skill, "Jira-skipped or Jira-failed per-task Slack reply")
+    for block, expected_jira in ((ready, "[Tracker URL or ISSUE-KEY]"), (needs_jira, "needs_jira")):
+        lines = block.splitlines()
+        assert lines[:4] == [
+            "*Task:* [Single-line task title]",
+            "*Due:* YYYY-MM-DD",
+            "*Priority:* urgent|high|normal|low",
+            f"*Jira:* {expected_jira}",
+        ]
+    assert "Confluence brief" in ready
+
+
+def test_reference_template_file_exists() -> None:
+    assert TEMPLATE_REFERENCE.is_file()
+    text = TEMPLATE_REFERENCE.read_text()
+    assert "## Step-by-Step Instructions" in text
+    assert "[Context]" in text
+
+
 def main() -> int:
     tests = [
         test_contract_fixtures_cover_ready_and_needs_jira,
@@ -209,6 +268,12 @@ def main() -> int:
         test_root_is_unmarked_and_priority_mapping_is_closed,
         test_reference_documents_grammar_identity_and_merge_rules,
         test_plugin_docs_explain_the_strict_fallback,
+        test_jira_description_template_is_a_concise_brief,
+        test_skill_bans_paths_in_output,
+        test_skill_uses_current_obsidian_tool_names,
+        test_confluence_brief_before_jira_and_marker_never_on_confluence,
+        test_slack_templates_unchanged_envelope,
+        test_reference_template_file_exists,
     ]
     failures = 0
     for function in tests:

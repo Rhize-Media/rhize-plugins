@@ -80,6 +80,9 @@ rhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000
 If Jira is skipped, definitively fails, or remains ambiguous after an exact-marker lookup, the
 Slack envelope uses `*Jira:* needs_jira`. The ID is still preserved for a later exact match.
 
+The description body itself is now a concise brief that links out to Confluence pages for the
+full package; Confluence pages are never consumed by Rhize Tasks and must not carry the marker.
+
 ## Valid examples
 
 Confirmed Jira issue:
