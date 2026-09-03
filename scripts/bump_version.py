@@ -166,7 +166,13 @@ def run_repository_contract_checks() -> list[str]:
 # ---------- writers ----------
 
 def update_plugin_manifests(plugin: str, version: str) -> None:
-    """Update host manifests and any runtime metadata shipped by a plugin together."""
+    """Update host manifests shipped by a plugin together.
+
+    Plugins version their own runtime code out-of-tree now (rhize-tasks moved its
+    service/native runtime to Rhize-Media/rhize-tasks in repo shape R-C, versioning itself
+    there), so this only ever stamps the two plugin manifests — never a plugin's own
+    package.json or any runtime source file.
+    """
     paths = [REPO / plugin / ".claude-plugin" / "plugin.json"]
     codex = REPO / plugin / ".codex-plugin" / "plugin.json"
     if codex.exists():
@@ -175,32 +181,6 @@ def update_plugin_manifests(plugin: str, version: str) -> None:
         document = json.loads(path.read_text(encoding="utf-8"))
         document["version"] = version
         path.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-    package = REPO / plugin / "package.json"
-    if package.exists():
-        document = json.loads(package.read_text(encoding="utf-8"))
-        document["version"] = version
-        package.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-    runtime = REPO / plugin / "service" / "src" / "api" / "context.mjs"
-    if runtime.exists():
-        text = runtime.read_text(encoding="utf-8")
-        updated, count = re.subn(r"^const VERSION = '[^']+';$", f"const VERSION = '{version}';", text, count=1, flags=re.MULTILINE)
-        if count == 1:
-            runtime.write_text(updated, encoding="utf-8")
-        elif re.search(r"^const VERSION = JSON\.parse\(.*package\.json.*\)\.version;$", text, flags=re.MULTILINE):
-            pass  # runtime derives its version from package.json; nothing to patch
-        else:
-            fail(f"could not update runtime version in {runtime.relative_to(REPO)}")
-
-    info_plist = REPO / plugin / "native" / "reminders-helper" / "Resources" / "Info.plist"
-    if info_plist.exists():
-        text = info_plist.read_text(encoding="utf-8")
-        pattern = r"(<key>CFBundleShortVersionString</key>\s*<string>)[^<]+(</string>)"
-        updated, count = re.subn(pattern, rf"\g<1>{version}\g<2>", text, count=1)
-        if count != 1:
-            fail(f"could not update helper version in {info_plist.relative_to(REPO)}")
-        info_plist.write_text(updated, encoding="utf-8")
 
 
 def apply_bumps(plug_new: dict, mkt_new: str) -> None:

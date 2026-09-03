@@ -4,11 +4,22 @@
   "items": [],
   "dependencies": [
     {
-      "name": "Node.js 22+",
-      "kind": "runtime",
-      "purpose": "Runs the local-first Rhize Tasks planning service and its validation commands.",
+      "name": "git",
+      "kind": "cli",
+      "purpose": "Clones the pinned rhize-tasks runtime tag into the local source checkout so the installer can run from source.",
       "required": true,
-      "degradedBehavior": "Rhize Tasks cannot start, validate, or run its local planning routines.",
+      "degradedBehavior": "Setup cannot bootstrap the runtime source checkout, and doctor cannot report source drift.",
+      "replacement": {
+        "suggestion": "Install Xcode Command Line Tools (includes git) or Git for Mac.",
+        "warning": "There is no supported replacement for git in the bootstrap step."
+      }
+    },
+    {
+      "name": "node",
+      "kind": "cli",
+      "purpose": "Node.js 22+",
+      "required": true,
+      "degradedBehavior": "Rhize Tasks cannot run the cloned runtime's installer, CLI, or local planning service.",
       "replacement": {
         "suggestion": "Install a supported Node.js 22 or newer runtime.",
         "warning": "Older Node versions do not provide the supported runtime floor for this plugin."
@@ -24,6 +35,15 @@
         "suggestion": "Use a Mac running macOS 14 or newer.",
         "warning": "The plugin has no supported replacement for the macOS Keychain and EventKit integration."
       }
+    },
+    {
+      "name": "rhize-tasks runtime",
+      "kind": "data",
+      "purpose": "The local-first planning service, installer, and Swift EventKit helper this plugin's skills drive. The plugin ships no runtime code itself.",
+      "required": true,
+      "degradedBehavior": "Setup cannot bootstrap the runtime; clone Rhize-Media/rhize-tasks at the pinned tag and run installer/install.mjs by hand.",
+      "source": "https://github.com/Rhize-Media/rhize-tasks",
+      "pin": "v0.5.1"
     }
   ],
   "wizard": {
@@ -70,6 +90,18 @@
       "confidentiality": "config",
       "source": "derived",
       "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "runtime-source-checkout",
+      "path": "<home>/Library/Application Support/Rhize Tasks/source/v0.5.1/",
+      "kind": "directory",
+      "purpose": "The pinned-tag clone of the rhize-tasks runtime repo the setup wizard bootstraps and the installer runs from. Not the installed runtime itself (that lives under runtime/, owned by the installer).",
+      "viewer": "git -C \"~/Library/Application Support/Rhize Tasks/source/v0.5.1\" describe --tags --exact-match",
+      "lifetime": "persistent",
+      "confidentiality": "none",
+      "source": "derived",
+      "tracked": "home",
       "optional": false
     }
   ],

@@ -10,11 +10,13 @@ under it, except the explicitly allowlisted exceptions below.
 Allowlist, each with a reason it is not a violation of the convention:
   - `rhize-ops/skill-monitor/tests` — leaves the marketplace with the
     skill-monitor tool itself when it is extracted in release R-C.
-  - `rhize-tasks/tests` — leaves the marketplace with the rhize-tasks
-    runtime itself when it is extracted in release R-C.
   - `project-launcher/skills/rhize-visual-plan/obsidian-plugin/test` — this is
     a vendored JS package's own `test/` directory (its own build/test
     tooling expects it there), not a Rhize-authored test tree.
+
+`rhize-tasks/tests` left this allowlist in release R-C: the rhize-tasks runtime (including its
+own `tests/`) was extracted to Rhize-Media/rhize-tasks, and the plugin left behind here no
+longer ships a `tests/` tree at all.
 """
 from __future__ import annotations
 
@@ -24,7 +26,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 ALLOWLIST = {
     "rhize-ops/skill-monitor/tests",
-    "rhize-tasks/tests",
     "project-launcher/skills/rhize-visual-plan/obsidian-plugin/test",
 }
 

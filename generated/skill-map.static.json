@@ -3823,7 +3823,7 @@
       "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md"
     },
     {
-      "contentHash": "3160f0f32ebee0286a3f2f4ff1dd06fc9fb684d17d2a346eddfd6df3588b7baa",
+      "contentHash": "c0fd2aba0beec127dd2b04c32018738df3a107310dad3f0829969ef27eed991e",
       "description": "Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. Use when the dashboard is unavailable, stale, degraded, paused, or failing routines.",
       "id": "skill:rhize-tasks/rhize-tasks-doctor",
       "kind": "skill",
@@ -3831,7 +3831,7 @@
       "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
     },
     {
-      "contentHash": "4cd6d21b70cc96818809520cd4ebc9ea81b1dd79e0f806231f83c08271040b2f",
+      "contentHash": "6e83a2cf9f13bd1f5b81d809ecf8fa94375d57453e4ded1d5dd77a2e09feea16",
       "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
       "id": "skill:rhize-tasks/rhize-tasks-setup",
       "kind": "skill",

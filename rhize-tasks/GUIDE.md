@@ -8,24 +8,25 @@ It brings approved Rhize and client Jira work into a local plan, fits it around 
 
 You need a Mac on macOS 14+, Node.js 22+, a compatible Swift/Xcode toolchain, and access to the Jira, Google, Reminders, and optional Slack accounts you want to connect. The installer does not ask Claude or Codex for credentials. Enter them only into the local dashboard when it opens.
 
-Install from the plugin directory:
+This plugin doesn't carry the planning service itself — that code lives in a separate,
+Rhize-owned repository. The first time you run setup, it downloads a pinned, known-good copy of
+that code to your Mac (into `~/Library/Application Support/Rhize Tasks/source/`), shows you what
+it's about to do, and only installs after you say go. You don't need to think about this beyond
+having `git` installed and, since that repository is private for now, `git`/`gh` credentials
+with access to it — the wizard handles the rest.
 
-```bash
-npm run install:local
-```
+Use either assistant:
 
-Then use either assistant:
-
-- Claude: “Use `/rhize-tasks:setup` to resume my local setup. Do not ask me for credentials in chat.”
-- Codex: “Use `$rhize-tasks-setup` to open or resume the local setup wizard. Keep all secrets in the dashboard and Keychain.”
+- Claude: “Use `/rhize-tasks:setup` to install (or resume) my local setup. Do not ask me for credentials in chat.”
+- Codex: “Use `$rhize-tasks-setup` to install or resume the local setup wizard. Keep all secrets in the dashboard and Keychain.”
 
 Both paths use the same installed service and saved preferences.
 
 ## Running under Claude Cowork / non-macOS environments
 
-If you're talking to Claude from a Cowork session (or any non-Mac environment), none of the `/rhize-tasks:*` commands can actually install or run Rhize Tasks there — it's a Linux container, and Rhize Tasks needs macOS 14+, Keychain, EventKit, and `launchctl`, none of which exist on Linux. Every skill checks for this first and will not attempt an install, a launchd/Keychain/EventKit step, or a dashboard open in that environment.
+If you're talking to Claude from a Cowork session (or any non-Mac environment), none of the `/rhize-tasks:*` commands can actually download, install, or run Rhize Tasks there — it's a Linux container, and Rhize Tasks needs macOS 14+, Keychain, EventKit, and `launchctl`, none of which exist on Linux. Every skill checks for this first and will not attempt a download, an install, a launchd/Keychain/EventKit step, or a dashboard open in that environment.
 
-What Claude *can* do from Cowork: review the service code, run the fake-backed `npm test` suite, and write you a setup runbook. For the real thing — install, setup wizard, daily planning, anything that touches Jira/Calendar/Reminders/Slack — run Claude Code (or the equivalent Codex flow) directly in Terminal.app on your own Mac.
+What Claude *can* do from Cowork: point you at the separate runtime repository, run its fake-backed `npm test` suite from a checkout, and write you a setup runbook. For the real thing — install, setup wizard, daily planning, anything that touches Jira/Calendar/Reminders/Slack — run Claude Code (or the equivalent Codex flow) directly in Terminal.app on your own Mac.
 
 ## Walk through the seven stages
 
@@ -162,7 +163,7 @@ Never “fix” the installation by copying the runtime or plist manually. Reins
 
 ## Uninstall deliberately
 
-You must choose both what happens to local planning data and what happens to plugin-created Calendar/Reminder items.
+You must choose both what happens to local planning data and what happens to plugin-created Calendar/Reminder items. Run these from the downloaded runtime checkout (`~/Library/Application Support/Rhize Tasks/source/<tag>/`):
 
 ```bash
 # Keep everything, remove only the runtime/agent.

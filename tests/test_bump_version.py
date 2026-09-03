@@ -33,13 +33,6 @@ def seed_repo(root: Path, plugin: str, *, dual: bool) -> Path:
         codex = plugin_dir / ".codex-plugin" / "plugin.json"
         codex.parent.mkdir(parents=True)
         codex.write_text(json.dumps({"name": plugin, "version": "0.0.0"}) + "\n", encoding="utf-8")
-        (plugin_dir / "package.json").write_text(json.dumps({"name": plugin, "version": "0.0.0"}) + "\n", encoding="utf-8")
-        context = plugin_dir / "service" / "src" / "api" / "context.mjs"
-        context.parent.mkdir(parents=True)
-        context.write_text("const VERSION = '0.0.0';\n", encoding="utf-8")
-        plist = plugin_dir / "native" / "reminders-helper" / "Resources" / "Info.plist"
-        plist.parent.mkdir(parents=True)
-        plist.write_text("<plist><dict><key>CFBundleShortVersionString</key><string>0.0.0</string></dict></plist>\n", encoding="utf-8")
 
     marketplace = root / ".claude-plugin" / "marketplace.json"
     marketplace.parent.mkdir(parents=True)
@@ -67,22 +60,23 @@ class UpdatePluginManifestsTests(unittest.TestCase):
 
         self.assertEqual(load(repo / "rhize-tasks/.claude-plugin/plugin.json")["version"], "0.1.0")
         self.assertEqual(load(repo / "rhize-tasks/.codex-plugin/plugin.json")["version"], "0.1.0")
-        self.assertEqual(load(repo / "rhize-tasks/package.json")["version"], "0.1.0")
-        self.assertIn("const VERSION = '0.1.0';", (repo / "rhize-tasks/service/src/api/context.mjs").read_text(encoding="utf-8"))
-        self.assertIn("<string>0.1.0</string>", (repo / "rhize-tasks/native/reminders-helper/Resources/Info.plist").read_text(encoding="utf-8"))
         self.assertEqual(load(repo / ".claude-plugin/marketplace.json")["version"], "2.28.0")
 
-    def test_accepts_runtime_version_derived_from_package_json(self) -> None:
+    def test_bumps_cleanly_with_no_package_json(self) -> None:
+        """rhize-tasks (repo shape R-C) versions its runtime out-of-tree now, so a plugin with
+        no package.json, service/, or native/ tree at all must still bump cleanly — this used to
+        be reached only through the `.exists()` guards on now-removed stamping code."""
         repo = seed_repo(Path(self.temp_dir.name), "rhize-tasks", dual=True)
         bump_version.REPO = repo
-        context = repo / "rhize-tasks/service/src/api/context.mjs"
-        derived = "const VERSION = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version;\n"
-        context.write_text(derived, encoding="utf-8")
+        self.assertFalse((repo / "rhize-tasks/package.json").exists())
 
-        bump_version.apply_bumps({"rhize-tasks": "0.2.0"}, "2.28.0")
+        bump_version.apply_bumps({"rhize-tasks": "0.1.0"}, "2.28.0")
 
-        self.assertEqual(load(repo / "rhize-tasks/package.json")["version"], "0.2.0")
-        self.assertEqual(context.read_text(encoding="utf-8"), derived)
+        self.assertEqual(load(repo / "rhize-tasks/.claude-plugin/plugin.json")["version"], "0.1.0")
+        self.assertEqual(load(repo / "rhize-tasks/.codex-plugin/plugin.json")["version"], "0.1.0")
+        self.assertFalse((repo / "rhize-tasks/package.json").exists())
+        self.assertFalse((repo / "rhize-tasks/service").exists())
+        self.assertFalse((repo / "rhize-tasks/native").exists())
 
     def test_keeps_single_manifest_plugins_supported(self) -> None:
         repo = seed_repo(Path(self.temp_dir.name), "legacy-plugin", dual=False)

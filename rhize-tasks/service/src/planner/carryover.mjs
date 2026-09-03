@@ -1,1 +1,0 @@
-export function nextCarryover(task, answer) { void answer; if (task.carryoverCount === 0) return {state: 'reschedule_once', choices: []}; if (task.carryoverCount === 1) return {state: 'needs_diagnosis', choices: ['blocked', 'underestimated', 'not_important']}; return {state: 'decision_required', choices: ['split', 'delegate', 'defer', 'renegotiate']}; }

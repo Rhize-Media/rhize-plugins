@@ -1,13 +1,27 @@
 #!/usr/bin/env python3
-"""Static and fixture tests for the rhize-delegation:v1 producer contract."""
+"""Static and fixture tests for the rhize-delegation:v1 producer contract.
+
+The rhize-delegation:v1 parser (the consumer side of this contract) used to live in-tree at
+rhize-tasks/service/src/connectors/delegation-parser.mjs, and these tests invoked it directly
+through a Node subprocess. That runtime moved out to Rhize-Media/rhize-tasks (repo shape R-C,
+2026-09-03), so the parser's own tests now live there instead.
+
+What stays here is the PRODUCER side: the delegate-to-teammate skill's message format, and a
+captured CONTRACT recording what the last-known consumer accepted for that format —
+fixtures/delegation-parser-contract.json, written by regenerate_delegation_contract.py. Tests
+below assert the producer fixture strings defined in this file still match the contract's
+recorded inputs (if they've drifted, regenerate the contract against a runtime checkout — see
+regenerate_delegation_contract.py's own docstring for the exact command) and that the contract's
+recorded parse results still satisfy the expectations the producer format promises.
+"""
 
 from __future__ import annotations
 
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -18,7 +32,7 @@ REFERENCE = (
 )
 README = REPO_ROOT / "rhize-ops/README.md"
 GUIDE = REPO_ROOT / "rhize-ops/GUIDE.md"
-PARSER = REPO_ROOT / "rhize-tasks/service/src/connectors/delegation-parser.mjs"
+CONTRACT_FIXTURE = REPO_ROOT / "tests/rhize-ops/fixtures/delegation-parser-contract.json"
 TEMPLATE_REFERENCE = (
     REPO_ROOT
     / "rhize-ops/skills/delegate-to-teammate/references/handoff-brief-template.md"
@@ -43,31 +57,49 @@ Rich human detail.
 rhize-delegation:v1:9e6f4516-4a70-4d4b-9227-3dd74f2c9be2"""
 
 
-def parse_with_consumer(fixtures: list[str]) -> list[dict[str, object]]:
-    """Send producer fixtures through the real Rhize Tasks consumer parser."""
-    harness = f"""
-import {{parseDelegation}} from {json.dumps(PARSER.as_uri())};
-let input = '';
-for await (const chunk of process.stdin) input += chunk;
-const allowlist = {{workspaceId: 'T1', channelId: 'C1', senderIds: ['B1']}};
-const results = JSON.parse(input).map((text) => {{
-  try {{
-    return {{ok: true, value: parseDelegation({{workspaceId: 'T1', channelId: 'C1', senderId: 'B1', text}}, allowlist)}};
-  }} catch (error) {{
-    return {{ok: false, error: String(error?.message ?? error)}};
-  }}
-}});
-process.stdout.write(JSON.stringify(results));
-"""
-    completed = subprocess.run(
-        ["node", "--input-type=module", "--eval", harness],
-        input=json.dumps(fixtures),
-        text=True,
-        capture_output=True,
-        cwd=REPO_ROOT,
-        check=True,
-    )
-    return json.loads(completed.stdout)
+def invalid_fixtures(ready_fixture: str) -> list[str]:
+    """The producer-format violations the contract must record as rejected.
+
+    Kept as a standalone function (rather than inline in a test) so
+    regenerate_delegation_contract.py can build the same list when re-capturing the contract
+    against a runtime checkout.
+    """
+    return [
+        ready_fixture.replace("*Task:*", "Intro\n*Task:*", 1),
+        ready_fixture.replace("*Priority:* high", "*Priority:* critical"),
+        ready_fixture.replace("*Jira:* RHIZE-42", "*Jira:* javascript:alert(1)"),
+        ready_fixture.replace("550e8400", "550E8400"),
+        ready_fixture.replace("550e8400-e29b-41d4-a716", "550e8400-e29b-11d4-a716"),
+        ready_fixture + "\ntrailing text",
+        ready_fixture + "\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        ready_fixture.replace(
+            "Rich human detail.",
+            "> rhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        ),
+        ready_fixture.replace("Rich human detail.", "rhize-delegation:v1:not-a-uuid"),
+        ready_fixture.replace("Rich human detail.", "> *Jira:* RHIZE-999"),
+        ready_fixture.replace("Rich human detail.", "context *Due:* 2026-08-18"),
+    ]
+
+
+def load_contract() -> dict[str, Any]:
+    if not CONTRACT_FIXTURE.is_file():
+        raise FileNotFoundError(
+            f"{CONTRACT_FIXTURE} is missing. Regenerate it against a rhize-tasks runtime "
+            "checkout: python3 tests/rhize-ops/fixtures/regenerate_delegation_contract.py "
+            "--runtime-root <checkout> --runtime-tag <tag>"
+        )
+    return json.loads(CONTRACT_FIXTURE.read_text(encoding="utf-8"))
+
+
+def assert_input_matches_contract(actual: str, recorded: str, label: str) -> None:
+    if actual != recorded:
+        raise AssertionError(
+            f"{label} has drifted from the captured contract's recorded input. Regenerate "
+            "fixtures/delegation-parser-contract.json against a rhize-tasks runtime checkout: "
+            "python3 tests/rhize-ops/fixtures/regenerate_delegation_contract.py "
+            "--runtime-root <checkout> --runtime-tag <tag>"
+        )
 
 
 def fenced_block_after(text: str, heading: str) -> str:
@@ -78,25 +110,39 @@ def fenced_block_after(text: str, heading: str) -> str:
     return text[newline + 1 : fence_end]
 
 
+def test_contract_fixture_records_provenance() -> None:
+    contract = load_contract()
+    assert contract["runtimeRepo"] == "https://github.com/Rhize-Media/rhize-tasks"
+    assert re.match(r"^v\d+\.\d+\.\d+$", contract["runtimeTag"])
+    assert contract["parserRelativePath"] == "service/src/connectors/delegation-parser.mjs"
+    assert re.match(r"^[0-9a-f]{64}$", contract["parserSha256"])
+
+
 def test_contract_fixtures_cover_ready_and_needs_jira() -> None:
-    ready, needs_jira = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE])
-    assert ready["ok"] is True
-    assert ready["value"]["jira"] == {"kind": "key", "value": "RHIZE-42"}
-    assert needs_jira["ok"] is True
-    assert needs_jira["value"]["jira"] == {"kind": "needs_jira", "value": None}
+    contract = load_contract()
+    ready = contract["fixtures"]["ready"]
+    needs_jira = contract["fixtures"]["needsJira"]
+    assert_input_matches_contract(READY_FIXTURE, ready["input"], "READY_FIXTURE")
+    assert_input_matches_contract(NEEDS_JIRA_FIXTURE, needs_jira["input"], "NEEDS_JIRA_FIXTURE")
+    assert ready["result"]["ok"] is True
+    assert ready["result"]["value"]["jira"] == {"kind": "key", "value": "RHIZE-42"}
+    assert needs_jira["result"]["ok"] is True
+    assert needs_jira["result"]["value"]["jira"] == {"kind": "needs_jira", "value": None}
 
 
 def test_batch_fixtures_use_distinct_per_task_ids() -> None:
-    ready, needs_jira = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE])
-    ready_id = ready["value"]["delegationId"]
-    needs_jira_id = needs_jira["value"]["delegationId"]
+    contract = load_contract()
+    ready_id = contract["fixtures"]["ready"]["result"]["value"]["delegationId"]
+    needs_jira_id = contract["fixtures"]["needsJira"]["result"]["value"]["delegationId"]
     assert ready_id != needs_jira_id
 
 
 def test_jira_and_slack_fixtures_reuse_the_same_task_id() -> None:
-    parsed = parse_with_consumer([READY_FIXTURE])[0]
-    assert parsed["ok"] is True
-    delegation_id = parsed["value"]["delegationId"]
+    contract = load_contract()
+    ready = contract["fixtures"]["ready"]
+    assert_input_matches_contract(READY_FIXTURE, ready["input"], "READY_FIXTURE")
+    assert ready["result"]["ok"] is True
+    delegation_id = ready["result"]["value"]["delegationId"]
     jira_description = (
         "# Task: Audit paid search\n\n"
         "Review the campaign structure.\n\n"
@@ -107,26 +153,16 @@ def test_jira_and_slack_fixtures_reuse_the_same_task_id() -> None:
     assert READY_FIXTURE.count(f"rhize-delegation:v1:{delegation_id}") == 1
 
 
-def test_producer_fixtures_round_trip_through_real_consumer() -> None:
-    invalid = [
-        READY_FIXTURE.replace("*Task:*", "Intro\n*Task:*", 1),
-        READY_FIXTURE.replace("*Priority:* high", "*Priority:* critical"),
-        READY_FIXTURE.replace("*Jira:* RHIZE-42", "*Jira:* javascript:alert(1)"),
-        READY_FIXTURE.replace("550e8400", "550E8400"),
-        READY_FIXTURE.replace("550e8400-e29b-41d4-a716", "550e8400-e29b-11d4-a716"),
-        READY_FIXTURE + "\ntrailing text",
-        READY_FIXTURE + "\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
-        READY_FIXTURE.replace(
-            "Rich human detail.",
-            "> rhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
-        ),
-        READY_FIXTURE.replace("Rich human detail.", "rhize-delegation:v1:not-a-uuid"),
-        READY_FIXTURE.replace("Rich human detail.", "> *Jira:* RHIZE-999"),
-        READY_FIXTURE.replace("Rich human detail.", "context *Due:* 2026-08-18"),
-    ]
-    results = parse_with_consumer([READY_FIXTURE, NEEDS_JIRA_FIXTURE, *invalid])
-    assert [result["ok"] for result in results[:2]] == [True, True]
-    assert not any(result["ok"] for result in results[2:])
+def test_producer_fixtures_round_trip_through_captured_contract() -> None:
+    contract = load_contract()
+    invalid = invalid_fixtures(READY_FIXTURE)
+    recorded_invalid = contract["fixtures"]["invalid"]
+    assert len(recorded_invalid) == len(invalid)
+    for index, (text, recorded) in enumerate(zip(invalid, recorded_invalid)):
+        assert_input_matches_contract(text, recorded["input"], f"invalid_fixtures()[{index}]")
+    assert contract["fixtures"]["ready"]["result"]["ok"] is True
+    assert contract["fixtures"]["needsJira"]["result"]["ok"] is True
+    assert not any(entry["result"]["ok"] for entry in recorded_invalid)
 
 
 def test_each_task_gets_one_stable_id_before_side_effects() -> None:
@@ -258,10 +294,11 @@ def test_reference_template_file_exists() -> None:
 
 def main() -> int:
     tests = [
+        test_contract_fixture_records_provenance,
         test_contract_fixtures_cover_ready_and_needs_jira,
         test_batch_fixtures_use_distinct_per_task_ids,
         test_jira_and_slack_fixtures_reuse_the_same_task_id,
-        test_producer_fixtures_round_trip_through_real_consumer,
+        test_producer_fixtures_round_trip_through_captured_contract,
         test_each_task_gets_one_stable_id_before_side_effects,
         test_skill_has_parser_stable_ready_and_needs_jira_templates,
         test_jira_description_and_slack_ready_template_share_one_id,

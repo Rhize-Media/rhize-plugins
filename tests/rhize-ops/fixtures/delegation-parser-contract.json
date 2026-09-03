@@ -1,0 +1,138 @@
+{
+  "runtimeRepo": "https://github.com/Rhize-Media/rhize-tasks",
+  "runtimeTag": "v0.5.1",
+  "parserRelativePath": "service/src/connectors/delegation-parser.mjs",
+  "parserSha256": "db46446799a3b5ecf3ef73d022e38f63260813fa5fcee7cd8dc5712d4f66fa9d",
+  "capturedAt": "2026-09-03T15:55:19Z",
+  "fixtures": {
+    "ready": {
+      "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+      "result": {
+        "ok": true,
+        "value": {
+          "schemaVersion": 1,
+          "workspaceId": "T1",
+          "channelId": "C1",
+          "senderId": "B1",
+          "delegationId": "550e8400-e29b-41d4-a716-446655440000",
+          "ingestionKey": "T1:C1:550e8400-e29b-41d4-a716-446655440000",
+          "title": "Audit paid search",
+          "dueDate": "2026-08-17",
+          "priority": "high",
+          "jira": {
+            "kind": "key",
+            "value": "RHIZE-42"
+          },
+          "state": "jira_linked",
+          "planningLane": "provisional",
+          "approval": "required",
+          "schedulable": false
+        }
+      }
+    },
+    "needsJira": {
+      "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* normal\n*Jira:* needs_jira\n\nRich human detail.\n\nrhize-delegation:v1:9e6f4516-4a70-4d4b-9227-3dd74f2c9be2",
+      "result": {
+        "ok": true,
+        "value": {
+          "schemaVersion": 1,
+          "workspaceId": "T1",
+          "channelId": "C1",
+          "senderId": "B1",
+          "delegationId": "9e6f4516-4a70-4d4b-9227-3dd74f2c9be2",
+          "ingestionKey": "T1:C1:9e6f4516-4a70-4d4b-9227-3dd74f2c9be2",
+          "title": "Audit paid search",
+          "dueDate": "2026-08-17",
+          "priority": "normal",
+          "jira": {
+            "kind": "needs_jira",
+            "value": null
+          },
+          "state": "needs_jira",
+          "planningLane": "provisional",
+          "approval": "required",
+          "schedulable": false
+        }
+      }
+    },
+    "invalid": [
+      {
+        "input": "Intro\n*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires Task, Due, Priority, and Jira fields in order at the top"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* critical\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: Priority is invalid"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* javascript:alert(1)\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: Jira must be needs_jira, an uppercase Jira key, or a safe https URL"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550E8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one final lowercase UUIDv4 marker"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-11d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one final lowercase UUIDv4 marker"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000\ntrailing text",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one unquoted final marker-like line"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one unquoted final marker-like line"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\n> rhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one unquoted final marker-like line"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nrhize-delegation:v1:not-a-uuid\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: requires one unquoted final marker-like line"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\n> *Jira:* RHIZE-999\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: contains quoted or extra stable fields"
+        }
+      },
+      {
+        "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\ncontext *Due:* 2026-08-18\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",
+        "result": {
+          "ok": false,
+          "error": "delegation: contains quoted or extra stable fields"
+        }
+      }
+    ]
+  }
+}

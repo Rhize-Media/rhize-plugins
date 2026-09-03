@@ -7,6 +7,62 @@ Rhize Tasks is the local-first unified planning authority for the configured use
 
 The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is practical: keep assigned work visible, surface urgent work the assignee is well suited to take on, fit the work into real capacity, and carry unfinished work forward without letting an automation silently take over their calendar or task systems.
 
+## Where the code lives
+
+**This plugin ships no runtime code.** The local-first planning service, its installer, and the
+signed Swift EventKit helper live in a separate repository,
+[`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks), pinned at tag
+[`v0.5.1`](https://github.com/Rhize-Media/rhize-tasks/releases/tag/v0.5.1) — see
+`setup/manifest.json`'s `rhize-tasks runtime` dependency for the single source of truth on that
+pin; every skill in this plugin reads it from there instead of hardcoding it. The repository is
+private until Jim decides to publish it, so bootstrapping needs `git`/`gh` credentials with
+access.
+
+`/rhize-tasks:setup` bootstraps that repository the first time it runs: it clones the pinned tag
+into `~/Library/Application Support/Rhize Tasks/source/<tag>/` (never the installer-owned
+`runtime/` tree), runs `node installer/install.mjs --check` from that checkout to show a
+non-mutating readiness plan, and — only after explicit confirmation — runs the real install from
+the same checkout. Re-running setup against a newer tag upgrades the existing installation in
+place: `install()` is transactional and version-aware, so an existing `installation.json` means
+an upgrade, not a reinstall, and local data (`state.sqlite`, Keychain entries) is untouched.
+`/rhize-tasks:doctor` reports whether the installed runtime's source ref still matches this
+plugin's pin (`sourceRef`, `sourceCommit`, `sourceDrift`).
+
+The runtime's own requirements — macOS 14+, Node.js 22+, a Swift 6 / Xcode CLT toolchain capable
+of building the EventKit package, and codesigning — are listed below and checked by the
+bootstrapped installer's `--check` step, not by this plugin.
+
+## Plugin layout
+
+```
+rhize-tasks/
+├── .claude-plugin/plugin.json
+├── .codex-plugin/plugin.json
+├── commands/                          # 5 slash commands
+│   ├── setup.md
+│   ├── doctor.md
+│   ├── today.md
+│   ├── review-opportunities.md
+│   ├── reconcile.md
+│   └── preferences.md
+├── skills/
+│   ├── rhize-tasks-setup/            # bootstraps the runtime, then runs the wizard
+│   ├── rhize-tasks-doctor/           # read-only diagnostics + source-drift check
+│   ├── plan-my-day/
+│   ├── review-task-opportunities/
+│   ├── reconcile-rhize-tasks/
+│   └── manage-task-preferences/
+├── setup/
+│   └── manifest.json                  # dependencies (incl. the pinned runtime tag), artifacts
+├── README.md
+├── GUIDE.md
+└── CHANGELOG.md
+```
+
+No `service/`, `installer/`, `native/`, `dashboard/`, `schemas/`, `tests/`, or `package.json` —
+those moved to [`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks) (see
+[Where the code lives](#where-the-code-lives)).
+
 ## Requirements
 
 - macOS 14 or newer.
@@ -24,15 +80,14 @@ The installer validates these requirements before activation. It does not perfor
 
 Claude Cowork sessions run in a Linux container. Rhize Tasks cannot install, run its LaunchAgent, sign or launch the Swift EventKit helper, or open the local dashboard there — Keychain, EventKit, `launchctl`, `security`, `swift`, and `codesign` do not exist outside macOS.
 
-Every skill in this plugin checks `uname -s` before attempting any macOS-only step. On a non-Darwin host, it will not touch the installer or the local service; instead it reviews the `service/`/`installer/` code, runs `npm test` (the fake-backed service-layer suite — no live connector I/O either way), and hands back a setup runbook for you to run yourself in Terminal.app on your Mac. Use one of these environments when you want to actually install, run, or exercise Rhize Tasks against a real Jira/Calendar/Reminders/Slack account.
+Every skill in this plugin checks `uname -s` before attempting any macOS-only step. On a non-Darwin host, it will not clone the runtime, touch the installer, or run the local service; instead it points you at the [`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks) runtime repo — where its own `npm test` (the fake-backed service-layer suite — no live connector I/O either way) can still be run from a checkout — and hands back a setup runbook for you to run yourself in Terminal.app on your Mac. Use one of these environments when you want to actually install, run, or exercise Rhize Tasks against a real Jira/Calendar/Reminders/Slack account.
 
 ## Install
 
-From the plugin directory:
-
-```bash
-npm run install:local
-```
+Use `/rhize-tasks:setup` (see [Where the code lives](#where-the-code-lives)). It bootstraps a
+pinned-tag checkout of the runtime repo, runs its installer's non-mutating `--check` first, and
+only runs the real install after you confirm. The rest of this section describes what that
+install actually does.
 
 The install is transactional. It builds the Swift helper in release mode and constructs `RhizeRemindersHelper.app` with bundle ID `media.rhize.tasks.reminders-helper`, signing with a Developer ID Application identity when one exists in the keychain (auto-detected; `RHIZE_TASKS_SIGN_IDENTITY` overrides; ad-hoc otherwise). The helper bundle installs at a stable path outside the versioned runtime tree, and its LaunchAgent serves the Unix socket. The installer writes both LaunchAgents (helper first, then routine) and the manifest atomically, boots out the old agents before swapping the runtime, and restores the previous loaded configuration only when it can verify that restore is safe — otherwise it stops with `manual_recovery_required` rather than mutating a runtime it cannot prove is quiescent.
 
@@ -171,7 +226,7 @@ node "$RHIZE_TASKS_CLI" uninstall-items --json        # installer handshake; bou
 node "$RHIZE_TASKS_CLI" uninstall --retain-data|--delete-data --retain-items|--delete-items
 ```
 
-Repository convenience scripts are `npm run install:local`, `npm start`, `npm test`, `npm run validate`, and `npm run uninstall:local -- <both uninstall choices>`.
+Convenience scripts (`npm run install:local`, `npm start`, `npm test`, `npm run validate`, `npm run uninstall:local -- <both uninstall choices>`) live in the runtime checkout's own `package.json` — run them from `~/Library/Application Support/Rhize Tasks/source/<tag>/`, not from this plugin.
 
 ## Skills and Claude commands
 
@@ -209,7 +264,8 @@ The installer and uninstaller reject symlinked install ancestors. Do not move th
 
 ## Uninstall and retention
 
-Uninstall requires two explicit decisions:
+Uninstall requires two explicit decisions. Run these from the runtime checkout
+(`~/Library/Application Support/Rhize Tasks/source/<tag>/`):
 
 ```bash
 npm run uninstall:local -- --retain-data --retain-items
@@ -222,19 +278,19 @@ The data choice controls local Application Support data. The item choice separat
 
 ## Validation
 
-No automated test performs live connector I/O. The test suite uses injected fakes and temporary SQLite databases. Run these from the plugin directory (`rhize-tasks/`) unless noted otherwise:
+The runtime's own automated tests (fake-backed service layer, no live connector I/O, plus the
+Swift helper's `swift test`) live and run in
+[`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks) — see that repo's README
+for the exact commands. This plugin's own contribution to the rhize-delegation:v1 contract is
+covered by `tests/rhize-ops/test_delegation_contract.py` in the `rhize-plugins` repo, which
+asserts against a captured contract fixture rather than importing the runtime's parser directly
+(see that test file's docstring to regenerate the fixture against a runtime checkout).
 
-```bash
-npm test
-swift test --package-path native/reminders-helper
-python3 ../tests/rhize-ops/test_delegation_contract.py
-```
-
-`python3 -m unittest tests.test_bump_version -v` lives in the parent `rhize-plugins` repo, not this plugin, so it needs that directory as its working directory — run it as `(cd .. && python3 -m unittest tests.test_bump_version -v)` from `rhize-tasks/`, or `python3 -m unittest tests.test_bump_version -v` directly from the `rhize-plugins` root.
-
-`npm run validate` is not a release gate — it only checks that `package.json` and `setup/manifest.json` are syntactically valid JSON. Treat it as a quick manifest sanity check, not a substitute for the tests above.
-
-Repository release validation also checks both plugin manifests, the marketplace, generated skill map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A real end-user Mac acceptance remains mandatory before enabling writes: approve a disposable Jira issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample, exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
+Repository release validation checks both plugin manifests, the marketplace, generated skill
+map, Claude plugin validation, JSON/plist syntax, deterministic generation, and whitespace. A
+real end-user Mac acceptance remains mandatory before enabling writes: approve a disposable Jira
+issue and disposable Calendar/Reminder containers, complete setup, move and complete one sample,
+exercise pause/restart/catch-up/revocation/uninstall, and verify outside records are unchanged.
 
 ## Current 0.x boundary
 
