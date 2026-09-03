@@ -1,13 +1,13 @@
 ---
-description: Harvest refinement signals (headroom learn, claude-mem observations, skill-monitor deltas) into the pending-refinement queue for human triage — writes the queue only, never skills or CLAUDE.md
+description: Harvest refinement signals (headroom learn, claude-mem observations, skill-monitor deltas) into the pending-refinement queue for human triage — writes the queue only, never skills, CLAUDE.md, or docs/session-guardrails.md
 ---
 
 # /learn-harvest
 
 Collect skill-refinement signals into the queue at
 `~/.claude/context-manager/refinement-queue.jsonl`. This command NEVER edits
-skills, CLAUDE.md, or CLAUDE.local.md — signals wait in the queue until triaged
-via `/skill-refine review`.
+skills, CLAUDE.md, `docs/session-guardrails.md`, or CLAUDE.local.md — signals
+wait in the queue until triaged via `/skill-refine review`.
 
 ## Cadence
 
@@ -132,8 +132,10 @@ target, matching every pre-existing entry.
 7. **Content noise filter — run it, do not eyeball it.** `id` is
    `sha1-12(source + pattern)`, so *any rephrasing of a known fact produces a new
    id and walks straight past step 6*. Headroom rephrases constantly: on
-   2026-08-14, 3 of 5 headroom entries restated facts folded into CLAUDE.md on
-   2026-08-12, and the two largest `est_savings` claims (235k, 45k) were the two
+   2026-08-14, 3 of 5 headroom entries restated facts folded into
+   `docs/session-guardrails.md` on 2026-08-12 (folded into CLAUDE.md at the
+   time; repo-shape R-A later moved that content), and the two largest
+   `est_savings` claims (235k, 45k) were the two
    most duplicative. That is ~30% of a day's yield spent re-litigating settled
    facts. Write the surviving candidates from step 6 to a JSONL file, then:
 
@@ -141,12 +143,16 @@ target, matching every pre-existing entry.
    python3 scripts/harvest_noise_filter.py \
      --candidates <candidates.jsonl> \
      --reference CLAUDE.md --reference ~/.claude/CLAUDE.md \
+     --reference docs/session-guardrails.md \
      --keep-out <kept.jsonl> \
      | tee ~/.claude/context-manager/harvest-logs/$(date +%F)-filter.txt
    ```
 
-   It scores each candidate by how much of its normalized content is already
-   covered by existing queue patterns (any status) or CLAUDE.md blocks, and sorts
+   Most repo-environment facts now live in `docs/session-guardrails.md`, not
+   CLAUDE.md — pass it as a `--reference` too, or the filter dedupes against a
+   file that no longer holds most of the settled facts. It scores each
+   candidate by how much of its normalized content is already
+   covered by existing queue patterns (any status) or reference-file blocks, and sorts
    into three outcomes:
    - **suppressed** (coverage ≥ 0.75) — drop; it is a restatement.
    - **flagged** (0.45 ≤ coverage < 0.75) — **keep**, with a `filter_note`. These

@@ -18,7 +18,10 @@ show queue counts by status and suggest the next subcommand.
 2. For each, the user decides: assign a `target_skill` (path under
    `rhize-context-manager/skills/` or `~/.claude/skills/learned/`) → status
    `triaged`; or reject → status `rejected`. Suggest a target skill per entry,
-   but the USER decides — never auto-triage.
+   but the USER decides — never auto-triage. A repo-environment fact with no
+   legal skill target does not get a `target_skill`: fold it in by hand into
+   `docs/session-guardrails.md` (never into `CLAUDE.md` — that file is a
+   router, not a home for telemetry) and mark the entry `consumed` directly.
 3. Rewrite the queue file with updated statuses. Summarize: N triaged toward M
    skills, K rejected.
 

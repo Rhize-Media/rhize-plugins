@@ -16,44 +16,23 @@ Before adding or ingesting any skill into this marketplace:
    tools stays small and stops drifting; one that copies them inherits their whole
    maintenance surface and gains nothing.
 
-### Why (measured, 2026-07-28)
-
-Four skills were ingested here from `everything-claude-code` — `strategic-compact`,
-`context-budget`, `iterative-retrieval`, `token-budget-advisor`. With `ecc@everything-claude-code`
-enabled, all four were duplicates competing for the same invocations. On inspection:
-
-- Three differed from upstream **only in frontmatter indentation** — zero Rhize value.
-- `strategic-compact` had **drifted behind**: ecc 2.0.0 had gained a context-size primary
-  signal with window-scaled thresholds (160k on a 200k window, 250k on 1M) and
-  `COMPACT_CONTEXT_THRESHOLD`/`INTERVAL`. The fork still carried the old tool-count-only
-  logic. **The copy was strictly worse than the thing it copied**, and nobody noticed,
-  because a fork's staleness is invisible until someone diffs it.
-
-All four were retired (entries kept and annotated in `SOURCES.md`). The duplication cost
-was pure: maintenance surface, skill-listing bloat, ambiguous invocation, and a silently
-degraded skill.
-
-**The same failure at the plugin layer:** both `everything-claude-code@everything-claude-code`
-(1.8.0) and `ecc@everything-claude-code` (2.0.0) were enabled simultaneously, so every
-overlapping ECC hook — `governance-capture`, `quality-gate`, `mcp-health-check`,
-`doc-file-warning`, `pre-compact`, `post-edit-console-warn` — fired **twice on every
-matching tool call**. Enabling two versions of one plugin is the plugin-level form of
-duplicating a skill. Check for it whenever adding to `enabledPlugins`.
-
-*This rule is a candidate for `@rhize/skill-forge` enforcement: the ingest gate should
-refuse, or require an explicit override, when a candidate skill's name or capability
-already exists in an enabled plugin.*
-
-**Update (2026-08-10):** this enforcement has shipped. `skill-forge add`/`scan --skill-map
-<path>` ranks a candidate against every skill in this repo's compiled skill map
-(`generated/skill-map.static.json`) and escalates a near-duplicate to a blocking safety
-finding instead of a silent promote — see `docs/skill-map.md` and skill-forge's own
-CLAUDE.md for the mechanics. A deliberate specialization declares
-`metadata.rhize.extends` in its SKILL.md frontmatter to get an exemption from that
-specific match, rather than being blocked outright — so this rule's "author a genuinely
-additive skill next to it" escape hatch is now machine-checked, not just written down.
+Measured 2026-07-28: four skills forked from `everything-claude-code` were pure duplicates
+(one had drifted strictly worse than the upstream it copied), and two versions of the same
+ECC plugin were enabled at once, double-firing every overlapping hook. Enforcement shipped
+2026-08-10 in `@rhize/skill-forge` (`add`/`scan --skill-map`): a near-duplicate candidate is
+escalated to a blocking safety finding unless it declares `metadata.rhize.extends`. Full
+narrative: `docs/session-guardrails.md`.
 
 See the `learning-curation` skill in `rhize-context-manager` for the general procedure.
+
+### Cross-plugin sharing rule
+
+Plugins are islands. Shared code (e.g. `scripts/mcp-secret-launcher.sh`) is duplicated
+deliberately, byte-identical, across plugins — document the shared copy where it is owned
+(`docs/mcp-secret-launcher.md` for the launcher shim), and it is covered by the drift test
+`tests/config-lint/test_shared_shims.py`. A plugin may import
+another plugin's file only by a discovered path (never a hardcoded cross-plugin path), and
+only with a documented degraded mode for when that file is absent.
 
 ## Skill Usage (IMPORTANT)
 
@@ -121,7 +100,7 @@ This repo follows a strict README-vs-GUIDE.md convention, defined in full in the
 1. Update the plugin's own `README.md` (skill/command tables, architecture tree, setup steps) to match reality.
 2. Update the plugin's `GUIDE.md` (or create one if the plugin doesn't have one yet) so the new/changed capability is discoverable in plain language, with an example prompt.
 3. If you added or removed a whole plugin, update the root `README.md`'s Plugin Catalog table and `.claude-plugin/marketplace.json`, keeping the plugin's `version` in sync between its own `plugin.json` and the marketplace entry.
-4. If the change is user-visible, add a `CHANGELOG.md` entry.
+4. If the change is user-visible, add an entry to the plugin's own `CHANGELOG.md`; marketplace-level changes (version bumps, cross-plugin programs) go in the root `CHANGELOG.md`. Full dated history lives in `docs/release/CHANGELOG-history.md`.
 5. If the change affects what a first-time reader needs to know — a new plugin, a changed
    install/setup step, a new cross-plugin mechanism — update `START-HERE.md` and/or
    `docs/README.md` in the same change. `docs/README.md`'s managed section (between the
@@ -138,240 +117,66 @@ A skill/command/plugin change that ships without its README and GUIDE updated is
 character — `tests/config-lint/test_description_parity.py` enforces this. Changing a plugin's
 description means updating every copy in the same change, not just the one you happened to open.
 
-**Progressive disclosure is required, not optional** (see [Progressive disclosure](./README.md#progressive-disclosure)). Every doc is a front door, not a warehouse: lead with what it is and how to start, then link to depth instead of inlining it. Deep mechanics (schemas, gate internals, per-command option matrices, rationale) live in a `docs/` or `references/` file linked at the point of need — the same discipline `SKILL.md` files already use. **A README or reference doc past roughly 400–500 lines is a split candidate**; GUIDEs may run longer but keep the same overview-first shape. When you split, move content to the document that owns it and link from where the reader was — never delete, and never leave an overview that can't stand alone. When adding to an already-oversized doc, put the new material in a linked file rather than growing the offender.
+**Progressive disclosure is required, not optional** (see [Progressive disclosure](./README.md#progressive-disclosure)). Every doc is a front door, not a warehouse: lead with what it is and how to start, then link to depth instead of inlining it. Deep mechanics (schemas, gate internals, per-command option matrices, rationale) live in a `docs/` or `references/` file linked at the point of need. **A README or reference doc past roughly 400–500 lines is a split candidate**; move content to the document that owns it and link from where the reader was — never delete, and never leave an overview that can't stand alone.
 
-## Headroom Learned Patterns
-*Auto-generated by `headroom learn` (consolidated; one section per sub-heading, newest entry wins) — do not edit manually*
+## Environment and workflow rules
 
-*Five auto-generated sections (2026-06-16 → 2026-07-27) deduped into one on 2026-08-03.
-New `headroom learn` output now flows into the refinement queue
-(`/rhize-context-manager:learn-harvest`), not this file — the scheduled routine is barred
-from editing CLAUDE.md. Exception, 2026-08-12: Jim directed nine queue entries carrying
-repo-environment facts (no legal skill target) to be folded in here by hand; they were
-deduped to the five facts below and marked `consumed`. Exception, 2026-08-14: a
-human-invoked `/skill-refine review` folded in three more such facts (python3-vs-python,
-the large-`.jsonl` Read limit, and SOURCES.md normalization) and marked them `consumed`.
-The bar on the unattended routine is unchanged.*
+- Prefix the first Bash command of each user request/chapter with an inline FACTS echo
+  (`echo "FACTS: (1) <request>; (2) <what this verifies/produces>" && …`); before any
+  Edit/Write, state the caller(s) of the target or "new entry point — no existing caller."
+- Version bumps only via `python3 scripts/bump_version.py --plugin <name> --level
+  minor|patch|major` — never hand-edit `plugin.json`/`marketplace.json`/CHANGELOG alone.
+- `.github/workflows/version-check.yml` and `tag-release.yml` are PROTECTED
+  (`protect-files.sh` hook) — do not Edit; CI proposals go in `.github/ci-proposed/` for
+  Jim to promote into `.github/workflows/`.
+- The refactor gate (`rhize-devflow/scripts/refactor_gate.py`) requires a plan containing
+  five substrings — `current behavior`, `intended semantic delta`, `invariants`,
+  `acceptance tests`, `implementation order` — reconciles changed paths by full path or
+  basename, and its Stop hook closes a `reconciled` receipt as `completed`; one receipt is
+  shared per workspace path across concurrent sessions, so use a worktree when another
+  session is active there.
+- Git: feature branches; `-F -` heredoc commit messages for non-trivial changes; a stale
+  `.git/index.lock` is `rm -f` after confirming no live git process.
+- Always invoke `python3`, never bare `python` (not on PATH, exits 127).
+- `timeout` is unavailable on this macOS — use a background `sleep`+`kill` pair instead.
+- rtk's `find`/`grep` shims break compound predicates and exit-code conditionals — use
+  `/usr/bin/find` for compound finds, and `/usr/bin/grep` inside `until`/`while`/`if`.
+- Read a file before its first Edit in a session, or Edit fails with `File has not been
+  read yet`; on `String to replace not found`, re-Read before retrying.
+- Never `Read` a large `.jsonl` directly — it exceeds the 256KB/25,000-token tool limit;
+  process it with `python3`/`jq` in Bash instead.
+- System `python3` has no `jsonschema` (`yaml` is available) — the skill-map validators
+  run without it, so don't probe the import first.
+- vitest output is captured by the rtk tee — read the newest file under
+  `~/Library/Application Support/rtk/tee/`; never pass `--reporter=basic`.
+- `npm run build` is the authoritative skill-forge type check, not `npx tsc --noEmit`
+  (pre-existing `@types/node`/`node:fs` errors there are environmental).
+- Git fixtures that build repos need `-c core.excludesFile=/dev/null` — the machine's
+  global excludes file hides fixture content and `GIT_CONFIG_GLOBAL` does not override it.
+- `claude plugin eval` is org-gated on this machine — build static validators instead.
+- `procedural-memory` always uses `.venv/bin/python`/`.venv/bin/pytest`, never bare `python3`.
+- The installed plugin cache (`~/.claude/plugins/marketplaces/rhize-plugins`) can pin
+  behind this repo — refresh with `claude plugin marketplace update rhize-plugins` then
+  `claude plugin update`.
+- Tests live under `tests/<plugin>/`, never a plugin-local `tests/` dir; `pytest.ini` sets
+  `testpaths = tests evals`.
+- Never `git push` from an executor/agent session — the orchestrator handles pushes.
+- The scratchpad path resolves per session
+  (`/private/tmp/claude-501/.../<session-id>/scratchpad/`) — resolve it once and reuse.
 
-### Fact-Forcing Gate (ECC GateGuard)
-- Prefix the FIRST Bash command of each user request/chapter with an inline FACTS echo:
-  `echo "FACTS: (1) <request in one sentence>; (2) <what this command verifies/produces>" && …`.
-  The gate re-arms after every `mark_chapter` call. Bypass for pure repair/setup: `ECC_GATEGUARD=off`.
-- Before any Edit/Write: state the files that import/require the target (Grep first if
-  unknown) and the exact lines being changed and why. For a NEW file, name the caller(s)
-  — or state explicitly "new entry point — no existing caller."
-- Failing the gate wastes a full round-trip; satisfy it proactively.
+## Repository layout & key paths
 
-### Repository layout & key paths
-- rhize-plugins root: `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins`; registry at
-  `.claude-plugin/marketplace.json`; plugins: `seo-aeo-geo/`, `obsidian-second-brain/`,
-  `project-launcher/`, `rhize-devflow/`, `rhize-ops/`, `rhize-context-manager/`.
-- skill-forge CLI repo: `/Users/jamesdeola/dev-local/RHIZE/skill-forge` (read its CLAUDE.md
-  before working there). Build `npm run build` (tsup); tests `npx vitest run`; pack check
-  `npm pack --dry-run`.
-- `skill-monitor` lives at `rhize-ops/skill-monitor/monitor.py` (standalone repo retired:
-  GitHub-archived, local dir deleted; scheduled task repointed). Data paths are `__file__`-relative.
-- Version bumps: `python3 scripts/bump_version.py --plugin <name> --level minor|patch|major`
-  — updates plugin.json + marketplace.json + CHANGELOG atomically; never hand-edit JSON alone.
-- Subagent tasks sometimes arrive with `REPO: undefined` (template bug) — the answer is
-  `/Users/jamesdeola/dev-local/RHIZE/skill-forge`; spend at most one Bash call on discovery.
-- Scratchpad worktree: set `SCRATCH=<path>` once per session and reuse; never re-expand the
-  full `/private/tmp/claude-501/...` path per command.
-- External upstream references are tracked centrally in
-  `rhize-context-manager/skills/SOURCES.md` and normalized by `scripts/sources_md.py` to
-  canonical remote raw URLs — add a source there rather than inline in a SKILL.md.
-- The installed plugin cache `~/.claude/plugins/marketplaces/rhize-plugins` is a git clone that
-  pins BEHIND this repo. When it goes stale, `rhize-context-manager:*` skills report
-  "Unknown skill" and **scheduled tasks fail silently**. Refresh with
-  `claude plugin marketplace update rhize-plugins` then `claude plugin update`. (Diagnosed
-  2026-08-05; `ai-stack-version-drift` now auto-updates marketplaces + plugins twice weekly.)
+- rhize-plugins root: `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins`; marketplace
+  registry at `.claude-plugin/marketplace.json`.
+- Plugins: `seo-aeo-geo/`, `obsidian-second-brain/`, `project-launcher/`, `rhize-devflow/`,
+  `rhize-ops/`, `rhize-context-manager/`, `rhize-tasks/`, `rhize-cowork/`,
+  `procedural-memory/`.
+- skill-forge CLI repo: `/Users/jamesdeola/dev-local/RHIZE/skill-forge` (read its own
+  CLAUDE.md before working there).
+- `skill-monitor` lives at `rhize-ops/skill-monitor/monitor.py`.
+- External upstream references live in `rhize-context-manager/skills/SOURCES.md`,
+  normalized by `scripts/sources_md.py`.
+- Start at `START-HERE.md` for orientation on a fresh clone.
 
-### Git workflow
-- Stale `.git/index.lock` mid-session: `rm -f .git/index.lock` (verify no live git process
-  via `ps` first), then retry.
-- `git status --short` once at session start; track your own changes after that.
-- Commit conventions: `feat(...)`/`fix(...)`/`docs(...)`/`refactor(...)`; multi-line `-F -`
-  heredoc messages for non-trivial changes.
-- `.github/workflows/ci.yml` and `release.yml` are PROTECTED (protect-files.sh hook) — do
-  not Edit; leave a note for Jim instead.
-- Before removing a scratch worktree, check it still exists.
-- `.gitignore` here uses an **ALLOWLIST** for `scripts/` — a newly created `scripts/*.py` is
-  invisible to `git status` until you add a `!scripts/<name>.py` exception. When a file you
-  just wrote doesn't show up, run `git check-ignore -v <path>` before assuming the write failed.
-
-### Edit/Read discipline
-- Read a file before its first Edit in a session (`File has not been read yet` otherwise);
-  on `String to replace not found`, re-Read before retrying.
-- Large frequently-re-read files (e.g. skill-forge `test/e2e.test.ts`, big SKILL.md files):
-  read ONCE, note key facts, refer to notes — some were re-read 6–13× per session.
-- Hot files measured since that list was written — read ONCE, then `grep -n` for edit sites:
-  - skill-map pipeline: `scripts/build_skill_map.py` (~25–30KB, hit 16× in one session),
-    `rhize-context-manager/scripts/build_local_skill_map.py` (~28KB; the root
-    `scripts/build_local_skill_map.py` is a two-line shim since 2026-09-02), `scripts/validate_skill_map.py`,
-    `docs/skill-map.md` (~13–21KB), `catalog/{tags,skill-relations,queries}.json`,
-    `rhize-ops/skill-monitor/monitor.py` (~48–55KB).
-  - skill-forge: `src/commands/gatePipeline.ts`, `src/gate/{skillMapDrift,skillMap,mapOverlap}.ts`,
-    `test/{agents,skillMapDrift}.test.ts`. There is no root `CHANGELOG.md` — version history
-    lives in `README.md` + `docs/BUILD-REPORT.md`.
-
-### Environment quirks
-- rtk `find` shim lacks `-not`/`-exec`/compound predicates — use `/usr/bin/find` or `\find`.
-- Always invoke `python3`, never bare `python` — `python` is not on PATH and exits 127
-  (`command not found`), which reads like a script error but is not.
-- Never `Read` a large `.jsonl` (observer/analysis logs, session transcripts) directly —
-  they exceed the 256KB / 25,000-token tool limit and the call fails outright. Process them
-  in Bash with `python3` or `jq` in a single pass and emit only what you need.
-- System `python3` (3.14) has **no `jsonschema`** — `import jsonschema` fails every time and
-  burned a round-trip in 5+ sessions. The skill-map validators are written to run without it,
-  so just run `scripts/validate_skill_map.py` / `tests/skill-map/validate_fixtures.py` — do not
-  probe the import first. `yaml` (PyYAML 6.0.3) IS available. If genuinely needed:
-  `python3 -m pip install --quiet --user jsonschema`.
-- vitest: output is captured by rtk tee; read the newest file in
-  `~/Library/Application Support/rtk/tee/` instead of re-running. `--reporter=basic` is
-  invalid (use `--reporter=verbose` or omit).
-- `npx tsc --noEmit` in skill-forge shows pre-existing `@types/node` errors — `npm run build`
-  is the authoritative check; confirm errors are pre-existing via `git stash` before reverting.
-- Browser MCP screenshots: max 2 attempts per state; verify tab/load state instead of looping.
-- Sanity `query_documents`: run `get_schema` first; never retry an identical GROQ query more
-  than twice — cache results in the scratchpad.
-
-### Screenshot / Browser loops
-*~27,373 tokens/session saved*
-- **Browser screenshot loops**: taking repeated screenshots waiting for a page state wastes tokens. Before looping, check whether the page has finished loading (network idle) with a single screenshot + explicit wait, then proceed. Do not take more than 2 screenshots for the same state check.
-
-### skill-forge repo
-*~800 tokens/session saved*
-- **Edit tool requires prior Read** — always `Read` a file before attempting `Edit` or `Write` (overwrite). Skipping this causes `File has not been read yet` errors and wastes a round-trip.
-- **skill-forge repo path**: `/Users/jamesdeola/dev-local/RHIZE/skill-forge` (npm CLI `@rhize/skill-forge`). When tasks pass the repo path as `'undefined'`, search here first. Run tests with `npm test` (alias for `npx vitest run`). Build with `npm run build` (tsup). Type-check with `npm run build` — do NOT use `npx tsc --noEmit` directly (pre-existing `node:fs` type errors exist in the environment; not caused by local changes). `ECC_GATEGUARD=off` prefix suppresses the ECC gate hook during local builds when needed. *(ported 2026-08-26 — dropped by newest-wins title collision on "skill-forge repo")*
-- **Key large/frequently-read files** (read once per session, cache mentally): `src/agents.ts` — 73-entry agent matrix (~15K bytes); `src/gate/profile.ts` — MCP + skill profiler (~14-18K bytes); `src/gate/mcpSafety.ts` — MCP safety ruleset (~12K bytes); `test/e2e.test.ts` — E2E test suite (~10-20K bytes, grows each version); `README.md` — updated every version bump (~8-12K bytes). *(ported 2026-08-26 — dropped by newest-wins title collision on "skill-forge repo")*
-
-### rhize-plugins repo
-*~7,456 tokens/session saved*
-- **rhize-plugins repo**: `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins`. Plugin layout: each plugin dir has `.claude-plugin/plugin.json`, `README.md`, `GUIDE.md`, `skills/*/SKILL.md`, `commands/*.md`, `hooks/hooks.json`.
-- **`seo-aeo-geo` has no `GUIDE.md`** at top level — do not attempt to read it.
-- Version bumping script: `python3 scripts/bump_version.py --plugin <name> --level minor`.
-- **Frequently re-read stable files** — read these once per session and do not re-read unless editing: `rhize-ops/skills/delegate-to-teammate/SKILL.md` (~17-18K bytes); `rhize-devflow/GUIDE.md` (~28K bytes when fully written); `.claude-plugin/marketplace.json` — always validate JSON after edits with `python3 -m json.tool <file>`. *(ported 2026-08-26 — dropped by newest-wins title collision on "rhize-plugins repo")*
-
-### Scratchpad pattern
-*~8,000 tokens/session saved*
-- **Scratchpad path**: subagents write to `/private/tmp/claude-501/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/<session-id>/scratchpad/`. Read the latest scratchpad file with `cat "$(ls -t /private/tmp/claude-501/.../scratchpad/ | head -1)"` rather than re-reading it by name multiple times.
-
-### Sanity / MCP queries
-*~5,817 tokens/session saved*
-- **Sanity MCP repeated queries**: `query_documents` and `get_schema` calls on `projectId: '3g5yoen6', dataset: 'production'` are expensive. Cache the result in a scratchpad file and read it instead of re-querying.
-
-### Commands
-*~500 tokens/session saved*
-- **`timeout` is not available on this macOS** — do not use `timeout <N> <cmd>` in bash scripts; it will fail with `command not found`. Use background processes with `sleep` + `kill` if a timeout is needed.
-- **Vitest output is truncated** when run via `npx vitest run 2>&1 | tail -N` — full output goes to `~/Library/Application Support/rtk/tee/<timestamp>_vitest_run.log`. If output is empty/truncated, read the latest tee log: `tail -150 "$HOME/Library/Application Support/rtk/tee/$(ls -t ~/Library/Application\ Support/rtk/tee/ | head -1)"`. Do NOT use `--reporter=basic` (unsupported); use default or `--reporter=verbose`. *(ported 2026-08-26 — dropped by newest-wins title collision on "Commands"; the sibling `find -not/-exec` tip from the same collision is already preserved verbatim under "Shell / Bash Commands" below, no porting needed there)*
-
-### Scratchpad / Temp Directory Loops
-*~235,000 tokens/session saved*
-- **Reading `/private/tmp/claude-501/-Users-jamesdeola-.../scratchpad/`** repeated 5x in one session (~227k tokens wasted). Write the scratchpad once with all needed content; do not re-read it to verify — trust what you wrote or use a checksum.
-- **`SCRATCH=...` bash setup blocks** are run 40–46x per session to re-establish the scratch environment. Set SCRATCH once in a variable and reuse it; do not re-source the block.
-
-### Critical File Re-fetch Loops — Guardrails
-*~48,000 tokens/session saved*
-- **`procedural-memory/STATE.md`** is re-read up to 31x per session (~14k tokens wasted). Read it once at session start; do not re-read in a loop — make targeted `grep`/`sed` queries for specific sections instead.
-- **`Documents/Claude/Scheduled/vault-inbox-processor/SKILL.md`** is re-read up to 13x per session (~22k tokens wasted). Read once and keep in working memory.
-- **`rhize-tasks/tests/connectors/reminders-process.test.mjs`** is re-read up to 12x per session (~12k tokens wasted). Read once before editing.
-- **`src/rhize_skill/runner.py`** is re-read up to 38x per session (~45k tokens wasted); **`rhize-tasks/installer/install.mjs`** re-read up to 33x (~44k tokens wasted); **`scripts/build_skill_map.py`** re-read up to 44x AND edited up to 60x (~38k tokens wasted). Read each once; batch edits. *(ported 2026-08-26 — dropped by newest-wins title collision on "Critical File Re-fetch Loops — Guardrails"; largely overlaps "Key Large/Hot Files" below but preserves the specific re-read/edit counts and token-waste figures that entry omits)*
-
-### Test Execution — Avoid Re-run Loops
-*~45,487 tokens/session saved*
-- **`cd /Users/jamesdeola/dev-local/RHIZE/procedural-memory && .venv/bin/python -m pytest -q 2>&1 | tail ...`** is run up to 51x per session (~10k tokens wasted). Run the full suite once after a batch of edits, not after every single change.
-- **`node --test tests/connectors/reminders-process.test.mjs 2>&1 | tail -20`** is run up to 13x per session (~8.6k tokens wasted). Batch fixes before re-running.
-- **`node --test tests/e2e/lifecycle-fix-round-1.test.mjs 2>&1 | tail -20`** repeated 11x (~10k tokens wasted). Run test suites after completing a logical change group, not incrementally.
-
-### Python Environment
-*~45,487 tokens/session saved*
-- Always use `.venv/bin/python` (not `python3`) in `/Users/jamesdeola/dev-local/RHIZE/procedural-memory`. The system `python3` does not have project dependencies (`psycopg`, `click`, `jsonschema`) installed.
-- Use `PYTHONDONTWRITEBYTECODE=1` when running scripts in `registry/skills/*/scripts/` to avoid `__pycache__` noise in fixture directories.
-
-### Key Large/Hot Files
-*~44,345 tokens/session saved*
-- `src/rhize_skill/runner.py` — frequently large (24k–40k tokens). Use targeted `grep`/`sed -n` for specific sections rather than full reads.
-- `src/rhize_skill/assertions.py` — ~23k tokens. Read once per session.
-- `rhize-tasks/installer/install.mjs` — read 33x in one session; read once and batch all edits.
-- `scripts/build_skill_map.py` — edited 60x in one session; plan all changes before starting edits.
-
-### PostgreSQL
-*~14,402 tokens/session saved*
-- When restarting PostgreSQL@18 on this machine, always set `LC_ALL=C` (or `LC_ALL=en_US.UTF-8`): `LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@18 start`. Without it, the server fails to start due to Homebrew/macOS locale detection issues.
-- Postgres data directory: `/opt/homebrew/var/postgresql@18`. DSN: `postgresql://jamesdeola@localhost:5432/procedural_memory`.
-
-### Edit Tool — Read Before Write
-*~4,000 tokens/session saved*
-- The Edit/Write tools require the file to be Read first in the same session. Attempting to edit without reading first produces `<tool_use_error>File has not been read yet`. Always Read before Edit, especially for files not touched earlier in the session.
-
-### rhize-skill CLI
-*~3,000 tokens/session saved*
-- `rhize-skill promote` requires an absolute path: use `"$(pwd)/registry/skills/..."` not a relative path. Relative paths cause `'path' is not in the subpath of '...registry'` errors.
-- `rhize-skill run` does not accept `--vault-root` as a direct option; pass arguments after `--` separator.
-
-### Shell / Bash Commands
-*~2,500 tokens/session saved*
-- The `rtk find` wrapper does NOT support `-not`, `-exec`, or compound predicates. Always use `/usr/bin/find` directly for complex find operations.
-- `cat` on macOS does not support `-A` flag; use `cat -v` or `cat -e` instead.
-
-### Detected Loop Guardrails — Scratchpad & SCRATCH Variables
-*~245,000 tokens/session saved*
-- The SCRATCH/scratchpad pattern at `/private/tmp/claude-501/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/<session-id>/scratchpad/` is read 5x and appended 76x+ per session. Read the scratchpad ONCE at session start; maintain an in-memory copy of its state rather than re-reading after every write.
-- The SCRATCH bash one-liner (`SCRATCH=/private/tmp/...`) is repeated 40–76x per session. Define it once at the top of the session in a shell variable and reuse it; do not redefine on every Bash call.
-
-### File Structure Facts
-*~227,622 tokens/session saved*
-- `procedural-memory` Python package must be imported as `PYTHONPATH=src .venv/bin/python3` or installed via `pip install -e .` — bare `python3 -c 'from rhize_skill import...'` fails with ModuleNotFoundError.
-- `procedural-memory/src/rhize_skill/sandbox.py` triggers a `command_not_found` error when read via the standard Read tool due to line-number display formatting — use `cat -n` via Bash or `sed -n` instead.
-- The scratchpad directory is `/private/tmp/claude-501/-Users-jamesdeola-dev-local-RHIZE-rhize-plugins/<session-uuid>/scratchpad/`; the session UUID changes each session — always resolve it at session start rather than hard-coding.
-
-### Detected Loop Guardrails — Core Files
-*~120,000 tokens/session saved*
-- `procedural-memory/src/rhize_skill/runner.py` is read 38x and edited 55x per session. Read it ONCE with `sed -n '1,$p'` or `cat -n` to get the full file upfront; do not re-read to check edits.
-- `procedural-memory/STATE.md` is read 41x per session. Read it once in full at session start; do not re-read to find section headings — use `grep -n '^## '` instead.
-- `procedural-memory/src/rhize_skill/reindex.py`, `cli.py`, `graph_validate.py`, `verify.py`, and `sandbox.py` each exceed 10 re-reads per session. Read each once in full before editing; do not re-read after every edit.
-
-### Detected Loop Guardrails — Install & Config Files
-*~90,000 tokens/session saved*
-- `rhize-tasks/installer/install.mjs` is read 33x and edited 35x per session. Read once upfront; use targeted `grep -n` or `sed -n` for section inspection rather than full re-reads.
-- `scripts/build_skill_map.py` is read 44x and edited 60x per session. Read once; batch all edits before re-running the build script.
-- `rhize-tasks/service/src/connectors/slack.mjs` and `context.mjs` are each re-read 8x per session. Read once before any edit cycle.
-
-### Detected Loop Guardrails — Test Runners
-*~45,487 tokens/session saved*
-- `cd /Users/jamesdeola/dev-local/RHIZE/procedural-memory && .venv/bin/python -m pytest -q 2>&1 | tail -N` runs 58x per session. Run tests at most twice per fix cycle (once to confirm failure, once to confirm fix); do not re-run after every micro-edit.
-- `node --test tests/connectors/reminders-process.test.mjs 2>&1 | tail -20` and similar rhize-tasks node test invocations run 10–13x per session. Consolidate test runs; check all related test files in one pass.
-- `cd rhize-ops/skill-monitor && python3 -m pytest tests/ -q` runs 25x per session. Run once after a batch of edits, not after each individual change.
-
-### Detected Loop Guardrails — registry/runners and registry drivers
-*~45,487 tokens/session saved*
-- `procedural-memory/registry/runners/graph-runner/v1/driver.py` is read 17x and edited 19x per session. Read once in full (it is a large file); navigate with `grep -n` or `sed -n` for specific sections.
-- `procedural-memory/src/rhize_skill/graph_promote.py` and `provenance.py` each exceed 8 re-reads per session. Read once; do not re-read to verify an edit — use `grep` on the specific changed line instead.
-
-### Detected Loop Guardrails — refactor_gate.py
-*~45,487 tokens/session saved*
-- `refactor_gate.py prepare` fails with `BLOCKED: impact map missing required section: <name>` unless the plan text contains all five substrings `current behavior`, `intended semantic delta`, `invariants`, `acceptance tests`, and `implementation order` (case-insensitive — `REQUIRED_PLAN_SECTIONS` in the script; the `/rhize-devflow:impact-map` output template already has them). Corrected 2026-09-02: earlier notes here claimed a "Current Behavior / Problem / Proposed Change" trio, which the gate never checked.
-- Reconciliation matches every changed path (or its basename) against the plan text, so list full paths for everything an executor will touch; editing the plan while executors are writing blocks every write until `prepare` runs again, and the Stop hook closes a `reconciled` receipt as `completed`, after which `reconcile` needs a fresh `prepare` (new baseline).
-- `python3 rhize-devflow/scripts/refactor_gate.py` is invoked 15x per session from different working directories; always `cd` to `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins` first or use the full path from that root.
-- The refactor gate requires a pre-existing plan with a SHA256 receipt. Run `refactor_gate.py prepare` exactly once per plan; do not re-run it to fix minor validation errors — fix the plan file first.
-
-### Detected Loop Guardrails — SKILL.md Files
-*~25,000 tokens/session saved*
-- `Documents/Claude/Scheduled/vault-inbox-processor/SKILL.md` is read 13x and edited 22x per session (~22 KB). Read once at session start; this file is large — always use `wc -l` first, then `sed -n` for relevant sections rather than full re-reads.
-- `Documents/Claude/Scheduled/daily-learn-harvest/SKILL.md` is read 3x and edited 16x. Same pattern: read once, then edit in place without re-reading.
-
-### Environment
-*~12,908 tokens/session saved*
-- Python venv for `procedural-memory`: always use `.venv/bin/python` or `.venv/bin/pytest`, never bare `python3` (bare python3 lacks the installed packages).
-- PostgreSQL restart requires `LC_ALL=C` (or `LC_ALL=en_US.UTF-8`): `LC_ALL=C pg_ctl -D /opt/homebrew/var/postgresql@18 start`. Bare `pg_ctl start` fails with locale errors.
-- `find` with `-not` or `-exec` fails with the `rtk` wrapper — use `/usr/bin/find` directly for compound predicates.
-- `cat` on macOS does not support `-A` flag; use `cat -e` or omit the flag.
-- `timeout` command is not available in the default PATH in sandbox environments; use `.venv/bin/python -c` or shell builtins instead.
-
-### Workflow Rules
-*~6,000 tokens/session saved*
-- Never `git push` from within agent sessions in this project; the orchestrator handles pushes. Commit locally only.
-- Before editing any file with the Edit tool, always Read it first in the same session — the Edit tool will fail with 'File has not been read yet' otherwise.
-- When running `refactor_gate.py prepare`, the plan must contain the five impact-map sections named under "Detected Loop Guardrails — refactor_gate.py" above (not a "Current Behavior / Problem / Proposed Change" trio — that older note was wrong). Missing sections cause an immediate BLOCKED exit.
-- Test fixtures that build git repos must pass `-c core.excludesFile=/dev/null`: this machine's `~/.config/git/ignore` contains `**/.claude/settings.local.json`, and `GIT_CONFIG_GLOBAL=/dev/null` does not override the excludes file (found 2026-09-02 by `tests/rhize-ops/test_git_preflight.py`).
-- `claude plugin eval` is org-gated on this machine and cannot be executed; build static validators instead of trying to invoke it.
+Session-level loop guardrails (hot files, re-read counts, token figures) live in
+`docs/session-guardrails.md` — read it when a session is looping on re-reads or re-runs.

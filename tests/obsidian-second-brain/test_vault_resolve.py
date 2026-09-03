@@ -19,7 +19,9 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-SCRIPTS_DIR = Path(__file__).parents[1] / "hooks" / "scripts"
+REPO = Path(__file__).resolve().parents[2]
+PLUGIN = REPO / "obsidian-second-brain"
+SCRIPTS_DIR = PLUGIN / "hooks" / "scripts"
 WRITE_HOOK = SCRIPTS_DIR / "vault-write-hint.py"
 READ_HOOK = SCRIPTS_DIR / "vault-read-hint.py"
 

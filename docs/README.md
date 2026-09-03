@@ -15,7 +15,7 @@ Version 1.5.2. Audits and improves how a website ranks in search engines and sho
 
 ### obsidian-second-brain
 
-Version 1.7.3. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.7.4. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 
@@ -27,13 +27,13 @@ Version 1.8.2. Walks a new project from a rough idea through research, requireme
 
 ### rhize-devflow
 
-Version 2.20.1. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.20.2. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [9 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
-Version 0.25.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.25.1. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
@@ -57,7 +57,7 @@ Version 0.2.2. Sets up the starter files describing a new Cowork client's busine
 
 ### procedural-memory
 
-Version 0.5.2. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
+Version 0.5.3. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
 
 [README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#procedural-memory)
 <!-- SKILL-MAP:END -->
@@ -70,6 +70,8 @@ Version 0.5.2. Lets Claude find and reuse previously verified scripts and automa
   [`query-layer.md`](./skill-map/query-layer.md),
   [`generated-docs.md`](./skill-map/generated-docs.md), and
   [`agent-dispatch-surface.md`](./skill-map/agent-dispatch-surface.md).
+- [`skill-map/README.md`](./skill-map/README.md) — the skill-map subsystem: an index of every
+  catalog, schema, generated, script, test, and hook file it's made of, wherever it actually lives.
 - [`mcp-secret-launcher.md`](./mcp-secret-launcher.md) — how plugins deliver a credential to an
   MCP server without ever writing it into a file.
 - [`../rhize-ops/docs/setup-artifacts.md`](../rhize-ops/docs/setup-artifacts.md) — every file the

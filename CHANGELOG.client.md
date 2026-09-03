@@ -9,6 +9,13 @@ references? That's [CHANGELOG.md](./CHANGELOG.md). This page is the short versio
 
 ## September 2026
 
+**A tidier repository to read and contribute to.** Every plugin now keeps its own `CHANGELOG.md`
+(the long engineering record before today lives in `docs/release/CHANGELOG-history.md`), all tests
+live in one `tests/` tree instead of eight places, `evals/README.md` explains what each evaluation
+suite grades, and the repository instructions file agents read on every session is a short router
+with the harvested session guardrails moved to `docs/session-guardrails.md`. A proposed CI workflow
+that mirrors the local release checks waits in `.github/ci-proposed/` for the maintainer to enable.
+
 **Set up only the plugins you want, and see what setup wrote.** `/rhize-ops:rhize-setup` now
 starts by asking which of your installed plugins to set up, runs the shared checks once
 (dependencies, whether your customizations are under version control, the skill map), then hands

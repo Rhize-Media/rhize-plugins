@@ -200,3 +200,6 @@ to check what's tracked before you commit.
 - [`docs/README.md`](./docs/README.md) — cross-plugin reference material for maintainers.
 - [`CHANGELOG.client.md`](./CHANGELOG.client.md) — plain-language highlights of what shipped.
 - [`ROADMAP.md`](./ROADMAP.md) — active and planned future work.
+- [`evals/README.md`](./evals/README.md) — what each evaluation suite grades and how to run it.
+- [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) — the full engineering record before 2026-09-03; each plugin now keeps its own `CHANGELOG.md`.
+- [`docs/session-guardrails.md`](./docs/session-guardrails.md) — the session-level guardrails agents read when a session starts looping.

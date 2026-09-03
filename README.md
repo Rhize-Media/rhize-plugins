@@ -20,14 +20,14 @@ All plugins below will become available for installation. Each plugin may need i
 | Plugin | Version | Skill Count | Description | Docs |
 | --- | --- | --- | --- | --- |
 | [seo-aeo-geo](./seo-aeo-geo) | 1.5.2 | 7 | Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers. | [README](./seo-aeo-geo/README.md) · [GUIDE](./seo-aeo-geo/GUIDE.md) |
-| [obsidian-second-brain](./obsidian-second-brain) | 1.7.3 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
+| [obsidian-second-brain](./obsidian-second-brain) | 1.7.4 | 10 | Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian. | [README](./obsidian-second-brain/README.md) · [GUIDE](./obsidian-second-brain/GUIDE.md) |
 | [project-launcher](./project-launcher) | 1.8.2 | 2 | Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project. | [README](./project-launcher/README.md) · [GUIDE](./project-launcher/GUIDE.md) |
-| [rhize-devflow](./rhize-devflow) | 2.20.1 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
-| [rhize-context-manager](./rhize-context-manager) | 0.25.0 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
+| [rhize-devflow](./rhize-devflow) | 2.20.2 | 9 | Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications. | [README](./rhize-devflow/README.md) · [GUIDE](./rhize-devflow/GUIDE.md) |
+| [rhize-context-manager](./rhize-context-manager) | 0.25.1 | 16 | Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions. | [README](./rhize-context-manager/README.md) · [GUIDE](./rhize-context-manager/GUIDE.md) |
 | [rhize-ops](./rhize-ops) ⭐ **hub — recommended base install** | 0.18.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-tasks](./rhize-tasks) | 0.4.4 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 | [rhize-cowork](./rhize-cowork) | 0.2.2 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
-| [procedural-memory](./procedural-memory) | 0.5.2 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
+| [procedural-memory](./procedural-memory) | 0.5.3 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-ops is the hub:** it hosts `/rhize-setup`, the one wizard that reads every other
@@ -105,7 +105,10 @@ This repo uses one convention consistently across every plugin — know it once,
 | **[`rhize-ops/docs/setup-artifacts.md`](./rhize-ops/docs/setup-artifacts.md)** | Anyone who ran setup | Every file the plugins write on your machine — path, purpose, how to view it, sensitivity, Git tracking — rendered from each plugin's setup manifest |
 | **`ROADMAP.md`** | Contributors | Active and planned future work, organized by plugin |
 | **[`CHANGELOG.client.md`](./CHANGELOG.client.md)** | Anyone using the plugins | Plain-language highlights of what shipped |
-| **`CHANGELOG.md`** | Maintainers and contributors | The full engineering record: every fix and version bump, with internal references |
+| **`CHANGELOG.md`** | Maintainers and contributors | Marketplace-level record: version bumps and cross-plugin programs; each plugin keeps its own `CHANGELOG.md`, and everything before 2026-09-03 is preserved in [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) |
+| **[`evals/README.md`](./evals/README.md)** | Maintainers | Index of every evaluation suite: what it grades, how to run it, what it writes |
+| **[`docs/session-guardrails.md`](./docs/session-guardrails.md)** | Agents and maintainers | Harvested session guardrails (hot files, re-read loops, token figures) kept out of `CLAUDE.md`, which is a short router |
+| **[`.github/ci-proposed/`](./.github/ci-proposed/README.md)** | Maintainers | The proposed CI workflow mirroring the local release contracts, awaiting promotion into `.github/workflows/` |
 
 **Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
 
@@ -185,7 +188,7 @@ rhize-plugins/
 ├── scripts/                       # Maintainer scripts (e.g. version bump)
 ├── START-HERE.md                  # First-time-reader orientation
 ├── ROADMAP.md                     # Active + planned work
-├── CHANGELOG.md                   # Released changes
+├── CHANGELOG.md                   # Marketplace-level changes (per-plugin CHANGELOG.md in each plugin; history in docs/release/)
 └── README.md                      # You are here
 ```
 
@@ -217,7 +220,7 @@ To add a new plugin:
    rendered from `marketplace.json` and the skill map by `scripts/render_skill_map_docs.py`.
    Registering the plugin in step 3 is what feeds them; the render itself runs as part of the
    version-bump release flow (see the root CLAUDE.md's Documentation Maintenance section).
-5. Add a `CHANGELOG.md` entry.
+5. Add an entry to the plugin's own `CHANGELOG.md` (marketplace-level changes go in the root `CHANGELOG.md`).
 6. Add complete eval coverage under `evals/` (see `evals/README.md`): routing cases, a local quality contract, and an exact benchmark applicability record for every new skill.
 
 Opening a pull request? The PR template (`.github/PULL_REQUEST_TEMPLATE.md`) walks through

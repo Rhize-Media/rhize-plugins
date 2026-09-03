@@ -226,14 +226,45 @@ def changelog_insert(bullets: list) -> None:
         return
     t = cl.read_text(encoding="utf-8")
     block = "".join(f"- {b}\n" for b in bullets)
-    marker = "## [Unreleased]\n\n### Added\n\n"
-    if marker in t:
-        cl.write_text(t.replace(marker, marker + block, 1), encoding="utf-8")
-    elif "## [Unreleased]" in t:
-        cl.write_text(t.replace("## [Unreleased]\n",
-                                "## [Unreleased]\n\n### Added\n\n" + block, 1), encoding="utf-8")
-    else:
+    updated = _insert_under_unreleased_added(t, block)
+    if updated is None:
         print("WARN: no [Unreleased] section in CHANGELOG; skipped", file=sys.stderr)
+        return
+    cl.write_text(updated, encoding="utf-8")
+
+
+_UNRELEASED_ADDED = re.compile(r"## \[Unreleased\]\n+### Added\n*")
+
+
+def _insert_under_unreleased_added(text: str, block: str) -> "str | None":
+    """Insert `block` directly under `## [Unreleased]` / `### Added`, reusing an existing
+    `### Added` heading whatever whitespace follows it (a freshly scaffolded plugin changelog
+    ends `### Added\n`, not `### Added\n\n`), and creating the heading only when the
+    section has none. Returns None when there is no `## [Unreleased]` section at all."""
+    match = _UNRELEASED_ADDED.search(text)
+    if match:
+        head = text[:match.end()].rstrip("\n") + "\n\n"
+        return head + block + text[match.end():]
+    if "## [Unreleased]" in text:
+        return text.replace("## [Unreleased]\n", "## [Unreleased]\n\n### Added\n\n" + block, 1)
+    return None
+
+
+def plugin_changelog_insert(plugin: str, bullet: str) -> None:
+    """Insert one bump bullet into a plugin's own CHANGELOG.md, under
+    ## [Unreleased] / ### Added — creating the ### Added marker if the file
+    has ## [Unreleased] without one. Skips with a stderr WARN if the plugin
+    has no CHANGELOG.md."""
+    cl = REPO / plugin / "CHANGELOG.md"
+    if not cl.exists():
+        print(f"WARN: {plugin} has no CHANGELOG.md; skipped", file=sys.stderr)
+        return
+    t = cl.read_text(encoding="utf-8")
+    updated = _insert_under_unreleased_added(t, f"- {bullet}\n")
+    if updated is None:
+        print(f"WARN: no [Unreleased] section in {plugin}/CHANGELOG.md; skipped", file=sys.stderr)
+        return
+    cl.write_text(updated, encoding="utf-8")
 
 
 # ---------- modes ----------
@@ -258,6 +289,11 @@ def apply(plugins: dict, levels: dict) -> None:
     bullets = [f"**{n}** {o} → {nv} ({l})" for n, o, nv, l in rows]
     changelog_insert([f"_{today}_ version bump — " + "; ".join(bullets)
                       + f"; marketplace {mkt_old} → {mkt_new}."])
+    for n, o, nv, l in rows:
+        plugin_changelog_insert(
+            n,
+            f"_{today}_ version bump — {o} → {nv} ({l}); marketplace {mkt_old} → {mkt_new}.",
+        )
     print(f"✓ applied. marketplace {mkt_old} → {mkt_new}")
     for n, o, nv, l in rows:
         print(f"    {n}: {o} → {nv} ({l})")

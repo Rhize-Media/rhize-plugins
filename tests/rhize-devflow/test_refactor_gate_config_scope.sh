@@ -3,7 +3,8 @@
 #
 # Exercises hook-write and hook-command against an isolated temp git workspace
 # and an isolated RHIZE_REFACTOR_GATE_STATE_DIR, so it never touches real
-# session state. Run from anywhere; paths are resolved relative to this file.
+# session state. Run from anywhere; paths are resolved relative to the repo
+# root derived from this file's location (tests/rhize-devflow/).
 #
 # Exit 0 = all assertions passed. Exit 1 = at least one assertion failed
 # (see stderr for which one and why).
@@ -11,7 +12,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-GATE="$SCRIPT_DIR/../refactor_gate.py"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+GATE="$REPO_ROOT/rhize-devflow/scripts/refactor_gate.py"
 
 WORKDIR="$(mktemp -d)"
 TMPWS="$WORKDIR/ws"

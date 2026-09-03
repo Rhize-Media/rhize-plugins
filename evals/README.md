@@ -174,6 +174,159 @@ Results are saved to `evals/results/`:
 | `section_count` | number | At least N markdown `##` sections in output |
 | `has_data` | number | At least N concrete data points (numbers, percentages, URLs, scores) |
 
+## Suites
+
+One paragraph per directory under `evals/` (excluding `results/`, which is auto-generated output,
+and `__pycache__/`) — what it grades, how to run it, and what it writes. See "Plugin-Specific
+Notes" below for narrative context on the live-model plugin suites.
+
+### context-tools
+
+Grades the real pinned context-tooling providers used by `rhize-context-manager`: the
+capture-health gate validates live experiment receipts (schema, Arm A/B pairing, malformed,
+missing, or expired captures) and exits `2` on actionable evidence loss, while the retrieval
+runner grades real scoped `ripgrep` (Arm A) against real local `grepai` (Arm B-local) semantic
+search. Run with `python3 rhize-context-manager/scripts/context_experiments/runner.py
+capture-health` and `python3 evals/context-tools/run_retrieval_evals.py --output
+evals/results/context-tools/retrieval-phase-1.5-real.json`. Writes JSON reports under
+`evals/results/context-tools/`; these are measurement-pipeline checks, not a provider adoption
+gate.
+
+### decision-accountability
+
+Grades the offline decision-accountability contract — deterministic policy reproduction,
+source/evidence/policy/approval/effect/outcome separation, preview expiry, CAS/idempotency,
+failure atomicity, ACL/tenant denials, and PROV-O interoperability — against synthetic fixtures
+only. Run with `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s
+evals/decision-accountability/tests -p 'test_*.py'`. Writes nothing to disk; it is a pass/fail
+unittest run with no Neo4j or client data involved.
+
+### graph-hygiene
+
+Grades Rhize's candidate-only identity workflow independently of a live Neo4j database:
+normalization, tenant/namespace/ACL/type/trust gates, poisoned and flooded inputs,
+compare-and-swap review leases, and privacy-safe quality reporting. Run with
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s evals/graph-hygiene/tests -p
+'test_*.py'`. Writes nothing to disk; the labeled fixture is a deterministic contract corpus, not
+a calibrated production threshold.
+
+### graph-ontology
+
+Grades the offline ontology release contract — deterministic ontology generation, extension
+isolation, Graphify translation, tenant-safe identities, source provenance, purge/backup/restore,
+and host-neutral CLI output — against synthetic, redacted fixtures. Run with
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s evals/graph-ontology/tests -v`. Writes
+nothing to disk; it is not evidence of a live Neo4j deployment.
+
+### memory-context
+
+Grades the host-neutral memory adapter for Claude Code and Codex: byte-equivalent manifests,
+conflict preservation, inert untrusted content, scope denial, TTL/source-revision invalidation,
+and (for the graph fixture) tenant/ACL denial and purge, without opening a database connection.
+Run with `python3 -m pytest -q evals/memory-context/tests`. Writes nothing to disk; deterministic
+contract evidence only, not operational retrieval evidence.
+
+### obsidian
+
+Grades the `obsidian-second-brain` plugin's skills: `run_local_evals.py` is the free
+deterministic gate (routing substrings, keyword drift, one positive plus two collision negatives
+per skill, static quality contracts); `trigger_evals.json`/`quality_evals.json` are live-model
+cases for the shared `evals/run_evals.py` harness. Run the local gate with `python3
+evals/obsidian/run_local_evals.py`. The local gate writes nothing; the live harness writes
+results into `evals/results/`.
+
+### parallel-agent-skills
+
+Grades the `rhize-ops:parallel-agent-optimization` strategy against a `baseline` variant across
+six deterministic task classes, three repetitions each, in counterbalanced order. Run a pair with
+`scripts/prepare_run.py` (once per variant) then `scripts/grade_run.py`; the ops-skill
+routing/collision gate runs via `python3 evals/parallel-agent-skills/scripts/evaluate_ops_skills.py`.
+Writes a provisional then finalized `receipt.json` per run under an explicit `--output` directory
+(not committed) and reservation state to `RUN_RESERVATION.json`.
+
+### procedural-engineering
+
+Grades nothing live — it validates that `baseline-2026-08-30.json` (the frozen
+pre-implementation snapshot for the procedural-engineering evidence-gates plan) still matches its
+receipt contract. Run with `python3 evals/procedural-engineering/validate_baseline.py
+evals/procedural-engineering/baseline-2026-08-30.json`. Writes nothing; historical rows are never
+upgraded in place.
+
+### procedural-memory
+
+Grades a free local collision contract (one positive, two negatives) for the `procedural-memory`
+and `functionize` skills, plus the org-gated canonical suite in `procedural-memory/evals/` (still
+the authoritative agent-eval suite). Run with `python3 evals/procedural-memory/run_evals.py` and
+`python3 procedural-memory/evals/validate-suite.py --eval-dir procedural-memory/evals`. Writes
+nothing to disk.
+
+### project-launcher
+
+Grades the `project-launcher` plugin's skills via the same local pattern as
+obsidian/seo-aeo-geo/rhize-cowork: keyword drift, one positive plus two collision negatives per
+skill, live-quality case presence, static operational contracts. Run with `python3
+evals/project-launcher/run_local_evals.py`. Writes nothing to disk; `benchmark_spec.json` fixes
+the future Arm A/Arm B pair, but no arm has run.
+
+### rhize-context-manager
+
+Grades all shipped `rhize-context-manager` skills: routing-keyword presence in each live
+`SKILL.md`, one positive plus two collision negatives per skill, a static quality/ownership
+contract, and a paired benchmark specification (Arm A/Arm B, common metric schema) per skill. Run
+with `python3 evals/rhize-context-manager/run_evals.py` (add `--json` for machine output). Writes
+no receipt or result file — it makes no model, network, provider, or live-mutation calls.
+
+### rhize-cowork
+
+Grades the `rhize-cowork` plugin's skill: keyword drift, one positive plus two collision
+negatives, a live-quality case, and static operational contracts. Run with `python3
+evals/rhize-cowork/run_local_evals.py`. Writes nothing to disk; `benchmark_spec.json` fixes the
+future Arm A/Arm B pair, but no arm has run.
+
+### rhize-devflow
+
+Grades the `rhize-devflow` control plane offline (no live `claude -p` calls): trigger precision
+via a fixed keyword-substring heuristic (`keywords.json`), output quality by re-running
+`evals/assertions.py`'s assertion engine against the static contract text of `/check`, `/review`,
+and the canonical skills, and benchmark readiness (every skill names an exact Arm A/Arm B and
+common metrics). Run with `python3 evals/rhize-devflow/run_evals.py`. Writes nothing to disk.
+
+### rhize-tasks
+
+Grades all six `rhize-tasks` skills as one phrase-routing contract (so collisions are checked
+together), plus safety-critical workflow anchors in each `SKILL.md`; `benefit-benchmark.json`/
+`benchmark_contract.py` separately define and reserve/validate a six-task, three-repetition Arm
+A/Arm B benefit protocol. Run with `python3 evals/rhize-tasks/run_evals.py` (and
+`benchmark_contract.py reserve`/`validate` for the benefit protocol). Writes no receipts or
+results by default; the benefit protocol writes reservation/validation state when actually run.
+
+### seo-aeo-geo
+
+Grades the `seo-aeo-geo` plugin's skills: `run_local_evals.py` is the free deterministic gate
+(routing substrings, keyword drift, one positive plus two near-miss negatives per skill, static
+contracts, no DataForSEO calls); `trigger_evals.json`/`quality_evals.json` are live-model cases
+for the shared `evals/run_evals.py` harness (needs DataForSEO credentials). Run the local gate
+with `python3 evals/seo-aeo-geo/run_local_evals.py`. The local gate writes nothing; the live
+harness writes results into `evals/results/`.
+
+### skill-forge
+
+Grades the external SkillForge CLI/checkout without ever editing it: `inspect` detects
+package/binary drift, `safety` runs a hand-labeled six-case precision/recall corpus plus local
+scan latency, and `evolve_contract.py`/`evolve-benchmark.json` define a separate digest-pinned
+pre/post non-inferiority protocol. Run with `python3 evals/skill-forge/integration_eval.py inspect
+--checkout <path> --binary <path>` and the `safety` subcommand. Writes its safety results to an
+explicit `--output` path outside Git; no receipts are committed.
+
+### skill-map
+
+Grades the skill-map subsystem's routing, disclosure, and remediation behavior against local
+transcripts and hook subprocesses (not live `claude -p` calls) — a harness-integration entry
+point since these evals don't fit `run_evals.py`'s trigger/quality-JSON discovery contract. Run
+with `python3 evals/skill-map/run.py`, which runs `eval_routing.py`, `eval_disclosure.py`, and
+`eval_remediation.py` in sequence. Writes one timestamped result file into `evals/results/`
+(gitignored) in the same schema shape as `run_evals.py`'s output.
+
 ## Plugin-Specific Notes
 
 ### seo-aeo-geo

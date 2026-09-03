@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 
 
-PLUGIN = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
+PLUGIN = REPO / "procedural-memory"
 
 
 def test_codex_manifest_discovers_the_shared_skill() -> None:

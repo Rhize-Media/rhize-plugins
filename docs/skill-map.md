@@ -1,5 +1,8 @@
 # Skill Map — Conventions
 
+See [`skill-map/README.md`](./skill-map/README.md) for a one-line-per-file index of every path
+this subsystem is made of.
+
 The skill map is the **generated** graph substrate for skill routing, curation, and disclosure
 across this repo's plugins. It replaces the flat, hand-restated skill inventory (marketplace.json
 + per-plugin READMEs + root catalog + GUIDE tables) with one machine-produced artifact. See

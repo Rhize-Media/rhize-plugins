@@ -3,9 +3,9 @@ import unittest
 from pathlib import Path
 
 
-MODULE_PATH = (
-    Path(__file__).resolve().parents[1] / "scripts" / "compression_evaluator.py"
-)
+REPO = Path(__file__).resolve().parents[3]
+SKILL_DIR = REPO / "rhize-context-manager" / "skills" / "context-compression"
+MODULE_PATH = SKILL_DIR / "scripts" / "compression_evaluator.py"
 MODULE_SPEC = importlib.util.spec_from_file_location(
     "compression_evaluator", MODULE_PATH
 )

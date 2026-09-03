@@ -19,14 +19,16 @@
 # PATH leaks in.
 #
 # Exits 0 if every assertion passes, non-zero (and prints which one failed)
-# otherwise. Run directly: sh tests/test-launcher.sh
+# otherwise. Run directly: sh tests/procedural-memory/test-launcher.sh
 
 set -eu
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-LAUNCHER="$SCRIPT_DIR/../scripts/rhize-skill-launcher.sh"
-SKILL_LAUNCHER="$SCRIPT_DIR/../skills/procedural-memory/scripts/procedural-memory.sh"
-FUNCTIONIZE_LAUNCHER="$SCRIPT_DIR/../skills/functionize/scripts/functionize.sh"
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
+PLUGIN_DIR="$REPO_ROOT/procedural-memory"
+LAUNCHER="$PLUGIN_DIR/scripts/rhize-skill-launcher.sh"
+SKILL_LAUNCHER="$PLUGIN_DIR/skills/procedural-memory/scripts/procedural-memory.sh"
+FUNCTIONIZE_LAUNCHER="$PLUGIN_DIR/skills/functionize/scripts/functionize.sh"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 

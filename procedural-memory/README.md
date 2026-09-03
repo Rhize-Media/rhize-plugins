@@ -171,11 +171,14 @@ procedural-memory/
 │   ├── post-bash-candidate-queue.sh          # Tier 1 — cheap, every Bash call
 │   └── session-end-scan.py                   # Tier 2 — heavier, on Stop
 ├── docs/decisions/                           # recorded scope decisions (e.g. no /prune)
-├── tests/test-launcher.sh                    # launcher resolution/version-gate tests, real+runnable
 ├── evals/                                    # claude plugin eval suite + validate-suite.py (see evals/README.md)
 ├── README.md                                 # this file
 └── GUIDE.md                                  # user-facing walkthrough
 ```
+
+Tests live at the repo root, not under this plugin: `tests/procedural-memory/test-launcher.sh`
+(launcher resolution/version-gate tests, real+runnable) and
+`tests/procedural-memory/test_codex_discovery.py`.
 
 ## Hooks: capturing promotion candidates during a session
 
@@ -314,7 +317,7 @@ that would have made the first real run worthless — a `tool_used` grader with 
 only an enum is valid. It proves schema conformance only: it runs no agent, so trigger accuracy
 stays unmeasured until the gate opens.
 
-What's real instead: `tests/test-launcher.sh` runs the launcher's resolution-order and
+What's real instead: `tests/procedural-memory/test-launcher.sh` runs the launcher's resolution-order and
 version-gate logic directly (no Claude session needed) and includes a proven
 deliberately-broken-case-that-goes-red. Separately, every trigger/negative/happy-path case was
 manually run once through a real Claude Code session (`claude --plugin-dir <this-plugin>`) —

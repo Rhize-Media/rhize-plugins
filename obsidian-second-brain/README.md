@@ -282,11 +282,12 @@ obsidian-second-brain/
 │       └── vault_resolve.py           # Shared vault-path resolution (env var → obsidian.json → iCloud)
 ├── setup/
 │   └── manifest.json                  # Opt-in capabilities for /rhize-setup (currently empty)
-├── tests/
-│   ├── test_compiled_knowledge.py     # Policy, CAS, recovery, purge, parity fixtures
-│   └── test_vault_resolve.py          # Vault-path resolution + hook-script integration tests
 └── README.md
 ```
+
+Tests live at the repo root, not under this plugin: `tests/obsidian-second-brain/test_compiled_knowledge.py`
+(policy, CAS, recovery, purge, parity fixtures) and `tests/obsidian-second-brain/test_vault_resolve.py`
+(vault-path resolution + hook-script integration tests).
 
 ## Sources
 

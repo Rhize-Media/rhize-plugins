@@ -1,7 +1,10 @@
 """Regression tests for dual-host plugin version updates."""
 
+import datetime as dt
 import importlib.util
+import io
 import json
+import re
 import subprocess
 import unittest
 from pathlib import Path
@@ -269,6 +272,120 @@ class PluginContractCheckTests(unittest.TestCase):
             result = bump_version.cmd_check(args, {})
 
         self.assertEqual(result, 1)
+
+
+class PluginChangelogInsertTests(unittest.TestCase):
+    """Regression coverage for the per-plugin CHANGELOG.md insertion apply()
+    performs alongside the existing root-CHANGELOG.md insertion (repo-shape
+    R-A item 2): each bumped plugin gets its own bullet, the root file's
+    bullet format is unaffected, and a missing plugin CHANGELOG.md warns
+    instead of crashing."""
+
+    def setUp(self) -> None:
+        self.original_repo = bump_version.REPO
+        self.temp_dir = TemporaryDirectory()
+
+    def tearDown(self) -> None:
+        bump_version.REPO = self.original_repo
+        self.temp_dir.cleanup()
+
+    @staticmethod
+    def _seed_changelog(path: Path, *, with_added_marker: bool = True, scaffold: bool = False) -> None:
+        """`scaffold=True` reproduces the real per-plugin scaffold, which ends `### Added\n`
+        (one newline) — the shape that used to make the bump tool duplicate the heading."""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if scaffold:
+            path.write_text("# Changelog — x\n\n## [Unreleased]\n\n### Added\n", encoding="utf-8")
+        elif with_added_marker:
+            path.write_text("# Changelog\n\n## [Unreleased]\n\n### Added\n\n", encoding="utf-8")
+        else:
+            path.write_text("# Changelog\n\n## [Unreleased]\n", encoding="utf-8")
+
+    def test_apply_reuses_the_scaffold_added_heading_instead_of_duplicating_it(self) -> None:
+        repo = seed_repo(Path(self.temp_dir.name), "rhize-tasks", dual=False)
+        bump_version.REPO = repo
+        self._seed_changelog(repo / "CHANGELOG.md", scaffold=True)
+        self._seed_changelog(repo / "rhize-tasks" / "CHANGELOG.md", scaffold=True)
+
+        bump_version.apply({"rhize-tasks": repo / "rhize-tasks"}, {"rhize-tasks": "patch"})
+
+        for path in (repo / "CHANGELOG.md", repo / "rhize-tasks" / "CHANGELOG.md"):
+            text = path.read_text(encoding="utf-8")
+            self.assertEqual(text.count("### Added"), 1, text)
+            self.assertEqual(text.count("## [Unreleased]"), 1, text)
+            self.assertEqual(text.count("version bump"), 1, text)
+            self.assertIn("## [Unreleased]\n\n### Added\n\n- _", text)
+
+    def test_apply_inserts_a_bullet_into_the_plugin_changelog(self) -> None:
+        repo = seed_repo(Path(self.temp_dir.name), "rhize-tasks", dual=False)
+        bump_version.REPO = repo
+        self._seed_changelog(repo / "CHANGELOG.md")
+        self._seed_changelog(repo / "rhize-tasks" / "CHANGELOG.md")
+
+        bump_version.apply({"rhize-tasks": repo / "rhize-tasks"}, {"rhize-tasks": "patch"})
+
+        plugin_text = (repo / "rhize-tasks" / "CHANGELOG.md").read_text(encoding="utf-8")
+        match = re.search(r"(?m)^- (_\d{4}-\d{2}-\d{2}_ version bump.*)$", plugin_text)
+        self.assertIsNotNone(match, plugin_text)
+        self.assertEqual(
+            match.group(1),
+            "_" + dt.date.today().isoformat() + "_ version bump — "
+            "0.0.0 → 0.0.1 (patch); marketplace 2.27.0 → 2.27.1.",
+        )
+        self.assertEqual(plugin_text.count("### Added"), 1, plugin_text)
+
+    def test_apply_leaves_the_root_changelog_bullet_format_unchanged(self) -> None:
+        repo = seed_repo(Path(self.temp_dir.name), "rhize-tasks", dual=False)
+        bump_version.REPO = repo
+        self._seed_changelog(repo / "CHANGELOG.md")
+        self._seed_changelog(repo / "rhize-tasks" / "CHANGELOG.md")
+
+        bump_version.apply({"rhize-tasks": repo / "rhize-tasks"}, {"rhize-tasks": "patch"})
+
+        root_text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+        match = re.search(r"(?m)^- (_\d{4}-\d{2}-\d{2}_ version bump.*)$", root_text)
+        self.assertIsNotNone(match, root_text)
+        self.assertEqual(
+            match.group(1),
+            "_" + dt.date.today().isoformat() + "_ version bump — "
+            "**rhize-tasks** 0.0.0 → 0.0.1 (patch); marketplace 2.27.0 → 2.27.1.",
+        )
+        # Exactly one bullet was inserted (no duplication, no per-plugin bleed-through).
+        self.assertEqual(root_text.count("version bump"), 1)
+
+    def test_warns_and_skips_when_the_plugin_has_no_changelog(self) -> None:
+        repo = seed_repo(Path(self.temp_dir.name), "legacy-plugin", dual=False)
+        bump_version.REPO = repo
+        self._seed_changelog(repo / "CHANGELOG.md")
+        # Deliberately no legacy-plugin/CHANGELOG.md.
+
+        captured_stderr = io.StringIO()
+        with patch("sys.stderr", captured_stderr):
+            bump_version.apply({"legacy-plugin": repo / "legacy-plugin"}, {"legacy-plugin": "patch"})
+
+        self.assertIn("WARN: legacy-plugin has no CHANGELOG.md; skipped", captured_stderr.getvalue())
+        self.assertFalse((repo / "legacy-plugin" / "CHANGELOG.md").exists())
+        # The root file still got its bullet even though the plugin file was skipped.
+        root_text = (repo / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("version bump", root_text)
+
+    def test_creates_the_added_marker_when_the_plugin_changelog_lacks_one(self) -> None:
+        repo = Path(self.temp_dir.name)
+        bump_version.REPO = repo
+        plugin_dir = repo / "sample-plugin"
+        self._seed_changelog(plugin_dir / "CHANGELOG.md", with_added_marker=False)
+
+        bump_version.plugin_changelog_insert(
+            "sample-plugin",
+            "_2026-09-03_ version bump — 1.0.0 → 1.0.1 (patch); marketplace 2.27.0 → 2.27.1.",
+        )
+
+        text = (plugin_dir / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn(
+            "### Added\n\n- _2026-09-03_ version bump — 1.0.0 → 1.0.1 (patch); "
+            "marketplace 2.27.0 → 2.27.1.\n",
+            text,
+        )
 
 
 if __name__ == "__main__":

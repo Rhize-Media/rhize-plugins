@@ -9,6 +9,7 @@ need to look up to understand the item.
 ### Marketplace Infrastructure
 - [ ] Use git submodule for `obsidian-second-brain/` to auto-sync with [kepano/obsidian-second-brain](https://github.com/kepano/obsidian-second-brain) upstream
 - [x] Add version bump script to coordinate plugin.json + marketplace.json + changelog updates — `scripts/bump_version.py` (+ `/rhize-ops:bump-version`, `.githooks/pre-push`, CI version-check + tag-release)
+- [ ] Skill-map subsystem directory move (`catalog/`, `schemas/`, pipeline scripts → `skill-map/`): assessed 2026-09-03, deferred — import-compatible shims and ~10 reference sites make it churn without behavior gain; `docs/skill-map/README.md` is the index instead.
 
 ### obsidian-second-brain
 

@@ -1,0 +1,47 @@
+name: validate
+
+# Proposed CI gate mirroring the local release contracts in scripts/bump_version.py's
+# REPOSITORY_CONTRACTS. NOT live — see .github/ci-proposed/README.md for why this lives
+# outside .github/workflows/ and how to promote it.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install pytest pyyaml
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm i -g @anthropic-ai/claude-code
+      - name: Run pytest suite
+        run: python3 -m pytest -q
+      - name: Validate plugin manifests (repo root)
+        run: claude plugin validate --strict .
+      - name: Validate plugin manifests (per plugin)
+        run: |
+          for d in */; do
+            [ -f "$d/.claude-plugin/plugin.json" ] && claude plugin validate --strict "$d"
+          done
+      - name: Lint plugin hooks.json / .mcp.json configs
+        run: python3 scripts/validate_plugin_configs.py
+      - name: Dev Flow doctor
+        run: CLAUDE_PLUGIN_ROOT=$PWD/rhize-devflow python3 rhize-devflow/scripts/devflow.py doctor
+      - name: Skill-map freshness
+        run: python3 scripts/validate_skill_map.py --check-stale
+      - name: Setup-artifacts freshness
+        run: python3 rhize-ops/scripts/setup_artifacts.py --check
+      - name: Skill-map docs render is idempotent
+        run: |
+          python3 scripts/render_skill_map_docs.py
+          python3 scripts/render_skill_map_docs.py | tee /tmp/render_second_run.txt
+          grep -q "No changes" /tmp/render_second_run.txt
