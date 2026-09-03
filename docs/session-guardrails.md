@@ -235,6 +235,16 @@ the move except where noted.*
 - Reconciliation matches every changed path (or its basename) against the plan text, so list full paths for everything an executor will touch; editing the plan while executors are writing blocks every write until `prepare` runs again, and the Stop hook closes a `reconciled` receipt as `completed`, after which `reconcile` needs a fresh `prepare` (new baseline).
 - `python3 rhize-devflow/scripts/refactor_gate.py` is invoked 15x per session from different working directories; always `cd` to `/Users/jamesdeola/dev-local/RHIZE/rhize-plugins` first or use the full path from that root.
 - The refactor gate requires a pre-existing plan with a SHA256 receipt. Run `refactor_gate.py prepare` exactly once per plan; do not re-run it to fix minor validation errors — fix the plan file first.
+- **Multi-agent sessions (measured 2026-09-03):** every material prompt — including background
+  task notifications and cross-session messages — resets the receipt to `pending`, so subagent
+  writes get BLOCKED mid-task. Run `prepare` first thing in any turn that starts with a
+  notification, `reconcile` before the turn ends (the Stop hook blocks on `implementation`), and
+  have executors report NEEDS_CONTEXT on the first block instead of retrying. `hook-command` is
+  evaluated before the Bash call runs, so reconcile and commit must be separate calls.
+- When another session dirties the same checkout, `reconcile` reports its files as unmapped:
+  `dismiss` → `prepare` → `reconcile` re-baselines. Never add foreign files to the plan.
+- Build review packages with `/usr/bin/git` and literal paths: the rtk hook produced an empty
+  `git diff` inside a brace group with a variable-expanded path list.
 
 ### Detected Loop Guardrails — SKILL.md Files
 *~25,000 tokens/session saved*
