@@ -126,6 +126,18 @@
       "optional": true
     },
     {
+      "id": "delegate-confluence-index",
+      "path": "<home>/.claude/rhize-ops/delegate.confluence-index.json",
+      "kind": "file",
+      "purpose": "Ledger of Obsidian notes already exported to Confluence context pages (page ids, URLs, content hashes) written by the delegate-to-teammate skill; lets a re-export update the page instead of duplicating it.",
+      "viewer": "cat ~/.claude/rhize-ops/delegate.confluence-index.json (redact identifiers before sharing)",
+      "lifetime": "persistent",
+      "confidentiality": "personal",
+      "source": "derived",
+      "tracked": "ignored",
+      "optional": true
+    },
+    {
       "id": "setup-runs",
       "path": "<home>/.rhize/setup/runs/",
       "kind": "directory",

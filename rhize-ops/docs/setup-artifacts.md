@@ -29,6 +29,7 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | test-evidence-leases | rhize-devflow | <home>/.rhize/test-evidence/leases | cat ~/.rhize/test-evidence/leases | regenerated | none | derived | outside-repo |
 | test-evidence-packets | rhize-devflow | <home>/.rhize/test-evidence/packets/ | cat ~/.rhize/test-evidence/packets/<packet>.json | per-run | none | derived | outside-repo |
 | delegate-config | rhize-ops | <home>/.claude/rhize-ops/delegate.config.json | cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing) | persistent | personal | authored | ignored |
+| delegate-confluence-index | rhize-ops | <home>/.claude/rhize-ops/delegate.confluence-index.json | cat ~/.claude/rhize-ops/delegate.confluence-index.json (redact identifiers before sharing) | persistent | personal | derived | ignored |
 | evals-config | rhize-ops | <home>/.rhize/evals/config.json | cat ~/.rhize/evals/config.json | persistent | config | derived | outside-repo |
 | evals-hmac-key | rhize-ops | <home>/.rhize/evals/hmac.key | not human-readable — presence and 0600 permissions only | persistent | secret | derived | outside-repo |
 | evals-receipts | rhize-ops | <home>/.rhize/evals/receipts/ | cat ~/.rhize/evals/receipts/<month>.jsonl | append-only | none | derived | outside-repo |

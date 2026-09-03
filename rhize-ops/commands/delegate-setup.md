@@ -25,11 +25,11 @@ supports **multiple** recipients — each teammate gets their own key under `rec
 
 Look for `$HOME/.claude/rhize-ops/delegate.config.json`.
 
-- If it exists, show a summary (see the safe-summary format in step 8) and ask via
+- If it exists, show a summary (see the safe-summary format in step 9) and ask via
   AskUserQuestion whether the user wants to: **add another teammate** (append a new entry to
   `recipients`, optionally changing `defaultRecipient`), **replace it** (start fresh),
-  **update selected fields** (e.g. just the project mapping, or just one recipient), or
-  **cancel**.
+  **update selected fields** (e.g. just the project mapping, just one recipient, or Confluence),
+  or **cancel**.
 - If the existing file is in the legacy single-`recipient` shape (pre-0.4.0 — a top-level
   `recipient` object instead of `recipients`), treat this run as a **migration** — convert it
   to the current shape (see the SKILL.md "Legacy config compatibility" section for the exact
@@ -80,7 +80,35 @@ NOT ask the user to paste raw IDs as a substitute for a verified lookup. Instead
 `jira.status` to `"incomplete"`, leave the identifier fields null, and tell the user that tracker
 issue creation will be skipped until they connect the Atlassian MCP and re-run this wizard.
 
-### 5. Look up Slack identifiers
+### 5. Look up Confluence (where handoff briefs and context pages live)
+
+`confluence` is workspace-scoped and shares the Atlassian site already resolved for Jira. When
+adding a teammate to a config where `confluence.status` is already `"ready"`, skip this step.
+
+If the Atlassian MCP is connected:
+1. Call `getConfluenceSpaces` (same cloud ID as Jira). Show the current global spaces and ask
+   which one should hold delegations. Store `spaceKey` and `spaceId`.
+2. Search that space for a page titled "Delegations" (`searchConfluenceUsingCql` with
+   `space = "<key>" AND type = page AND title = "Delegations"`). If exactly one exists, show its
+   title and ask the user to confirm it; store `parentPageId` and `parentPageTitle`.
+3. If none exists, ask via AskUserQuestion whether to create it now. On yes, call
+   `createConfluencePage` with the space's homepage as parent, title "Delegations", and a
+   one-paragraph body explaining that handoff briefs and context pages for delegated tasks are
+   filed here. Store the returned page id. On no, leave `parentPageId` null and mark the block
+   `incomplete`.
+4. Mark `confluence.status` as `"ready"` once both ids are stored and confirmed.
+
+If the Atlassian MCP isn't connected, or the space or parent page couldn't be resolved, do NOT
+ask the user to paste a raw space or page id as a substitute for a verified lookup. Instead set
+`confluence.status` to `"incomplete"`, leave the ids null, and tell the user that the skill will
+keep the full task package inside the Jira description (today's behavior) until they re-run this
+wizard with the MCP connected.
+
+Note: the skill also keeps a small local ledger of exported context pages at
+`~/.claude/rhize-ops/delegate.confluence-index.json`. It is created by the skill on first
+export, not by this wizard, and it holds only page ids, URLs, titles, and content hashes.
+
+### 6. Look up Slack identifiers
 
 `slack.workspace` (top-level) is workspace-scoped and resolved once. The notification **channel**
 is per-recipient (`recipients.<key>.slack.channel`/`channelId`) — every teammate can post to a
@@ -98,13 +126,13 @@ If the Slack MCP isn't connected, or the channel/user couldn't be resolved, set 
 `"incomplete"`, leave the identifier fields null, and tell the user that chat notification will be
 skipped until they connect the Slack MCP and re-run this wizard.
 
-### 6. Ask inference rules
+### 7. Ask inference rules
 
 Ask: "When a task's project isn't specified, how should I guess? (e.g. 'marketing tasks default
 to project X', 'client site work matches by client name', 'internal tooling defaults to project
 Y')." Capture as an ordered list, ending with a fallback like "if ambiguous, ask to clarify."
 
-### 7. Write the config
+### 8. Write the config
 
 Assemble everything into the shape defined by `rhize-ops/skills/delegate-to-teammate/references/delegate.config.schema.json`
 (a real JSON Schema — validate against it before writing) and write it to
@@ -114,6 +142,10 @@ Assemble everything into the shape defined by `rhize-ops/skills/delegate-to-team
 - Write to a temp file in that same directory, then rename it into place (atomic write) rather
   than writing the target file directly.
 - Set the file's permissions to `600` (user read/write only) after writing.
+
+Include the `confluence` block assembled in step 5. `confluence` is not required by the
+schema — a config written without it is read in memory as `{"status": "incomplete"}`, so there
+is no need to force a rewrite of every existing config just to add an empty block.
 
 `recipients` is a map keyed by the short lowercase key from step 2 — adding a teammate means
 adding a new key to this map (and, if the user said so, updating `defaultRecipient`), never
@@ -127,7 +159,7 @@ top-level `slack.channel`/`channelId` moved onto `recipients.default.slack`) ins
 shape, even if the user only asked to "add a teammate" or "update the project mapping" — every
 write of this file uses the current schema.
 
-### 8. Confirm
+### 9. Confirm
 
 Do **not** echo the full file contents back into the conversation by default — some of these
 values are internal identifiers you don't need to redisplay every time. Show a **safe summary**
@@ -136,6 +168,7 @@ instead:
 - Integration status: Jira `ready`/`incomplete`, Slack `ready`/`incomplete`
 - Jira tenant hostname only (not the cloud ID or account ID)
 - Slack workspace name, and each recipient's channel name (not the member/channel IDs)
+- Confluence `ready`/`incomplete`, and the parent page **title** (not the id)
 - Number of mapped projects
 - Config file path
 
@@ -147,7 +180,7 @@ unprompted. Then remind them:
 - Re-run `/rhize-ops:delegate-setup` any time to update it
 - The file lives outside this repo — if they fork this plugin publicly, their config stays private
 
-### 9. Establish the evaluation baseline
+### 10. Establish the evaluation baseline
 
 After recipient and integration setup succeeds, continue with
 `/rhize-ops:rhize-setup --plugin rhize-ops --evaluations`. Offer the user's current delegation
