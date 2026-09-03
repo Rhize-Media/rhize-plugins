@@ -8,6 +8,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-03_ **rhize-ops:** `delegate-to-teammate` progressive disclosure — Jira now gets a
+  concise brief (target ≤ 1,500 chars: what/why, done criteria, one gotcha, one starter prompt,
+  links) instead of the full task package, which moves to a Confluence "handoff brief" page, with
+  one Confluence context page (alongside the existing Slack Canvas) per Obsidian vault note the
+  delegation relies on; a new `references/handoff-brief-template.md` defines both page layouts. No
+  local, vault-relative, or repo-relative path may appear in any Jira, Slack, or Confluence output
+  — `scripts/delegation_lint.py` gates every external write, and `scripts/vault_note_export.py`
+  turns a vault note into Confluence-ready markdown plus a local export ledger. The config's
+  optional `confluence` block (space, "Delegations" parent page) is resolved by a new step in
+  `/rhize-ops:delegate-setup`; a config without it, or marked `incomplete`, falls back to today's
+  full-description-in-Jira behavior. Also fixes stale Obsidian tool names and a stale
+  transcript-tool reference in the skill body. Measured motivation (last 50 delegated issues):
+  median Jira description ~4,500 chars (max ~13,700), and 8 of 50 carried a vault- or
+  repo-relative path the recipient couldn't open.
 - _2026-09-02_ version bump — **rhize-ops** 0.17.0 → 0.17.1 (patch); **rhize-tasks** 0.4.3 → 0.4.4 (patch); **obsidian-second-brain** 1.7.2 → 1.7.3 (patch); marketplace 2.58.0 → 2.58.1.
 - _2026-09-02_ version bump — **rhize-ops** 0.16.0 → 0.17.0 (minor); **rhize-context-manager** 0.24.0 → 0.25.0 (minor); **rhize-devflow** 2.20.0 → 2.20.1 (patch); **project-launcher** 1.8.1 → 1.8.2 (patch); **obsidian-second-brain** 1.7.1 → 1.7.2 (patch); **seo-aeo-geo** 1.5.1 → 1.5.2 (patch); **rhize-tasks** 0.4.2 → 0.4.3 (patch); **rhize-cowork** 0.2.1 → 0.2.2 (patch); **procedural-memory** 0.5.1 → 0.5.2 (patch); marketplace 2.57.0 → 2.58.0.
 - _2026-09-02_ **Release 2 follow-up from the advisor pass and a real-machine run.** Every
@@ -154,6 +168,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - _2026-09-02_ version bump — **obsidian-second-brain** 1.6.0 → 1.7.0 (minor); marketplace 2.54.2 → 2.55.0.
 
 ### Fixed
+- _2026-09-03_ **rhize-ops/skill-monitor — benchmark watchdog covers every instrumented
+  routine.** `benchmark_status.py` now reads a fifth note (Weekly Skill Audit,
+  `Skill-Audit-and-Monitoring/Procedural Memory Benchmark.md`) and a sixth data source: the
+  private lifecycle state files under `~/.rhize/procedural-memory/routine-state/`, whose
+  `startedAtEpochMs` is written at run start by `routine-benchmark.py`. Run recency is now the
+  newest of the Desktop registry's `lastRunAt` and that routine-state start, so a routine whose
+  canonical scheduler is Registry-B (which persists no timestamp on disk) is no longer
+  invisible — Weekly Skill Audit had been instrumented since 2026-08-30 and unmonitored. The
+  human report names the source per routine (`via desktop+routine-state`). Ten new tests; the
+  shared receipt-snapshot test helper now isolates `routine_state_dir`. Found while fixing the
+  `bench-append` capture crash (procedural-memory: `datetime.UTC` is 3.11+, Cowork's host
+  `python3` is 3.9.6 — every scheduled append 2026-08-31 → 09-02 landed a row with no receipt).
+  The pinned wrapper in claude-routines (`run-pinned-benchmark-status.sh`) still runs rhize-ops
+  0.13.6; a release plus pin update is needed before the weekly routine picks this up.
 
 - _2026-09-02_ **`pytest tests/` is no longer a write operation.**
   `tests/skill-map/test_render_docs.py::test_idempotent` ran the real

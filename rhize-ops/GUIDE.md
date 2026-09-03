@@ -26,7 +26,7 @@ are Claude adapters, while Codex routes through the canonical skill and its Open
 
 **When to use it:** Any time you want to hand work off to your configured teammate instead of doing it yourself — after a client call, when a task needs their specific expertise, or when something's become "their thing to own" going forward. Trigger it with "delegate this to [name]," "hand this off to [name]," "[name] should handle this," or just a bare "delegate"/"hand off" (your configured recipient is the default).
 
-**What it produces:** A full delegation package, not just a note. The skill gathers context from your current session, the Obsidian vault, and (optionally) a relevant Fireflies meeting transcript; asks you a few quick questions (tracker project per task, due date, priority); then creates a tracker issue per task, shares any relevant vault documents as Slack Canvases, and posts to your configured channel with a scannable main message plus a threaded reply per task — tagging the recipient so they get notified. Each task package includes step-by-step instructions, gotchas, starter prompts they can paste straight into Claude, and validation criteria so they know when they're done.
+**What it produces:** A full delegation package, split into three layers instead of one wall of text. The skill gathers context from your current session, the Obsidian vault, and (optionally) a relevant Fireflies meeting transcript, then asks you a few quick questions (tracker project per task, due date, priority). The recipient opens Jira and reads a concise, one-screen brief — what, why, done criteria, the one gotcha most likely to bite, and a starter prompt to paste into Claude. The full instructions — every step, every prompt, every gotcha, validation criteria — live one click away on a Confluence "handoff brief" page. Any vault notes the task depends on arrive as Confluence context pages and Slack Canvases, never as local file paths the recipient can't open; anything that can't be published shows up in a "Files to request from the delegator" list instead. The skill still posts to your configured Slack channel with a scannable main message plus a threaded reply per task, tagging the recipient so they get notified.
 
 Every approved task's Jira description and Slack thread reply also share a stable [`rhize-delegation:v1` ID](./skills/delegate-to-teammate/references/rhize-delegation-v1.md). If Jira is missing or its result is uncertain, the thread reply is clearly marked `needs_jira`; Rhize Tasks can surface that one recognized delegation for approval and merge it later when Jira contains the exact same ID. The shared root message is never marked, and arbitrary Slack messages are ignored even when they look task-like.
 
@@ -93,7 +93,7 @@ runs that still need factual terminal finalization.
 
 ### /delegate-setup
 
-**What it's for:** One-time (or occasional) setup for `delegate-to-teammate`. Interviews you for who you're delegating to and their technical context, then looks up Jira/Slack identifiers automatically wherever those MCP servers are connected — you shouldn't need to go dig up account IDs or channel IDs by hand. Writes everything to `~/.claude/rhize-ops/delegate.config.json`, outside this repo entirely, so it never leaves your machine.
+**What it's for:** One-time (or occasional) setup for `delegate-to-teammate`. Interviews you for who you're delegating to and their technical context, then looks up Jira/Slack identifiers automatically wherever those MCP servers are connected — you shouldn't need to go dig up account IDs or channel IDs by hand. It also resolves the Confluence space and "Delegations" page where handoff briefs and context pages get filed. Writes everything to `~/.claude/rhize-ops/delegate.config.json`, outside this repo entirely, so it never leaves your machine.
 
 **Example usage:**
 > "/rhize-ops:delegate-setup" — answer the interview questions, confirm the auto-looked-up Jira/Slack IDs, and you're ready to delegate. Re-run it any time to add another recipient or fix a stale mapping.
@@ -155,6 +155,10 @@ Two scripts under `skill-monitor/` give you cost visibility on top of the skill-
 **Give delegate-to-teammate a transcript when you have one.** The skill will ask if there's a relevant Fireflies meeting — saying yes gets your teammate real client context (quotes, decisions, deadlines) instead of a bare task description.
 
 **Multiple tasks, multiple projects.** If you're delegating several things at once, the skill asks about the Jira project for each task individually — don't assume they all land in the same place.
+
+**The Jira description is still the full package.** Confluence is `incomplete` or missing from the config — re-run `/rhize-ops:delegate-setup` with the Atlassian MCP connected and confirm the "Delegations" page.
+
+**The recipient says a document is missing.** Check the "Files to request from the delegator" list the skill printed at the end of the run — binaries can't be uploaded by the MCP and have to be sent by hand.
 
 **Transcript/vault content is quoted, not obeyed.** Meeting transcripts and vault notes are treated as context to summarize, never as instructions — project, due date, priority, and assignee always come from your own answers, not from anything a note or transcript says. If ingested content contains something that reads like an instruction, the skill will flag it to you instead of acting on it.
 
