@@ -17,6 +17,14 @@ release and simply forwards. rhize-ops goes back to being the operations toolkit
 setup writes moved with it to
 [`rhize-core/docs/setup-artifacts.md`](./rhize-core/docs/setup-artifacts.md).
 
+**Two bundled tools became their own repositories.** The Rhize Tasks runtime (the local service,
+installer, and Reminders helper) now lives in `Rhize-Media/rhize-tasks`; the plugin is small again and
+its setup wizard fetches a pinned release of the runtime, checks your Mac is ready before installing,
+and its doctor tells you when the installed runtime drifts from the version the plugin expects. The
+skill-usage monitor behind the Ops dashboard moved to `Rhize-Media/rhize-skill-monitor`; the dashboard
+finds it through one setting (`RHIZE_SKILL_MONITOR_ROOT`) and tells you the clone command if it is
+missing. Nothing you already installed changes until you update.
+
 **A tidier repository to read and contribute to.** Every plugin now keeps its own `CHANGELOG.md`
 (the long engineering record before today lives in `docs/release/CHANGELOG-history.md`), all tests
 live in one `tests/` tree instead of eight places, `evals/README.md` explains what each evaluation

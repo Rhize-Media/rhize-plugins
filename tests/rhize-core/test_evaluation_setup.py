@@ -271,7 +271,7 @@ def test_central_orchestrator_delegates_to_scoped_evaluation_setup() -> None:
     for relative_path, component in scoped.items():
         contents = (REPO / relative_path).read_text()
         assert f"--plugin {component}" in contents
-        assert "rhize-setup" in contents
+        assert "/rhize-core:setup" in contents  # the hub wizard (repo-shape R-B); rhize-ops:rhize-setup only forwards
 
 
 def test_rhize_ops_adapter_forwards_when_core_present_and_continues_when_absent() -> None:

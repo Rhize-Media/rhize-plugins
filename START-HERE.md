@@ -59,7 +59,8 @@ skill usage, or coordinating parallel agent work. Start with → [GUIDE](./rhize
 Turns your Jira work into a realistic daily plan: it blocks focus time on one dedicated Google
 Calendar and creates matching entries in Apple Reminders, without ever treating your personal
 calendar as Rhize's to schedule. Reach for it when you want one honest answer to "what should I
-work on now?" Start with → [GUIDE](./rhize-tasks/GUIDE.md).
+work on now?" Its runtime is fetched from its own repository at a pinned release during setup,
+so upgrading or rolling it back is a tag, not a copy. Start with → [GUIDE](./rhize-tasks/GUIDE.md).
 
 ### Engineering & Delivery
 

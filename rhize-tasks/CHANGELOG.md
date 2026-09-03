@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-03_ version bump — 0.4.4 → 0.5.0 (minor); marketplace 2.60.0 → 2.61.0.
 - Setup and doctor bootstrap a pinned-tag checkout of the runtime from the new
   [`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks) repository (currently
   pinned to `v0.5.1`) into `~/Library/Application Support/Rhize Tasks/source/<tag>/`, running the

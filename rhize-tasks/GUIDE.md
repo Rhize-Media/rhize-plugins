@@ -12,8 +12,8 @@ This plugin doesn't carry the planning service itself — that code lives in a s
 Rhize-owned repository. The first time you run setup, it downloads a pinned, known-good copy of
 that code to your Mac (into `~/Library/Application Support/Rhize Tasks/source/`), shows you what
 it's about to do, and only installs after you say go. You don't need to think about this beyond
-having `git` installed and, since that repository is private for now, `git`/`gh` credentials
-with access to it — the wizard handles the rest.
+having `git` installed — the repository is public, so no credentials are needed, and the wizard
+handles the rest.
 
 Use either assistant:
 

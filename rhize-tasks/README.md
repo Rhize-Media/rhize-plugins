@@ -15,8 +15,7 @@ signed Swift EventKit helper live in a separate repository,
 [`v0.5.1`](https://github.com/Rhize-Media/rhize-tasks/releases/tag/v0.5.1) — see
 `setup/manifest.json`'s `rhize-tasks runtime` dependency for the single source of truth on that
 pin; every skill in this plugin reads it from there instead of hardcoding it. The repository is
-private until Jim decides to publish it, so bootstrapping needs `git`/`gh` credentials with
-access.
+public, so bootstrapping needs only `git` and network access to github.com — no credentials.
 
 `/rhize-tasks:setup` bootstraps that repository the first time it runs: it clones the pinned tag
 into `~/Library/Application Support/Rhize Tasks/source/<tag>/` (never the installer-owned

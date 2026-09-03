@@ -27,6 +27,17 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-03_ version bump — **rhize-tasks** 0.4.4 → 0.5.0 (minor); **rhize-ops** 0.19.0 → 0.20.0 (minor); **rhize-context-manager** 0.25.2 → 0.25.3 (patch); marketplace 2.60.0 → 2.61.0.
+- _2026-09-03_ **Repo-shape R-C: two extractions.** The Rhize Tasks runtime moved, with its
+  history, to `Rhize-Media/rhize-tasks` (public; tag `v0.5.1`); the plugin keeps only commands,
+  skills, manifest, and docs, and `rhize-tasks-setup` bootstraps the runtime into
+  `~/Library/Application Support/Rhize Tasks/source/<tag>/` (never the installer's `runtime/`),
+  runs the installer's new non-mutating `--check`, and `doctor` reports `sourceRef` drift; the
+  delegation parser contract is pinned by a committed fixture. The skill-usage monitor moved, with
+  its history, to `Rhize-Media/rhize-skill-monitor` (tag `v1.0.0`); rhize-ops resolves it through
+  `scripts/skill_monitor_root.sh` (`RHIZE_SKILL_MONITOR_ROOT`), declares it as an optional data
+  dependency, and rhize-context-manager's usage/co-occurrence inputs follow the tool's own data-dir
+  precedence. `bump_version.py` no longer stamps runtime files for rhize-tasks.
 - _2026-09-03_ version bump — **rhize-ops** 0.18.0 → 0.19.0 (minor); **obsidian-second-brain** 1.7.4 → 1.7.5 (patch); **project-launcher** 1.8.2 → 1.8.3 (patch); **rhize-context-manager** 0.25.1 → 0.25.2 (patch); **rhize-devflow** 2.20.2 → 2.20.3 (patch); **seo-aeo-geo** 1.5.2 → 1.5.3 (patch); **rhize-cowork** 0.2.2 → 0.2.3 (patch); marketplace 2.59.1 → 2.60.0.
 - _2026-09-03_ **Repo-shape R-B: the setup hub moved into its own plugin.** New `rhize-core`
   plugin (1.0.0) owns `/rhize-core:setup`, the setup orchestrator, the evaluation setup engine,

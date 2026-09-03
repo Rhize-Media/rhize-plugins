@@ -3831,7 +3831,7 @@
       "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
     },
     {
-      "contentHash": "3f960764634ba38d53f4b3fbb1a862f2de4c71d9d6fbe1cebd30e818dafe8bed",
+      "contentHash": "39c6a80b39740fb880feac68bb2aac5c8824680ea9c2da474b70a7ef8e77a209",
       "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
       "id": "skill:rhize-tasks/rhize-tasks-setup",
       "kind": "skill",

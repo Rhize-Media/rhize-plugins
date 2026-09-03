@@ -39,19 +39,19 @@ Version 2.20.3. Rhize Media's software delivery workflow — plan a change, buil
 
 ### rhize-context-manager
 
-Version 0.25.2. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.25.3. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
 ### rhize-ops
 
-Version 0.19.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.20.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
 ### rhize-tasks
 
-Version 0.4.4. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
+Version 0.5.0. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
 
 [README](../rhize-tasks/README.md) · [GUIDE](../rhize-tasks/GUIDE.md) · [6 skills](../generated/SKILL-CATALOG.md#rhize-tasks)
 
