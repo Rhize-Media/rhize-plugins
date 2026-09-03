@@ -63,3 +63,21 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   `python3` is 3.9.6 — every scheduled append 2026-08-31 → 09-02 landed a row with no receipt).
   The pinned wrapper in claude-routines (`run-pinned-benchmark-status.sh`) still runs rhize-ops
   0.13.6; a release plus pin update is needed before the weekly routine picks this up.
+
+### Removed
+
+- _2026-09-03_ **`rhize-ops/skill-monitor/` (repo shape R-C, M-2):** the bundled skill-usage
+  monitor (`monitor.py`, `dashboard.py`, `savings_scorecard.py`, `skill_roi.py`,
+  `benchmark_status.py`, and friends) was extracted with its history to the standalone
+  [`Rhize-Media/rhize-skill-monitor`](https://github.com/Rhize-Media/rhize-skill-monitor) repo.
+  `tests/rhize-ops/test_devflow_control_plane_section.py`, which imported `monitor.py` directly,
+  is removed with it — the same coverage lives in that repository's own test suite.
+
+### Changed
+
+- _2026-09-03_ **`skill-dashboard` resolves the monitor tool externally (repo shape R-C, M-2):**
+  the skill now runs `scripts/skill_monitor_root.sh` to locate a `rhize-skill-monitor` checkout
+  (`$RHIZE_SKILL_MONITOR_ROOT`, default `~/dev-local/RHIZE/rhize-skill-monitor`) instead of
+  hardcoding `${CLAUDE_PLUGIN_ROOT}/skill-monitor/`; it stops with a clone hint when the tool
+  isn't found. `setup/manifest.json` gains an optional `rhize-skill-monitor` data dependency and
+  the `skill-monitor-data` artifact's viewer command is updated to match.

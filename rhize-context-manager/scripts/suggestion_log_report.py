@@ -9,10 +9,11 @@ the repo), but they write TWO different row shapes:
   - The four legacy hooks (rhize-context-manager/hooks/{skill-router,
     session-disclosure,remediation-suggester,next-step-suggester}.js) each
     append one JSON line per suggestion fired, keyed by `hook`. This script
-    joins those rows against skill-monitor's usage data
-    (rhize-ops/skill-monitor/data/skill-usage.json) to answer the previously
-    unmeasurable question: of the suggestions the hooks fired, how many were
-    actually acted on ("suggested-but-ignored", the routing-miss metric)?
+    joins those rows against the standalone rhize-skill-monitor tool's usage
+    data (skill-usage.json, under skill_monitor_data_dir() — see that
+    function below) to answer the previously unmeasurable question: of the
+    suggestions the hooks fired, how many were actually acted on
+    ("suggested-but-ignored", the routing-miss metric)?
 
   - The fifth hook (agent-brief-router.js) appends one JSON line per Agent-tool
     dispatch, keyed by `source: "agent-dispatch"` — a different shape (see
@@ -89,10 +90,16 @@ Dependency-free stdlib only — this becomes a weekly-audit input later.
 
 SHIPS WITH THE PLUGIN (moved from repo-root `scripts/` 2026-09-02, R3 task 8 of the
 portability-readiness plan): this file now lives at
-`rhize-context-manager/scripts/suggestion_log_report.py`, one directory level deeper
-than before, so DEFAULT_USAGE_PATH below walks up three parents (not two) to reach the
-repo/marketplace-clone root before descending into the sibling `rhize-ops` plugin. A
-two-line compatibility shim remains at the old `scripts/suggestion_log_report.py` path.
+`rhize-context-manager/scripts/suggestion_log_report.py`. A two-line compatibility
+shim remains at the old `scripts/suggestion_log_report.py` path.
+
+The skill-usage.json it joins against no longer ships bundled in this marketplace
+either — skill-monitor is the standalone Rhize-Media/rhize-skill-monitor repo,
+cloned by default at `~/dev-local/RHIZE/rhize-skill-monitor` and overridable with
+`RHIZE_SKILL_MONITOR_ROOT`. `skill_monitor_data_dir()` below resolves its data
+directory by that tool's own precedence, without importing across the plugin
+boundary (a discovered path with a documented degraded mode, per this repo's
+cross-plugin sharing rule).
 """
 
 from __future__ import annotations
@@ -108,31 +115,38 @@ from pathlib import Path
 DEFAULT_LOG_PATH = Path.home() / ".claude" / "context-manager" / "suggestion-log.jsonl"
 
 
-def _default_usage_path() -> Path:
-    """Where skill-monitor's skill-usage.json lives on this machine.
-
-    Mirrors rhize-ops/skill-monitor/paths.py without importing across the plugin
-    boundary: an explicit RHIZE_SKILL_MONITOR_HOME wins; otherwise a checkout that
-    still keeps its data beside the scripts is honored; otherwise the installed
-    default under ~/.rhize/skill-monitor. Missing files degrade to "no usage
-    data" in load_session_skills(), never an error.
+def skill_monitor_data_dir() -> Path:
+    """Resolve the standalone rhize-skill-monitor tool's data directory on
+    this machine (Rhize-Media/rhize-skill-monitor — not bundled with this
+    plugin; reached only by this discovered-path resolver, never a
+    cross-plugin import). Mirrors that tool's own paths.py precedence:
+      1. RHIZE_SKILL_MONITOR_HOME set -> <home>/data
+      2. else RHIZE_SKILL_MONITOR_ROOT, or the default checkout
+         (~/dev-local/RHIZE/rhize-skill-monitor); if its data/ is a
+         directory -> that data/
+      3. else ~/.rhize/skill-monitor/data (fresh-install default)
     """
-    override = os.environ.get("RHIZE_SKILL_MONITOR_HOME", "").strip()
-    if override:
-        return Path(override).expanduser() / "data" / "skill-usage.json"
-    checkout = (
-        Path(__file__).resolve().parent.parent.parent
-        / "rhize-ops"
-        / "skill-monitor"
-        / "data"
-        / "skill-usage.json"
+    home_override = os.environ.get("RHIZE_SKILL_MONITOR_HOME", "").strip()
+    if home_override:
+        return Path(home_override).expanduser() / "data"
+    root_override = os.environ.get("RHIZE_SKILL_MONITOR_ROOT", "").strip()
+    root = (
+        Path(root_override).expanduser()
+        if root_override
+        else Path.home() / "dev-local" / "RHIZE" / "rhize-skill-monitor"
     )
-    if checkout.exists():
-        return checkout
-    return Path.home() / ".rhize" / "skill-monitor" / "data" / "skill-usage.json"
+    checkout_data = root / "data"
+    if checkout_data.is_dir():
+        return checkout_data
+    return Path.home() / ".rhize" / "skill-monitor" / "data"
 
 
-DEFAULT_USAGE_PATH = _default_usage_path()
+def _default_usage_path() -> Path:
+    """Where skill-monitor's skill-usage.json lives on this machine. See
+    skill_monitor_data_dir() for the precedence. Missing files degrade to
+    "no usage data" in load_session_skills(), never an error.
+    """
+    return skill_monitor_data_dir() / "skill-usage.json"
 
 HOOKS = ("router", "disclosure", "remediation", "next-step")
 
@@ -428,14 +442,16 @@ def main() -> int:
     parser.add_argument(
         "--usage-path",
         type=Path,
-        default=DEFAULT_USAGE_PATH,
-        help=f"path to skill-usage.json (default: {DEFAULT_USAGE_PATH})",
+        default=None,
+        help="path to skill-usage.json (default: skill-monitor data dir's "
+             "skill-usage.json — see skill_monitor_data_dir())",
     )
     parser.add_argument("--json", action="store_true", help="emit JSON instead of a table")
     args = parser.parse_args()
 
     entries = load_log(args.log_path)
-    session_skills = load_session_skills(args.usage_path)
+    usage_path = args.usage_path if args.usage_path else _default_usage_path()
+    session_skills = load_session_skills(usage_path)
     report = compute_report(entries, session_skills)
 
     if args.json:

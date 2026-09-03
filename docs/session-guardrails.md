@@ -43,8 +43,11 @@ the move except where noted.*
 - skill-forge CLI repo: `/Users/jamesdeola/dev-local/RHIZE/skill-forge` (read its CLAUDE.md
   before working there). Build `npm run build` (tsup); tests `npx vitest run`; pack check
   `npm pack --dry-run`.
-- `skill-monitor` lives at `rhize-ops/skill-monitor/monitor.py` (standalone repo retired:
-  GitHub-archived, local dir deleted; scheduled task repointed). Data paths are `__file__`-relative.
+- `skill-monitor` (repo shape R-C) is no longer bundled in this marketplace — it lives in the
+  standalone `Rhize-Media/rhize-skill-monitor` repo, cloned locally at
+  `~/dev-local/RHIZE/rhize-skill-monitor` by default, overridable with
+  `RHIZE_SKILL_MONITOR_ROOT`. `rhize-ops/scripts/skill_monitor_root.sh` resolves the checkout for
+  `skill-dashboard`; its own data paths are `__file__`-relative to that checkout, not this repo.
 - Version bumps: `python3 scripts/bump_version.py --plugin <name> --level minor|patch|major`
   — updates plugin.json + marketplace.json + CHANGELOG atomically; never hand-edit JSON alone.
 - Subagent tasks sometimes arrive with `REPO: undefined` (template bug) — the answer is
@@ -87,7 +90,7 @@ the move except where noted.*
     `rhize-context-manager/scripts/build_local_skill_map.py` (~28KB; the root
     `scripts/build_local_skill_map.py` is a two-line shim since 2026-09-02), `scripts/validate_skill_map.py`,
     `docs/skill-map.md` (~13–21KB), `catalog/{tags,skill-relations,queries}.json`,
-    `rhize-ops/skill-monitor/monitor.py` (~48–55KB).
+    `monitor.py` (~48–55KB; now in the standalone `rhize-skill-monitor` repo, not this one).
   - skill-forge: `src/commands/gatePipeline.ts`, `src/gate/{skillMapDrift,skillMap,mapOverlap}.ts`,
     `test/{agents,skillMapDrift}.test.ts`. There is no root `CHANGELOG.md` — version history
     lives in `README.md` + `docs/BUILD-REPORT.md`.
@@ -222,7 +225,9 @@ the move except where noted.*
 *~45,487 tokens/session saved*
 - `cd /Users/jamesdeola/dev-local/RHIZE/procedural-memory && .venv/bin/python -m pytest -q 2>&1 | tail -N` runs 58x per session. Run tests at most twice per fix cycle (once to confirm failure, once to confirm fix); do not re-run after every micro-edit.
 - `node --test tests/connectors/reminders-process.test.mjs 2>&1 | tail -20` and similar rhize-tasks node test invocations run 10–13x per session. Consolidate test runs; check all related test files in one pass.
-- `cd rhize-ops/skill-monitor && python3 -m pytest tests/ -q` runs 25x per session. Run once after a batch of edits, not after each individual change.
+- `cd rhize-ops/skill-monitor && python3 -m pytest tests/ -q` runs 25x per session (historical:
+  that directory no longer exists here — the tool and its tests moved to the standalone
+  `rhize-skill-monitor` repo). Run once after a batch of edits, not after each individual change.
 
 ### Detected Loop Guardrails — registry/runners and registry drivers
 *~45,487 tokens/session saved*

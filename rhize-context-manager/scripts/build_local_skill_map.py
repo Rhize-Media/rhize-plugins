@@ -30,9 +30,12 @@ and is noted in local.json's `sourceNotes` — it never fails the build):
      sha256 fingerprint of the file plus this repo's `repoOverrides` entry
      (keyed by this repo's directory basename) if present.
 
-  3. Usage co-occurrence — rhize-ops/skill-monitor's
-     data/skill-cooccurrence.json (see monitor.py's build_cooccurrence()).
-     Counts-only: {windowDays, totalSessions, pairs: [{a, b, sessions}],
+  3. Usage co-occurrence — the standalone rhize-skill-monitor tool's
+     data/skill-cooccurrence.json (Rhize-Media/rhize-skill-monitor, not
+     bundled with this plugin; see monitor.py's build_cooccurrence()).
+     skill_monitor_data_dir() below resolves that tool's data directory the
+     same way its own paths.py does, without importing across the plugin
+     boundary. Counts-only: {windowDays, totalSessions, pairs: [{a, b, sessions}],
      totals: {skill: sessions}}. Pair endpoints are "<plugin>:<skill>"
      (monitor's raw Skill-tool name) or a bare name for user-level skills
      outside any plugin. Only pairs where BOTH endpoints resolve to a
@@ -100,7 +103,9 @@ Usage:
   python3 rhize-context-manager/scripts/build_local_skill_map.py --static <path>
       # override generated/skill-map.static.json (used by tests with a fixture)
   python3 rhize-context-manager/scripts/build_local_skill_map.py --cooccurrence <path>
-      # override rhize-ops/skill-monitor/data/skill-cooccurrence.json
+      # override the skill-monitor data dir's skill-cooccurrence.json
+      # (see skill_monitor_data_dir(): RHIZE_SKILL_MONITOR_HOME, else the
+      # standalone checkout's data/, else ~/.rhize/skill-monitor/data)
   python3 rhize-context-manager/scripts/build_local_skill_map.py --installed-plugins <path>
   python3 rhize-context-manager/scripts/build_local_skill_map.py --stack-config <path>
 
@@ -119,6 +124,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -171,13 +177,42 @@ def _find_source_root() -> Path:
     )
 
 
+def skill_monitor_data_dir() -> Path:
+    """Resolve the standalone rhize-skill-monitor tool's data directory on
+    this machine (Rhize-Media/rhize-skill-monitor — not bundled with this
+    plugin; reached only by this discovered-path resolver, never a
+    cross-plugin import). Mirrors that tool's own paths.py precedence:
+      1. RHIZE_SKILL_MONITOR_HOME set -> <home>/data
+      2. else RHIZE_SKILL_MONITOR_ROOT, or the default checkout
+         (~/dev-local/RHIZE/rhize-skill-monitor); if its data/ is a
+         directory -> that data/
+      3. else ~/.rhize/skill-monitor/data (fresh-install default)
+    """
+    home_override = os.environ.get("RHIZE_SKILL_MONITOR_HOME", "").strip()
+    if home_override:
+        return Path(home_override).expanduser() / "data"
+    root_override = os.environ.get("RHIZE_SKILL_MONITOR_ROOT", "").strip()
+    root = (
+        Path(root_override).expanduser()
+        if root_override
+        else Path.home() / "dev-local" / "RHIZE" / "rhize-skill-monitor"
+    )
+    checkout_data = root / "data"
+    if checkout_data.is_dir():
+        return checkout_data
+    return Path.home() / ".rhize" / "skill-monitor" / "data"
+
+
+def _default_cooccurrence_path() -> Path:
+    """Where skill-monitor's skill-cooccurrence.json lives on this machine.
+    See skill_monitor_data_dir() for the precedence."""
+    return skill_monitor_data_dir() / "skill-cooccurrence.json"
+
+
 REPO_ROOT = _find_source_root()
 MARKETPLACE_PATH = REPO_ROOT / ".claude-plugin" / "marketplace.json"
 DEFAULT_STATIC_PATH = REPO_ROOT / "generated" / "skill-map.static.json"
 DEFAULT_STATIC_INDEXES_PATH = REPO_ROOT / "generated" / "skill-map.indexes.json"
-DEFAULT_COOCCURRENCE_PATH = (
-    REPO_ROOT / "rhize-ops" / "skill-monitor" / "data" / "skill-cooccurrence.json"
-)
 
 # build_skill_map.py already implements the exact frontmatter-splitting logic
 # a third-party SKILL.md/command .md needs (name/description parsing). Reuse
@@ -275,7 +310,8 @@ def resolve_stack_fingerprint(stack_config_path: Path) -> tuple[dict | None, str
 # (`--days 0`), but the schema's usageWeight.windowDays has a minimum of 1
 # (it measures the size of a rolling window). This sentinel represents
 # "unbounded" without violating the schema; scheduled runs use a bounded
-# window in practice (see rhize-ops/skill-monitor's weekly-skill-audit task).
+# window in practice (see the standalone rhize-skill-monitor tool's
+# weekly-skill-audit task).
 ALL_TIME_WINDOW_SENTINEL = 36500  # ~100 years
 
 
@@ -718,7 +754,12 @@ def main() -> int:
                      help="default: ~/.claude/plugins/installed_plugins.json")
     ap.add_argument("--stack-config", default=None,
                      help="default: ~/.claude/rhize-context-manager/stack.config.json")
-    ap.add_argument("--cooccurrence", default=str(DEFAULT_COOCCURRENCE_PATH))
+    ap.add_argument(
+        "--cooccurrence",
+        default=None,
+        help="default: skill-monitor data dir's skill-cooccurrence.json "
+             "(see skill_monitor_data_dir())",
+    )
     ap.add_argument("--global-settings", default=None,
                      help="default: ~/.claude/settings.json")
     ap.add_argument("--local-settings", default=None,
@@ -735,7 +776,9 @@ def main() -> int:
     stack_config_path = (
         Path(args.stack_config) if args.stack_config else default_stack_config_path()
     )
-    cooccurrence_path = Path(args.cooccurrence)
+    cooccurrence_path = (
+        Path(args.cooccurrence) if args.cooccurrence else _default_cooccurrence_path()
+    )
     global_settings_path = (
         Path(args.global_settings) if args.global_settings else default_global_settings_path()
     )

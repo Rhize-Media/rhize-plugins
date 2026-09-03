@@ -103,7 +103,7 @@ skill-monitor aggregation (Phase 3). A bare co-occurrence count is not a valid w
 schema — it loses the information needed to distinguish "these two skills are always used
 together" from "these two skills are just both used a lot."
 
-Concretely: `rhize-ops/skill-monitor/monitor.py` writes a counts-only co-occurrence snapshot
+Concretely: the standalone `rhize-skill-monitor` tool's `monitor.py` writes a counts-only co-occurrence snapshot
 (`data/skill-cooccurrence.json` — no prompt text, no project paths, no per-event timestamps, only
 skill names and integer session counts) on every run. `rhize-context-manager/scripts/build_local_skill_map.py` reads
 that snapshot, resolves each `{a, b, sessions}` pair against the static artifact's skill nodes
@@ -205,8 +205,8 @@ the same way as `overlaps-with`/`depends-on`/`replaces`.
 `follows` is the mined counterpart to `precedes`: same surfacing consumer (a "what comes next"
 suggestion), different provenance. `precedes` is curated intent, hand-declared in
 `catalog/skill-relations.json` for a real ordered workflow (e.g. a command pipeline) whether or
-not anyone has actually run it that way yet. `follows` is empirical — `rhize-ops/skill-monitor`
-mines ordered, time-adjacent skill pairs within a session (via `monitor.py`'s
+not anyone has actually run it that way yet. `follows` is empirical — the standalone
+`rhize-skill-monitor` tool mines ordered, time-adjacent skill pairs within a session (via `monitor.py`'s
 `build_cooccurrence()`, extended to also emit `orderedPairs`) and only surfaces a pair once it
 recurs across ≥2 distinct sessions. Because it's derived from this machine's usage history,
 `follows` lives in the local overlay only (`skill-map.local.json` / `skill-map.resolved.json`) —

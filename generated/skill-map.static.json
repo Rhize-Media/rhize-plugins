@@ -3783,8 +3783,8 @@
       "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md"
     },
     {
-      "contentHash": "8c33b15f947bc9aebe6b638fa431acc49e2ef658d12b22e8a57734e64791cb4f",
-      "description": "Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in ${CLAUDE_PLUGIN_ROOT}/skill-monitor/data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says \"show the skill dashboard\", \"render the audit dashboard\", \"skill usage dashboard\", \"/skill-dashboard\", or asks to visualize skill-monitor data.",
+      "contentHash": "c524caf2ba19775c60a49f51feeff7d2860aa913bdd4d9a1fef36638feefb1cb",
+      "description": "Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in the standalone rhize-skill-monitor tool's data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says \"show the skill dashboard\", \"render the audit dashboard\", \"skill usage dashboard\", \"/skill-dashboard\", or asks to visualize skill-monitor data.",
       "id": "skill:rhize-ops/skill-dashboard",
       "kind": "skill",
       "name": "skill-dashboard",
@@ -3831,7 +3831,7 @@
       "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
     },
     {
-      "contentHash": "6e83a2cf9f13bd1f5b81d809ecf8fa94375d57453e4ded1d5dd77a2e09feea16",
+      "contentHash": "3f960764634ba38d53f4b3fbb1a862f2de4c71d9d6fbe1cebd30e818dafe8bed",
       "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
       "id": "skill:rhize-tasks/rhize-tasks-setup",
       "kind": "skill",

@@ -57,6 +57,14 @@
         "suggestion": "hand-maintain a per-repo token-ledger file in the same schema",
         "warning": "OpenWolf already tracks this per-repo and evolves its own ledger format; a manual ledger silently drifts the moment that schema changes upstream."
       }
+    },
+    {
+      "name": "rhize-skill-monitor",
+      "kind": "data",
+      "purpose": "Skill-usage dashboards and benchmarks the skill-dashboard skill renders. The plugin ships no monitor code itself; scripts/skill_monitor_root.sh resolves the checkout via RHIZE_SKILL_MONITOR_ROOT (default ~/dev-local/RHIZE/rhize-skill-monitor), probing for <root>/monitor.py.",
+      "required": false,
+      "degradedBehavior": "skill-dashboard stops with a clone hint (git clone https://github.com/Rhize-Media/rhize-skill-monitor.git) instead of rendering; nothing else in rhize-ops depends on this tool.",
+      "source": "https://github.com/Rhize-Media/rhize-skill-monitor"
     }
   ],
   "wizard": {
@@ -105,8 +113,8 @@
       "id": "skill-monitor-data",
       "path": "<home>/.rhize/skill-monitor/",
       "kind": "directory",
-      "purpose": "Optional installable home for skill-monitor's snapshot data when RHIZE_SKILL_MONITOR_HOME is set.",
-      "viewer": "python3 rhize-ops/skill-monitor/dashboard.py",
+      "purpose": "The standalone rhize-skill-monitor tool's own data: skill-usage.json, skill-cooccurrence.json, stack-metrics.json, recurrence.json, benchmark-status.json, and the snapshots/ and scorecards/ subdirectories. Home defaults to ~/.rhize/skill-monitor unless RHIZE_SKILL_MONITOR_HOME is set or an existing dev checkout's own data/ is in use.",
+      "viewer": "python3 \"$(rhize-ops/scripts/skill_monitor_root.sh)/dashboard.py\"",
       "lifetime": "regenerated",
       "confidentiality": "none",
       "source": "derived",

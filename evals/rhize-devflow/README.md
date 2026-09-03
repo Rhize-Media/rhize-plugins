@@ -145,7 +145,7 @@ Task 11 (3.0 cleanup) has a single checklist to work from:
       `tests/rhize-devflow/test_plugin_integrity.py` and the canonical-marker tests in
       `test_command_contracts.py`.
 - [ ] **Zero deprecated-command invocations before removal, or explicit acceptance of
-      remaining users.** Measured by `rhize-ops/skill-monitor/monitor.py`'s
+      remaining users.** Measured by the standalone `rhize-skill-monitor` tool's `monitor.py`'s
       "Dev Flow Control-Plane Usage" report section (deprecated → canonical mapping table;
       absent telemetry reports as `no data`, never as zero usage — see that script's
       `DEVFLOW_DEPRECATED_TO_CANONICAL` and `build_devflow_control_plane_section`).

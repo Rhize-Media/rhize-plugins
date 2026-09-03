@@ -32,7 +32,7 @@ Keychain. Never ask for, repeat, paste, or otherwise solicit a secret in chat.
 5. Require an exact preview and explicit approval before expanding source scope or performing the reversible sample write.
 6. Show the displayed plan revision before approval. On a revision conflict, refresh and ask the user to review the new preview.
 7. Setup is active only after preferences are saved and the first plan is approved.
-8. After activation, continue with `/rhize-ops:rhize-setup --plugin rhize-tasks --evaluations`.
+8. After activation, continue with `/rhize-core:setup --plugin rhize-tasks --evaluations`.
    Confirm the exact incumbent task-capture/today workflow as Arm A and run the free/offline seed.
    Never call Jira, Calendar, Reminders, or Slack merely to create benchmark data; eligible natural
    receipts begin only on real approved work and contain no issue text, event labels, names, or IDs.

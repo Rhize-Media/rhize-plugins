@@ -3,7 +3,7 @@ name: skill-dashboard
 tier: custom
 domain: meta
 maturity: stable
-description: Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in ${CLAUDE_PLUGIN_ROOT}/skill-monitor/data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says "show the skill dashboard", "render the audit dashboard", "skill usage dashboard", "/skill-dashboard", or asks to visualize skill-monitor data.
+description: Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in the standalone rhize-skill-monitor tool's data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says "show the skill dashboard", "render the audit dashboard", "skill usage dashboard", "/skill-dashboard", or asks to visualize skill-monitor data.
 allowed-tools: Bash mcp__chrome-devtools__new_page
 metadata:
   rhize:
@@ -17,7 +17,11 @@ metadata:
 
 Render the live skill-monitor dashboard from accumulated weekly-audit snapshots. Two render paths — pick based on the chat surface.
 
-The skill-monitor tool lives alongside this skill in the `rhize-ops` plugin at `${CLAUDE_PLUGIN_ROOT}/skill-monitor/`.
+The skill-monitor tool is a standalone repo, not bundled in this plugin. Resolve its checkout root first — every command below uses `$MONITOR_ROOT` in place of the old bundled path:
+
+```
+MONITOR_ROOT="$("${CLAUDE_PLUGIN_ROOT}/scripts/skill_monitor_root.sh")" || exit $?
+```
 
 ## Pick the render path first
 
@@ -31,10 +35,10 @@ If unsure which surface you're on, default to Path A and verify the artifact ren
 1. Generate ready-to-paste JSX source. Snapshots and keep-list are inlined into the source as module-level constants:
 
    ```
-   python3 ${CLAUDE_PLUGIN_ROOT}/skill-monitor/dashboard.py --out artifact --json-out /tmp/skill-dashboard.jsx
+   python3 $MONITOR_ROOT/dashboard.py --out artifact --json-out /tmp/skill-dashboard.jsx
    ```
 
-   If the script errors (e.g. "no snapshots found"), stop and tell the user to run `python3 ${CLAUDE_PLUGIN_ROOT}/skill-monitor/monitor.py --days 0` first to seed at least one snapshot. Don't fabricate.
+   If the script errors (e.g. "no snapshots found"), stop and tell the user to run `python3 $MONITOR_ROOT/monitor.py --days 0` first to seed at least one snapshot. Don't fabricate.
 
 2. Read the file (`/tmp/skill-dashboard.jsx`) and emit its contents inside an `<antArtifact>` block:
 
@@ -53,7 +57,7 @@ If unsure which surface you're on, default to Path A and verify the artifact ren
 1. Generate the HTML to a temp path. Always render to `/tmp` first — never overwrite the vault copy from inside this skill (the weekly scheduled task owns that path):
 
    ```
-   python3 ${CLAUDE_PLUGIN_ROOT}/skill-monitor/dashboard.py --out html --html-path /tmp/skill-dashboard.html
+   python3 $MONITOR_ROOT/dashboard.py --out html --html-path /tmp/skill-dashboard.html
    ```
 
 2. Open the generated file. Two options, in priority order:
@@ -67,12 +71,12 @@ If unsure which surface you're on, default to Path A and verify the artifact ren
 
 ## Optional: refresh data first
 
-If the user asks to "refresh" / "rerun" / "update" the dashboard with current data, run `python3 ${CLAUDE_PLUGIN_ROOT}/skill-monitor/monitor.py --days 0` first — that captures a new all-time snapshot. Then proceed with Path A or B above. This is an explicit-request-only behavior; do not run monitor.py on every dashboard render.
+If the user asks to "refresh" / "rerun" / "update" the dashboard with current data, run `python3 $MONITOR_ROOT/monitor.py --days 0` first — that captures a new all-time snapshot. Then proceed with Path A or B above. This is an explicit-request-only behavior; do not run monitor.py on every dashboard render.
 
 ## Notes
 
-- Sources: `${CLAUDE_PLUGIN_ROOT}/skill-monitor/SkillDashboard.jsx` (component), `${CLAUDE_PLUGIN_ROOT}/skill-monitor/dashboard.py` (emitter and JSX transform).
+- Sources: `$MONITOR_ROOT/SkillDashboard.jsx` (component), `$MONITOR_ROOT/dashboard.py` (emitter and JSX transform).
 - Snapshots accumulate weekly via the `weekly-skill-audit` scheduled task. Backfilled snapshots (`_backfilled_from_markdown: true`) have empty `events` arrays; the dashboard handles them gracefully.
 - Some users maintain a long-lived rendered copy outside `/tmp` (e.g. refreshed weekly by a scheduled task into their own notes vault). This skill always renders to `/tmp` (Path B) or emits inline (Path A) — it never writes to a durable location on its own. If you want a durable copy, pass `--html-path "<your path>"` to `dashboard.py` explicitly.
-- **Cost reports are separate documents, not part of this dashboard.** `${CLAUDE_PLUGIN_ROOT}/skill-monitor/savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings) and `${CLAUDE_PLUGIN_ROOT}/skill-monitor/skill_roi.py` (cost-per-skill ROI, joining skill invocations to session cost) write markdown reports into the vault's `Skill-Audit-and-Monitoring/cost-reports/` folder as part of the weekly audit (see `weekly-skill-audit/SKILL.md` step 10) or on demand. If the user asks about cost/spend/ROI rather than invocation counts, point them at those reports (or offer to run the scripts) instead of trying to answer from this dashboard's data — it has no cost fields.
+- **Cost reports are separate documents, not part of this dashboard.** `$MONITOR_ROOT/savings_scorecard.py` (two-tier measured-vs-estimated token/cost savings) and `$MONITOR_ROOT/skill_roi.py` (cost-per-skill ROI, joining skill invocations to session cost) write markdown reports into the vault's `Skill-Audit-and-Monitoring/cost-reports/` folder as part of the weekly audit (see `weekly-skill-audit/SKILL.md` step 10) or on demand. If the user asks about cost/spend/ROI rather than invocation counts, point them at those reports (or offer to run the scripts) instead of trying to answer from this dashboard's data — it has no cost fields.
 - Don't push git commits.

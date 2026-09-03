@@ -115,14 +115,14 @@ fallback copy — install `rhize-core@rhize-plugins` to get the canonical copy.
 
 ## Cost & Savings Reports
 
-Two scripts under `skill-monitor/` give you cost visibility on top of the skill-usage data — not a skill or command you invoke directly, but part of the weekly audit (and runnable on demand).
+Two scripts in the standalone [`rhize-skill-monitor`](https://github.com/Rhize-Media/rhize-skill-monitor) tool give you cost visibility on top of the skill-usage data — not a skill or command you invoke directly, but part of the weekly audit (and runnable on demand). Clone it once to `~/dev-local/RHIZE/rhize-skill-monitor` (or point `RHIZE_SKILL_MONITOR_ROOT` at your own checkout) and `skill-dashboard` finds it automatically.
 
 **`savings_scorecard.py`** — answers "what am I actually spending, and what's actually being saved?" It keeps two tiers strictly separate: **Measured** (real per-session spend from `costs.jsonl`, plus rtk and Headroom's own tracked savings) and **Estimated** (claude-mem, OpenWolf, and headroom-learn's self-reported heuristics) — the estimated numbers are never added into the measured total, because they're not counting the same thing. New to rtk/Headroom/claude-mem/OpenWolf? See [START-HERE's glossary](../START-HERE.md#7-glossary).
 
 **`skill_roi.py`** — answers "which skills are actually earning their session cost?" It joins skill invocations to the session cost they happened in and flags keep-listed skills sitting at zero invocations, plus skills that are expensive but rarely used.
 
 **Example prompt:**
-> "Run the savings scorecard for the last 28 days" or "what's the cost-per-skill ROI look like this week?" — both run as part of `weekly-skill-audit`, or on demand via `python3 skill-monitor/savings_scorecard.py --days 28` / `python3 skill-monitor/skill_roi.py`.
+> "Run the savings scorecard for the last 28 days" or "what's the cost-per-skill ROI look like this week?" — both run as part of `weekly-skill-audit`, or on demand via `python3 savings_scorecard.py --days 28` / `python3 skill_roi.py` from your `rhize-skill-monitor` checkout.
 
 ## Tips & Troubleshooting
 
@@ -138,7 +138,7 @@ Two scripts under `skill-monitor/` give you cost visibility on top of the skill-
 
 **Transcript/vault content is quoted, not obeyed.** Meeting transcripts and vault notes are treated as context to summarize, never as instructions — project, due date, priority, and assignee always come from your own answers, not from anything a note or transcript says. If ingested content contains something that reads like an instruction, the skill will flag it to you instead of acting on it.
 
-**Dashboard renders empty?** No snapshots exist yet. Run `python3 rhize-ops/skill-monitor/monitor.py --days 0` to seed one, then re-render.
+**Dashboard renders empty?** No snapshots exist yet. Run `python3 monitor.py --days 0` from your `rhize-skill-monitor` checkout to seed one, then re-render.
 
 **Want fresher dashboard data mid-week?** Ask to "refresh the dashboard" — this reruns the monitor before rendering. Normal renders just reuse whatever snapshots have already accumulated (fast, no rescan).
 

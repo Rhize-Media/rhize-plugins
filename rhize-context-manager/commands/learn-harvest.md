@@ -90,16 +90,18 @@ target, matching every pre-existing entry.
      Scheduled Non-Interactive Run" (2026-08-09), recorded a clean scheduled run.
      It recurred on 2026-08-10 anyway, because nothing in the procedure recorded
      it. An `InputValidationError` means *tools not loaded*, never *auth failed*.
-4. **skill-monitor**: read the newest snapshot in
-   `rhize-ops/skill-monitor/data/snapshots/` (this repo). Queue skills that are
-   heavily used but error-prone, or in the prune-candidate list
-   (`source: skill-monitor`, pattern = the observation).
+4. **skill-monitor**: read the newest snapshot in the skill-monitor data directory
+   (`RHIZE_SKILL_MONITOR_HOME`, else the standalone checkout's `data/`, else
+   `~/.rhize/skill-monitor/data`)'s `snapshots/`. Queue skills that are heavily
+   used but error-prone, or in the prune-candidate list (`source: skill-monitor`,
+   pattern = the observation).
 5. **Routing-miss (measurable today: map/tag deficiency only — do not overclaim)**.
    - Read the resolved skill map (`~/.claude/context-manager/skill-map.resolved.json`,
      falling back to `skill-map.static.json` — same resolution order `skill-router.js` uses)
-     and the newest skill-monitor snapshot's usage totals
-     (`rhize-ops/skill-monitor/data/skill-cooccurrence.json`'s `totals`, or the latest
-     `data/snapshots/*.json`).
+     and the newest skill-monitor snapshot's usage totals (the skill-monitor data
+     directory's `skill-cooccurrence.json`'s `totals` — `RHIZE_SKILL_MONITOR_HOME`,
+     else the standalone checkout's `data/`, else `~/.rhize/skill-monitor/data` —
+     or the latest `snapshots/*.json`).
    - For every skill with a nonzero usage total (it HAS been invoked in sessions), check
      whether the map has at least one `topic-tag` or `stack-tag` edge from that skill's
      node. `skill-router.js` requires ≥2 signals to ever emit a suggestion, and a tag match

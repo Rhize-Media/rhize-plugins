@@ -8,15 +8,14 @@ and fails if a `tests/`, `test/`, or `__tests__/` directory exists anywhere
 under it, except the explicitly allowlisted exceptions below.
 
 Allowlist, each with a reason it is not a violation of the convention:
-  - `rhize-ops/skill-monitor/tests` — leaves the marketplace with the
-    skill-monitor tool itself when it is extracted in release R-C.
   - `project-launcher/skills/rhize-visual-plan/obsidian-plugin/test` — this is
     a vendored JS package's own `test/` directory (its own build/test
     tooling expects it there), not a Rhize-authored test tree.
 
-`rhize-tasks/tests` left this allowlist in release R-C: the rhize-tasks runtime (including its
-own `tests/`) was extracted to Rhize-Media/rhize-tasks, and the plugin left behind here no
-longer ships a `tests/` tree at all.
+`rhize-tasks/tests` and `rhize-ops/skill-monitor/tests` both left this allowlist in release
+R-C: the rhize-tasks runtime and the skill-monitor tool (each including its own `tests/`) were
+extracted to their own standalone repos (Rhize-Media/rhize-tasks, Rhize-Media/rhize-skill-monitor),
+and the plugins left behind here no longer ship those `tests/` trees at all.
 """
 from __future__ import annotations
 
@@ -25,7 +24,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 ALLOWLIST = {
-    "rhize-ops/skill-monitor/tests",
     "project-launcher/skills/rhize-visual-plan/obsidian-plugin/test",
 }
 

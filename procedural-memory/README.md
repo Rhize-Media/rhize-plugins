@@ -270,7 +270,8 @@ mechanism for this plugin to add on top — `promote` already has one, and it ha
 for real.
 
 **`skill-monitor` cannot write success rates back to an artifact's provenance — this is a
-structural limitation, not a missing feature.** `rhize-ops/skill-monitor/monitor.py` works by
+structural limitation, not a missing feature.** The standalone `rhize-skill-monitor` tool's
+`monitor.py` works by
 scanning session transcripts for **Skill-tool invocations**. A registry artifact's `scripts/`
 runs as a plain Bash subprocess when `/procedural-memory:run` executes it — it never appears
 in a transcript as a Skill-tool call, so skill-monitor structurally cannot see it, score it,

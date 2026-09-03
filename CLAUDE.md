@@ -173,7 +173,9 @@ description means updating every copy in the same change, not just the one you h
   `procedural-memory/`.
 - skill-forge CLI repo: `/Users/jamesdeola/dev-local/RHIZE/skill-forge` (read its own
   CLAUDE.md before working there).
-- `skill-monitor` lives at `rhize-ops/skill-monitor/monitor.py`.
+- `skill-monitor` is a standalone repo, `Rhize-Media/rhize-skill-monitor`, cloned locally at
+  `~/dev-local/RHIZE/rhize-skill-monitor` by default (override with `RHIZE_SKILL_MONITOR_ROOT`);
+  `rhize-ops/scripts/skill_monitor_root.sh` resolves it for the `skill-dashboard` skill.
 - External upstream references live in `rhize-context-manager/skills/SOURCES.md`,
   normalized by `scripts/sources_md.py`.
 - Start at `START-HERE.md` for orientation on a fresh clone.
