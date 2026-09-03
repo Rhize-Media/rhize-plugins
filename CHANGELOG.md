@@ -8,6 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- _2026-09-03_ version bump — **rhize-ops** 0.17.1 → 0.18.0 (minor); marketplace 2.58.1 → 2.59.0.
 - _2026-09-03_ **rhize-ops:** `delegate-to-teammate` progressive disclosure — Jira now gets a
   concise brief (target ≤ 1,500 chars: what/why, done criteria, one gotcha, one starter prompt,
   links) instead of the full task package, which moves to a Confluence "handoff brief" page, with
