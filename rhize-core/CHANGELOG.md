@@ -4,6 +4,7 @@
 
 ### Added
 
+- _2026-09-03_ version bump — 1.0.0 → 1.0.1 (patch); marketplace 2.61.0 → 2.61.1.
 - _2026-09-03_ **rhize-core: new plugin — the marketplace control plane (repo-shape R-B).**
   Split out of `rhize-ops`: `/rhize-core:setup` (the fleet setup wizard, moved verbatim from
   `/rhize-ops:rhize-setup`), the four platform scripts (`evaluation_setup.py`,

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.61.0",
+  "version": "2.61.1",
   "description": "Curated Claude Code and Codex plugins by Rhize Media — knowledge, context, development workflow, operations, SEO, and web tooling",
   "owner": {
     "name": "Rhize Media"
@@ -11,7 +11,7 @@
       "name": "rhize-core",
       "source": "./rhize-core",
       "description": "The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "Rhize Media"
       },
@@ -187,7 +187,7 @@
       "name": "procedural-memory",
       "source": "./procedural-memory",
       "description": "Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.",
-      "version": "0.5.3",
+      "version": "0.5.4",
       "author": {
         "name": "Rhize Media"
       },
