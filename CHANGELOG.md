@@ -27,6 +27,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-03_ **CI gate promoted.** `.github/ci-proposed/validate.yml` moved to
+  `.github/workflows/validate.yml`; it runs the release contracts on every push and pull request.
 - _2026-09-04_ version bump — **rhize-tasks** 0.5.0 → 0.5.1 (patch); **rhize-core** 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.
 - _2026-09-03_ **rhize-tasks re-pinned to runtime v0.5.2.** The runtime repository's test fixtures
   were neutralized after v0.5.1 was cut; v0.5.2 carries the clean fixtures and aligned version stamps.

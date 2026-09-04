@@ -29,8 +29,8 @@ missing. Nothing you already installed changes until you update.
 (the long engineering record before today lives in `docs/release/CHANGELOG-history.md`), all tests
 live in one `tests/` tree instead of eight places, `evals/README.md` explains what each evaluation
 suite grades, and the repository instructions file agents read on every session is a short router
-with the harvested session guardrails moved to `docs/session-guardrails.md`. A proposed CI workflow
-that mirrors the local release checks waits in `.github/ci-proposed/` for the maintainer to enable.
+with the harvested session guardrails moved to `docs/session-guardrails.md`. The CI workflow that
+mirrors the local release checks is live on every push and pull request (promoted 2026-09-03).
 
 **Set up only the plugins you want, and see what setup wrote.** `/rhize-ops:rhize-setup` now
 starts by asking which of your installed plugins to set up, runs the shared checks once

@@ -1,15 +1,11 @@
-# Proposed CI (not live)
+# CI proposals
 
-`validate.yml` mirrors the local release contracts `scripts/bump_version.py`'s
-`REPOSITORY_CONTRACTS` already runs on every version bump: pytest, plugin
-manifest validation, config lint, Dev Flow doctor, skill-map freshness,
-setup-artifacts freshness, and an idempotent docs render.
+`.github/workflows/` is protected (the `protect-files.sh` hook blocks agent edits), so any new or
+changed workflow is drafted here first and promoted by a maintainer with `git mv` into
+`.github/workflows/`.
 
-It is a **proposal**, not CI parity — it has never run. `.github/workflows/`
-is protected, so a maintainer must install it manually:
-
-```bash
-git mv .github/ci-proposed/validate.yml .github/workflows/validate.yml
-```
-
-Until then, these checks run only locally at release time.
+**Promoted so far:** `validate.yml` on 2026-09-03 — the gate mirroring the local release
+contracts `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` runs on every version bump (pytest,
+plugin manifest validation, config lint, Dev Flow doctor, skill-map freshness, setup-artifacts
+freshness, idempotent docs render). It now runs on every push and pull request; see its run history
+under Actions. This directory is empty between proposals.

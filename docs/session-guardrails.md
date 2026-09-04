@@ -71,7 +71,8 @@ the move except where noted.*
   heredoc messages for non-trivial changes.
 - `.github/workflows/version-check.yml` and `tag-release.yml` are PROTECTED
   (protect-files.sh hook) — do not Edit; leave a note for Jim instead. CI proposals belong
-  in `.github/ci-proposed/` until Jim promotes one into `.github/workflows/`.
+  in `.github/ci-proposed/` until Jim promotes one into `.github/workflows/` (`validate.yml` was
+  promoted 2026-09-03 and now runs on every push).
 - Before removing a scratch worktree, check it still exists.
 - Root `scripts/` is tracked normally since 2026-09-03 (the `.gitignore` allowlist block for
   it was removed) — a newly created `scripts/*.py` shows up in `git status` like any other

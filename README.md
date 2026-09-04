@@ -114,7 +114,7 @@ This repo uses one convention consistently across every plugin — know it once,
 | **`CHANGELOG.md`** | Maintainers and contributors | Marketplace-level record: version bumps and cross-plugin programs; each plugin keeps its own `CHANGELOG.md`, and everything before 2026-09-03 is preserved in [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) |
 | **[`evals/README.md`](./evals/README.md)** | Maintainers | Index of every evaluation suite: what it grades, how to run it, what it writes |
 | **[`docs/session-guardrails.md`](./docs/session-guardrails.md)** | Agents and maintainers | Harvested session guardrails (hot files, re-read loops, token figures) kept out of `CLAUDE.md`, which is a short router |
-| **[`.github/ci-proposed/`](./.github/ci-proposed/README.md)** | Maintainers | The proposed CI workflow mirroring the local release contracts, awaiting promotion into `.github/workflows/` |
+| **[`.github/workflows/validate.yml`](./.github/workflows/validate.yml)** | Maintainers | The live CI gate mirroring the local release contracts (promoted from `.github/ci-proposed/` on 2026-09-03; new proposals still start there) |
 
 **Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
 
