@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ version bump — 0.21.0 → 0.22.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ **rhize-ops:** `/plugin-prune` command + `scripts/plugin_prune.py` — a
   report-first advisor over a `@rhize/skill-forge` plugin audit
   (`audit --claude-plugins --json`) plus optional `rhize-skill-monitor` usage snapshots. Prints a

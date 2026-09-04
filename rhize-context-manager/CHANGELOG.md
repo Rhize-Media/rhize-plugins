@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ version bump — 0.25.3 → 0.26.0 (minor); marketplace 2.62.0 → 2.63.0.
 - **Inferred router signals for third-party skills** (WP-I,
   `.claude/plans/skill-governance-optimization.md`). `build_local_skill_map.py`
