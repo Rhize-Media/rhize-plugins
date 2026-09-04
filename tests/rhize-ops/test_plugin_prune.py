@@ -205,7 +205,6 @@ def test_id_absent_from_enabled_plugins_is_flagged_not_actionable(capsys):
         r for r in payload["plugins"] if r["pluginId"] == "unregistered-plugin@some-marketplace"
     )
     assert row["settingsStatus"] == "unknown"
-    assert row["settingsStatus"] == "unknown"
     assert any("not actionable" in note for note in row["notes"])
     # This script's own cross-reference note stays out of the audit's own
     # `reasons` (kept a pure passthrough of skill-forge's reasoning).
@@ -223,7 +222,6 @@ def test_enabled_id_is_actionable(capsys):
     )
     payload = json.loads(out)
     row = next(r for r in payload["plugins"] if r["pluginId"] == "code-review@claude-plugins-official")
-    assert row["settingsStatus"] == "enabled"
     assert row["settingsStatus"] == "enabled"
     assert row["notes"] == []
 

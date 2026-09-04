@@ -105,6 +105,13 @@ runs that still need factual terminal finalization.
 **Example usage:**
 > "/rhize-ops:bump-version" — then confirm the proposed plan, and it applies the bump and shows you the diff to review before you commit.
 
+### /plugin-prune
+
+**What it's for:** Deciding, with evidence, which enabled Claude Code plugins you can switch off. It runs a `@rhize/skill-forge` (0.17+) plugin audit over everything enabled, joins the last few weeks of skill-monitor usage snapshots, and prints one advisory row per plugin — recommendation, active HIGH/CRITICAL findings, and how many exhaustive weeks never observed any of its skills. It never edits `~/.claude/settings.json`; if you name plugins to disable, it asks for a typed `yes` per plugin in your own terminal and then runs `claude plugin disable <id> --scope user`. Skill telemetry says nothing about a plugin's hooks, commands, or MCP servers, so treat "unobserved" as a prompt to look, not a verdict.
+
+**Example usage:**
+> "/rhize-ops:plugin-prune" — read the table, then say which plugins (if any) to disable; nothing changes until you confirm each one.
+
 ### Setup moved to rhize-core
 
 The fleet-level "pick your plugins, run their wizards, establish evaluation baselines, wire
