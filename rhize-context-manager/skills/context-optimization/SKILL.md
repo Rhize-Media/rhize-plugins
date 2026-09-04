@@ -187,6 +187,8 @@ triggers:
 
 7. **Compaction creates false confidence in stale summaries**: Once context is compacted, the summary looks authoritative but may reflect outdated state. If the task has evolved since compaction (new user requirements, corrected assumptions), the summary silently carries forward stale information. After compaction, re-validate the summary against the current task goal before proceeding.
 
+8. **Sequential exploratory tool-search calls waste round-trip tokens**: Issuing 2-3 separate lookup calls to select deferred tools one at a time (measured cost: ~4,000 tokens/session) pays the round-trip overhead repeatedly for information a single batched call already returns. When the exact tool names are known, select them all in one call instead of searching for each individually.
+
 ## Integration
 
 This skill owns token-efficiency tactics and budget policy. Adjacent skills own diagnosis, storage, and architecture:

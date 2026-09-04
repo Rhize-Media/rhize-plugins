@@ -124,6 +124,10 @@ the move except where noted.*
 - `cat` on macOS does not support `-A` flag; use `cat -e` (or `-v`) instead.
 - `timeout` is not available in the default PATH in sandbox environments; use background
   `sleep`+`kill`, or `.venv/bin/python -c`/shell builtins, instead.
+- `rsvg-convert` is **not installed** on this machine; rasterize SVG with
+  `magick -background none in.svg out.png` (ImageMagick) instead.
+- Validate SVG before rasterizing with `xmllint --noout in.svg` — catches malformed markup
+  before it reaches `magick`.
 
 ### Screenshot / Browser loops
 *~27,373 tokens/session saved*
