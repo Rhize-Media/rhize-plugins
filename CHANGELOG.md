@@ -27,6 +27,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-04_ **CI proposal: validate.yml loop fix.** The promoted gate's per-plugin loop failed on the
+  last non-plugin directory; the corrected workflow waits in `.github/ci-proposed/` for promotion.
 - _2026-09-04_ version bump — **procedural-memory** 0.5.5 → 0.5.6 (patch); marketplace 2.61.3 → 2.61.4.
 - _2026-09-04_ version bump — **procedural-memory** 0.5.4 → 0.5.5 (patch); marketplace 2.61.2 → 2.61.3.
 - _2026-09-03_ **First CI run fixes.** The promoted `validate` workflow failed on its first run and
