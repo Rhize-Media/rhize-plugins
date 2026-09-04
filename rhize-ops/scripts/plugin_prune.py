@@ -92,11 +92,17 @@ def load_audit(path: Path) -> list[Any]:
         )
     plugins = data.get("plugins")
     if not isinstance(plugins, list):
-        raise UsageError(f"--audit file {path} must contain a \"plugins\" array")
+        raise UsageError(
+            f"--audit file {path} has no \"plugins\" array — produce it with "
+            "skill-forge >= 0.17: `skill-forge audit --yes --claude-plugins --json`"
+        )
     return sanitize_json_value(plugins)
 
 
 def load_settings(path: Path) -> dict[str, Any]:
+    """`enabledPlugins` from the user-scope settings file only — the scope
+    `--apply` disables at (`claude plugin disable --scope user`). Project-local
+    `.claude/settings.local.json` overrides are deliberately not merged."""
     try:
         raw = path.read_text(encoding="utf-8")
     except OSError:
@@ -238,14 +244,11 @@ def compute_weeks(
 # ---------------------------------------------------------------------------
 
 
-def build_rows(
-    plugins_raw: list[Any],
-    enabled_plugins: dict[str, Any],
-    weeks_unobserved_by_plugin: dict[str, int] | None,
-    weeks_total: int | None,
-) -> list[dict[str, Any]]:
+def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[dict[str, Any]]:
     """Build one row per plugin entry. `plugins_raw` is assumed already
-    control-character-sanitized (load_audit's job, not this function's)."""
+    control-character-sanitized (load_audit's job, not this function's).
+    `weeksUnobserved`/`weeksTotal` start as None; main() fills them in when
+    snapshots were requested."""
     rows: list[dict[str, Any]] = []
     for entry in plugins_raw:
         if not isinstance(entry, dict):
@@ -261,21 +264,14 @@ def build_rows(
 
         # `notes` are this script's OWN observations (settings cross-reference),
         # kept separate from `reasons` (skill-forge's audit reasoning) so --json
-        # output never blends the two provenances into one unstructured list —
-        # `settingsStatus`/`actionable` are the structured form of the same fact.
+        # output never blends the two provenances; `settingsStatus` is the
+        # structured form of the same fact ("enabled" is the only actionable value).
         status = settings_status(plugin_id, enabled_plugins)
-        actionable = status == "enabled"
         notes: list[str] = []
         if status == "unknown":
-            notes.append("plugin id not found in settings.json enabledPlugins (not actionable)")
+            notes.append("plugin id not found in user-scope settings.json enabledPlugins (not actionable)")
         elif status == "disabled":
-            notes.append("already disabled in settings.json")
-
-        weeks_unobserved: int | None = None
-        row_weeks_total: int | None = None
-        if weeks_unobserved_by_plugin is not None:
-            weeks_unobserved = weeks_unobserved_by_plugin.get(plugin_id)
-            row_weeks_total = weeks_total
+            notes.append("already disabled in user-scope settings.json")
 
         rows.append(
             {
@@ -288,9 +284,8 @@ def build_rows(
                 "reasons": reasons,
                 "notes": notes,
                 "settingsStatus": status,
-                "actionable": actionable,
-                "weeksUnobserved": weeks_unobserved,
-                "weeksTotal": row_weeks_total,
+                "weeksUnobserved": None,
+                "weeksTotal": None,
             }
         )
     rows.sort(key=lambda r: r["pluginId"])
@@ -326,10 +321,6 @@ def render_table(rows: list[dict[str, Any]]) -> str:
 # ---------------------------------------------------------------------------
 
 
-def claude_binary() -> str:
-    return os.environ.get("PLUGIN_PRUNE_CLAUDE_BIN") or "claude"
-
-
 def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
     if not sys.stdin.isatty():
         print("error: refusing: --apply needs an interactive terminal", file=sys.stderr)
@@ -340,7 +331,7 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
         row = rows_by_id.get(plugin_id)
         if row is None:
             invalid.append(f"{plugin_id}: not present in the --audit report")
-        elif not row["actionable"]:
+        elif row["settingsStatus"] != "enabled":
             invalid.append(
                 f"{plugin_id}: not enabled in settings.json (status: {row['settingsStatus']})"
             )
@@ -353,7 +344,7 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
             print(f"  {message}", file=sys.stderr)
         return 2
 
-    claude_bin = claude_binary()
+    claude_bin = os.environ.get("PLUGIN_PRUNE_CLAUDE_BIN") or "claude"
     for plugin_id in ids:
         answer = input(f"Disable {plugin_id}? type yes to confirm: ")
         if answer.strip() != "yes":
@@ -415,18 +406,20 @@ def main(argv: list[str] | None = None) -> int:
 
     enabled_plugins = load_settings(args.settings)
 
-    weeks_unobserved_by_plugin: dict[str, int] | None = None
-    weeks_total: int | None = None
+    rows = build_rows(plugins_raw, enabled_plugins)
+
     snapshots_summary: dict[str, Any] | None = None
     if args.snapshots is not None:
         if not args.snapshots.is_dir():
             print(f"error: --snapshots path is not a directory: {args.snapshots}", file=sys.stderr)
             return 2
-        plugin_ids = [str(e.get("pluginId", "")) for e in plugins_raw if isinstance(e, dict)]
         selected_reports, unreadable = load_snapshots(args.snapshots, args.weeks)
         weeks_unobserved_by_plugin, weeks_total, skipped_non_exhaustive = compute_weeks(
-            selected_reports, plugin_ids
+            selected_reports, [row["pluginId"] for row in rows]
         )
+        for row in rows:
+            row["weeksUnobserved"] = weeks_unobserved_by_plugin.get(row["pluginId"])
+            row["weeksTotal"] = weeks_total
         snapshots_summary = {
             "dir": str(args.snapshots),
             "weeksRequested": args.weeks,
@@ -436,7 +429,6 @@ def main(argv: list[str] | None = None) -> int:
             "unreadable": unreadable,
         }
 
-    rows = build_rows(plugins_raw, enabled_plugins, weeks_unobserved_by_plugin, weeks_total)
     rows_by_id = {row["pluginId"]: row for row in rows}
 
     if args.apply:

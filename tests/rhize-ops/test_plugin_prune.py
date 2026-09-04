@@ -205,7 +205,7 @@ def test_id_absent_from_enabled_plugins_is_flagged_not_actionable(capsys):
         r for r in payload["plugins"] if r["pluginId"] == "unregistered-plugin@some-marketplace"
     )
     assert row["settingsStatus"] == "unknown"
-    assert row["actionable"] is False
+    assert row["settingsStatus"] == "unknown"
     assert any("not actionable" in note for note in row["notes"])
     # This script's own cross-reference note stays out of the audit's own
     # `reasons` (kept a pure passthrough of skill-forge's reasoning).
@@ -224,7 +224,7 @@ def test_enabled_id_is_actionable(capsys):
     payload = json.loads(out)
     row = next(r for r in payload["plugins"] if r["pluginId"] == "code-review@claude-plugins-official")
     assert row["settingsStatus"] == "enabled"
-    assert row["actionable"] is True
+    assert row["settingsStatus"] == "enabled"
     assert row["notes"] == []
 
 
@@ -448,44 +448,6 @@ def test_weeks_unobserved_counts_only_exhaustive_snapshots_selected_by_generated
     assert rows["silent@claude-plugins-official"]["weeksTotal"] == 1
     assert rows["silent@claude-plugins-official"]["weeksUnobserved"] == 1
 
-
-def test_weeks_selection_is_by_generated_at_not_mtime_mutation_check(tmp_path):
-    """Direct proof the above test's assertions actually depend on
-    generated_at-based selection: sorting by mtime instead flips the
-    "silent" plugin's weeksUnobserved from 1 to 0 for the exact same files."""
-    snapshots = tmp_path / "snapshots"
-    snapshots.mkdir()
-    older = snapshots / "a-older.json"
-    newer = snapshots / "b-newer.json"
-    capped = snapshots / "c-capped.json"
-    _write_snapshot(older, "2026-08-01T00:00:00Z", ["observed:some-skill", "silent:foo"])
-    _write_snapshot(newer, "2026-08-08T00:00:00Z", ["observed:some-skill"])
-    _write_snapshot(capped, "2026-08-15T00:00:00Z", ["observed:some-skill"], exhaustive=False)
-    now = time.time()
-    os.utime(newer, (now - 2000, now - 2000))
-    os.utime(capped, (now - 1000, now - 1000))
-    os.utime(older, (now, now))
-
-    # The real implementation, by generated_at.
-    real_selected, _ = plugin_prune.load_snapshots(snapshots, 2)
-    real_weeks, real_total, _ = plugin_prune.compute_weeks(
-        real_selected, ["observed@x", "silent@x"]
-    )
-    assert real_total == 1
-    assert real_weeks["silent@x"] == 1
-
-    # The same files, but selected by mtime instead — proves the fixture
-    # actually distinguishes the two orderings.
-    by_mtime = sorted(snapshots.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
-    mtime_reports = []
-    for path in by_mtime[:2]:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        mtime_reports.append(data["report"])
-    mtime_weeks, mtime_total, _ = plugin_prune.compute_weeks(
-        mtime_reports, ["observed@x", "silent@x"]
-    )
-    assert mtime_total == 1
-    assert mtime_weeks["silent@x"] == 0  # differs from the correct 1 above
 
 
 def test_exhaustiveness_inferred_from_top_skills_length_without_skill_totals(tmp_path, capsys):

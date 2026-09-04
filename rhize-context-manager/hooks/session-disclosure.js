@@ -62,7 +62,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { formatSkillRef } = require(path.join(__dirname, 'lib', 'route-core.js'));
+const { formatSkillRef, splitSkillId } = require(path.join(__dirname, 'lib', 'route-core.js'));
 
 // Suggestion logging (append-only, local-machine JSONL; see
 // scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
@@ -346,10 +346,8 @@ function relevantSkills(doc, detectedStacks) {
 }
 
 function shortName(skillId) {
-  // Bare skill name (last id segment) — three-segment third-party ids drop the
-  // marketplace and plugin segments the same way formatSkillRef() does.
-  const ref = formatSkillRef(skillId);
-  return ref ? ref.slice(ref.indexOf(':') + 1) : skillId;
+  const split = splitSkillId(skillId);
+  return split ? split.skill : skillId;
 }
 
 function formatBlock(matches) {

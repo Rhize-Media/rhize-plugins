@@ -105,21 +105,7 @@ class InferTagsForSkillTests(unittest.TestCase):
         )
         self.assertEqual(tags, [])
 
-    def test_aliases_are_honored_when_present(self) -> None:
-        fake_catalog = [
-            {"slug": "knowledge-management", "kind": "topic", "gloss": "x", "aliases": ["pkm"]}
-        ]
-        tags = self.module.infer_tags_for_skill(
-            "vault-tool", "A PKM helper for your notes.", fake_catalog
-        )
-        self.assertEqual(tags, ["knowledge-management"])
 
-    def test_absent_aliases_field_does_not_fail(self) -> None:
-        fake_catalog = [{"slug": "obsidian", "kind": "stack", "gloss": "x"}]  # no "aliases" key
-        tags = self.module.infer_tags_for_skill(
-            "vault-tool", "Works with your Obsidian vault.", fake_catalog
-        )
-        self.assertEqual(tags, ["obsidian"])
 
     def test_deterministic_across_calls(self) -> None:
         description = "keyword research for SEO"
@@ -217,7 +203,7 @@ class BuildResolvedIndexesInferredTests(unittest.TestCase):
             ],
         )
 
-    def test_zero_matches_gets_no_signals_entry_at_all(self) -> None:
+    def test_zero_matches_still_gets_a_name_only_entry(self) -> None:
         third_party_nodes = [
             {
                 "id": "skill:acme-marketplace/acme-plugin/widget-builder",
@@ -229,8 +215,12 @@ class BuildResolvedIndexesInferredTests(unittest.TestCase):
         result = self.module.build_resolved_indexes(
             self.static_indexes, [], third_party_nodes, self.catalog
         )
-        self.assertNotIn(
-            "skill:acme-marketplace/acme-plugin/widget-builder", result["router"]["signals"]
+        # Index membership never depends on inference hitting: a name-only entry keeps the
+        # skill visible to consumers such as agent-brief-router's named-skill detection,
+        # while route-core's floor (>= 2 matches, one full-weight) keeps it from qualifying.
+        self.assertEqual(
+            result["router"]["signals"]["skill:acme-marketplace/acme-plugin/widget-builder"],
+            [{"kind": "name", "weight": 1, "label": "widget-builder"}],
         )
 
     def test_non_skill_third_party_nodes_are_ignored(self) -> None:
@@ -391,7 +381,10 @@ class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             doc = json.loads((out_dir / "skill-map.indexes.resolved.json").read_text())
-            self.assertNotIn(fixture["skill_id"], doc["router"]["signals"])
+            # No catalog -> no inferred signals, but the unconditional name signal stays.
+            self.assertTrue(
+                all(s["kind"] == "name" for s in doc["router"]["signals"][fixture["skill_id"]])
+            )
             local_doc = json.loads((out_dir / "skill-map.local.json").read_text())
             self.assertIn("degraded", local_doc["sourceNotes"]["tagsCatalog"])
 

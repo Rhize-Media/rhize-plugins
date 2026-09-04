@@ -22,20 +22,20 @@ show queue counts by status and suggest the next subcommand.
    legal skill target does not get a `target_skill`: fold it in by hand into
    `docs/session-guardrails.md` (never into `CLAUDE.md` — that file is a
    router, not a home for telemetry) and mark the entry `consumed` directly.
-3. **Refuse a `target_skill` under any plugin cache or marketplace checkout**
-   — `~/.claude/plugins/cache/`, `~/.claude/plugins/marketplaces/`, or
-   `~/.codex/plugins/`. These are Claude Code/Codex-managed install trees,
-   not this repo: an edit there is invisible to `git` and gets silently
-   overwritten by the next `claude plugin update`/marketplace sync. Refuse
-   the assignment and tell the user to either (a) fork/vendor the skill
-   into a Rhize plugin under `rhize-context-manager/skills/` — recording
-   the fork and its `Drift check` in that plugin's `SOURCES.md`, per the
-   repo's curation rule (see `CLAUDE.md`'s "Curation Rule") — or (b)
-   contribute the fix upstream to the third-party plugin's own repo. Mark
-   the entry `rejected` with a note; never `triaged` against a path outside
-   this repo. Rhize-owned targets (`rhize-context-manager/skills/*`,
-   `~/.claude/skills/learned/*`) are edited in-repo/in-place and committed
-   normally — no forking needed.
+3. **A `target_skill` must resolve under one of the two allowed roots above**
+   (`rhize-context-manager/skills/*` or `~/.claude/skills/learned/*`). Refuse
+   anything else — in practice that means any plugin cache or marketplace
+   checkout (`~/.claude/plugins/cache/…`, a marketplace clone, `~/.codex/plugins/…`):
+   those are Claude Code/Codex-managed install trees, not this repo, so an edit
+   there is invisible to `git` and gets silently overwritten by the next
+   `claude plugin update`/marketplace sync. Refuse the assignment and tell the
+   user to either (a) fork/vendor the skill into a Rhize plugin under
+   `rhize-context-manager/skills/` — recording the fork and its `Drift check`
+   in that plugin's `SOURCES.md`, per the repo's curation rule (see
+   `CLAUDE.md`'s "Curation Rule") — or (b) contribute the fix upstream to the
+   third-party plugin's own repo. Mark the entry `rejected` with a note; never
+   `triaged` against a path outside the allowed roots. Rhize-owned targets are
+   edited in-repo/in-place and committed normally — no forking needed.
 
    Routing a triaged entry through `skill-forge refine capture` is
    **deferred** for this case: its project-scope override files are not

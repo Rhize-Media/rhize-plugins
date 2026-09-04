@@ -825,6 +825,12 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
+      "to": "command:rhize-ops/plugin-prune",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
       "to": "command:rhize-ops/rhize-setup",
       "type": "contains"
     },
@@ -2716,6 +2722,13 @@
       "kind": "command",
       "name": "parallel-optimize",
       "path": "rhize-ops/commands/parallel-optimize.md"
+    },
+    {
+      "description": "Report-first plugin-prune advisor — cross-references a skill-forge plugin audit with skill-monitor usage snapshots, then optionally disables what you pick",
+      "id": "command:rhize-ops/plugin-prune",
+      "kind": "command",
+      "name": "plugin-prune",
+      "path": "rhize-ops/commands/plugin-prune.md"
     },
     {
       "description": "Fleet-level setup wizard — pick your plugins, run their own expert wizards, establish evaluation baselines, and wire opt-in guardrail hooks",

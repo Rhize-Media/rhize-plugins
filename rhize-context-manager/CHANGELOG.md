@@ -14,9 +14,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   into the resolved indexes' `router.signals[skillId]` as half-weight
   `{kind: "tag-inferred", weight: 0.5}` entries (resolved indexes'
   `schemaVersion` bumped to `1.2.0`; the static artifact and schema are
-  untouched). `route-core.js`'s `routeFromIndex()` now refuses to qualify a
-  match whose signals are ALL `tag-inferred`, so an inferred-backed match can
-  never outrank a declared one. `skill-router.js` and `agent-brief-router.js`
+  untouched); every third-party skill also gets an unconditional `name`
+  signal, so index membership never depends on inference hitting.
+  `route-core.js`'s `routeFromIndex()` now requires at least one full-weight
+  (`weight >= 1`) matched signal, so an inferred-only match never qualifies;
+  the half weight itself (max `1 + 3 × 0.5 = 2.5` vs. a declared `1 + 2 = 3`)
+  is what keeps an inferred-backed match from outranking a declared one. `skill-router.js` and `agent-brief-router.js`
   render a third-party skill's three-segment id as `<plugin>:<skill>`
   (previously rendered with the marketplace segment attached, e.g.
   `claude-plugins-official:mattpocock-skills/tdd`) and suffix an inferred

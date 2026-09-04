@@ -141,7 +141,7 @@ observed the plugin's skills fire. Every `pluginId` is cross-referenced against
 flagged not actionable. Advisory only — it never writes settings.json itself, and dormancy from a
 non-exhaustive snapshot is never treated as "unused." The only mutating path is
 `--apply --disable <id>...`, which requires a real TTY, requires each id to already be present in
-the audit and enabled in settings, and only runs `claude plugin disable <id> --scope user` after a
+the audit and enabled at user scope in `settings.json`, and only runs `claude plugin disable <id> --scope user` after a
 per-id typed `yes`.
 
 **Invoked as:** `/rhize-ops:plugin-prune`

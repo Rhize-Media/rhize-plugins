@@ -517,8 +517,7 @@ def infer_tags_for_skill(
 ) -> list[str]:
     """Infer up to 3 topic/stack tag slugs for a third-party skill from its
     name + description. A catalog entry matches when every word of its
-    slug (hyphen-separated) — or, if present, every word of any one of its
-    optional `aliases` — appears among the tokenized name+description,
+    slug (hyphen-separated) appears among the tokenized name+description,
     mirroring route-core.js's routeFromIndex() "every word of the label is
     in the prompt tokens" rule. `condition` entries are never inferred —
     they describe a runtime failure state a skill remediates, not a
@@ -531,10 +530,6 @@ def infer_tags_for_skill(
     catalog order or how many candidates matched."""
     prompt_words = set(_words_of(f"{name} {description}"))
 
-    def _phrase_matches(phrase: str) -> bool:
-        words = _words_of(phrase)
-        return bool(words) and all(w in prompt_words for w in words)
-
     candidates: list[tuple[int, str]] = []
     for entry in tags_catalog:
         if entry.get("kind") not in ("topic", "stack"):
@@ -542,12 +537,30 @@ def infer_tags_for_skill(
         slug = entry.get("slug")
         if not isinstance(slug, str) or not slug:
             continue
-        aliases = [a for a in (entry.get("aliases") or []) if isinstance(a, str)]
-        if any(_phrase_matches(phrase) for phrase in (slug, *aliases)):
-            candidates.append((len(_words_of(slug)), slug))
+        words = _words_of(slug)
+        if words and all(w in prompt_words for w in words):
+            candidates.append((len(words), slug))
 
     candidates.sort(key=lambda item: (-item[0], item[1]))
     return sorted(slug for _, slug in candidates[:3])
+
+
+def _inferred_by_skill(
+    third_party_nodes: list[dict], tags_catalog: list[dict]
+) -> list[tuple[str, str, list[str]]]:
+    """(skill_id, name, inferred_tags) for every third-party `skill` node with
+    a string id — the one eligibility/coercion rule shared by the resolved
+    indexes builder and `--report-inferred`. `inferred_tags` may be empty."""
+    rows: list[tuple[str, str, list[str]]] = []
+    for node in third_party_nodes:
+        if node.get("kind") != "skill":
+            continue
+        skill_id = node.get("id")
+        if not isinstance(skill_id, str):
+            continue
+        name = str(node.get("name") or "")
+        rows.append((skill_id, name, infer_tags_for_skill(name, str(node.get("description") or ""), tags_catalog)))
+    return rows
 
 
 def _pick_install_entry(installs: list) -> dict | None:
@@ -739,9 +752,11 @@ def build(
     cooccurrence_path: Path,
     global_settings_path: Path | None = None,
     local_settings_path: Path | None = None,
-    tags_catalog_path: Path | None = None,
+    tags_catalog_note: str = "not loaded",
 ) -> tuple[dict, dict]:
-    """Return (local_doc, resolved_doc)."""
+    """Return (local_doc, resolved_doc). `tags_catalog_note` is the source note
+    from load_tags_catalog(); main() loads the catalog once and passes both the
+    note (here) and the entries (to build_resolved_indexes)."""
     static_doc = json.loads(static_path.read_text())
     marketplace = json.loads(MARKETPLACE_PATH.read_text())
     marketplace_name = marketplace["name"]
@@ -768,14 +783,6 @@ def build(
             global_settings_path or default_global_settings_path(),
             local_settings_path or default_local_settings_path(),
         )
-    )
-
-    # Only the source note is needed here — the loaded catalog itself is
-    # reloaded (main()'s report-inferred/resolved-indexes step needs it too;
-    # build()'s job is the local/resolved MAP docs, not the resolved
-    # INDEXES doc that actually consumes the catalog contents).
-    _tags_catalog, tags_catalog_note = load_tags_catalog(
-        tags_catalog_path or default_tags_catalog_path()
     )
 
     generated_at = datetime.now(timezone.utc).isoformat()
@@ -840,15 +847,12 @@ def build_resolved_indexes(
     e.g. `local_doc["thirdParty"]["nodes"]`), infer_tags_for_skill() picks up
     to 3 topic/stack tags from `tags_catalog`; each becomes a
     `{kind: "tag-inferred", weight: 0.5, label: <slug>}` entry in
-    `router.signals[skillId]`. Declared (rhize) skills' existing signal
-    entries are copied but never mutated. A third-party skill getting its
-    FIRST signal entry here also gets a `name` entry added alongside the
-    inferred ones — mirroring build_skill_map.py's build_router_index(),
-    which gives every skill a name signal — because an entry made up
-    entirely of tag-inferred signals could never qualify a match on its own
-    (route-core.js's routeFromIndex() requires >=2 matched signals, at least
-    one of which isn't tag-inferred). A skill with zero inferred tags gets
-    no signals entry at all."""
+    `router.signals[skillId]`, after a `name` entry every third-party skill
+    gets unconditionally (mirroring build_skill_map.py's build_router_index()).
+    Declared (rhize) skills' existing signal entries are copied but never
+    mutated. A name-only entry cannot qualify a match (route-core.js's
+    routeFromIndex() needs >=2 matched signals with at least one full-weight
+    signal among them), so inference only ever adds routability."""
     succession = {
         node_id: {"precedes": list(entry.get("precedes", [])), "follows": list(entry.get("follows", []))}
         for node_id, entry in (static_indexes.get("succession") or {}).items()
@@ -863,30 +867,19 @@ def build_resolved_indexes(
         entry["follows"] = sorted(set(entry["follows"]))
 
     router = dict(static_indexes.get("router") or {})
-    # Shallow per-skill list copies: signal dicts are appended to and re-sorted, never mutated.
+    # Shallow per-skill list copies: declared entries are never mutated.
     signals = {
         skill_id: list(entries)
         for skill_id, entries in (router.get("signals") or {}).items()
     }
-    for node in third_party_nodes or []:
-        if node.get("kind") != "skill":
-            continue
-        skill_id = node.get("id")
-        if not isinstance(skill_id, str):
-            continue
-        inferred = infer_tags_for_skill(
-            str(node.get("name") or ""),
-            str(node.get("description") or ""),
-            tags_catalog or [],
-        )
-        if not inferred:
-            continue
-        entries = signals.get(skill_id)
-        if entries is None:
-            entries = [{"kind": "name", "weight": 1, "label": str(node.get("name") or "")}]
-            signals[skill_id] = entries
-        entries.extend({"kind": "tag-inferred", "weight": 0.5, "label": slug} for slug in inferred)
-        entries.sort(key=lambda s: (s["kind"], s["label"]))
+    for skill_id, name, inferred in _inferred_by_skill(third_party_nodes or [], tags_catalog or []):
+        # Every third-party skill gets a name signal (mirroring build_router_index) so index
+        # membership never depends on whether tag inference happened to hit; name alone
+        # still cannot clear routeFromIndex()'s two-signal floor.
+        signals[skill_id] = [
+            {"kind": "name", "weight": 1, "label": name},
+            *({"kind": "tag-inferred", "weight": 0.5, "label": slug} for slug in inferred),
+        ]
     router["signals"] = signals
 
     return {
@@ -902,17 +895,10 @@ def print_inferred_report(third_party_nodes: list[dict], tags_catalog: list[dict
     """`--report-inferred`: print a per-skill table of inferred tags without
     writing anything, so the injection in build_resolved_indexes() can be
     reviewed for precision before it's trusted."""
-    skill_nodes = [n for n in third_party_nodes if n.get("kind") == "skill"]
-    rows = []
-    for node in skill_nodes:
-        inferred = infer_tags_for_skill(
-            str(node.get("name") or ""), str(node.get("description") or ""), tags_catalog
-        )
-        if inferred:
-            rows.append((node["id"], inferred))
-
-    print(f"Inferred tags: {len(rows)} of {len(skill_nodes)} third-party skills")
-    for skill_id, tags in rows:
+    rows = _inferred_by_skill(third_party_nodes, tags_catalog)
+    hits = [(skill_id, tags) for skill_id, _name, tags in rows if tags]
+    print(f"Inferred tags: {len(hits)} of {len(rows)} third-party skills")
+    for skill_id, tags in hits:
         print(f"  {skill_id} -> {', '.join(tags)}")
 
 
@@ -978,11 +964,11 @@ def main() -> int:
         print("  run scripts/build_skill_map.py first", file=sys.stderr)
         return 1
 
+    tags_catalog, tags_catalog_note = load_tags_catalog(tags_catalog_path)
     local_doc, resolved_doc = build(
         static_path, installed_plugins_path, stack_config_path, cooccurrence_path,
-        global_settings_path, local_settings_path, tags_catalog_path,
+        global_settings_path, local_settings_path, tags_catalog_note,
     )
-    tags_catalog, tags_catalog_note = load_tags_catalog(tags_catalog_path)
 
     if args.report_inferred:
         print_inferred_report(local_doc["thirdParty"]["nodes"], tags_catalog)

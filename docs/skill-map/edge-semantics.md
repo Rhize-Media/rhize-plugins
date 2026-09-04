@@ -177,9 +177,8 @@ real edge.
 `infer_tags_for_skill(name, description, tags_catalog)` matches each `catalog/tags.json`
 **topic/stack** entry (never `condition` — a condition describes a runtime failure state, not a
 skill's subject matter) against a third-party skill's tokenized name+description: a slug matches
-when every hyphen-separated word of it (or, if the entry declares an optional `aliases: []` list,
-every word of any one alias) is present among the tokens — the identical "every word of the label
-is in the prompt tokens" rule `route-core.js`'s `routeFromIndex()` applies at match time. Up to 3
+when every hyphen-separated word of it is present among the tokens — the identical "every word of
+the label is in the prompt tokens" rule `route-core.js`'s `routeFromIndex()` applies at match time. Up to 3
 matches are kept per skill, preferring multi-word slugs (more specific) over single-word ones,
 then alphabetical; the returned list is itself sorted alphabetically, so output is deterministic
 regardless of catalog order. A missing or malformed `catalog/tags.json` degrades to zero inferred
@@ -190,11 +189,13 @@ be inferred, without writing anything, for a precision review before trusting th
 **Where it's written.** `build_resolved_indexes()` (same file) writes each match into
 `skill-map.indexes.resolved.json`'s `router.signals[skillId]` as
 `{kind: "tag-inferred", weight: 0.5, label: <slug>}` — half the weight of a declared `tag` signal
-(2) and half of a `name` signal (1). A third-party skill getting its first signals entry here also
-gets a `name` entry (`{kind: "name", weight: 1, label: <skill name>}`) added alongside the
-inferred ones, mirroring `scripts/build_skill_map.py`'s `build_router_index()` giving every skill
-a name signal — without it, an entry made up entirely of `tag-inferred` signals could never
-qualify at all (see the next paragraph). A skill with zero inferred tags gets no signals entry.
+(2) and half of a `name` signal (1). Every third-party skill gets a `name` entry
+(`{kind: "name", weight: 1, label: <skill name>}`) unconditionally — mirroring
+`scripts/build_skill_map.py`'s `build_router_index()` giving every skill a name signal — with the
+inferred entries appended after it, so index membership never depends on whether inference hit
+(consumers such as `agent-brief-router.js`'s named-skill detection see every installed skill). A
+skill with zero inferred tags therefore has a name-only entry, which cannot qualify a match on its
+own (see the next paragraph).
 Declared (rhize) skills' existing signal entries — produced by the static compiler, already in
 `generated/skill-map.indexes.json` — are copied through into the resolved file but never mutated.
 This addition is why the resolved indexes carry their own `schemaVersion` (currently `"1.2.0"`,
@@ -204,19 +205,20 @@ bumped for the additive `tag-inferred` kind), tracked independently of the stati
 
 **Qualification rule.** `route-core.js`'s `routeFromIndex()` (the index-backed path skill-router.js
 and agent-brief-router.js both prefer) requires >=2 matched signals to consider a skill at all,
-same as always — and now ALSO requires that not every matched signal be `tag-inferred`. A
-third-party skill matching only 2 of its inferred tags therefore never qualifies on its own; it
-needs its `name` signal (or, hypothetically, a declared tag) to match too. This is a floor, not a
-ranking rule — by construction it also means an inferred-backed match can never outrank a declared
-one: a third-party skill's best possible score is `1 (name) + 3 × 0.5 (inferred) = 2.5`, while any
+same as always — and now ALSO requires at least one full-weight matched signal (`weight >= 1`,
+i.e. a `name` or a declared `tag`). A third-party skill matching only 2 of its half-weight
+inferred tags therefore never qualifies on its own; it needs its `name` signal (or, hypothetically,
+a declared tag) to match too. This is a floor, not a ranking rule — the weight math is what keeps
+an inferred-backed match from outranking a declared one: a third-party skill's best possible score is `1 (name) + 3 × 0.5 (inferred) = 2.5`, while any
 declared match needs only a `name` + one `tag` to reach `1 + 2 = 3`.
 
 **Rendering.** A third-party skill id has three segments
 (`skill:<marketplace>/<plugin>/<skill-dir>`, per "Third-party ecosystem inventory" above); both
 `skill-router.js`'s suggestion message and `agent-brief-router.js`'s directive matching/advisory
 text render it as `<plugin>:<skill>` (dropping the marketplace segment) via `route-core.js`'s
-shared `formatSkillRef()` — a rhize skill's ordinary two-segment id renders byte-identically to
-before. `formatSignalLabel()` suffixes a `tag-inferred` signal's label with `" (inferred)"` in
+shared `formatSkillRef()`/`splitSkillId()` — as do `session-disclosure.js` and
+`remediation-suggester.js`, whose own inline parsers were replaced by the same helpers — and a
+rhize skill's ordinary two-segment id renders byte-identically to before. `formatSignalLabel()` suffixes a `tag-inferred` signal's label with `" (inferred)"` in
 `skill-router.js`'s "matches ..." text, so a half-weight guessed tag reads differently from a
 declared name/tag match; `agent-brief-router.js`'s advisory never prints signal labels at all, so
 the suffix never appears there (its own third-party score ceiling of 2.5 sits below its

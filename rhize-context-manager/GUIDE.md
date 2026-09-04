@@ -177,7 +177,9 @@ the right one, and health-checks the whole thing.
   --install` to have run at least once (installs the artifact to
   `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
   nothing. Installed (third-party, non-rhize) skills get no real tag edges, but can still
-  surface a suggestion via half-weight, best-effort `tag-inferred` router signals — see
+  surface a suggestion via half-weight, best-effort `tag-inferred` router signals (those live
+  only in `skill-map.indexes.resolved.json`, so they need `scripts/build_local_skill_map.py`
+  to have run on this machine, which the weekly skill audit does) — see
   `docs/skill-map/edge-semantics.md`'s "Inferred router signals for third-party skills" for
   how those are inferred and why they can never outrank a declared match.
 - `session-disclosure` (`hooks/session-disclosure.js`, auto-wired — not opt-in) is the one

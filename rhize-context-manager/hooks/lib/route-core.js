@@ -5,11 +5,12 @@
 // (agent-brief-router.js) can reuse index/map reading, tokenization, and
 // scoring without duplicating the ranking logic.
 //
-// PURE EXTRACTION — no behavior change. Everything here is a primitive:
-// reading the index/map files, tokenizing prompts, and the two scoring
-// algorithms (index-backed and map-scan fallback). Policy — score
-// thresholds, the one-suggestion cap, and message/output shaping — stays
-// per-hook, since briefs need different calibration than prompts. See
+// Everything here is a primitive: reading the index/map files, tokenizing
+// prompts, and the two scoring algorithms (index-backed and map-scan
+// fallback), plus the shared qualification floor (>= 2 matched signals, at
+// least one full-weight). Policy — score thresholds, the one-suggestion cap,
+// and message/output shaping — stays per-hook, since briefs need different
+// calibration than prompts. See
 // skill-router.js's header comments for the full INDEX RESOLUTION / MAP
 // RESOLUTION / RANKING contract these primitives implement.
 
@@ -147,7 +148,6 @@ function formatSkillRef(skillId) {
 // path (route(), not routeFromIndex()) never carry a `kind` field and so
 // never get the suffix — see docs/skill-map.md's documented divergence.
 function formatSignalLabel(signal) {
-  if (!signal) return '';
   return signal.kind === 'tag-inferred' ? `${signal.label} (inferred)` : String(signal.label);
 }
 
@@ -170,7 +170,10 @@ function routeFromIndex(routerIndex, promptTokens) {
       }
     }
     if (matched.length < 2) continue; // single weak match must not emit
-    if (matched.every((s) => s.kind === 'tag-inferred')) continue; // inferred-only match must not qualify
+    // Floor: at least one full-weight (declared) signal among the matches. Inferred signals
+    // are sub-unit weight, so an inferred-only match never qualifies; the weight math
+    // (max 1 + 3*0.5 = 2.5 < name + declared tag = 3) is what keeps them from outranking.
+    if (!matched.some((s) => s.weight >= 1)) continue;
     const score = matched.reduce((sum, s) => sum + s.weight, 0);
     scored.set(skillId, { score, signals: matched });
   }
@@ -305,6 +308,7 @@ module.exports = {
   readMap,
   tokenize,
   wordsOf,
+  splitSkillId,
   formatSkillRef,
   formatSignalLabel,
   routeFromIndex,

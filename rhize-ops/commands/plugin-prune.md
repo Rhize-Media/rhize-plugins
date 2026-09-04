@@ -17,7 +17,10 @@ an explicit, per-plugin confirmed `claude plugin disable <id> --scope user`.
    MONITOR_ROOT="$("${CLAUDE_PLUGIN_ROOT}/scripts/skill_monitor_root.sh")" || exit $?
    TMP_AUDIT="$(mktemp -t plugin-prune-audit)"
    ```
-2. Generate a fresh skill-forge plugin audit into that temp file:
+2. Generate a fresh skill-forge plugin audit into that temp file (needs `@rhize/skill-forge`
+   0.17 or newer — that is the first release with `--claude-plugins` and the `plugins[]` report
+   section; an older audit has no `plugins` array and step 3 refuses it with a message naming
+   the required version):
    ```bash
    npx -y @rhize/skill-forge@0.17 audit --yes --claude-plugins \
      --usage-snapshot "$MONITOR_ROOT/data/snapshots" --json > "$TMP_AUDIT"
@@ -48,3 +51,14 @@ an explicit, per-plugin confirmed `claude plugin disable <id> --scope user`.
 - **Nothing is disabled without you.** Without `--apply` the script only reports. With
   `--apply --disable <id>`, each id still needs a typed `yes` per plugin before
   `claude plugin disable <id> --scope user` runs.
+
+## Input shape (the contract `plugin_prune.py` validates)
+
+A skill-forge `audit --json`/`routine --json` document with `"schemaVersion": 1` and a
+`plugins` array; each entry is
+`{ pluginId: "<plugin>@<marketplace>", version, installPath, skillCount,
+findingCounts: { LOW, MEDIUM, HIGH, CRITICAL }, observedSkillCount?,
+recommendation: "keep" | "review" | "unobserved" | "unknown", reasons: string[] }`.
+The fixture at `tests/rhize-ops/fixtures/plugin_prune/audit.json` is the reference example.
+Every string is control-character-stripped on load, and `pluginId`s are cross-referenced against
+the user-scope `~/.claude/settings.json` `enabledPlugins` (`--settings` overrides the path).

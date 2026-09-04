@@ -158,9 +158,11 @@ target, matching every pre-existing entry.
    **Note:** `target_skill` here is always a Rhize-owned skill by construction
    (the third-party-origin exclusion above), never a path under a plugin
    cache or marketplace checkout — `/skill-refine review` refuses any
-   human-assigned `target_skill` in that shape, for any source, with the
-   instruction to fork/vendor into a Rhize plugin or contribute upstream
-   (see its `review` section). Routing a signal through `skill-forge refine
+   human-assigned `target_skill` outside its two allowed roots
+   (`rhize-context-manager/skills/*`, `~/.claude/skills/learned/*`), for any
+   source, with the instruction to fork/vendor into a Rhize plugin or
+   contribute upstream (see its `review` section — the allowlist is the rule;
+   install trees are just the common case). Routing a signal through `skill-forge refine
    capture` instead of `/skill-refine` is also deferred until that command's
    project-scope override files can be materialized into a plugin cache.
 6. Skip any entry whose `id` already exists in the queue regardless of status.
