@@ -27,6 +27,10 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-04_ version bump — **procedural-memory** 0.5.4 → 0.5.5 (patch); marketplace 2.61.2 → 2.61.3.
+- _2026-09-03_ **First CI run fixes.** The promoted `validate` workflow failed on its first run and
+  found two portability defects: a bash-only herestring in procedural-memory's POSIX hook, and a
+  git-preflight test that depended on the runner's git identity. Both fixed.
 - _2026-09-03_ **CI gate promoted.** `.github/ci-proposed/validate.yml` moved to
   `.github/workflows/validate.yml`; it runs the release contracts on every push and pull request.
 - _2026-09-04_ version bump — **rhize-tasks** 0.5.0 → 0.5.1 (patch); **rhize-core** 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.

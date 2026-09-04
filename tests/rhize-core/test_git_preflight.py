@@ -20,6 +20,10 @@ GIT_ENV = {
     **os.environ,
     "GIT_CONFIG_GLOBAL": "/dev/null",
     "GIT_CONFIG_NOSYSTEM": "1",
+    # The CLI under test runs `git commit` itself; give it an identity so the
+    # suite does not depend on the host account (CI runners have no name).
+    "GIT_AUTHOR_NAME": "Test", "GIT_AUTHOR_EMAIL": "test@example.com",
+    "GIT_COMMITTER_NAME": "Test", "GIT_COMMITTER_EMAIL": "test@example.com",
 }
 
 

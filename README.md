@@ -28,7 +28,7 @@ All plugins below will become available for installation. Each plugin may need i
 | [rhize-ops](./rhize-ops) | 0.20.0 | 3 | Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once. | [README](./rhize-ops/README.md) · [GUIDE](./rhize-ops/GUIDE.md) |
 | [rhize-tasks](./rhize-tasks) | 0.5.1 | 6 | Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule. | [README](./rhize-tasks/README.md) · [GUIDE](./rhize-tasks/GUIDE.md) |
 | [rhize-cowork](./rhize-cowork) | 0.2.3 | 1 | Sets up the starter files describing a new Cowork client's business, voice, and key facts, so Claude's first draft for that client is already on-brand. | [README](./rhize-cowork/README.md) · [GUIDE](./rhize-cowork/GUIDE.md) |
-| [procedural-memory](./procedural-memory) | 0.5.4 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
+| [procedural-memory](./procedural-memory) | 0.5.5 | 2 | Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely. | [README](./procedural-memory/README.md) · [GUIDE](./procedural-memory/GUIDE.md) |
 <!-- SKILL-MAP:END -->
 
 **Why rhize-core is the hub:** it hosts `/rhize-core:setup`, the one wizard that reads every other

@@ -157,10 +157,9 @@ esac
 # tool_use_id sits AFTER tool_response — the one field where a huge stdout
 # would make `${payload#*pattern}` pathological (see SUBPROCESS BUDGET).
 # `grep -o -m1` does a bounded linear scan instead; stops at first match.
-# The `<<<` herestring hands $payload to grep via a shell-managed temp
-# file/pipe instead of a `printf | grep` pipeline, so this is exactly one
-# fork (grep), not two.
-tool_use_id=$(grep -o -m1 '"tool_use_id":"[^"]*"' <<< "$payload") || true
+# POSIX sh has no `<<<` herestring (dash rejects it; the shebang is /bin/sh),
+# so hand $payload to grep through printf — one extra fork, portable.
+tool_use_id=$(printf '%s' "$payload" | grep -o -m1 '"tool_use_id":"[^"]*"') || true
 tool_use_id="${tool_use_id#*:\"}"
 tool_use_id="${tool_use_id%\"}"
 [ -n "$tool_use_id" ] || tool_use_id="unknown-$$"
