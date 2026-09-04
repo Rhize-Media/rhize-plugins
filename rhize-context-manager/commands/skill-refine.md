@@ -35,7 +35,10 @@ show queue counts by status and suggest the next subcommand.
    `CLAUDE.md`'s "Curation Rule") — or (b) contribute the fix upstream to the
    third-party plugin's own repo. Mark the entry `rejected` with a note; never
    `triaged` against a path outside the allowed roots. Rhize-owned targets are
-   edited in-repo/in-place and committed normally — no forking needed.
+   edited in place and committed in the repo that owns them — this marketplace
+   for `rhize-context-manager/skills/*`, the `claude-config` repo (`~/.claude`)
+   for `~/.claude/skills/learned/*` — no forking needed. This allowlist is
+   guidance to the reviewing agent, not a code-enforced control.
 
    Routing a triaged entry through `skill-forge refine capture` is
    **deferred** for this case: its project-scope override files are not

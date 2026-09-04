@@ -48,6 +48,9 @@ from typing import Any
 
 SCHEMA = "rhize-plugin-prune-v1"
 DEFAULT_SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+KNOWN_RECOMMENDATIONS = {"keep", "review", "unobserved", "unknown"}
+# A value outside the producer's enum is contract drift: rendered with a marker and treated
+# as alerting, so a new skill-forge verdict can never make the cron job silently exit 0.
 CRON_ALERT_RECOMMENDATIONS = {"review", "unobserved"}
 
 # C0/C1 control characters plus zero-width and bidi-override characters (a
@@ -94,6 +97,9 @@ def load_audit(path: Path) -> list[Any]:
             f"{data.get('schemaVersion')!r} (expected 1)"
         )
     plugins = data.get("plugins")
+    ids = [e.get("pluginId") for e in plugins if isinstance(e, dict)] if isinstance(plugins, list) else []
+    if len(ids) != len(set(ids)):
+        raise UsageError(f"--audit file {path} lists the same pluginId more than once — refusing an ambiguous report")
     if not isinstance(plugins, list):
         raise UsageError(
             f"--audit file {path} has no \"plugins\" array — produce it with "
@@ -146,6 +152,10 @@ def settings_status(plugin_id: str, enabled_plugins: dict[str, Any]) -> str:
 
 
 def bare_plugin_name(plugin_id: str) -> str:
+    """`<plugin>` from `<plugin>@<marketplace>` — the prefix skill-monitor uses in its
+    `<plugin>:<skill>` usage keys. Two marketplaces shipping a plugin under the same
+    name therefore share one prefix and cannot be told apart here (rare; the
+    recommendation column still comes from the audit, which knows the full id)."""
     return plugin_id.split("@", 1)[0]
 
 
@@ -167,7 +177,10 @@ def snapshot_usage_keys(report: dict[str, Any]) -> tuple[bool, list[str]]:
     """Return (exhaustive, usage_keys) for one snapshot's `report` object."""
     skill_totals = report.get("skill_totals")
     if isinstance(skill_totals, dict):
-        return True, [k for k in skill_totals if isinstance(k, str)]
+        keys = [k for k in skill_totals if isinstance(k, str)]
+        # A snapshot that observed nothing is not evidence of dormancy (missing
+        # transcripts, a stub file, an idle week) — never count it as exhaustive.
+        return bool(keys), keys
 
     top_skills = report.get("top_skills")
     keys: list[str] = []
@@ -177,7 +190,9 @@ def snapshot_usage_keys(report: dict[str, Any]) -> tuple[bool, list[str]]:
                 keys.append(entry[0])
 
     unique = report.get("unique_skills_used")
-    exhaustive = isinstance(top_skills, list) and isinstance(unique, int) and len(top_skills) == unique
+    exhaustive = (
+        isinstance(top_skills, list) and isinstance(unique, int) and len(top_skills) == unique and bool(keys)
+    )
     return exhaustive, keys
 
 
@@ -262,6 +277,8 @@ def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[
         finding_counts = entry.get("findingCounts")
         finding_counts = finding_counts if isinstance(finding_counts, dict) else {}
         recommendation = str(entry.get("recommendation", "unknown"))
+        if recommendation not in KNOWN_RECOMMENDATIONS:
+            recommendation = f"{recommendation} (unrecognized)"
         reasons_raw = entry.get("reasons")
         reasons = [r for r in reasons_raw if isinstance(r, str)] if isinstance(reasons_raw, list) else []
 
@@ -352,11 +369,11 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
 
     claude_bin = os.environ.get("PLUGIN_PRUNE_CLAUDE_BIN") or "claude"
     for plugin_id in ids:
-        answer = input(f"Disable {plugin_id}? type yes to confirm: ")
+        argv = [claude_bin, "plugin", "disable", plugin_id, "--scope", "user"]
+        answer = input(f"Disable {plugin_id} via `{' '.join(argv)}`? type yes to confirm: ")
         if answer.strip() != "yes":
             print(f"skipped {plugin_id} (not confirmed)")
             continue
-        argv = [claude_bin, "plugin", "disable", plugin_id, "--scope", "user"]
         try:
             result = subprocess.run(argv, capture_output=True, text=True)
         except OSError as exc:
@@ -424,6 +441,10 @@ def main(argv: list[str] | None = None) -> int:
             selected_reports, [row["pluginId"] for row in rows]
         )
         for row in rows:
+            # A number here is a dormancy claim: never make one for a plugin with no skills
+            # to observe, or when no exhaustive snapshot backed the window.
+            if weeks_total == 0 or not row["skillCount"]:
+                continue
             row["weeksUnobserved"] = weeks_unobserved_by_plugin.get(row["pluginId"])
             row["weeksTotal"] = weeks_total
         snapshots_summary = {
@@ -440,7 +461,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.apply:
         return apply_disable(args.disable, rows_by_id)
 
-    exit_code = 1 if any(row["recommendation"] in CRON_ALERT_RECOMMENDATIONS for row in rows) else 0
+    exit_code = (
+        1
+        if any(
+            row["recommendation"] in CRON_ALERT_RECOMMENDATIONS or row["recommendation"].endswith("(unrecognized)")
+            for row in rows
+        )
+        else 0
+    )
 
     if args.json:
         payload: dict[str, Any] = {

@@ -19,11 +19,15 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   `route-core.js`'s `routeFromIndex()` now requires at least one full-weight
   (`weight >= 1`) matched signal, so an inferred-only match never qualifies;
   the half weight itself (max `1 + 3 × 0.5 = 2.5` vs. a declared `1 + 2 = 3`)
-  is what keeps an inferred-backed match from outranking a declared one. `skill-router.js` and `agent-brief-router.js`
-  render a third-party skill's three-segment id as `<plugin>:<skill>`
-  (previously rendered with the marketplace segment attached, e.g.
-  `claude-plugins-official:mattpocock-skills/tdd`) and suffix an inferred
-  label with `(inferred)`. New `build_local_skill_map.py --report-inferred`
+  is what keeps an inferred-backed match from outranking a declared one. `skill-router.js`, `agent-brief-router.js`,
+  `session-disclosure.js`, and `remediation-suggester.js` render a
+  third-party skill's three-segment id as `<plugin>:<skill>` via the shared
+  `formatSkillRef()` (the old two-segment regex would have kept the
+  marketplace segment attached). Only `skill-router.js` prints signal
+  labels, and it suffixes an inferred one with `(inferred)`;
+  `agent-brief-router.js`'s change is id parsing in `namedSkillsIn` only
+  (its `BRIEF_MIN_SCORE` of 4 sits above the 2.5 inferred ceiling, so an
+  inferred-backed candidate never becomes one of its suggestions). New `build_local_skill_map.py --report-inferred`
   flag prints a per-skill inferred-tag table without writing anything, for a
   precision review. See `docs/skill-map/edge-semantics.md`'s "Inferred router
   signals for third-party skills".

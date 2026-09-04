@@ -620,3 +620,97 @@ def test_apply_rejects_flag_shaped_id_without_spawning(monkeypatch, tmp_path, ca
     assert code == 2
     assert "not a valid plugin id" in err
     assert not log.exists()
+
+
+def _snapshot(path: Path, generated_at: str, **report) -> Path:
+    return write_json(path, {"report": {"generated_at": generated_at, "window_days": 7, **report}})
+
+
+def test_empty_snapshot_is_not_exhaustive_evidence(tmp_path, capsys):
+    snaps = tmp_path / "snaps"
+    snaps.mkdir()
+    _snapshot(snaps / "a.json", "2026-09-01T00:00:00+00:00", unique_skills_used=1, top_skills=[["realplug:foo", 5]])
+    _snapshot(snaps / "b.json", "2026-09-02T00:00:00+00:00", unique_skills_used=0, top_skills=[])
+    _snapshot(snaps / "c.json", "2026-09-03T00:00:00+00:00", skill_totals={})
+    audit = write_json(tmp_path / "audit.json", base_audit([plugin_entry("realplug@mkt", "keep", skillCount=3)]))
+    settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"realplug@mkt": True}})
+
+    code, out, err = run(
+        ["--audit", str(audit), "--settings", str(settings), "--snapshots", str(snaps), "--weeks", "3", "--json"],
+        capsys,
+    )
+
+    doc = json.loads(out)
+    row = doc["rows"][0] if "rows" in doc else doc["plugins"][0]
+    assert row["weeksTotal"] == 1 and row["weeksUnobserved"] == 0
+    assert doc["snapshots"]["skippedNonExhaustive"] == 2
+
+
+def test_zero_skill_plugin_and_zero_week_window_report_no_dormancy_number(tmp_path, capsys):
+    snaps = tmp_path / "snaps"
+    snaps.mkdir()
+    _snapshot(snaps / "a.json", "2026-09-01T00:00:00+00:00", unique_skills_used=1, top_skills=[["realplug:foo", 5]])
+    audit = write_json(
+        tmp_path / "audit.json",
+        base_audit([plugin_entry("cmdonly@mkt", "unknown", skillCount=0), plugin_entry("realplug@mkt", "keep", skillCount=3)]),
+    )
+    settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"cmdonly@mkt": True, "realplug@mkt": True}})
+
+    code, out, err = run(
+        ["--audit", str(audit), "--settings", str(settings), "--snapshots", str(snaps), "--weeks", "1", "--json"],
+        capsys,
+    )
+    doc = json.loads(out)
+    rows = {r["pluginId"]: r for r in (doc["rows"] if "rows" in doc else doc["plugins"])}
+    assert rows["cmdonly@mkt"]["weeksTotal"] is None and rows["cmdonly@mkt"]["weeksUnobserved"] is None
+    assert rows["realplug@mkt"]["weeksTotal"] == 1
+
+    # A window with no exhaustive snapshot at all yields no numbers either.
+    _snapshot(snaps / "a.json", "2026-09-01T00:00:00+00:00", unique_skills_used=5, top_skills=[["x:y", 1]])
+    code, out, err = run(
+        ["--audit", str(audit), "--settings", str(settings), "--snapshots", str(snaps), "--weeks", "1", "--json"],
+        capsys,
+    )
+    doc = json.loads(out)
+    rows = {r["pluginId"]: r for r in (doc["rows"] if "rows" in doc else doc["plugins"])}
+    assert rows["realplug@mkt"]["weeksTotal"] is None
+
+
+def test_unrecognized_recommendation_is_marked_and_alerts(tmp_path, capsys):
+    audit = write_json(tmp_path / "audit.json", base_audit([plugin_entry("x@y", "quarantine")]))
+    settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"x@y": True}})
+
+    code, out, err = run(["--audit", str(audit), "--settings", str(settings)], capsys)
+
+    assert code == 1
+    assert "quarantine (unrecognized)" in out
+
+
+def test_duplicate_plugin_ids_are_refused(tmp_path, capsys):
+    audit = write_json(tmp_path / "audit.json", base_audit([plugin_entry("dup@mkt", "keep"), plugin_entry("dup@mkt", "review")]))
+    settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"dup@mkt": True}})
+
+    code, out, err = run(["--audit", str(audit), "--settings", str(settings)], capsys)
+
+    assert code == 2
+    assert "more than once" in err
+
+
+def test_confirmation_prompt_names_the_exact_command(monkeypatch, tmp_path, capsys):
+    log = tmp_path / "claude-argv.log"
+    monkeypatch.setenv("PLUGIN_PRUNE_CLAUDE_BIN", str(FAKE_CLAUDE))
+    monkeypatch.setenv("FAKE_CLAUDE_LOG", str(log))
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    prompts: list[str] = []
+
+    def fake_input(prompt: str) -> str:
+        prompts.append(prompt)
+        return "no"
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    run(
+        ["--audit", str(AUDIT_FIXTURE), "--settings", str(SETTINGS_FIXTURE), "--apply", "--disable", "code-review@claude-plugins-official"],
+        capsys,
+    )
+    assert prompts and f"{FAKE_CLAUDE} plugin disable code-review@claude-plugins-official --scope user" in prompts[0]
+    assert not log.exists()
