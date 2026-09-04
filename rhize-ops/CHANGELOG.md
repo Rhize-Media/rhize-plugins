@@ -6,6 +6,28 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ **rhize-ops:** `scripts/jira_attach.py` uploads exported vault-note copies and
+  their embedded files to the Jira issue via the Atlassian REST API, and `delegate-to-teammate`
+  Step 7 gets a new "Upload attachments" step that calls it right after the Jira issue is
+  created.
+
+### Changed
+
+- _2026-09-04_ **rhize-ops:** `delegate-to-teammate`'s per-note context documents now travel as
+  Jira attachments instead of per-note Confluence pages — scrubbed `.md` copies of the vault
+  notes plus the images/PDFs/documents they embed. `scripts/vault_note_export.py` takes
+  `--out-dir`/`--max-bytes` instead of `--ledger`, `scripts/delegation_lint.py` gains an
+  `attachment-body` lint kind, and `/rhize-ops:delegate-setup` adds a read-only Keychain check
+  that reports whether Jira attachments are enabled.
+
+### Removed
+
+- _2026-09-04_ **rhize-ops:** per-note Confluence context pages, `vault_note_export.py`'s
+  `record` subcommand, the `delegate.confluence-index.json` ledger, and its
+  `delegate-confluence-index` setup-manifest artifact.
+
+### Added
+
 - _2026-09-03_ version bump — 0.19.0 → 0.20.0 (minor); marketplace 2.60.0 → 2.61.0.
 - _2026-09-03_ version bump — 0.18.0 → 0.19.0 (minor); marketplace 2.59.1 → 2.60.0.
 

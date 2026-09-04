@@ -1,6 +1,6 @@
 # Handoff Brief Template
 
-This file holds what used to live inline in `SKILL.md` Step 4: the full task-package template, the Confluence handoff brief page layout, and the context-page conventions. `SKILL.md` links here rather than inlining them, to keep the skill's own front door short.
+This file holds what used to live inline in `SKILL.md` Step 4: the full task-package template, the Confluence handoff brief page layout, and the attached-note-copy conventions. `SKILL.md` links here rather than inlining them, to keep the skill's own front door short.
 
 ## Full Task Package
 
@@ -59,7 +59,7 @@ Copy-paste these into Claude Code or Cowork to get going:
 > "[Prompt 2 — a follow-up prompt for the next phase of the task]"
 
 ## Reference Links
-- [Confluence context pages, public URLs, or tracker links — never a local, vault-relative, or repo-relative path]
+- [Attachments on the issue (by filename), public URLs, or tracker links — never a local, vault-relative, or repo-relative path]
 ```
 
 ## Confluence Handoff Brief Page
@@ -73,14 +73,15 @@ Body = a metadata table, then the full task package above.
 | Priority | [urgent\|high\|normal\|low] |
 | Project | [PROJECT-KEY] |
 | Delegation ID | [delegation-id] — plain text, never the `rhize-delegation:v1:` marker line |
-| Jira issue | [added after creation — Step 7.3] |
+| Jira issue | [added after creation — Step 7.5] |
 
-The **Reference Links** section of the full package above may contain only Confluence pages, public URLs, and the Fireflies link — never a local, vault-relative, or repo-relative path.
+The **Reference Links** section of the full package above may contain only attachment filenames, public URLs, and the Fireflies link — never a local, vault-relative, or repo-relative path.
 
-## Confluence Context Page (per vault document)
+## Attached note copies (per vault document)
 
-- **Created under:** `confluence.parentPageId` in `confluence.spaceId` (see Step 6.2)
-- **Title:** `[Context] <title>`
-- **Body:** the exporter's `body_markdown`, verbatim — no additional wrapper. The exporter already appends its own "Files to request from the delegator" section listing `binaries`; the page carries nothing else.
+- **Filename:** `<title>.md`, as written by the exporter's `--out-dir`.
+- **Body:** `body_markdown` verbatim — no additional wrapper. It already ends with "Attached to this issue" and, when needed, "Files to request from the delegator".
+- **Embedded files:** uploaded alongside it, under their own names, from `attachments[].path`.
+- The delegation marker never appears in an attachment.
 
-`unresolved_links` are never published to a Confluence page — they're reported to the delegator in Step 10 only.
+`unresolved_links` are never inside an attachment — they go to the Step 10 report only.

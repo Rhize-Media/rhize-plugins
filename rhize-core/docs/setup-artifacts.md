@@ -35,7 +35,6 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | test-evidence-leases | rhize-devflow | <home>/.rhize/test-evidence/leases | cat ~/.rhize/test-evidence/leases | regenerated | none | derived | outside-repo |
 | test-evidence-packets | rhize-devflow | <home>/.rhize/test-evidence/packets/ | cat ~/.rhize/test-evidence/packets/<packet>.json | per-run | none | derived | outside-repo |
 | delegate-config | rhize-ops | <home>/.claude/rhize-ops/delegate.config.json | cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing) | persistent | personal | authored | ignored |
-| delegate-confluence-index | rhize-ops | <home>/.claude/rhize-ops/delegate.confluence-index.json | cat ~/.claude/rhize-ops/delegate.confluence-index.json (redact identifiers before sharing) | persistent | personal | derived | ignored |
 | parallel-agent-optimization-receipts | rhize-ops | <home>/.rhize/parallel-agent-optimization/ | /rhize-ops:parallel-optimize report all | append-only | none | derived | outside-repo |
 | skill-monitor-data | rhize-ops | <home>/.rhize/skill-monitor/ | python3 "$(rhize-ops/scripts/skill_monitor_root.sh)/dashboard.py" | regenerated | none | derived | outside-repo |
 | application-support | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/ | cat "~/Library/Application Support/Rhize Tasks/installation.json" | persistent | personal | derived | outside-repo |

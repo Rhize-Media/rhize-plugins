@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Rhize-Media/rhize-plugins/rhize-ops/delegate.config.schema.json",
   "title": "delegate-to-teammate configuration",
-  "description": "Written by /rhize-ops:delegate-setup to $HOME/.claude/rhize-ops/delegate.config.json — outside this repo, never committed. This file is the schema/documentation only; it contains no real values. Supports multiple teammates: each key under `recipients` is a delegation target, `defaultRecipient` names which one to use when the delegator doesn't name a person. Legacy single-`recipient` configs (pre-0.4.0) are treated as `recipients: { default: <that recipient> }` — see the skill's SKILL.md for the compat shim. The top-level `confluence` block is optional and workspace-scoped, targeting handoff-brief and context pages; a config written before it existed is treated in memory as `confluence: {\"status\": \"incomplete\"}` and needs no file rewrite.",
+  "description": "Written by /rhize-ops:delegate-setup to $HOME/.claude/rhize-ops/delegate.config.json — outside this repo, never committed. This file is the schema/documentation only; it contains no real values. Supports multiple teammates: each key under `recipients` is a delegation target, `defaultRecipient` names which one to use when the delegator doesn't name a person. Legacy single-`recipient` configs (pre-0.4.0) are treated as `recipients: { default: <that recipient> }` — see the skill's SKILL.md for the compat shim. The top-level `confluence` block is optional and workspace-scoped, targeting handoff briefs; a config written before it existed is treated in memory as `confluence: {\"status\": \"incomplete\"}` and needs no file rewrite.",
   "type": "object",
   "additionalProperties": false,
   "required": ["defaultRecipient", "recipients", "jira", "slack", "projectMapping", "inferenceRules"],
@@ -63,12 +63,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["status"],
-      "description": "Workspace-scoped Confluence target for delegation handoff briefs and exported context pages. Shares jira.cloudId/jira.baseUrl (same Atlassian site); do not repeat them here. A config without this block is treated in memory as {\"status\": \"incomplete\"} — no file rewrite is required; the skill then keeps the full task package in the Jira description.",
+      "description": "Workspace-scoped Confluence target for delegation handoff briefs. Shares jira.cloudId/jira.baseUrl (same Atlassian site); do not repeat them here. A config without this block is treated in memory as {\"status\": \"incomplete\"} — no file rewrite is required; the skill then keeps the full task package in the Jira description.",
       "properties": {
         "status": { "type": "string", "enum": ["ready", "incomplete", "disabled"], "description": "ready = MCP connected, space and parent page resolved+confirmed. incomplete = MCP absent or unresolved — skip Confluence pages, keep the full brief in Jira. disabled = deliberately opted out." },
         "spaceKey": { "type": ["string", "null"], "pattern": "^~?[A-Za-z0-9_-]+$" },
         "spaceId": { "type": ["string", "null"], "pattern": "^[0-9]+$" },
-        "parentPageId": { "type": ["string", "null"], "pattern": "^[0-9]+$", "description": "The 'Delegations' page every handoff brief and context page nests under." },
+        "parentPageId": { "type": ["string", "null"], "pattern": "^[0-9]+$", "description": "The 'Delegations' page every handoff brief nests under." },
         "parentPageTitle": { "type": ["string", "null"], "minLength": 1 }
       }
     },

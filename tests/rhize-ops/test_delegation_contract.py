@@ -289,7 +289,24 @@ def test_reference_template_file_exists() -> None:
     assert TEMPLATE_REFERENCE.is_file()
     text = TEMPLATE_REFERENCE.read_text()
     assert "## Step-by-Step Instructions" in text
-    assert "[Context]" in text
+
+
+def test_skill_uploads_attachments_after_jira_create() -> None:
+    skill = SKILL.read_text()
+    capture_idx = skill.index("Capture the issue key")
+    step8_idx = skill.index("### Step 8")
+    upload_idx = skill.index('jira_attach.py" --issue')
+    assert capture_idx < upload_idx < step8_idx
+    assert "--kind attachment-body" in skill
+    assert "--out-dir" in skill
+    for banned in ("--ledger", " record ", "confluence-index", "existing_page"):
+        assert banned not in skill
+
+
+def test_reference_has_attached_copies_section() -> None:
+    text = TEMPLATE_REFERENCE.read_text()
+    assert "## Attached note copies (per vault document)" in text
+    assert "## Confluence Context Page" not in text
 
 
 def main() -> int:
@@ -311,6 +328,8 @@ def main() -> int:
         test_confluence_brief_before_jira_and_marker_never_on_confluence,
         test_slack_templates_unchanged_envelope,
         test_reference_template_file_exists,
+        test_skill_uploads_attachments_after_jira_create,
+        test_reference_has_attached_copies_section,
     ]
     failures = 0
     for function in tests:

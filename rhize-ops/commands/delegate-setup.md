@@ -74,13 +74,20 @@ If the Atlassian MCP is connected:
    extended later by re-running this command. (Skip if `projectMapping` is already populated.)
 4. Ask what default labels new issues should get (default: `["delegated"]`). (Skip if already set.)
 5. Mark `jira.status` as `"ready"`.
+6. Read-only Keychain presence check for Jira attachments — independent of the Atlassian MCP,
+   never `-w`, never print the value:
+   `security find-generic-password -a "$USER" -s "claude-code:ATLASSIAN_API_TOKEN" >/dev/null 2>&1`
+   and the same for `claude-code:ATLASSIAN_EMAIL`. Report "Jira attachments: enabled" when both
+   exit `0`, otherwise "Jira attachments: disabled — store the token as described in the
+   rhize-ops README (Atlassian API token section); the skill will list files to request until
+   then." Never ask the user to paste the token into this wizard.
 
 If the Atlassian MCP isn't connected, or any required field couldn't be resolved/confirmed, do
 NOT ask the user to paste raw IDs as a substitute for a verified lookup. Instead set
 `jira.status` to `"incomplete"`, leave the identifier fields null, and tell the user that tracker
 issue creation will be skipped until they connect the Atlassian MCP and re-run this wizard.
 
-### 5. Look up Confluence (where handoff briefs and context pages live)
+### 5. Look up Confluence (where handoff briefs live)
 
 `confluence` is workspace-scoped and shares the Atlassian site already resolved for Jira. When
 adding a teammate to a config where `confluence.status` is already `"ready"`, skip this step.
@@ -93,9 +100,8 @@ If the Atlassian MCP is connected:
    title and ask the user to confirm it; store `parentPageId` and `parentPageTitle`.
 3. If none exists, ask via AskUserQuestion whether to create it now. On yes, call
    `createConfluencePage` with the space's homepage as parent, title "Delegations", and a
-   one-paragraph body explaining that handoff briefs and context pages for delegated tasks are
-   filed here. Store the returned page id. On no, leave `parentPageId` null and mark the block
-   `incomplete`.
+   one-paragraph body explaining that handoff briefs for delegated tasks are filed here. Store
+   the returned page id. On no, leave `parentPageId` null and mark the block `incomplete`.
 4. Mark `confluence.status` as `"ready"` once both ids are stored and confirmed.
 
 If the Atlassian MCP isn't connected, or the space or parent page couldn't be resolved, do NOT
@@ -103,10 +109,6 @@ ask the user to paste a raw space or page id as a substitute for a verified look
 `confluence.status` to `"incomplete"`, leave the ids null, and tell the user that the skill will
 keep the full task package inside the Jira description (today's behavior) until they re-run this
 wizard with the MCP connected.
-
-Note: the skill also keeps a small local ledger of exported context pages at
-`~/.claude/rhize-ops/delegate.confluence-index.json`. It is created by the skill on first
-export, not by this wizard, and it holds only page ids, URLs, titles, and content hashes.
 
 ### 6. Look up Slack identifiers
 
