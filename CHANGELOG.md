@@ -27,6 +27,9 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-04_ version bump — **rhize-tasks** 0.5.0 → 0.5.1 (patch); **rhize-core** 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.
+- _2026-09-03_ **rhize-tasks re-pinned to runtime v0.5.2.** The runtime repository's test fixtures
+  were neutralized after v0.5.1 was cut; v0.5.2 carries the clean fixtures and aligned version stamps.
 - _2026-09-03_ version bump — **procedural-memory** 0.5.3 → 0.5.4 (patch); **rhize-core** 1.0.0 → 1.0.1 (patch); marketplace 2.61.0 → 2.61.1.
 - _2026-09-03_ version bump — **rhize-tasks** 0.4.4 → 0.5.0 (minor); **rhize-ops** 0.19.0 → 0.20.0 (minor); **rhize-context-manager** 0.25.2 → 0.25.3 (patch); marketplace 2.60.0 → 2.61.0.
 - _2026-09-03_ **Repo-shape R-C: two extractions.** The Rhize Tasks runtime moved, with its

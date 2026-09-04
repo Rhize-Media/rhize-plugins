@@ -12,7 +12,7 @@ The plugin is part of the Rhize OS **Get Your Time Back** module. Its purpose is
 **This plugin ships no runtime code.** The local-first planning service, its installer, and the
 signed Swift EventKit helper live in a separate repository,
 [`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks), pinned at tag
-[`v0.5.1`](https://github.com/Rhize-Media/rhize-tasks/releases/tag/v0.5.1) — see
+[`v0.5.2`](https://github.com/Rhize-Media/rhize-tasks/releases/tag/v0.5.2) — see
 `setup/manifest.json`'s `rhize-tasks runtime` dependency for the single source of truth on that
 pin; every skill in this plugin reads it from there instead of hardcoding it. The repository is
 public, so bootstrapping needs only `git` and network access to github.com — no credentials.

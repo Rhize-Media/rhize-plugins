@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ version bump — 0.5.0 → 0.5.1 (patch); marketplace 2.61.1 → 2.61.2.
 - _2026-09-03_ version bump — 0.4.4 → 0.5.0 (minor); marketplace 2.60.0 → 2.61.0.
 - Setup and doctor bootstrap a pinned-tag checkout of the runtime from the new
   [`Rhize-Media/rhize-tasks`](https://github.com/Rhize-Media/rhize-tasks) repository (currently
@@ -18,6 +19,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Changed
 
+- _2026-09-03_ Runtime pin moved to `v0.5.2` (neutral test fixtures, version stamps aligned with the
+  tag); the `runtime-source-checkout` artifact path and viewer follow the pin.
 - The plugin no longer ships the local-first planning service, installer, Swift EventKit helper,
   dashboard, schemas, or their tests — `service/`, `installer/`, `native/`, `dashboard/`,
   `schemas/`, `tests/`, and `package.json` moved to `Rhize-Media/rhize-tasks`. README and GUIDE

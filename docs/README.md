@@ -9,7 +9,7 @@ predate the current plugin split. Each plugin's own day-to-day documentation sta
 <!-- SKILL-MAP:BEGIN -->
 ### rhize-core
 
-Version 1.0.1. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
+Version 1.0.2. The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.
 
 [README](../rhize-core/README.md) · [GUIDE](../rhize-core/GUIDE.md) · [0 skills](../generated/SKILL-CATALOG.md#rhize-core)
 
@@ -51,7 +51,7 @@ Version 0.20.0. Rhize Media's internal operations toolkit — hands off work to 
 
 ### rhize-tasks
 
-Version 0.5.0. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
+Version 0.5.1. Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.
 
 [README](../rhize-tasks/README.md) · [GUIDE](../rhize-tasks/GUIDE.md) · [6 skills](../generated/SKILL-CATALOG.md#rhize-tasks)
 

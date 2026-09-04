@@ -41,5 +41,5 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | application-support | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/ | cat "~/Library/Application Support/Rhize Tasks/installation.json" | persistent | personal | derived | outside-repo |
 | helper-launch-agent | rhize-tasks | <home>/Library/LaunchAgents/media.rhize.tasks.reminders-helper.plist | launchctl print gui/$(id -u)/media.rhize.tasks.reminders-helper | persistent | config | derived | outside-repo |
 | routine-launch-agent | rhize-tasks | <home>/Library/LaunchAgents/media.rhize.tasks.plist | launchctl print gui/$(id -u)/media.rhize.tasks | persistent | config | derived | outside-repo |
-| runtime-source-checkout | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/source/v0.5.1/ | git -C "~/Library/Application Support/Rhize Tasks/source/v0.5.1" describe --tags --exact-match | persistent | none | derived | home |
+| runtime-source-checkout | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/source/v0.5.2/ | git -C "~/Library/Application Support/Rhize Tasks/source/v0.5.2" describe --tags --exact-match | persistent | none | derived | home |
 <!-- SETUP-ARTIFACTS:END -->

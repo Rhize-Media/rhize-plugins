@@ -1,9 +1,9 @@
 {
   "runtimeRepo": "https://github.com/Rhize-Media/rhize-tasks",
-  "runtimeTag": "v0.5.1",
+  "runtimeTag": "v0.5.2",
   "parserRelativePath": "service/src/connectors/delegation-parser.mjs",
   "parserSha256": "db46446799a3b5ecf3ef73d022e38f63260813fa5fcee7cd8dc5712d4f66fa9d",
-  "capturedAt": "2026-09-03T15:55:19Z",
+  "capturedAt": "2026-09-04T13:00:03Z",
   "fixtures": {
     "ready": {
       "input": "*Task:* Audit paid search\n*Due:* 2026-08-17\n*Priority:* high\n*Jira:* RHIZE-42\n\nRich human detail.\n\nrhize-delegation:v1:550e8400-e29b-41d4-a716-446655440000",

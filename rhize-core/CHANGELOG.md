@@ -4,6 +4,15 @@
 
 ### Added
 
+- _2026-09-04_ version bump — 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.
+
+### Changed
+
+- _2026-09-03_ `docs/setup-artifacts.md` re-rendered for the rhize-tasks runtime re-pin (v0.5.2). Artifact
+  paths allow only the `<home>` placeholder, so a re-pin re-renders this doc by design.
+
+### Added
+
 - _2026-09-03_ version bump — 1.0.0 → 1.0.1 (patch); marketplace 2.61.0 → 2.61.1.
 - _2026-09-03_ **rhize-core: new plugin — the marketplace control plane (repo-shape R-B).**
   Split out of `rhize-ops`: `/rhize-core:setup` (the fleet setup wizard, moved verbatim from

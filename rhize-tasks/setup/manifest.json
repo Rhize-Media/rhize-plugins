@@ -43,7 +43,7 @@
       "required": true,
       "degradedBehavior": "Setup cannot bootstrap the runtime; clone Rhize-Media/rhize-tasks at the pinned tag and run installer/install.mjs by hand.",
       "source": "https://github.com/Rhize-Media/rhize-tasks",
-      "pin": "v0.5.1"
+      "pin": "v0.5.2"
     }
   ],
   "wizard": {
@@ -94,10 +94,10 @@
     },
     {
       "id": "runtime-source-checkout",
-      "path": "<home>/Library/Application Support/Rhize Tasks/source/v0.5.1/",
+      "path": "<home>/Library/Application Support/Rhize Tasks/source/v0.5.2/",
       "kind": "directory",
       "purpose": "The pinned-tag clone of the rhize-tasks runtime repo the setup wizard bootstraps and the installer runs from. Not the installed runtime itself (that lives under runtime/, owned by the installer).",
-      "viewer": "git -C \"~/Library/Application Support/Rhize Tasks/source/v0.5.1\" describe --tags --exact-match",
+      "viewer": "git -C \"~/Library/Application Support/Rhize Tasks/source/v0.5.2\" describe --tags --exact-match",
       "lifetime": "persistent",
       "confidentiality": "none",
       "source": "derived",
