@@ -176,7 +176,10 @@ the right one, and health-checks the whole thing.
   without a hook edit. It needs `scripts/build_skill_map.py
   --install` to have run at least once (installs the artifact to
   `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
-  nothing.
+  nothing. Installed (third-party, non-rhize) skills get no real tag edges, but can still
+  surface a suggestion via half-weight, best-effort `tag-inferred` router signals — see
+  `docs/skill-map/edge-semantics.md`'s "Inferred router signals for third-party skills" for
+  how those are inferred and why they can never outrank a declared match.
 - `session-disclosure` (`hooks/session-disclosure.js`, auto-wired — not opt-in) is the one
   hook that prints a stack-aware skill banner at session start: it fingerprints the repo (a
   `next.config.*`, `sanity.config.*`, `vercel.json`, or `.obsidian/` on disk) and lists up

@@ -115,6 +115,42 @@ function tokenize(prompt) {
   return new Set(wordsOf(prompt));
 }
 
+// Splits a "skill:<...>" id into { plugin, skill } for display, dropping a
+// leading marketplace segment on a third-party ecosystem id
+// (skill:<marketplace>/<plugin>/<skill-dir>, see build_local_skill_map.py's
+// third-party inventory) so it renders the same "<plugin>:<skill>" shape as
+// this repo's own two-segment ids (skill:<plugin>/<name>). Returns null for
+// anything that isn't a "skill:" id with exactly 2 or 3 slash-separated
+// segments.
+function splitSkillId(skillId) {
+  const match = /^skill:(.+)$/.exec(String(skillId || ''));
+  if (!match) return null;
+  const parts = match[1].split('/');
+  if (parts.length === 2) return { plugin: parts[0], skill: parts[1] };
+  if (parts.length === 3) return { plugin: parts[1], skill: parts[2] };
+  return null;
+}
+
+// "<plugin>:<skill>" display form of a skill id, shared by skill-router.js's
+// suggestion message and agent-brief-router.js's directive matching/advisory
+// text. See splitSkillId() for the segment rule; returns null for the same
+// inputs splitSkillId() rejects.
+function formatSkillRef(skillId) {
+  const split = splitSkillId(skillId);
+  return split ? `${split.plugin}:${split.skill}` : null;
+}
+
+// A matched router signal's display label, suffixed "(inferred)" for a
+// tag-inferred signal (see build_local_skill_map.py's infer_tags_for_skill())
+// so a suggestion's "matches ..." text distinguishes a half-weight guessed
+// tag from a declared name/tag match. Signals from the map-scanning fallback
+// path (route(), not routeFromIndex()) never carry a `kind` field and so
+// never get the suffix — see docs/skill-map.md's documented divergence.
+function formatSignalLabel(signal) {
+  if (!signal) return '';
+  return signal.kind === 'tag-inferred' ? `${signal.label} (inferred)` : String(signal.label);
+}
+
 // Index-backed equivalent of route() below: identical scoring/tie-break
 // rules, sourced from the router index's precomputed per-skill signal lists
 // (build_skill_map.py's build_router_index()) instead of walking
@@ -134,6 +170,7 @@ function routeFromIndex(routerIndex, promptTokens) {
       }
     }
     if (matched.length < 2) continue; // single weak match must not emit
+    if (matched.every((s) => s.kind === 'tag-inferred')) continue; // inferred-only match must not qualify
     const score = matched.reduce((sum, s) => sum + s.weight, 0);
     scored.set(skillId, { score, signals: matched });
   }
@@ -268,6 +305,8 @@ module.exports = {
   readMap,
   tokenize,
   wordsOf,
+  formatSkillRef,
+  formatSignalLabel,
   routeFromIndex,
   route,
   contextHash,

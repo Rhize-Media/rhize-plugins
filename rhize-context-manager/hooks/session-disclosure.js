@@ -62,6 +62,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { formatSkillRef } = require(path.join(__dirname, 'lib', 'route-core.js'));
 
 // Suggestion logging (append-only, local-machine JSONL; see
 // scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
@@ -345,17 +346,18 @@ function relevantSkills(doc, detectedStacks) {
 }
 
 function shortName(skillId) {
-  const idMatch = /^skill:[^/]+\/(.+)$/.exec(skillId);
-  return idMatch ? idMatch[1] : skillId;
+  // Bare skill name (last id segment) — three-segment third-party ids drop the
+  // marketplace and plugin segments the same way formatSkillRef() does.
+  const ref = formatSkillRef(skillId);
+  return ref ? ref.slice(ref.indexOf(':') + 1) : skillId;
 }
 
 function formatBlock(matches) {
   const lines = [];
   for (const m of matches) {
-    const idMatch = /^skill:([^/]+)\/(.+)$/.exec(m.skillId);
-    if (!idMatch) continue;
-    const [, plugin, skillName] = idMatch;
-    let line = `- ${plugin}:${skillName} — matches ${m.stacks.join(', ')} stack`;
+    const ref = formatSkillRef(m.skillId);
+    if (!ref) continue;
+    let line = `- ${ref} — matches ${m.stacks.join(', ')} stack`;
     if (m.deeper && m.deeper.length > 0) {
       const names = m.deeper.map(shortName).sort();
       line += ` (+${names.length} deeper: ${names.join(', ')})`;

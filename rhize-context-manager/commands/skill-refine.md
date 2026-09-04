@@ -22,7 +22,26 @@ show queue counts by status and suggest the next subcommand.
    legal skill target does not get a `target_skill`: fold it in by hand into
    `docs/session-guardrails.md` (never into `CLAUDE.md` — that file is a
    router, not a home for telemetry) and mark the entry `consumed` directly.
-3. Back up the queue (see Guardrails), then rewrite it with updated statuses.
+3. **Refuse a `target_skill` under any plugin cache or marketplace checkout**
+   — `~/.claude/plugins/cache/`, `~/.claude/plugins/marketplaces/`, or
+   `~/.codex/plugins/`. These are Claude Code/Codex-managed install trees,
+   not this repo: an edit there is invisible to `git` and gets silently
+   overwritten by the next `claude plugin update`/marketplace sync. Refuse
+   the assignment and tell the user to either (a) fork/vendor the skill
+   into a Rhize plugin under `rhize-context-manager/skills/` — recording
+   the fork and its `Drift check` in that plugin's `SOURCES.md`, per the
+   repo's curation rule (see `CLAUDE.md`'s "Curation Rule") — or (b)
+   contribute the fix upstream to the third-party plugin's own repo. Mark
+   the entry `rejected` with a note; never `triaged` against a path outside
+   this repo. Rhize-owned targets (`rhize-context-manager/skills/*`,
+   `~/.claude/skills/learned/*`) are edited in-repo/in-place and committed
+   normally — no forking needed.
+
+   Routing a triaged entry through `skill-forge refine capture` is
+   **deferred** for this case: its project-scope override files are not
+   yet materialized into a plugin cache, so it cannot stand in for editing
+   an installed third-party skill today.
+4. Back up the queue (see Guardrails), then rewrite it with updated statuses.
    Summarize: N triaged toward M skills, K rejected.
 
 **Two facts that make triage suggestions better, both measured:**

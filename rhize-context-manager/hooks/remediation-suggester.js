@@ -49,6 +49,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { formatSkillRef } = require(path.join(__dirname, 'lib', 'route-core.js'));
 
 // Suggestion logging (append-only, local-machine JSONL; see
 // scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
@@ -118,11 +119,8 @@ function describeRemediator(id) {
     const slug = id.slice('external:'.length);
     return { label: `${slug.replace(/^ecc-/, 'ecc:')} agent`, kind: 'agent' };
   }
-  const idMatch = /^skill:([^/]+)\/(.+)$/.exec(id);
-  if (idMatch) {
-    const [, plugin, skillName] = idMatch;
-    return { label: `${plugin}:${skillName} skill`, kind: 'skill' };
-  }
+  const ref = formatSkillRef(id);
+  if (ref) return { label: `${ref} skill`, kind: 'skill' };
   // Unknown id shape — surface the raw id rather than emitting nothing, but
   // never throw.
   return { label: id, kind: 'unknown' };

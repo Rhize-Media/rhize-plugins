@@ -54,7 +54,7 @@ query it. For the mechanics behind any one piece:
 | `~/.claude/context-manager/skill-map.indexes.json` | machine-local | Byte-identical copy of the committed indexes artifact, installed by the same `--install` flag. |
 | `~/.claude/context-manager/skill-map.local.json` | machine-local, gitignored | This machine's enabled-plugin set, a stack-config fingerprint, `usage-cooccurs` edges sourced from skill-monitor's co-occurrence snapshot, mined `follows` edges (sourced from the same snapshot's `orderedPairs`), and a **third-party ecosystem inventory** (`origin: "third-party"` plugin/skill/command nodes + `contains` edges for every installed+enabled non-rhize plugin — see [Edge Semantics — Deep Reference](./skill-map/edge-semantics.md)). Produced by `rhize-context-manager/scripts/build_local_skill_map.py`. |
 | `~/.claude/context-manager/skill-map.resolved.json` | machine-local | The merged consumer view: static artifact's nodes/edges + local overlay's `usage-cooccurs`/`follows` edges + third-party nodes/edges (static nodes are never mutated). This is what the router hook and `/start` actually read. Produced by `rhize-context-manager/scripts/build_local_skill_map.py`; any missing local input (enabled-plugin data, stack config, the co-occurrence snapshot, or the installed-plugins/settings data behind the third-party inventory) degrades that piece gracefully — with all absent, this file is content-identical to the static artifact. Validates against `schemas/skill-map.schema.json` like any other artifact. |
-| `~/.claude/context-manager/skill-map.indexes.resolved.json` | machine-local | The static indexes with mined `follows` edges merged into the `succession` section's `follows` lists. Produced by `rhize-context-manager/scripts/build_local_skill_map.py`; degrades to no output (not a build failure) if the static indexes file is missing. |
+| `~/.claude/context-manager/skill-map.indexes.resolved.json` | machine-local | The static indexes with mined `follows` edges merged into the `succession` section's `follows` lists, and inferred `tag-inferred` router signals merged into the `router` section for third-party skills (see "Tagging conventions" below). Produced by `rhize-context-manager/scripts/build_local_skill_map.py`; degrades to no output (not a build failure) if the static indexes file is missing. Its own `schemaVersion` (currently `"1.2.0"`) is tracked independently of the static indexes' — see [Edge Semantics — Deep Reference](./skill-map/edge-semantics.md)'s "Inferred router signals for third-party skills" section. |
 
 **Generation-only policy:** files under `generated/` (and the two machine-local files above) are
 build output. If a fact is wrong, fix the source it was derived from (frontmatter, marketplace.json,
@@ -100,6 +100,17 @@ or `tag:stack/<slug>` nodes. Slugs are lowercase kebab-case.
 see [Edge Semantics — Deep Reference](./skill-map/edge-semantics.md)'s "`remediates` and condition
 tags" section — unlike topic/stack, a condition is never attached to a skill via a `*-tag` edge,
 only via a `remediates` edge. A skill may carry any number of topics and stacks.
+
+**Edges vs. router-index signals for third-party skills.** Third-party skills still carry no
+`topic-tag`/`stack-tag` EDGES — their frontmatter isn't ours to edit, so nothing changes in
+`skill-map.local.json`/`skill-map.resolved.json`'s node/edge graph. The resolved ROUTER INDEX
+(`skill-map.indexes.resolved.json`) is a separate, best-effort layer: it infers up to 3 topic/
+stack tags per third-party skill from its name+description and adds them as half-weight
+`tag-inferred` SIGNALS, so a third-party skill can still surface a router suggestion without a
+real tag edge ever existing. Full mechanics — the qualification rule, the weight math, and the
+map-scanning fallback path's documented divergence — live in [Edge Semantics — Deep
+Reference](./skill-map/edge-semantics.md)'s "Inferred router signals for third-party skills"
+section.
 
 ## Tag vocabulary (Phase 0.3 — closed, as used)
 

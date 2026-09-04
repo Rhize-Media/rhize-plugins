@@ -44,6 +44,7 @@ const {
   readIndexes,
   readMap,
   tokenize,
+  formatSkillRef,
   routeFromIndex,
   route,
   contextHash,
@@ -56,8 +57,6 @@ const {
 // that: 2x the built-in floor, because a brief's sheer length means it often
 // clears the floor on noise alone. Initial value; recalibrate from the log.
 const BRIEF_MIN_SCORE = 4;
-
-const SKILL_ID_RE = /^skill:([^/]+)\/(.+)$/;
 
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -82,13 +81,9 @@ function skillIdsOf(mode, routerIndex, mapDoc) {
 function namedSkillsIn(brief, skillIds) {
   const named = [];
   for (const skillId of skillIds) {
-    const idMatch = SKILL_ID_RE.exec(skillId);
-    if (!idMatch) continue;
-    const [, plugin, name] = idMatch;
-    const directive = new RegExp(
-      '(?:^|\\s)Invoke\\s+' + escapeRegex(plugin + ':' + name) + '\\b',
-      'i'
-    );
+    const ref = formatSkillRef(skillId);
+    if (!ref) continue;
+    const directive = new RegExp('(?:^|\\s)Invoke\\s+' + escapeRegex(ref) + '\\b', 'i');
     if (directive.test(brief)) {
       named.push(skillId);
     }
@@ -134,12 +129,11 @@ function computeResult() {
   if (process.env.RHIZE_AGENT_BRIEF_ADVISORY === '1' && suggestedSkills.length > 0) {
     const disjoint = suggestedSkills.every((id) => !namedSkills.includes(id));
     if (disjoint) {
-      const idMatch = SKILL_ID_RE.exec(suggestedSkills[0]);
-      if (idMatch) {
-        const [, plugin, name] = idMatch;
+      const ref = formatSkillRef(suggestedSkills[0]);
+      if (ref) {
         advisoryMessage =
-          `Brief for ${agentType} may map to ${plugin}:${name} — consider naming it ` +
-          `("Invoke ${plugin}:${name} first") or inlining its operative content on the ` +
+          `Brief for ${agentType} may map to ${ref} — consider naming it ` +
+          `("Invoke ${ref} first") or inlining its operative content on the ` +
           'next dispatch.';
       }
     }

@@ -62,6 +62,8 @@ const {
   readIndexes,
   readMap,
   tokenize,
+  formatSkillRef,
+  formatSignalLabel,
   routeFromIndex,
   route,
   contextHash,
@@ -70,11 +72,10 @@ const {
 
 function formatMatch(match) {
   if (!match) return null;
-  const idMatch = /^skill:([^/]+)\/(.+)$/.exec(match.skillId);
-  if (!idMatch) return null;
-  const [, plugin, skillName] = idMatch;
-  const why = match.signals.map((s) => s.label).join(', ');
-  return `Consider the ${plugin}:${skillName} skill (matches ${why})`;
+  const ref = formatSkillRef(match.skillId);
+  if (!ref) return null;
+  const why = match.signals.map(formatSignalLabel).join(', ');
+  return `Consider the ${ref} skill (matches ${why})`;
 }
 
 // Reads stdin, ranks the prompt against the map, and returns the suggestion

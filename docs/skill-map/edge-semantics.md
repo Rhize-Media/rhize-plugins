@@ -164,6 +164,72 @@ is skipped and counted — `local.json`'s `thirdParty.summary` reports `skippedP
 `skippedEntries`, and `sourceNotes.thirdParty` records which enabled-plugins sources were read (or
 degraded).
 
+## Inferred router signals for third-party skills
+
+Third-party skills get no `topic-tag`/`stack-tag` EDGES (see "Third-party ecosystem inventory"
+above — their frontmatter isn't ours to edit), which structurally means `route()`, the
+map-scanning fallback path in `hooks/lib/route-core.js`, can never suggest one: it walks
+`doc.edges` for tag signals and a name-only match never clears the 2-signal qualifying floor.
+The resolved ROUTER INDEX closes that gap with a separate, best-effort mechanism instead of a
+real edge.
+
+**How it's produced.** `rhize-context-manager/scripts/build_local_skill_map.py`'s
+`infer_tags_for_skill(name, description, tags_catalog)` matches each `catalog/tags.json`
+**topic/stack** entry (never `condition` — a condition describes a runtime failure state, not a
+skill's subject matter) against a third-party skill's tokenized name+description: a slug matches
+when every hyphen-separated word of it (or, if the entry declares an optional `aliases: []` list,
+every word of any one alias) is present among the tokens — the identical "every word of the label
+is in the prompt tokens" rule `route-core.js`'s `routeFromIndex()` applies at match time. Up to 3
+matches are kept per skill, preferring multi-word slugs (more specific) over single-word ones,
+then alphabetical; the returned list is itself sorted alphabetically, so output is deterministic
+regardless of catalog order. A missing or malformed `catalog/tags.json` degrades to zero inferred
+tags for every skill (`skill-map.local.json`'s `sourceNotes.tagsCatalog` records why) — never a
+build failure. `build_local_skill_map.py --report-inferred` prints a per-skill table of what would
+be inferred, without writing anything, for a precision review before trusting the injection below.
+
+**Where it's written.** `build_resolved_indexes()` (same file) writes each match into
+`skill-map.indexes.resolved.json`'s `router.signals[skillId]` as
+`{kind: "tag-inferred", weight: 0.5, label: <slug>}` — half the weight of a declared `tag` signal
+(2) and half of a `name` signal (1). A third-party skill getting its first signals entry here also
+gets a `name` entry (`{kind: "name", weight: 1, label: <skill name>}`) added alongside the
+inferred ones, mirroring `scripts/build_skill_map.py`'s `build_router_index()` giving every skill
+a name signal — without it, an entry made up entirely of `tag-inferred` signals could never
+qualify at all (see the next paragraph). A skill with zero inferred tags gets no signals entry.
+Declared (rhize) skills' existing signal entries — produced by the static compiler, already in
+`generated/skill-map.indexes.json` — are copied through into the resolved file but never mutated.
+This addition is why the resolved indexes carry their own `schemaVersion` (currently `"1.2.0"`,
+bumped for the additive `tag-inferred` kind), tracked independently of the static indexes'
+(`scripts/build_skill_map.py`'s `SCHEMA_VERSION`, `"1.1.0"`) — nothing in the committed
+`generated/skill-map.indexes.json` changes.
+
+**Qualification rule.** `route-core.js`'s `routeFromIndex()` (the index-backed path skill-router.js
+and agent-brief-router.js both prefer) requires >=2 matched signals to consider a skill at all,
+same as always — and now ALSO requires that not every matched signal be `tag-inferred`. A
+third-party skill matching only 2 of its inferred tags therefore never qualifies on its own; it
+needs its `name` signal (or, hypothetically, a declared tag) to match too. This is a floor, not a
+ranking rule — by construction it also means an inferred-backed match can never outrank a declared
+one: a third-party skill's best possible score is `1 (name) + 3 × 0.5 (inferred) = 2.5`, while any
+declared match needs only a `name` + one `tag` to reach `1 + 2 = 3`.
+
+**Rendering.** A third-party skill id has three segments
+(`skill:<marketplace>/<plugin>/<skill-dir>`, per "Third-party ecosystem inventory" above); both
+`skill-router.js`'s suggestion message and `agent-brief-router.js`'s directive matching/advisory
+text render it as `<plugin>:<skill>` (dropping the marketplace segment) via `route-core.js`'s
+shared `formatSkillRef()` — a rhize skill's ordinary two-segment id renders byte-identically to
+before. `formatSignalLabel()` suffixes a `tag-inferred` signal's label with `" (inferred)"` in
+`skill-router.js`'s "matches ..." text, so a half-weight guessed tag reads differently from a
+declared name/tag match; `agent-brief-router.js`'s advisory never prints signal labels at all, so
+the suffix never appears there (its own third-party score ceiling of 2.5 sits below its
+`BRIEF_MIN_SCORE` floor of 4 regardless).
+
+**Documented divergence: no fallback-path inference.** The map-scanning fallback (`route()`, used
+only when no `skill-map.indexes.{resolved,}.json` exists at all) walks `doc.nodes`/`doc.edges`
+directly and has no inferred-signal equivalent — third-party skills remain unroutable there,
+exactly as before this feature. This is deliberate: teaching the fallback path the same inference
+would mean re-deriving it from the local overlay's third-party inventory + tags catalog at hook
+runtime (a per-invocation cost the precomputed-index design exists to avoid), for a code path only
+ever exercised by an install that hasn't rebuilt its indexes file yet.
+
 ## `extends` and the depth-2 rule
 
 `metadata.rhize.extends` in a skill's frontmatter is a list of targets, each either a bare skill
