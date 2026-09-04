@@ -154,6 +154,15 @@ target, matching every pre-existing entry.
  "est_savings": null, "target_skill": "rhize-ops/skill-dashboard", "status": "pending",
  "signal_type": "routing-miss"}
 ```
+
+   **Note:** `target_skill` here is always a Rhize-owned skill by construction
+   (the third-party-origin exclusion above), never a path under a plugin
+   cache or marketplace checkout — `/skill-refine review` refuses any
+   human-assigned `target_skill` in that shape, for any source, with the
+   instruction to fork/vendor into a Rhize plugin or contribute upstream
+   (see its `review` section). Routing a signal through `skill-forge refine
+   capture` instead of `/skill-refine` is also deferred until that command's
+   project-scope override files can be materialized into a plugin cache.
 6. Skip any entry whose `id` already exists in the queue regardless of status.
 7. **Content noise filter — run it, do not eyeball it.** `id` is
    `sha1-12(source + pattern)`, so *any rephrasing of a known fact produces a new

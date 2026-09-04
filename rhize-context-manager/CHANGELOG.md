@@ -7,6 +7,31 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 ### Added
 
 - _2026-09-04_ version bump — 0.25.3 → 0.26.0 (minor); marketplace 2.62.0 → 2.63.0.
+- **Inferred router signals for third-party skills** (WP-I,
+  `.claude/plans/skill-governance-optimization.md`). `build_local_skill_map.py`
+  now infers up to 3 topic/stack tags per installed third-party skill from its
+  name+description against `catalog/tags.json`'s vocabulary, and writes them
+  into the resolved indexes' `router.signals[skillId]` as half-weight
+  `{kind: "tag-inferred", weight: 0.5}` entries (resolved indexes'
+  `schemaVersion` bumped to `1.2.0`; the static artifact and schema are
+  untouched). `route-core.js`'s `routeFromIndex()` now refuses to qualify a
+  match whose signals are ALL `tag-inferred`, so an inferred-backed match can
+  never outrank a declared one. `skill-router.js` and `agent-brief-router.js`
+  render a third-party skill's three-segment id as `<plugin>:<skill>`
+  (previously rendered with the marketplace segment attached, e.g.
+  `claude-plugins-official:mattpocock-skills/tdd`) and suffix an inferred
+  label with `(inferred)`. New `build_local_skill_map.py --report-inferred`
+  flag prints a per-skill inferred-tag table without writing anything, for a
+  precision review. See `docs/skill-map/edge-semantics.md`'s "Inferred router
+  signals for third-party skills".
+- `skill-refine.md`'s `review` section and `learn-harvest.md` now document
+  that a `target_skill` under any plugin cache or marketplace checkout
+  (`~/.claude/plugins/cache/`, `~/.claude/plugins/marketplaces/`,
+  `~/.codex/plugins/`) is refused at review — fork/vendor into a Rhize
+  plugin (recording the fork + drift check in `SOURCES.md`) or contribute
+  upstream instead — and that routing such a signal through `skill-forge
+  refine capture` is deferred until its project-scope override files can be
+  materialized into a plugin cache.
 - _2026-09-03_ version bump — 0.25.2 → 0.25.3 (patch); marketplace 2.60.0 → 2.61.0.
 - _2026-09-03_ version bump — 0.25.1 → 0.25.2 (patch); marketplace 2.59.1 → 2.60.0.
 - _2026-09-03_ version bump — 0.25.0 → 0.25.1 (patch); marketplace 2.58.1 → 2.58.2.

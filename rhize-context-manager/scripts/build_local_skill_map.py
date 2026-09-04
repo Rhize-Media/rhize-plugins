@@ -83,6 +83,24 @@ and is noted in local.json's `sourceNotes` — it never fails the build):
      skipped and counted (`sourceNotes.thirdParty` reports the counts) —
      never a build failure.
 
+  5. Router-signal tag inference — `catalog/tags.json` (the closed
+     topic/stack/condition tag vocabulary; see docs/skill-map.md). Third-
+     party skills (input 4) get no topic-tag/stack-tag EDGES (their
+     frontmatter isn't ours to edit), but the router INDEX can still use
+     half-weight, best-effort SIGNALS: for each third-party skill node,
+     infer up to 3 topic/stack tag slugs (never condition — see
+     infer_tags_for_skill()) from the skill's name + description, and
+     write them into
+     ~/.claude/context-manager/skill-map.indexes.resolved.json's
+     `router.signals[skillId]` as `{kind: "tag-inferred", weight: 0.5,
+     label: <slug>}` entries (see build_resolved_indexes()). Declared
+     (rhize) skill signals are copied through unchanged. A missing or
+     malformed catalog degrades to zero inferred signals
+     (`sourceNotes.tagsCatalog` records why), never a build failure.
+     `--report-inferred` prints the per-skill inferred-tag table alone
+     (no files written) for a precision review before trusting the
+     injected signals.
+
 Resolved-map construction:
   resolved.nodes = static.nodes + third-party nodes (input 4).
   resolved.edges = static.edges + usage-cooccurs edges (input 3) +
@@ -108,6 +126,11 @@ Usage:
       # standalone checkout's data/, else ~/.rhize/skill-monitor/data)
   python3 rhize-context-manager/scripts/build_local_skill_map.py --installed-plugins <path>
   python3 rhize-context-manager/scripts/build_local_skill_map.py --stack-config <path>
+  python3 rhize-context-manager/scripts/build_local_skill_map.py --tags-catalog <path>
+      # override catalog/tags.json (used by tests with a fixture catalog)
+  python3 rhize-context-manager/scripts/build_local_skill_map.py --report-inferred
+      # print a per-skill inferred-tag table for every third-party skill and
+      # exit — no files are written
 
 SHIPS WITH THE PLUGIN (moved from repo-root `scripts/` 2026-09-02, R3 task 8 of the
 portability-readiness plan): this file now lives at
@@ -122,6 +145,7 @@ the old `scripts/build_local_skill_map.py` path.
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import json
 import os
@@ -250,6 +274,10 @@ def default_local_settings_path() -> Path:
     return REPO_ROOT / ".claude" / "settings.local.json"
 
 
+def default_tags_catalog_path() -> Path:
+    return REPO_ROOT / "catalog" / "tags.json"
+
+
 def default_out_dir() -> Path:
     return Path.home() / ".claude" / "context-manager"
 
@@ -262,6 +290,20 @@ def _load_json(path: Path) -> tuple[dict | None, str | None]:
         return json.loads(path.read_text()), None
     except (OSError, json.JSONDecodeError) as exc:
         return None, f"{path} unreadable: {exc}"
+
+
+def load_tags_catalog(tags_catalog_path: Path) -> tuple[list[dict], str]:
+    """Return (entries, note) for catalog/tags.json's raw entry list (each
+    `{slug, kind, gloss}`, `condition` entries also carry `patterns` — see
+    docs/skill-map.md's "Tag vocabulary"). Degrades to ([], note) on any
+    missing/unreadable/malshaped catalog — inferred router-signal tagging is
+    a best-effort precision feature, never a build blocker."""
+    data, err = _load_json(tags_catalog_path)
+    if err:
+        return [], f"degraded: {err} — no inferred tag signals added"
+    if not isinstance(data, list):
+        return [], f"degraded: {tags_catalog_path} is not a JSON array — no inferred tag signals added"
+    return [entry for entry in data if isinstance(entry, dict)], f"read from {tags_catalog_path}"
 
 
 def resolve_enabled_plugins(
@@ -457,6 +499,57 @@ def _home_relative(path: Path) -> str:
     return raw
 
 
+_WORD_SPLIT_RE = re.compile(r"[^a-z0-9]+")
+
+
+@functools.lru_cache(maxsize=None)
+def _words_of(text: str) -> tuple[str, ...]:
+    """Tokenize the same way hooks/lib/route-core.js's wordsOf()/tokenize()
+    do: lowercase, split on runs of non-alphanumeric characters, drop
+    empties. Kept in lockstep with that JS function so a slug/label match
+    here means the same thing a router match at runtime would find. Cached:
+    every catalog slug is re-tokenized once per third-party skill otherwise."""
+    return tuple(w for w in _WORD_SPLIT_RE.split((text or "").lower()) if w)
+
+
+def infer_tags_for_skill(
+    name: str, description: str, tags_catalog: list[dict]
+) -> list[str]:
+    """Infer up to 3 topic/stack tag slugs for a third-party skill from its
+    name + description. A catalog entry matches when every word of its
+    slug (hyphen-separated) — or, if present, every word of any one of its
+    optional `aliases` — appears among the tokenized name+description,
+    mirroring route-core.js's routeFromIndex() "every word of the label is
+    in the prompt tokens" rule. `condition` entries are never inferred —
+    they describe a runtime failure state a skill remediates, not a
+    skill's subject matter, and this feeds only the router's topic/stack
+    signal set.
+
+    Selection prefers multi-word slugs (a more specific match) over
+    single-word ones, then alphabetical, capped at 3; the returned list is
+    itself sorted alphabetically so output is deterministic regardless of
+    catalog order or how many candidates matched."""
+    prompt_words = set(_words_of(f"{name} {description}"))
+
+    def _phrase_matches(phrase: str) -> bool:
+        words = _words_of(phrase)
+        return bool(words) and all(w in prompt_words for w in words)
+
+    candidates: list[tuple[int, str]] = []
+    for entry in tags_catalog:
+        if entry.get("kind") not in ("topic", "stack"):
+            continue
+        slug = entry.get("slug")
+        if not isinstance(slug, str) or not slug:
+            continue
+        aliases = [a for a in (entry.get("aliases") or []) if isinstance(a, str)]
+        if any(_phrase_matches(phrase) for phrase in (slug, *aliases)):
+            candidates.append((len(_words_of(slug)), slug))
+
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    return sorted(slug for _, slug in candidates[:3])
+
+
 def _pick_install_entry(installs: list) -> dict | None:
     """Pick one install entry to source a plugin's on-disk path from. Most
     pids have a single (sometimes duplicated) entry. When distinct
@@ -646,6 +739,7 @@ def build(
     cooccurrence_path: Path,
     global_settings_path: Path | None = None,
     local_settings_path: Path | None = None,
+    tags_catalog_path: Path | None = None,
 ) -> tuple[dict, dict]:
     """Return (local_doc, resolved_doc)."""
     static_doc = json.loads(static_path.read_text())
@@ -676,6 +770,14 @@ def build(
         )
     )
 
+    # Only the source note is needed here — the loaded catalog itself is
+    # reloaded (main()'s report-inferred/resolved-indexes step needs it too;
+    # build()'s job is the local/resolved MAP docs, not the resolved
+    # INDEXES doc that actually consumes the catalog contents).
+    _tags_catalog, tags_catalog_note = load_tags_catalog(
+        tags_catalog_path or default_tags_catalog_path()
+    )
+
     generated_at = datetime.now(timezone.utc).isoformat()
 
     local_doc = {
@@ -697,6 +799,7 @@ def build(
             "cooccurrence": cooc_note,
             "follows": follows_note,
             "thirdParty": third_party_note,
+            "tagsCatalog": tags_catalog_note,
         },
     }
 
@@ -709,14 +812,43 @@ def build(
     return local_doc, resolved_doc
 
 
-def build_resolved_indexes(static_indexes: dict, follows_edges: list[dict]) -> dict:
-    """Merge mined `follows` edges into the succession section of the static
-    indexes artifact, producing the resolved indexes layer consumed at
-    ~/.claude/context-manager/skill-map.indexes.resolved.json. Every other
-    section (router, disclosure, remediation) is copied through unchanged —
-    third-party skills carry no topic-tag/stack-tag/remediates edges (see
+# The resolved indexes' own schemaVersion, tracked independently of the
+# static indexes' (scripts/build_skill_map.py's SCHEMA_VERSION, currently
+# "1.1.0") because this file adds resolved-only, additive features that
+# never touch generated/skill-map.indexes.json itself. Bumped to "1.2.0" for
+# the tag-inferred router signal kind (see infer_tags_for_skill()).
+RESOLVED_INDEXES_SCHEMA_VERSION = "1.2.0"
+
+
+def build_resolved_indexes(
+    static_indexes: dict,
+    follows_edges: list[dict],
+    third_party_nodes: list[dict] | None = None,
+    tags_catalog: list[dict] | None = None,
+) -> dict:
+    """Merge mined `follows` edges into the succession section, and inferred
+    `tag-inferred` router signals for third-party skills into the router
+    section, of the static indexes artifact — producing the resolved
+    indexes layer consumed at
+    ~/.claude/context-manager/skill-map.indexes.resolved.json.
+    `disclosure`/`remediation` are copied through unchanged — third-party
+    skills carry no topic-tag/stack-tag/remediates edges (see
     docs/skill-map.md's third-party ecosystem inventory note), so there is
-    nothing for those sections to merge in from the local overlay."""
+    nothing for those sections to merge in from the local overlay.
+
+    Inferred tag signals: for each third-party skill node (`third_party_nodes`,
+    e.g. `local_doc["thirdParty"]["nodes"]`), infer_tags_for_skill() picks up
+    to 3 topic/stack tags from `tags_catalog`; each becomes a
+    `{kind: "tag-inferred", weight: 0.5, label: <slug>}` entry in
+    `router.signals[skillId]`. Declared (rhize) skills' existing signal
+    entries are copied but never mutated. A third-party skill getting its
+    FIRST signal entry here also gets a `name` entry added alongside the
+    inferred ones — mirroring build_skill_map.py's build_router_index(),
+    which gives every skill a name signal — because an entry made up
+    entirely of tag-inferred signals could never qualify a match on its own
+    (route-core.js's routeFromIndex() requires >=2 matched signals, at least
+    one of which isn't tag-inferred). A skill with zero inferred tags gets
+    no signals entry at all."""
     succession = {
         node_id: {"precedes": list(entry.get("precedes", [])), "follows": list(entry.get("follows", []))}
         for node_id, entry in (static_indexes.get("succession") or {}).items()
@@ -730,13 +862,58 @@ def build_resolved_indexes(static_indexes: dict, follows_edges: list[dict]) -> d
         entry["precedes"] = sorted(set(entry["precedes"]))
         entry["follows"] = sorted(set(entry["follows"]))
 
+    router = dict(static_indexes.get("router") or {})
+    # Shallow per-skill list copies: signal dicts are appended to and re-sorted, never mutated.
+    signals = {
+        skill_id: list(entries)
+        for skill_id, entries in (router.get("signals") or {}).items()
+    }
+    for node in third_party_nodes or []:
+        if node.get("kind") != "skill":
+            continue
+        skill_id = node.get("id")
+        if not isinstance(skill_id, str):
+            continue
+        inferred = infer_tags_for_skill(
+            str(node.get("name") or ""),
+            str(node.get("description") or ""),
+            tags_catalog or [],
+        )
+        if not inferred:
+            continue
+        entries = signals.get(skill_id)
+        if entries is None:
+            entries = [{"kind": "name", "weight": 1, "label": str(node.get("name") or "")}]
+            signals[skill_id] = entries
+        entries.extend({"kind": "tag-inferred", "weight": 0.5, "label": slug} for slug in inferred)
+        entries.sort(key=lambda s: (s["kind"], s["label"]))
+    router["signals"] = signals
+
     return {
-        "schemaVersion": static_indexes.get("schemaVersion"),
-        "router": static_indexes.get("router", {}),
+        "schemaVersion": RESOLVED_INDEXES_SCHEMA_VERSION,
+        "router": router,
         "disclosure": static_indexes.get("disclosure", {}),
         "remediation": static_indexes.get("remediation", {}),
         "succession": succession,
     }
+
+
+def print_inferred_report(third_party_nodes: list[dict], tags_catalog: list[dict]) -> None:
+    """`--report-inferred`: print a per-skill table of inferred tags without
+    writing anything, so the injection in build_resolved_indexes() can be
+    reviewed for precision before it's trusted."""
+    skill_nodes = [n for n in third_party_nodes if n.get("kind") == "skill"]
+    rows = []
+    for node in skill_nodes:
+        inferred = infer_tags_for_skill(
+            str(node.get("name") or ""), str(node.get("description") or ""), tags_catalog
+        )
+        if inferred:
+            rows.append((node["id"], inferred))
+
+    print(f"Inferred tags: {len(rows)} of {len(skill_nodes)} third-party skills")
+    for skill_id, tags in rows:
+        print(f"  {skill_id} -> {', '.join(tags)}")
 
 
 def dump(document: dict) -> str:
@@ -764,6 +941,12 @@ def main() -> int:
                      help="default: ~/.claude/settings.json")
     ap.add_argument("--local-settings", default=None,
                      help="default: <repo>/.claude/settings.local.json")
+    ap.add_argument("--tags-catalog", default=None,
+                     help="default: catalog/tags.json — the topic/stack vocabulary used to "
+                          "infer third-party router signals (see infer_tags_for_skill())")
+    ap.add_argument("--report-inferred", action="store_true",
+                     help="print a per-skill inferred-tag table for every third-party skill "
+                          "and exit — no files are written")
     ap.add_argument("--out-dir", default=None,
                      help="default: ~/.claude/context-manager")
     args = ap.parse_args()
@@ -785,6 +968,9 @@ def main() -> int:
     local_settings_path = (
         Path(args.local_settings) if args.local_settings else default_local_settings_path()
     )
+    tags_catalog_path = (
+        Path(args.tags_catalog) if args.tags_catalog else default_tags_catalog_path()
+    )
     out_dir = Path(args.out_dir) if args.out_dir else default_out_dir()
 
     if not static_path.is_file():
@@ -794,8 +980,14 @@ def main() -> int:
 
     local_doc, resolved_doc = build(
         static_path, installed_plugins_path, stack_config_path, cooccurrence_path,
-        global_settings_path, local_settings_path,
+        global_settings_path, local_settings_path, tags_catalog_path,
     )
+    tags_catalog, tags_catalog_note = load_tags_catalog(tags_catalog_path)
+
+    if args.report_inferred:
+        print_inferred_report(local_doc["thirdParty"]["nodes"], tags_catalog)
+        print(f"  [tagsCatalog] {tags_catalog_note}")
+        return 0
 
     out_dir.mkdir(parents=True, exist_ok=True)
     local_path = out_dir / "skill-map.local.json"
@@ -822,7 +1014,12 @@ def main() -> int:
     if indexes_err:
         print(f"  [indexes] degraded: {indexes_err} — no resolved indexes written")
     else:
-        resolved_indexes = build_resolved_indexes(static_indexes_data, local_doc["followsEdges"])
+        resolved_indexes = build_resolved_indexes(
+            static_indexes_data,
+            local_doc["followsEdges"],
+            local_doc["thirdParty"]["nodes"],
+            tags_catalog,
+        )
         resolved_indexes_path = out_dir / "skill-map.indexes.resolved.json"
         resolved_indexes_path.write_text(dump(resolved_indexes))
         print(f"Wrote {resolved_indexes_path}")
