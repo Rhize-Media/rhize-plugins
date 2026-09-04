@@ -218,7 +218,11 @@ declared match needs only a `name` + one `tag` to reach `1 + 2 = 3`.
 text render it as `<plugin>:<skill>` (dropping the marketplace segment) via `route-core.js`'s
 shared `formatSkillRef()`/`splitSkillId()` — as do `session-disclosure.js` and
 `remediation-suggester.js`, whose own inline parsers were replaced by the same helpers — and a
-rhize skill's ordinary two-segment id renders byte-identically to before. `formatSignalLabel()` suffixes a `tag-inferred` signal's label with `" (inferred)"` in
+rhize skill's ordinary two-segment id renders byte-identically to before. Because third-party
+plugin/skill/command *names* are attacker-influenced file names that end up in text the hooks
+print into the model's context, `build_local_skill_map.py` strips C0/C1 control, zero-width, and
+bidi-override characters from them (and clamps length) when it inventories a plugin, and
+`route-core.js`'s `safeLabel()` strips the same class again at the display boundary. `formatSignalLabel()` suffixes a `tag-inferred` signal's label with `" (inferred)"` in
 `skill-router.js`'s "matches ..." text, so a half-weight guessed tag reads differently from a
 declared name/tag match; `agent-brief-router.js`'s advisory never prints signal labels at all, so
 the suffix never appears there (its own third-party score ceiling of 2.5 sits below its

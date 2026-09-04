@@ -271,6 +271,21 @@ def _run_build(*extra_args: str) -> subprocess.CompletedProcess:
     )
 
 
+class SafeLabelTests(unittest.TestCase):
+    """Third-party plugin/skill/command names become router signal labels that
+    hooks print into the model's context — sanitized once, at the source."""
+
+    def setUp(self) -> None:
+        self.module = _load_module(BUILD_LOCAL_SKILL_MAP, "blsm_safe_label")
+
+    def test_strips_control_zero_width_and_bidi_characters(self) -> None:
+        raw = "fix" + chr(0x202E) + "bug" + chr(27) + "[31m" + chr(0x200B) + "x"
+        self.assertEqual(self.module._safe_label(raw), "fixbug[31mx")
+
+    def test_clamps_length(self) -> None:
+        self.assertEqual(len(self.module._safe_label("x" * 500)), self.module.NAME_LABEL_LIMIT)
+
+
 class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
     def _write_fixture(self, tmp_path: Path) -> dict:
         """Mirrors tests/skill-map/test_local_build.py's fixture shape: a
@@ -354,6 +369,28 @@ class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
 
             local_doc = json.loads((out_dir / "skill-map.local.json").read_text())
             self.assertIn("tagsCatalog", local_doc["sourceNotes"])
+
+    def test_third_party_skill_names_are_sanitized_at_the_source(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fixture = self._write_fixture(tmp_path)
+            evil_dir = tmp_path / "cache" / "wp-i-marketplace" / "wp-i-plugin" / "1.0.0" / "skills" / ("evil" + chr(27) + "[31mskill")
+            evil_dir.mkdir(parents=True)
+            (evil_dir / "SKILL.md").write_text("---\nname: evil\ndescription: nothing to match\n---\n")
+            out_dir = tmp_path / "context-manager"
+            result = _run_build("--out-dir", str(out_dir), *fixture["args"])
+            self.assertEqual(result.returncode, 0, result.stderr)
+            raw = (out_dir / "skill-map.indexes.resolved.json").read_text()
+            self.assertNotIn(chr(27), raw)
+            doc = json.loads(raw)
+            labels = [
+                sig["label"]
+                for sid, sigs in doc["router"]["signals"].items()
+                if "evil" in sid
+                for sig in sigs
+                if sig["kind"] == "name"
+            ]
+            self.assertEqual(labels, ["evil[31mskill"])
 
     def test_two_runs_are_byte_identical(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -138,7 +138,7 @@ function splitSkillId(skillId) {
 // inputs splitSkillId() rejects.
 function formatSkillRef(skillId) {
   const split = splitSkillId(skillId);
-  return split ? `${split.plugin}:${split.skill}` : null;
+  return split ? safeLabel(`${split.plugin}:${split.skill}`) : null;
 }
 
 // A matched router signal's display label, suffixed "(inferred)" for a
@@ -147,8 +147,18 @@ function formatSkillRef(skillId) {
 // tag from a declared name/tag match. Signals from the map-scanning fallback
 // path (route(), not routeFromIndex()) never carry a `kind` field and so
 // never get the suffix — see docs/skill-map.md's documented divergence.
+// Display boundary for index-sourced text: the resolved index is written by
+// build_local_skill_map.py from third-party plugin file names, so strip
+// C0/C1 control, zero-width, and bidi-override characters again here rather
+// than trust the writer (a second-language consumer of the same JSON file).
+const UNSAFE_LABEL_RE = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g;
+function safeLabel(value) {
+  return String(value == null ? '' : value).replace(UNSAFE_LABEL_RE, '');
+}
+
 function formatSignalLabel(signal) {
-  return signal.kind === 'tag-inferred' ? `${signal.label} (inferred)` : String(signal.label);
+  const label = safeLabel(signal.label);
+  return signal.kind === 'tag-inferred' ? `${label} (inferred)` : label;
 }
 
 // Index-backed equivalent of route() below: identical scoring/tie-break
@@ -311,6 +321,7 @@ module.exports = {
   splitSkillId,
   formatSkillRef,
   formatSignalLabel,
+  safeLabel,
   routeFromIndex,
   route,
   contextHash,

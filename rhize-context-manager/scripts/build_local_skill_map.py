@@ -480,6 +480,22 @@ def build_follows_edges(
     return edges, summary, f"read from {cooccurrence_path}"
 
 
+_UNSAFE_LABEL_RE = re.compile(
+    "[\\x00-\\x1f\\x7f-\\x9f\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069]"
+)
+NAME_LABEL_LIMIT = 120
+
+
+def _safe_label(value: str, limit: int = NAME_LABEL_LIMIT) -> str:
+    """Display-safe form of an attacker-influenced name (a third-party plugin's
+    directory or file name): C0/C1 control characters, zero-width, and bidi
+    override characters stripped, then length-clamped. These names become
+    router signal labels that hooks print into the model's context, so they
+    are sanitized once here, at the source, never per call site."""
+    cleaned = _UNSAFE_LABEL_RE.sub("", value or "")
+    return cleaned[:limit]
+
+
 def _id_safe(value: str) -> str:
     return _ID_UNSAFE_RE.sub("-", value)
 
@@ -663,7 +679,7 @@ def collect_third_party_ecosystem(
             {
                 "id": plugin_id,
                 "kind": "plugin",
-                "name": name,
+                "name": _safe_label(name),
                 "path": _home_relative(install_path),
                 "description": plugin_description,
                 "origin": "third-party",
@@ -692,7 +708,7 @@ def collect_third_party_ecosystem(
                     {
                         "id": skill_id,
                         "kind": "skill",
-                        "name": skill_dir.name,
+                        "name": _safe_label(skill_dir.name),
                         "path": _home_relative(skill_md),
                         "description": _truncate(description),
                         "contentHash": hashlib.sha256(raw).hexdigest(),
@@ -721,7 +737,7 @@ def collect_third_party_ecosystem(
                     {
                         "id": command_id,
                         "kind": "command",
-                        "name": cmd_md.stem,
+                        "name": _safe_label(cmd_md.stem),
                         "path": _home_relative(cmd_md),
                         "description": _truncate(description),
                         "origin": "third-party",

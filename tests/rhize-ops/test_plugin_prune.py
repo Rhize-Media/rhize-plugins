@@ -586,3 +586,37 @@ def test_control_characters_stripped_from_nested_finding_counts_too(tmp_path, ca
     settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"x@y": True}})
     code, out, err = run(["--audit", str(audit), "--settings", str(settings), "--json"], capsys)
     assert "\x1b" not in out
+
+
+def test_bidi_and_zero_width_characters_are_stripped(tmp_path, capsys):
+    # A RIGHT-TO-LEFT OVERRIDE or zero-width space in `reasons` could visually
+    # rewrite the table a human reads before typing `yes`.
+    audit = write_json(
+        tmp_path / "audit.json",
+        base_audit([plugin_entry("x@y", "keep", reasons=["safe\u202eknip\u200bfoo"])]),
+    )
+    settings = write_json(tmp_path / "settings.json", {"enabledPlugins": {"x@y": True}})
+
+    code, out, err = run(["--audit", str(audit), "--settings", str(settings), "--json"], capsys)
+
+    assert code == 0
+    assert "\u202e" not in out and "\u200b" not in out
+    assert "safeknipfoo" in out
+
+
+def test_apply_rejects_flag_shaped_id_without_spawning(monkeypatch, tmp_path, capsys):
+    log = tmp_path / "claude-argv.log"
+    monkeypatch.setenv("PLUGIN_PRUNE_CLAUDE_BIN", str(FAKE_CLAUDE))
+    monkeypatch.setenv("FAKE_CLAUDE_LOG", str(log))
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+
+    code, out, err = run(
+        # argparse already refuses a bare `--disable -h`; `--disable=-h` is the form that
+        # reaches the script's own validation.
+        ["--audit", str(AUDIT_FIXTURE), "--settings", str(SETTINGS_FIXTURE), "--apply", "--disable=-h"],
+        capsys,
+    )
+
+    assert code == 2
+    assert "not a valid plugin id" in err
+    assert not log.exists()

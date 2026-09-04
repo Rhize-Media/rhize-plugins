@@ -50,7 +50,10 @@ SCHEMA = "rhize-plugin-prune-v1"
 DEFAULT_SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 CRON_ALERT_RECOMMENDATIONS = {"review", "unobserved"}
 
-_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+# C0/C1 control characters plus zero-width and bidi-override characters (a
+# RIGHT-TO-LEFT OVERRIDE in a `reasons` string could visually reverse the table
+# a human reads before typing `yes`).
+_CONTROL_CHARS_RE = re.compile("[\\x00-\\x1f\\x7f-\\x9f\\u200b-\\u200f\\u202a-\\u202e\\u2066-\\u2069]")
 
 
 class UsageError(ValueError):
@@ -329,7 +332,10 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
     invalid: list[str] = []
     for plugin_id in ids:
         row = rows_by_id.get(plugin_id)
-        if row is None:
+        if plugin_id.startswith("-"):
+            # Never let an id shaped like a flag reach the `claude` argv as a positional.
+            invalid.append(f"{plugin_id}: not a valid plugin id")
+        elif row is None:
             invalid.append(f"{plugin_id}: not present in the --audit report")
         elif row["settingsStatus"] != "enabled":
             invalid.append(
