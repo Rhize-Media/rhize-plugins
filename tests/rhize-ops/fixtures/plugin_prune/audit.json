@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "plugins": [
+    {
+      "pluginId": "code-review@claude-plugins-official",
+      "version": "1.2.0",
+      "installPath": "/fake/plugins/code-review",
+      "skillCount": 3,
+      "findingCounts": { "LOW": 0, "MEDIUM": 1, "HIGH": 0, "CRITICAL": 0 },
+      "observedSkillCount": 2,
+      "recommendation": "keep",
+      "reasons": []
+    },
+    {
+      "pluginId": "stale-plugin@claude-plugins-official",
+      "version": "0.4.0",
+      "installPath": "/fake/plugins/stale-plugin",
+      "skillCount": 2,
+      "findingCounts": { "LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0 },
+      "observedSkillCount": 0,
+      "recommendation": "unobserved",
+      "reasons": ["no skill observed in a 28-day exhaustive window"]
+    },
+    {
+      "pluginId": "risky-plugin@claude-plugins-official",
+      "version": "2.0.1",
+      "installPath": "/fake/plugins/risky-plugin",
+      "skillCount": 1,
+      "findingCounts": { "LOW": 0, "MEDIUM": 0, "HIGH": 1, "CRITICAL": 0 },
+      "recommendation": "review",
+      "reasons": ["1 active HIGH finding"]
+    },
+    {
+      "pluginId": "unregistered-plugin@some-marketplace",
+      "version": "1.0.0",
+      "installPath": "/fake/plugins/unregistered-plugin",
+      "skillCount": 1,
+      "findingCounts": { "LOW": 0, "MEDIUM": 0, "HIGH": 0, "CRITICAL": 0 },
+      "recommendation": "unknown",
+      "reasons": ["no usage telemetry"]
+    }
+  ]
+}
