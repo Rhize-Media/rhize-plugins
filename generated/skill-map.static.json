@@ -3586,8 +3586,8 @@
       "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md"
     },
     {
-      "contentHash": "83bb3053e5b9f175672550e91838d1fbf9ba94b42569c134c69246b402d7f754",
-      "contentHashNormalized": "8cecc30872ec76752aadd7b6dceb40033e3b3efbc5dd2ee52c5d09bb4229b706",
+      "contentHash": "5282cc8e680b06fe075b72bae0c6922e6748b55cb710b6030633b7c80d9fdd08",
+      "contentHashNormalized": "7ff1ad288cdb6c0d668c757d23b1c4b315cf3a094a4fcaa91d17e98ab55d02b2",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "id": "skill:rhize-context-manager/context-optimization",
       "kind": "skill",
