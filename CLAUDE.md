@@ -126,9 +126,10 @@ description means updating every copy in the same change, not just the one you h
   Edit/Write, state the caller(s) of the target or "new entry point — no existing caller."
 - Version bumps only via `python3 scripts/bump_version.py --plugin <name> --level
   minor|patch|major` — never hand-edit `plugin.json`/`marketplace.json`/CHANGELOG alone.
-- `.github/workflows/version-check.yml` and `tag-release.yml` are PROTECTED
-  (`protect-files.sh` hook) — do not Edit; CI proposals go in `.github/ci-proposed/` for
-  Jim to promote into `.github/workflows/`.
+- `.github/workflows/*` (`version-check.yml`, `tag-release.yml`, `validate.yml`) may be edited
+  directly — Jim lifted the `protect-files` CI gate on 2026-09-04; `.github/ci-proposed/` remains
+  available for drafting a workflow change you want reviewed before it goes live. Every push to
+  main runs `validate.yml`; keep it green.
 - The refactor gate (`rhize-devflow/scripts/refactor_gate.py`) requires a plan containing
   five substrings — `current behavior`, `intended semantic delta`, `invariants`,
   `acceptance tests`, `implementation order` — reconciles changed paths by full path or

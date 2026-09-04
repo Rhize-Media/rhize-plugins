@@ -1,8 +1,8 @@
 name: validate
 
-# Proposed CI gate mirroring the local release contracts in scripts/bump_version.py's
-# REPOSITORY_CONTRACTS. NOT live — see .github/ci-proposed/README.md for why this lives
-# outside .github/workflows/ and how to promote it.
+# CI gate mirroring the local release contracts in scripts/bump_version.py's
+# REPOSITORY_CONTRACTS. Changes are drafted in .github/ci-proposed/ and promoted by a
+# maintainer with `git mv` (see .github/ci-proposed/README.md).
 
 on:
   push:
@@ -30,7 +30,9 @@ jobs:
       - name: Validate plugin manifests (per plugin)
         run: |
           for d in */; do
-            [ -f "$d/.claude-plugin/plugin.json" ] && claude plugin validate --strict "$d"
+            if [ -f "$d/.claude-plugin/plugin.json" ]; then
+              claude plugin validate --strict "$d"
+            fi
           done
       - name: Lint plugin hooks.json / .mcp.json configs
         run: python3 scripts/validate_plugin_configs.py
@@ -39,7 +41,7 @@ jobs:
       - name: Skill-map freshness
         run: python3 scripts/validate_skill_map.py --check-stale
       - name: Setup-artifacts freshness
-        run: python3 rhize-ops/scripts/setup_artifacts.py --check
+        run: python3 rhize-core/scripts/setup_artifacts.py --check
       - name: Skill-map docs render is idempotent
         run: |
           python3 scripts/render_skill_map_docs.py
