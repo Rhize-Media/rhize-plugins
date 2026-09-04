@@ -17,7 +17,14 @@ yield spent re-litigating settled facts.
 Step 7 of `/learn-harvest` runs this filter, which matches on content instead of hash.
 Each candidate is scored by greedy set-cover: what fraction of its normalized content
 tokens are covered by up to `--max-blocks` (default 3) reference blocks, drawn from
-existing queue patterns (**any** status) and the CLAUDE.md files passed via `--reference`.
+existing queue patterns (**any** status) and the files passed via `--reference`. As of
+2026-09-04 the reference set is `CLAUDE.md`, `~/.claude/CLAUDE.md`,
+`docs/session-guardrails.md`, and the invoking project's auto-memory `MEMORY.md`
+(`~/.claude/projects/<cwd-slashes-as-dashes>/memory/MEMORY.md`) — MEMORY.md was the
+dominant missing reference: on a 2026-09-03 batch, adding it moved 21 of 41 candidates
+from "kept" to correctly `suppressed` (headroom's dry-run output echoes existing
+MEMORY.md sections back as if they were new findings). A missing reference file warns
+and is skipped, never errors — safe to always pass all four.
 
 | Outcome | Coverage | Action |
 |---|---|---|
@@ -37,3 +44,11 @@ Stdlib only (system `python3` has no `jsonschema`), deterministic, no network. T
 is teed to `~/.claude/context-manager/harvest-logs/<date>-filter.txt`: suppression must
 leave a disk artifact, or "few new entries" becomes indistinguishable from a collector
 that never ran.
+
+## Test coverage
+
+`tests/rhize-context-manager/test_harvest_noise_filter.py` (added 2026-09-04) covers the
+tokenizer, reference-building, all four classification outcomes at their boundary values,
+the `--max-blocks` union behavior, and pins the default thresholds/`MIN_CONTENT_TOKENS`
+as an explicit regression guard — a silent threshold change now fails a test instead of
+just shifting queue volume unnoticed.

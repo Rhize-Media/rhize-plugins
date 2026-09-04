@@ -40,13 +40,23 @@ target, matching every pre-existing entry.
 
 1. `mkdir -p ~/.claude/context-manager` and load existing queue ids for dedupe.
 2. **Headroom** (dry-run is the default — do NOT pass `--apply`):
-   - Run `headroom learn --project <cwd>`. **Never pass `--all`.** The `all`
+   - Run `headroom learn --project <cwd> --main-only`. **Never pass `--all`.** The `all`
      argument to *this command* means "all three sources below" — it is not
      headroom's `--all`, which analyses every discovered project (~17) and turns a
      seconds-long run into ~13 minutes. The two flags are also mutually exclusive:
      `headroom learn --project <path> --all` exits 2 with `--all and --project are
      mutually exclusive`, so the old wording here was unrunnable as written and
      broke two daily-harvest runs (2026-08-10).
+   - **Pass `--main-only` on every `headroom learn` call.** `headroom learn` has no
+     time-bounded lookback — `--help` offers no `--since`/`--days` — so each run
+     re-analyses the project's entire session history, and that history only grows
+     (207→337 Claude sessions and 72→154 Codex across ~2 weeks of captures).
+     `--main-only` restricts the scan to top-level sessions, skipping nested
+     subagent/workflow transcripts: that is where the volume growth is, and subagent
+     internals are the least likely to generalise into a skill- or MEMORY.md-worthy
+     pattern. It is what keeps the daily cadence affordable (added 2026-09-04). Every
+     agent plugin accepts the flag (`--help` scopes its effect to Claude Code
+     sessions), so it is safe on `--agent codex` and `--agent gemini` calls too.
    - `headroom learn` runs an LLM over conversation history and routinely exceeds
      the Bash tool's **120s default** timeout. Pass `timeout: 600000` explicitly.
      That 120s is a default, not a limit — and a timeout is **never on its own**
@@ -160,14 +170,28 @@ target, matching every pre-existing entry.
      --candidates <candidates.jsonl> \
      --reference CLAUDE.md --reference ~/.claude/CLAUDE.md \
      --reference docs/session-guardrails.md \
+     --reference "$HOME/.claude/projects/$(pwd | tr '/' '-')/memory/MEMORY.md" \
      --keep-out <kept.jsonl> \
      | tee ~/.claude/context-manager/harvest-logs/$(date +%F)-filter.txt
    ```
 
-   Most repo-environment facts now live in `docs/session-guardrails.md`, not
-   CLAUDE.md — pass it as a `--reference` too, or the filter dedupes against a
-   file that no longer holds most of the settled facts. It scores each
-   candidate by how much of its normalized content is already
+   The reference set is every file that already holds settled facts — pass **all
+   four** (`--reference` repeats; the daily routine's collector block must match this
+   one exactly):
+   - `docs/session-guardrails.md` — most repo-environment facts now live there, not
+     CLAUDE.md; without it the filter dedupes against a file that no longer holds
+     most of the settled facts.
+   - The project's auto-memory `MEMORY.md` — the dominant duplicate source. Headroom's
+     proposed MEMORY.md block echoes existing memory entries back verbatim, and on
+     2026-09-04 19 of a 22-candidate batch were rejected at triage as restatements of
+     a MEMORY.md section the filter had never seen. The path is derived from `pwd`
+     (Claude Code names the project directory by replacing `/` with `-`), so the same
+     line works from any project; keep it quoted, since some project paths contain
+     spaces. If the project has no memory file yet, the script prints `warning:
+     reference doc not found, skipping` and continues — never omit it "because it
+     might not exist".
+
+   It scores each candidate by how much of its normalized content is already
    covered by existing queue patterns (any status) or reference-file blocks, and sorts
    into three outcomes:
    - **suppressed** (coverage ≥ 0.75) — drop; it is a restatement.

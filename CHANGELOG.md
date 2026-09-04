@@ -27,6 +27,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-04_ version bump — **rhize-context-manager** 0.25.3 → 0.26.0 (minor); marketplace 2.62.0 → 2.63.0.
 - _2026-09-04_ version bump — **rhize-ops** 0.20.0 → 0.21.0 (minor); marketplace 2.61.4 → 2.62.0.
 - _2026-09-04_ **CI gate fixed and promoted.** The per-plugin validation loop failed on the last
   non-plugin directory; the corrected `validate.yml` is live in `.github/workflows/`.

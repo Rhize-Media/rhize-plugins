@@ -138,11 +138,14 @@ build_local_skill_map.py` still work — the shims forward to these copies uncha
 Step 7 of `/learn-harvest` runs a content-based dedupe filter before anything reaches the
 queue, so a reworded restatement of an already-known fact doesn't count as a new signal —
 on 2026-08-14 this caught 3 of 5 candidate entries that were just rephrasings of facts
-already in CLAUDE.md. It scores each candidate against existing queue/CLAUDE.md content
-and either suppresses it, flags it for human triage, or keeps it; every decision is logged
-to `~/.claude/context-manager/harvest-logs/<date>-filter.txt` so a quiet harvest is never
-ambiguous. See [docs/harvest-noise-filter.md](docs/harvest-noise-filter.md) for the scoring
-algorithm, thresholds, and calibration data.
+already in CLAUDE.md. It scores each candidate against existing queue content and four
+reference files (`CLAUDE.md`, `~/.claude/CLAUDE.md`, `docs/session-guardrails.md`, and the
+project's auto-memory `MEMORY.md`) and either suppresses it, flags it for human triage, or
+keeps it; every decision is logged to `~/.claude/context-manager/harvest-logs/<date>-filter.txt`
+so a quiet harvest is never ambiguous. Covered by
+`tests/rhize-context-manager/test_harvest_noise_filter.py`. See
+[docs/harvest-noise-filter.md](docs/harvest-noise-filter.md) for the scoring algorithm,
+thresholds, and calibration data.
 
 ## Hooks
 

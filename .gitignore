@@ -44,5 +44,8 @@ CLAUDE.md.headroom-bak.*
 # Timestamped backups written before in-place config edits (local safety net only)
 *.bak
 
+# SkillOpt-Sleep staging (skill-forge evolve) — local proposal state, never committed
+.skillopt-sleep/
+
 # Local grepai indexes and reviewed snapshot markers
 .grepai/
