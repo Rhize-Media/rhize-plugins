@@ -1,6 +1,5 @@
-"""test_vault_note_export.py — vault_note_export.py note-to-Confluence-body conversion and
-ledger tracking per task-1-brief.md Contract A. Fixture vault built under tmp_path; no
-network, no real vault.
+"""test_vault_note_export.py — vault_note_export.py note-to-Jira-attachment conversion per
+task-1-brief.md Contract A. Fixture vault built under tmp_path; no network, no real vault.
 """
 import importlib.util
 import json
@@ -33,6 +32,13 @@ def write_note(root: Path, relative: str, content: str) -> Path:
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
+    return path
+
+
+def write_binary(root: Path, relative: str, data: bytes) -> Path:
+    path = root / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
     return path
 
 
@@ -90,8 +96,11 @@ def test_embed_becomes_binary_and_files_section_appended(roots, capsys):
     result = json.loads(out)
     assert "![[diagram.png]]" not in result["body_markdown"]
     assert result["binaries"] == [{"name": "diagram.png", "kind": "image"}]
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "diagram.png", "kind": "image", "reason": "not-found"}]
+    assert "## Attached to this issue" not in result["body_markdown"]
     assert "## Files to request from the delegator" in result["body_markdown"]
-    assert "- diagram.png (image)" in result["body_markdown"]
+    assert "- diagram.png (image) — not-found" in result["body_markdown"]
 
 
 def test_absolute_path_scrubbed_and_counted(roots, capsys):
@@ -119,94 +128,6 @@ def test_note_only_in_second_root_of_colon_separated_env_resolves(roots, capsys,
 def test_missing_note_exits_2_with_no_stdout_json(roots, capsys):
     root1, _root2 = roots
     code, out, err = run(["export", "--note", "DoesNotExist.md", "--vault-root", str(root1)], capsys)
-    assert code == 2
-    assert out == ""
-    assert err.strip() != ""
-
-
-def test_record_writes_ledger_then_export_reports_existing_and_changed(roots, capsys, tmp_path):
-    root1, _root2 = roots
-    note_path = write_note(root1, "Tracked.md", "Version 1\n")
-
-    code, out, _err = run(["export", "--note", "Tracked.md", "--vault-root", str(root1)], capsys)
-    assert code == 0
-    first_result = json.loads(out)
-    sha1 = first_result["source_sha256"]
-    assert first_result["existing_page_id"] is None
-    assert first_result["existing_page_url"] is None
-    assert first_result["changed"] is True
-
-    ledger_path = tmp_path / "new_ledger_dir" / "ledger.json"
-    code, out, _err = run(
-        [
-            "record", "--note", "Tracked.md", "--ledger", str(ledger_path),
-            "--page-id", "123", "--url", "https://example.atlassian.net/wiki/pages/123",
-            "--sha256", sha1,
-        ],
-        capsys,
-    )
-    assert code == 0
-    assert out == "recorded Tracked.md -> 123\n"
-    assert oct(ledger_path.stat().st_mode)[-3:] == "600"
-    assert oct(ledger_path.parent.stat().st_mode)[-3:] == "700"
-
-    code, out, _err = run(
-        ["export", "--note", "Tracked.md", "--vault-root", str(root1), "--ledger", str(ledger_path)], capsys,
-    )
-    assert code == 0
-    second_result = json.loads(out)
-    assert second_result["existing_page_id"] == "123"
-    assert second_result["existing_page_url"] == "https://example.atlassian.net/wiki/pages/123"
-    assert second_result["existing_sha256"] == sha1
-    assert second_result["changed"] is False
-
-    note_path.write_text("Version 1\nplus an edit\n", encoding="utf-8")
-    code, out, _err = run(
-        ["export", "--note", "Tracked.md", "--vault-root", str(root1), "--ledger", str(ledger_path)], capsys,
-    )
-    assert code == 0
-    third_result = json.loads(out)
-    assert third_result["changed"] is True
-
-
-def test_wikilink_to_note_already_in_ledger_becomes_markdown_link(roots, capsys, tmp_path):
-    root1, _root2 = roots
-    write_note(root1, "Linked Note.md", "target content\n")
-    write_note(root1, "Referrer.md", "See [[Linked Note]] for details.\n")
-
-    ledger_path = tmp_path / "ledger.json"
-    code, out, _err = run(["export", "--note", "Linked Note.md", "--vault-root", str(root1)], capsys)
-    assert code == 0
-    sha_linked = json.loads(out)["source_sha256"]
-
-    code, out, _err = run(
-        [
-            "record", "--note", "Linked Note.md", "--ledger", str(ledger_path),
-            "--page-id", "456", "--url", "https://example.atlassian.net/wiki/pages/456",
-            "--sha256", sha_linked,
-        ],
-        capsys,
-    )
-    assert code == 0
-
-    code, out, _err = run(
-        ["export", "--note", "Referrer.md", "--vault-root", str(root1), "--ledger", str(ledger_path)], capsys,
-    )
-    assert code == 0
-    result = json.loads(out)
-    assert "[Linked Note](https://example.atlassian.net/wiki/pages/456)" in result["body_markdown"]
-    assert "Linked Note" not in result["unresolved_links"]
-
-
-def test_corrupt_ledger_exits_2(roots, capsys, tmp_path):
-    root1, _root2 = roots
-    write_note(root1, "Note.md", "content\n")
-    ledger_path = tmp_path / "corrupt_ledger.json"
-    ledger_path.write_text("{not valid json", encoding="utf-8")
-
-    code, out, err = run(
-        ["export", "--note", "Note.md", "--vault-root", str(root1), "--ledger", str(ledger_path)], capsys,
-    )
     assert code == 2
     assert out == ""
     assert err.strip() != ""
@@ -321,24 +242,206 @@ def test_non_utf8_note_exits_2_with_message(roots, capsys):
     assert len(err.strip().splitlines()) == 1
 
 
-def test_ledger_write_oserror_exits_2_with_message(roots, capsys, tmp_path):
+def test_out_dir_writes_markdown_copy_named_by_title(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    write_note(root1, "WithTitle.md", "---\ntitle: Client/Plan: Q4\n---\nBody text.\n")
+    out_dir = tmp_path / "out"
+
+    code, out, _err = run(
+        ["export", "--note", "WithTitle.md", "--vault-root", str(root1), "--out-dir", str(out_dir)],
+        capsys,
+    )
+    assert code == 0
+    result = json.loads(out)
+    expected_path = (out_dir / "Client-Plan- Q4.md").resolve()
+    assert result["markdown_file"] == str(expected_path)
+    assert expected_path.read_text(encoding="utf-8") == result["body_markdown"]
+
+    # A fresh, otherwise-untouched directory that --out-dir never names: if omitting
+    # --out-dir wrote a markdown copy anywhere unexpected, this would catch it.
+    watch_dir = tmp_path / "watch"
+    watch_dir.mkdir()
+    code, out, _err = run(
+        ["export", "--note", "WithTitle.md", "--vault-root", str(root1)], capsys,
+    )
+    assert code == 0
+    result_no_out = json.loads(out)
+    assert result_no_out["markdown_file"] is None
+    assert not (root1 / "Client-Plan- Q4.md").exists()
+    assert list(watch_dir.iterdir()) == []
+
+
+def test_embedded_binary_resolves_by_basename_anywhere_under_root(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    data = b"PNGDATA"
+    write_binary(root1, "attachments/diagram.png", data)
+    write_note(root1, "WithEmbed.md", "Check ![[diagram.png]] for the diagram.\n")
+
+    code, out, _err = run(["export", "--note", "WithEmbed.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    expected_path = str((root1 / "attachments" / "diagram.png").resolve())
+    assert result["attachments"] == [
+        {"name": "diagram.png", "path": expected_path, "bytes": len(data), "kind": "image"},
+    ]
+    assert result["unattachable"] == []
+    assert "## Attached to this issue" in result["body_markdown"]
+    assert "- diagram.png (image)" in result["body_markdown"]
+    assert str(tmp_path) not in result["body_markdown"]
+    assert "/Users" not in result["body_markdown"]
+
+
+def test_embedded_binary_with_folder_resolves_relative_to_root_first(roots, capsys):
+    root1, _root2 = roots
+    # Different sizes so the assertion below can only pass if the folder-qualified
+    # branch (assets/a.png) was actually used -- a walk-order bug that picked
+    # other/a.png instead would trip on `bytes`, not just on the resolved path.
+    write_binary(root1, "assets/a.png", b"ASSET-DATA")
+    write_binary(root1, "other/a.png", b"X")
+    write_note(root1, "WithFolderEmbed.md", "See ![[assets/a.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "WithFolderEmbed.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    expected_path = str((root1 / "assets" / "a.png").resolve())
+    assert result["attachments"] == [
+        {"name": "a.png", "path": expected_path, "bytes": len(b"ASSET-DATA"), "kind": "image"},
+    ]
+
+
+def test_embedded_binary_missing_is_unattachable_not_found(roots, capsys):
+    root1, _root2 = roots
+    write_note(root1, "Missing.md", "See ![[ghost.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Missing.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "ghost.png", "kind": "image", "reason": "not-found"}]
+    assert "## Files to request from the delegator" in result["body_markdown"]
+    assert "- ghost.png (image) — not-found" in result["body_markdown"]
+
+
+def test_embedded_binary_over_max_bytes_is_unattachable_too_large(roots, capsys):
+    root1, _root2 = roots
+    write_binary(root1, "big.png", b"x" * 20)
+    write_note(root1, "Big.md", "See ![[big.png]] here.\n")
+
+    code, out, _err = run(
+        ["export", "--note", "Big.md", "--vault-root", str(root1), "--max-bytes", "10"], capsys,
+    )
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "big.png", "kind": "image", "reason": "too-large"}]
+
+
+def test_canvas_embed_is_unattachable_obsidian_only(roots, capsys):
+    root1, _root2 = roots
+    write_note(root1, "Board.canvas", "{}")
+    write_note(root1, "Referrer.md", "See ![[Board.canvas]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "Board.canvas", "kind": "other", "reason": "obsidian-only"}]
+
+
+def test_hidden_directories_are_skipped_in_resolution(roots, capsys):
+    root1, _root2 = roots
+    write_binary(root1, ".trash/x.png", b"HIDDEN")
+    write_note(root1, "Referrer.md", "See ![[x.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "x.png", "kind": "image", "reason": "not-found"}]
+
+
+def test_dot_directory_segment_in_folder_qualified_embed_is_not_found(roots, capsys):
+    root1, _root2 = roots
+    write_binary(root1, ".trash/x.png", b"HIDDEN")
+    write_note(root1, "Referrer.md", "See ![[.trash/x.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "x.png", "kind": "image", "reason": "not-found"}]
+
+
+def test_embedded_binary_via_symlink_outside_root_is_not_found(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(b"OUTSIDE")
+
+    # Basename-walk branch: a symlink under root, found by basename, whose resolved
+    # target escapes the root.
+    basename_symlink = root1 / "nested" / "escape.png"
+    basename_symlink.parent.mkdir(parents=True, exist_ok=True)
+    basename_symlink.symlink_to(outside)
+    write_note(root1, "Basename.md", "See ![[escape.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Basename.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "escape.png", "kind": "image", "reason": "not-found"}]
+
+    # Folder-qualified branch: a symlink at the exact embedded path, resolved target
+    # escapes the root.
+    folder_symlink = root1 / "assets2" / "escape2.png"
+    folder_symlink.parent.mkdir(parents=True, exist_ok=True)
+    folder_symlink.symlink_to(outside)
+    write_note(root1, "Folder.md", "See ![[assets2/escape2.png]] here.\n")
+
+    code, out, _err = run(["export", "--note", "Folder.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert result["attachments"] == []
+    assert result["unattachable"] == [{"name": "escape2.png", "kind": "image", "reason": "not-found"}]
+
+
+def test_wikilink_always_renders_plain_title(roots, capsys):
+    root1, _root2 = roots
+    write_note(root1, "Referrer.md", "See [[Some Note]] for background.\n")
+
+    code, out, _err = run(["export", "--note", "Referrer.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert "Some Note" in result["body_markdown"]
+    assert "[[Some Note]]" not in result["body_markdown"]
+    assert "](" not in result["body_markdown"]
+    assert result["unresolved_links"] == ["Some Note"]
+
+
+def test_out_dir_write_error_exits_2(roots, capsys, tmp_path):
     root1, _root2 = roots
     write_note(root1, "Note.md", "content\n")
-    readonly_dir = tmp_path / "readonly"
-    readonly_dir.mkdir()
-    ledger_path = readonly_dir / "ledger.json"
-    readonly_dir.chmod(0o500)
-    try:
-        code, out, err = run(
-            [
-                "record", "--note", "Note.md", "--ledger", str(ledger_path),
-                "--page-id", "1", "--url", "https://example.com/1", "--sha256", "deadbeef",
-            ],
-            capsys,
-        )
-        assert code == 2
-        assert out == ""
-        assert len(err.strip().splitlines()) == 1
-        assert not ledger_path.exists()
-    finally:
-        readonly_dir.chmod(0o700)
+    blocked_path = tmp_path / "not_a_dir"
+    blocked_path.write_text("i am a file", encoding="utf-8")
+
+    code, out, err = run(
+        [
+            "export", "--note", "Note.md", "--vault-root", str(root1),
+            "--out-dir", str(blocked_path),
+        ],
+        capsys,
+    )
+    assert code == 2
+    assert out == ""
+    assert len(err.strip().splitlines()) == 1
+
+
+def test_help_no_longer_mentions_ledger_and_record_rejected(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        vault_note_export.main(["export", "--help"])
+    assert excinfo.value.code == 0
+    captured = capsys.readouterr()
+    assert "--ledger" not in captured.out
+
+    with pytest.raises(SystemExit) as excinfo2:
+        vault_note_export.main(["record", "--note", "X.md"])
+    assert excinfo2.value.code == 2

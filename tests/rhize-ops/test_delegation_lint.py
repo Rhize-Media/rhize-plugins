@@ -122,6 +122,24 @@ def test_marker_in_confluence_fails(monkeypatch, capsys):
     assert "FAIL marker-in-confluence" in out
 
 
+def test_attachment_body_kind_bans_marker_and_paths_but_has_no_length_rule(monkeypatch, capsys):
+    marker_text = f"Body text.\nrhize-delegation:v1:{VALID_UUID}\n"
+    code, out = run(marker_text, "attachment-body", monkeypatch, capsys)
+    assert code == 1
+    assert "FAIL marker-in-confluence" in out
+
+    path_text = "See ~/x.md for details.\n"
+    code, out = run(path_text, "attachment-body", monkeypatch, capsys)
+    assert code == 1
+    assert "FAIL absolute-path" in out
+
+    long_text = ("clean prose without any special characters here. " * 900)[:40000]
+    assert len(long_text) == 40000
+    code, out = run(long_text, "attachment-body", monkeypatch, capsys)
+    assert code == 0
+    assert out.strip().splitlines()[-1] == "PASS"
+
+
 def test_multiple_starter_prompts_fails(monkeypatch, capsys):
     text = (
         "Paste into Claude: first\n"

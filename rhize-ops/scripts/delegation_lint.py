@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """delegation_lint.py — gate run before any external write (Jira description, Confluence
-body, or Slack message) for path leaks (vault-relative paths, obsidian:// URLs) and
-jira-description contract-shape mistakes (delegation marker placement, starter-prompt
-count, embedded step-by-step sections, length). Reads text from --file or stdin.
+body, attachment body, or Slack message) for path leaks (vault-relative paths, obsidian://
+URLs) and jira-description contract-shape mistakes (delegation marker placement,
+starter-prompt count, embedded step-by-step sections, length). Reads text from --file or
+stdin.
 
 Rules:
   absolute-path          FAIL  all kinds           /Users/..., /home/..., ~/..., or a Windows
@@ -22,8 +23,8 @@ Rules:
   marker-missing                   FAIL  jira-description   no rhize-delegation:v1: marker found
   marker-not-last                    FAIL  jira-description   marker isn't the sole, final
                                                                 nonblank line
-  marker-in-confluence                 FAIL  confluence-body   marker text anywhere (never
-                                                                 allowed on a Confluence page)
+  marker-in-confluence                 FAIL  confluence-body / attachment-body   marker text
+                                                                                   anywhere (never allowed there)
   multiple-starter-prompts               FAIL  jira-description   more than one
                                                                     "Paste into Claude:" line
   no-starter-prompt                        WARN  jira-description   no "Paste into Claude:" line
@@ -44,7 +45,7 @@ from pathlib import Path
 from typing import Any
 
 
-KINDS = ("jira-description", "confluence-body", "slack-message")
+KINDS = ("jira-description", "confluence-body", "slack-message", "attachment-body")
 TOKEN_SPLIT_RE = re.compile(r"[\s`'\"()<>,]+")
 DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
 NOTE_SUFFIXES = (".md", ".canvas", ".base")
@@ -141,7 +142,7 @@ def lint(
             note_path_hit = True
         if note_path_hit and ASK_FOR_FILE_RE.search(line):
             add("FAIL", "ask-for-file", i, excerpt_of(line))
-        if kind == "confluence-body" and MARKER_SUBSTRING in line:
+        if kind in ("confluence-body", "attachment-body") and MARKER_SUBSTRING in line:
             add("FAIL", "marker-in-confluence", i, excerpt_of(line))
         if kind == "jira-description" and not allow_steps and STEPS_RE.match(line):
             add("FAIL", "steps-in-jira", i, excerpt_of(line))

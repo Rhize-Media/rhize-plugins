@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
-"""vault_note_export.py — turn one Obsidian note into a Confluence-ready markdown body plus
-a JSON manifest (`export`), and keep a small local ledger of already-exported notes so
-re-exports update instead of duplicate (`record`).
+"""vault_note_export.py — turn one Obsidian note into a Jira/Confluence-ready markdown body
+plus a JSON manifest, resolving embedded binaries (images, PDFs, etc.) to local files that
+can be attached to the destination issue (`export`).
 
-  export --note <vault-relative-path> [--vault-root PATH]... [--ledger PATH]
-  record --note <vault-relative-path> --ledger PATH --page-id ID --url URL --sha256 HEX [--title TITLE]
+  export --note <vault-relative-path> [--vault-root PATH]... [--out-dir DIR] [--max-bytes N]
 
 Vault roots come from repeated --vault-root flags, or (if none given) from the
-colon-separated OBSIDIAN_VAULT_PATH environment variable. The ledger is a small JSON file
-written atomically (temp file in the same directory, then renamed into place, mode 600).
+colon-separated OBSIDIAN_VAULT_PATH environment variable. Wikilinks and note embeds always
+render as plain text (never resolved to a URL); binary embeds are resolved against the vault
+roots and reported as `attachments` (found, within --max-bytes, not obsidian-only) or
+`unattachable` (not-found / too-large / obsidian-only). --out-dir writes a Markdown copy of
+the scrubbed body — named after the note's title — into that directory; --max-bytes caps the
+size of an attachable binary (default 100 MiB = 104857600 bytes).
+
+Binaries are deduplicated by basename in first-appearance order: when two embeds in the same
+note share a basename (e.g. two different folders each containing an "a.png"), only the first
+one encountered is resolved and attached — the second is not tracked as a separate binary.
 """
 from __future__ import annotations
 
@@ -18,13 +25,13 @@ import json
 import os
 import re
 import sys
-import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 IMAGE_EXTS = {"png", "jpg", "jpeg", "gif", "svg", "webp", "bmp"}
+OBSIDIAN_ONLY_EXTS = {"canvas", "base"}
+DEFAULT_MAX_BYTES = 104857600
 FENCE_RE = re.compile(r"^\s*```")
 COMMENT_RE = re.compile(r"%%.*?%%", re.DOTALL)
 EMBED_RE = re.compile(r"!\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]")
@@ -35,18 +42,12 @@ SCRUB_SPLIT_RE = re.compile(r"([\s`'\"()<>,])")
 SCRUB_PREFIXES = ("/Users/", "/home/", "~/", "obsidian://")
 SCRUB_DRIVE_RE = re.compile(r"^[A-Za-z]:\\")
 FRONTMATTER_TITLE_RE = re.compile(r"^title:\s*(.*)$")
+SAFE_TITLE_INVALID_RE = re.compile(r"[/\\:]")
+SAFE_TITLE_WHITESPACE_RE = re.compile(r"\s+")
 
 
 class VaultError(Exception):
     pass
-
-
-class LedgerError(Exception):
-    pass
-
-
-def now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def resolve_vault_roots(cli_roots: list[str] | None) -> list[Path]:
@@ -69,51 +70,6 @@ def resolve_note_in_root(root: Path, note: str) -> Path | None:
             except ValueError:
                 raise VaultError(f"resolved path escapes vault root: {note}") from None
             return resolved_candidate
-    return None
-
-
-def load_ledger(path: Path) -> dict[str, Any]:
-    if not path.exists():
-        return {"version": 1, "notes": {}}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise LedgerError(f"ledger is not valid JSON: {path}: {exc}") from exc
-    if not isinstance(data, dict) or data.get("version") != 1 or not isinstance(data.get("notes"), dict):
-        raise LedgerError(f"ledger has an unsupported shape or version: {path}")
-    return data
-
-
-def write_ledger(path: Path, ledger: dict[str, Any]) -> None:
-    parent = path.parent
-    created_parent = not parent.exists()
-    parent.mkdir(parents=True, exist_ok=True)
-    if created_parent:
-        parent.chmod(0o700)
-    temp_path = parent / f".{path.name}.{uuid.uuid4().hex}.tmp"
-    descriptor = os.open(temp_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump(ledger, handle, indent=2, sort_keys=True)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(temp_path, path)
-        path.chmod(0o600)
-    finally:
-        if temp_path.exists():
-            temp_path.unlink()
-
-
-def ledger_lookup(ledger: dict[str, Any], target: str) -> dict[str, Any] | None:
-    target = target.strip()
-    for key, entry in ledger.get("notes", {}).items():
-        if key == target:
-            return entry
-        if key.endswith(".md") and key[:-3] == target:
-            return entry
-        if Path(key).stem == target:
-            return entry
     return None
 
 
@@ -157,9 +113,13 @@ def binary_kind(ext: str | None) -> str:
     return "other"
 
 
-def add_binary(binaries: list[dict[str, str]], name: str, kind: str) -> None:
+def add_binary(
+    binaries: list[dict[str, str]], raw_targets: dict[str, str], target: str, kind: str,
+) -> None:
+    name = os.path.basename(target)
     if not any(b["name"] == name for b in binaries):
         binaries.append({"name": name, "kind": kind})
+        raw_targets[name] = target
 
 
 def add_unresolved(unresolved_links: list[str], value: str) -> None:
@@ -171,40 +131,35 @@ def display_name(target: str) -> str:
     """The last "/"-separated segment of a wikilink/embed target — used whenever there is
     no alias, so a folder-qualified target like "Projects/Sub/Deep Note" renders as "Deep
     Note" instead of leaking the vault folder structure. The full target is kept separately
-    in unresolved_links and for ledger lookup."""
+    in unresolved_links."""
     return target.rsplit("/", 1)[-1]
 
 
-def transform_body(body: str, ledger: dict[str, Any]) -> tuple[str, list[dict[str, str]], list[str]]:
+def transform_body(body: str) -> tuple[str, list[dict[str, str]], list[str], dict[str, str]]:
     binaries: list[dict[str, str]] = []
     unresolved_links: list[str] = []
+    raw_targets: dict[str, str] = {}
 
     def replace_embed(match: re.Match[str]) -> str:
         target = match.group(1).strip()
         alias = match.group(2).strip() if match.group(2) else None
         ext = extension_of(target)
         if ext is None or ext == "md":
-            entry = ledger_lookup(ledger, target)
-            if entry is not None:
-                return f"[{alias or display_name(target)}]({entry['url']})"
             add_unresolved(unresolved_links, target)
             return f"(see: {alias or display_name(target)})"
-        add_binary(binaries, os.path.basename(target), binary_kind(ext))
+        add_binary(binaries, raw_targets, target, binary_kind(ext))
         return ""
 
     def replace_md_image(match: re.Match[str]) -> str:
         src = match.group(2).strip()
         if src.startswith("http://") or src.startswith("https://"):
             return match.group(0)
-        add_binary(binaries, os.path.basename(src), binary_kind(extension_of(src)))
+        add_binary(binaries, raw_targets, src, binary_kind(extension_of(src)))
         return ""
 
     def replace_wikilink(match: re.Match[str]) -> str:
         target = match.group(1).strip()
         alias = match.group(2).strip() if match.group(2) else None
-        entry = ledger_lookup(ledger, target)
-        if entry is not None:
-            return f"[{alias or display_name(target)}]({entry['url']})"
         add_unresolved(unresolved_links, target)
         return alias or display_name(target)
 
@@ -247,7 +202,7 @@ def transform_body(body: str, ledger: dict[str, Any]) -> tuple[str, list[dict[st
             text = MD_LINK_RE.sub(replace_md_link, text)
         rebuilt.append(text)
 
-    return "\n".join(rebuilt), binaries, unresolved_links
+    return "\n".join(rebuilt), binaries, unresolved_links, raw_targets
 
 
 def is_local_path_token(token: str) -> bool:
@@ -271,8 +226,95 @@ def scrub_local_paths(text: str) -> tuple[str, int]:
     return "".join(rebuilt), count
 
 
-def render_files_section(binaries: list[dict[str, str]]) -> str:
-    items = "\n".join(f"- {b['name']} ({b['kind']})" for b in binaries)
+def build_basename_index(root: Path) -> dict[str, Path]:
+    """Walk `root` once, skipping dot-directories (.obsidian, .git, .trash, ...), and
+    return a basename -> first-resolved-path map. A symlinked file whose resolved target
+    escapes `root` is excluded, same as the containment rule used everywhere else."""
+    root_resolved = root.resolve()
+    index: dict[str, Path] = {}
+    for dirpath, dirnames, filenames in os.walk(root_resolved):
+        dirnames[:] = [d for d in dirnames if not d.startswith(".")]
+        for filename in filenames:
+            if filename in index:
+                continue
+            candidate = Path(dirpath) / filename
+            resolved_candidate = candidate.resolve()
+            try:
+                resolved_candidate.relative_to(root_resolved)
+            except ValueError:
+                continue
+            index[filename] = resolved_candidate
+    return index
+
+
+def resolve_embed_target(
+    raw_target: str, roots: list[Path], basename_index_cache: dict[Path, dict[str, Path]],
+) -> Path | None:
+    # A dot-prefixed path segment (.trash/x.png, .obsidian/x.png, ...) is never resolved
+    # here, matching the dot-directory skip that build_basename_index already applies to
+    # the basename-walk branch below.
+    has_dot_segment = any(segment.startswith(".") for segment in raw_target.split("/"))
+    if "/" in raw_target and not has_dot_segment:
+        for root in roots:
+            candidate = root / raw_target
+            if candidate.is_file():
+                root_resolved = root.resolve()
+                resolved_candidate = candidate.resolve()
+                try:
+                    resolved_candidate.relative_to(root_resolved)
+                except ValueError:
+                    continue
+                return resolved_candidate
+    basename = os.path.basename(raw_target)
+    for root in roots:
+        if root not in basename_index_cache:
+            basename_index_cache[root] = build_basename_index(root)
+        found = basename_index_cache[root].get(basename)
+        if found is not None:
+            return found
+    return None
+
+
+def resolve_attachments(
+    binaries: list[dict[str, str]], raw_targets: dict[str, str], roots: list[Path], max_bytes: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    attachments: list[dict[str, Any]] = []
+    unattachable: list[dict[str, Any]] = []
+    if not binaries:
+        return attachments, unattachable
+
+    basename_index_cache: dict[Path, dict[str, Path]] = {}
+    for entry in binaries:
+        name = entry["name"]
+        kind = entry["kind"]
+        if extension_of(name) in OBSIDIAN_ONLY_EXTS:
+            unattachable.append({"name": name, "kind": kind, "reason": "obsidian-only"})
+            continue
+        resolved = resolve_embed_target(raw_targets[name], roots, basename_index_cache)
+        if resolved is None:
+            unattachable.append({"name": name, "kind": kind, "reason": "not-found"})
+            continue
+        size = resolved.stat().st_size
+        if size > max_bytes:
+            unattachable.append({"name": name, "kind": kind, "reason": "too-large"})
+            continue
+        attachments.append({"name": name, "path": str(resolved), "bytes": size, "kind": kind})
+    return attachments, unattachable
+
+
+def safe_title(title: str) -> str:
+    replaced = SAFE_TITLE_INVALID_RE.sub("-", title)
+    collapsed = SAFE_TITLE_WHITESPACE_RE.sub(" ", replaced).strip()
+    return collapsed[:120]
+
+
+def render_attached_section(attachments: list[dict[str, Any]]) -> str:
+    items = "\n".join(f"- {a['name']} ({a['kind']})" for a in attachments)
+    return f"\n\n## Attached to this issue\n\n{items}"
+
+
+def render_unattachable_section(unattachable: list[dict[str, Any]]) -> str:
+    items = "\n".join(f"- {u['name']} ({u['kind']}) — {u['reason']}" for u in unattachable)
     return f"\n\n## Files to request from the delegator\n\n{items}"
 
 
@@ -295,14 +337,6 @@ def cmd_export(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return 2
 
-    ledger: dict[str, Any] = {"version": 1, "notes": {}}
-    if args.ledger:
-        try:
-            ledger = load_ledger(Path(args.ledger))
-        except LedgerError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-
     raw_bytes = resolved.read_bytes()
     source_sha256 = hashlib.sha256(raw_bytes).hexdigest()
     try:
@@ -314,52 +348,41 @@ def cmd_export(args: argparse.Namespace) -> int:
 
     body, frontmatter_title = strip_frontmatter(raw_text)
     body = strip_obsidian_comments(body)
-    body, binaries, unresolved_links = transform_body(body, ledger)
+    body, binaries, unresolved_links, raw_targets = transform_body(body)
+    attachments, unattachable = resolve_attachments(binaries, raw_targets, roots, args.max_bytes)
     body, scrubbed_paths = scrub_local_paths(body)
-    if binaries:
-        body += render_files_section(binaries)
+    if attachments:
+        body += render_attached_section(attachments)
+    if unattachable:
+        body += render_unattachable_section(unattachable)
 
-    entry = ledger.get("notes", {}).get(args.note)
-    existing_sha256 = entry["sha256"] if entry else None
+    title = frontmatter_title if frontmatter_title else resolved.stem
+
+    markdown_file: str | None = None
+    if args.out_dir:
+        out_dir = Path(args.out_dir)
+        file_path = out_dir / f"{safe_title(title)}.md"
+        try:
+            out_dir.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(body, encoding="utf-8")
+        except OSError as exc:
+            print(f"failed to write markdown copy: {file_path}: {exc}", file=sys.stderr)
+            return 2
+        markdown_file = str(file_path.resolve())
 
     result = {
         "vault_relative_path": args.note,
-        "title": frontmatter_title if frontmatter_title else resolved.stem,
+        "title": title,
         "body_markdown": body,
         "source_sha256": source_sha256,
         "binaries": binaries,
         "unresolved_links": unresolved_links,
         "scrubbed_paths": scrubbed_paths,
-        "existing_page_id": entry["pageId"] if entry else None,
-        "existing_page_url": entry["url"] if entry else None,
-        "existing_sha256": existing_sha256,
-        "changed": existing_sha256 != source_sha256,
+        "attachments": attachments,
+        "unattachable": unattachable,
+        "markdown_file": markdown_file,
     }
     print(json.dumps(result))
-    return 0
-
-
-def cmd_record(args: argparse.Namespace) -> int:
-    ledger_path = Path(args.ledger)
-    try:
-        ledger = load_ledger(ledger_path)
-    except LedgerError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
-
-    ledger["notes"][args.note] = {
-        "sha256": args.sha256,
-        "pageId": args.page_id,
-        "url": args.url,
-        "title": args.title if args.title else Path(args.note).stem,
-        "updatedAt": now_iso(),
-    }
-    try:
-        write_ledger(ledger_path, ledger)
-    except OSError as exc:
-        print(f"failed to write ledger: {ledger_path}: {exc}", file=sys.stderr)
-        return 2
-    print(f"recorded {args.note} -> {args.page_id}")
     return 0
 
 
@@ -370,17 +393,9 @@ def build_parser() -> argparse.ArgumentParser:
     export = sub.add_parser("export")
     export.add_argument("--note", required=True)
     export.add_argument("--vault-root", action="append")
-    export.add_argument("--ledger")
+    export.add_argument("--out-dir")
+    export.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES)
     export.set_defaults(handler=cmd_export)
-
-    record = sub.add_parser("record")
-    record.add_argument("--note", required=True)
-    record.add_argument("--ledger", required=True)
-    record.add_argument("--page-id", required=True)
-    record.add_argument("--url", required=True)
-    record.add_argument("--sha256", required=True)
-    record.add_argument("--title")
-    record.set_defaults(handler=cmd_record)
 
     return parser
 
