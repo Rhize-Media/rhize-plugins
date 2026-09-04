@@ -21,10 +21,14 @@ existing queue patterns (**any** status) and the files passed via `--reference`.
 2026-09-04 the reference set is `CLAUDE.md`, `~/.claude/CLAUDE.md`,
 `docs/session-guardrails.md`, and the invoking project's auto-memory `MEMORY.md`
 (`~/.claude/projects/<cwd-slashes-as-dashes>/memory/MEMORY.md`) — MEMORY.md was the
-dominant missing reference: on a 2026-09-03 batch, adding it moved 21 of 41 candidates
-from "kept" to correctly `suppressed` (headroom's dry-run output echoes existing
-MEMORY.md sections back as if they were new findings). A missing reference file warns
-and is skipped, never errors — safe to always pass all four.
+dominant missing reference: measured against the reference docs alone (queue
+excluded), adding it moved 21 of 41 candidates in a 2026-09-03 batch from "kept" to
+correctly `suppressed` (headroom's dry-run output echoes existing MEMORY.md sections
+back as if they were new findings). With the live queue's own reference chunks
+included — the actual production configuration — the incremental delta on that same
+batch was 1 of 41, since the queue already caught most of the same overlap; the
+fix's value scales with how sparse a given project's queue history is. A missing
+reference file warns and is skipped, never errors — safe to always pass all four.
 
 | Outcome | Coverage | Action |
 |---|---|---|

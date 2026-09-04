@@ -109,7 +109,7 @@ show queue counts by status and suggest the next subcommand.
         different machine could re-enable it. Side effect of every run: one
         `claude -p` transcript per call under
         `~/.claude/projects/*skillopt-sleep-claude-*/` (not auto-cleaned;
-        21 accumulated from today's verification and were left in place).
+        20 accumulated from today's verification and were left in place).
    c. **Auto-promote rule**: accept the automatic promote only when the re-gate
       verdict is ALLOW, the score improved, AND the proposal touches only
       SKILL.md / reference markdown. If the proposal modifies anything under
