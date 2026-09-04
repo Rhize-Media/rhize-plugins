@@ -45,7 +45,7 @@ Version 0.25.3. Keeps Claude's memory and working context organized across long 
 
 ### rhize-ops
 
-Version 0.20.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.21.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 

@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ version bump — 0.20.0 → 0.21.0 (minor); marketplace 2.61.4 → 2.62.0.
 - _2026-09-04_ **rhize-ops:** `scripts/jira_attach.py` uploads exported vault-note copies and
   their embedded files to the Jira issue via the Atlassian REST API, and `delegate-to-teammate`
   Step 7 gets a new "Upload attachments" step that calls it right after the Jira issue is
