@@ -95,12 +95,28 @@ def test_embed_becomes_binary_and_files_section_appended(roots, capsys):
     assert code == 0
     result = json.loads(out)
     assert "![[diagram.png]]" not in result["body_markdown"]
+    assert "Check [attachment: diagram.png] for the diagram." in result["body_markdown"]
     assert result["binaries"] == [{"name": "diagram.png", "kind": "image"}]
     assert result["attachments"] == []
     assert result["unattachable"] == [{"name": "diagram.png", "kind": "image", "reason": "not-found"}]
     assert "## Attached to this issue" not in result["body_markdown"]
     assert "## Files to request from the delegator" in result["body_markdown"]
     assert "- diagram.png (image) — not-found" in result["body_markdown"]
+
+
+def test_binary_embed_renders_inline_marker_with_basename_only_no_path(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    data = b"PNGDATA"
+    write_binary(root1, "attachments/diagram.png", data)
+    write_note(root1, "WithEmbed.md", "The diagram is ![[diagram.png]].\n")
+
+    code, out, _err = run(["export", "--note", "WithEmbed.md", "--vault-root", str(root1)], capsys)
+    assert code == 0
+    result = json.loads(out)
+    assert "The diagram is [attachment: diagram.png]." in result["body_markdown"]
+    assert str(tmp_path) not in result["body_markdown"]
+    assert "attachments/diagram.png" not in result["body_markdown"]
+    assert "/Users" not in result["body_markdown"]
 
 
 def test_absolute_path_scrubbed_and_counted(roots, capsys):
@@ -433,6 +449,43 @@ def test_out_dir_write_error_exits_2(roots, capsys, tmp_path):
     assert code == 2
     assert out == ""
     assert len(err.strip().splitlines()) == 1
+
+
+def test_safe_title_falls_back_to_stem_when_frontmatter_title_is_blank(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    write_note(root1, "BlankTitle.md", "---\ntitle: \"   \"\n---\nBody text.\n")
+    out_dir = tmp_path / "out"
+
+    code, out, _err = run(
+        ["export", "--note", "BlankTitle.md", "--vault-root", str(root1), "--out-dir", str(out_dir)],
+        capsys,
+    )
+    assert code == 0
+    result = json.loads(out)
+    expected_path = (out_dir / "BlankTitle.md").resolve()
+    assert result["markdown_file"] == str(expected_path)
+    assert expected_path.is_file()
+
+
+def test_safe_title_falls_back_to_stem_when_frontmatter_title_is_only_colons(roots, capsys, tmp_path):
+    root1, _root2 = roots
+    write_note(root1, "ColonTitle.md", '---\ntitle: ":::"\n---\nBody text.\n')
+    out_dir = tmp_path / "out"
+
+    code, out, _err = run(
+        ["export", "--note", "ColonTitle.md", "--vault-root", str(root1), "--out-dir", str(out_dir)],
+        capsys,
+    )
+    assert code == 0
+    result = json.loads(out)
+    expected_path = (out_dir / "ColonTitle.md").resolve()
+    assert result["markdown_file"] == str(expected_path)
+    assert expected_path.is_file()
+
+
+def test_safe_title_unit_fallback_for_whitespace_and_colons():
+    assert vault_note_export.safe_title("   ") == ""
+    assert vault_note_export.safe_title(":::") == ""
 
 
 def test_help_no_longer_mentions_ledger_and_record_rejected(capsys):

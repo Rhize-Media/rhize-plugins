@@ -309,6 +309,10 @@ def test_reference_has_attached_copies_section() -> None:
     assert "## Confluence Context Page" not in text
 
 
+def test_skill_stays_under_byte_budget() -> None:
+    assert len(SKILL.read_bytes()) <= 28000
+
+
 def main() -> int:
     tests = [
         test_contract_fixture_records_provenance,
@@ -330,6 +334,7 @@ def main() -> int:
         test_reference_template_file_exists,
         test_skill_uploads_attachments_after_jira_create,
         test_reference_has_attached_copies_section,
+        test_skill_stays_under_byte_budget,
     ]
     failures = 0
     for function in tests:

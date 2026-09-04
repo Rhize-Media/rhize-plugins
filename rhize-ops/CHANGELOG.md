@@ -20,6 +20,16 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   `--out-dir`/`--max-bytes` instead of `--ledger`, `scripts/delegation_lint.py` gains an
   `attachment-body` lint kind, and `/rhize-ops:delegate-setup` adds a read-only Keychain check
   that reports whether Jira attachments are enabled.
+- _2026-09-04_ **rhize-ops:** final-review fixes to the Jira-attachments pipeline —
+  `delegate-to-teammate` Step 6.1 exports each context-list entry into its own numbered scratch
+  subdirectory so same-titled notes no longer collide, and renames a duplicate attachment
+  basename before upload; each context-list entry gains a `tasks` field so Step 7.3 uploads and
+  lists only that task's own documents; `vault_note_export.py` renders a binary embed inline as
+  `[attachment: <basename>]` instead of dropping it silently, `safe_title` falls back to the
+  note's file stem when the sanitized title is empty or only dashes, and the exporter's `no
+  vault roots configured` exit now points the delegator at `OBSIDIAN_VAULT_PATH`;
+  `scripts/jira_attach.py` no longer lets a read-phase network error (e.g. a timeout) escape
+  uncaught mid-upload.
 
 ### Removed
 

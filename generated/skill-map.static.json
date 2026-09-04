@@ -3767,8 +3767,8 @@
       "path": "rhize-devflow/skills/test-evidence/SKILL.md"
     },
     {
-      "contentHash": "b266aca01612e078bdc2bf3a0dd80902623469a3265fa2ca5a5128221092c536",
-      "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json.",
+      "contentHash": "87ae431525253d064d7e92b28ec515caa994c470068b0d57811e4116cadf3bf6",
+      "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"send this to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json. Run `/rhize-ops:delegate-setup` first if no config exists.",
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
       "name": "delegate-to-teammate",

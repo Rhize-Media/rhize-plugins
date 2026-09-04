@@ -148,7 +148,7 @@ def transform_body(body: str) -> tuple[str, list[dict[str, str]], list[str], dic
             add_unresolved(unresolved_links, target)
             return f"(see: {alias or display_name(target)})"
         add_binary(binaries, raw_targets, target, binary_kind(ext))
-        return ""
+        return f"[attachment: {os.path.basename(target)}]"
 
     def replace_md_image(match: re.Match[str]) -> str:
         src = match.group(2).strip()
@@ -303,8 +303,13 @@ def resolve_attachments(
 
 
 def safe_title(title: str) -> str:
+    """Empty string when the sanitized title is empty or consists only of "-" (both collapse
+    via the same `.strip("-")` check) -- signals the caller to fall back to the note's file
+    stem."""
     replaced = SAFE_TITLE_INVALID_RE.sub("-", title)
     collapsed = SAFE_TITLE_WHITESPACE_RE.sub(" ", replaced).strip()
+    if not collapsed.strip("-"):
+        return ""
     return collapsed[:120]
 
 
@@ -361,7 +366,7 @@ def cmd_export(args: argparse.Namespace) -> int:
     markdown_file: str | None = None
     if args.out_dir:
         out_dir = Path(args.out_dir)
-        file_path = out_dir / f"{safe_title(title)}.md"
+        file_path = out_dir / f"{safe_title(title) or resolved.stem}.md"
         try:
             out_dir.mkdir(parents=True, exist_ok=True)
             file_path.write_text(body, encoding="utf-8")

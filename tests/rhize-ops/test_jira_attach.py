@@ -371,6 +371,45 @@ def test_filename_with_double_quote_is_escaped_in_multipart_header(tmp_path, cap
     assert b'filename="weird"name.txt"' not in requests[0].data
 
 
+class FakeReadRaisesResponse:
+    def __init__(self, exc: Exception):
+        self._exc = exc
+
+    def read(self) -> bytes:
+        raise self._exc
+
+
+def test_read_phase_exception_gives_failed_result_and_exit_1_continues(tmp_path, capsys, monkeypatch):
+    file1 = write_file(tmp_path, "times-out.txt", b"one")
+    file2 = write_file(tmp_path, "ok.txt", b"two")
+
+    calls = {"n": 0}
+
+    def fake_urlopen(request, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return FakeReadRaisesResponse(TimeoutError("timed out"))
+        return FakeResponse(attachment_payload("ok.txt", len(b"two")))
+
+    monkeypatch.setattr(jira_attach, "urlopen", fake_urlopen)
+
+    code, out, _err = run(
+        [
+            "--issue", "PROJ-13", "--file", str(file1), "--file", str(file2),
+            "--base-url", "https://example.atlassian.net", "--json",
+        ],
+        capsys,
+    )
+    assert code == 1
+    assert calls["n"] == 2
+    payload = json.loads(out)
+    assert payload["results"][0]["ok"] is False
+    assert isinstance(payload["results"][0]["error"], str) and payload["results"][0]["error"]
+    assert payload["results"][1]["ok"] is True
+    assert payload["attached"] == 1
+    assert payload["total"] == 2
+
+
 def test_mid_run_401_prints_results_so_far_and_marks_remaining_not_attempted(tmp_path, capsys, monkeypatch):
     file1 = write_file(tmp_path, "one.txt", b"ok")
     file2 = write_file(tmp_path, "two.txt", b"blocked")

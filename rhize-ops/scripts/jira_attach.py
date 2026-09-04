@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import http.client
 import json
 import mimetypes
 import os
@@ -154,14 +155,6 @@ def upload_file(base_url: str, issue_key: str, file_path: Path, email: str, toke
 
     try:
         response = urlopen(request, timeout=60)
-    except urllib.error.HTTPError as exc:
-        if exc.code in (401, 403):
-            raise AuthError(exc.code) from None
-        raise UploadError(f"HTTP {exc.code}") from None
-    except urllib.error.URLError as exc:
-        raise UploadError(str(exc.reason)) from None
-
-    try:
         payload = json.loads(response.read().decode("utf-8"))
         first = payload[0]
         return {
@@ -172,6 +165,14 @@ def upload_file(base_url: str, issue_key: str, file_path: Path, email: str, toke
             "url": first["content"],
             "error": None,
         }
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise AuthError(exc.code) from None
+        raise UploadError(f"HTTP {exc.code}") from None
+    except urllib.error.URLError as exc:
+        raise UploadError(str(exc.reason)) from None
+    except (OSError, http.client.HTTPException) as exc:
+        raise UploadError(str(exc)) from None
     except (json.JSONDecodeError, KeyError, IndexError, TypeError, UnicodeDecodeError) as exc:
         raise UploadError(f"malformed response from Jira: {exc}") from None
 
