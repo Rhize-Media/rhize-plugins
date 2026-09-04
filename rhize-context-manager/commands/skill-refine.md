@@ -22,8 +22,8 @@ show queue counts by status and suggest the next subcommand.
    legal skill target does not get a `target_skill`: fold it in by hand into
    `docs/session-guardrails.md` (never into `CLAUDE.md` — that file is a
    router, not a home for telemetry) and mark the entry `consumed` directly.
-3. Rewrite the queue file with updated statuses. Summarize: N triaged toward M
-   skills, K rejected.
+3. Back up the queue (see Guardrails), then rewrite it with updated statuses.
+   Summarize: N triaged toward M skills, K rejected.
 
 **Two facts that make triage suggestions better, both measured:**
 
@@ -67,5 +67,12 @@ show queue counts by status and suggest the next subcommand.
 
 - Never run `evolve` on an untriaged skill.
 - Never bypass a HOLD by re-running with `--force`.
+- Before any whole-file rewrite that touches more than ~10 entries (a bulk
+  triage pass, not a single status flip), copy the queue to
+  `~/.claude/context-manager/refinement-queue.jsonl.bak-<YYYY-MM-DD>` first —
+  one `cp` / `shutil.copy2`, no rotation. It lives next to the queue file,
+  never in a session scratchpad (2026-09-04: 125 entries were rewritten with
+  the only copy in a scratchpad that died with the session). Never overwrite
+  an existing backup; if today's already exists, suffix the time (`-HHMM`).
 - Queue writes are whole-file rewrites; if the file changed mid-run (mtime
   check), re-read and merge before writing.

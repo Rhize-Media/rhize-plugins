@@ -108,6 +108,20 @@ target, matching every pre-existing entry.
      is the only way to get there without an exact name match — a skill with zero tag edges
      is structurally unroutable regardless of how much real usage it has. Flag each such
      skill as a routing-miss.
+   - **Resolve the node first, and skip what cannot be tagged.** Before counting edges,
+     drop any usage entry that (a) resolves to a `kind: "command"` node —
+     `build_skill_map.py` emits tag edges only inside `load_skills()`, never for commands,
+     so every command with usage would fail forever; (b) resolves to no node at all — the
+     monitor's `plugin:name` key maps to a two-segment `skill:<plugin>/<name>` id only for
+     this repo's own plugins, and a skill outside the map has nothing here to tag; or (c)
+     carries `origin: "third-party"` — the resolver adds installed third-party plugins as
+     three-segment `skill:<marketplace>/<plugin>/<dir>` nodes and deliberately emits no tag
+     edges for them (`build_local_skill_map.py`: "No topic/stack-tag edges are emitted"),
+     since their frontmatter is not ours to edit. Flag only an owned `kind: "skill"` node
+     (no `origin` key) with zero tag edges — the one case where the fix below is
+     actionable. (Tightened 2026-09-04 after four routing-miss signals were rejected at
+     `/skill-refine review` as exactly these classes: two commands, one third-party skill,
+     one skill with no node.)
    - **What is NOT computed here, and must not be claimed as computed**: true
      "suggested-but-ignored" (the router surfaced a skill in a session but a different one
      was used instead). `skill-router.js` emits its suggestion transiently as
