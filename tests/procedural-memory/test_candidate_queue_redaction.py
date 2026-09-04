@@ -30,18 +30,33 @@ def payload_for(command: str, cwd: str, session_id: str = "sess-1") -> str:
     )
 
 
+# The hook declares #!/bin/sh. On macOS /bin/sh is bash in POSIX mode and tolerates
+# bashisms that Debian/Ubuntu's dash rejects (the first CI run failed on a `<<<`
+# herestring and a `${var:0:n}` expansion). Run every case under each POSIX shell
+# present on the machine and require identical output, so the strict shell is
+# exercised locally wherever dash is installed (it ships on macOS 15+ and Debian).
+SHELLS = ["/bin/sh"] + [s for s in ("/bin/dash", "/usr/bin/dash") if Path(s).exists()]
+
+
 def run_hook(payload: str, tmp_path: Path, home: Path) -> str:
-    queue = tmp_path / "candidate-queue.jsonl"
-    env = {
-        "HOME": str(home),
-        "PATH": "/usr/bin:/bin",
-        "PROCEDURAL_MEMORY_CANDIDATE_QUEUE": str(queue),
-    }
-    completed = subprocess.run(
-        ["/bin/sh", str(HOOK)], input=payload, capture_output=True, text=True, env=env
-    )
-    assert completed.returncode == 0, completed.stderr
-    return queue.read_text() if queue.exists() else ""
+    outputs = []
+    for shell in SHELLS:
+        queue = tmp_path / f"candidate-queue{SHELLS.index(shell)}.jsonl"
+        env = {
+            "HOME": str(home),
+            "PATH": "/usr/bin:/bin",
+            "PROCEDURAL_MEMORY_CANDIDATE_QUEUE": str(queue),
+        }
+        completed = subprocess.run(
+            [shell, str(HOOK)], input=payload, capture_output=True, text=True, env=env
+        )
+        assert completed.returncode == 0, f"{shell}: {completed.stderr}"
+        outputs.append(queue.read_text() if queue.exists() else "")
+    # The timestamp field is the only thing allowed to differ between shells.
+    import re
+    normalized = {re.sub(r'"ts":"[^"]*"', '"ts":""', o) for o in outputs}
+    assert len(normalized) == 1, f"shells disagree: {outputs}"
+    return outputs[0]
 
 
 @pytest.mark.parametrize(

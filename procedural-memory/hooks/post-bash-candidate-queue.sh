@@ -69,7 +69,7 @@
 # `duration_ms`), is the one field extracted with `grep -o -m1` instead —
 # it's the only field a huge `stdout` sits in front of, and `grep` doesn't
 # share bash 3.2's pathology. Truncating the (already short, already
-# extracted) command uses `${cmd:0:300}`, not `cut`. `date` remains the one
+# extracted) command is truncated with one `cut` fork (POSIX sh has no substring expansion). `date` remains the one
 # genuinely unavoidable fork (bash 3.2 predates the `printf '%(fmt)T'` and
 # `$EPOCHREALTIME` builtins that would otherwise avoid it) — but it, the one
 # `grep` call, and the redaction `sed` call below, only run on the rare path
@@ -183,9 +183,10 @@ cmd_redacted=$(printf '%s' "$cmd" | sed -E \
     -e 's/xox[abp]-[A-Za-z0-9-]{10,}/[REDACTED]/g' \
     -e 's/sntrys_[A-Za-z0-9_-]{10,}/[REDACTED]/g')
 
-# Truncate to keep the line comfortably short and the queue file greppable
-# — pure substring expansion on the already-redacted $cmd_redacted, not `cut`.
-cmd_trunc="${cmd_redacted:0:300}"
+# Truncate to keep the line comfortably short and the queue file greppable.
+# POSIX sh has no `${var:0:n}` substring expansion (dash: "Bad substitution"),
+# so this is one `cut` fork on the already-redacted $cmd_redacted.
+cmd_trunc=$(printf '%s' "$cmd_redacted" | cut -c1-300)
 
 ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
