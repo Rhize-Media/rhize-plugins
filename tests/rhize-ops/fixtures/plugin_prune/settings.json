@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "stale-plugin@claude-plugins-official": true,
+    "risky-plugin@claude-plugins-official": true,
+    "already-disabled@claude-plugins-official": false
+  }
+}

@@ -6,6 +6,14 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-04_ **rhize-ops:** `/plugin-prune` command + `scripts/plugin_prune.py` — a
+  report-first advisor over a `@rhize/skill-forge` plugin audit
+  (`audit --claude-plugins --json`) plus optional `rhize-skill-monitor` usage snapshots. Prints a
+  per-plugin table (recommendation, active HIGH/CRITICAL findings, weeks-unobserved counted only
+  from *exhaustive* snapshots, and settings-cross-reference status), and never writes
+  `~/.claude/settings.json` itself — the only mutating path is `--apply --disable <id>...`, gated
+  on a real TTY, ids that are present in the audit AND already enabled in settings, and a per-id
+  typed `yes` before delegating to `claude plugin disable <id> --scope user`.
 - _2026-09-04_ version bump — 0.20.0 → 0.21.0 (minor); marketplace 2.61.4 → 2.62.0.
 - _2026-09-04_ **rhize-ops:** `scripts/jira_attach.py` uploads exported vault-note copies and
   their embedded files to the Jira issue via the Atlassian REST API, and `delegate-to-teammate`
