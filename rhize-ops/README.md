@@ -183,3 +183,19 @@ subprocesses return exit 2 while remaining requested IDs still get their own con
 
 The audit command resolves the latest published Skill Forge package (audit JSON needs 0.17+;
 routine JSON needs 0.18+). A newer source version alone does not imply npm publication.
+
+## Host inventory and explicit retention
+
+Export Codex user config/cache evidence with
+`python3 scripts/host_inventory.py --project /absolute/project > codex-inventory.json`
+(Python 3.11+), then use Skill Forge 0.19+
+`audit --plugin-inventory codex-inventory.json --yes --json`. Unresolved or multiple
+cached versions remain unknown; installed files do not prove host invocation.
+Claude audits continue to use `--claude-plugins`; audit the hosts independently.
+
+`skill-forge plugins keep <plugin@marketplace> --host claude|codex --category
+essential|project-specific|intentionally-infrequent --reason '<rationale>'` records
+explicit retention. Add `--project /absolute/project` for project-specific decisions.
+Use `plugins list` to review and `plugins forget` to remove a decision. Keep never
+suppresses safety findings. Plugin-prune displays the rationale and refuses Claude
+disable actions for Codex rows; Claude snapshots cannot establish Codex dormancy.

@@ -210,3 +210,7 @@ to check what's tracked before you commit.
 - [`evals/README.md`](./evals/README.md) — what each evaluation suite grades and how to run it.
 - [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) — the full engineering record before 2026-09-03; each plugin now keeps its own `CHANGELOG.md`.
 - [`docs/session-guardrails.md`](./docs/session-guardrails.md) — the session-level guardrails agents read when a session starts looping.
+
+For plugin retention across Claude and Codex, see [rhize-ops host inventory and keep
+decisions](rhize-ops/GUIDE.md#host-inventory-and-explicit-retention). To turn a known
+skill failure into a verified project refinement, use [skill-refine capture](rhize-context-manager/commands/skill-refine.md#capture--targeted-local-refinement-skill-forge-019).

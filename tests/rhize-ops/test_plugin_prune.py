@@ -738,3 +738,17 @@ def test_snapshot_count_discloses_historical_windows(tmp_path, capsys):
     assert len(payload['snapshots']['windows']) == 2
     assert 'not elapsed weeks' in payload['snapshots']['caveat']
     assert 'agents' in payload['telemetryScope']
+
+
+def test_codex_rows_preserve_keep_rationale_without_claude_disable(monkeypatch, capsys):
+    plugins = [{"pluginId": "ops@rhize", "host": "codex", "skillCount": 1,
+                "recommendation": "review", "findingCounts": {"HIGH": 1},
+                "keepDecision": {"category": "essential", "reason": "Incident recovery"}}]
+    rows = plugin_prune.build_rows(plugins, {"ops@rhize": True})
+    assert rows[0]["recommendation"] == "review"
+    assert rows[0]["findingsHigh"] == 1
+    assert rows[0]["settingsStatus"] == "unknown"
+    assert any("Incident recovery" in n for n in rows[0]["notes"])
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    assert plugin_prune.apply_disable(["ops@rhize"], {"ops@rhize": rows[0]}) == 2
+    assert "Claude reports only" in capsys.readouterr().err
