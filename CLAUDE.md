@@ -183,3 +183,13 @@ description means updating every copy in the same change, not just the one you h
 
 Session-level loop guardrails (hot files, re-read counts, token figures) live in
 `docs/session-guardrails.md` — read it when a session is looping on re-reads or re-runs.
+
+## Governance utility integration (2026-09-05)
+
+`rhize-ops/scripts/host_inventory.py` exports static Codex user config/cache evidence
+using Python 3.11 stdlib TOML; ambiguous versions/project trust remain unknown. Skill
+Forge 0.19 imports this inventory and manages explicit host/project keep rationale.
+Plugin-prune must never join Claude snapshots or call Claude disable for Codex rows.
+`/skill-refine capture` uses explicit project activation and hash/backup read-back;
+queue consumption still requires actual host invocation and original-scenario evidence.
+Caches are never write targets. See both plugins' guides and command documentation.

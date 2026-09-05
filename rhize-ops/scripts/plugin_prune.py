@@ -285,8 +285,14 @@ def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[
         # kept separate from `reasons` (skill-forge's audit reasoning) so --json
         # output never blends the two provenances; `settingsStatus` is the
         # structured form of the same fact ("enabled" is the only actionable value).
-        status = settings_status(plugin_id, enabled_plugins)
+        host = entry.get("host", "claude")
+        status = settings_status(plugin_id, enabled_plugins) if host == "claude" else "unknown"
         notes: list[str] = []
+        keep = entry.get("keepDecision")
+        if isinstance(keep, dict):
+            notes.append(f"explicit keep ({keep.get('category', 'unknown')}): {keep.get('reason', '')}")
+        if host != "claude":
+            notes.append("non-Claude inventory: Claude settings, snapshots and disable do not apply")
         if status == "unknown":
             notes.append("plugin id not found in user-scope settings.json enabledPlugins (not actionable)")
         elif status == "disabled":
@@ -295,6 +301,8 @@ def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[
         rows.append(
             {
                 "pluginId": plugin_id,
+                "host": host,
+                "keepDecision": keep if isinstance(keep, dict) else None,
                 "version": version,
                 "skillCount": skill_count,
                 "findingsHigh": finding_counts.get("HIGH", 0),
@@ -353,6 +361,8 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
             invalid.append(f"{plugin_id}: not a valid plugin id")
         elif row is None:
             invalid.append(f"{plugin_id}: not present in the --audit report")
+        elif row.get("host", "claude") != "claude":
+            invalid.append(f"{plugin_id}: --disable supports Claude reports only")
         elif row["settingsStatus"] != "enabled":
             invalid.append(
                 f"{plugin_id}: not enabled in settings.json (status: {row['settingsStatus']})"
@@ -445,7 +455,7 @@ def main(argv: list[str] | None = None) -> int:
         for row in rows:
             # A number here is a dormancy claim: never make one for a plugin with no skills
             # to observe, or when no exhaustive snapshot backed the window.
-            if snapshots_total == 0 or not row["skillCount"] or sum(bare_plugin_name(r["pluginId"]) == bare_plugin_name(row["pluginId"]) for r in rows) > 1:
+            if row.get("host", "claude") != "claude" or snapshots_total == 0 or not row["skillCount"] or sum(bare_plugin_name(r["pluginId"]) == bare_plugin_name(row["pluginId"]) for r in rows) > 1:
                 continue
             row["snapshotsUnobserved"] = unobserved_by_plugin.get(row["pluginId"])
             row["snapshotsTotal"] = snapshots_total

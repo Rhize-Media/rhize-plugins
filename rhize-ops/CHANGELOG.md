@@ -1,11 +1,17 @@
 # Changelog — rhize-ops
 
+## 0.24.0 — 2026-09-05
+
+- Add a read-only Codex configuration/cache inventory export with explicit unresolved coverage.
+- Preserve host-specific plugin keep rationale in prune reports; prevent Claude disable/snapshot advice for Codex rows.
+
 Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/release/CHANGELOG-history.md).
 
 ## [Unreleased]
 
 ### Added
 
+- _2026-09-05_ version bump — 0.23.1 → 0.24.0 (minor); marketplace 2.65.2 → 2.66.0.
 - _2026-09-05_ version bump — 0.23.0 → 0.23.1 (patch); marketplace 2.65.1 → 2.65.2.
 - _2026-09-05_ version bump — 0.22.0 → 0.23.0 (minor); marketplace 2.64.0 → 2.65.0.
 - _2026-09-04_ version bump — 0.21.0 → 0.22.0 (minor); marketplace 2.63.0 → 2.64.0.

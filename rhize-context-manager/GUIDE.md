@@ -253,3 +253,14 @@ Explicit skill requests also work for name-only entries: start with `Use ecc:acc
 exact identity in both index and map modes; conflicting names abstain. This is an advisory hook,
 not automatic execution. Natural task descriptions still use the conservative existing signal
 thresholds; inferred tags alone do not prove correct invocation or improved task outcomes.
+
+## Targeted refinement activation
+
+`/skill-refine capture` bridges a human-triaged failure to Skill Forge 0.19+
+`refine capture` and `refine activate`. It creates a uniquely named project skill
+for Claude or Codex, keeps the installed source unchanged, and returns a backup and
+project-scoped rollback command. Review the dry-run diff, pass the safety gate,
+and verify the exact loaded path and original failure scenario in a fresh host task
+before marking the queue entry consumed. A written capture or filesystem read-back
+is not proof of host use. See [the command](commands/skill-refine.md) for the complete
+workflow, pending-verification state and supported patch/extend boundaries.

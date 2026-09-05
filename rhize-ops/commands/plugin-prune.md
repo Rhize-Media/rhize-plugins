@@ -70,3 +70,18 @@ timestamp and duration, and includes telemetry scope in JSON. Overlapping or old
 not weeks of inactivity. Invalid, incomplete, bare-key or wholly unjoinable snapshots cannot
 establish dormancy; same plugin names across marketplaces remain unknown. Failed disable
 subprocesses return exit 2 while remaining requested IDs still get their own confirmation.
+
+## Explicit retention and other hosts (Skill Forge 0.19+)
+
+Record an operator's keep rationale with `skill-forge plugins keep <plugin@marketplace>
+--host claude|codex --category essential|project-specific|intentionally-infrequent
+--reason '<reason>'` (project-specific requires `--project <path>`). Do not invent
+these choices from invocation counts. Keep does not suppress a safety review.
+
+For Codex, first export `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/host_inventory.py
+--project <repo> > codex-inventory.json`, then audit with
+`skill-forge audit --plugin-inventory codex-inventory.json --yes --json`. This export
+needs Python 3.11+. Unknown/multiple cached versions remain unresolved. This command
+can display Codex findings, but Claude snapshots/settings/disable do not apply.
+Use `audit --compare <previous-full-audit.json>` to highlight changes; retain the
+full findings and do not interpret scope changes as resolved security issues.

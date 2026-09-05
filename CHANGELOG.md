@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.67.0 — 2026-09-05
+
+- rhize-ops 0.24.0: static Codex inventory export and host-specific retention rationale in prune.
+- rhize-context-manager 0.28.0: targeted Skill Forge capture/activation workflow with host verification and rollback.
+- Requires Skill Forge 0.19+ for the new governance commands; existing audit/prune behavior remains compatible.
+
 Marketplace-level changes only: coordinated version bumps across plugins, cross-plugin programs,
 and changes to repository-wide tooling (`scripts/bump_version.py`, CI, config lint, docs
 generation). A change scoped to one plugin — its own feature, fix, or internal change — belongs in
@@ -27,6 +33,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-05_ version bump — **rhize-context-manager** 0.27.1 → 0.28.0 (minor); marketplace 2.66.0 → 2.67.0.
+- _2026-09-05_ version bump — **rhize-ops** 0.23.1 → 0.24.0 (minor); marketplace 2.65.2 → 2.66.0.
 - _2026-09-05_ version bump — **rhize-ops** 0.23.0 → 0.23.1 (patch); marketplace 2.65.1 → 2.65.2.
 - _2026-09-05_ version bump — **rhize-context-manager** 0.27.0 → 0.27.1 (patch); marketplace 2.65.0 → 2.65.1.
 - _2026-09-05_ version bump — **rhize-ops** 0.22.0 → 0.23.0 (minor); marketplace 2.64.0 → 2.65.0.

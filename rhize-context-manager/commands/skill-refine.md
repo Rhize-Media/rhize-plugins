@@ -2,7 +2,7 @@
 description: Operate the gated skill-refinement pipeline — `review` triages queued signals to target skills; `run` evolves each targeted skill via skill-forge (SkillOpt + safety re-gate) with auto-promote for gate-passing SKILL.md edits
 ---
 
-# /skill-refine [review|run]
+# /skill-refine [review|capture|run]
 
 Consume the refinement queue at `~/.claude/context-manager/refinement-queue.jsonl`.
 Trust model: **human gate at triage** (nothing untriaged reaches the optimizer),
@@ -40,10 +40,11 @@ show queue counts by status and suggest the next subcommand.
    for `~/.claude/skills/learned/*` — no forking needed. This allowlist is
    guidance to the reviewing agent, not a code-enforced control.
 
-   Routing a triaged entry through `skill-forge refine capture` is
-   **deferred** for this case: its project-scope override files are not
-   yet materialized into a plugin cache, so it cannot stand in for editing
-   an installed third-party skill today.
+   For a targeted project refinement, use `capture` below. The base may be
+   read from an installed plugin cache, but activation writes a uniquely named
+   project skill. A cache is never a destination, and the original plugin
+   invocation continues to use the original skill.
+
 4. Back up the queue (see Guardrails), then rewrite it with updated statuses.
    Summarize: N triaged toward M skills, K rejected.
 
@@ -61,9 +62,69 @@ show queue counts by status and suggest the next subcommand.
   directory-shaped targets for anything meant to reach the drain, and verify the
   target has a `SKILL.md` before assigning it.
 
+## `capture` — targeted, local refinement (Skill Forge 0.19+)
+
+Use this for a concrete, human-triaged failure with a known correction. It uses
+no optimizer/provider and does not harvest transcripts. Keep `run` for broader
+optimization requiring separate data/cost authorization.
+
+1. Select human-`triaged` entries for a new capture, or resume entries already in
+   `activation-pending`. Confirm the recorded repo, exact base SKILL.md directory,
+   expected/actual behavior, target section and proposed text. Before capture,
+   back up/rewrite the queue with status `activation-pending`. This distinct status
+   is deliberately excluded from `run` and scheduled drains that select `triaged`.
+   On resume, inspect saved capture/activation IDs and continue only the unfinished
+   step; do not append the same correction again. For
+   this path, the base can be read-only third-party content; the destination is
+   always a new project skill. Do not silently use an arbitrary same-named base.
+2. In the signal's project, write the reviewed correction to a local content
+   file and preview the tracked capture:
+
+   ```bash
+   skill-forge refine capture --skill <capture-name> --category content \
+     --target '<heading>' --override-type patch --action append \
+     --content-file <reviewed-text-file> --expected '<expected>' --actual '<actual>' \
+     --dry-run --json
+   ```
+
+   After approving the exact preview, repeat without `--dry-run`, adding
+   `--yes`. Save `refinementId` and `patternId` on the queue entry. `written`
+   only means capture was recorded; it does not mean the agent loaded it.
+3. Preview and activate a unique project name:
+
+   ```bash
+   skill-forge refine activate --skill <capture-name> --base <exact-base-dir> \
+     --as <unique-project-name> --host claude --dry-run --json
+   ```
+
+   Choose `--host codex` for Codex. Require a non-blocking safety result,
+   inspect the diff and copied file list, then repeat without `--dry-run`,
+   adding `--yes`. The result includes the destination, backup ID, exact
+   invocation and rollback command. Existing destinations, symlinks, unsafe
+   results and non-self-contained resources are refused. Never bypass a block.
+4. Save the activation result on the entry and retain status `activation-pending`. Open a fresh host task in that
+   project, use the returned explicit invocation (`/name` on Claude, `$name`
+   on Codex), and verify the host reads the returned SKILL.md path and handles
+   the original failure scenario. A filesystem check or `refine which` is
+   insufficient evidence of actual invocation. If verification is unavailable,
+   leave it pending; do not invent success or re-capture the same correction.
+5. Only after that read-back and scenario check, record the host/path/result
+   and mark the entry `consumed`. Preserve the source hash, refinement ID,
+   pattern ID, backup ID and rollback command in the run report. On failure,
+   retain `activation-pending` and the reason. Before reverting, inspect the activation
+   backup; run the returned `refine rollback <id> --project --yes` command
+   from the same project. Rollback refuses drift; never add `--force` blindly.
+
+The original plugin is unchanged. A project skill is an explicit fork, not a
+transparent override of `plugin:skill`. Record the source and periodically
+review upstream drift before refreshing it. Patch and extend captures are
+supported; config/hook/script/full overrides require separate handling.
+
 ## `run` — gated refinement pass (safe to run headless)
 
-1. Group `triaged` entries by `target_skill`. If none, report and stop.
+1. Group only `triaged` entries by `target_skill`. Never drain `activation-pending`
+   entries: they belong to the targeted capture workflow and await host verification.
+   If none are triaged, report and stop.
 2. For each target skill:
    a. Present the queued signals as reviewer context in the run report.
    b. Execute: `npx @rhize/skill-forge evolve <skill-dir> --project <repo-of-signals> --backend claude -y --json`

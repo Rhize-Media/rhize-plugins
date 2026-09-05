@@ -1,11 +1,17 @@
 # Changelog — rhize-context-manager
 
+## 0.28.0 — 2026-09-05
+
+- Bridge human-triaged targeted failures through Skill Forge capture and project activation.
+- Keep queue entries pending until the actual host loads the new skill and the failure scenario is verified; document backup and rollback.
+
 Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/release/CHANGELOG-history.md).
 
 ## [Unreleased]
 
 ### Added
 
+- _2026-09-05_ version bump — 0.27.1 → 0.28.0 (minor); marketplace 2.66.0 → 2.67.0.
 - _2026-09-05_ version bump — 0.27.0 → 0.27.1 (patch); marketplace 2.65.0 → 2.65.1.
 - _2026-09-04_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ version bump — 0.25.3 → 0.26.0 (minor); marketplace 2.62.0 → 2.63.0.
