@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-05_ version bump — 0.23.0 → 0.23.1 (patch); marketplace 2.65.1 → 2.65.2.
 - _2026-09-05_ version bump — 0.22.0 → 0.23.0 (minor); marketplace 2.64.0 → 2.65.0.
 - _2026-09-04_ version bump — 0.21.0 → 0.22.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ **rhize-ops:** `/plugin-prune` command + `scripts/plugin_prune.py` — a
@@ -132,3 +133,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 - Snapshot counts are explicitly historical samples (schema v2, `--snapshot-count`; `--weeks`
   remains an alias). Invalid/unjoinable evidence and marketplace collisions cannot establish
   dormancy; selected windows and telemetry limits are visible in JSON. Disable failures return 2.
+
+- Plugin-prune resolves the latest published Skill Forge for audit generation, so a source-only
+  version bump cannot make the command request an unavailable npm release. Audit/routine minimum
+  versions are documented separately.
