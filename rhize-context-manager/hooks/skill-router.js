@@ -103,10 +103,10 @@ function computeMessage() {
 
   const routerIndex = readIndexes();
   const match = routerIndex
-    ? routeFromIndex(routerIndex, promptTokens)
+    ? routeFromIndex(routerIndex, promptTokens, prompt)
     : (() => {
         const doc = readMap();
-        return doc ? route(doc, promptTokens) : null;
+        return doc ? route(doc, promptTokens, prompt) : null;
       })();
 
   const message = formatMatch(match);

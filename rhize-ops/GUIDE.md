@@ -107,7 +107,7 @@ runs that still need factual terminal finalization.
 
 ### /plugin-prune
 
-**What it's for:** Deciding, with evidence, which enabled Claude Code plugins you can switch off. It runs a `@rhize/skill-forge` (0.17+) plugin audit over everything enabled, joins the last few weeks of skill-monitor usage snapshots, and prints one advisory row per plugin — recommendation, active HIGH/CRITICAL findings, and how many exhaustive weeks never observed any of its skills. It never edits `~/.claude/settings.json`; if you name plugins to disable, it asks for a typed `yes` per plugin in your own terminal and then runs `claude plugin disable <id> --scope user`. Skill telemetry says nothing about a plugin's hooks, commands, or MCP servers, so treat "unobserved" as a prompt to look, not a verdict.
+**What it's for:** Deciding, with evidence, which enabled Claude Code plugins you can switch off. It runs a `@rhize/skill-forge` (0.17+) plugin audit over everything enabled, joins the latest skill-monitor usage snapshots, and prints one advisory row per plugin — recommendation, active HIGH/CRITICAL findings, and how many exhaustive snapshots never observed any of its skills. It never edits `~/.claude/settings.json`; if you name plugins to disable, it asks for a typed `yes` per plugin in your own terminal and then runs `claude plugin disable <id> --scope user`. Skill telemetry says nothing about a plugin's hooks, agents, commands, or MCP servers, so treat "unobserved" as a prompt to look, not a verdict.
 
 **Example usage:**
 > "/rhize-ops:plugin-prune" — read the table, then say which plugins (if any) to disable; nothing changes until you confirm each one.
@@ -169,3 +169,11 @@ promote, or roll back a strategy on their own. Formally acting on a batch of rec
 `rhize-context-manager`'s reviewed decision process, not this plugin — see the
 [README](./README.md#decision-accountability-adapter) for exactly what that requires and what it
 never does.
+
+
+Snapshot history uses `--snapshot-count N` (`--weeks` remains a legacy alias). Output schema
+`rhize-plugin-prune-v2` uses `snapshotsUnobserved`/`snapshotsTotal`, reports each selected window's
+timestamp and duration, and includes telemetry scope in JSON. Overlapping or old samples are
+not weeks of inactivity. Invalid, incomplete, bare-key or wholly unjoinable snapshots cannot
+establish dormancy; same plugin names across marketplaces remain unknown. Failed disable
+subprocesses return exit 2 while remaining requested IDs still get their own confirmation.

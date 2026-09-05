@@ -112,7 +112,7 @@ def test_json_output_is_one_document(capsys):
         capsys,
     )
     payload = json.loads(out)
-    assert payload["schema"] == "rhize-plugin-prune-v1"
+    assert payload["schema"] == "rhize-plugin-prune-v2"
     ids = {row["pluginId"] for row in payload["plugins"]}
     assert ids == {
         "code-review@claude-plugins-official",
@@ -349,6 +349,7 @@ def test_apply_disable_reports_nonzero_subprocess_exit_and_continues(monkeypatch
         capsys,
     )
 
+    assert code == 2
     # Both ids still get a confirmation attempt even though the first failed.
     lines = log.read_text(encoding="utf-8").splitlines()
     assert lines == [
@@ -413,7 +414,7 @@ def test_weeks_unobserved_counts_only_exhaustive_snapshots_selected_by_generated
     # mtimes are set to the OPPOSITE order (older has the newest mtime, newer
     # has the oldest) so a selection bug that sorted by mtime instead would
     # pick [older, capped] instead -> "silent" WOULD be observed there,
-    # flipping weeksUnobserved from 1 to 0. This is the behavioral difference
+    # flipping snapshotsUnobserved from 1 to 0. This is the behavioral difference
     # a mtime-based regression would actually change, not just a value that
     # happens to be identical either way.
     older = snapshots / "a-older.json"
@@ -438,13 +439,13 @@ def test_weeks_unobserved_counts_only_exhaustive_snapshots_selected_by_generated
     payload = json.loads(out)
     assert payload["snapshots"]["selected"] == 2
     assert payload["snapshots"]["skippedNonExhaustive"] == 1
-    assert payload["snapshots"]["weeksConsidered"] == 1
+    assert payload["snapshots"]["snapshotsConsidered"] == 1
 
     rows = {row["pluginId"]: row for row in payload["plugins"]}
-    assert rows["observed@claude-plugins-official"]["weeksTotal"] == 1
-    assert rows["observed@claude-plugins-official"]["weeksUnobserved"] == 0
-    assert rows["silent@claude-plugins-official"]["weeksTotal"] == 1
-    assert rows["silent@claude-plugins-official"]["weeksUnobserved"] == 1
+    assert rows["observed@claude-plugins-official"]["snapshotsTotal"] == 1
+    assert rows["observed@claude-plugins-official"]["snapshotsUnobserved"] == 0
+    assert rows["silent@claude-plugins-official"]["snapshotsTotal"] == 1
+    assert rows["silent@claude-plugins-official"]["snapshotsUnobserved"] == 1
 
 
 
@@ -478,9 +479,9 @@ def test_exhaustiveness_inferred_from_top_skills_length_without_skill_totals(tmp
     )
     payload = json.loads(out)
     assert payload["snapshots"]["skippedNonExhaustive"] == 0
-    assert payload["snapshots"]["weeksConsidered"] == 1
+    assert payload["snapshots"]["snapshotsConsidered"] == 1
     row = next(r for r in payload["plugins"] if r["pluginId"] == "observed@claude-plugins-official")
-    assert row["weeksUnobserved"] == 0
+    assert row["snapshotsUnobserved"] == 0
 
 
 def test_mixed_naive_and_aware_generated_at_does_not_crash_selection(tmp_path, capsys):
@@ -535,8 +536,8 @@ def test_no_snapshots_flag_means_weeks_fields_are_null(capsys):
     )
     payload = json.loads(out)
     for row in payload["plugins"]:
-        assert row["weeksUnobserved"] is None
-        assert row["weeksTotal"] is None
+        assert row["snapshotsUnobserved"] is None
+        assert row["snapshotsTotal"] is None
     assert "snapshots" not in payload
 
 
@@ -640,7 +641,7 @@ def test_empty_snapshot_is_not_exhaustive_evidence(tmp_path, capsys):
 
     doc = json.loads(out)
     row = doc["rows"][0] if "rows" in doc else doc["plugins"][0]
-    assert row["weeksTotal"] == 1 and row["weeksUnobserved"] == 0
+    assert row["snapshotsTotal"] == 1 and row["snapshotsUnobserved"] == 0
     assert doc["snapshots"]["skippedNonExhaustive"] == 2
 
 
@@ -660,8 +661,8 @@ def test_zero_skill_plugin_and_zero_week_window_report_no_dormancy_number(tmp_pa
     )
     doc = json.loads(out)
     rows = {r["pluginId"]: r for r in (doc["rows"] if "rows" in doc else doc["plugins"])}
-    assert rows["cmdonly@mkt"]["weeksTotal"] is None and rows["cmdonly@mkt"]["weeksUnobserved"] is None
-    assert rows["realplug@mkt"]["weeksTotal"] == 1
+    assert rows["cmdonly@mkt"]["snapshotsTotal"] is None and rows["cmdonly@mkt"]["snapshotsUnobserved"] is None
+    assert rows["realplug@mkt"]["snapshotsTotal"] == 1
 
     # A window with no exhaustive snapshot at all yields no numbers either.
     _snapshot(snaps / "a.json", "2026-09-01T00:00:00+00:00", unique_skills_used=5, top_skills=[["x:y", 1]])
@@ -671,7 +672,7 @@ def test_zero_skill_plugin_and_zero_week_window_report_no_dormancy_number(tmp_pa
     )
     doc = json.loads(out)
     rows = {r["pluginId"]: r for r in (doc["rows"] if "rows" in doc else doc["plugins"])}
-    assert rows["realplug@mkt"]["weeksTotal"] is None
+    assert rows["realplug@mkt"]["snapshotsTotal"] is None
 
 
 def test_unrecognized_recommendation_is_marked_and_alerts(tmp_path, capsys):
@@ -712,3 +713,28 @@ def test_confirmation_prompt_names_the_exact_command(monkeypatch, tmp_path, caps
     )
     assert prompts and f"{FAKE_CLAUDE} plugin disable code-review@claude-plugins-official --scope user" in prompts[0]
     assert not log.exists()
+
+
+def test_bare_or_invalid_usage_never_becomes_plugin_dormancy():
+    for totals in [{'python-patterns': 5}, {'ecc:x': 1, 'bare': 2}, {'ecc:x': -1}, {'ecc:x': True}]:
+        counts, total, skipped = plugin_prune.compute_snapshots([{'skill_totals': totals}], ['ecc@ecc'])
+        assert total == 0 and skipped == 1
+
+
+def test_missing_disable_binary_returns_failure(monkeypatch, capsys):
+    monkeypatch.setenv('PLUGIN_PRUNE_CLAUDE_BIN', '/missing/governance-test-binary')
+    monkeypatch.setattr(sys.stdin, 'isatty', lambda: True)
+    monkeypatch.setattr('builtins.input', lambda prompt='': 'yes')
+    assert plugin_prune.apply_disable(['test@market'], {'test@market': {'settingsStatus': 'enabled'}}) == 2
+
+
+def test_snapshot_count_discloses_historical_windows(tmp_path, capsys):
+    snapshots = tmp_path / 'snapshots'
+    snapshots.mkdir()
+    _write_snapshot(snapshots / 'one.json', '2026-08-31T00:00:00Z', ['code-review:check'])
+    _write_snapshot(snapshots / 'two.json', '2026-08-30T00:00:00Z', ['code-review:check'])
+    code, out, err = run(['--audit', str(AUDIT_FIXTURE), '--settings', str(SETTINGS_FIXTURE), '--snapshots', str(snapshots), '--snapshot-count', '2', '--json'], capsys)
+    payload = json.loads(out)
+    assert len(payload['snapshots']['windows']) == 2
+    assert 'not elapsed weeks' in payload['snapshots']['caveat']
+    assert 'agents' in payload['telemetryScope']

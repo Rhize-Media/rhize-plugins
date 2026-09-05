@@ -265,3 +265,10 @@ path first.
   and reports upstream movement.
 - New intake: always via `npx @rhize/skill-forge add -y -t rhize-context-manager/skills <source>`
   so the gate + provenance ledger stay authoritative.
+
+
+Explicit skill requests also work for name-only entries: start with `Use ecc:accessibility` or
+`Use accessibility` when that bare name is unique in the loaded inventory. The router checks
+exact identity in both index and map modes; conflicting names abstain. This is an advisory hook,
+not automatic execution. Natural task descriptions still use the conservative existing signal
+thresholds; inferred tags alone do not prove correct invocation or improved task outcomes.

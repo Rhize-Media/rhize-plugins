@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-05_ version bump — 0.22.0 → 0.23.0 (minor); marketplace 2.64.0 → 2.65.0.
 - _2026-09-04_ version bump — 0.21.0 → 0.22.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ **rhize-ops:** `/plugin-prune` command + `scripts/plugin_prune.py` — a
   report-first advisor over a `@rhize/skill-forge` plugin audit
@@ -125,3 +126,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   hardcoding `${CLAUDE_PLUGIN_ROOT}/skill-monitor/`; it stops with a clone hint when the tool
   isn't found. `setup/manifest.json` gains an optional `rhize-skill-monitor` data dependency and
   the `skill-monitor-data` artifact's viewer command is updated to match.
+
+### Governance review corrections (2026-09-05)
+
+- Snapshot counts are explicitly historical samples (schema v2, `--snapshot-count`; `--weeks`
+  remains an alias). Invalid/unjoinable evidence and marketplace collisions cannot establish
+  dormancy; selected windows and telemetry limits are visible in JSON. Disable failures return 2.

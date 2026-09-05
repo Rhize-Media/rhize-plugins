@@ -246,3 +246,10 @@ the right one, and health-checks the whole thing.
 - **Duplicate context injection** → per the coexistence policy, prefer dropping the
   per-repo memory layer (OpenWolf) over the global one (claude-mem) unless the repo
   actively uses OpenWolf's correction hooks.
+
+
+Explicit skill requests also work for name-only entries: start with `Use ecc:accessibility` or
+`Use accessibility` when that bare name is unique in the loaded inventory. The router checks
+exact identity in both index and map modes; conflicting names abstain. This is an advisory hook,
+not automatic execution. Natural task descriptions still use the conservative existing signal
+thresholds; inferred tags alone do not prove correct invocation or improved task outcomes.

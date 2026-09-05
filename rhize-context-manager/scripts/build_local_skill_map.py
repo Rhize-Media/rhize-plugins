@@ -891,7 +891,7 @@ def build_resolved_indexes(
     for skill_id, name, inferred in _inferred_by_skill(third_party_nodes or [], tags_catalog or []):
         # Every third-party skill gets a name signal (mirroring build_router_index) so index
         # membership never depends on whether tag inference happened to hit; name alone
-        # still cannot clear routeFromIndex()'s two-signal floor.
+        # still needs two signals for implicit scoring; an explicit unique request can qualify.
         signals[skill_id] = [
             {"kind": "name", "weight": 1, "label": name},
             *({"kind": "tag-inferred", "weight": 0.5, "label": slug} for slug in inferred),

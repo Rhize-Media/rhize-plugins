@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-05_ version bump — 0.27.0 → 0.27.1 (patch); marketplace 2.65.0 → 2.65.1.
 - _2026-09-04_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.63.0 → 2.64.0.
 - _2026-09-04_ version bump — 0.25.3 → 0.26.0 (minor); marketplace 2.62.0 → 2.63.0.
 - **Inferred router signals for third-party skills** (WP-I,
@@ -84,3 +85,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
   reanalyzed session counts were growing weekday over weekday). Daily cadence
   itself is kept — the weekly `headroom-learn-sweep` task that would have
   provided redundant coverage is currently disabled.
+
+### Governance review corrections (2026-09-05)
+
+- A leading explicit `Use`/`Invoke`/`Run` request can identify a unique name-only skill in both
+  router paths. Ambiguous identities abstain; ordinary prompts retain implicit routing rules.
+  These remain suggestions, not evidence of actual invocation or task-quality improvements.

@@ -118,7 +118,7 @@ function computeResult() {
 
   const promptTokens = tokenize(brief);
   const candidate =
-    mode === 'index' ? routeFromIndex(routerIndex, promptTokens) : route(mapDoc, promptTokens);
+    mode === 'index' ? routeFromIndex(routerIndex, promptTokens, brief) : route(mapDoc, promptTokens, brief);
   const suggestedSkills =
     candidate && candidate.score >= BRIEF_MIN_SCORE ? [candidate.skillId] : [];
 
