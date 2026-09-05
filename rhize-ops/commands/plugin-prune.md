@@ -18,11 +18,11 @@ an explicit, per-plugin confirmed `claude plugin disable <id> --scope user`.
    TMP_AUDIT="$(mktemp -t plugin-prune-audit)"
    ```
 2. Generate a fresh skill-forge plugin audit into that temp file (needs `@rhize/skill-forge`
-   0.18 or newer — that is the first release with `--claude-plugins` and the `plugins[]` report
+   0.17 or newer for `audit`, or 0.18+ for `routine` JSON. Version 0.17 first added `--claude-plugins` and the `plugins[]` report
    section; an older audit has no `plugins` array and step 3 refuses it with a message naming
    the required version):
    ```bash
-   npx -y @rhize/skill-forge@0.18 audit --yes --claude-plugins \
+   npx -y @rhize/skill-forge@latest audit --yes --claude-plugins \
      --usage-snapshot "$MONITOR_ROOT/data/snapshots" --json > "$TMP_AUDIT"
    ```
 3. Run the advisor against that report and the latest 4 snapshots (historical samples, not four elapsed weeks):

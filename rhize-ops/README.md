@@ -180,3 +180,6 @@ timestamp and duration, and includes telemetry scope in JSON. Overlapping or old
 not weeks of inactivity. Invalid, incomplete, bare-key or wholly unjoinable snapshots cannot
 establish dormancy; same plugin names across marketplaces remain unknown. Failed disable
 subprocesses return exit 2 while remaining requested IDs still get their own confirmation.
+
+The audit command resolves the latest published Skill Forge package (audit JSON needs 0.17+;
+routine JSON needs 0.18+). A newer source version alone does not imply npm publication.
