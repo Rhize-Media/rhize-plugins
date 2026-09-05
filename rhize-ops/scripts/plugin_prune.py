@@ -29,10 +29,8 @@ Exit codes:
   1  at least one plugin is `review` or `unobserved` (so a cron job can alert)
   2  usage/input error (bad audit file, bad flag combination, --apply refused)
 
-`--apply` returns 0 once every requested id has been prompted for, even if an
-individual `claude plugin disable` invocation failed (that failure is printed to
-stderr and the next id is still attempted) — the confirmation flow itself is the
-safety gate, not the exit code.
+`--apply` returns 2 if any requested disable fails; remaining ids are still prompted.
+Snapshot counts may cover overlapping historical windows; they are not elapsed weeks.
 """
 from __future__ import annotations
 
@@ -46,7 +44,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "rhize-plugin-prune-v1"
+SCHEMA = "rhize-plugin-prune-v2"
 DEFAULT_SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
 KNOWN_RECOMMENDATIONS = {"keep", "review", "unobserved", "unknown"}
 # A value outside the producer's enum is contract drift: rendered with a marker and treated
@@ -176,23 +174,21 @@ def parse_generated_at(value: Any) -> datetime | None:
 def snapshot_usage_keys(report: dict[str, Any]) -> tuple[bool, list[str]]:
     """Return (exhaustive, usage_keys) for one snapshot's `report` object."""
     skill_totals = report.get("skill_totals")
-    if isinstance(skill_totals, dict):
-        keys = [k for k in skill_totals if isinstance(k, str)]
-        # A snapshot that observed nothing is not evidence of dormancy (missing
-        # transcripts, a stub file, an idle week) — never count it as exhaustive.
-        return bool(keys), keys
-
-    top_skills = report.get("top_skills")
-    keys: list[str] = []
-    if isinstance(top_skills, list):
-        for entry in top_skills:
-            if isinstance(entry, (list, tuple)) and entry and isinstance(entry[0], str):
-                keys.append(entry[0])
-
+    rows = list(skill_totals.items()) if isinstance(skill_totals, dict) else report.get("top_skills")
+    if not isinstance(rows, list):
+        return False, []
+    counts: dict[str, int] = {}
+    for row in rows:
+        if (not isinstance(row, (list, tuple)) or len(row) != 2 or
+                not isinstance(row[0], str) or not row[0].strip() or row[0] in counts or
+                type(row[1]) is not int or row[1] < 0):
+            return False, []
+        counts[row[0]] = row[1]
+    keys = [key for key, count in counts.items() if count > 0]
     unique = report.get("unique_skills_used")
-    exhaustive = (
-        isinstance(top_skills, list) and isinstance(unique, int) and len(top_skills) == unique and bool(keys)
-    )
+    if "unique_skills_used" in report and (type(unique) is not int or unique < 0 or unique != len(keys)):
+        return False, keys
+    exhaustive = bool(keys) and (isinstance(skill_totals, dict) or unique == len(keys))
     return exhaustive, keys
 
 
@@ -227,12 +223,12 @@ def load_snapshots(snapshots_dir: Path, weeks: int) -> tuple[list[dict[str, Any]
     return selected, unreadable
 
 
-def compute_weeks(
+def compute_snapshots(
     selected_reports: list[dict[str, Any]], plugin_ids: list[str]
 ) -> tuple[dict[str, int], int, int]:
-    """Return ({pluginId: weeksUnobserved}, weeksTotal, skippedNonExhaustive).
+    """Return ({pluginId: snapshotsUnobserved}, snapshotsTotal, skippedNonExhaustive).
 
-    `weeksTotal` (the count of exhaustive snapshots among `selected_reports`) is
+    `snapshotsTotal` (the count of exhaustive snapshots among `selected_reports`) is
     the single source of truth for that number — every caller reads it from here
     rather than re-deriving it.
     """
@@ -240,13 +236,16 @@ def compute_weeks(
     skipped_non_exhaustive = 0
     for report in selected_reports:
         exhaustive, keys = snapshot_usage_keys(report)
-        if not exhaustive:
+        # Bare keys cannot be assigned using a plugin-summary-only report. Never turn
+        # missing identity into dormancy, even when some other prefix happened to join.
+        prefixes = {bare_plugin_name(plugin_id) for plugin_id in plugin_ids}
+        if not exhaustive or any(':' not in k for k in keys) or not any(k.split(':', 1)[0] in prefixes for k in keys):
             skipped_non_exhaustive += 1
             continue
         observed_prefixes_per_snapshot.append({k.split(":", 1)[0] for k in keys if ":" in k})
 
-    weeks_total = len(observed_prefixes_per_snapshot)
-    weeks_unobserved_by_plugin = {
+    snapshots_total = len(observed_prefixes_per_snapshot)
+    unobserved_by_plugin = {
         plugin_id: sum(
             1
             for observed_prefixes in observed_prefixes_per_snapshot
@@ -254,7 +253,7 @@ def compute_weeks(
         )
         for plugin_id in plugin_ids
     }
-    return weeks_unobserved_by_plugin, weeks_total, skipped_non_exhaustive
+    return unobserved_by_plugin, snapshots_total, skipped_non_exhaustive
 
 
 # ---------------------------------------------------------------------------
@@ -265,7 +264,7 @@ def compute_weeks(
 def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[dict[str, Any]]:
     """Build one row per plugin entry. `plugins_raw` is assumed already
     control-character-sanitized (load_audit's job, not this function's).
-    `weeksUnobserved`/`weeksTotal` start as None; main() fills them in when
+    `snapshotsUnobserved`/`snapshotsTotal` start as None; main() fills them in when
     snapshots were requested."""
     rows: list[dict[str, Any]] = []
     for entry in plugins_raw:
@@ -304,8 +303,8 @@ def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[
                 "reasons": reasons,
                 "notes": notes,
                 "settingsStatus": status,
-                "weeksUnobserved": None,
-                "weeksTotal": None,
+                "snapshotsUnobserved": None,
+                "snapshotsTotal": None,
             }
         )
     rows.sort(key=lambda r: r["pluginId"])
@@ -313,10 +312,10 @@ def build_rows(plugins_raw: list[Any], enabled_plugins: dict[str, Any]) -> list[
 
 
 def render_table(rows: list[dict[str, Any]]) -> str:
-    headers = ["pluginId", "version", "skills", "H/C", "recommendation", "weeks", "reasons"]
+    headers = ["pluginId", "version", "skills", "H/C", "recommendation", "snapshots", "reasons"]
     lines = [" | ".join(headers), "-" * 100]
     for row in rows:
-        weeks = "-" if row["weeksTotal"] is None else f"{row['weeksUnobserved']}/{row['weeksTotal']}"
+        weeks = "-" if row["snapshotsTotal"] is None else f"{row['snapshotsUnobserved']}/{row['snapshotsTotal']}"
         hc = f"{row['findingsHigh']}/{row['findingsCritical']}"
         combined_reasons = row["reasons"] + row["notes"]
         reasons_cell = "; ".join(combined_reasons) if combined_reasons else "-"
@@ -368,6 +367,7 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
         return 2
 
     claude_bin = os.environ.get("PLUGIN_PRUNE_CLAUDE_BIN") or "claude"
+    failed = False
     for plugin_id in ids:
         argv = [claude_bin, "plugin", "disable", plugin_id, "--scope", "user"]
         answer = input(f"Disable {plugin_id} via `{' '.join(argv)}`? type yes to confirm: ")
@@ -377,9 +377,11 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
         try:
             result = subprocess.run(argv, capture_output=True, text=True)
         except OSError as exc:
+            failed = True
             print(f"error: could not run {claude_bin!r}: {exc}", file=sys.stderr)
             continue
         if result.returncode != 0:
+            failed = True
             print(
                 f"error: disabling {plugin_id} failed (exit {result.returncode}): "
                 f"{result.stderr.strip()}",
@@ -387,7 +389,7 @@ def apply_disable(ids: list[str], rows_by_id: dict[str, dict[str, Any]]) -> int:
             )
         else:
             print(f"disabled {plugin_id}")
-    return 0
+    return 2 if failed else 0
 
 
 # ---------------------------------------------------------------------------
@@ -400,7 +402,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--audit", required=True, type=Path, help="skill-forge audit/routine JSON report")
     parser.add_argument("--settings", type=Path, default=DEFAULT_SETTINGS_PATH, help="Claude Code settings.json (default: ~/.claude/settings.json)")
     parser.add_argument("--snapshots", type=Path, default=None, help="directory of rhize-skill-monitor snapshot *.json files")
-    parser.add_argument("--weeks", type=int, default=None, help="number of latest snapshots to consider (required with --snapshots)")
+    parser.add_argument("--snapshot-count", "--weeks", dest="snapshot_count", type=int, default=None, help="number of latest snapshots, not elapsed weeks (--weeks is a legacy alias)")
     parser.add_argument("--json", action="store_true", help="print one JSON document instead of a table")
     parser.add_argument("--apply", action="store_true", help="disable the ids named by --disable (requires a TTY + typed confirmation)")
     parser.add_argument("--disable", action="append", default=[], metavar="ID", help="plugin id (plugin@marketplace) to disable; repeatable")
@@ -414,11 +416,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.apply and not args.disable:
         print("error: --apply requires at least one --disable <id>", file=sys.stderr)
         return 2
-    if (args.snapshots is None) != (args.weeks is None):
-        print("error: --snapshots and --weeks must be given together", file=sys.stderr)
+    if (args.snapshots is None) != (args.snapshot_count is None):
+        print("error: --snapshots and --snapshot-count (--weeks alias) must be given together", file=sys.stderr)
         return 2
-    if args.weeks is not None and args.weeks < 1:
-        print("error: --weeks must be a positive integer", file=sys.stderr)
+    if args.snapshot_count is not None and args.snapshot_count < 1:
+        print("error: --snapshot-count (--weeks alias) must be a positive integer", file=sys.stderr)
         return 2
 
     try:
@@ -436,24 +438,26 @@ def main(argv: list[str] | None = None) -> int:
         if not args.snapshots.is_dir():
             print(f"error: --snapshots path is not a directory: {args.snapshots}", file=sys.stderr)
             return 2
-        selected_reports, unreadable = load_snapshots(args.snapshots, args.weeks)
-        weeks_unobserved_by_plugin, weeks_total, skipped_non_exhaustive = compute_weeks(
+        selected_reports, unreadable = load_snapshots(args.snapshots, args.snapshot_count)
+        unobserved_by_plugin, snapshots_total, skipped_non_exhaustive = compute_snapshots(
             selected_reports, [row["pluginId"] for row in rows]
         )
         for row in rows:
             # A number here is a dormancy claim: never make one for a plugin with no skills
             # to observe, or when no exhaustive snapshot backed the window.
-            if weeks_total == 0 or not row["skillCount"]:
+            if snapshots_total == 0 or not row["skillCount"] or sum(bare_plugin_name(r["pluginId"]) == bare_plugin_name(row["pluginId"]) for r in rows) > 1:
                 continue
-            row["weeksUnobserved"] = weeks_unobserved_by_plugin.get(row["pluginId"])
-            row["weeksTotal"] = weeks_total
+            row["snapshotsUnobserved"] = unobserved_by_plugin.get(row["pluginId"])
+            row["snapshotsTotal"] = snapshots_total
         snapshots_summary = {
             "dir": str(args.snapshots),
-            "weeksRequested": args.weeks,
+            "snapshotsRequested": args.snapshot_count,
             "selected": len(selected_reports),
-            "weeksConsidered": weeks_total,
+            "snapshotsConsidered": snapshots_total,
             "skippedNonExhaustive": skipped_non_exhaustive,
             "unreadable": unreadable,
+            "windows": [{"generatedAt": r.get("generated_at"), "windowDays": r.get("window_days")} for r in selected_reports],
+            "caveat": "Snapshot counts are historical samples, may overlap, and are not elapsed weeks. Unjoinable snapshots are skipped.",
         }
 
     rows_by_id = {row["pluginId"]: row for row in rows}
@@ -476,6 +480,7 @@ def main(argv: list[str] | None = None) -> int:
             "auditPath": str(args.audit),
             "settingsPath": str(args.settings),
             "plugins": rows,
+            "telemetryScope": "Recorded skill invocations only; does not establish hooks, agents, commands, MCP activity or task quality.",
         }
         if snapshots_summary is not None:
             payload["snapshots"] = snapshots_summary
@@ -485,14 +490,15 @@ def main(argv: list[str] | None = None) -> int:
         if snapshots_summary is not None:
             print(
                 f"\n{snapshots_summary['selected']} snapshot(s) selected "
-                f"(by generated_at); {snapshots_summary['weeksConsidered']} exhaustive, "
-                f"{snapshots_summary['skippedNonExhaustive']} skipped as non-exhaustive, "
-                f"{snapshots_summary['unreadable']} unreadable."
+                f"(by generated_at); {snapshots_summary['snapshotsConsidered']} exhaustive, "
+                f"{snapshots_summary['skippedNonExhaustive']} skipped as non-exhaustive or unjoinable, "
+                f"{snapshots_summary['unreadable']} unreadable. "
+                f"{snapshots_summary['caveat']} Windows: {snapshots_summary['windows']}"
             )
         print(
             "\nRecommendations are advisory: dormancy is only reported from exhaustive "
             "snapshots, and skill telemetry says nothing about a plugin's hooks, commands, "
-            "or MCP servers."
+            "agents, or MCP servers."
         )
 
     return exit_code

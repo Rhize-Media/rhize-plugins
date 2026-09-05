@@ -161,12 +161,31 @@ function formatSignalLabel(signal) {
   return signal.kind === 'tag-inferred' ? `${label} (inferred)` : label;
 }
 
+// A leading explicit request is stronger than inferred tags. Matching is exact and
+// unique across the loaded inventory; negation/prose mentions use ordinary scoring.
+function explicitRequest(skillIds, prompt) {
+  if (/^(?:please\s+)?(?:do not|don't|never)\s+(?:use|invoke|run)\s+/i.test(String(prompt || '').trim())) return null;
+  const directive = /^(?:please\s+)?(?:use|invoke|run)\s+[`/]?([a-z0-9][a-z0-9_:-]*)(?=[`\s.,;!?]|$)/i.exec(String(prompt || '').trim());
+  if (!directive) return undefined;
+  const requested = directive[1].toLowerCase();
+  const matches = skillIds.filter((id) => {
+    const ref = formatSkillRef(id);
+    const parts = splitSkillId(id);
+    return ref && parts && (requested.includes(':') ? ref.toLowerCase() === requested : parts.skill.toLowerCase() === requested);
+  });
+  if (matches.length === 0) return undefined;
+  if (matches.length !== 1) return null;
+  return { skillId: matches[0], score: 3, signals: [{ weight: 3, label: 'explicit skill request' }] };
+}
+
 // Index-backed equivalent of route() below: identical scoring/tie-break
 // rules, sourced from the router index's precomputed per-skill signal lists
 // (build_skill_map.py's build_router_index()) instead of walking
 // doc.nodes/doc.edges. See route()'s docstring for the shared semantics.
-function routeFromIndex(routerIndex, promptTokens) {
+function routeFromIndex(routerIndex, promptTokens, prompt) {
   const signalsBySkill = routerIndex.signals || {};
+  const explicit = explicitRequest(Object.keys(signalsBySkill), prompt);
+  if (explicit !== undefined) return explicit;
   const extendsBases = routerIndex.extendsBases || {};
 
   const scored = new Map(); // skillId -> { score, signals }
@@ -229,7 +248,9 @@ function routeFromIndex(routerIndex, promptTokens) {
 // specific skill. Otherwise the base wins, same as ordinary score
 // comparison. This only ever affects a base/extender pair directly; it does
 // not change max-one-suggestion or the 2-signal qualifying threshold.
-function route(doc, promptTokens) {
+function route(doc, promptTokens, prompt) {
+  const explicit = explicitRequest(doc.nodes.filter((n) => n.kind === 'skill').map((n) => n.id), prompt);
+  if (explicit !== undefined) return explicit;
   const skills = [];
   const tagsById = new Map(); // tagId -> { name, words }
   for (const node of doc.nodes) {

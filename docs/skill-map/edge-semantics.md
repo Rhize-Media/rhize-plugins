@@ -195,7 +195,7 @@ be inferred, without writing anything, for a precision review before trusting th
 inferred entries appended after it, so index membership never depends on whether inference hit
 (consumers such as `agent-brief-router.js`'s named-skill detection see every installed skill). A
 skill with zero inferred tags therefore has a name-only entry, which cannot qualify a match on its
-own (see the next paragraph).
+own through implicit scoring (see the next paragraph).
 Declared (rhize) skills' existing signal entries — produced by the static compiler, already in
 `generated/skill-map.indexes.json` — are copied through into the resolved file but never mutated.
 This addition is why the resolved indexes carry their own `schemaVersion` (currently `"1.2.0"`,
@@ -204,7 +204,7 @@ bumped for the additive `tag-inferred` kind), tracked independently of the stati
 `generated/skill-map.indexes.json` changes.
 
 **Qualification rule.** `route-core.js`'s `routeFromIndex()` (the index-backed path skill-router.js
-and agent-brief-router.js both prefer) requires >=2 matched signals to consider a skill at all,
+and agent-brief-router.js both prefer) requires >=2 matched signals for implicit routing to consider a skill at all,
 same as always — and now ALSO requires at least one full-weight matched signal (`weight >= 1`,
 i.e. a `name` or a declared `tag`). A third-party skill matching only 2 of its half-weight
 inferred tags therefore never qualifies on its own; it needs its `name` signal (or, hypothetically,
@@ -230,8 +230,7 @@ the suffix never appears there (its own third-party score ceiling of 2.5 sits be
 
 **Documented divergence: no fallback-path inference.** The map-scanning fallback (`route()`, used
 only when no `skill-map.indexes.{resolved,}.json` exists at all) walks `doc.nodes`/`doc.edges`
-directly and has no inferred-signal equivalent — third-party skills remain unroutable there,
-exactly as before this feature. This is deliberate: teaching the fallback path the same inference
+directly and has no inferred-signal equivalent — implicit third-party routing remains unavailable there. This is deliberate: teaching the fallback path the same inference
 would mean re-deriving it from the local overlay's third-party inventory + tags catalog at hook
 runtime (a per-invocation cost the precomputed-index design exists to avoid), for a code path only
 ever exercised by an install that hasn't rebuilt its indexes file yet.
@@ -333,3 +332,14 @@ deferred out of this round's scope.
 ---
 
 Back to [`docs/skill-map.md`](../skill-map.md).
+
+
+## Explicit skill requests
+
+Both router paths accept a leading `Use`, `Invoke`, or `Run` directive (optionally `Please`)
+with an exact `plugin:skill` reference or unique skill directory name. This qualifies a name-only
+entry without inferred tags and takes precedence over implicit scoring. Duplicate bare names,
+marketplace collisions, unknown names, negated directives and prose mentions do not qualify this
+explicit path. It emits at most one advisory suggestion; it does not execute the skill. The
+existing two-signal and strong-signal thresholds remain in place for implicit matching. Explicit
+matches score 3; the separate agent-brief advisory's score floor still applies.

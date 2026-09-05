@@ -338,6 +338,45 @@ check('[logging] appendFileSync of one line stays well within the 50ms hook budg
   }
 });
 
+// Explicit directives can reach name-only entries; the index and map agree.
+{
+  const core = require(path.join(REPO_ROOT, 'rhize-context-manager/hooks/lib/route-core.js'));
+  const ids = ['skill:ecc/accessibility', 'skill:ecc/react-patterns', 'skill:other/react-patterns'];
+  const router = { signals: Object.fromEntries(ids.map((id) => [id, [{ kind: 'name', weight: 1, label: id.split('/').pop() }]])) };
+  const map = { nodes: ids.map((id) => ({ id, kind: 'skill', name: id.split('/').pop() })), edges: [] };
+  for (const [prompt, expected] of [
+    ['Use accessibility', ids[0]],
+    ['Please invoke ecc:react-patterns first', ids[1]],
+    ['Run `ecc:accessibility`', ids[0]],
+    ['Use react-patterns', null],
+    ['Do not use accessibility', null],
+    ['I read about accessibility', null],
+    ['Audit this form', null],
+    ['Use unknown-skill', null],
+    ['Use ecc:accessibility-extra', null],
+  ]) {
+    for (const actual of [core.routeFromIndex(router, core.tokenize(prompt), prompt), core.route(map, core.tokenize(prompt), prompt)]) {
+      assert.strictEqual(actual && actual.skillId, expected, prompt);
+    }
+  }
+  withTempHome((home) => {
+    writeIndexes(home, JSON.stringify({ router }));
+    const result = runRouter(home, 'Use accessibility');
+    assert.strictEqual(result.status, 0);
+    assert.ok(result.stdout.includes('ecc:accessibility'), result.stdout);
+  });
+  const declared = { signals: { 'skill:rhize/context-engineering': [
+    { kind: 'name', weight: 1, label: 'context-engineering' },
+    { kind: 'tag', weight: 2, label: 'context' },
+  ] } };
+  const ordinary = 'Use context engineering to optimize this context';
+  assert.strictEqual(core.routeFromIndex(declared, core.tokenize(ordinary), ordinary).skillId, 'skill:rhize/context-engineering');
+  const negative = 'Do not use context-engineering for context engineering';
+  assert.strictEqual(core.routeFromIndex(declared, core.tokenize(negative), negative), null);
+  const collision = { signals: { 'skill:one/ecc/accessibility': router.signals[ids[0]], 'skill:two/ecc/accessibility': router.signals[ids[0]] } };
+  assert.strictEqual(core.routeFromIndex(collision, core.tokenize('Use ecc:accessibility'), 'Use ecc:accessibility'), null);
+}
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed.`);
   process.exit(1);
