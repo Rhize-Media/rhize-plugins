@@ -16,3 +16,24 @@ must not be pooled with later host/model task outcomes.
 ```bash
 python3 -m pytest -q evals/memory-context/tests
 ```
+
+The opt-in awareness tests add catalog-before-detail disclosure, exact duplicate/present-source
+bindings, digest and authority binding, combined presentation budgets, denial, stale/revoked packs,
+conflict preservation, and real CLI round trips. A component comparison executes both arms:
+
+```bash
+python3 evals/memory-context/run_awareness_benchmark.py --seed 130 --repeats 20 \
+  --output /absolute/private/awareness-component.json
+```
+
+Arm A is pinned to the unchanged legacy assembler at `e184246a5d325320126b18f6d3906b1d921fc025`;
+the harness refuses drift. Arm B runs catalog, private persistence, verification and expansion with
+explicitly **oracle-selected** source IDs. Both arms actually execute, in seeded randomized order,
+over long, short, no-memory-needed, sparse, contradictory and scoped/poisoned corpora. An additional
+empty-memory control actually runs. Reports include source hashes, input bytes, local latency,
+source coverage and rendered byte/4 token estimates. This is not proof of agent selection quality,
+instruction-injection resistance in a model, billable cost savings, or host integration.
+
+Use the [implementation plan and live protocol](../../docs/research/memory-awareness-benchmark.md)
+for exact baseline confirmation, held-out task rubrics, measured maintenance cost and advancement
+gates. Synthetic reports must not enter real reserve/finalize receipts.

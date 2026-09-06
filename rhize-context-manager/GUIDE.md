@@ -102,6 +102,12 @@ the right one, and health-checks the whole thing.
   conflicts, TTL, and unavailable adapters. It never scrapes host transcripts, executes recalled
   procedures, writes back, or injects automatically. Verification requires an explicit current
   source-ID/revision map; omission is a non-reusable failure, not a skipped freshness check.
+  To discover what is available first, ask: *"Show a small topic catalog from these approved
+  sources, then expand only the records relevant to this task."* The opt-in catalog shares the
+  existing private store and counts its overhead in the context budget. Prefer direct preview
+  for short/known sources; skip memory for self-contained tasks. The initial synthetic comparison
+  found both savings on long bodies and overhead on short ones, so automatic use remains disabled.
+  See the [catalog walkthrough and limits](skills/memory-context/references/awareness.md).
 
 - **"Turn this into a knowledge graph"** → `/graphify` (now served from this plugin —
   remove any stale copy at `~/.claude/skills/graphify` to avoid double-loading).

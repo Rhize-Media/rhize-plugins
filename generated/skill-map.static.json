@@ -3616,7 +3616,7 @@
       "path": "rhize-context-manager/skills/context-pack/SKILL.md"
     },
     {
-      "contentHash": "291c24fc1850a121b701db8dbfb68ded0bc28877733e09125f993c8ab1abbc89",
+      "contentHash": "62dd525d30be96728727353d5c69874cfe4ee4badf5d1fda2319d0bed3cfec3d",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
@@ -3665,7 +3665,7 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "645d55b934ab397c1720e0e683158b82b506a85fe38b5041b584e92a324a9874",
+      "contentHash": "bf89181319f58154d3ac374b10b5e5d82ab0ea6797b647182c4815684b505fe1",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",

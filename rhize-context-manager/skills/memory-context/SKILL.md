@@ -24,6 +24,12 @@ scripts/memory-context.sh verify --manifest /absolute/private/pack.json \
   --source-state /absolute/private/current-source-revisions.json
 ```
 
+For explicit awareness before retrieval, `catalog` accepts source-bound topic metadata and
+`expand` admits only selected, verified details within the combined catalog/detail budget.
+Use direct preview for known or short sources, and skip memory when unnecessary. Follow the
+[awareness input and expansion contract](references/awareness.md); existing host awareness is not
+permission to create another transcript index. No provider is invoked by either command.
+
 The assembler enforces exact tenant/project/task scope and sensitivity before ranking. It ranks
 deterministically within working, episodic, semantic, and procedural lanes, then allocates the total
 budget fairly across lanes. Contradictory source-bound candidates remain separate and receive one

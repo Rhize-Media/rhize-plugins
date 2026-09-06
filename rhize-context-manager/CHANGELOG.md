@@ -1,5 +1,10 @@
 # Changelog — rhize-context-manager
 
+## 0.29.0 — 2026-09-06
+
+- Add opt-in source-bound topic catalogs and selected expansion to the existing private memory-context store, with revision/digest/authority checks and combined presentation budgets.
+- Add adversarial contracts, an executable pinned Arm A/B component comparison, and a staged live evaluation plan. Synthetic results show short-source overhead as well as long-source savings; automatic host use and procedural runtime integration remain gated.
+
 ## 0.28.0 — 2026-09-05
 
 - Bridge human-triaged targeted failures through Skill Forge capture and project activation.
@@ -11,6 +16,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-06_ version bump — 0.28.0 → 0.29.0 (minor); marketplace 2.67.0 → 2.68.0.
 - _2026-09-05_ version bump — 0.27.1 → 0.28.0 (minor); marketplace 2.66.0 → 2.67.0.
 - _2026-09-05_ version bump — 0.27.0 → 0.27.1 (patch); marketplace 2.65.0 → 2.65.1.
 - _2026-09-04_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.63.0 → 2.64.0.

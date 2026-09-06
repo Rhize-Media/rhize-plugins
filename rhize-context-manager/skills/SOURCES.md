@@ -2,6 +2,18 @@
 
 One entry per external-skill ingestion decision.
 
+## memory-context — 2026-09-06
+- **Source:** https://github.com/kevin-hs-sohn/hipocampus
+- **Upstream ref:** df88ca19d42a3aba4caeaba4512da46cae7827da (0.5.3)
+- **License:** MIT; independent Rhize implementation of reviewed ideas, no upstream code vendored
+- **Verb:** ABSORB
+- **Graph relation:** provenance-only
+- **Target:** rhize-context-manager/skills/memory-context
+- **Took:** Bounded topic awareness, source-bound expansion, revision/digest freshness, and selective-use benchmarks. Rejected whole-hook installation and duplicate transcript storage.
+- **Verified:** Skill Forge study STUDY-0876539964f6cece review validation; local adversarial contracts and 120 synthetic component pairs. Live agent benefit unmeasured.
+- **Drift check:** Compare upstream commit and topic/source contracts before any later absorption; rerun the component harness and contract tests on changes.
+- **Notes:** Article: https://agentnativedev.medium.com/better-memory-architecture-for-long-running-agents-its-not-rag-5506020a3f32 . Study inventory was partial and single-context; no independent corroboration. Current user explicitly authorized planning and implementation; no human-only Skill Forge approval was impersonated. Default activation and procedural runtime integration remain gated in docs/research/memory-awareness-benchmark.md.
+
 **Upstreams repointed remote 2026-08-10:** the local marketplace-cache paths below (context-engineering-marketplace, since uninstalled) were replaced with raw.githubusercontent.com URLs against the identified upstream, `muratcankoylan/Agent-Skills-for-Context-Engineering` (default branch `main`), so drift checking works from any machine rather than only one with that marketplace still installed. Each URL was verified with `curl` (HTTP 200 + real SKILL.md frontmatter) before being recorded.
 
 ## context-fundamentals — 2026-07-20
