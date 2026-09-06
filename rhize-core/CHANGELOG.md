@@ -4,9 +4,12 @@
 
 ### Added
 
+- _2026-09-06_ version bump — 1.0.2 → 1.0.3 (patch); marketplace 2.69.0 → 2.69.1.
 - _2026-09-04_ version bump — 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.
 
 ### Changed
+
+- _2026-09-06_ Regenerate the setup artifact inventory for private paired-memory measurements; runtime behavior is unchanged.
 
 - _2026-09-03_ `docs/setup-artifacts.md` re-rendered for the rhize-tasks runtime re-pin (v0.5.2). Artifact
   paths allow only the `<home>` placeholder, so a re-pin re-renders this doc by design.

@@ -1,6 +1,6 @@
 # Paired memory opportunities: implementation and evidence
 
-2026-09-06 (environment date). Release: context-manager 0.30.0 / marketplace 2.69.0.
+2026-09-06 (environment date). Release: context-manager 0.30.0 / marketplace 2.69.1.
 Scope: native Claude/Codex opportunity measurement and a repeatable personal-work gauntlet.
 
 ## Decision
@@ -115,3 +115,11 @@ repository history is authoritative for publication.
 - Freeze implementation fingerprints at load time for long-running cohorts.
 - Simple heading matching saved model input while reducing source coverage; retain A and keep B
   experimental until a measured correction passes the independent adoption gate.
+
+## Local activation boundary
+
+Configured local paired retrieval in `rhize-plugins` for both hosts, with automatic answer budget
+zero. Automatic approval review rejected broad RHIZE-wide activation with real question/evidence
+egress. The model-answer drivers are implemented and verified on the public corpus; broader
+workspace scope and automatic subscription answer pairs require the user's explicit approval.
+This boundary does not disable either arm of any enabled local retrieval measurement.
