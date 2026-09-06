@@ -16,5 +16,9 @@ Inspect adapter statuses, exclusions, conflicts, authority classes, expiry, and 
 the private payload into a prompt automatically. Verification, exact-source purge, and expired-pack
 cleanup use the same launcher and require the boundaries described by the canonical skill.
 
+The same launcher exposes opt-in `catalog` and `expand` subcommands for metadata-first discovery
+and selected details. Follow the canonical skill's awareness reference for exact source bindings,
+selection files, combined budgets, and live benchmark limits. This command never activates a hook.
+
 The optional graph-memory adapter is library-fed into this same explicit request after a bounded
 `query_context` call. This command never accepts Cypher, graph writes, or live database credentials.

@@ -110,6 +110,10 @@ Run `/context-doctor` for a structured health check of the whole stack.
 - Only add OpenWolf where its correction-hook value is proven — it overlaps claude-mem.
 - Use `memory-context` only for explicit, scoped previews over supported adapters. Missing episodic
   or procedural read APIs remain `unavailable`; do not scrape transcripts or parse prose.
+- Its opt-in topic catalog can precede selected expansion, but native Codex memory and claude-mem
+  already supply awareness. Suppress only exact already-present source/revision/digest bindings;
+  do not add a second summary by default. Keep RTK/Headroom fixed across comparisons, preserve
+  OpenWolf/CodeGraph ownership, and require real held-out outcomes before host activation.
 
 Run `/context-setup` to have this reasoning applied automatically for a specific repo:
 it scans the repo, probes which layers are actually active, proposes enable/disable

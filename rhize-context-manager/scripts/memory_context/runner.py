@@ -71,6 +71,41 @@ def command_cleanup(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_awareness(args: argparse.Namespace) -> int:
+    from memory_context.awareness import build_catalog, expand_catalog, read_document, render_context
+
+    store = MemoryStore(Path(args.data_dir).expanduser() if args.data_dir else default_memory_root())
+    document = read_document(Path(args.input).expanduser())
+    source_state = read_document(Path(args.source_state).expanduser())
+    if not all(isinstance(k, str) and isinstance(v, str) for k, v in source_state.items()):
+        raise ValueError("source state must map exact source IDs to revisions")
+    if args.command == "catalog":
+        manifest, payload = build_catalog(document, _time(args.now))
+        accounting = {"catalogEstimatedTokens": manifest["totalEstimatedTokens"]}
+    else:
+        selection = read_document(Path(args.selection).expanduser())
+        if set(selection) != {"memoryIds"}:
+            raise ValueError("selection file must contain only memoryIds")
+        manifest, payload, accounting = expand_catalog(
+            store, Path(args.manifest).expanduser(), Path(args.payload).expanduser(),
+            selection["memoryIds"], document,
+            source_state, _time(args.now),
+        )
+    manifest_path, payload_path = store.write(manifest, payload)
+    verification = store.verify(manifest_path, payload_path, now=_time(args.now), source_state=source_state)
+    if not verification["valid"]:
+        raise ValueError("awareness presentation verification failed: " + ", ".join(verification["reasons"]))
+    print(json.dumps({
+        "mode": "preview_only", "variant": f"awareness-{args.command}-v1",
+        "automaticInjection": False, "writeBack": False,
+        "packId": manifest["packId"], "manifestPath": str(manifest_path),
+        "payloadPath": str(payload_path), "accounting": accounting,
+        "adapterStatuses": manifest["adapterStatuses"], "warnings": manifest["warnings"],
+        "context": render_context(manifest, payload),
+    }, indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -91,6 +126,16 @@ def build_parser() -> argparse.ArgumentParser:
     cleanup = subparsers.add_parser("cleanup-expired")
     cleanup.add_argument("--data-dir")
     cleanup.add_argument("--now")
+    for name in ("catalog", "expand"):
+        awareness = subparsers.add_parser(name)
+        awareness.add_argument("--input", required=True)
+        awareness.add_argument("--data-dir")
+        awareness.add_argument("--now")
+        awareness.add_argument("--source-state", required=True)
+        if name == "expand":
+            awareness.add_argument("--manifest", required=True)
+            awareness.add_argument("--payload", required=True)
+            awareness.add_argument("--selection", required=True)
     return parser
 
 
@@ -102,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
             "verify": lambda: command_verify(args),
             "purge": lambda: command_purge(args),
             "cleanup-expired": lambda: command_cleanup(args),
+            "catalog": lambda: command_awareness(args),
+            "expand": lambda: command_awareness(args),
         }[args.command]()
     except (OSError, ValueError, TypeError, json.JSONDecodeError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
