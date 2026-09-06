@@ -63,7 +63,8 @@ Exact evidence:
 
 Both final cohorts bind driver SHA-256
 `e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d`.
-Corpus and retrieval implementation hashes are included in every result. Runtime hashes are
+The subsequent worker-directory symlink guard changes the module fingerprint without changing
+answer execution, parsing, grading or selection. Corpus and retrieval implementation hashes are included in every result. Runtime hashes are
 captured at module load so a long-running process cannot relabel its executing code after an edit.
 Earlier development batches exposed an auxiliary-model attribution issue and a Codex advisory
 event misclassified as a tool attempt; they remain separate from the final cohort and are not

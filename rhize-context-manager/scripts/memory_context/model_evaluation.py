@@ -178,6 +178,9 @@ def evaluate_answers(host: str, model: str, question: str, contexts: dict[str, s
 def drain(store: PairStore, *, limit: int = 1, now: datetime | None = None) -> dict[str, int]:
     if type(limit) is not int or not 1 <= limit <= 100:
         raise ValueError("limit must be 1..100 whole pairs")
+    for name in ("queue", "reservations", "answer-claims", "receipts", "budgets"):
+        if (store.root / name).is_symlink():
+            raise ValueError("worker directories cannot be symlinks")
     store.root.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd = os.open(store.root / "worker.lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     try:

@@ -178,3 +178,17 @@ def test_source_drift_defers_neither_single_arm_nor_stale_answer(tmp_path, monke
     assert result["comparisonStatus"] == "incomplete"
     assert set(result["arms"]) == {"A","B"}
     assert all(row["actuallyRan"] is False for row in result["arms"].values())
+
+
+def test_symlink_queue_cannot_remove_outside_json(tmp_path):
+    import pytest
+    store = PairStore(tmp_path / "store")
+    store.configure([tmp_path], 0)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    packet = outside / "pair.json"
+    packet.write_text(json.dumps({"pairId":"pair", "host":"claude", "createdAt":"2020-01-01T00:00:00Z"}))
+    (store.root / "queue").symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match="symlinks"):
+        drain(store)
+    assert packet.exists()
