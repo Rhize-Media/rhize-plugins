@@ -1,5 +1,13 @@
 # Changelog — rhize-context-manager
 
+## 0.30.0 — 2026-09-06
+
+- Add silent native Claude/Codex opportunity, tool and stop measurement hooks with explicit workspace scope, duplicate suppression, private receipts and bounded paired answer workers.
+- Enforce both Arm A and Arm B for every measurement assignment, including legacy shadow=false. Failed, interrupted, unavailable and model-mismatched pairs remain incomplete.
+- Add a ten-case personal-work gauntlet, subscription-authenticated isolated answer drivers, actual usage normalization and separate host/model/corpus aggregates. No API fallback or production action replay.
+- Keep catalog selection observational and experimental: initial real answer cohorts exposed two source misses despite lower model input usage. Correctness gates remain unmet; no default injection or procedural adoption.
+- Correct outdated Codex hook documentation; native trust, configured scope and observed health remain distinct activation states.
+
 ## 0.29.0 — 2026-09-06
 
 - Add opt-in source-bound topic catalogs and selected expansion to the existing private memory-context store, with revision/digest/authority checks and combined presentation budgets.
@@ -16,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-06_ version bump — 0.29.0 → 0.30.0 (minor); marketplace 2.68.0 → 2.69.0.
 - _2026-09-06_ version bump — 0.28.0 → 0.29.0 (minor); marketplace 2.67.0 → 2.68.0.
 - _2026-09-05_ version bump — 0.27.1 → 0.28.0 (minor); marketplace 2.66.0 → 2.67.0.
 - _2026-09-05_ version bump — 0.27.0 → 0.27.1 (patch); marketplace 2.65.0 → 2.65.1.

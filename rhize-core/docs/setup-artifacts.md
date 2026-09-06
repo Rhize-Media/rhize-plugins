@@ -15,6 +15,7 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | context-experiments | rhize-context-manager | <home>/.claude/rhize-context-manager/context-experiments.json | cat ~/.claude/rhize-context-manager/context-experiments.json | persistent | config | derived | ignored |
 | doctor-history | rhize-context-manager | <home>/.claude/context-manager/doctor/ | ls ~/.claude/context-manager/doctor/ | per-run | none | derived | outside-repo |
 | harvest-logs | rhize-context-manager | <home>/.claude/context-manager/harvest-logs/ | cat ~/.claude/context-manager/harvest-logs/<date>-filter.txt | append-only | none | derived | outside-repo |
+| paired-memory-measurements | rhize-context-manager | <home>/.local/share/rhize/context-manager/memory-context/paired-opportunities-v1/ | scripts/memory-context.sh opportunity-status | persistent | client | derived | outside-repo |
 | refinement-queue | rhize-context-manager | <home>/.claude/context-manager/refinement-queue.jsonl | cat ~/.claude/context-manager/refinement-queue.jsonl | append-only | none | transcript-derived | outside-repo |
 | skill-map-static | rhize-context-manager | <home>/.claude/context-manager/skill-map.static.json | cat ~/.claude/context-manager/skill-map.static.json | regenerated | none | derived | outside-repo |
 | skill-refine-runs | rhize-context-manager | <home>/.claude/context-manager/runs/ | cat ~/.claude/context-manager/runs/<date>.md | per-run | none | derived | outside-repo |

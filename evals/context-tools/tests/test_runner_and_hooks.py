@@ -812,10 +812,10 @@ def test_selector_and_finalizer_wrappers_freeze_pack_only_attempt(
     assert receipt["evidenceDigest"] is None
 
 
-def test_plugin_hooks_auto_wire_selector_and_finalizer_for_claude_code_only() -> None:
+def test_plugin_hooks_preserve_existing_entries_and_add_paired_host_measurements() -> None:
     hook_manifest = json.loads((PLUGIN_ROOT / "hooks" / "hooks.json").read_text())
-    assert "Claude Code auto-wires" in hook_manifest["description"]
-    assert "Codex uses the same host-neutral skills and runners explicitly" in hook_manifest["description"]
+    assert "Native Claude and Codex paired memory" in hook_manifest["description"]
+    assert "native hook trust" in hook_manifest["description"]
     hooks = hook_manifest["hooks"]
     prompt_commands = [
         hook["command"]
@@ -829,16 +829,18 @@ def test_plugin_hooks_auto_wire_selector_and_finalizer_for_claude_code_only() ->
     ]
     assert any("context-experiment-selector.js" in value for value in prompt_commands)
     assert any("context-experiment-finalizer.js" in value for value in stop_commands)
+    for event in ("SessionStart", "UserPromptSubmit", "PostToolUse", "Stop"):
+        assert sum("memory-opportunity" in hook["command"] for group in hooks[event] for hook in group["hooks"]) == 1
 
 
-def test_cross_host_docs_do_not_claim_codex_consumes_claude_hooks() -> None:
+def test_cross_host_docs_describe_native_hooks_and_explicit_fallback() -> None:
     readme = (PLUGIN_ROOT / "README.md").read_text()
     guide = (PLUGIN_ROOT / "GUIDE.md").read_text()
     command = (PLUGIN_ROOT / "commands" / "context-experiment.md").read_text()
-    assert "Codex does not consume" in readme
-    assert "Claude hook manifest" in readme
-    assert "Codex uses the same host-neutral runner" in guide
-    assert "the Claude hook manifest is not a Codex runtime surface" in command
+    assert "native hook trust" in readme
+    assert "paired-evaluation.md" in readme
+    assert "paired" in guide.lower()
+    assert "both arms" in command.lower()
 
 
 def test_record_evidence_command_requires_pending_and_is_immutable(

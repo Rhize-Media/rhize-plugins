@@ -1,6 +1,6 @@
 {
   "name": "rhize-core",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "The setup hub — finds the Rhize plugins you have installed, runs each one's own setup wizard, records evaluation baselines, and wires the optional guardrail hooks you choose, all from one command.",
   "author": {
     "name": "Rhize Media"

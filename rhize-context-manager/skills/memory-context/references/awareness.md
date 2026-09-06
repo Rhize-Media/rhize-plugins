@@ -98,3 +98,5 @@ an empty-memory control. It measures local behavior and estimated context cost, 
 success. It is ineligible for operational benchmark receipts. Live activation requires the exact
 incumbent host/model, actual A/B execution, held-out tasks, and measured all-in cost. No defaults
 change on the strength of synthetic recall results.
+
+For current native-hook and model-answer measurement, see [paired-evaluation.md](paired-evaluation.md). The earlier oracle-assisted component benchmark remains separate evidence.

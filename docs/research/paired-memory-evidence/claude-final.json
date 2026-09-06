@@ -1,0 +1,1409 @@
+{
+  "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+  "generatedAt": "2026-09-06T16:11:49.073445+00:00",
+  "rows": [
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "5c58067ecf5a7bad6a55b36c78d313cf0dd086c4177a852b91e66ffc44bd1706",
+      "createdAt": "2026-09-06T16:10:23.967064Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 466,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 334,
+          "indexBuildMs": 2.788,
+          "elapsedMs": 6.842,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 2.511,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1090,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "source-truth",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1434,
+              "cachedInputTokens": 1542,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 193,
+              "totalInputTokens": 2976
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+            ],
+            "elapsedMs": 5006.029,
+            "rubricPass": true,
+            "answerHash": "40ff729391490808a8186decf909049563ace9f136e2ee272be56a2aaec0a9b6"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1219,
+              "cachedInputTokens": 1255,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 189,
+              "totalInputTokens": 2474
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+            ],
+            "elapsedMs": 3783.58,
+            "rubricPass": true,
+            "answerHash": "cfbbce29fca67427df365486383a256c9d2e33eca3fe1db5463f689194447725"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+      "createdAt": "2026-09-06T16:10:32.769099Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 469,
+          "presentedTokens": 133,
+          "selectedSourceHashes": [
+            "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 336,
+          "indexBuildMs": 3.528,
+          "elapsedMs": 9.16,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 249,
+          "presentedTokens": 249,
+          "selectedSourceHashes": [
+            "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.121,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1100,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "partial-provider",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1430,
+              "cachedInputTokens": 0,
+              "cacheCreationInputTokens": 1527,
+              "outputTokens": 219,
+              "totalInputTokens": 2957
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+            ],
+            "elapsedMs": 4093.466,
+            "rubricPass": true,
+            "answerHash": "60b8c1eeb8d283bc32f0e1729b2a04f5c63803ecbdaadd0f41591a653a1c142b"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1215,
+              "cachedInputTokens": 1240,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 222,
+              "totalInputTokens": 2455
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+            ],
+            "elapsedMs": 4652.743,
+            "rubricPass": true,
+            "answerHash": "0c2052ff8ef02f29c9ff2a351be8a2856ccfcc3eee4924d05de64dba7ae21d12"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "77bd3f48d13b2b5164255c7b61ed8a1c2e97c75d85e544161d8b77d15b36c074",
+      "createdAt": "2026-09-06T16:10:41.529695Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 457,
+          "presentedTokens": 126,
+          "selectedSourceHashes": [
+            "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 331,
+          "indexBuildMs": 3.44,
+          "elapsedMs": 7.65,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 241,
+          "presentedTokens": 241,
+          "selectedSourceHashes": [
+            "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.447,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "release-receipt",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1203,
+              "cachedInputTokens": 1229,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 227,
+              "totalInputTokens": 2432
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+            ],
+            "elapsedMs": 4184.698,
+            "rubricPass": true,
+            "answerHash": "ea70346e0b600c5ee5e9373e4b03afc26c198d09b1f591046f69cf82e5f4421a"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1418,
+              "cachedInputTokens": 1516,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 181,
+              "totalInputTokens": 2934
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+            ],
+            "elapsedMs": 3959.541,
+            "rubricPass": true,
+            "answerHash": "ea70346e0b600c5ee5e9373e4b03afc26c198d09b1f591046f69cf82e5f4421a"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "A",
+        "B"
+      ],
+      "snapshotHash": "4f8728d444b919fc59645f0285ced885305e5cde2c49f0fd3fcd372f1f83eee5",
+      "createdAt": "2026-09-06T16:10:49.687403Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 247,
+          "presentedTokens": 247,
+          "selectedSourceHashes": [
+            "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.696,
+          "requiredSourceCoverage": 1.0
+        },
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 464,
+          "presentedTokens": 131,
+          "selectedSourceHashes": [
+            "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 333,
+          "indexBuildMs": 2.813,
+          "elapsedMs": 7.029,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "client-scope",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1428,
+              "cachedInputTokens": 1515,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 182,
+              "totalInputTokens": 2943
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+            ],
+            "elapsedMs": 4054.973,
+            "rubricPass": true,
+            "answerHash": "4e4a6705d08cecf166e64bd55daef64f7a7dd611448320ab3d22e8f921678cc3"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1213,
+              "cachedInputTokens": 1228,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 241,
+              "totalInputTokens": 2441
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+            ],
+            "elapsedMs": 4363.289,
+            "rubricPass": true,
+            "answerHash": "0e0c0e6c05ebff05c5fdf4fc461065a6c34d237fd101148c1671324870ae044f"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "3c96acb370656e08540e5fef480a7b10754c0f38a7e1cf8a065a852961301db4",
+      "createdAt": "2026-09-06T16:10:58.118629Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 462,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 330,
+          "indexBuildMs": 2.739,
+          "elapsedMs": 8.032,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 5.185,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1109,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "procedure-authority",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1216,
+              "cachedInputTokens": 1244,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 269,
+              "totalInputTokens": 2460
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+            ],
+            "elapsedMs": 4366.981,
+            "rubricPass": true,
+            "answerHash": "0ba80c95ca4381bc00358dc941f0694303e38198ae7f626f490f24d9643a56e3"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1431,
+              "cachedInputTokens": 1531,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 208,
+              "totalInputTokens": 2962
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+            ],
+            "elapsedMs": 4152.231,
+            "rubricPass": true,
+            "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "10b93c886a409fd684038cfc2594ef5c63e547d7b6080c985e2171c5622c0bf8",
+      "createdAt": "2026-09-06T16:11:06.655092Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 328,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 328,
+          "indexBuildMs": 3.69,
+          "elapsedMs": 10.807,
+          "requiredSourceCoverage": 0.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 250,
+          "presentedTokens": 250,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+            "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.555,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "resume-state",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1432,
+              "cachedInputTokens": 1515,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 287,
+              "totalInputTokens": 2947
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+            ],
+            "elapsedMs": 4711.771,
+            "rubricPass": true,
+            "answerHash": "b23fec8ee16b17c30d17618e54227294873c175ebf32c8f048dc482418294910"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1921,
+              "cachedInputTokens": 0,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 130,
+              "totalInputTokens": 1921
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 3616.153,
+            "rubricPass": false,
+            "answerHash": "edaa00b9c7ebad2d759a35423ba2d50bbfe803f81d3b40efd847e90e5bbdbdde"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "dd25479b2d7e5c0d3301e1626081f06bf65253d8b2135e41ae6f17203af425e3",
+      "createdAt": "2026-09-06T16:11:15.001054Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 459,
+          "presentedTokens": 127,
+          "selectedSourceHashes": [
+            "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 332,
+          "indexBuildMs": 7.949,
+          "elapsedMs": 13.534,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 242,
+          "presentedTokens": 242,
+          "selectedSourceHashes": [
+            "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 9.877,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1073,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "stale-source",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1424,
+              "cachedInputTokens": 1517,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 197,
+              "totalInputTokens": 2941
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+            ],
+            "elapsedMs": 4724.22,
+            "rubricPass": true,
+            "answerHash": "05d7c5feb608010069da548ff156f45aa1b02f42ca7d3476b6397481049f8466"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1209,
+              "cachedInputTokens": 1230,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 210,
+              "totalInputTokens": 2439
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+            ],
+            "elapsedMs": 4776.155,
+            "rubricPass": true,
+            "answerHash": "a1677506af2ba13a69228063d3afc7258aec09bb4c1fd82fb79e28b0f699007d"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "3bf1307e58f11b0e79187deed66e1eaa703391f179d91af54df1add106304790",
+      "createdAt": "2026-09-06T16:11:24.527126Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 464,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 332,
+          "indexBuildMs": 3.489,
+          "elapsedMs": 8.088,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.459,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1068,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "conflict",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1430,
+              "cachedInputTokens": 1523,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 197,
+              "totalInputTokens": 2953
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+            ],
+            "elapsedMs": 4096.254,
+            "rubricPass": true,
+            "answerHash": "2f1c38e8f974993b6f44a4e996289bd2ab90b8fc54731351135070f4f8dfd752"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1215,
+              "cachedInputTokens": 1236,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 275,
+              "totalInputTokens": 2451
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+            ],
+            "elapsedMs": 5204.735,
+            "rubricPass": true,
+            "answerHash": "a5601630f02ff296435615793710130e08254b0dbfe051ec55d44b7d06725077"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "A",
+        "B"
+      ],
+      "snapshotHash": "eaa48c03299fcab27b3aee1502ebf899b92dc6994a04c22909a2c15849f6b651",
+      "createdAt": "2026-09-06T16:11:33.842449Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 116,
+          "presentedTokens": 116,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.765,
+          "requiredSourceCoverage": null
+        },
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 165,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 165,
+          "indexBuildMs": 2.475,
+          "elapsedMs": 6.404,
+          "requiredSourceCoverage": null
+        }
+      },
+      "sourceInputBytes": 658,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "no-memory",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1936,
+              "cachedInputTokens": 0,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 110,
+              "totalInputTokens": 1936
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 3242.652,
+            "rubricPass": true,
+            "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1208,
+              "cachedInputTokens": 1230,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 141,
+              "totalInputTokens": 2438
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 3771.943,
+            "rubricPass": true,
+            "answerHash": "07525a9fad2679e4f2297c64d8ca5728bc6ef849f6c0d36ef1d8e1acfd4930bf"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "claude",
+      "model": "claude-opus-4-8",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "d850e73db23e4c55e397b80b104880970c8a208ab6c7d120fe60040231578cfa",
+      "createdAt": "2026-09-06T16:11:40.869437Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 322,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 322,
+          "indexBuildMs": 3.45,
+          "elapsedMs": 8.163,
+          "requiredSourceCoverage": 0.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 232,
+          "presentedTokens": 232,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+            "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 4.104,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 993,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "heading-miss",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1409,
+              "cachedInputTokens": 1494,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 262,
+              "totalInputTokens": 2903
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [
+              "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+            ],
+            "elapsedMs": 4803.58,
+            "rubricPass": true,
+            "answerHash": "af2f16798a871ec7464197ded7d95b677090ac331f97339dd754d5b96176d33f"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "claude-opus-4-8",
+            "modelIdentitySource": "native_model_usage",
+            "usage": {
+              "inputTokens": 1917,
+              "cachedInputTokens": 0,
+              "cacheCreationInputTokens": 0,
+              "outputTokens": 115,
+              "totalInputTokens": 1917
+            },
+            "usageScope": "all_native_models",
+            "usageModels": [
+              "claude-haiku-4-5-20251001",
+              "claude-opus-4-8"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 3386.004,
+            "rubricPass": false,
+            "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    }
+  ],
+  "aggregate": {
+    "schemaVersion": "rhize-memory-pair-v1",
+    "completePairs": 10,
+    "incompletePairs": 0,
+    "groups": [
+      {
+        "stratum": [
+          "curated",
+          "claude",
+          "claude-opus-4-8",
+          {
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+          },
+          "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953"
+        ],
+        "totalPairs": 10,
+        "completePairs": 10,
+        "uniqueSnapshots": 10,
+        "tokenEstimateEffect": {
+          "samples": 10,
+          "meanBMinusA": 173.5,
+          "descriptiveBootstrap95": [
+            129.3,
+            205.3
+          ],
+          "seed": 1701,
+          "resamples": 1000
+        },
+        "meanEstimatedTokenDeltaBMinusA": 173.5,
+        "pairedAnswerComplete": 10
+      }
+    ],
+    "answerGroups": [
+      {
+        "stratum": [
+          [
+            "curated",
+            "claude",
+            "claude-opus-4-8",
+            {
+              "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+              "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+              "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+            },
+            "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953"
+          ],
+          [
+            "claude-opus-4-8",
+            "claude-opus-4-8"
+          ],
+          "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d"
+        ],
+        "totalPairs": 10,
+        "completePairs": 10,
+        "uniqueSnapshots": 10,
+        "usageEffects": {
+          "totalInputTokens": {
+            "samples": 10,
+            "meanBMinusA": -602.8,
+            "descriptiveBootstrap95": [
+              -752,
+              -502
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          },
+          "outputTokens": {
+            "samples": 10,
+            "meanBMinusA": -7.9,
+            "descriptiveBootstrap95": [
+              -64.5,
+              36.2
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          },
+          "cachedInputTokens": {
+            "samples": 10,
+            "meanBMinusA": -472.1,
+            "descriptiveBootstrap95": [
+              -960.5,
+              48.3
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          }
+        },
+        "gradedPairs": 10,
+        "rubricPasses": {
+          "A": 10,
+          "B": 8
+        },
+        "rubricEffect": {
+          "samples": 10,
+          "meanBMinusA": -0.2,
+          "descriptiveBootstrap95": [
+            -0.5,
+            0
+          ],
+          "seed": 1701,
+          "resamples": 1000
+        }
+      }
+    ],
+    "taskOutcomeBenefit": "not_inferred_from_retrieval_metrics"
+  }
+}

@@ -19,9 +19,6 @@ def assign_arms(config: CapabilityConfig) -> Assignment:
         if config.mode == "continuous" or config.completed_runs % 2 == 0
         else Arm.BASELINE
     )
-    shadow = None
-    requested = [live]
-    if config.shadow:
-        shadow = Arm.BASELINE if live is Arm.EXPERIMENTAL else Arm.EXPERIMENTAL
-        requested.append(shadow)
-    return Assignment(tuple(requested), live, shadow)
+    # Measurement is always paired; legacy shadow=False cannot create a one-arm run.
+    shadow = Arm.BASELINE if live is Arm.EXPERIMENTAL else Arm.EXPERIMENTAL
+    return Assignment((live, shadow), live, shadow)

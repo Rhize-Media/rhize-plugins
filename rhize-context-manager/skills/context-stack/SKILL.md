@@ -46,8 +46,9 @@ SessionStart banners retired 2026-08-09). Both resolve
 `~/.claude/context-manager/skill-map.resolved.json`, falling back to
 `skill-map.static.json`. The flat plugin/skill listing (this file's tables,
 each plugin's README) is the fallback when the map is missing or stale — it
-is never the primary source once the map is installed. Codex does not consume the Claude hook
-manifest; its agent inspects the same generated map and canonical skill metadata explicitly.
+is never the primary source once the map is installed. Current Codex supports native plugin hooks
+with host trust; explicit map inspection remains the fallback for older clients. Memory opportunity
+measurements use the shared paired runner; see the memory-context paired-evaluation reference.
 
 ## Routing rules
 
