@@ -60,8 +60,9 @@ redirected in tests with `RHIZE_CONTEXT_EXPERIMENT_CONFIG` and
 `RHIZE_CONTEXT_EXPERIMENT_DATA_DIR`.
 
 Claude Code auto-wires the selector and finalizer through `hooks/hooks.json`; strict config keeps
-them inert by default. Codex discovers the same canonical skill and invokes this host-neutral runner
-explicitly because the Claude hook manifest is not a Codex runtime surface. Before upgrading,
+them inert by default. Current Codex supports native plugin hooks after host trust; older clients
+invoke this host-neutral runner explicitly. Every measurement assignment requests both arms, even
+when a legacy configuration says `shadow: false`. Missing execution remains incomplete. Before upgrading,
 remove any manually wired Claude selector/finalizer entries; duplicate invocations are
 state-idempotent but can repeat local pack construction.
 

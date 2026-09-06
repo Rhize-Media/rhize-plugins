@@ -262,3 +262,9 @@ def test_source_free_review_evidence_is_strict_and_digest_stable() -> None:
     placeholder = {**document, "validationIds": ["validation-id-REPLACE_ME"]}
     with pytest.raises(ValueError, match="validation"):
         ExperimentEvidence.from_dict(placeholder)
+
+
+def test_legacy_shadow_false_still_requests_both_measurement_arms():
+    assignment = assign_arms(CapabilityConfig(enabled=True, armed_runs=1, shadow=False))
+    assert set(assignment.arms_requested) == {Arm.BASELINE, Arm.EXPERIMENTAL}
+    assert assignment.shadow_variant is not None

@@ -85,6 +85,15 @@
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
       "description": "Claude Code migration metadata for the fail-silent finalizer now auto-wired in hooks/hooks.json. Do not add a second manual Claude hook. Codex invokes the shared host-neutral runner explicitly through its skill. The finalizer writes a terminal receipt for every observed accepted Claude attempt; only evidence-backed continuous success remains enabled.",
       "default": false
+    },
+    {
+      "id": "paired-memory-opportunities",
+      "title": "Measure memory opportunities with both arms",
+      "tier": "T3",
+      "event": "UserPromptSubmit",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+      "description": "Native Claude/Codex migration metadata only; already wired in hooks/hooks.json with SessionStart/PostToolUse/Stop companions. Do not add duplicate manual hooks. Explicit opportunity-configure workspace scope enables paired retrieval and bounded subscription answer pairs. Native trust and observed health remain separate.",
+      "default": false
     }
   ],
   "dependencies": [
@@ -270,6 +279,18 @@
       "confidentiality": "config",
       "source": "derived",
       "tracked": "ignored",
+      "optional": true
+    },
+    {
+      "id": "paired-memory-measurements",
+      "path": "<home>/.local/share/rhize/context-manager/memory-context/paired-opportunities-v1/",
+      "kind": "directory",
+      "purpose": "Private paired retrieval receipts, bounded answer queue, subscription-pair budgets, config and native event health. Queued questions/evidence are client-sensitive and expire lazily after one hour; receipts contain no raw source body.",
+      "viewer": "scripts/memory-context.sh opportunity-status",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "derived",
+      "tracked": "outside-repo",
       "optional": true
     }
   ],

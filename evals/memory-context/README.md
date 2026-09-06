@@ -37,3 +37,21 @@ instruction-injection resistance in a model, billable cost savings, or host inte
 Use the [implementation plan and live protocol](../../docs/research/memory-awareness-benchmark.md)
 for exact baseline confirmation, held-out task rubrics, measured maintenance cost and advancement
 gates. Synthetic reports must not enter real reserve/finalize receipts.
+
+## Personal-work paired gauntlet
+
+`run_gauntlet.py` runs all ten cases from `gauntlet.json`; no single-arm mode exists. Supply
+`--host host-neutral --output /private/path/retrieval.json` for a local mechanism check. For actual
+answers, supply `--host claude --model <exact-model> --answers` or `--host codex --model <exact-model>
+--answers`, with a unique `--output`. `--case <id>` restricts cases but never arms. Existing
+subscription login is required; API-key fallback is disabled. These calls consume subscription quota.
+
+The corpus is curated from recurring personal-work categories. Heading extraction and keyword
+selection never see required answers or source IDs. Rubrics combine answer terms and required
+source citations; they measure bounded answer behavior, not complete production tasks. Captured
+JSON includes every attempted arm, actual native usage, source coverage, hashes and per-host/model
+aggregates. Auxiliary Claude model usage is included; Codex usage comes from its terminal turn.
+Cached token accounting differs by host and is normalized in `totalInputTokens`.
+
+Natural opportunities use the same engine through native hooks. Follow the
+[configuration and interpretation contract](../../rhize-context-manager/skills/memory-context/references/paired-evaluation.md).

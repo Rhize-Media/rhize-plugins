@@ -18,7 +18,10 @@ cleanup use the same launcher and require the boundaries described by the canoni
 
 The same launcher exposes opt-in `catalog` and `expand` subcommands for metadata-first discovery
 and selected details. Follow the canonical skill's awareness reference for exact source bindings,
-selection files, combined budgets, and live benchmark limits. This command never activates a hook.
+selection files, combined budgets, and live benchmark limits. `opportunity-configure` explicitly
+enables paired measurement for the supplied workspaces; `opportunity-disable` stops new capture.
+Use `opportunity-status` and `opportunity-drain` to inspect or process whole pairs. Follow the
+canonical skill's paired-evaluation reference; provider commands remain preview-only.
 
 The optional graph-memory adapter is library-fed into this same explicit request after a bounded
 `query_context` call. This command never accepts Cypher, graph writes, or live database credentials.

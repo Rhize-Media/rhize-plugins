@@ -106,6 +106,35 @@ def command_awareness(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_opportunity(args: argparse.Namespace) -> int:
+    from memory_context.opportunities import PairStore, aggregate, default_root, handle_event
+    from memory_context.model_evaluation import drain
+    store = PairStore(Path(args.data_dir) if args.data_dir else default_root())
+    if args.command == "opportunity-configure":
+        result = store.configure([Path(p) for p in args.workspace], args.answer_pairs_per_day)
+    elif args.command == "opportunity-disable":
+        with store.lock._locked():
+            result = store.read("config.json") or {}
+            result["enabled"] = False
+            store.write("config.json", result)
+    elif args.command == "opportunity-event":
+        raw = sys.stdin.buffer.read(1024 * 1024 + 1)
+        if len(raw) > 1024 * 1024:
+            raise ValueError("hook input exceeds limit")
+        event = json.loads(raw)
+        result = handle_event(store, args.host, event.get("hook_event_name", ""), event)
+    elif args.command == "opportunity-drain":
+        result = drain(store, limit=args.limit)
+    else:
+        result = aggregate(store.receipts())
+        result["configuration"] = store.read("config.json")
+        result["health"] = {host: store.read(f"health/{host}.json") for host in ("claude", "codex")}
+        result["queuedPairs"] = len(list((store.root / "queue").glob("*.json")))
+        result["pendingRetrievalPairs"] = sum((store.read(str(p.relative_to(store.root))) or {}).get("status") == "pending" for p in (store.root / "reservations").glob("*.json"))
+    print(json.dumps(result, indent=2, sort_keys=True))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -136,12 +165,24 @@ def build_parser() -> argparse.ArgumentParser:
             awareness.add_argument("--manifest", required=True)
             awareness.add_argument("--payload", required=True)
             awareness.add_argument("--selection", required=True)
+    for name in ("opportunity-configure", "opportunity-disable", "opportunity-status", "opportunity-event", "opportunity-drain"):
+        command = subparsers.add_parser(name)
+        command.add_argument("--data-dir")
+        if name == "opportunity-configure":
+            command.add_argument("--workspace", action="append", required=True)
+            command.add_argument("--answer-pairs-per-day", type=int, default=12)
+        if name == "opportunity-event":
+            command.add_argument("--host", choices=("claude", "codex"), required=True)
+        if name == "opportunity-drain":
+            command.add_argument("--limit", type=int, default=1)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        if args.command.startswith("opportunity-"):
+            return command_opportunity(args)
         return {
             "preview": lambda: command_preview(args),
             "verify": lambda: command_verify(args),

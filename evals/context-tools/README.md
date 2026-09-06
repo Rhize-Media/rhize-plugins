@@ -5,7 +5,9 @@ branches, but they never generate benchmark rows and do not count toward adoptio
 
 ## Capture-health gate
 
-Every live context experiment is evaluated separately from provider quality:
+Every live context experiment requests both arms, including legacy `shadow: false` configurations.
+A missing arm is incomplete, not a successful one-arm measurement. Provider authorization stays
+unchanged. Every live context experiment is evaluated separately from provider quality:
 
 ```bash
 python3 rhize-context-manager/scripts/context_experiments/runner.py capture-health

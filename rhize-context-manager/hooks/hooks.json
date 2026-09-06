@@ -1,5 +1,5 @@
 {
-  "description": "Claude Code auto-wires local context selection/finalization plus the context-window monitor, stack disclosure, and relationship suggesters. Codex uses the same host-neutral skills and runners explicitly because this Claude hook manifest is not a Codex runtime surface. Context experiments remain disabled in strict configuration until explicitly enabled for an allowlisted repository. Existing manually wired Claude selector/finalizer entries must be removed during coordinator migration; duplicate invocations are state-idempotent but waste a provider build.",
+  "description": "Native Claude and Codex paired memory opportunity measurements share a bounded Python runner. Capture requires explicit workspace configuration and native hook trust. Existing context-experiment selector/finalizer behavior and provider authorization remain unchanged.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -8,6 +8,15 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-selector.js\"",
             "timeout": 305
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+            "timeout": 10
           }
         ]
       }
@@ -34,6 +43,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -56,6 +74,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "Stop": [
@@ -65,6 +92,15 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/context-experiment-finalizer.js\"",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\"",
+            "timeout": 10
           }
         ]
       }

@@ -3,7 +3,7 @@ name: memory-context
 description: >-
   Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory
   sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a
-  task needs context from multiple approved memory lanes. This skill never scrapes transcripts,
+  task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts,
   parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.
 metadata:
   rhize:
@@ -59,3 +59,12 @@ expired memory pack IDs. Neither command grants permission to mutate canonical s
 
 Automatic injection and write-back are hard-disabled in v1. A later canary requires separate Jira
 approval and host-specific bounded-injection support.
+
+## Paired opportunity measurement
+
+Use the [paired-evaluation contract](references/paired-evaluation.md) for native Claude/Codex
+hooks and the personal-work gauntlet. **Every measurement-enabled task must request both Arm A
+and Arm B.** Execute both against the same snapshot and model, record actual execution and variant,
+and classify failures/timeouts/missing arms as incomplete. Never substitute one arm's result or
+replay real side effects twice. This applies to context experiments even with legacy shadow=false.
+Natural hooks remain observational; no correctness or benefit claim follows from a completed turn.

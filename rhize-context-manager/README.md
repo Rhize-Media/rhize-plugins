@@ -158,10 +158,13 @@ thresholds, and calibration data.
 | `context-experiment-selector.js` | `UserPromptSubmit` | Fail-silent Claude Code selector. Strict disabled-by-default config, allowlist, task, clean-repository, provider, snapshot, duration, and single-flight gates decide whether to emit an accepted local pack/evidence command. |
 | `context-experiment-finalizer.js` | `Stop` | Writes one evidence-backed terminal receipt. Completed continuous attempts remain enabled; failed, incomplete, stale, or malformed evidence freezes further claims. |
 
-All six hooks are auto-wired for Claude Code in `hooks/hooks.json`. Codex does not consume this
-Claude hook manifest; it discovers the same canonical skills and must invoke the host-neutral
-context pack or experiment runner explicitly. Both paths remain behaviorally inert until strict
-configuration explicitly enables a capability for an allowlisted repository.
+`memory-opportunity.py` additionally handles SessionStart, UserPromptSubmit, PostToolUse and Stop
+for Claude and current Codex native hooks. Its silent producer executes **both A and B** for each
+eligible configured opportunity; an isolated answer worker also runs **both arms** on the same
+question/model. Older Codex clients can use the explicit host-neutral CLI. Plugin installation,
+native hook trust, configuration and observed capture are separate states. Existing provider
+experiments keep their own authorization gates. See the
+[paired measurement contract](skills/memory-context/references/paired-evaluation.md).
 
 The five map-reading hooks above (`session-disclosure`, `remediation-suggester`,
 `next-step-suggester`, plus opt-in `skill-router` and `agent-brief-router`) all resolve the same

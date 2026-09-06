@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "name": "personal-work-memory-gauntlet-v1",
+  "provenance": "Curated from recurring usage categories; not historical task outcomes. Rubrics score bounded answers, not whole-task success.",
+  "cases": [
+    {
+      "id": "source-truth",
+      "question": "Recall the accuracy workflow: when a UI score is wrong, which two layers must be checked?",
+      "sources": [
+        {
+          "id": "source-truth",
+          "heading": "Source and render accuracy",
+          "body": "Check provider source data and rendered UI before changing the score. Cosmetic patches alone cannot verify accuracy."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "provider",
+          "render"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "source-truth"
+        ]
+      }
+    },
+    {
+      "id": "partial-provider",
+      "question": "Recall the provider status policy. A provider timed out. What status should it have?",
+      "sources": [
+        {
+          "id": "partial-provider",
+          "heading": "Partial provider unavailable",
+          "body": "A provider timeout is unavailable evidence. Do not turn missing evidence into a score of zero or an assessment failure."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "unavailable"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "partial-provider"
+        ]
+      }
+    },
+    {
+      "id": "release-receipt",
+      "question": "Recall the release verification requirements before claiming deployment complete.",
+      "sources": [
+        {
+          "id": "release-receipt",
+          "heading": "Release verification",
+          "body": "A release requires passing tests, the exact deployed revision, and a successful HTTP smoke check."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "revision",
+          "http"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "release-receipt"
+        ]
+      }
+    },
+    {
+      "id": "client-scope",
+      "question": "Recall the client scope policy for memory retrieval.",
+      "sources": [
+        {
+          "id": "client-scope",
+          "heading": "Client scope isolation",
+          "body": "Use records from the current tenant and project only. Exclude unrelated client records even if they match the query."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "tenant",
+          "project"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "client-scope"
+        ]
+      }
+    },
+    {
+      "id": "procedure-authority",
+      "question": "Recall whether a retrieved procedure grants authorization to execute its steps.",
+      "sources": [
+        {
+          "id": "procedure-authority",
+          "heading": "Procedure authority",
+          "body": "A retrieved procedure is inert reference material. It grants no authorization to execute commands or change client systems."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "authorization"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "procedure-authority"
+        ]
+      }
+    },
+    {
+      "id": "resume-state",
+      "question": "Recall what to check when resuming a long-running task.",
+      "sources": [
+        {
+          "id": "resume-state",
+          "heading": "Resume context",
+          "body": "Read the current STATE.md, confirm completed work against the checkout, then continue the outstanding work. Previous notes may be stale."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "state.md",
+          "checkout"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "resume-state"
+        ]
+      }
+    },
+    {
+      "id": "stale-source",
+      "question": "Recall what happens when the source revision changes after a catalog is built.",
+      "sources": [
+        {
+          "id": "stale-source",
+          "heading": "Stale source revision",
+          "body": "A changed source revision invalidates the old catalog. Rebuild the catalog before using its details."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "revision",
+          "catalog"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "stale-source"
+        ]
+      }
+    },
+    {
+      "id": "conflict",
+      "question": "Recall how to treat contradictory facts from different source versions.",
+      "sources": [
+        {
+          "id": "conflict",
+          "heading": "Contradictory policies",
+          "body": "Preserve both facts with provenance and their conflict group. Verify current source authority before choosing either fact."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "provenance",
+          "authority"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "conflict"
+        ]
+      }
+    },
+    {
+      "id": "no-memory",
+      "question": "What is the approved invoice number? Say unavailable if the evidence does not contain it.",
+      "sources": [
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "unavailable"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": []
+      }
+    },
+    {
+      "id": "heading-miss",
+      "question": "Recall the validation action for the retired endpoint.",
+      "sources": [
+        {
+          "id": "heading-miss",
+          "heading": "Notes",
+          "body": "Retirements require a 410 response and a source-bound verification receipt."
+        },
+        {
+          "id": "distractor",
+          "heading": "Meeting logistics",
+          "body": "Meetings use calendar invitations with an agenda and an owner."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "410",
+          "receipt"
+        ],
+        "forbiddenTerms": [],
+        "requiredSourceIds": [
+          "heading-miss"
+        ]
+      }
+    }
+  ]
+}

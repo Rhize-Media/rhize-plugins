@@ -174,8 +174,8 @@ the right one, and health-checks the whole thing.
   `setup/manifest.json`, not auto-wired. They need `COMPONENT_REGISTRY.md` /
   `CURRENT_SPRINT.md` to be useful, so they're per-repo, not global-default.
 - `context-experiment-selector.js` and `context-experiment-finalizer.js` are auto-wired for Claude
-  Code and no-op while capabilities are disabled. Codex uses the same host-neutral runner through
-  explicit skill invocation; it does not consume `hooks/hooks.json`. Remove older manually wired
+  Code and no-op while capabilities are disabled. Current Codex supports native plugin hooks;
+  older versions use the same host-neutral runner through explicit skill invocation. Remove older manually wired
   Claude entries when updating; duplicate calls are state-safe but waste local provider work.
 - `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`) ranks the
   prompt against the compiled skill-map's topic/stack tags, so a newly tagged skill routes
@@ -270,3 +270,16 @@ and verify the exact loaded path and original failure scenario in a fresh host t
 before marking the queue entry consumed. A written capture or filesystem read-back
 is not proof of host use. See [the command](commands/skill-refine.md) for the complete
 workflow, pending-verification state and supported patch/extend boundaries.
+
+## Learn faster from paired measurements
+
+Configure memory opportunities once for the workspaces you want to measure. Claude and Codex
+then collect paired retrieval results when a prompt concerns prior context, procedures, source
+verification or similar work. Every measurable test requests Arm A and Arm B; missing or failed
+arms stay incomplete. The isolated answer worker answers the same bounded question twice without
+replaying your real edits or deployments. Default automatic allowance is 12 whole pairs per host
+per UTC day, with one worker and a bounded queue. This consumes existing subscription quota.
+
+Run the ten-case personal-work gauntlet for quicker feedback; it covers your recurring work
+patterns but is curated, not recorded historical performance. Natural task completion is not a
+correctness grade. See [setup, commands and interpretation](skills/memory-context/references/paired-evaluation.md).

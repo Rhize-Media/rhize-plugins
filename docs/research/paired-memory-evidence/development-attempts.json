@@ -1,0 +1,3838 @@
+{
+  "batches": [
+    {
+      "batch": "claude-smoke",
+      "classification": "development only; superseded by frozen final cohort",
+      "rows": [
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+          "createdAt": "2026-09-06T15:56:13.065452Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "2a2b735f6ad680abd1ee893d5d09800ba0421d47dcd05e6e4c88d42ac17f19db"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 469,
+              "presentedTokens": 133,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 336,
+              "indexBuildMs": 3.393,
+              "elapsedMs": 7.953,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 249,
+              "presentedTokens": 249,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.218,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1100,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "partial-provider",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "08206f2beb5987ccedd9ef844c334e89aa75dadff002859fe058de10fbba375b",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": null,
+                "modelIdentitySource": null,
+                "usage": null,
+                "sourceIds": [
+                  "2ec996d6915dab4bbfdaa1b4162bd6d513fa9a28d9d0b5e79333b3b369e93626"
+                ],
+                "elapsedMs": 17089.419,
+                "rubricPass": false,
+                "answerHash": "00bff79e31753eff018c8540f98013d71acc447f03dd3a264e4a02bb99676792"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": null,
+                "modelIdentitySource": null,
+                "usage": null,
+                "sourceIds": [
+                  "2ec996d6915dab4bbfdaa1b4162bd6d513fa9a28d9d0b5e79333b3b369e93626"
+                ],
+                "elapsedMs": 16755.948,
+                "rubricPass": false,
+                "answerHash": "60b8c1eeb8d283bc32f0e1729b2a04f5c63803ecbdaadd0f41591a653a1c142b"
+              }
+            },
+            "comparisonStatus": "incomplete",
+            "reason": "model_identity_mismatch_or_unavailable"
+          },
+          "answerStatus": "incomplete"
+        }
+      ]
+    },
+    {
+      "batch": "codex-smoke",
+      "classification": "development only; superseded by frozen final cohort",
+      "rows": [
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+          "createdAt": "2026-09-06T15:56:06.582525Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "2a2b735f6ad680abd1ee893d5d09800ba0421d47dcd05e6e4c88d42ac17f19db"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 469,
+              "presentedTokens": 133,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 336,
+              "indexBuildMs": 3.302,
+              "elapsedMs": 8.44,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 249,
+              "presentedTokens": 249,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 6.37,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1100,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "partial-provider",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "08206f2beb5987ccedd9ef844c334e89aa75dadff002859fe058de10fbba375b",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 21136,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 74,
+                  "cacheCreationInputTokens": null
+                },
+                "sourceIds": [
+                  "2ec996d6915dab4bbfdaa1b4162bd6d513fa9a28d9d0b5e79333b3b369e93626"
+                ],
+                "elapsedMs": 7080.682,
+                "rubricPass": false,
+                "answerHash": "56d713d52abcd11eff36f4d272bc7647e3b638fea0665341cdd98fb47d03848d"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20954,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 69,
+                  "cacheCreationInputTokens": null
+                },
+                "sourceIds": [
+                  "2ec996d6915dab4bbfdaa1b4162bd6d513fa9a28d9d0b5e79333b3b369e93626"
+                ],
+                "elapsedMs": 6384.563,
+                "rubricPass": false,
+                "answerHash": "c6700d64248611f3460e7f17fa7b89dc78ebf4a72b67221d8d580c2ef71bba2a"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        }
+      ]
+    },
+    {
+      "batch": "claude-v1",
+      "classification": "development only; superseded by frozen final cohort",
+      "rows": [
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "5c58067ecf5a7bad6a55b36c78d313cf0dd086c4177a852b91e66ffc44bd1706",
+          "createdAt": "2026-09-06T15:59:12.651426Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 466,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 334,
+              "indexBuildMs": 3.462,
+              "elapsedMs": 8.191,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.433,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1090,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "source-truth",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1434,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1542,
+                  "outputTokens": 188,
+                  "totalInputTokens": 2976
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+                ],
+                "elapsedMs": 8661.029,
+                "rubricPass": true,
+                "answerHash": "f5d7bec495a486eab3af7a2d28bea5525e60c3c1c7ec2cf3075939a440d90453"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1219,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1255,
+                  "outputTokens": 189,
+                  "totalInputTokens": 2474
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+                ],
+                "elapsedMs": 11833.452,
+                "rubricPass": true,
+                "answerHash": "613726471aa57133cff6f733cb3c4d6a08c27219f0802b79e5983bd1a88f1a72"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+          "createdAt": "2026-09-06T15:59:33.161184Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 469,
+              "presentedTokens": 133,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 336,
+              "indexBuildMs": 4.528,
+              "elapsedMs": 11.135,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 249,
+              "presentedTokens": 249,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 5.952,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1100,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "partial-provider",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1430,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1717,
+                  "outputTokens": 227,
+                  "totalInputTokens": 3147
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+                ],
+                "elapsedMs": 4422.149,
+                "rubricPass": true,
+                "answerHash": "75152f995dafc8883170ed511ee58f58f4432debc1ba67c3b5216f082a9e4be2"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1215,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1240,
+                  "outputTokens": 222,
+                  "totalInputTokens": 2455
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+                ],
+                "elapsedMs": 7442.655,
+                "rubricPass": true,
+                "answerHash": "8e067c929dba749aff51c34e8c92d8e2f3a3766d6022eef5d534c25098abf7b6"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "77bd3f48d13b2b5164255c7b61ed8a1c2e97c75d85e544161d8b77d15b36c074",
+          "createdAt": "2026-09-06T15:59:45.047231Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 457,
+              "presentedTokens": 126,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 331,
+              "indexBuildMs": 2.78,
+              "elapsedMs": 9.716,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 241,
+              "presentedTokens": 241,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.033,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "release-receipt",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1203,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1229,
+                  "outputTokens": 320,
+                  "totalInputTokens": 2432
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+                ],
+                "elapsedMs": 8558.477,
+                "rubricPass": true,
+                "answerHash": "b3d7793587268d695036d7c955bc9359c1d3388a0058552975ad771af7d9a404"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1418,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1516,
+                  "outputTokens": 189,
+                  "totalInputTokens": 2934
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+                ],
+                "elapsedMs": 16405.448,
+                "rubricPass": true,
+                "answerHash": "ea70346e0b600c5ee5e9373e4b03afc26c198d09b1f591046f69cf82e5f4421a"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "4f8728d444b919fc59645f0285ced885305e5cde2c49f0fd3fcd372f1f83eee5",
+          "createdAt": "2026-09-06T16:00:10.026137Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 247,
+              "presentedTokens": 247,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.138,
+              "requiredSourceCoverage": 1.0
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 131,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 333,
+              "indexBuildMs": 2.324,
+              "elapsedMs": 5.977,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "client-scope",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1428,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1515,
+                  "outputTokens": 183,
+                  "totalInputTokens": 2943
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+                ],
+                "elapsedMs": 7979.472,
+                "rubricPass": true,
+                "answerHash": "d7ef1e4f34490557be1ba87f45579bcb5b8d45c6152cd661cb4391eabcecaad2"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1213,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1228,
+                  "outputTokens": 233,
+                  "totalInputTokens": 2441
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+                ],
+                "elapsedMs": 4447.624,
+                "rubricPass": true,
+                "answerHash": "168ca753f58a52e065e64bcffe87c5be645c1e8e3594cbf0d63533c94be6f59e"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3c96acb370656e08540e5fef480a7b10754c0f38a7e1cf8a065a852961301db4",
+          "createdAt": "2026-09-06T16:00:22.467047Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 462,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 330,
+              "indexBuildMs": 4.332,
+              "elapsedMs": 9.791,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 4.953,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1109,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "procedure-authority",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1216,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1244,
+                  "outputTokens": 215,
+                  "totalInputTokens": 2460
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+                ],
+                "elapsedMs": 3977.704,
+                "rubricPass": true,
+                "answerHash": "21622bbef5ae4a24f0c48c5f39a56d9d6053869acaac4e11d7598d367a4b364f"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1431,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1531,
+                  "outputTokens": 199,
+                  "totalInputTokens": 2962
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+                ],
+                "elapsedMs": 4460.352,
+                "rubricPass": true,
+                "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "10b93c886a409fd684038cfc2594ef5c63e547d7b6080c985e2171c5622c0bf8",
+          "createdAt": "2026-09-06T16:00:30.922700Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 328,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 328,
+              "indexBuildMs": 3.085,
+              "elapsedMs": 7.174,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 250,
+              "presentedTokens": 250,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.25,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "resume-state",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1432,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1515,
+                  "outputTokens": 251,
+                  "totalInputTokens": 2947
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+                ],
+                "elapsedMs": 4288.87,
+                "rubricPass": true,
+                "answerHash": "b23fec8ee16b17c30d17618e54227294873c175ebf32c8f048dc482418294910"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1921,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 0,
+                  "outputTokens": 144,
+                  "totalInputTokens": 1921
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 3428.614,
+                "rubricPass": false,
+                "answerHash": "e9fe3f1f9177a3404dc88df16fe056f644cd9e79c9ccce9028f3b05fc76bdd64"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "dd25479b2d7e5c0d3301e1626081f06bf65253d8b2135e41ae6f17203af425e3",
+          "createdAt": "2026-09-06T16:00:38.652896Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 459,
+              "presentedTokens": 127,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 2.559,
+              "elapsedMs": 6.476,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 242,
+              "presentedTokens": 242,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.714,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1073,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "stale-source",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1424,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1517,
+                  "outputTokens": 228,
+                  "totalInputTokens": 2941
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+                ],
+                "elapsedMs": 4156.002,
+                "rubricPass": true,
+                "answerHash": "2f5495ce7ce60e6ea031f1e0e15ac253ce6ad50b01c69f74ff68915a08018ab8"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1209,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1230,
+                  "outputTokens": 214,
+                  "totalInputTokens": 2439
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+                ],
+                "elapsedMs": 4116.408,
+                "rubricPass": true,
+                "answerHash": "4fbb2e83886c1777ca855fb143de40b9a6a5d54da79d773a3664954d8a3a9b2b"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3bf1307e58f11b0e79187deed66e1eaa703391f179d91af54df1add106304790",
+          "createdAt": "2026-09-06T16:00:46.936271Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 2.796,
+              "elapsedMs": 7.36,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.861,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1068,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "conflict",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1430,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1523,
+                  "outputTokens": 202,
+                  "totalInputTokens": 2953
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+                ],
+                "elapsedMs": 5506.297,
+                "rubricPass": true,
+                "answerHash": "143faea11e93e1869c49077563babbbc984fd4f9e3e2a061a66207df57afdaa8"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1215,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1236,
+                  "outputTokens": 271,
+                  "totalInputTokens": 2451
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+                ],
+                "elapsedMs": 7999.303,
+                "rubricPass": true,
+                "answerHash": "aa957899f7e0700eca519e8d40e4e7ff6d0ad41503e3ed0dfb9d78f1f1a215ea"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "eaa48c03299fcab27b3aee1502ebf899b92dc6994a04c22909a2c15849f6b651",
+          "createdAt": "2026-09-06T16:01:00.441472Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 116,
+              "presentedTokens": 116,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.468,
+              "requiredSourceCoverage": null
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 165,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 165,
+              "indexBuildMs": 2.112,
+              "elapsedMs": 5.614,
+              "requiredSourceCoverage": null
+            }
+          },
+          "sourceInputBytes": 658,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "no-memory",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1936,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 0,
+                  "outputTokens": 129,
+                  "totalInputTokens": 1936
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 3535.886,
+                "rubricPass": true,
+                "answerHash": "21e38d4abc5c8e6979c137f05977a09bb740ae4de90635017691e14d144db841"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1208,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1230,
+                  "outputTokens": 187,
+                  "totalInputTokens": 2438
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+                ],
+                "elapsedMs": 3484.764,
+                "rubricPass": true,
+                "answerHash": "45181602680cab8ed52c04384f9ef5f2ccb7ba6714ce8a74214d0184527f4334"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "claude",
+          "model": "claude-opus-4-8",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "d850e73db23e4c55e397b80b104880970c8a208ab6c7d120fe60040231578cfa",
+          "createdAt": "2026-09-06T16:01:07.470120Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 322,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 322,
+              "indexBuildMs": 2.859,
+              "elapsedMs": 7.133,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 232,
+              "presentedTokens": 232,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.041,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 993,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "heading-miss",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1409,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 1494,
+                  "outputTokens": 230,
+                  "totalInputTokens": 2903
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [
+                  "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+                ],
+                "elapsedMs": 9182.172,
+                "rubricPass": true,
+                "answerHash": "b0bc66e0dab85e44cc8bdd1cdccf1e4d6e90d2f390e4f69bf561d21194be53e1"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "claude-opus-4-8",
+                "modelIdentitySource": "native_model_usage",
+                "usage": {
+                  "inputTokens": 1917,
+                  "cachedInputTokens": 0,
+                  "cacheCreationInputTokens": 0,
+                  "outputTokens": 145,
+                  "totalInputTokens": 1917
+                },
+                "usageScope": "all_native_models",
+                "usageModels": [
+                  "claude-haiku-4-5-20251001",
+                  "claude-opus-4-8"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 3326.09,
+                "rubricPass": false,
+                "answerHash": "c9682758111d81651ff1a399bd50df5085566b7e968d418dda16e516e9da856d"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        }
+      ]
+    },
+    {
+      "batch": "codex-v1",
+      "classification": "development only; superseded by frozen final cohort",
+      "rows": [
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "5c58067ecf5a7bad6a55b36c78d313cf0dd086c4177a852b91e66ffc44bd1706",
+          "createdAt": "2026-09-06T15:59:17.758381Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 466,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 334,
+              "indexBuildMs": 9.899,
+              "elapsedMs": 22.712,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 4.75,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1090,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "source-truth",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 8994.061,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 8092.342,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+          "createdAt": "2026-09-06T15:59:34.877917Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 469,
+              "presentedTokens": 133,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 336,
+              "indexBuildMs": 4.246,
+              "elapsedMs": 9.714,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 249,
+              "presentedTokens": 249,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.79,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1100,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "partial-provider",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 7569.104,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 7063.516,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "77bd3f48d13b2b5164255c7b61ed8a1c2e97c75d85e544161d8b77d15b36c074",
+          "createdAt": "2026-09-06T15:59:49.527022Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 457,
+              "presentedTokens": 126,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 331,
+              "indexBuildMs": 3.092,
+              "elapsedMs": 8.663,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 241,
+              "presentedTokens": 241,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.307,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "release-receipt",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6991.022,
+                "rubricPass": null
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6324.921,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "4f8728d444b919fc59645f0285ced885305e5cde2c49f0fd3fcd372f1f83eee5",
+          "createdAt": "2026-09-06T16:00:02.858005Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 247,
+              "presentedTokens": 247,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 4.0,
+              "requiredSourceCoverage": 1.0
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 131,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 333,
+              "indexBuildMs": 3.245,
+              "elapsedMs": 8.329,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "client-scope",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 8092.692,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 7121.315,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3c96acb370656e08540e5fef480a7b10754c0f38a7e1cf8a065a852961301db4",
+          "createdAt": "2026-09-06T16:00:18.088003Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 462,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 330,
+              "indexBuildMs": 2.721,
+              "elapsedMs": 7.402,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.158,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1109,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "procedure-authority",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6824.811,
+                "rubricPass": null
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 7547.152,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "10b93c886a409fd684038cfc2594ef5c63e547d7b6080c985e2171c5622c0bf8",
+          "createdAt": "2026-09-06T16:00:32.473047Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 328,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 328,
+              "indexBuildMs": 2.464,
+              "elapsedMs": 5.88,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 250,
+              "presentedTokens": 250,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.43,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "resume-state",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 8700.459,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6097.281,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "dd25479b2d7e5c0d3301e1626081f06bf65253d8b2135e41ae6f17203af425e3",
+          "createdAt": "2026-09-06T16:00:47.281422Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 459,
+              "presentedTokens": 127,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 10.12,
+              "elapsedMs": 16.803,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 242,
+              "presentedTokens": 242,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 4.394,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1073,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "stale-source",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6326.681,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6874.627,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3bf1307e58f11b0e79187deed66e1eaa703391f179d91af54df1add106304790",
+          "createdAt": "2026-09-06T16:01:00.493488Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 3.302,
+              "elapsedMs": 7.743,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.502,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1068,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "conflict",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 7868.539,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 8990.566,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "eaa48c03299fcab27b3aee1502ebf899b92dc6994a04c22909a2c15849f6b651",
+          "createdAt": "2026-09-06T16:01:17.359226Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 116,
+              "presentedTokens": 116,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.425,
+              "requiredSourceCoverage": null
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 165,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 165,
+              "indexBuildMs": 2.538,
+              "elapsedMs": 6.533,
+              "requiredSourceCoverage": null
+            }
+          },
+          "sourceInputBytes": 658,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "no-memory",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 4836.591,
+                "rubricPass": null
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 5935.477,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "d850e73db23e4c55e397b80b104880970c8a208ab6c7d120fe60040231578cfa",
+          "createdAt": "2026-09-06T16:01:28.144624Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 322,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 322,
+              "indexBuildMs": 2.944,
+              "elapsedMs": 6.657,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 232,
+              "presentedTokens": 232,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.965,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 993,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "heading-miss",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "8d4531c57e035e35e3dd8f9cf86afd3901e5438f88453e4c5e150c1109c0be99",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6391.927,
+                "rubricPass": null
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "failed",
+                "model": "gpt-6-astra",
+                "usage": null,
+                "reason": "driver_or_output_failure",
+                "elapsedMs": 6524.842,
+                "rubricPass": null
+              }
+            },
+            "comparisonStatus": "incomplete"
+          },
+          "answerStatus": "incomplete"
+        }
+      ]
+    },
+    {
+      "batch": "codex-v2",
+      "classification": "development only; superseded by frozen final cohort",
+      "rows": [
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "5c58067ecf5a7bad6a55b36c78d313cf0dd086c4177a852b91e66ffc44bd1706",
+          "createdAt": "2026-09-06T16:02:38.170574Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 466,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 334,
+              "indexBuildMs": 2.763,
+              "elapsedMs": 6.359,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 2.289,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1090,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "source-truth",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "43e6d08c2e181ce02bbab4c5f8f1ecded552f4ac70c3fe1f0a9cd4dd5869bf48",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20640,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 66,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20640
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+                ],
+                "elapsedMs": 6482.776,
+                "rubricPass": true,
+                "answerHash": "0c33521eac3de4d33951d881328eb77bde628f2e085e17e59bdc53e9349328f3"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20450,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 66,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20450
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+                ],
+                "elapsedMs": 7115.073,
+                "rubricPass": true,
+                "answerHash": "0c33521eac3de4d33951d881328eb77bde628f2e085e17e59bdc53e9349328f3"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+          "createdAt": "2026-09-06T16:02:51.779296Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 469,
+              "presentedTokens": 133,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 336,
+              "indexBuildMs": 2.718,
+              "elapsedMs": 7.475,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 249,
+              "presentedTokens": 249,
+              "selectedSourceHashes": [
+                "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.225,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1100,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "partial-provider",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "43e6d08c2e181ce02bbab4c5f8f1ecded552f4ac70c3fe1f0a9cd4dd5869bf48",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20627,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 62,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20627
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+                ],
+                "elapsedMs": 6634.939,
+                "rubricPass": true,
+                "answerHash": "c6700d64248611f3460e7f17fa7b89dc78ebf4a72b67221d8d580c2ef71bba2a"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20447,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 66,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20447
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+                ],
+                "elapsedMs": 7581.839,
+                "rubricPass": true,
+                "answerHash": "43f0ab4d48244683601cfcc01fc9ff4b331cb9fc0e96c8163d593759074e69c7"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "77bd3f48d13b2b5164255c7b61ed8a1c2e97c75d85e544161d8b77d15b36c074",
+          "createdAt": "2026-09-06T16:03:06.009770Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 457,
+              "presentedTokens": 126,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 331,
+              "indexBuildMs": 3.644,
+              "elapsedMs": 8.522,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 241,
+              "presentedTokens": 241,
+              "selectedSourceHashes": [
+                "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.742,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "release-receipt",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "43e6d08c2e181ce02bbab4c5f8f1ecded552f4ac70c3fe1f0a9cd4dd5869bf48",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20434,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 71,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20434
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+                ],
+                "elapsedMs": 7057.583,
+                "rubricPass": true,
+                "answerHash": "5f95acaf0ad039563d0e1d100881422f46add61f9df5f47871328cabbd88a59c"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20620,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 71,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20620
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+                ],
+                "elapsedMs": 7947.492,
+                "rubricPass": true,
+                "answerHash": "08a64d8f9f005d922dc625b6cbc09c70da0687c889eb7505bfca8c307ca1a53a"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "4f8728d444b919fc59645f0285ced885305e5cde2c49f0fd3fcd372f1f83eee5",
+          "createdAt": "2026-09-06T16:03:21.030824Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 247,
+              "presentedTokens": 247,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 5.827,
+              "requiredSourceCoverage": 1.0
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 131,
+              "selectedSourceHashes": [
+                "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 333,
+              "indexBuildMs": 3.17,
+              "elapsedMs": 8.075,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "client-scope",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "43e6d08c2e181ce02bbab4c5f8f1ecded552f4ac70c3fe1f0a9cd4dd5869bf48",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20628,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 75,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20628
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+                ],
+                "elapsedMs": 6007.505,
+                "rubricPass": true,
+                "answerHash": "da17a38736e7bfdfe14dc013172805b390f4e2dcd86f382211a2a9246605c2b3"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20444,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 75,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20444
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+                ],
+                "elapsedMs": 7922.536,
+                "rubricPass": true,
+                "answerHash": "63e4b0f3f86d6467a6d167d70537f728659f45856b061ff5cf34af07abd024ca"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3c96acb370656e08540e5fef480a7b10754c0f38a7e1cf8a065a852961301db4",
+          "createdAt": "2026-09-06T16:03:34.979431Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 462,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 330,
+              "indexBuildMs": 5.022,
+              "elapsedMs": 12.617,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 6.669,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1109,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "procedure-authority",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "43e6d08c2e181ce02bbab4c5f8f1ecded552f4ac70c3fe1f0a9cd4dd5869bf48",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20447,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 76,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20447
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+                ],
+                "elapsedMs": 7631.44,
+                "rubricPass": true,
+                "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20633,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 76,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20633
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+                ],
+                "elapsedMs": 6216.699,
+                "rubricPass": true,
+                "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "10b93c886a409fd684038cfc2594ef5c63e547d7b6080c985e2171c5622c0bf8",
+          "createdAt": "2026-09-06T16:03:48.851287Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 328,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 328,
+              "indexBuildMs": 7.611,
+              "elapsedMs": 51.884,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 250,
+              "presentedTokens": 250,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 26.599,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1064,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "resume-state",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "5d781788ccf47247f0eb4f4e20652d780ffe5eddd7d4d60bb8b7f880fa47cfd5",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20631,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 82,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20631
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+                ],
+                "elapsedMs": 7865.931,
+                "rubricPass": true,
+                "answerHash": "8aacf885a7c26c4246327849c6761148f23776fd320d5459bee7ec0d0b6ff4e5"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20249,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 39,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20249
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 6448.074,
+                "rubricPass": false,
+                "answerHash": "518d1953078bd08870971c43d0a807e72e1dbe2f2ed26097cdd302a54a28da23"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "dd25479b2d7e5c0d3301e1626081f06bf65253d8b2135e41ae6f17203af425e3",
+          "createdAt": "2026-09-06T16:04:03.250314Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 459,
+              "presentedTokens": 127,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 4.793,
+              "elapsedMs": 10.353,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 242,
+              "presentedTokens": 242,
+              "selectedSourceHashes": [
+                "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.739,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1073,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "stale-source",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "5d781788ccf47247f0eb4f4e20652d780ffe5eddd7d4d60bb8b7f880fa47cfd5",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20626,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 69,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20626
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+                ],
+                "elapsedMs": 7241.027,
+                "rubricPass": true,
+                "answerHash": "92ab8a1dff1ad4e7b0414e2eeebe4bd9e809cc91bb5accd3113a903fc3485f89"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20444,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 69,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20444
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+                ],
+                "elapsedMs": 6845.809,
+                "rubricPass": true,
+                "answerHash": "92ab8a1dff1ad4e7b0414e2eeebe4bd9e809cc91bb5accd3113a903fc3485f89"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "3bf1307e58f11b0e79187deed66e1eaa703391f179d91af54df1add106304790",
+          "createdAt": "2026-09-06T16:04:17.356429Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 464,
+              "presentedTokens": 132,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 332,
+              "indexBuildMs": 3.213,
+              "elapsedMs": 7.621,
+              "requiredSourceCoverage": 1.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 248,
+              "presentedTokens": 248,
+              "selectedSourceHashes": [
+                "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a",
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.223,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 1068,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "conflict",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "5d781788ccf47247f0eb4f4e20652d780ffe5eddd7d4d60bb8b7f880fa47cfd5",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20632,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 76,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20632
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+                ],
+                "elapsedMs": 5749.171,
+                "rubricPass": true,
+                "answerHash": "74fdb40f85f4ed7f8ae7930649eebeb973c87e0bfcd7eb5213d6bfc8a7643d06"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20448,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 76,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20448
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+                ],
+                "elapsedMs": 8201.504,
+                "rubricPass": true,
+                "answerHash": "74fdb40f85f4ed7f8ae7930649eebeb973c87e0bfcd7eb5213d6bfc8a7643d06"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "A",
+            "B"
+          ],
+          "snapshotHash": "eaa48c03299fcab27b3aee1502ebf899b92dc6994a04c22909a2c15849f6b651",
+          "createdAt": "2026-09-06T16:04:31.324179Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 116,
+              "presentedTokens": 116,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 6.198,
+              "requiredSourceCoverage": null
+            },
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 165,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 165,
+              "indexBuildMs": 3.273,
+              "elapsedMs": 8.492,
+              "requiredSourceCoverage": null
+            }
+          },
+          "sourceInputBytes": 658,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "no-memory",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "B",
+              "A"
+            ],
+            "driverHash": "5d781788ccf47247f0eb4f4e20652d780ffe5eddd7d4d60bb8b7f880fa47cfd5",
+            "arms": {
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20260,
+                  "cachedInputTokens": 11904,
+                  "outputTokens": 20,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20260
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 6160.344,
+                "rubricPass": true,
+                "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+              },
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20441,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 20,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20441
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 4349.452,
+                "rubricPass": true,
+                "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        },
+        {
+          "schemaVersion": "rhize-memory-pair-v1",
+          "evidenceKind": "curated",
+          "host": "codex",
+          "model": "gpt-6-astra",
+          "armsRequested": [
+            "A",
+            "B"
+          ],
+          "armOrder": [
+            "B",
+            "A"
+          ],
+          "snapshotHash": "d850e73db23e4c55e397b80b104880970c8a208ab6c7d120fe60040231578cfa",
+          "createdAt": "2026-09-06T16:04:41.852705Z",
+          "selectionMethod": "catalog-keyword-overlap-v1",
+          "implementationHashes": {
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "opportunities.py": "79e5707757103bf92789a945f150ec572a623fc0ddc724d2743643a3c6d59d77"
+          },
+          "arms": {
+            "B": {
+              "variant": "awareness-selected-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 322,
+              "presentedTokens": 0,
+              "selectedSourceHashes": [],
+              "excluded": {},
+              "catalogEstimatedTokens": 322,
+              "indexBuildMs": 3.324,
+              "elapsedMs": 8.008,
+              "requiredSourceCoverage": 0.0
+            },
+            "A": {
+              "variant": "legacy-direct-v1",
+              "actuallyRan": true,
+              "status": "completed",
+              "taskCorrectness": null,
+              "modelUsage": null,
+              "estimatedTokens": 232,
+              "presentedTokens": 232,
+              "selectedSourceHashes": [
+                "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+                "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+              ],
+              "excluded": {},
+              "catalogEstimatedTokens": 0,
+              "indexBuildMs": 0.0,
+              "elapsedMs": 3.415,
+              "requiredSourceCoverage": 1.0
+            }
+          },
+          "sourceInputBytes": 993,
+          "automaticInjection": false,
+          "emptyMemoryControl": {
+            "actuallyRan": true,
+            "estimatedTokens": 0
+          },
+          "comparisonStatus": "complete",
+          "caseId": "heading-miss",
+          "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+          "answerComparison": {
+            "armsRequested": [
+              "A",
+              "B"
+            ],
+            "armOrder": [
+              "A",
+              "B"
+            ],
+            "driverHash": "5d781788ccf47247f0eb4f4e20652d780ffe5eddd7d4d60bb8b7f880fa47cfd5",
+            "arms": {
+              "A": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20615,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 72,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20615
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [
+                  "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+                ],
+                "elapsedMs": 6157.804,
+                "rubricPass": true,
+                "answerHash": "8be461da460f3a218c5061a87d0263901c5206b215a9fc8dce92d7d2710a7b64"
+              },
+              "B": {
+                "actuallyRan": true,
+                "status": "completed",
+                "model": "gpt-6-astra",
+                "modelIdentitySource": "explicit_pinned_cli_argument",
+                "usage": {
+                  "inputTokens": 20252,
+                  "cachedInputTokens": 0,
+                  "outputTokens": 24,
+                  "cacheCreationInputTokens": 0,
+                  "totalInputTokens": 20252
+                },
+                "usageScope": "native_turn",
+                "usageModels": [
+                  "gpt-6-astra"
+                ],
+                "sourceIds": [],
+                "elapsedMs": 6925.883,
+                "rubricPass": false,
+                "answerHash": "a1064251e92751285b3005402510648a2f84a9ca57c0d582625b3ae8181b07f7"
+              }
+            },
+            "comparisonStatus": "complete"
+          },
+          "answerStatus": "complete"
+        }
+      ]
+    }
+  ]
+}

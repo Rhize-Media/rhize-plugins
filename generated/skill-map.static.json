@@ -459,7 +459,37 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/memory-opportunity",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/memory-opportunity-session",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/memory-opportunity-stop",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/memory-opportunity-tool",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/next-step-suggester",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/paired-memory-opportunities",
       "type": "contains"
     },
     {
@@ -3123,6 +3153,50 @@
       "status": "opt-in"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/memory-opportunity",
+      "kind": "hook",
+      "matcher": "",
+      "name": "memory-opportunity",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\"",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/memory-opportunity-session",
+      "kind": "hook",
+      "matcher": "",
+      "name": "memory-opportunity-session",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\"",
+      "event": "Stop",
+      "id": "hook:rhize-context-manager/memory-opportunity-stop",
+      "kind": "hook",
+      "matcher": "",
+      "name": "memory-opportunity-stop",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\"",
+      "event": "PostToolUse",
+      "id": "hook:rhize-context-manager/memory-opportunity-tool",
+      "kind": "hook",
+      "matcher": "",
+      "name": "memory-opportunity-tool",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/next-step-suggester.js\"",
       "event": "PostToolUse",
       "id": "hook:rhize-context-manager/next-step-suggester",
@@ -3132,6 +3206,17 @@
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/paired-memory-opportunities",
+      "kind": "hook",
+      "matcher": "",
+      "name": "paired-memory-opportunities",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/setup/manifest.json",
+      "status": "opt-in"
     },
     {
       "command": "${CLAUDE_PLUGIN_ROOT}/skills/context-engineering/hooks/pre-commit-guard.sh",
@@ -3616,7 +3701,7 @@
       "path": "rhize-context-manager/skills/context-pack/SKILL.md"
     },
     {
-      "contentHash": "62dd525d30be96728727353d5c69874cfe4ee4badf5d1fda2319d0bed3cfec3d",
+      "contentHash": "1cbd1e1adbdc1894fb808012105d385733435a256f017551c5202c7e4c8e7c2e",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
@@ -3665,8 +3750,8 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "bf89181319f58154d3ac374b10b5e5d82ab0ea6797b647182c4815684b505fe1",
-      "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
+      "contentHash": "9bc86a46b685812cd8ea294b1cce41ba8b0d80b26bf61f3047fe2617c279d5da",
+      "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",
       "name": "memory-context",

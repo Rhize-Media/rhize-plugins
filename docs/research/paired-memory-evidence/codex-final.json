@@ -1,0 +1,1389 @@
+{
+  "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+  "generatedAt": "2026-09-06T16:12:43.765325+00:00",
+  "rows": [
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "5c58067ecf5a7bad6a55b36c78d313cf0dd086c4177a852b91e66ffc44bd1706",
+      "createdAt": "2026-09-06T16:10:23.270105Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 466,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 334,
+          "indexBuildMs": 3.158,
+          "elapsedMs": 7.445,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 2.928,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1090,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "source-truth",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20636,
+              "cachedInputTokens": 0,
+              "outputTokens": 66,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20636
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+            ],
+            "elapsedMs": 6713.466,
+            "rubricPass": true,
+            "answerHash": "0c33521eac3de4d33951d881328eb77bde628f2e085e17e59bdc53e9349328f3"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20456,
+              "cachedInputTokens": 11904,
+              "outputTokens": 66,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20456
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "6fa725264e77afc2b5ef22b7ebf6ee7df151bba7fd769df6a54e5739eb13b058"
+            ],
+            "elapsedMs": 6743.565,
+            "rubricPass": true,
+            "answerHash": "0c33521eac3de4d33951d881328eb77bde628f2e085e17e59bdc53e9349328f3"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "de758aad7e913671eeb68c5d4ccb30e72169524e9ce6a749d05820a952944b61",
+      "createdAt": "2026-09-06T16:10:36.742001Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 469,
+          "presentedTokens": 133,
+          "selectedSourceHashes": [
+            "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 336,
+          "indexBuildMs": 2.721,
+          "elapsedMs": 6.952,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 249,
+          "presentedTokens": 249,
+          "selectedSourceHashes": [
+            "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 4.952,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1100,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "partial-provider",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20631,
+              "cachedInputTokens": 11904,
+              "outputTokens": 61,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20631
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+            ],
+            "elapsedMs": 7422.792,
+            "rubricPass": true,
+            "answerHash": "7b8da0f0d578f740c45acb924baf5f980f05a998f7771ff919e8e2bfac923229"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20449,
+              "cachedInputTokens": 11904,
+              "outputTokens": 62,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20449
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "a62cb7d699976e286117c7e32acf00a982ca0010d669f6547cb070d794294218"
+            ],
+            "elapsedMs": 5812.247,
+            "rubricPass": true,
+            "answerHash": "c6700d64248611f3460e7f17fa7b89dc78ebf4a72b67221d8d580c2ef71bba2a"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "77bd3f48d13b2b5164255c7b61ed8a1c2e97c75d85e544161d8b77d15b36c074",
+      "createdAt": "2026-09-06T16:10:49.991674Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 457,
+          "presentedTokens": 126,
+          "selectedSourceHashes": [
+            "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 331,
+          "indexBuildMs": 2.588,
+          "elapsedMs": 6.556,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 241,
+          "presentedTokens": 241,
+          "selectedSourceHashes": [
+            "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 2.479,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "release-receipt",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20438,
+              "cachedInputTokens": 11904,
+              "outputTokens": 71,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20438
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+            ],
+            "elapsedMs": 6627.584,
+            "rubricPass": true,
+            "answerHash": "08a64d8f9f005d922dc625b6cbc09c70da0687c889eb7505bfca8c307ca1a53a"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20620,
+              "cachedInputTokens": 0,
+              "outputTokens": 71,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20620
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "c7e02251939e08e5555039b4fb0ef7edfcf300224ceb755402372ebdac05af53"
+            ],
+            "elapsedMs": 6504.236,
+            "rubricPass": true,
+            "answerHash": "b92f62d43ff601af6d7111c3141d917962a1d20b1dbe040bd0d08e309f578ec3"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "A",
+        "B"
+      ],
+      "snapshotHash": "4f8728d444b919fc59645f0285ced885305e5cde2c49f0fd3fcd372f1f83eee5",
+      "createdAt": "2026-09-06T16:11:03.134346Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 247,
+          "presentedTokens": 247,
+          "selectedSourceHashes": [
+            "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.892,
+          "requiredSourceCoverage": 1.0
+        },
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 464,
+          "presentedTokens": 131,
+          "selectedSourceHashes": [
+            "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 333,
+          "indexBuildMs": 2.798,
+          "elapsedMs": 6.952,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "client-scope",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20626,
+              "cachedInputTokens": 0,
+              "outputTokens": 75,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20626
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+            ],
+            "elapsedMs": 6476.683,
+            "rubricPass": true,
+            "answerHash": "63e4b0f3f86d6467a6d167d70537f728659f45856b061ff5cf34af07abd024ca"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20440,
+              "cachedInputTokens": 11904,
+              "outputTokens": 74,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20440
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "79339bfc87501f22e66dc45fb9800f3dc160c0c60a459cac59156fb6c8059476"
+            ],
+            "elapsedMs": 6804.368,
+            "rubricPass": true,
+            "answerHash": "4e4a6705d08cecf166e64bd55daef64f7a7dd611448320ab3d22e8f921678cc3"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "3c96acb370656e08540e5fef480a7b10754c0f38a7e1cf8a065a852961301db4",
+      "createdAt": "2026-09-06T16:11:16.430616Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 462,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 330,
+          "indexBuildMs": 3.57,
+          "elapsedMs": 15.213,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 7.64,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1109,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "procedure-authority",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20445,
+              "cachedInputTokens": 11904,
+              "outputTokens": 76,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20445
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+            ],
+            "elapsedMs": 8284.024,
+            "rubricPass": true,
+            "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20625,
+              "cachedInputTokens": 0,
+              "outputTokens": 76,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20625
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "ec10c6b653a70cdc183150905df2b3a2a9c48ccb57a9dce7e868bbf1535ead44"
+            ],
+            "elapsedMs": 9246.179,
+            "rubricPass": true,
+            "answerHash": "33b329c8ca53ea0fe842f195561d47616eef0c7155bf991954e10b28e3c0c50b"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "10b93c886a409fd684038cfc2594ef5c63e547d7b6080c985e2171c5622c0bf8",
+      "createdAt": "2026-09-06T16:11:33.986369Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 328,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 328,
+          "indexBuildMs": 4.09,
+          "elapsedMs": 9.086,
+          "requiredSourceCoverage": 0.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 250,
+          "presentedTokens": 250,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+            "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.866,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1064,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "resume-state",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20631,
+              "cachedInputTokens": 0,
+              "outputTokens": 81,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20631
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "969572e7d6c32c2a7a68822816e907d2eda9b22a2d22022b225ae7309b0e5810"
+            ],
+            "elapsedMs": 6899.525,
+            "rubricPass": true,
+            "answerHash": "daa170a777aded70783c7c0081504853d3e42548f869a977f24159298869ecaa"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20249,
+              "cachedInputTokens": 11904,
+              "outputTokens": 36,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20249
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 7223.331,
+            "rubricPass": false,
+            "answerHash": "518d1953078bd08870971c43d0a807e72e1dbe2f2ed26097cdd302a54a28da23"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "dd25479b2d7e5c0d3301e1626081f06bf65253d8b2135e41ae6f17203af425e3",
+      "createdAt": "2026-09-06T16:11:48.124617Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 459,
+          "presentedTokens": 127,
+          "selectedSourceHashes": [
+            "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 332,
+          "indexBuildMs": 3.03,
+          "elapsedMs": 7.947,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 242,
+          "presentedTokens": 242,
+          "selectedSourceHashes": [
+            "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.334,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1073,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "stale-source",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20630,
+              "cachedInputTokens": 11904,
+              "outputTokens": 69,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20630
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+            ],
+            "elapsedMs": 7993.254,
+            "rubricPass": true,
+            "answerHash": "92ab8a1dff1ad4e7b0414e2eeebe4bd9e809cc91bb5accd3113a903fc3485f89"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20448,
+              "cachedInputTokens": 11904,
+              "outputTokens": 70,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20448
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "16a3fe9f344807aa7b7a8dd1da722daa56043317e557bd535cc98ffbaf519867"
+            ],
+            "elapsedMs": 9028.918,
+            "rubricPass": true,
+            "answerHash": "2e5fe2ffe7f88e4065b4dfc9603bd2a20e523d5c300442321f846e87dcda54d3"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "3bf1307e58f11b0e79187deed66e1eaa703391f179d91af54df1add106304790",
+      "createdAt": "2026-09-06T16:12:05.160239Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 464,
+          "presentedTokens": 132,
+          "selectedSourceHashes": [
+            "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 332,
+          "indexBuildMs": 4.571,
+          "elapsedMs": 9.454,
+          "requiredSourceCoverage": 1.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 248,
+          "presentedTokens": 248,
+          "selectedSourceHashes": [
+            "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a",
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.646,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 1068,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "conflict",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20630,
+              "cachedInputTokens": 11904,
+              "outputTokens": 76,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20630
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+            ],
+            "elapsedMs": 6171.977,
+            "rubricPass": true,
+            "answerHash": "200338a773b1094ad8cc323ff0714b74c0021b8f091c5ee26348f30a52ed452f"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20446,
+              "cachedInputTokens": 11904,
+              "outputTokens": 76,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20446
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+            ],
+            "elapsedMs": 7817.967,
+            "rubricPass": true,
+            "answerHash": "200338a773b1094ad8cc323ff0714b74c0021b8f091c5ee26348f30a52ed452f"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "A",
+        "B"
+      ],
+      "snapshotHash": "eaa48c03299fcab27b3aee1502ebf899b92dc6994a04c22909a2c15849f6b651",
+      "createdAt": "2026-09-06T16:12:19.164912Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 116,
+          "presentedTokens": 116,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 3.16,
+          "requiredSourceCoverage": null
+        },
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 165,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 165,
+          "indexBuildMs": 2.523,
+          "elapsedMs": 6.033,
+          "requiredSourceCoverage": null
+        }
+      },
+      "sourceInputBytes": 658,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "no-memory",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "B",
+          "A"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20254,
+              "cachedInputTokens": 0,
+              "outputTokens": 20,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20254
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 4684.842,
+            "rubricPass": true,
+            "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+          },
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20437,
+              "cachedInputTokens": 11904,
+              "outputTokens": 20,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20437
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 5515.847,
+            "rubricPass": true,
+            "answerHash": "ba691ba042bcedd9a61a36f5969026bc95859dccdc7e47f24e6bce35673baf2f"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    },
+    {
+      "schemaVersion": "rhize-memory-pair-v1",
+      "evidenceKind": "curated",
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "armsRequested": [
+        "A",
+        "B"
+      ],
+      "armOrder": [
+        "B",
+        "A"
+      ],
+      "snapshotHash": "d850e73db23e4c55e397b80b104880970c8a208ab6c7d120fe60040231578cfa",
+      "createdAt": "2026-09-06T16:12:29.376762Z",
+      "selectionMethod": "catalog-keyword-overlap-v1",
+      "implementationHashes": {
+        "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+        "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+        "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+      },
+      "arms": {
+        "B": {
+          "variant": "awareness-selected-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 322,
+          "presentedTokens": 0,
+          "selectedSourceHashes": [],
+          "excluded": {},
+          "catalogEstimatedTokens": 322,
+          "indexBuildMs": 2.95,
+          "elapsedMs": 6.909,
+          "requiredSourceCoverage": 0.0
+        },
+        "A": {
+          "variant": "legacy-direct-v1",
+          "actuallyRan": true,
+          "status": "completed",
+          "taskCorrectness": null,
+          "modelUsage": null,
+          "estimatedTokens": 232,
+          "presentedTokens": 232,
+          "selectedSourceHashes": [
+            "09106425e0114a06cdf97fe054e61e9fc5c95587436024a82ca357fc5f3dc27f",
+            "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+          ],
+          "excluded": {},
+          "catalogEstimatedTokens": 0,
+          "indexBuildMs": 0.0,
+          "elapsedMs": 2.689,
+          "requiredSourceCoverage": 1.0
+        }
+      },
+      "sourceInputBytes": 993,
+      "automaticInjection": false,
+      "emptyMemoryControl": {
+        "actuallyRan": true,
+        "estimatedTokens": 0
+      },
+      "comparisonStatus": "complete",
+      "caseId": "heading-miss",
+      "corpusHash": "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953",
+      "answerComparison": {
+        "armsRequested": [
+          "A",
+          "B"
+        ],
+        "armOrder": [
+          "A",
+          "B"
+        ],
+        "driverHash": "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d",
+        "arms": {
+          "A": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20613,
+              "cachedInputTokens": 11904,
+              "outputTokens": 74,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20613
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [
+              "f09a76a372e0cbeeff128559dee84fbd0d81f5d0520a8f7a7e35aaada1789143"
+            ],
+            "elapsedMs": 8503.357,
+            "rubricPass": true,
+            "answerHash": "bb9d98a5289d49ff02d76ae4a6910bbb55fa704497b98c39d9dd94cec7055488"
+          },
+          "B": {
+            "actuallyRan": true,
+            "status": "completed",
+            "model": "gpt-6-astra",
+            "modelIdentitySource": "explicit_pinned_cli_argument",
+            "usage": {
+              "inputTokens": 20250,
+              "cachedInputTokens": 11904,
+              "outputTokens": 24,
+              "cacheCreationInputTokens": 0,
+              "totalInputTokens": 20250
+            },
+            "usageScope": "native_turn",
+            "usageModels": [
+              "gpt-6-astra"
+            ],
+            "sourceIds": [],
+            "elapsedMs": 5873.565,
+            "rubricPass": false,
+            "answerHash": "518d1953078bd08870971c43d0a807e72e1dbe2f2ed26097cdd302a54a28da23"
+          }
+        },
+        "comparisonStatus": "complete"
+      },
+      "answerStatus": "complete"
+    }
+  ],
+  "aggregate": {
+    "schemaVersion": "rhize-memory-pair-v1",
+    "completePairs": 10,
+    "incompletePairs": 0,
+    "groups": [
+      {
+        "stratum": [
+          "curated",
+          "codex",
+          "gpt-6-astra",
+          {
+            "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+            "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+            "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+          },
+          "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953"
+        ],
+        "totalPairs": 10,
+        "completePairs": 10,
+        "uniqueSnapshots": 10,
+        "tokenEstimateEffect": {
+          "samples": 10,
+          "meanBMinusA": 173.5,
+          "descriptiveBootstrap95": [
+            129.3,
+            205.3
+          ],
+          "seed": 1701,
+          "resamples": 1000
+        },
+        "meanEstimatedTokenDeltaBMinusA": 173.5,
+        "pairedAnswerComplete": 10
+      }
+    ],
+    "answerGroups": [
+      {
+        "stratum": [
+          [
+            "curated",
+            "codex",
+            "gpt-6-astra",
+            {
+              "awareness.py": "28bec63872de247f8de8d4691794bb827e8f8bc35c7674ead7a202131c48e843",
+              "core.py": "e7277cf2b6fb75adbda4f707fc32e2e8c5a568404fcf87d36f00bfd76c42fdcd",
+              "opportunities.py": "3fdf3ead69f8a0635b19cd249cff609e45028f3ea2cf1b275bd8277f82b78eb3"
+            },
+            "de7ea5417be18a76e2ab1a1b996dd3c89e77321509a2e9b0dd1caf23df321953"
+          ],
+          [
+            "gpt-6-astra",
+            "gpt-6-astra"
+          ],
+          "e4adcaecacb95540ad8b7092917127986cebcb861676a0424c3e6a5da6331d9d"
+        ],
+        "totalPairs": 10,
+        "completePairs": 10,
+        "uniqueSnapshots": 10,
+        "usageEffects": {
+          "totalInputTokens": {
+            "samples": 10,
+            "meanBMinusA": -220.4,
+            "descriptiveBootstrap95": [
+              -276.5,
+              -181.9
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          },
+          "outputTokens": {
+            "samples": 10,
+            "meanBMinusA": -9.4,
+            "descriptiveBootstrap95": [
+              -23.6,
+              0.2
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          },
+          "cachedInputTokens": {
+            "samples": 10,
+            "meanBMinusA": 4761.6,
+            "descriptiveBootstrap95": [
+              -1190.4,
+              9523.2
+            ],
+            "seed": 1701,
+            "resamples": 1000
+          }
+        },
+        "gradedPairs": 10,
+        "rubricPasses": {
+          "A": 10,
+          "B": 8
+        },
+        "rubricEffect": {
+          "samples": 10,
+          "meanBMinusA": -0.2,
+          "descriptiveBootstrap95": [
+            -0.5,
+            0
+          ],
+          "seed": 1701,
+          "resamples": 1000
+        }
+      }
+    ],
+    "taskOutcomeBenefit": "not_inferred_from_retrieval_metrics"
+  }
+}
