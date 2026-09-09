@@ -86,6 +86,9 @@ def write_plan(path: Path, mentioned_files: tuple[str, ...] = ()) -> None:
     )
 
 
+RELEASE_FIXTURE = "git " + "commit -m unrelated-work"
+
+
 def prompt_payload(workspace: Path, prompt: str) -> dict:
     return {"prompt": prompt, "cwd": str(workspace), "hook_event_name": "UserPromptSubmit"}
 
@@ -601,3 +604,92 @@ def test_malformed_write_payload_fails_closed_when_workspace_is_pending(tmp_path
     )
     assert result.returncode == 2
     assert "malformed write payload" in result.stderr
+
+
+# --- filesystem-root arming ------------------------------------------------------------
+# Regression cluster for 2026-09-09: a Projectless context (no repo cwd) armed a `pending`
+# receipt at "/". Because find_state_for_path falls back to a longest-prefix containment
+# scan, that receipt matched every path on the machine - blocking release commands in
+# unrelated repositories, and (via hook_stop on phase "implementation") blocking turn end
+# for every session, which is how a scheduled routine could hang mid-run.
+
+
+def test_material_prompt_at_filesystem_root_arms_nothing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+
+    result = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload={
+            # Exactly the prompt the sibling test proves IS material, so this asserts the
+            # root guard specifically and not merely that the prompt was uninteresting.
+            "prompt": "Create a plan and then refactor the API implementation",
+            "cwd": "/",
+            "hook_event_name": "UserPromptSubmit",
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert list(state_dir.glob("*.json")) == []
+
+
+def test_stale_root_receipt_never_blocks_a_release_elsewhere(tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    # Hand-write the exact artifact the old version produced.
+    root_state = {
+        "schema_version": 1,
+        "workspace": "/",
+        "phase": "pending",
+        "created_at": "2026-09-09T12:45:42Z",
+        "prompt": "Generate 0 to 3 hyperpersonalized suggestions in this Projectless task",
+    }
+    (state_dir / "root-8a5edab282632443219e.json").write_text(json.dumps(root_state))
+
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+
+    result = run_gate(
+        state_dir,
+        "hook-command",
+        payload={
+            "tool_name": "Bash",
+            "tool_input": {"command": RELEASE_FIXTURE},
+            "cwd": str(outside),
+        },
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "BLOCKED" not in result.stderr
+
+
+def test_stale_root_receipt_stays_visible_to_operators(tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    (state_dir / "root-8a5edab282632443219e.json").write_text(
+        json.dumps({"schema_version": 1, "workspace": "/", "phase": "pending"})
+    )
+
+    # The guard lives in the containment scan, not in read_state, so a direct lookup of the
+    # root workspace must still report it - otherwise nobody could find or clear the file.
+    result = run_gate(state_dir, "status", "--workspace", "/")
+
+    assert result.returncode == 0, result.stderr
+    assert "pending" in result.stdout
+
+
+def test_prepare_at_filesystem_root_is_a_warning_not_a_failure(tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    plan = tmp_path / "plan.md"
+    write_plan(plan)
+
+    result = run_gate(state_dir, "prepare", "--workspace", "/", "--plan", str(plan), "--query", "q")
+
+    # Exit 0 on purpose: a nonzero exit here would be a NEW failure mode in automation that
+    # cannot ask a human, which is strictly worse than doing nothing.
+    assert result.returncode == 0, result.stderr
+    assert "SKIPPED" in result.stderr
+    assert list(state_dir.glob("*.json")) == []
+

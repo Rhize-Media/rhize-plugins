@@ -244,7 +244,13 @@ install and initialize it in a client repo.
   share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
   for the remainder of the turn so a late source write invalidates it; the successful Stop boundary
   closes it as `completed`, preventing an old receipt from locking an unrelated future task. A
-  later material prompt always starts a fresh pending receipt.
+  later material prompt always starts a fresh pending receipt. A workspace that resolves to the
+  **filesystem root is never armed** — automatic arming and `prepare` both no-op there (`prepare`
+  warns on stderr and still exits 0), and the workspace-containment lookup skips any root receipt
+  it finds. A root receipt contains every path on the machine, so one written by a Projectless
+  context would otherwise block writes, releases, and turn end in every unrelated repository.
+  `status`/`dismiss --workspace /` still read such a file directly, so a stale one can be inspected
+  and cleared.
 
 `evidence --json`'s output contract is `schemas/devflow-evidence-v1.schema.json`
 (`devflow-evidence-v1`); `doctor --json`'s shape is documented in the CLI module's own docstring

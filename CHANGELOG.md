@@ -33,6 +33,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-09_ version bump — **rhize-devflow** 2.21.0 → 2.21.1 (patch); marketplace 2.70.0 → 2.70.1.
 - _2026-09-09_ version bump — **rhize-devflow** 2.20.3 → 2.21.0 (minor); marketplace 2.69.1 → 2.70.0.
 - _2026-09-06_ version bump — **rhize-core** 1.0.2 → 1.0.3 (patch); marketplace 2.69.0 → 2.69.1.
 - _2026-09-06_ version bump — **rhize-context-manager** 0.29.0 → 0.30.0 (minor); marketplace 2.68.0 → 2.69.0.

@@ -6,6 +6,25 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-09_ version bump — 2.21.0 → 2.21.1 (patch); marketplace 2.70.0 → 2.70.1.
+
+### Fixed
+
+- _2026-09-09_ the refactor gate no longer arms a receipt at the filesystem root, and never matches
+  one during workspace lookup. A Projectless context (no repository cwd) resolved its workspace to
+  `/` and armed a `pending` receipt there; because workspace resolution falls back to a
+  longest-prefix containment scan, that receipt matched **every** path on the machine. Observed
+  effect: release commands blocked in unrelated repositories while `status` reported those repos
+  reconciled. Latent effect, and the reason this is a fix rather than a papercut: `hook_write`
+  promotes a receipt to `implementation` and the Stop hook blocks turn end on that phase through
+  the same lookup — so a root receipt could stop every session on the machine from declaring
+  completion, including a scheduled routine mid-run. `prepare` at the root now warns and exits 0
+  (deliberately not a new nonzero failure mode for automation) instead of walking the entire
+  filesystem looking for Git roots. `status`/`dismiss --workspace /` still read a stale root
+  receipt directly so operators can find and clear one.
+
+### Added
+
 - _2026-09-09_ version bump — 2.20.3 → 2.21.0 (minor); marketplace 2.69.1 → 2.70.0.
 - _2026-09-09_ **Generated-docs exemption: `claudedocs/` prose no longer trips the refactor
   gate.** A scheduled routine that records its findings in `claudedocs/` hit the gate on every

@@ -160,6 +160,18 @@ def canonical(path: str | Path) -> Path:
     return Path(path).expanduser().resolve()
 
 
+def is_filesystem_root(path: Path) -> bool:
+    """True for `/` (and any platform's drive root).
+
+    A filesystem root can never describe real work, but it *contains* every path on the
+    machine — so a receipt armed there matches everything in `find_state_for_path`'s
+    containment scan and blocks writes, releases, and turn end for every session, in every
+    repository. Projectless contexts (no repo cwd) are how such a receipt gets written.
+    """
+    resolved = canonical(path)
+    return resolved.parent == resolved
+
+
 def state_directory() -> Path:
     override = os.environ.get("RHIZE_REFACTOR_GATE_STATE_DIR")
     directory = canonical(override) if override else Path.home() / ".claude/rhize-devflow/refactor-gate"
@@ -219,6 +231,11 @@ def find_state_for_path(path: Path) -> tuple[Path, dict[str, Any] | None]:
     matches: list[tuple[int, Path, dict[str, Any]]] = []
     for state in all_states():
         workspace = canonical(state["workspace"])
+        if is_filesystem_root(workspace):
+            # A stale root receipt (older version, or another machine) must never match.
+            # Deliberately NOT filtered in read_state: `status`/`dismiss --workspace /` must
+            # still see and clear such a file.
+            continue
         try:
             path.relative_to(workspace)
         except ValueError:
@@ -527,6 +544,15 @@ def state_plan_is_current(state: dict[str, Any]) -> bool:
 
 
 def prepare(workspace: Path, plan: Path, query: str) -> int:
+    if is_filesystem_root(workspace):
+        # Warn, but exit 0 and write nothing. A nonzero exit here would be a NEW failure
+        # mode in automation that cannot ask a human; a no-op only ever removes a block.
+        sys.stderr.write(
+            "SKIPPED: refusing to arm a refactor-evidence receipt at the filesystem root "
+            f"({workspace}) — it would match every path on this machine. Re-run prepare with "
+            "--workspace pointing at the repository you are actually changing.\n"
+        )
+        return 0
     try:
         plan_text = validate_plan(plan, workspace)
     except (OSError, ValueError) as exc:
@@ -760,6 +786,9 @@ def hook_prompt() -> int:
     if "/rhize-devflow:impact-map" in prompt:
         return 0
     workspace = payload_workspace(payload)
+    if is_filesystem_root(workspace):
+        # Fail open and write nothing: a root receipt would match every path on the machine.
+        return 0
     current = read_state(workspace)
     if current and current.get("phase") in {"prepared", "implementation"}:
         current["latest_prompt"] = prompt
