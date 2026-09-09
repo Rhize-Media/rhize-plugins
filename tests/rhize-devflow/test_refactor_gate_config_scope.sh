@@ -72,6 +72,9 @@ assert_exit "hook-write pnpm-workspace.yaml (config exempt)" 0 "$(hook_write "$T
 assert_exit "hook-write src/app.ts (source still blocked)" 2 "$(hook_write "$TMPWS/src/app.ts")"
 assert_exit "hook-write .claude/plans/x.md (planning still exempt)" 0 "$(hook_write "$TMPWS/.claude/plans/x.md")"
 assert_exit "hook-write .eslintrc.js (code extension wins)" 2 "$(hook_write "$TMPWS/.eslintrc.js")"
+assert_exit "hook-write claudedocs/a/notes.md (docs exempt)" 0 "$(hook_write "$TMPWS/claudedocs/a/notes.md")"
+assert_exit "hook-write claudedocs/scripts/fix.py (code under docs still blocked)" 2 "$(hook_write "$TMPWS/claudedocs/scripts/fix.py")"
+assert_exit "hook-write docs/notes.md (only claudedocs/ is exempt)" 2 "$(hook_write "$TMPWS/docs/notes.md")"
 
 # --- hook-command matrix (phase is still "pending": no gated write ever landed) ---
 git -C "$TMPWS" checkout -q -- src/app.ts 2>/dev/null || true
@@ -87,6 +90,23 @@ assert_exit "hook-command: config + source dirty -> block" 2 \
 
 git -C "$TMPWS" checkout -q -- src/app.ts
 rm -f "$TMPWS/.npmrc"
+
+mkdir -p "$TMPWS/claudedocs"
+echo "analysis note" > "$TMPWS/claudedocs/notes.md"
+assert_exit "hook-command: only claudedocs prose dirty -> allow" 0 \
+  "$(hook_command "$TMPWS" "git commit -am x")"
+
+echo "modified" >> "$TMPWS/src/app.ts"
+assert_exit "hook-command: claudedocs + source dirty -> block" 2 \
+  "$(hook_command "$TMPWS" "git commit -am x")"
+git -C "$TMPWS" checkout -q -- src/app.ts
+
+# Code parked under claudedocs/ must not launder a dirty tree past the commit gate.
+echo "print('x')" > "$TMPWS/claudedocs/fix.py"
+assert_exit "hook-command: code under claudedocs dirty -> block" 2 \
+  "$(hook_command "$TMPWS" "git commit -am x")"
+rm -rf "$TMPWS/claudedocs"
+
 assert_exit "hook-command: clean tree -> allow" 0 \
   "$(hook_command "$TMPWS" "git commit -am x")"
 

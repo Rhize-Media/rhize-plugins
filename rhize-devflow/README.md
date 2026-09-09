@@ -286,7 +286,7 @@ their evidence remains interoperable without claiming identical lifecycle wiring
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
 | `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor/simplification prompts and creates a pending receipt. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated. |
-| `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts **and config-only paths** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
+| `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts, **config-only paths, and `claudedocs/` prose** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
 | `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. |
 | `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |
 
@@ -326,6 +326,28 @@ and `reconcile` never lets a config path force an `OUT_OF_SYNC` verdict, though 
 appears in the receipt's `changed_files` for the record. A material prompt about a config
 change can still print the evidence-gate banner (`hook-prompt` is unchanged) — a prompt
 can't know file scope ahead of time — but no config-only write or commit is actually blocked.
+
+### Generated-docs exemption
+
+Prose an agent writes *about* work is not the work. `claudedocs/` is the established
+convention for Claude-authored analysis notes, and a scheduled routine that records findings
+there hit the gate on every run with nothing to map — no symbol, caller, test, or semantic
+delta to describe. A path counts as "docs" (`is_docs_path()`) when both hold:
+
+1. It is under a recognized docs tree — currently only `claudedocs/`.
+2. **Its extension is prose** (`.md`, `.mdx`, `.markdown`, `.txt`, `.rst`).
+
+The extension rule mirrors the code-extension precedence above, and for the same reason:
+without it the exemption is a trivial bypass — park the code under `claudedocs/`, edit it
+ungated, then move it. `claudedocs/scripts/fix.py` stays gated. The tree list is deliberately
+narrow: a generic `docs/` is *not* exempt, because hand-maintained docs directories routinely
+hold generated code, fixtures, and executable examples.
+
+Like the config exemption, this reaches all three places: `hook-write` never blocks a
+docs-only write, `hook-command` counts docs among the exempt dirty paths, and `reconcile`
+never lets a docs path force `OUT_OF_SYNC`. Note the contrast with planning paths
+(`.claude/plans/`, `CLAUDE.md`, …), which are exempt in the first two but still count toward
+`reconcile`'s unmapped set.
 
 Four heavier specialist guards still ship bundled under `hooks/` and remain **deliberately
 opt-in** through `setup/manifest.json`:

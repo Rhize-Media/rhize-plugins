@@ -41,6 +41,14 @@ PLANNING_FILES = {
     "CURRENT_SPRINT.md",
     "STATE.md",
 }
+# Generated-documentation trees: prose an agent writes *about* work, not the work.
+# `claudedocs/` is the established convention for Claude-authored analysis notes, and a
+# routine that records its findings there hits the gate on every run with nothing to map —
+# the change has no symbol, caller, test, or semantic delta to describe.
+DOCS_PATHS = (
+    "claudedocs/",
+)
+DOCS_EXTENSIONS = {".md", ".mdx", ".markdown", ".txt", ".rst"}
 CONFIG_EXTENSIONS = {".json", ".yaml", ".yml", ".toml", ".ini", ".properties", ".cfg", ".conf"}
 CONFIG_BASENAMES = {
     ".npmrc",
@@ -628,6 +636,7 @@ def reconcile(workspace: Path) -> int:
         path
         for path in changed
         if not is_config_path(path)
+        and not is_docs_path(path)
         and path.lower() not in plan_text
         and Path(path).name.lower() not in plan_text
     ]
@@ -711,6 +720,16 @@ def is_planning_path(path: str) -> bool:
     return normalized in PLANNING_FILES or any(normalized.startswith(prefix) for prefix in PLANNING_PATHS)
 
 
+def is_docs_path(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    if not any(normalized.startswith(prefix) for prefix in DOCS_PATHS):
+        return False
+    # Extension precedence mirrors is_config_path, and for the same reason: without it the
+    # exemption is a trivial bypass — park the code under `claudedocs/`, edit it ungated,
+    # then move it. Only prose extensions are exempt; `claudedocs/scripts/fix.py` stays gated.
+    return PurePosixPath(normalized).suffix.lower() in DOCS_EXTENSIONS
+
+
 def is_config_path(path: str) -> bool:
     normalized = path.replace("\\", "/")
     posix = PurePosixPath(normalized)
@@ -778,6 +797,7 @@ def enforce_write_payload(payload: dict[str, Any]) -> int:
         if (relative := normalized_relative_path(path, workspace)) is not None
         and not is_planning_path(relative)
         and not is_config_path(relative)
+        and not is_docs_path(relative)
     ]
     if not relevant or not state or state.get("phase") == "dismissed":
         return 0
@@ -841,7 +861,9 @@ def release_targets_only_exempt_changes(hint: Path) -> bool | None:
         # A pending/prepared receipt with nothing actually edited is a pure false
         # positive for this gate — allow it.
         return True
-    return all(is_config_path(path) or is_planning_path(path) for path in dirty)
+    return all(
+        is_config_path(path) or is_planning_path(path) or is_docs_path(path) for path in dirty
+    )
 
 
 def hook_command() -> int:

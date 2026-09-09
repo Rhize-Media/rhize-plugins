@@ -255,8 +255,9 @@ below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor
 | Stop hook: `implementation changed after preparation but has not been reconciled` | Same as above, at the end of a turn | `reconcile`, then finish; if subagents are still writing, expect to reconcile again |
 | `reconcile` says `no prepared impact-map receipt exists` | A reconciled receipt was closed as `completed` when a turn ended | Run `prepare` again (new baseline from the current tree), then `reconcile` |
 
-Plan files under `.claude/plans/`, `CLAUDE.md`/`AGENTS.md`/`STATE.md`, and config files (`.json`,
-`.yaml`, `.toml`, lockfiles, ignore files) are never gated. To set a receipt aside deliberately, run
+Plan files under `.claude/plans/`, `CLAUDE.md`/`AGENTS.md`/`STATE.md`, config files (`.json`,
+`.yaml`, `.toml`, lockfiles, ignore files), and prose under `claudedocs/` (`.md`, `.txt`, `.rst`
+— code parked there stays gated) are never gated. To set a receipt aside deliberately, run
 `refactor_gate.py dismiss --workspace <repo> --reason "<why>"`; `RHIZE_REFACTOR_GATE=off` in the
 environment is the emergency bypass, and both leave a record. Bash commands whose text contains a
 release command (`git commit`, `git push`, `git merge`) are checked even when they only write a file
