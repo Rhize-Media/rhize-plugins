@@ -7,6 +7,42 @@
 
 ---
 
+## Execution update — 2026-09-11 (current status)
+
+The historical incident narrative below is retained with corrected claims. Its OAuth blocker
+and “capture has produced nothing” statements describe the pre-login snapshot, not current health.
+
+- **A: recovery verified.** Jim completed interactive login. A controlled synthetic session
+  `context-doctor-canary-8471c03a106b4d1c9f73740339475bbb` persisted observations 55583 and 55586;
+  `/api/observations/batch` retrieved both and the expected marker. The first Bash event was
+  explicitly filtered out, so it was not counted as success. No direct SQLite writes or repairs.
+  A full host doctor at 2026-09-11T18:51:22Z passed all five mandatory checks. Upstream #3609
+  remains untouched; one successful canary does not establish the historical constraint is fixed.
+- **B: deterministic pilot implemented.** Version 0.31.0 owns bounded probes, strict current-run
+  identities, arithmetic, immutable reports, compatible baseline selection and rendering.
+  Offline tests inject the six requested failures plus provenance/URL/delta/monitor faults.
+  The scheduler's pinned snapshot runs these failure tests on every invocation.
+- **B external monitor:** Sentry monitor `weekly-context-doctor` prepared in `seo-health-infra`,
+  Thursday 08:00 America/New_York, 24-hour grace, 10-minute runtime, first-failure/recovery.
+  User selected #jim-automation-alerts. Sentry's API currently rejects that private channel as
+  inaccessible; the monitor remains disabled pending app access and actual delivery verification.
+  A prepared configuration is not an operational alert path.
+- **C:** independent audit reproduced both stale PATH precedence and fallback to ambient missing
+  shims. The wrapper and active unwrapped npm/Claude commands in ai-stack-version-drift are fixed.
+  Local metadata/definition inventory is recorded in claude-routines' dated reconciliation.
+- **D:** remains the existing scheduler-registry-consolidation effort. Directory counts do not
+  establish drift. Current sync and metadata evidence supersede its stale August report; no
+  broad migration, model change, or schedule rewrite is part of this pilot.
+- **Procedural memory:** use the reusable validated code and declared evidence contract. Registry
+  trust/health gates alone cannot detect an invocation that never starts. A self-contained draft
+  bundle is prepared outside the registry; no paid promotion or durable approval is implied.
+- **Review:** independent Codex design and source passes completed; reproduced defects corrected.
+  Fable is unavailable in this host's tool catalog and no Fable review is claimed.
+- **Measurement:** Arm A (previous model-owned path) and Arm B (new runner) have not run as a live
+  model benchmark. Failure tests and the host canary are separate controlled/operational evidence.
+
+Implementation/release checklist: [context-doctor-pilot-implementation.md](context-doctor-pilot-implementation.md).
+
 ## The root defect
 
 Not "Haiku ignored the routine's instructions." That framing is too narrow — a stronger
@@ -18,8 +54,8 @@ report a confident headline while its probes never ran, ran against stale inputs
 summarized with invented arithmetic. There is no independent detector, because the only
 thing that would have raised the alarm is the same component that failed.
 
-Every finding below is a consequence of that one defect, except the claude-mem outage,
-which is a genuine independent incident that the defect *hid for four days*.
+Every finding below is a consequence of that one defect, including the claude-mem outage: the PATH/bootstrap failure prevented its observer from
+starting, and the reporting defect hid that lack of execution.
 
 ### Exhibit A — why prose guardrails cannot be the control
 
@@ -147,8 +183,8 @@ of successful capture. Gather evidence in this order, and stop as soon as it dis
 
 **Then choose:** repair if a documented fix matches the reproduced failure (validate on
 the backup, then canary). Pin/downgrade only with evidence of a working version **and**
-schema compatibility — the recurrence across 13.18.1 → 13.24.20 means "upgrade again" is
-not a plan. Rebuild only on demonstrated unrecoverable damage, retaining the original.
+schema compatibility. No recurrence across an upgrade has been established; registry
+error strings do not establish the running version. Rebuild only on demonstrated unrecoverable damage, retaining the original.
 
 **Recommendation (Jim-gated):** treat claude-mem as **supplemental, not authoritative**,
 independent of which repair lands. Four days of silent loss with no alert means explicit
@@ -233,8 +269,9 @@ Run them on a schedule, not once. An untested failure path is an assumption.
 
 ## Workstream C — PATH / bootstrap hardening (P1)
 
-Third documented occurrence (09-07, 09-09, 09-10). Self-healed today via app restart, so
-there is nothing to fix *right now* — which is exactly why it keeps coming back.
+Third documented occurrence (09-07, 09-09, 09-10). The app restart refreshed one process
+environment; it did not repair scheduled bootstrap. The pilot fixes the confirmed wrapper
+ordering/fallback defects and the unwrapped version-drift entrypoints.
 
 Two distinct problems, often conflated:
 
@@ -278,8 +315,8 @@ already exists — fold this into it rather than opening a second effort.
 
 ## Sequencing
 
-1. **A1–A2 now** — back up claude-mem, discriminate the three hypotheses. Cheap, and it
-   is an active four-day data-loss incident.
+1. **A6 verified 2026-09-11** — authenticated capture persisted and retrieved the controlled
+   marker. No database mutation, backup, repair, restart or downgrade was necessary.
 2. **B1–B3 next** — contract + runner script for `weekly-context-doctor` as the pilot.
    One routine, end to end, before generalizing.
 3. **B4–B5** — watchdog and failure injection. Without these B is just a nicer report.

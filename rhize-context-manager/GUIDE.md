@@ -13,23 +13,15 @@ the right one, and health-checks the whole thing.
   → the `context-stack` skill answers routing questions.
   *Example: "Where should the client's evolving pricing decisions live, and what may be previewed?"*
 
-- **"Session start feels slow" / "I'm seeing the same context twice"**
-  → `/context-doctor` — read-only health check + overlap flags across every context/memory
-  tool this plugin orchestrates: Headroom (API-traffic compression), RTK (a token-saving
-  command proxy), claude-mem (cross-session memory), OpenWolf (a per-repo file index), and
-  Serena/CodeGraph (symbol-level code navigation) — see
-  [START-HERE's glossary](../START-HERE.md#7-glossary) for more on each. Every run is saved to
-  `~/.claude/context-manager/doctor/`, so the next run shows you a delta ("Serena flag
-  cleared since last time", "RTK savings dropped to zero") instead of a cold read every
-  time. If the `ecc` plugin's `harness-audit` skill is installed, doctor chains into it
-  automatically as a final deeper pass.
-  *Example: "Run /context-doctor — rhize-salesforce felt sluggish this morning."*
-
-  It will not call a layer healthy just because its port answers: claude-mem has to show
-  new observations since the last run, or it is reported `dead`. If no sessions ran at all,
-  it says `indeterminate` rather than pretending a quiet week is a healthy one. It also warns
-  about credentials due to expire before the next weekly run, so an expiring credential
-  doesn't silently stop memory capture without you noticing.
+- **"Is the context stack working?"**
+  → `/context-doctor` runs bounded, read-only checks and preserves its calculated report.
+  It distinguishes a measured problem from a check that could not run. Its capture check
+  reads actual observation timestamps against session activity; a quiet week is unknown.
+  Expiry checks distinguish refreshable access tokens from login expiry. Each run is
+  saved privately; only a compatible completed run can supply the next delta.
+  Optional OpenWolf, unsupported adapters, and the host harness audit remain explicit
+  coverage gaps. The scheduled pilot has a separately configured external watchdog.
+  [What each check proves and how monitoring works](docs/context-doctor.md).
 
 - **"Set up context tooling for this repo" / "which layers should this repo actually run"**
   → `/context-setup` — scans the repo to infer its type, checks which stack layers are

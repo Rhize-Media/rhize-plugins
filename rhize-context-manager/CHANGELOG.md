@@ -24,6 +24,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Deterministic context doctor with bounded read-only probes, OK/PROBLEM/NOT_RUN outcomes,
+  current-run provenance, calculated coverage/deltas, immutable private evidence and rendering.
+- Optional Sentry check-in transport for independent missed-run monitoring, plus deliberate
+  auth, launch, timeout, replay, malformed-output and killed-parent regression checks.
+- Explicit optional coverage owners/deadlines and procedural-memory admission boundaries.
+
+- _2026-09-11_ version bump — 0.30.0 → 0.31.0 (minor); marketplace 2.70.1 → 2.71.0.
 - _2026-09-06_ version bump — 0.29.0 → 0.30.0 (minor); marketplace 2.68.0 → 2.69.0.
 - _2026-09-06_ version bump — 0.28.0 → 0.29.0 (minor); marketplace 2.67.0 → 2.68.0.
 - _2026-09-05_ version bump — 0.27.1 → 0.28.0 (minor); marketplace 2.66.0 → 2.67.0.

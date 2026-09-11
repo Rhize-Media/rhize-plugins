@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "probes": [
+    {"id":"headroom","kind":"http","required":true,"timeout_seconds":6,"params":{"url":"http://127.0.0.1:8787/health"}},
+    {"id":"rtk","kind":"rtk","required":true,"timeout_seconds":10,"params":{}},
+    {"id":"claude_mem","kind":"claude_mem","required":true,"timeout_seconds":10,"params":{"maximum_age_hours":24}},
+    {"id":"codegraph","kind":"codegraph","required":true,"timeout_seconds":12,"params":{}},
+    {"id":"credential_expiry","kind":"credentials","required":true,"timeout_seconds":8,"params":{}},
+    {"id":"openwolf","kind":"openwolf","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"},
+    {"id":"memory_adapters","kind":"adapters","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"},
+    {"id":"harness_audit","kind":"harness","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"}
+  ]
+}
