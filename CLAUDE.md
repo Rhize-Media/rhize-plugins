@@ -43,3 +43,18 @@ query catalog).
   never pass `--reporter=basic`. Git fixture repos need `-c core.excludesFile=/dev/null`.
 - `claude plugin eval` is org-gated on this machine — build static validators instead.
 - Executors/agent sessions never `git push` — the orchestrator does.
+
+## Required operational checks
+
+- Respect the active `protect-files` policy for `.github/workflows/*`, including
+  `version-check.yml` and `tag-release.yml`; inspect the current instructions before editing.
+- Before source changes, persist the intended semantic delta, invariants and acceptance tests
+  in an impact map. Reconcile the actual changed paths before the final release gate.
+- Read a file before its first edit; re-read after a replacement fails to match.
+- Use subprocess deadlines when the host lacks `timeout`. Use `/usr/bin/find` for compound
+  filesystem predicates and `/usr/bin/grep` for exit-code conditionals affected by RTK.
+- Process large `.jsonl` evidence with bounded Python/jq reads instead of loading it wholesale.
+  Skill-map validators support a standard-library fallback when `jsonschema` is unavailable.
+- `pytest.ini` declares `testpaths = tests evals`. Run the relevant tests plus required release
+  checks; select the actual Node binary for fixtures that replace HOME so mise does not resolve
+  a different installation. Regenerate managed documentation after version bumps.

@@ -83,7 +83,7 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 
 | Command | Purpose |
 |---|---|
-| `/context-doctor` | Read-only health check of the active stack layers (Headroom proxy, RTK savings, claude-mem dashboard, OpenWolf state, Serena/CodeGraph) + overlap flags. Asserts **capture liveness** and flags credentials expiring before the next scheduled run. |
+| `/context-doctor` | Deterministic, bounded context-stack probes with current-run evidence, explicit `OK` / `PROBLEM` / `NOT_RUN`, and script-owned headline/delta. [Operations and verification](docs/context-doctor.md). |
 | `/context-setup` | Repo-level setup wizard: scans the repo (`config_generator.py`), probes which stack layers are actually active, proposes a tailored per-repo enable/disable list with reasons, and on confirmation writes `~/.claude/rhize-context-manager/stack.config.json`. Owns stack **config** only — hook wiring is `/rhize-core:setup` (rhize-core). |
 | `/start` | Session bookend — resume from `STATE.md` with real memory (moved from rhize-devflow) |
 | `/done` | Session bookend — delegates code-change review to `/rhize-devflow:review` when Dev Flow is available, else runs a disclosed local fallback checklist, then updates `STATE.md` before commit (moved from rhize-devflow) |

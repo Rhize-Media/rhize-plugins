@@ -2516,7 +2516,7 @@
       "path": "project-launcher/commands/write-prd.md"
     },
     {
-      "description": "Health-check the full Rhize context stack — Headroom, claude-mem, OpenWolf, Serena/CodeGraph, RTK — and flag overlap, drift, or dead layers",
+      "description": "Run the deterministic context-stack doctor and preserve its evidence-backed result",
       "id": "command:rhize-context-manager/context-doctor",
       "kind": "command",
       "name": "context-doctor",
