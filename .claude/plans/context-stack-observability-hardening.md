@@ -1,6 +1,6 @@
 # Context-stack observability hardening
 
-**Status:** proposed, Jim-gated at the marked decision points
+**Status:** implemented and released; external alert activation awaits private-channel access approval
 **Author:** Claude Opus 5 (1M), synthesized with an independent Codex (planning role) draft
 **Date:** 2026-09-11
 **Trigger:** `weekly-context-doctor` run 2026-09-10 (`~/.claude/context-manager/doctor/2026-09-10-1212.json`)
@@ -40,6 +40,11 @@ and “capture has produced nothing” statements describe the pre-login snapsho
   Fable is unavailable in this host's tool catalog and no Fable review is claimed.
 - **Measurement:** Arm A (previous model-owned path) and Arm B (new runner) have not run as a live
   model benchmark. Failure tests and the host canary are separate controlled/operational evidence.
+
+Released in [plugin PR #26](https://github.com/Rhize-Media/rhize-plugins/pull/26),
+[scheduler PR #4](https://github.com/Rhize-Media/claude-routines/pull/4), and
+[live configuration PR #1](https://github.com/Rhize-Media/claude-config/pull/1).
+Claude and Codex both select 0.31.0; installed runner/helper/config bytes match the released source.
 
 Implementation/release checklist: [context-doctor-pilot-implementation.md](context-doctor-pilot-implementation.md).
 

@@ -1,6 +1,6 @@
 # Context doctor pilot: impact map and execution checklist
 
-Status: implementation authorized 2026-09-11. User selected #jim-automation-alerts and
+Status: released 2026-09-11; external alert activation pending. User selected #jim-automation-alerts and
 accepted recommended monitor thresholds. Pilot is weekly-context-doctor only.
 Coordinator owns source writes, integration, verification, and release. Recommended
 executor for future handoff: Terra for integration; independent capable-model review.
@@ -113,8 +113,10 @@ remains unmeasured (Arm A and Arm B not run as a model benchmark).
 - [x] Confirm pilot/alert recommendations with user; run independent design/bootstrap audit.
 - [x] Persist map and prepare enforcement receipt before source edits.
 - [x] Implement and test runner/probe contract and failure injection.
-- [ ] Integrate scheduler bootstrap, reusable artifact, and external monitor.
-- [ ] Verify canary, live report, monitor/routing, docs, reconciliation, and exact release.
+- [x] Integrate and deploy scheduler bootstrap and prepare the validated reusable artifact.
+- [x] Verify capture canary, live report, docs, reconciliation, and exact release.
+- [x] Configure independent monitor and verify HTTP transport without claiming delivery.
+- [ ] Approve Sentry access to the private channel, activate the monitor, and verify failure/recovery delivery.
 
 ## Verified implementation checkpoint
 
@@ -213,3 +215,30 @@ allowed isolated local clone fixtures. No tests were removed, weakened, or newly
 Both source reviews and both repository impact-map reconciliations passed. The remaining
 operational blocker is Sentry access to the user-selected private Slack channel; HTTP
 acceptance by a disabled monitor was not counted as monitoring or Slack delivery.
+
+
+## Released state and next-run lesson
+
+- Plugin PR #26 merged at `d0fdf9383c6782a44506ace24183db1783142d57`; validate and
+  tag-release CI succeeded. Scheduler PR #4 merged at
+  `bdd4e128ee804e1eb5b4569ea31323be2963bda9`. Live configuration PR #1 merged to
+  claude-config main; its two changed definitions match the committed scheduler copies.
+- Both Claude and Codex select rhize-context-manager 0.31.0. All four installed runner,
+  helper and config files match the release source on both hosts.
+- Deployment receipt and original-file backups:
+  `~/.claude/context-manager/doctor/deployments/20260911T193350Z/receipt.json`.
+  Durable capture-canary proof: `~/.claude/context-manager/doctor/canary-2026-09-11.json`.
+- Final sync checked all 24 definitions: four pre-existing unrelated differences remain
+  (Desktop daily-learn-harvest/headroom-learn-sweep; MCP promotion-approval-digest/
+  seo-remediation-consumer). All task-owned definitions are synchronized and committed.
+- New observed failure: updating a plugin can remove an old cache directory still referenced
+  by this running task's hooks. Codex then emitted missing memory-opportunity tool/stop hook
+  errors. Recovery restored 0.30.0 bytes from their original committed tree and verified both
+  hooks against that commit, retaining the installed 0.31.0 selection. Do not remove the
+  restored cache while active tasks still use it; reload active tasks at a suitable boundary.
+  The exact cache reference in an error is evidence, not permission to substitute new-version
+  files under the old version or disable validation hooks.
+- Sentry's API rejects #jim-automation-alerts because the app is not a channel member.
+  Automatic approval review rejected the app invitation: it grants ongoing access to private
+  channel contents beyond permission to route alerts. Explicit approval is pending. Monitor
+  remains disabled with no stored check-ins; HTTP acceptance is not operational monitoring.
