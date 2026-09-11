@@ -50,6 +50,51 @@ The independent Codex reviewer caught it. No amount of additional prose would ha
 
 ## Workstream A — claude-mem: active incident (P0)
 
+> ### RESOLVED-IN-PART 2026-09-11 — root cause found, and it was not the DB bug
+>
+> Jim restarted claude-mem; the health file did not change at all (byte-identical, mtime
+> still 2026-09-09T16:24:37Z). That non-change was the discriminating evidence, and the
+> worker log gave the answer:
+>
+> `[WORKER] Claude CLI dependency preflight failed {kind=setup_required} Claude executable not found`
+> `[SESSION] Skipping Claude generator start until setup is repaired {dependency=claude_cli}`
+>
+> **The observer never started.** It could not find the `claude` CLI, so it skipped the
+> generator entirely — which is why `observer-health.json` froze: that file is only written
+> when a capture *attempt* reaches the provider. A stale health file did not mean "failing,"
+> it meant **NOT_RUN**. The third outcome from Workstream B, observed in the wild, in the
+> incident that motivated it.
+>
+> This makes Workstream A an *instance of Workstream C*, not an independent incident. The
+> error class first appears in `claude-mem-2026-09-09.log` (586 occurrences) — the same day
+> as the documented mise/PATH breakage. The NOT NULL burst (51 failures in 2.05h) was the
+> tail of capture dying, not the cause of the silence.
+>
+> **Fix applied and verified:** `CLAUDE_CODE_PATH` in `~/.claude-mem/settings.json` was
+> present but **empty**; set to `/Users/jamesdeola/.local/share/mise/shims/claude` (the shim,
+> not the versioned install path — it survives node version bumps, and both were verified to
+> run under `env -i`). Backup at `settings.json.bak-20260911-130133`. Worker restarted via
+> `POST /api/admin/restart` (the `/restart` URL is a confirmation page; the action endpoint
+> is `/api/admin/restart`). Post-restart log: `Dependency preflight passed` and
+> `Generator auto-starting (observation) using Claude SDK`. Zero occurrences of the
+> executable-not-found error after the restart.
+>
+> **Still blocked — needs Jim, interactively:**
+> `SDK authentication failed; run /login to preserve queued batch`
+> `Failed to authenticate: OAuth session expired and could not be refreshed`
+> `Generator paused for auth; preserving buffered work {pendingCount=2}`
+>
+> Auth is a second, independent layer that the PATH failure was masking. **Run `/login` in an
+> interactive Claude Code session.** Buffered work is preserved, so the backlog is not lost.
+> (This is the same OAuth expiry that made a subagent's CLI attempt fail on 2026-09-10 —
+> dismissed then as the subagent misusing a CLI. The misuse was real; so was the expiry.)
+>
+> **Do not close #3609.** Whether the NOT NULL constraint still fires cannot be known until
+> auth is restored and capture actually attempts a write. A6's canary is the test.
+>
+> Steps A1–A2 below are now satisfied. A3–A6 remain, re-scoped: verify capture end-to-end
+> once `/login` is done, and only then judge whether a DB-level problem persists.
+
 ### What the evidence actually says
 
 Script-computed from `~/.claude-mem/observer-health.json`, verified 2026-09-11T14:11Z:
@@ -66,9 +111,14 @@ now             2026-09-11T14:11Z
 
 Capture has produced nothing for **97.3 hours**. The health file has not been written in
 45.8 h. Error: `NOT NULL constraint failed: session_summaries.memory_session_id`
-(upstream #3609). Installed version is **13.24.20**; the 09-03 baseline ran 13.18.1 — so
-the bug **recurred across an upgrade**, and the 08-27 "fixed by upgrading" resolution
-did not hold.
+(upstream #3609). Installed/running version is **13.24.1** (plugin cache also holds 13.18.1
+and 13.15.3, so a downgrade is available locally without a fetch).
+
+> **Correction 2026-09-11:** an earlier revision of this plan said "13.24.20, so the bug
+> recurred across an upgrade." That was wrong — 13.24.20 was a *registry* version string
+> from an `npx` error, not the installed version. The running worker's argv says 13.24.1.
+> No claim about recurrence-across-upgrade is supported. Same failure class as Exhibit A:
+> a fact inferred from tool-output shape instead of read from ground truth.
 
 **This is not a service that is retrying and failing. It stopped emitting.** The
 distinction matters: "continuously failing" implies a live loop hitting a constraint,
