@@ -1,13 +1,13 @@
 # Context-stack observability hardening
 
-**Status:** implemented and released; external alert activation awaits private-channel access approval
+**Status:** implemented and released; external monitor activated 2026-09-13
 **Author:** Claude Opus 5 (1M), synthesized with an independent Codex (planning role) draft
 **Date:** 2026-09-11
 **Trigger:** `weekly-context-doctor` run 2026-09-10 (`~/.claude/context-manager/doctor/2026-09-10-1212.json`)
 
 ---
 
-## Execution update — 2026-09-11 (current status)
+## Execution update — 2026-09-11 (implementation; alert activation updated 2026-09-13)
 
 The historical incident narrative below is retained with corrected claims. Its OAuth blocker
 and “capture has produced nothing” statements describe the pre-login snapshot, not current health.
@@ -24,9 +24,12 @@ and “capture has produced nothing” statements describe the pre-login snapsho
   The scheduler's pinned snapshot runs these failure tests on every invocation.
 - **B external monitor:** Sentry monitor `weekly-context-doctor` prepared in `seo-health-infra`,
   Thursday 08:00 America/New_York, 24-hour grace, 10-minute runtime, first-failure/recovery.
-  User selected #jim-automation-alerts. Sentry's API currently rejects that private channel as
-  inaccessible; the monitor remains disabled pending app access and actual delivery verification.
-  A prepared configuration is not an operational alert path.
+  User selected #jim-automation-alerts and explicitly approved Sentry membership on 2026-09-13.
+  The monitor is active; a deliberate failure created SEO-HEALTH-INFRA-8 and reached that Slack
+  channel through rule 17446159. A separate successful check-in automatically resolved the
+  incident. Recovery workflow 3985323, bound only to this doctor detector, also delivered its
+  resolved message to Slack. The monitor has no active incident; exact check-in/message IDs
+  and the verified recovery-filter fix are recorded in the release checklist below.
 - **C:** independent audit reproduced both stale PATH precedence and fallback to ambient missing
   shims. The wrapper and active unwrapped npm/Claude commands in ai-stack-version-drift are fixed.
   Local metadata/definition inventory is recorded in claude-routines' dated reconciliation.

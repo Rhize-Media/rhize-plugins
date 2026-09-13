@@ -1,6 +1,6 @@
 # Context doctor pilot: impact map and execution checklist
 
-Status: released 2026-09-11; external alert activation pending. User selected #jim-automation-alerts and
+Status: released 2026-09-11; external failure/recovery alerts verified 2026-09-13. User selected #jim-automation-alerts and
 accepted recommended monitor thresholds. Pilot is weekly-context-doctor only.
 Coordinator owns source writes, integration, verification, and release. Recommended
 executor for future handoff: Terra for integration; independent capable-model review.
@@ -116,7 +116,7 @@ remains unmeasured (Arm A and Arm B not run as a model benchmark).
 - [x] Integrate and deploy scheduler bootstrap and prepare the validated reusable artifact.
 - [x] Verify capture canary, live report, docs, reconciliation, and exact release.
 - [x] Configure independent monitor and verify HTTP transport without claiming delivery.
-- [ ] Approve Sentry access to the private channel, activate the monitor, and verify failure/recovery delivery.
+- [x] Approve Sentry access to the private channel, activate the monitor, and verify failure/recovery delivery.
 
 ## Verified implementation checkpoint
 
@@ -127,7 +127,7 @@ remains unmeasured (Arm A and Arm B not run as a model benchmark).
   omissions remain explicit. Sandbox socket/Keychain denials were separately identified.
 - Scheduler release uses a private snapshot of five pinned files; offline failure injections
   run on each invocation. Existing MCP cost policy is preserved.
-- Sentry private-channel permission is an external blocker; monitor is disabled until resolved.
+- At the 2026-09-11 checkpoint, Sentry private-channel permission blocked activation; see the 2026-09-13 activation record below.
 - No provider A/B efficacy benchmark or paid description embedding was run.
 
 ## Final bounded scope additions from verified review
@@ -152,8 +152,8 @@ remains unmeasured (Arm A and Arm B not run as a model benchmark).
   with the same ten missing phrases. The existing test was retained; the required compact CLAUDE.md rules were restored before release.
 - Final host run 632dc4f3-54d5-4b23-abde-e94324506d31 completed at
   2026-09-11T19:18:01.390203Z: mandatory 5/5 OK, optional 3 NOT_RUN. Sentry accepted the
-  HTTP envelopes; disabled-monitor readback contained no check-ins. Slack access still
-  prevents operational activation.
+  HTTP envelopes; disabled-monitor readback contained no check-ins. That checkpoint did
+  not establish operational alert delivery; see the later activation record below.
 - Draft bundle .claude/artifacts/context-doctor-0.31.0 passes provenance validation,
   root/secret static scans (zero findings), and its 29-test bundled smoke. It remains
   outside the registry, trust=unreviewed and health=unverified; no paid promotion or
@@ -212,8 +212,8 @@ fixture HOME/mise and local-clone restrictions. Compact rules and managed tables
 restored; the successful full pass explicitly selected the installed Node 24 binary and
 allowed isolated local clone fixtures. No tests were removed, weakened, or newly skipped.
 
-Both source reviews and both repository impact-map reconciliations passed. The remaining
-operational blocker is Sentry access to the user-selected private Slack channel; HTTP
+Both source reviews and both repository impact-map reconciliations passed. At release on
+2026-09-11, Sentry access to the selected private Slack channel remained blocked; HTTP
 acceptance by a disabled monitor was not counted as monitoring or Slack delivery.
 
 
@@ -238,7 +238,49 @@ acceptance by a disabled monitor was not counted as monitoring or Slack delivery
   restored cache while active tasks still use it; reload active tasks at a suitable boundary.
   The exact cache reference in an error is evidence, not permission to substitute new-version
   files under the old version or disable validation hooks.
-- Sentry's API rejects #jim-automation-alerts because the app is not a channel member.
-  Automatic approval review rejected the app invitation: it grants ongoing access to private
-  channel contents beyond permission to route alerts. Explicit approval is pending. Monitor
-  remains disabled with no stored check-ins; HTTP acceptance is not operational monitoring.
+- On 2026-09-11, Sentry could not access #jim-automation-alerts. Automatic approval review
+  rejected the invitation because it grants ongoing access to private channel contents.
+  Jim explicitly approved that access on 2026-09-13; membership is now verified and the
+  monitor is active. Historical HTTP acceptance alone was not counted as delivery.
+
+
+## External alert activation — 2026-09-13
+
+Jim explicitly approved adding the existing Sentry app to private #jim-automation-alerts.
+Slack membership readback includes Sentry user U09NWLZ2NNR in channel C0BBUHR1JJU.
+Monitor weekly-context-doctor is active and unmuted. Its schedule remains Thursday 08:00
+America/New_York with 1,440-minute grace, 10-minute max runtime and first-failure/recovery
+thresholds. Readback sets the next expected start to 2026-09-17T12:00:00Z and the missed-run
+cutoff to 2026-09-18T12:00:00Z. The next natural scheduled run has not occurred yet.
+
+- Failure workflow 3985314 (created as legacy rule 17446159) filters monitor.slug=weekly-context-doctor and
+  sends to the approved channel. The labeled synthetic failure created SEO-HEALTH-INFRA-8
+  (7729654817); [Sentry's actual Slack failure message](https://rhize-media.slack.com/archives/C0BBUHR1JJU/p1789303638649269)
+  identifies the exact rule. HTTP acceptance alone was not used as delivery evidence.
+- Successful check-ins automatically resolved the incident; no manual issue resolve was used.
+  Recovery workflow 3985323 uses issue_resolved_trigger, attached only to doctor detector
+  10305638. [Sentry's actual Slack recovery message](https://rhize-media.slack.com/archives/C0BBUHR1JJU/p1789304333346049)
+  identifies that workflow. Both rules retain the 1,440-minute per-issue notification cooldown.
+- The first recovery-only workflow attempt did not trigger because it required the
+  context-doctor environment. Sentry resolution Activities carry no environment, and the
+  workflow engine excludes environment-bound rules for those Activities. Removing only
+  that environment restriction, while retaining the exact doctor detector association,
+  made the next automatic recovery reach Slack. This is a verified integration failure mode,
+  not a reason to loosen the doctor probe evidence contract.
+- Diagnosis source: [Sentry workflow processor, verified revision e917c50](https://github.com/getsentry/sentry/blob/e917c50c2413cd5082524c3f98791eb035fd38de/src/sentry/workflow_engine/processors/workflow.py#L398),
+  and the [supported issue-resolved trigger](https://docs.sentry.io/api/monitors/create-an-alert-for-an-organization/).
+- Three bounded synthetic failure/success pairs tested initial delivery, reproduced the
+  recovery filter defect and verified its correction. The final pair is error
+  6eaa5cff-5e27-47ef-b2ea-41cc1bb2cfb4 / OK 72571647-195f-4b10-8ff4-7d264d208f8e.
+  Final monitor state is OK with no active incident. These check-ins are labeled activation
+  fixtures, not new claims about current capture health or a live model Arm A/Arm B result.
+- Durable readback and all test identities:
+  `~/.claude/context-manager/doctor/deployments/20260913-alert-activation/receipt.json`.
+  The original 2026-09-11 release receipt remains historical evidence and is not rewritten.
+- The legacy project rules API returned HTTP 410 during final verification. Current organization
+  workflow endpoints returned both active routes and their actual last-triggered timestamps.
+  Use those workflow IDs for future management; the historical Slack alert still identifies
+  the original legacy rule ID.
+
+No plugin source, registry, scheduler cadence/model, upstream issue #3609 or unrelated alert
+rule was changed during activation. The reusable procedural bundle remains unpromoted.
