@@ -148,6 +148,7 @@ def run_claude(
     text_parts = []
     terminal_event = None
     malformed_stream_event = False
+    terminal_failure_status = None
 
     # Parse stream-json output: one JSON object per line
     for line in (result.stdout or "").splitlines():
@@ -157,6 +158,7 @@ def run_claude(
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
+            malformed_stream_event = True
             continue
         if not isinstance(event, dict):
             malformed_stream_event = True
@@ -193,6 +195,11 @@ def run_claude(
         # Extract final result and metadata
         elif event_type == "result":
             terminal_event = event
+            subtype = event.get("subtype")
+            if event.get("is_error") is True:
+                terminal_failure_status = "is_error"
+            elif isinstance(subtype, str) and subtype != "success":
+                terminal_failure_status = subtype
             output_text = event.get("result", "") if isinstance(event.get("result", ""), str) else ""
             num_turns = event.get("num_turns", 1)
             tokens, tokens_unavailable_reason = _usage_from_result(event)
@@ -211,7 +218,7 @@ def run_claude(
         and not isinstance(terminal_event.get("num_turns", 1), bool)
         and terminal_event.get("num_turns", 1) >= 0
     )
-    valid = result.returncode == 0 and not malformed_stream_event and terminal_is_well_formed and terminal_event.get("is_error") is not True
+    valid = result.returncode == 0 and not malformed_stream_event and terminal_is_well_formed and terminal_failure_status is None
     if result.returncode != 0:
         invalid_reason = f"nonzero_exit:{result.returncode}"
     elif malformed_stream_event:
@@ -220,8 +227,8 @@ def run_claude(
         invalid_reason = "missing_terminal_result"
     elif not terminal_is_well_formed:
         invalid_reason = "malformed_terminal_result"
-    elif terminal_event.get("is_error") is True:
-        invalid_reason = "terminal_error"
+    elif terminal_failure_status is not None:
+        invalid_reason = f"non_success_terminal:{terminal_failure_status}"
     else:
         invalid_reason = None
 
@@ -378,7 +385,12 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else None
         recall = tp / (tp + fn) if (tp + fn) > 0 else None
-        f1 = 2 * precision * recall / (precision + recall) if precision is not None and recall is not None and precision + recall > 0 else None
+        if precision is None or recall is None:
+            f1 = None
+        elif precision + recall == 0:
+            f1 = 0.0
+        else:
+            f1 = 2 * precision * recall / (precision + recall)
 
         summary[skill] = {
             "precision": round(precision, 3) if precision is not None else None,
@@ -497,10 +509,19 @@ def run_quality_evals(
         }
 
     if with_baseline and "with_plugin" in summary and "without_plugin" in summary:
-        with_rate = summary["with_plugin"]["overall_pass_rate"]
-        without_rate = summary["without_plugin"]["overall_pass_rate"]
-        delta = with_rate - without_rate if with_rate is not None and without_rate is not None else None
+        matched_deltas = []
+        for ev_r in results:
+            with_rate = ev_r["configs"]["with_plugin"]["mean_pass_rate"]
+            without_rate = ev_r["configs"]["without_plugin"]["mean_pass_rate"]
+            if with_rate is not None and without_rate is not None:
+                matched_deltas.append(with_rate - without_rate)
+        delta = mean(matched_deltas) if matched_deltas else None
         summary["delta"] = round(delta, 3) if delta is not None else None
+        summary["delta_coverage"] = {
+            "total_evals": len(results),
+            "matched_evals": len(matched_deltas),
+            "unmatched_evals": len(results) - len(matched_deltas),
+        }
         print(f"\n  Delta (plugin - baseline): {delta:+.1%}" if delta is not None else "\n  Delta (plugin - baseline): unavailable")
 
     return {"evals": results, "summary": summary}

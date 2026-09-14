@@ -23,6 +23,17 @@ def metric_text(value: float | int | None, percent: bool = False) -> str:
     return f"{value:.0%}" if percent else f"{value:.2f}"
 
 
+def trigger_metrics(counts: dict) -> dict:
+    """Derive nullable metrics from summed confusion counts."""
+    tp = counts["true_positives"]
+    fp = counts["false_positives"]
+    fn = counts["false_negatives"]
+    precision = tp / (tp + fp) if tp + fp else None
+    recall = tp / (tp + fn) if tp + fn else None
+    f1 = None if precision is None or recall is None else 0.0 if precision + recall == 0 else 2 * precision * recall / (precision + recall)
+    return {"precision": round(precision, 3) if precision is not None else None, "recall": round(recall, 3) if recall is not None else None, "f1": round(f1, 3) if f1 is not None else None}
+
+
 def load_result(path: Path) -> dict:
     with open(path) as f:
         return json.load(f)
@@ -40,7 +51,7 @@ def result_sections(result: dict):
 def merge_trigger_results(all_results: list[dict]) -> dict:
     """Merge trigger results from multiple per-skill runs."""
     merged_evals = []
-    merged_summary = {}
+    merged_counts = {}
 
     for source in all_results:
         for result in result_sections(source):
@@ -49,8 +60,14 @@ def merge_trigger_results(all_results: list[dict]) -> dict:
                 continue
             merged_evals.extend(trigger.get("evals", []))
             for skill, stats in trigger.get("summary", {}).items():
-                merged_summary[skill] = stats
+                counts = merged_counts.setdefault(skill, {
+                    "true_positives": 0, "false_positives": 0,
+                    "true_negatives": 0, "false_negatives": 0,
+                })
+                for key in counts:
+                    counts[key] += stats.get(key, 0)
 
+    merged_summary = {skill: {**counts, **trigger_metrics(counts)} for skill, counts in merged_counts.items()}
     return {"evals": merged_evals, "summary": merged_summary}
 
 
@@ -65,11 +82,21 @@ def merge_quality_results(all_results: list[dict]) -> dict:
             if not quality:
                 continue
             merged_evals.extend(quality.get("evals", []))
-            summary = quality.get("summary", {})
-            if "with_plugin" in summary:
-                rate = summary["with_plugin"].get("overall_pass_rate")
-                if rate is not None:
-                    all_pass_rates.append(rate)
+            case_rates = [
+                config["mean_pass_rate"]
+                for evaluation in quality.get("evals", [])
+                for config in [evaluation.get("configs", {}).get("with_plugin", {})]
+                if config.get("mean_pass_rate") is not None
+            ]
+            if case_rates:
+                all_pass_rates.extend(case_rates)
+            else:
+                # Legacy receipts may have only an already-aggregated summary.
+                summary = quality.get("summary", {})
+                if "with_plugin" in summary:
+                    rate = summary["with_plugin"].get("overall_pass_rate")
+                    if rate is not None:
+                        all_pass_rates.append(rate)
 
     merged_summary = {}
     if all_pass_rates:
@@ -114,7 +141,12 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
         # Aggregate row
         agg_p = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else None
         agg_r = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else None
-        agg_f1 = 2 * agg_p * agg_r / (agg_p + agg_r) if agg_p is not None and agg_r is not None and agg_p + agg_r > 0 else None
+        if agg_p is None or agg_r is None:
+            agg_f1 = None
+        elif agg_p + agg_r == 0:
+            agg_f1 = 0.0
+        else:
+            agg_f1 = 2 * agg_p * agg_r / (agg_p + agg_r)
         lines.append(
             f"| **TOTAL** | **{metric_text(agg_p)}** | **{metric_text(agg_r)}** | "
             f"**{metric_text(agg_f1)}** | {total_tp} | {total_fp} | {total_tn} | {total_fn} |"
