@@ -55,6 +55,15 @@ matched tasks, tools and settings and recording exact content identities. Claude
 Codex file reads require different observation logic. A static catalog listing establishes
 discovery, not invocation or task success.
 
+Include native commands and neighboring skills in the routing inventory. Claude's `Skill` tool
+can load a plugin command such as `/start` without loading the similarly named `SKILL.md`.
+Record that route separately and verify its actual source; do not count a command as a target
+skill invocation or a missing observation as a correct negative. Test snapshots must replace
+the candidate in the test catalog, rather than silently adding a second copy of the same skill.
+Keep any test-only catalog override ephemeral; preserve installed skills and shared aliases.
+Record model-visible catalog warnings separately: an enabled skill in the host inventory can
+still be omitted from the model's list, and its description can be removed before selection.
+
 Treat failed, interrupted and unobserved runs as unavailable evidence. Preserve historical
 receipts. Report sample size and coverage; fewer description characters do not establish reduced
 latency or better task outcomes. Require Claude compatibility before adopting a shared change.
