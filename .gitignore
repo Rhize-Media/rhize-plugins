@@ -16,8 +16,10 @@ node_modules/
 __pycache__/
 *.pyc
 
-# Eval results (regenerated on each run)
+# Eval results (regenerated on each run); the native `claude plugin eval` harness writes
+# <plugin>/evals/results/<timestamp>/ inside every plugin
 evals/results/
+*/evals/results/
 
 # Skill-map eval mined datasets (machine-local, contain raw user prompt text —
 # see docs/superpowers/specs/2026-08-10-skill-graph-evals-design.md's "Privacy
