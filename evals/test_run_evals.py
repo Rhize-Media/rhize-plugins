@@ -95,6 +95,31 @@ def test_run_claude_invalidates_malformed_json_and_explicit_terminal_failures():
     assert result["invalid_reason"] == "non_success_terminal:is_error"
 
 
+@pytest.mark.parametrize(
+    "terminal_update",
+    [{"duration_ms": "bad"}, {"is_error": 1}, {"subtype": []}],
+)
+def test_run_claude_invalidates_malformed_terminal_field_types(terminal_update):
+    completed = subprocess.CompletedProcess(["claude"], 0, json.dumps({**json.loads(terminal()), **terminal_update}) + "\n", "")
+    with patch.object(run_evals.subprocess, "run", return_value=completed):
+        result = run_evals.run_claude("hello", "/tmp")
+    assert result["valid"] is False
+    assert result["invalid_reason"] == "malformed_stream_event"
+    assert isinstance(result["duration_ms"], int)
+
+
+def test_run_claude_rejects_malformed_tool_input_before_trigger_scoring(monkeypatch):
+    stream = json.dumps({"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Skill", "input": []}]}}) + "\n" + terminal()
+    completed = subprocess.CompletedProcess(["claude"], 0, stream, "")
+    with patch.object(run_evals.subprocess, "run", return_value=completed):
+        malformed = run_evals.run_claude("hello", "/tmp")
+    assert malformed["valid"] is False
+    assert malformed["tool_calls"] == []
+    monkeypatch.setattr(run_evals, "run_claude", lambda *args, **kwargs: malformed)
+    result = run_evals.run_trigger_evals([{"id": "negative", "prompt": "x", "target_skill": "skill", "should_trigger": False}], 1, None, False)
+    assert result["evals"][0]["trigger_rate"] is None
+
+
 def test_run_claude_keeps_valid_run_when_usage_is_not_exposed():
     completed = subprocess.CompletedProcess(["claude"], 0, terminal(), "")
     with patch.object(run_evals.subprocess, "run", return_value=completed):
@@ -150,6 +175,20 @@ def test_trigger_f1_is_measured_zero_when_precision_and_recall_are_zero(monkeypa
     assert stats["f1"] == 0
 
 
+@pytest.mark.parametrize(
+    "cases",
+    [
+        [{"id": "positive", "prompt": "x", "target_skill": "skill", "should_trigger": True}],
+        [{"id": "negative", "prompt": "x", "target_skill": "skill", "should_trigger": False}],
+    ],
+)
+def test_trigger_f1_is_zero_when_only_precision_or_recall_is_undefined(monkeypatch, cases):
+    valid_non_trigger = {"output": "", "tool_calls": [], "duration_ms": 1, "tokens": 1, "num_turns": 1, "error": None, "valid": True, "invalid_reason": None, "tokens_unavailable_reason": None, "metadata": {}}
+    valid_trigger = {**valid_non_trigger, "tool_calls": [{"name": "Skill", "input": {"skill": "skill"}}]}
+    monkeypatch.setattr(run_evals, "run_claude", lambda *args, **kwargs: valid_non_trigger if cases[0]["should_trigger"] else valid_trigger)
+    assert run_evals.run_trigger_evals(cases, 1, None, False)["summary"]["skill"]["f1"] == 0
+
+
 def test_quality_metrics_exclude_partial_and_all_invalid_runs(monkeypatch):
     valid = {"output": "yes", "tool_calls": [], "duration_ms": 10, "tokens": 0, "num_turns": 1, "error": None, "valid": True, "invalid_reason": None, "tokens_unavailable_reason": None, "metadata": {}}
     invalid = {**valid, "valid": False, "tokens": None, "invalid_reason": "timeout", "tokens_unavailable_reason": "timeout"}
@@ -180,6 +219,9 @@ def test_quality_delta_requires_matched_valid_cases(monkeypatch):
     assert result["summary"]["without_plugin"]["overall_pass_rate"] == 0
     assert result["summary"]["delta"] is None
     assert result["summary"]["delta_coverage"] == {"total_evals": 2, "matched_evals": 0, "unmatched_evals": 2}
+    report = run_evals.generate_report({"timestamp": "now", "plugins": {"plugin": {"quality": result}}})
+    assert "| delta_coverage |" not in report
+    assert "**Delta coverage**: 0/2 matched evaluable cases" in report
 
 
 def test_reports_and_aggregate_accept_legacy_and_unavailable_metrics():
@@ -200,6 +242,7 @@ def test_reports_and_aggregate_accept_legacy_and_unavailable_metrics():
 
 
 def test_aggregate_combines_repeated_skill_counts_and_weights_quality_cases():
+    assert aggregate_results.trigger_metrics({"true_positives": 0, "false_positives": 0, "false_negatives": 1})["f1"] == 0
     trigger = aggregate_results.merge_trigger_results([
         {"trigger": {"evals": [], "summary": {"skill": {"true_positives": 1, "false_positives": 0, "true_negatives": 0, "false_negatives": 0}}}},
         {"plugins": {"plugin": {"trigger": {"evals": [], "summary": {"skill": {"true_positives": 0, "false_positives": 1, "true_negatives": 0, "false_negatives": 1}}}}}},

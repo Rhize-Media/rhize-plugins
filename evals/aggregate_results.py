@@ -30,7 +30,8 @@ def trigger_metrics(counts: dict) -> dict:
     fn = counts["false_negatives"]
     precision = tp / (tp + fp) if tp + fp else None
     recall = tp / (tp + fn) if tp + fn else None
-    f1 = None if precision is None or recall is None else 0.0 if precision + recall == 0 else 2 * precision * recall / (precision + recall)
+    denominator = 2 * tp + fp + fn
+    f1 = 2 * tp / denominator if denominator else None
     return {"precision": round(precision, 3) if precision is not None else None, "recall": round(recall, 3) if recall is not None else None, "f1": round(f1, 3) if f1 is not None else None}
 
 
@@ -141,12 +142,8 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
         # Aggregate row
         agg_p = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else None
         agg_r = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else None
-        if agg_p is None or agg_r is None:
-            agg_f1 = None
-        elif agg_p + agg_r == 0:
-            agg_f1 = 0.0
-        else:
-            agg_f1 = 2 * agg_p * agg_r / (agg_p + agg_r)
+        f1_denominator = 2 * total_tp + total_fp + total_fn
+        agg_f1 = 2 * total_tp / f1_denominator if f1_denominator else None
         lines.append(
             f"| **TOTAL** | **{metric_text(agg_p)}** | **{metric_text(agg_r)}** | "
             f"**{metric_text(agg_f1)}** | {total_tp} | {total_fp} | {total_tn} | {total_fn} |"

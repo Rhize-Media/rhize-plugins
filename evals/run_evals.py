@@ -33,6 +33,10 @@ EVALS_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = EVALS_DIR / "results"
 
 
+def _is_nonnegative_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 0
+
+
 def _usage_from_result(event: dict) -> tuple[int | None, str | None]:
     """Return measured total usage, preserving a reported zero as a measurement."""
     usage = event.get("usage")
@@ -40,7 +44,7 @@ def _usage_from_result(event: dict) -> tuple[int | None, str | None]:
         return None, "missing_usage"
     keys = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
     values = [usage.get(key) for key in keys]
-    if any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in values):
+    if any(not _is_nonnegative_int(value) for value in values):
         return None, "incomplete_usage"
     return sum(values), None
 
@@ -149,9 +153,13 @@ def run_claude(
     terminal_event = None
     malformed_stream_event = False
     terminal_failure_status = None
+    stdout = result.stdout if isinstance(result.stdout, str) else ""
+    stderr = result.stderr if isinstance(result.stderr, str) else ""
+    if not isinstance(result.stdout, str):
+        malformed_stream_event = True
 
     # Parse stream-json output: one JSON object per line
-    for line in (result.stdout or "").splitlines():
+    for line in stdout.splitlines():
         line = line.strip()
         if not line:
             continue
@@ -178,12 +186,16 @@ def run_claude(
                 continue
             for block in content:
                 if not isinstance(block, dict):
+                    malformed_stream_event = True
                     continue
                 if block.get("type") == "tool_use":
+                    if not isinstance(block.get("name"), str) or not isinstance(block.get("input"), dict):
+                        malformed_stream_event = True
+                        continue
                     tool_calls.append({
-                        "name": block.get("name", ""),
-                        "id": block.get("id", ""),
-                        "input": block.get("input", {}),
+                        "name": block["name"],
+                        "id": block.get("id", "") if isinstance(block.get("id", ""), str) else "",
+                        "input": block["input"],
                     })
                 elif block.get("type") == "text":
                     text = block.get("text", "")
@@ -196,7 +208,11 @@ def run_claude(
         elif event_type == "result":
             terminal_event = event
             subtype = event.get("subtype")
-            if event.get("is_error") is True:
+            if "is_error" in event and not isinstance(event["is_error"], bool):
+                malformed_stream_event = True
+            elif "subtype" in event and not isinstance(subtype, str):
+                malformed_stream_event = True
+            elif event.get("is_error") is True:
                 terminal_failure_status = "is_error"
             elif isinstance(subtype, str) and subtype != "success":
                 terminal_failure_status = subtype
@@ -204,8 +220,11 @@ def run_claude(
             num_turns = event.get("num_turns", 1)
             tokens, tokens_unavailable_reason = _usage_from_result(event)
 
-            if event.get("duration_ms"):
-                duration_ms = event["duration_ms"]
+            if "duration_ms" in event:
+                if _is_nonnegative_int(event["duration_ms"]):
+                    duration_ms = event["duration_ms"]
+                else:
+                    malformed_stream_event = True
 
     # Combine all text from assistant messages if result field was empty
     if not output_text and text_parts:
@@ -214,9 +233,7 @@ def run_claude(
     terminal_is_well_formed = (
         isinstance(terminal_event, dict)
         and isinstance(terminal_event.get("result"), str)
-        and isinstance(terminal_event.get("num_turns", 1), int)
-        and not isinstance(terminal_event.get("num_turns", 1), bool)
-        and terminal_event.get("num_turns", 1) >= 0
+        and _is_nonnegative_int(terminal_event.get("num_turns", 1))
     )
     valid = result.returncode == 0 and not malformed_stream_event and terminal_is_well_formed and terminal_failure_status is None
     if result.returncode != 0:
@@ -232,8 +249,8 @@ def run_claude(
     else:
         invalid_reason = None
 
-    if not output_text and result.stderr:
-        output_text = result.stderr
+    if not output_text and stderr:
+        output_text = stderr
 
     return {
         "output": output_text,
@@ -242,7 +259,7 @@ def run_claude(
         "duration_ms": duration_ms,
         "tokens": tokens,
         "raw_json": None,  # stream-json doesn't have a single raw object
-        "error": None if valid else (result.stderr.strip() or invalid_reason),
+        "error": None if valid else (stderr.strip() or invalid_reason),
         "valid": valid,
         "invalid_reason": invalid_reason,
         "terminal_status": "success" if valid else invalid_reason,
@@ -316,8 +333,10 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
 
             # Signal 1 (strongest): Skill tool was invoked with matching skill name
             skill_tool_called = any(
-                tc.get("name") == "Skill"
-                and skill_name in str(tc.get("input", {}).get("skill", ""))
+                isinstance(tc, dict)
+                and tc.get("name") == "Skill"
+                and isinstance(tc.get("input"), dict)
+                and skill_name in str(tc["input"].get("skill", ""))
                 for tc in tool_calls
             )
 
@@ -338,7 +357,7 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
                 "num_turns": num_turns,
                 "duration_ms": result["duration_ms"],
                 "tokens": tokens,
-                "tool_calls_summary": [tc.get("name", "?") for tc in tool_calls],
+                "tool_calls_summary": [tc.get("name", "?") if isinstance(tc, dict) else "?" for tc in tool_calls],
                 "error": result.get("error"),
                 "valid": result["valid"],
                 "invalid_reason": result.get("invalid_reason"),
@@ -385,12 +404,8 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else None
         recall = tp / (tp + fn) if (tp + fn) > 0 else None
-        if precision is None or recall is None:
-            f1 = None
-        elif precision + recall == 0:
-            f1 = 0.0
-        else:
-            f1 = 2 * precision * recall / (precision + recall)
+        f1_denominator = 2 * tp + fp + fn
+        f1 = 2 * tp / f1_denominator if f1_denominator else None
 
         summary[skill] = {
             "precision": round(precision, 3) if precision is not None else None,
@@ -582,13 +597,16 @@ def generate_report(full_results: dict) -> str:
                     "|--------|-------------------|",
                 ])
                 for config, stats in summary.items():
-                    if config == "delta":
+                    if config in {"delta", "delta_coverage"}:
                         continue
                     rate = stats.get("overall_pass_rate")
                     lines.append(f"| {config} | {rate:.0%} |" if rate is not None else f"| {config} | unavailable |")
                 if summary.get("delta") is not None:
                     lines.append(f"")
                     lines.append(f"**Delta (plugin - baseline)**: {summary['delta']:+.1%}")
+                if "delta_coverage" in summary:
+                    coverage = summary["delta_coverage"]
+                    lines.append(f"**Delta coverage**: {coverage['matched_evals']}/{coverage['total_evals']} matched evaluable cases")
 
             lines.extend(["", "#### Per-Eval Results", ""])
             for ev in quality_results["evals"]:
