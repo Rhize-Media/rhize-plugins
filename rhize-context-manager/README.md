@@ -99,6 +99,10 @@ Coverage per feature goal: compression (context-compression), retrieval/budgetin
 | `/graph-decision` | Thin Claude adapter to the shared `graph-memory decision` CLI. Offline preview is available; durable record/query/correction remains explicitly unavailable until a future release (tracked internally as RT-161). |
 | `/suggestion-report` | Read-only acceptance-rate report over the shared suggestion log: per-hook suggested/accepted/ignored/ext-unjoin counts and accept%, router silence samples, and the agent-dispatch named-rate/candidate-miss-rate section (with a `by_agent_type` breakdown). Thin adapter over `scripts/suggestion_log_report.py`. |
 
+The `context-engineering` skill is for development-session recovery and closure, handoffs,
+durable learnings, and context hygiene. Generic start, done, or commit wording without a
+session-context need stays with the task-specific workflow.
+
 `/start`, `/done`, `/context-hygiene`, and `/impact-map` are registered only under
 `commands/` — the `skills/context-engineering/commands/` copies were removed
 2026-08-04 (they had drifted behind: `commands/` had gained frontmatter, a verifier-

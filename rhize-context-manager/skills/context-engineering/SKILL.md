@@ -5,14 +5,9 @@ domain: dev-flow
 maturity: stable
 version: 2.0.0
 description: >-
-  Systematic context, session, and memory management for Claude Code development sessions:
-  start/resume/close a working session, preserve and restore context, extract durable memories,
-  and keep long sessions lean. Use whenever the user says "start", "begin", "where were we",
-  "restore session", "new session", "save context", "remember this", "context is getting heavy",
-  "I'm confused/lost", or "done/finished/commit" — and proactively when a session exceeds ~25
-  messages and needs hygiene, or before implementing a feature when impact-mapping and the
-  component registry should be checked first. Based on Google's Context Engineering guide,
-  enhanced with practical automation hooks and slash commands.
+  Use for development-session context work: start or resume a session, restore or save context,
+  create a handoff, capture durable learnings, or manage context overload. Trigger on session
+  recovery or memory/context hygiene, not generic start, done, or commit requests.
 metadata:
   rhize:
     topics: [context-engineering, workflow-patterns, project-planning]

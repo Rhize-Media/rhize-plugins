@@ -4,17 +4,10 @@ tier: custom
 domain: dev-flow
 maturity: beta
 description: >
-  ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a
-  rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API
-  contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered
-  by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading
-  to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: "visual plan", "make this plan reviewable", "turn this plan into mdx",
-  "plan.mdx", "wireframe this", "rich plan document", "review surface for this plan", "canvas plan",
-  "planning doc with diagrams", "plan as an approval gate", or whenever a multi-file, ambiguous, risky,
-  data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external
-  plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous
-  pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the
-  artifact into the Obsidian vault as the second-brain source of truth.
+  Use on request to make a plan reviewable as plan.mdx, or for risky/ambiguous/data-heavy/UI-heavy
+  multi-file work needing sign-off. Supports local rhize-plan preview/HTML export and Obsidian
+  Markdown/Mermaid/Canvas; saves in the vault as second-brain source of truth. Used in
+  project-launcher Phase 3.
 metadata:
   rhize:
     summary: "Turns an implementation plan into a reviewable visual document with diagrams and file maps."

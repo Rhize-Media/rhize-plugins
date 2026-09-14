@@ -42,7 +42,7 @@ The full pipeline has six phases. Each phase produces something the next phase n
 
 ### project-launcher
 
-**When it activates:** You say something like "start a new project," "create a PRD," "plan an automation," "scaffold for GSD," "prepare for autonomous development," "I want to build...," or "new project idea." It also activates on requests to research a topic before building, interview about requirements, analyze a PRD for gaps, or prepare a `CLAUDE.md`/`.planning/` setup for a new codebase.
+**When it activates:** You ask to launch a new software or automation project, create a PRD, or scaffold an approved PRD for GSD v2. It covers research, requirements, gap analysis, and the project handoff; a bounded code fix or standalone visual-plan request is handled by the relevant task workflow instead.
 
 **What it knows:** The full 6-phase methodology — research sourcing (vault, codebase, docs, MCP servers), the interview question bank across 11 domains, the 14-section PRD template, the gap-analysis question categories, the `CLAUDE.md`/`.planning/` scaffolding structure, GSD v2 installation, and the handoff checklist. It also knows which MCP servers and skills to reach for at each phase, and can suggest and safety-gate additional skills for the project's stack once scaffolding starts.
 
@@ -54,9 +54,9 @@ The full pipeline has six phases. Each phase produces something the next phase n
 
 ### rhize-visual-plan
 
-**When it activates:** You say "visual plan," "make this plan reviewable," "turn this plan into mdx," "wireframe this," "rich plan document," "review surface for this plan," "canvas plan," or "plan as an approval gate." It also activates automatically inside Phase 3 of the project-launcher pipeline, right after the PRD draft exists.
+**When it activates:** You ask for a reviewable `plan.mdx` from an existing plan or PRD, or a risky, ambiguous, data-heavy, or UI-heavy multi-file change needs human sign-off. Project-launcher also uses it in Phase 3 after the PRD draft exists.
 
-**What it knows:** The Rhize `plan.mdx` component vocabulary (`<Diagram>`, `<FileMap>`, `<DataModel>`, `<ApiEndpoint>`, `<Wireframe>`, `<Canvas>`, `<Decision>`, `<OpenQuestions>`), how to choose the right visual surface for the work (none / canvas-only / canvas + behavior notes), the `rhize-plan` CLI for live preview and self-contained HTML export, and how the plan degrades gracefully to plain Markdown + Mermaid in Obsidian.
+**What it knows:** The Rhize `plan.mdx` component vocabulary (`<Diagram>`, `<FileMap>`, `<DataModel>`, `<ApiEndpoint>`, `<Wireframe>`, `<Canvas>`, `<Decision>`, `<OpenQuestions>`), how to choose the right visual surface for the work (none / canvas-only / canvas + behavior notes), the `rhize-plan` CLI for live preview and self-contained HTML export, and how the plan degrades gracefully to plain Markdown + Mermaid in Obsidian. It saves the artifact into the Obsidian vault as the second-brain source of truth.
 
 **How to use it effectively:**
 - Say "turn this PRD into a visual plan" and point at a PRD path — it produces `plan.mdx` with diagrams and file maps, not just prose.

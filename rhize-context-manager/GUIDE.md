@@ -45,9 +45,9 @@ the right one, and health-checks the whole thing.
   doesn't lose the thread.
   *Example: "This session's dragging — run /context-hygiene."*
 
-  Both bookends, plus general session/memory/hygiene questions, are also covered by
-  the `context-engineering` skill (moved here from rhize-devflow; all prior triggers
-  still work).
+  The `context-engineering` skill covers development-session recovery and closure, handoffs,
+  durable learnings, and context hygiene. Generic start, done, or commit requests without a
+  session-context need should stay with the task-specific workflow.
 
 - **"Done / finished / ready to commit / wrap up"**
   → `/done` — the session-closure bookend. If this session changed code **and**

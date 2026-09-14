@@ -1,0 +1,182 @@
+{
+  "schema_version": "skill-description-pilot-v1",
+  "purpose": "Static, matched-host routing pilot fixture; expectations are hypotheses for behavioral evaluation, not results.",
+  "baseline_source": {
+    "git_commit": "8c9003e7ca6bc2d6143d2f091a6d7ad9c40d81fd",
+    "source_tree": "rhize-plugins"
+  },
+  "candidate_arm": "description-only; skill bodies and metadata must remain unchanged",
+  "skills": {
+    "context-engineering": {
+      "path": "rhize-context-manager/skills/context-engineering/SKILL.md",
+      "baseline_file_sha256": "8c0d339d2edebb80187d274ee5bf53755898db78764e65caa26f46bead5b2098",
+      "baseline_description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
+      "baseline_description_sha256": "b57b6d695e3c905a5a0aed23564939f474b02db0120539b41e2708c03a7463d8",
+      "candidate_description": "Use for development-session context work: start or resume a session, restore or save context, create a handoff, capture durable learnings, or manage context overload. Trigger on session recovery or memory/context hygiene, not generic start, done, or commit requests.",
+      "candidate_description_sha256": "4ed87e348f1cb827f8f09131e475cf7be117ca82d23311da72a6c1b954e61f43",
+      "baseline_frontmatter_without_description_sha256": "a0218b83bba8e995592075e2b1c7aae7551f0479c3b60f74dbc557776caad233",
+      "baseline_body_sha256": "84af06e3d98789c1aaf4d89d3a001fa926bd9d0d59aa476024032ffbf27dbfd5",
+      "baseline_description_characters": 699,
+      "candidate_description_characters": 266
+    },
+    "project-launcher": {
+      "path": "project-launcher/skills/project-launcher/SKILL.md",
+      "baseline_file_sha256": "b86be763375c2f0a6720e4bfdfc1757f93fd2665c1a47ba5ccc4511245e6d76d",
+      "baseline_description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
+      "baseline_description_sha256": "8a3bf95a860a5f30dfe4e45d98f4de96fa0c7c1a84146282a6e763f3eb41d4bb",
+      "candidate_description": "Invoke for a new software or automation project kickoff: research, requirements, PRD, gap analysis, scaffolding, and GSD v2 handoff. Also use for a requested PRD or to scaffold an approved PRD for GSD.",
+      "candidate_description_sha256": "6469bd2a9f0afad336c6e325e8069d677d4c01c39ac9738dfea5e35820d688ce",
+      "baseline_frontmatter_without_description_sha256": "2a4d9273d5006d9d434634d9faa90746f27a5bfa64732b9c973f852efb626ba6",
+      "baseline_body_sha256": "43f281457799e142d2df2f616643c5fd4bb426f6b62e031e105350db73678c4e",
+      "baseline_description_characters": 1209,
+      "candidate_description_characters": 201
+    },
+    "rhize-visual-plan": {
+      "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
+      "baseline_file_sha256": "7cc345ffbb94a61fcce05da9d1b1a0ce52fb29d9930cc1edfae5e12858d86945",
+      "baseline_description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
+      "baseline_description_sha256": "ab88709fd65912221333ba2c389277f7ab5b11c1ca4711489094f56f7a50ec6e",
+      "candidate_description": "Use on request to make a plan reviewable as plan.mdx, or for risky/ambiguous/data-heavy/UI-heavy multi-file work needing sign-off. Supports local rhize-plan preview/HTML export and Obsidian Markdown/Mermaid/Canvas; saves in the vault as second-brain source of truth. Used in project-launcher Phase 3.",
+      "candidate_description_sha256": "8fcfdc4e4425d384ea44a7aad83aae742041df44e49628351d3de10740ef498a",
+      "baseline_frontmatter_without_description_sha256": "c3b2b474c63b03fb9278818aa1980fe4afbdc07ac26aa39ec567926dd48f3227",
+      "baseline_body_sha256": "fef8d670451c640d06161bb88d446c9b2fc47fc1631ccbdad548f56e4ba47a6b",
+      "baseline_description_characters": 1127,
+      "candidate_description_characters": 300
+    }
+  },
+  "cases": [
+    {
+      "id": "context-session-recovery",
+      "target_skill": "context-engineering",
+      "class": "positive",
+      "prompt": "Pick up yesterday’s unfinished task. Recover the active work, important blockers, and context I should carry forward.",
+      "expected": "invoke",
+      "reason": "Explicit session recovery and handoff context."
+    },
+    {
+      "id": "context-hygiene",
+      "target_skill": "context-engineering",
+      "class": "positive",
+      "prompt": "This development session is getting hard to follow. Identify stale context and prepare a concise checkpoint before we continue.",
+      "expected": "invoke",
+      "reason": "Session context hygiene and checkpointing."
+    },
+    {
+      "id": "context-generic-start",
+      "target_skill": "context-engineering",
+      "class": "negative",
+      "prompt": "Start the local development server and tell me when it is ready.",
+      "expected": "avoid",
+      "reason": "Generic start request with no session-context operation."
+    },
+    {
+      "id": "context-generic-done",
+      "target_skill": "context-engineering",
+      "class": "negative",
+      "prompt": "The Done button is missing a disabled state; fix its behavior.",
+      "expected": "avoid",
+      "reason": "The word done refers to a UI label, not session closure."
+    },
+    {
+      "id": "context-adjacent-learning-curation",
+      "target_skill": "context-engineering",
+      "class": "adjacent-skill",
+      "prompt": "Does this reusable correction belong in an existing skill, and where should it be recorded?",
+      "expected": "avoid",
+      "preferred_adjacent_skill": "learning-curation",
+      "reason": "Skill curation is the primary task; no session recovery or hygiene was requested."
+    },
+    {
+      "id": "context-explicit",
+      "target_skill": "context-engineering",
+      "class": "explicit-invocation",
+      "prompt": "Use the context-engineering skill to close this development session and save a handoff.",
+      "expected": "invoke",
+      "reason": "The user explicitly names the skill and requests its session-close workflow."
+    },
+    {
+      "id": "launcher-new-project",
+      "target_skill": "project-launcher",
+      "class": "positive",
+      "prompt": "Kick off a new internal automation project. Research the options, interview me on requirements, produce a PRD, and prepare the GSD handoff.",
+      "expected": "invoke",
+      "reason": "New project launch across research, requirements, PRD, and GSD handoff."
+    },
+    {
+      "id": "launcher-existing-prd-scaffold",
+      "target_skill": "project-launcher",
+      "class": "positive",
+      "prompt": "I have an approved PRD. Create the project scaffold and prepare it for GSD v2 autonomous development.",
+      "expected": "invoke",
+      "reason": "Existing-PRD scaffolding and GSD handoff are part of the launch workflow."
+    },
+    {
+      "id": "launcher-one-file-fix",
+      "target_skill": "project-launcher",
+      "class": "negative",
+      "prompt": "Fix the off-by-one error in this one-line helper and run its unit test.",
+      "expected": "avoid",
+      "reason": "A bounded code fix is not a new project kickoff or PRD request."
+    },
+    {
+      "id": "launcher-adjacent-visual-plan",
+      "target_skill": "project-launcher",
+      "class": "adjacent-skill",
+      "prompt": "Turn this existing plan into a reviewable plan.mdx with a diagram and file map.",
+      "expected": "avoid",
+      "preferred_adjacent_skill": "rhize-visual-plan",
+      "reason": "Standalone visual-plan creation is owned by the adjacent skill."
+    },
+    {
+      "id": "launcher-explicit-prd",
+      "target_skill": "project-launcher",
+      "class": "explicit-invocation",
+      "prompt": "Use project-launcher to write a PRD for this new reporting automation.",
+      "expected": "invoke",
+      "reason": "The user explicitly names the skill and requests a supported PRD workflow."
+    },
+    {
+      "id": "visual-plan-requested",
+      "target_skill": "rhize-visual-plan",
+      "class": "positive",
+      "prompt": "Turn this migration plan into a reviewable plan.mdx with a diagram, file map, and open questions.",
+      "expected": "invoke",
+      "reason": "Direct request for the standalone visual review artifact."
+    },
+    {
+      "id": "visual-plan-risky-change",
+      "target_skill": "rhize-visual-plan",
+      "class": "positive",
+      "prompt": "Before coding this risky multi-file data migration, make the plan reviewable for sign-off.",
+      "expected": "invoke",
+      "reason": "Ambiguous or risky multi-file work needs the skill’s human review surface."
+    },
+    {
+      "id": "visual-plan-adjacent-launch",
+      "target_skill": "rhize-visual-plan",
+      "class": "adjacent-skill",
+      "prompt": "Launch a new automation project from the idea through research, PRD, gap analysis, scaffold, and GSD handoff.",
+      "expected": "avoid",
+      "preferred_adjacent_skill": "project-launcher",
+      "reason": "The requested end-to-end project workflow belongs to project-launcher; its Phase 3 may invoke this skill later.",
+      "scope_note": "Avoid as the first selected skill; a later Phase 3 invocation by project-launcher is expected and permitted."
+    },
+    {
+      "id": "visual-plan-explicit",
+      "target_skill": "rhize-visual-plan",
+      "class": "explicit-invocation",
+      "prompt": "Explicitly use rhize-visual-plan to render the approved plan and save it into the Obsidian vault.",
+      "expected": "invoke",
+      "reason": "The user explicitly invokes the skill and its viewer/vault workflow."
+    },
+    {
+      "id": "visual-plan-ordinary-multifile-edit",
+      "target_skill": "rhize-visual-plan",
+      "class": "negative",
+      "prompt": "Implement this routine multi-file refactor. The plan is approved, no human sign-off artifact is requested, and you can proceed with the code.",
+      "expected": "avoid",
+      "reason": "Multi-file scope alone does not require a visual review artifact when approval is already settled and no review surface is requested."
+    }
+  ],
+  "evaluation_scope": "Evaluate the first skill selected for the initial prompt. Workflow-driven downstream skill calls are allowed and are not counted as initial misrouting."
+}
