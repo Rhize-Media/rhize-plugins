@@ -15,6 +15,7 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -32,13 +33,59 @@ EVALS_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = EVALS_DIR / "results"
 
 
+def _usage_from_result(event: dict) -> tuple[int | None, str | None]:
+    """Return measured total usage, preserving a reported zero as a measurement."""
+    usage = event.get("usage")
+    if not isinstance(usage, dict):
+        return None, "missing_usage"
+    keys = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens")
+    values = [usage.get(key) for key in keys]
+    if any(not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in values):
+        return None, "incomplete_usage"
+    return sum(values), None
+
+
+def _format_metric(value: float | int | None) -> str:
+    return "unavailable" if value is None else f"{value:.2f}"
+
+
+def _run_metadata(prompt: str, extra_args: list[str] | None, terminal_event: dict | None) -> dict:
+    """Record only identity evidence exposed by the prompt, flags, or terminal event."""
+    extra_args = extra_args or []
+    requested_model = None
+    requested_reasoning = None
+    for index, arg in enumerate(extra_args[:-1]):
+        if arg in {"--model", "--model-name"}:
+            requested_model = extra_args[index + 1]
+        if arg in {"--reasoning-effort", "--thinking"}:
+            requested_reasoning = extra_args[index + 1]
+    variant = None
+    for index, arg in enumerate(extra_args[:-1]):
+        if arg == "--variant":
+            variant = extra_args[index + 1]
+    def event_string(key: str) -> str | None:
+        value = terminal_event.get(key) if isinstance(terminal_event, dict) else None
+        return value if isinstance(value, str) else None
+    return {
+        "host": "claude",
+        "host_version": event_string("version"),
+        "model": event_string("model"),
+        "reasoning": event_string("reasoning"),
+        "requested_model": requested_model,
+        "requested_reasoning": requested_reasoning,
+        "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
+        "variant": variant,
+    }
+
+
 def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbose: bool = False) -> dict:
     """Run a prompt through claude -p and return structured results.
 
     Uses --output-format stream-json --verbose to capture tool calls
     (especially Skill invocations) alongside the final result.
 
-    Returns dict with keys: output, tool_calls, duration_ms, tokens, num_turns, raw_json, error.
+    A run is valid only when the process exits successfully and emits a terminal result event.
+    Usage is nullable because unavailable usage is not zero usage.
     """
     cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--max-turns", "15"]
     if extra_args:
@@ -61,19 +108,26 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
             "output": "",
             "tool_calls": [],
             "duration_ms": 300_000,
-            "tokens": 0,
-            "num_turns": 1,
+            "tokens": None,
+            "tokens_unavailable_reason": "timeout",
+            "num_turns": None,
             "raw_json": None,
             "error": "Timeout after 300s",
+            "valid": False,
+            "invalid_reason": "timeout",
+            "terminal_status": "timeout",
+            "metadata": _run_metadata(prompt, extra_args, None),
         }
 
     duration_ms = int((time.time() - start) * 1000)
 
     output_text = ""
     tool_calls = []
-    tokens = 0
-    num_turns = 1
+    tokens = None
+    tokens_unavailable_reason = "missing_terminal_result"
+    num_turns = None
     text_parts = []
+    terminal_event = None
 
     # Parse stream-json output: one JSON object per line
     for line in result.stdout.splitlines():
@@ -104,16 +158,10 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
 
         # Extract final result and metadata
         elif event_type == "result":
-            output_text = event.get("result", "")
+            terminal_event = event
+            output_text = event.get("result", "") if isinstance(event.get("result", ""), str) else ""
             num_turns = event.get("num_turns", 1)
-
-            usage = event.get("usage", {})
-            tokens = (
-                usage.get("input_tokens", 0)
-                + usage.get("cache_creation_input_tokens", 0)
-                + usage.get("cache_read_input_tokens", 0)
-                + usage.get("output_tokens", 0)
-            )
+            tokens, tokens_unavailable_reason = _usage_from_result(event)
 
             if event.get("duration_ms"):
                 duration_ms = event["duration_ms"]
@@ -121,6 +169,25 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
     # Combine all text from assistant messages if result field was empty
     if not output_text and text_parts:
         output_text = "\n".join(text_parts)
+
+    terminal_is_well_formed = (
+        isinstance(terminal_event, dict)
+        and isinstance(terminal_event.get("result"), str)
+        and isinstance(terminal_event.get("num_turns", 1), int)
+        and not isinstance(terminal_event.get("num_turns", 1), bool)
+        and terminal_event.get("num_turns", 1) >= 0
+    )
+    valid = result.returncode == 0 and terminal_is_well_formed and terminal_event.get("is_error") is not True
+    if result.returncode != 0:
+        invalid_reason = f"nonzero_exit:{result.returncode}"
+    elif terminal_event is None:
+        invalid_reason = "missing_terminal_result"
+    elif not terminal_is_well_formed:
+        invalid_reason = "malformed_terminal_result"
+    elif terminal_event.get("is_error") is True:
+        invalid_reason = "terminal_error"
+    else:
+        invalid_reason = None
 
     if not output_text and result.stderr:
         output_text = result.stderr
@@ -132,7 +199,12 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
         "duration_ms": duration_ms,
         "tokens": tokens,
         "raw_json": None,  # stream-json doesn't have a single raw object
-        "error": None,
+        "error": None if valid else (result.stderr.strip() or invalid_reason),
+        "valid": valid,
+        "invalid_reason": invalid_reason,
+        "terminal_status": "success" if valid else invalid_reason,
+        "tokens_unavailable_reason": tokens_unavailable_reason,
+        "metadata": _run_metadata(prompt, extra_args, terminal_event),
     }
 
 
@@ -194,8 +266,8 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
             result = run_claude(ev["prompt"], cwd, extra_args=extra_args, verbose=verbose)
 
             skill_name = ev["target_skill"]
-            num_turns = result.get("num_turns", 1)
-            tokens = result.get("tokens", 0)
+            num_turns = result.get("num_turns")
+            tokens = result.get("tokens")
             output = result["output"]
             tool_calls = result.get("tool_calls", [])
 
@@ -208,7 +280,10 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
 
             # Heuristic (informational only): token/turn signal.
             # Logged for diagnostics but NOT used for trigger decision.
-            heuristic_triggered = tokens > 150_000 and num_turns > 6
+            heuristic_triggered = (
+                isinstance(tokens, int) and isinstance(num_turns, int)
+                and tokens > 150_000 and num_turns > 6
+            )
 
             triggered = skill_tool_called
 
@@ -222,14 +297,23 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
                 "tokens": tokens,
                 "tool_calls_summary": [tc.get("name", "?") for tc in tool_calls],
                 "error": result.get("error"),
+                "valid": result["valid"],
+                "invalid_reason": result.get("invalid_reason"),
+                "tokens_unavailable_reason": result.get("tokens_unavailable_reason"),
+                "metadata": result["metadata"],
             })
 
-        trigger_rate = sum(1 for r in ev_results if r["triggered"]) / len(ev_results)
+        valid_runs = [r for r in ev_results if r["valid"]]
+        trigger_rate = (
+            sum(1 for r in valid_runs if r["triggered"]) / len(valid_runs)
+            if valid_runs else None
+        )
         expected = ev["should_trigger"]
-        correct = (trigger_rate >= 0.5) == expected
+        correct = (trigger_rate >= 0.5) == expected if trigger_rate is not None else None
 
-        status = "PASS" if correct else "FAIL"
-        print(f"  [{status}] {ev['id']}: trigger_rate={trigger_rate:.0%} (expected={'trigger' if expected else 'no trigger'})")
+        status = "PASS" if correct else "FAIL" if correct is False else "UNAVAILABLE"
+        rate_text = f"{trigger_rate:.0%}" if trigger_rate is not None else "unavailable"
+        print(f"  [{status}] {ev['id']}: trigger_rate={rate_text} (valid={len(valid_runs)}/{len(ev_results)}, expected={'trigger' if expected else 'no trigger'})")
 
         results.append({
             "id": ev["id"],
@@ -239,6 +323,7 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
             "trigger_rate": trigger_rate,
             "correct": correct,
             "runs": ev_results,
+            "coverage": {"total_runs": len(ev_results), "valid_runs": len(valid_runs), "invalid_runs": len(ev_results) - len(valid_runs)},
         })
 
     # Compute per-skill summary
@@ -246,28 +331,30 @@ def run_trigger_evals(evals: list[dict], runs: int, skill_filter: str | None, ve
     summary = {}
     for skill in skills:
         skill_evals = [r for r in results if r["target_skill"] == skill]
-        positives = [r for r in skill_evals if r["should_trigger"]]
-        negatives = [r for r in skill_evals if not r["should_trigger"]]
+        valid_evals = [r for r in skill_evals if r["trigger_rate"] is not None]
+        positives = [r for r in valid_evals if r["should_trigger"]]
+        negatives = [r for r in valid_evals if not r["should_trigger"]]
 
         tp = sum(1 for r in positives if r["trigger_rate"] >= 0.5)
         fn = sum(1 for r in positives if r["trigger_rate"] < 0.5)
         tn = sum(1 for r in negatives if r["trigger_rate"] < 0.5)
         fp = sum(1 for r in negatives if r["trigger_rate"] >= 0.5)
 
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
+        precision = tp / (tp + fp) if (tp + fp) > 0 else None
+        recall = tp / (tp + fn) if (tp + fn) > 0 else None
+        f1 = 2 * precision * recall / (precision + recall) if precision is not None and recall is not None and precision + recall > 0 else None
 
         summary[skill] = {
-            "precision": round(precision, 3),
-            "recall": round(recall, 3),
-            "f1": round(f1, 3),
+            "precision": round(precision, 3) if precision is not None else None,
+            "recall": round(recall, 3) if recall is not None else None,
+            "f1": round(f1, 3) if f1 is not None else None,
             "true_positives": tp,
             "false_positives": fp,
             "true_negatives": tn,
             "false_negatives": fn,
+            "coverage": {"total_evals": len(skill_evals), "valid_evals": len(valid_evals), "invalid_evals": len(skill_evals) - len(valid_evals)},
         }
-        print(f"\n  {skill}: P={precision:.2f} R={recall:.2f} F1={f1:.2f}")
+        print(f"\n  {skill}: P={_format_metric(precision)} R={_format_metric(recall)} F1={_format_metric(f1)} (valid={len(valid_evals)}/{len(skill_evals)})")
 
     return {"evals": results, "summary": summary}
 
@@ -318,8 +405,8 @@ def run_quality_evals(
 
                 result = run_claude(ev["prompt"], cwd, extra_args=extra_args, verbose=verbose)
 
-                # Evaluate assertions
-                grading = evaluate_all(ev.get("assertions", []), result["output"], result["tool_calls"])
+                # Invalid terminal runs are observations, not failed quality attempts.
+                grading = evaluate_all(ev.get("assertions", []), result["output"], result["tool_calls"]) if result["valid"] else None
 
                 config_runs.append({
                     "run": run_idx + 1,
@@ -329,22 +416,28 @@ def run_quality_evals(
                     "tokens": result["tokens"],
                     "grading": grading,
                     "error": result.get("error"),
+                    "valid": result["valid"],
+                    "invalid_reason": result.get("invalid_reason"),
+                    "tokens_unavailable_reason": result.get("tokens_unavailable_reason"),
+                    "metadata": result["metadata"],
                 })
 
             # Aggregate across runs
-            pass_rates = [r["grading"]["pass_rate"] for r in config_runs]
-            durations = [r["duration_ms"] for r in config_runs]
-            token_counts = [r["tokens"] for r in config_runs if r["tokens"] > 0]
+            valid_runs = [r for r in config_runs if r["valid"]]
+            pass_rates = [r["grading"]["pass_rate"] for r in valid_runs]
+            durations = [r["duration_ms"] for r in valid_runs]
+            token_counts = [r["tokens"] for r in valid_runs if r["tokens"] is not None]
 
             ev_result["configs"][config] = {
                 "runs": config_runs,
-                "mean_pass_rate": round(mean(pass_rates), 3) if pass_rates else 0,
-                "stddev_pass_rate": round(stdev(pass_rates), 3) if len(pass_rates) > 1 else 0,
-                "mean_duration_ms": round(mean(durations)) if durations else 0,
-                "mean_tokens": round(mean(token_counts)) if token_counts else 0,
+                "mean_pass_rate": round(mean(pass_rates), 3) if pass_rates else None,
+                "stddev_pass_rate": round(stdev(pass_rates), 3) if len(pass_rates) > 1 else None,
+                "mean_duration_ms": round(mean(durations)) if durations else None,
+                "mean_tokens": round(mean(token_counts)) if token_counts else None,
+                "coverage": {"total_runs": len(config_runs), "valid_runs": len(valid_runs), "invalid_runs": len(config_runs) - len(valid_runs)},
             }
 
-            status_str = f"pass_rate={mean(pass_rates):.0%}" if pass_rates else "no assertions"
+            status_str = f"pass_rate={mean(pass_rates):.0%}" if pass_rates else "unavailable (no valid runs)"
             print(f"  [{config}] {ev['id']}: {status_str}")
 
         results.append(ev_result)
@@ -355,15 +448,24 @@ def run_quality_evals(
         all_pass_rates = []
         for ev_r in results:
             if config in ev_r["configs"]:
-                all_pass_rates.append(ev_r["configs"][config]["mean_pass_rate"])
+                rate = ev_r["configs"][config]["mean_pass_rate"]
+                if rate is not None:
+                    all_pass_rates.append(rate)
         summary[config] = {
-            "overall_pass_rate": round(mean(all_pass_rates), 3) if all_pass_rates else 0,
+            "overall_pass_rate": round(mean(all_pass_rates), 3) if all_pass_rates else None,
+            "coverage": {
+                "total_evals": len(results),
+                "valid_evals": len(all_pass_rates),
+                "invalid_evals": len(results) - len(all_pass_rates),
+            },
         }
 
     if with_baseline and "with_plugin" in summary and "without_plugin" in summary:
-        delta = summary["with_plugin"]["overall_pass_rate"] - summary["without_plugin"]["overall_pass_rate"]
-        summary["delta"] = round(delta, 3)
-        print(f"\n  Delta (plugin - baseline): {delta:+.1%}")
+        with_rate = summary["with_plugin"]["overall_pass_rate"]
+        without_rate = summary["without_plugin"]["overall_pass_rate"]
+        delta = with_rate - without_rate if with_rate is not None and without_rate is not None else None
+        summary["delta"] = round(delta, 3) if delta is not None else None
+        print(f"\n  Delta (plugin - baseline): {delta:+.1%}" if delta is not None else "\n  Delta (plugin - baseline): unavailable")
 
     return {"evals": results, "summary": summary}
 
@@ -399,16 +501,18 @@ def generate_report(full_results: dict) -> str:
             ])
             for skill, stats in trigger_results["summary"].items():
                 lines.append(
-                    f"| {skill} | {stats['precision']:.2f} | {stats['recall']:.2f} | "
-                    f"{stats['f1']:.2f} | {stats['true_positives']} | {stats['false_positives']} | "
+                    f"| {skill} | {_format_metric(stats['precision'])} | {_format_metric(stats['recall'])} | "
+                    f"{_format_metric(stats['f1'])} | {stats['true_positives']} | {stats['false_positives']} | "
                     f"{stats['true_negatives']} | {stats['false_negatives']} |"
                 )
 
             lines.extend(["", "#### Detailed Results", ""])
             for ev in trigger_results.get("evals", []):
-                status = "PASS" if ev["correct"] else "FAIL"
-                lines.append(f"- **[{status}]** `{ev['id']}`: trigger_rate={ev['trigger_rate']:.0%} "
-                            f"(expected={'trigger' if ev['should_trigger'] else 'no trigger'})")
+                status = "PASS" if ev["correct"] else "FAIL" if ev["correct"] is False else "UNAVAILABLE"
+                rate = f"{ev['trigger_rate']:.0%}" if ev["trigger_rate"] is not None else "unavailable"
+                coverage = ev.get("coverage", {})
+                lines.append(f"- **[{status}]** `{ev['id']}`: trigger_rate={rate} "
+                            f"(valid={coverage.get('valid_runs', 'legacy')}/{coverage.get('total_runs', 'legacy')}, expected={'trigger' if ev['should_trigger'] else 'no trigger'})")
             lines.append("")
 
         if quality_results and quality_results.get("evals"):
@@ -423,8 +527,9 @@ def generate_report(full_results: dict) -> str:
                 for config, stats in summary.items():
                     if config == "delta":
                         continue
-                    lines.append(f"| {config} | {stats['overall_pass_rate']:.0%} |")
-                if "delta" in summary:
+                    rate = stats.get("overall_pass_rate")
+                    lines.append(f"| {config} | {rate:.0%} |" if rate is not None else f"| {config} | unavailable |")
+                if summary.get("delta") is not None:
                     lines.append(f"")
                     lines.append(f"**Delta (plugin - baseline)**: {summary['delta']:+.1%}")
 
@@ -434,11 +539,12 @@ def generate_report(full_results: dict) -> str:
                 lines.append(f"**Prompt**: {ev['prompt'][:120]}...")
                 lines.append("")
                 for config, data in ev["configs"].items():
-                    lines.append(f"**{config}**: pass_rate={data['mean_pass_rate']:.0%}, "
-                               f"duration={data['mean_duration_ms']}ms, tokens={data['mean_tokens']}")
+                    rate = data.get("mean_pass_rate")
+                    lines.append(f"**{config}**: pass_rate={rate:.0%}" if rate is not None else f"**{config}**: pass_rate=unavailable")
+                    lines[-1] += f", duration={data.get('mean_duration_ms')}ms, tokens={data.get('mean_tokens')}"
 
                     # Show assertion details from first run
-                    if data["runs"]:
+                    if data["runs"] and data["runs"][0].get("grading"):
                         first_run = data["runs"][0]
                         for r in first_run["grading"].get("results", []):
                             icon = "pass" if r["passed"] else "FAIL"

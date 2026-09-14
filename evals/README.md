@@ -102,15 +102,26 @@ The harness uses **deterministic detection** via `--output-format stream-json --
 the actual `tool_use` blocks from Claude's response stream and treats a matching `Skill` tool call
 as the trigger signal. Token/turn heuristics are diagnostic only and do not decide pass/fail.
 
+A live observation is valid only when `claude -p` exits successfully and provides a terminal
+`result` event. Nonzero exits, timeouts, and truncated or malformed streams without that terminal
+event are recorded as invalid observations and excluded from trigger and quality denominators.
+They never become negative trigger cases or zero-token runs. Usage is `null` when the terminal
+event does not expose complete usage, with a `tokens_unavailable_reason`; a reported `0` remains a
+measured zero. Each live run records the Claude host, model/reasoning evidence exposed by the
+terminal event or supplied flags, prompt digest, optional variant flag, validity, and coverage.
+The `Skill` event adapter is Claude-specific: it is not evidence of a Codex skill invocation.
+
 All evals run from `REPO_ROOT` (the plugin directory) so skills are available. Tests measure selectivity — does the right skill fire, and do wrong skills stay quiet?
 
 ### Trigger Tests (`trigger_evals.json`)
 
 Each case has a prompt, a target skill, and whether it should trigger. Computes precision/recall/F1 per skill.
+Metrics without a valid denominator are reported as `unavailable`, rather than `0`.
 
 ### Quality Tests (`quality_evals.json`)
 
 Each case has a prompt and a list of assertions (contains, regex, min_length, calls_tool, etc.). The harness runs the prompt, evaluates assertions against the output, and reports pass rates.
+Invalid terminal observations are retained in per-run diagnostics but excluded from pass rates.
 
 ### Baseline Comparison (`--with-baseline`)
 

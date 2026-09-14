@@ -17,9 +17,24 @@ from pathlib import Path
 from statistics import mean
 
 
+def metric_text(value: float | int | None, percent: bool = False) -> str:
+    if value is None:
+        return "unavailable"
+    return f"{value:.0%}" if percent else f"{value:.2f}"
+
+
 def load_result(path: Path) -> dict:
     with open(path) as f:
         return json.load(f)
+
+
+def result_sections(result: dict):
+    """Yield legacy top-level sections and current harness plugin sections."""
+    if "trigger" in result or "quality" in result:
+        yield result
+    plugins = result.get("plugins")
+    if isinstance(plugins, dict):
+        yield from (section for section in plugins.values() if isinstance(section, dict))
 
 
 def merge_trigger_results(all_results: list[dict]) -> dict:
@@ -27,13 +42,14 @@ def merge_trigger_results(all_results: list[dict]) -> dict:
     merged_evals = []
     merged_summary = {}
 
-    for result in all_results:
-        trigger = result.get("trigger")
-        if not trigger:
-            continue
-        merged_evals.extend(trigger.get("evals", []))
-        for skill, stats in trigger.get("summary", {}).items():
-            merged_summary[skill] = stats
+    for source in all_results:
+        for result in result_sections(source):
+            trigger = result.get("trigger")
+            if not trigger:
+                continue
+            merged_evals.extend(trigger.get("evals", []))
+            for skill, stats in trigger.get("summary", {}).items():
+                merged_summary[skill] = stats
 
     return {"evals": merged_evals, "summary": merged_summary}
 
@@ -43,14 +59,17 @@ def merge_quality_results(all_results: list[dict]) -> dict:
     merged_evals = []
     all_pass_rates = []
 
-    for result in all_results:
-        quality = result.get("quality")
-        if not quality:
-            continue
-        merged_evals.extend(quality.get("evals", []))
-        summary = quality.get("summary", {})
-        if "with_plugin" in summary:
-            all_pass_rates.append(summary["with_plugin"].get("overall_pass_rate", 0))
+    for source in all_results:
+        for result in result_sections(source):
+            quality = result.get("quality")
+            if not quality:
+                continue
+            merged_evals.extend(quality.get("evals", []))
+            summary = quality.get("summary", {})
+            if "with_plugin" in summary:
+                rate = summary["with_plugin"].get("overall_pass_rate")
+                if rate is not None:
+                    all_pass_rates.append(rate)
 
     merged_summary = {}
     if all_pass_rates:
@@ -83,8 +102,8 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
         for skill in sorted(trigger["summary"].keys()):
             stats = trigger["summary"][skill]
             lines.append(
-                f"| {skill} | {stats['precision']:.2f} | {stats['recall']:.2f} | "
-                f"{stats['f1']:.2f} | {stats['true_positives']} | {stats['false_positives']} | "
+                f"| {skill} | {metric_text(stats.get('precision'))} | {metric_text(stats.get('recall'))} | "
+                f"{metric_text(stats.get('f1'))} | {stats['true_positives']} | {stats['false_positives']} | "
                 f"{stats['true_negatives']} | {stats['false_negatives']} |"
             )
             total_tp += stats["true_positives"]
@@ -93,21 +112,23 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
             total_fn += stats["false_negatives"]
 
         # Aggregate row
-        agg_p = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0
-        agg_r = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0
-        agg_f1 = 2 * agg_p * agg_r / (agg_p + agg_r) if (agg_p + agg_r) > 0 else 0
+        agg_p = total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else None
+        agg_r = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else None
+        agg_f1 = 2 * agg_p * agg_r / (agg_p + agg_r) if agg_p is not None and agg_r is not None and agg_p + agg_r > 0 else None
         lines.append(
-            f"| **TOTAL** | **{agg_p:.2f}** | **{agg_r:.2f}** | "
-            f"**{agg_f1:.2f}** | {total_tp} | {total_fp} | {total_tn} | {total_fn} |"
+            f"| **TOTAL** | **{metric_text(agg_p)}** | **{metric_text(agg_r)}** | "
+            f"**{metric_text(agg_f1)}** | {total_tp} | {total_fp} | {total_tn} | {total_fn} |"
         )
 
         # Per-eval details
         lines.extend(["", "### Detailed Results", ""])
         for ev in trigger.get("evals", []):
-            status = "PASS" if ev["correct"] else "FAIL"
+            status = "PASS" if ev["correct"] else "FAIL" if ev["correct"] is False else "UNAVAILABLE"
+            rate = metric_text(ev.get("trigger_rate"), percent=True)
+            coverage = ev.get("coverage", {})
             lines.append(
-                f"- **[{status}]** `{ev['id']}`: trigger_rate={ev['trigger_rate']:.0%} "
-                f"(expected={'trigger' if ev['should_trigger'] else 'no trigger'})"
+                f"- **[{status}]** `{ev['id']}`: trigger_rate={rate} "
+                f"(valid={coverage.get('valid_runs', 'legacy')}/{coverage.get('total_runs', 'legacy')}, expected={'trigger' if ev['should_trigger'] else 'no trigger'})"
             )
         lines.append("")
 
@@ -116,7 +137,7 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
 
         summary = quality.get("summary", {})
         if "with_plugin" in summary:
-            lines.append(f"**Overall Pass Rate**: {summary['with_plugin']['overall_pass_rate']:.0%}")
+            lines.append(f"**Overall Pass Rate**: {metric_text(summary['with_plugin'].get('overall_pass_rate'), percent=True)}")
             lines.append("")
 
         lines.extend(["### Per-Eval Results", ""])
@@ -125,13 +146,10 @@ def generate_aggregate_report(trigger: dict, quality: dict, source_files: list[s
             lines.append(f"**Prompt**: {ev['prompt'][:120]}...")
             lines.append("")
             for config, data in ev.get("configs", {}).items():
-                lines.append(
-                    f"**{config}**: pass_rate={data['mean_pass_rate']:.0%}, "
-                    f"duration={data['mean_duration_ms']}ms, tokens={data['mean_tokens']}"
-                )
+                lines.append(f"**{config}**: pass_rate={metric_text(data.get('mean_pass_rate'), percent=True)}, duration={data.get('mean_duration_ms')}ms, tokens={data.get('mean_tokens')}")
                 if data.get("runs"):
                     first_run = data["runs"][0]
-                    for r in first_run.get("grading", {}).get("results", []):
+                    for r in (first_run.get("grading") or {}).get("results", []):
                         icon = "pass" if r["passed"] else "FAIL"
                         lines.append(f"  - [{icon}] {r['name']}: {r['evidence']}")
             lines.append("")
@@ -213,10 +231,12 @@ def main():
     # Print quick summary
     if trigger.get("summary"):
         skills = trigger["summary"]
-        f1_scores = [s["f1"] for s in skills.values()]
-        print(f"\nTrigger: {len(skills)} skills, avg F1={mean(f1_scores):.2f}")
+        f1_scores = [s.get("f1") for s in skills.values() if s.get("f1") is not None]
+        average_f1 = mean(f1_scores) if f1_scores else None
+        print(f"\nTrigger: {len(skills)} skills, avg F1={metric_text(average_f1)}")
     if quality.get("summary", {}).get("with_plugin"):
-        print(f"Quality: overall pass_rate={quality['summary']['with_plugin']['overall_pass_rate']:.0%}")
+        rate = quality["summary"]["with_plugin"].get("overall_pass_rate")
+        print(f"Quality: overall pass_rate={rate:.0%}" if rate is not None else "Quality: overall pass_rate=unavailable")
 
 
 if __name__ == "__main__":
