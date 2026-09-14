@@ -4,10 +4,10 @@ tier: custom
 domain: dev-flow
 maturity: beta
 description: >
-  Use on request to make a plan reviewable as plan.mdx, or for risky/ambiguous/data-heavy/UI-heavy
-  multi-file work needing sign-off. Supports local rhize-plan preview/HTML export and Obsidian
-  Markdown/Mermaid/Canvas; saves in the vault as second-brain source of truth. Used in
-  project-launcher Phase 3.
+  Use on request to make a plan reviewable as plan.mdx, or when an ambiguous, risky,
+  data-heavy or UI-heavy change needs sign-off. Supports local rhize-plan preview/HTML
+  export and Obsidian Markdown/Mermaid/Canvas; saves in the vault as second-brain source
+  of truth. Used in project-launcher Phase 3.
 metadata:
   rhize:
     summary: "Turns an implementation plan into a reviewable visual document with diagrams and file maps."

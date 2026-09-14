@@ -63,7 +63,7 @@ _No skills._
 | --- | --- | --- |
 | `context-compression` | This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task o… | context-compression, context-engineering |
 | `context-degradation` | This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, con… | context-degradation, context-engineering |
-| `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
+| `context-engineering` | Use for development-session context work: start, resume or close a session, restore or save context, create a handoff, capture durable lear… | context-engineering, project-planning, workflow-patterns |
 | `context-fundamentals` | This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a co… | context-engineering, context-optimization |
 | `context-optimization` | This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioni… | context-engineering, context-optimization |
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |

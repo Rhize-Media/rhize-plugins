@@ -41,3 +41,16 @@ Record source descriptions and baseline hashes, define routing cases, change onl
 description fields, update the four plugin README/GUIDE notes, run focused checks, inspect the
 diff, and reconcile the exact file list. The coordinator owns generated documents, changelogs,
 versions, host runs, integration, and release checks.
+
+## Coordinator integration and adoption boundary
+
+The candidate retains implicit session closure, existing-PRD gap review, and risky single-file
+sign-off. Its fixture now includes these as positive first-selection cases. Skill bodies and
+other skill metadata remain byte-identical to the pinned baseline.
+
+Prepare package metadata with `scripts/bump_version.py` for `rhize-context-manager` and
+`project-launcher`, then regenerate `generated/skill-map.static.json`,
+`generated/skill-map.indexes.json`, `generated/SKILL-CATALOG.md`, managed README tables and
+`docs/README.md`. The helper owns `.claude-plugin/marketplace.json`, both plugins' Claude and
+Codex plugin manifests, and root/plugin `CHANGELOG.md` entries. These are source preparation;
+no install, push, merge or adoption is implied. Adoption requires matched host evidence.

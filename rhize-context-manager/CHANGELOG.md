@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-14_ version bump — 0.31.0 → 0.31.1 (patch); marketplace 2.71.0 → 2.71.1.
 - Deterministic context doctor with bounded read-only probes, OK/PROBLEM/NOT_RUN outcomes,
   current-run provenance, calculated coverage/deltas, immutable private evidence and rendering.
 - Optional Sentry check-in transport for independent missed-run monitoring, plus deliberate

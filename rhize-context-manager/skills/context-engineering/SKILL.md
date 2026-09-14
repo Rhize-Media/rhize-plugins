@@ -5,9 +5,10 @@ domain: dev-flow
 maturity: stable
 version: 2.0.0
 description: >-
-  Use for development-session context work: start or resume a session, restore or save context,
-  create a handoff, capture durable learnings, or manage context overload. Trigger on session
-  recovery or memory/context hygiene, not generic start, done, or commit requests.
+  Use for development-session context work: start, resume or close a session, restore or
+  save context, create a handoff, capture durable learnings, or manage context overload.
+  Trigger on session recovery or memory/context hygiene, not generic start, done, or
+  commit requests.
 metadata:
   rhize:
     topics: [context-engineering, workflow-patterns, project-planning]

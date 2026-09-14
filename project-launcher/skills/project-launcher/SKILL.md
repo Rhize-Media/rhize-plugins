@@ -4,9 +4,9 @@ tier: custom
 domain: dev-flow
 maturity: stable
 description: >
-  Invoke for a new software or automation project kickoff: research, requirements, PRD, gap
-  analysis, scaffolding, and GSD v2 handoff. Also use for a requested PRD or to scaffold an
-  approved PRD for GSD.
+  Research, write or review a PRD, and scaffold new software or automation projects for
+  GSD v2 handoff. Use for project kickoff, resuming its launch workflow, requirements
+  gathering, PRD gap analysis, or scaffolding an approved PRD.
 metadata:
   rhize:
     summary: "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."

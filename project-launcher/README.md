@@ -24,8 +24,8 @@ or `/write-prd` with whatever subset you have.
 | `/grill-prd` | Phase 4 standalone: critical gap analysis of an existing PRD |
 | `/visual-plan` | Turn a plan or PRD into a reviewable `.mdx` visual plan (diagrams, wireframes, file maps, data/API contracts) via the `rhize-visual-plan` skill |
 
-Use `project-launcher` for a new project kickoff, a requested PRD, or GSD scaffolding from an
-approved PRD. Use `rhize-visual-plan` for a standalone reviewable `plan.mdx`; project-launcher
+Use `project-launcher` for a new project kickoff, creating or reviewing a PRD, resuming the
+launch workflow, or GSD scaffolding from an approved PRD. Use `rhize-visual-plan` for a standalone reviewable `plan.mdx`; project-launcher
 still uses it during Phase 3 of its PRD workflow.
 
 ## Skills
