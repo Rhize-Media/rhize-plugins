@@ -24,15 +24,22 @@ def terminal(*, result="done", usage=None, model="claude-test"):
 def test_run_claude_preserves_reported_zero_usage():
     usage = {"input_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 0}
     completed = subprocess.CompletedProcess(["claude"], 0, terminal(usage=usage), "")
-    with patch.object(run_evals.subprocess, "run", return_value=completed):
-        result = run_evals.run_claude("hello", "/tmp", extra_args=["--model", "test-model", "--variant", "candidate"])
+    with patch.object(run_evals.subprocess, "run", return_value=completed) as mocked_run:
+        result = run_evals.run_claude(
+            "hello",
+            "/tmp",
+            extra_args=["--model", "test-model", "--effort", "high"],
+            eval_metadata={"variant": "candidate"},
+        )
     assert result["valid"] is True
     assert result["tokens"] == 0
     assert result["tokens_unavailable_reason"] is None
     assert result["metadata"]["model"] == "claude-test"
     assert result["metadata"]["requested_model"] == "test-model"
+    assert result["metadata"]["requested_reasoning"] == "high"
     assert result["metadata"]["variant"] == "candidate"
     assert len(result["metadata"]["prompt_sha256"]) == 64
+    assert "--variant" not in mocked_run.call_args.args[0]
 
 
 def test_run_claude_marks_nonzero_exit_without_terminal_invalid():
@@ -72,6 +79,26 @@ def test_run_claude_keeps_valid_run_when_usage_is_not_exposed():
     assert result["valid"] is True
     assert result["tokens"] is None
     assert result["tokens_unavailable_reason"] == "missing_usage"
+
+
+@pytest.mark.parametrize("stream", ["null\n", "[]\n", json.dumps({"type": "assistant", "message": []}) + "\n"])
+def test_run_claude_marks_non_object_stream_events_invalid_without_crashing(stream):
+    usage = {"input_tokens": 1, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0, "output_tokens": 1}
+    completed = subprocess.CompletedProcess(["claude"], 0, stream + terminal(usage=usage), "")
+    with patch.object(run_evals.subprocess, "run", return_value=completed):
+        result = run_evals.run_claude("hello", "/tmp")
+    assert result["valid"] is False
+    assert result["invalid_reason"] == "malformed_stream_event"
+
+
+def test_run_claude_marks_process_launch_error_invalid_with_numeric_duration():
+    with patch.object(run_evals.subprocess, "run", side_effect=FileNotFoundError("claude missing")):
+        result = run_evals.run_claude("hello", "/tmp")
+    assert result["valid"] is False
+    assert result["invalid_reason"] == "launch_error"
+    assert result["tokens"] is None
+    assert isinstance(result["duration_ms"], int)
+    assert result["duration_ms"] >= 0
 
 
 def test_trigger_metrics_exclude_invalid_negative_runs(monkeypatch):

@@ -108,7 +108,8 @@ event are recorded as invalid observations and excluded from trigger and quality
 They never become negative trigger cases or zero-token runs. Usage is `null` when the terminal
 event does not expose complete usage, with a `tokens_unavailable_reason`; a reported `0` remains a
 measured zero. Each live run records the Claude host, model/reasoning evidence exposed by the
-terminal event or supplied flags, prompt digest, optional variant flag, validity, and coverage.
+terminal event or supplied host flags, prompt digest, separately supplied evaluation variant,
+validity, and coverage.
 The `Skill` event adapter is Claude-specific: it is not evidence of a Codex skill invocation.
 
 All evals run from `REPO_ROOT` (the plugin directory) so skills are available. Tests measure selectivity — does the right skill fire, and do wrong skills stay quiet?

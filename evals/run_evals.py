@@ -49,20 +49,18 @@ def _format_metric(value: float | int | None) -> str:
     return "unavailable" if value is None else f"{value:.2f}"
 
 
-def _run_metadata(prompt: str, extra_args: list[str] | None, terminal_event: dict | None) -> dict:
-    """Record only identity evidence exposed by the prompt, flags, or terminal event."""
+def _run_metadata(prompt: str, extra_args: list[str] | None, terminal_event: dict | None, eval_metadata: dict | None) -> dict:
+    """Record host identity from host flags/events and eval identity from eval metadata."""
     extra_args = extra_args or []
     requested_model = None
     requested_reasoning = None
     for index, arg in enumerate(extra_args[:-1]):
         if arg in {"--model", "--model-name"}:
             requested_model = extra_args[index + 1]
-        if arg in {"--reasoning-effort", "--thinking"}:
+        if arg in {"--effort", "--reasoning-effort", "--thinking"}:
             requested_reasoning = extra_args[index + 1]
-    variant = None
-    for index, arg in enumerate(extra_args[:-1]):
-        if arg == "--variant":
-            variant = extra_args[index + 1]
+    eval_metadata = eval_metadata if isinstance(eval_metadata, dict) else {}
+    variant = eval_metadata.get("variant") if isinstance(eval_metadata.get("variant"), str) else None
     def event_string(key: str) -> str | None:
         value = terminal_event.get(key) if isinstance(terminal_event, dict) else None
         return value if isinstance(value, str) else None
@@ -78,7 +76,13 @@ def _run_metadata(prompt: str, extra_args: list[str] | None, terminal_event: dic
     }
 
 
-def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbose: bool = False) -> dict:
+def run_claude(
+    prompt: str,
+    cwd: str,
+    extra_args: list[str] | None = None,
+    verbose: bool = False,
+    eval_metadata: dict | None = None,
+) -> dict:
     """Run a prompt through claude -p and return structured results.
 
     Uses --output-format stream-json --verbose to capture tool calls
@@ -116,7 +120,22 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
             "valid": False,
             "invalid_reason": "timeout",
             "terminal_status": "timeout",
-            "metadata": _run_metadata(prompt, extra_args, None),
+            "metadata": _run_metadata(prompt, extra_args, None, eval_metadata),
+        }
+    except OSError as exc:
+        return {
+            "output": "",
+            "tool_calls": [],
+            "duration_ms": int((time.time() - start) * 1000),
+            "tokens": None,
+            "tokens_unavailable_reason": "launch_error",
+            "num_turns": None,
+            "raw_json": None,
+            "error": str(exc) or type(exc).__name__,
+            "valid": False,
+            "invalid_reason": "launch_error",
+            "terminal_status": "launch_error",
+            "metadata": _run_metadata(prompt, extra_args, None, eval_metadata),
         }
 
     duration_ms = int((time.time() - start) * 1000)
@@ -128,9 +147,10 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
     num_turns = None
     text_parts = []
     terminal_event = None
+    malformed_stream_event = False
 
     # Parse stream-json output: one JSON object per line
-    for line in result.stdout.splitlines():
+    for line in (result.stdout or "").splitlines():
         line = line.strip()
         if not line:
             continue
@@ -138,13 +158,23 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
+        if not isinstance(event, dict):
+            malformed_stream_event = True
+            continue
 
         event_type = event.get("type", "")
 
         # Extract tool calls from assistant messages
         if event_type == "assistant":
             message = event.get("message", {})
-            for block in message.get("content", []):
+            if not isinstance(message, dict):
+                malformed_stream_event = True
+                continue
+            content = message.get("content", [])
+            if not isinstance(content, list):
+                malformed_stream_event = True
+                continue
+            for block in content:
                 if not isinstance(block, dict):
                     continue
                 if block.get("type") == "tool_use":
@@ -154,7 +184,11 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
                         "input": block.get("input", {}),
                     })
                 elif block.get("type") == "text":
-                    text_parts.append(block.get("text", ""))
+                    text = block.get("text", "")
+                    if isinstance(text, str):
+                        text_parts.append(text)
+                    else:
+                        malformed_stream_event = True
 
         # Extract final result and metadata
         elif event_type == "result":
@@ -177,9 +211,11 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
         and not isinstance(terminal_event.get("num_turns", 1), bool)
         and terminal_event.get("num_turns", 1) >= 0
     )
-    valid = result.returncode == 0 and terminal_is_well_formed and terminal_event.get("is_error") is not True
+    valid = result.returncode == 0 and not malformed_stream_event and terminal_is_well_formed and terminal_event.get("is_error") is not True
     if result.returncode != 0:
         invalid_reason = f"nonzero_exit:{result.returncode}"
+    elif malformed_stream_event:
+        invalid_reason = "malformed_stream_event"
     elif terminal_event is None:
         invalid_reason = "missing_terminal_result"
     elif not terminal_is_well_formed:
@@ -204,7 +240,7 @@ def run_claude(prompt: str, cwd: str, extra_args: list[str] | None = None, verbo
         "invalid_reason": invalid_reason,
         "terminal_status": "success" if valid else invalid_reason,
         "tokens_unavailable_reason": tokens_unavailable_reason,
-        "metadata": _run_metadata(prompt, extra_args, terminal_event),
+        "metadata": _run_metadata(prompt, extra_args, terminal_event, eval_metadata),
     }
 
 
