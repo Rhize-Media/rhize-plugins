@@ -218,6 +218,9 @@ your-plugin-name/
 
 ## Contributing
 
+For shared skill changes, follow [Writing skills for Claude Code and Codex](docs/shared-skill-authoring.md):
+precise descriptions, selective reference loading, preserved host behavior and measured adoption.
+
 To add a new plugin:
 
 1. Create a subdirectory with the standard plugin structure above.

@@ -70,6 +70,11 @@ Version 0.5.6. Lets Claude find and reuse previously verified scripts and automa
 
 ## Cross-plugin references
 
+- [`release/astra-instruction-optimization.md`](release/astra-instruction-optimization.md) — implemented diagnostics, evaluation fixes and the staged shared-description pilot.
+
+- [`shared-skill-authoring.md`](shared-skill-authoring.md) — description and resource design,
+  host compatibility, and evidence requirements for changing shared skills.
+
 - [`skill-map.md`](./skill-map.md) — how the generated skill-map graph works: schema, edge
   types, the query layer, generated docs, and the Obsidian vault publish. Deep-reference subdocs
   live under [`skill-map/`](./skill-map/): [`edge-semantics.md`](./skill-map/edge-semantics.md),
