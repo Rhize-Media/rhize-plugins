@@ -197,7 +197,7 @@ prose guidance and eval prompts that reach the launcher from Bash did. With the 
 `"$PROCEDURAL_MEMORY_PLUGIN_ROOT/scripts/rhize-skill-launcher.sh" recall "<task>"`. The name is
 plugin-specific on purpose (several plugins load at once), the root falls back to the script's own
 parent directory if the runner ever withholds the variable, and the hook exits 0 in every case
-with no subprocess heavier than `pwd`. Tested under `/bin/sh` and dash
+and forks only one `sed` (plus `dirname` on the fallback path). Tested under `/bin/sh` and dash
 (`tests/procedural-memory/test_session_start_env_hook.py`).
 
 **`post-bash-candidate-queue.sh`** (PostToolUse, matcher `Bash`) fires on *every* Bash call in

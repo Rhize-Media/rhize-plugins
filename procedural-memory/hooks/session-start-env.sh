@@ -18,7 +18,8 @@
 #   "$PROCEDURAL_MEMORY_PLUGIN_ROOT/scripts/rhize-skill-launcher.sh" recall "<task>"
 #
 # CONTRACT. Advisory-only: exits 0 in every case, writes nothing but the one export line,
-# never touches the registry or the CLI, no subprocess heavier than `pwd`. When
+# never touches the registry or the CLI; its only forks are one `sed` (plus `dirname`
+# on the fallback path). When
 # CLAUDE_ENV_FILE is absent (any other hook event, or a host without the mechanism) it does
 # nothing. POSIX sh — no bashisms; tests run it under /bin/sh and dash.
 
