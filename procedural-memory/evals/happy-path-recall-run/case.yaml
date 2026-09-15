@@ -10,8 +10,8 @@ execution:
     Is there already a proven artifact in the procedural-memory registry for "a fixture task used
     by this plugin's own eval suite"? If you find one, tell me whether it's safe to run and why
     (including its trust tier, health, and success rate — not just its name), then try running it.
-  max_turns: 8
-  timeout_seconds: 120
+  max_turns: 14
+  timeout_seconds: 180
   allowed_tools: [Bash, Skill]
   env:
     EVAL_FIXTURE_MODE: "true"

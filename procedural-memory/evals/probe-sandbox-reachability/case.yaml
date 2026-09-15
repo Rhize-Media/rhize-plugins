@@ -1,0 +1,28 @@
+schema_version: "1.1"
+name: probe-sandbox-reachability
+tags: [probe, infra]
+plugins: ["../.."]
+runs: 1
+context:
+  scaffold_script: scripts/resolve-plugin-root.sh
+execution:
+  prompt: |
+    Run this exact command with the Bash tool and report the FULL raw output verbatim, including
+    every error message and every exit code — do not summarize, interpret, or fix anything:
+
+        echo "--- exec outside HOME ---"; /usr/bin/true; echo "exec exit: $?"
+        echo "--- absolute path outside HOME, not on PATH by default ---"; /usr/bin/env RHIZE_PROBE=1 /usr/bin/id -u; echo "id exit: $?"
+        echo "--- localhost:5432 (Postgres) TCP reachability via nc ---"; /usr/bin/nc -z -w 3 127.0.0.1 5432; echo "nc exit: $?"
+        echo "--- plugin root recorded by the scaffold ---"; cat "$HOME/.probe-plugin-root"; echo "cat exit: $?"
+        echo "--- launcher doctor ---"; "$(cat "$HOME/.probe-plugin-root")/scripts/rhize-skill-launcher.sh" doctor 2>&1; echo "launcher exit: $?"
+
+    Then, in a second Bash call, run exactly:
+
+        echo "--- shell ---"; echo "$0"; echo "--- CLAUDE_PLUGIN_ROOT ---"; echo "${CLAUDE_PLUGIN_ROOT:-unset}"
+
+    Report every line of output and every exit code exactly as printed. If a line looks
+    misleading (for example an exit code that belongs to an `echo`), say so after the raw
+    block, but never alter the block itself.
+  max_turns: 6
+  timeout_seconds: 90
+  allowed_tools: [Bash]

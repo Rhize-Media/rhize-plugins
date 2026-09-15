@@ -294,34 +294,22 @@ record: `docs/integrations/ai-stack-drift.patch.md` in `Rhize-Media/procedural-m
 
 ## Eval coverage
 
-Authored (`evals/`: a sandbox-reachability probe, a fixture-mode happy path, one trigger case,
-two negative/routing cases), but `claude plugin eval` itself is **organization-gated
-early-access** on this install — confirmed blocked on both `claude plugin eval init` and the
-actual run path (`claude plugin eval . --case ...`), not just one.
+`claude plugin eval` is **enabled for this organization** (measured 2026-09-14, Claude Code
+2.1.270) and the suite under `evals/` has run for real: 8 cases, 46 agent sessions, both
+positive-trigger cases fired in every with-plugin run and all four negative/routing cases
+stayed silent in every run (2026-09-15, first run; detail and the per-case table in
+`evals/README.md`). The earlier "organization-gated" text in this section is history now.
 
-**Corrected 2026-08-25.** This section previously said enablement was "per-org via an
-onboarding-provided env var." That conflated two different mechanisms. Enablement is
-**server-side, per organization**, and an enabled first-party client picks it up automatically
-after `claude update` and a fresh session — no local setting at all. The env var exists only for
-clients that can *never* receive server-side flags (Bedrock/Vertex/Foundry, an LLM gateway or
-custom `ANTHROPIC_BASE_URL`, or `DISABLE_TELEMETRY` / `DO_NOT_TRACK` /
-`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` / `DISABLE_GROWTHBOOK` set). Measured on this machine:
-none of those apply, the GrowthBook flag cache refreshed the same day and holds 544 flags, and
-**none of them is eval-related** — so the flag fetch is healthy and the entitlement is simply
-absent. The only unblock is an Anthropic-side grant for the org. See `evals/README.md`.
+Two machine-level prerequisites for the Bash-granting cases, both documented in
+`evals/README.md`: the sandbox refuses a Bash grant while `~/.docker` holds a symlink outside
+the directories it skips (on this machine, Docker Model Runner's dylib links in
+`~/.docker/bin/lib`, replaced with hard links), and the two fixture-driven cases need
+`--scaffold`.
 
-**Pre-gate check that does work now:** `python3 evals/validate-suite.py` statically validates
-every case and grader against the real schema (exit 1 on any error). It caught three defects
-that would have made the first real run worthless — a `tool_used` grader with `max: 0` and no
-`min: 0` (can never pass, `min` defaults to 1), execution fields at the top level of a
-`case.yaml` where unknown keys are silently ignored, and free-text strings in `focus:` where
-only an enum is valid. It proves schema conformance only: it runs no agent, so trigger accuracy
-stays unmeasured until the gate opens.
+**Pre-run check:** `python3 evals/validate-suite.py` statically validates every case and grader
+(exit 1 on any error); it stays the free gate before spending on a run. It proves schema
+conformance only.
 
-What's real instead: `tests/procedural-memory/test-launcher.sh` runs the launcher's resolution-order and
-version-gate logic directly (no Claude session needed) and includes a proven
-deliberately-broken-case-that-goes-red. Separately, every trigger/negative/happy-path case was
-manually run once through a real Claude Code session (`claude --plugin-dir <this-plugin>`) —
-including a genuine end-to-end hit against this developer's live registry (recall found a real
-degraded/unreviewed artifact; run correctly refused it; `--approve-unreviewed` was never added).
-Full detail, including exactly what fixture-mode does and doesn't cover: `evals/README.md`.
+Also real, and free: `tests/procedural-memory/test-launcher.sh` runs the launcher's
+resolution-order and version-gate logic directly (no Claude session) and includes a proven
+deliberately-broken-case-that-goes-red.

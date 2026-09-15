@@ -1,73 +1,66 @@
 # procedural-memory eval suite
 
-## Status: authored, harness org-gated in this environment (as of 2026-08-25)
+## Status: harness enabled, suite runs for real (since 2026-09-14)
 
-`claude plugin eval` is **early access, enabled per-organization, server-side**. There is no
-local setting for it. Confirmed blocked on both surfaces here, 2026-08-24:
+`claude plugin eval` is **enabled for this organization**: measured 2026-09-14 on Claude Code
+2.1.270 (`claude plugin eval` in an empty directory returns the trust-directory error, not
+"currently in early access"; `--help` renders the full option set). The org-gated status this
+file carried from 2026-08-25 is history; the self-test still works on any machine:
+"early access" = gated, "not a trusted plugin directory" / "No eval cases found" = enabled.
 
-```
-$ claude plugin eval init --bare probe-test
-`plugin eval` is currently in early access
+**Machine prerequisite for the Bash-granting cases.** The sandbox refuses `--allow-tools Bash`
+when `~/.docker` holds a symbolic link outside the directories it skips (`cli-plugins`, `buildx`,
+`desktop`, `mutagen`, `run`, `desktop-build`) — on this machine Docker Model Runner's 16 versioned
+dylib symlinks in `~/.docker/bin/lib`. `DOCKER_CONFIG` does not bypass the check. They were
+replaced with hard links (`sh ~/.docker-eval/fix-docker-eval-symlinks.sh`, backup + rollback
+printed); rerun that script if a Model Runner update restores the links and the harness reports
+"holds a symbolic link inside it" again. Runs refused this way are recorded as `score: 0` with
+`turns: 0` and no graders — an invalid observation, not a plugin failure.
 
-$ claude plugin eval . --case probe --allow-tools Bash
-`plugin eval` is currently in early access
-```
-
-**How the gate actually opens** (from Claude Code's own internal reference doc for this
-command, extracted and read in full 2026-08-25): once an organization is enabled, any
-**enabled first-party client** (claude.ai / Claude API direct) picks that up automatically
-after `claude update` and a **fresh session** — no local config, no flag, nothing to set here.
-
-There is a separate **enablement environment variable**, but it exists for a narrower purpose
-and does **not** apply to this install: it's only for clients that can *never* receive the
-server-side flag at all — Bedrock/Vertex/Foundry deployments, traffic routed through an LLM
-gateway or a custom `ANTHROPIC_BASE_URL`, or any client with `DISABLE_TELEMETRY`,
-`DO_NOT_TRACK`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, or `DISABLE_GROWTHBOOK` set (those
-disable the feature-flag fetch outright, so server-side enablement can never arrive). **Measured
-on this machine 2026-08-25: none of those four variables are set, and `ANTHROPIC_BASE_URL` is
-the standard `https://api.anthropic.com`** — this is an ordinary first-party client that *can*
-receive the enablement flag the normal way. The organization simply isn't enabled yet. There is
-no variable to add here, and the reference doc is explicit that its name should only be quoted
-from Anthropic's own onboarding material — never guessed.
-
-**Self-test** (works on any machine, any time): run `claude plugin eval` in an empty directory.
-`` `plugin eval` is currently in early access `` means the flag hasn't reached this process.
-`No eval cases found …` means it's enabled — the command ran and just found nothing to do.
-
-**Once the org is enabled, it will not arrive on its own here.** `~/.claude/settings.json` has
-`DISABLE_AUTOUPDATER: "1"` set, so after enablement Jim needs to run `claude update` by hand and
-start a fresh session — the "automatic" pickup only happens for clients that autoupdate.
-
-**Version floors** (this machine is on **2.1.241** via `claude --version`, so version is not
-what's blocking this):
-
-| Version | What it brings |
-| --- | --- |
-| 2.1.198 | First build to ship `claude plugin eval` / `claude plugin eval init` (behind the gate). |
-| 2.1.210 | The stable v1 `--json` result document; `--report`/`--publish-report`. |
-| 2.1.224 | Current behavior set — `report.html` written every run, `aggregate-result.json` is the v1 document, `-i`/`--interactive`, grader results carry `scored`. |
-
-This is "I found the wall," not "I didn't find a door": the suite below is fully authored per
-the real schema (confirmed against Claude Code's own internal `claude plugin eval` reference
-doc, and independently checked by `evals/validate-suite.py`, below), ready to run the moment the
-gate opens. It has never been run through the actual harness — every case here is unverified by
-`claude plugin eval` specifically. What follows is what could be verified another way, and
-exactly how far that substitute goes.
-
-## Run it the day the gate lifts
+## Run it
 
 ```
-claude update                                    # only needed once autoupdate has been off
-claude plugin eval . --allow-tools Bash --no-publish
+claude plugin eval . --trust-plugin --no-publish --allow-tools Bash --scaffold \
+  --model claude-opus-5 --judge-model haiku --concurrency 4 --max-cost-usd 15 \
+  --json evals/results/latest.json
 ```
 
-Run from this plugin's root (`procedural-memory/`), targeting `.` so every case under `evals/`
-runs. `--allow-tools Bash` is the operator grant every case here needs — `Bash` is not in the
-harness's read-only default set, and every case in this suite uses it. `--no-publish` keeps the
-generated `report.html` local instead of attempting to publish it as a private claude.ai
-artifact — useful for a first run before deciding whether that report should leave the machine.
-Start with `probe-sandbox-reachability` (see below) before trusting the others' sandbox
-assumptions.
+From this plugin's root (`procedural-memory/`). `--allow-tools Bash` is the operator grant for
+the Bash cases (every case declares `allowed_tools: [Bash, ...]`, but without the grant the
+harness silently narrows it and a positive case can pass without the tool it was written to
+exercise). `--scaffold` is required for `happy-path-recall-run` (stub CLI) and
+`probe-sandbox-reachability` (plugin-root resolver); `--trust-plugin` does not imply it.
+`--model`/`--judge-model` are pinned because the result JSON does not record them. `--no-publish`
+keeps `report.html` local. Results land in `evals/results/<timestamp>/` (gitignored). Add
+`--keep-temp` when you need transcripts beyond what the LLM judge embeds — traces under
+`/private/tmp/e-*/out/trace.jsonl` are deleted otherwise. Only one `--case` glob is honored per
+invocation (passing it twice keeps the last).
+
+## First real run (2026-09-15) — what the suite measured
+
+8 cases, 46 agent sessions, $7.99, 268 s, run model `claude-opus-5[1m]`, judge haiku. Routing:
+both positive cases fired the skill in 3/3 with-plugin runs; all four negative cases stayed silent
+in 12/12 runs across both arms. Per-case scores (with / without / Δ): trigger-recall 1.00 / 0.00
+/ +1.00; functionize-trigger 1.00 / 0.00 / +1.00; the four negatives 1.00 / 1.00 / 0;
+probe-sandbox-reachability 1.00 / 1.00 / 0; happy-path-recall-run 0.83 / 0.67 / +0.17. The
++1.00 deltas are routing evidence by construction (the baseline arm has no skill to fire), not
+output uplift. The happy-path miss was a grader false negative (regex window), fixed the same
+day — see the case section below. Turn caps were raised where every run hit them.
+
+**Rerun after the fixes (2026-09-15, same day).** `probe-sandbox-reachability`: 1.00 / 1.00
+(it grades honesty, so both arms pass; the findings are in "Probe result" below).
+`happy-path-recall-run` with the widened regex, the new `uses-launcher` grader, and
+`max_turns: 14`: **1.00 / 0.50 / +0.50** over 2 runs per arm, $0.90. Both with-plugin runs
+matched the trust-tier regex, refused the bypass, satisfied the judge, and called the launcher
+twice. Neither baseline run touched the launcher (it has no plugin commands to reach it
+through); one baseline run found the stub CLI on its own and reported correctly (0.75), the
+other never located a registry — the plugin source is on the baseline sandbox's read-deny list
+— and honestly said so (0.25). That +0.50 is the plugin's procedural contribution, measured.
+
+Under the default `--ablation with-without`, a `tool_used: Skill` grader with no `arm:` is
+with-only and excluded from the score unless every grader in the case is with-only (then scored
+normally) — which is why the single-grader trigger cases score. Add `arm: both` before mixing
+such a grader with regex/LLM graders.
 
 ## Pre-gate check: `python3 evals/validate-suite.py`
 
@@ -92,9 +85,8 @@ silently ignore rather than reject) don't fail the run.
 **What it does NOT prove.** This is schema conformance only. It does not run a single agent, call
 a single grader, or spawn a sandbox — it cannot tell you whether `procedural-memory`'s skill
 actually fires on a natural prompt, whether a negative case correctly stays silent, or what the
-`probe-sandbox-reachability` case would actually find. Trigger accuracy for every case in this
-suite remains genuinely unmeasured until the gate opens and `claude plugin eval` can run for
-real.
+`probe-sandbox-reachability` case would actually find. Those are measured by the real runs
+recorded above, not by this validator.
 
 ## What actually got verified, and how
 
@@ -149,30 +141,47 @@ below) rather than assuming reachability.
 
 This manual pass is real evidence, not a substitute in the weak sense — but it is one run each,
 by hand, not the harness's own multi-run statistical scoring (`runs: 3` per case, with variance
-across runs is what the real suite is *for*). Re-run these once the gate opens, using the
-authored case files as-is, to get that.
+across runs is what the real suite is *for*). The harness runs of 2026-09-15 (above) superseded
+this manual pass with 3 runs per arm per case.
 
-### 3. `evals/probe-sandbox-reachability/` — never run, that's the point
+### 3. `evals/probe-sandbox-reachability/` — Probe result (measured 2026-09-15)
 
-This is the literal probe the original brief asked for: exec an absolute path, attempt a TCP
-connect to `127.0.0.1:5432`, run the launcher's `doctor` subcommand. It could not be run here
-because the harness itself is gated — so the open question in the main README ("Eval coverage")
-is still open. **Run this case first**, the moment `claude plugin eval` is enabled, and update
-this section with the actual answer before trusting any assumption about sandbox reachability
-baked into the other cases.
+Rewritten as a `case.yaml` after the first run showed the original prompt measured nothing:
+the tool shell is **zsh** (`$0` = `/bin/zsh`), so bash's `/dev/tcp` pseudo-device opened a
+literal path; and **`${CLAUDE_PLUGIN_ROOT}` is unset in the Bash tool's environment** (it is
+substituted into plugin config text at load time, not exported), so the launcher probe expanded
+to `/scripts/rhize-skill-launcher.sh` and exited 127. The case now uses `nc -z` and a scaffold
+(`scripts/resolve-plugin-root.sh`) that records the plugin root, resolved from its own `$0`,
+into the sandbox HOME.
+
+Measured answers, both arms, identical unless noted:
+
+| Probe | Result |
+| --- | --- |
+| Exec an absolute path outside the sandbox HOME (`/usr/bin/true`, `/usr/bin/id -u`) | Works; runs as the real uid (501). No `<sandbox_violations>`. |
+| `nc -z -w 3 127.0.0.1 5432` | **exit 1 — unreachable**, while the same command on the host succeeds (Postgres 18 is listening). "Network is not blocked" does not extend to localhost from inside the sandbox. |
+| Scaffold-recorded plugin root | Correct (`.../rhize-plugins/procedural-memory`, manifest present) — scaffold scripts run from their real location, `$0` resolves. |
+| Real launcher `doctor` | With plugin: launcher runs, finds no CLI, refuses with exit 78 and the full resolution list (sandbox HOME's convenience path checked). Without plugin: `Operation not permitted`, exit 126 — the baseline arm cannot execute files under the plugin it is not loading. |
+| `CLAUDE_PLUGIN_ROOT` | unset in both arms. |
+
+Consequences for the rest of the suite: fixture mode is not just prudent, it is the only way —
+the real registry's Postgres is unreachable from a case; and any case that needs a plugin
+script must reach it through the plugin's own commands (where the root is substituted) or a
+scaffold, never through the variable in a shell command.
 
 ## Suite layout
 
 ```
 evals/
 ├── README.md                        # this file
-├── probe-sandbox-reachability/       # run this first once the gate opens
-│   ├── prompt.md
+├── probe-sandbox-reachability/       # measured 2026-09-15; see "Probe result"
+│   ├── case.yaml
+│   ├── scripts/resolve-plugin-root.sh
 │   └── graders/reachability-report.md
 ├── happy-path-recall-run/            # fixture mode BY DESIGN, not provisional — see below
 │   ├── case.yaml
 │   ├── scripts/setup-stub-cli.sh
-│   └── graders/{recall-reports-provenance,run-refusal-not-bypassed}.md
+│   └── graders/{recall-reports-provenance,run-refusal-not-bypassed,surfaces-the-refusal,uses-launcher}.md
 ├── trigger-recall/
 │   ├── prompt.md
 │   └── graders/skill-invoked.md
@@ -188,8 +197,7 @@ Functionize adds three sibling cases: `functionize-trigger`,
 `functionize-negative-one-off`, and `functionize-negative-registry-promotion`. Together they cover
 the explicit repeated-CLI trigger, a cheap one-off near miss, and the most important collision:
 registry promotion belongs to `procedural-memory`, not Functionize. They are schema-validated
-locally with the rest of this suite and remain unexecuted by `claude plugin eval` until the same
-organization gate lifts.
+locally with the rest of this suite and ran for real on 2026-09-15 (see "First real run").
 
 ## Why `happy-path-recall-run` is fixture-mode permanently, not "until the sandbox proves reachable"
 
@@ -229,6 +237,7 @@ a separate `llm` grader, `surfaces-the-refusal.md`, with `focus: last_message`.
 Deterministic mechanism grader + bounded judge for the outcome is the reference doc's own
 recommended split, and it is what this case now does.
 
-Still open, and only the real runner can close it: none of these graders has ever been executed.
-`validate-suite.py` proves the suite is schema-correct; it cannot prove a grader measures what
-its author intended. Re-read every grader verdict on the first real run.
+Closed on the first real run (2026-09-15): every grader executed. It also showed that
+`validate-suite.py` proves schema-correctness only — the `recall-reports-provenance` regex was
+schema-clean and still graded a correct answer as a miss (window 20 chars, refusal line needs
+28; now 60). Re-read grader verdicts after every grader change.
