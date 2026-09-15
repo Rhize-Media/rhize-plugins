@@ -867,6 +867,12 @@
     {
       "from": "plugin:rhize-ops",
       "source": "marketplace",
+      "to": "skill:rhize-ops/cross-model-handoff",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-ops",
+      "source": "marketplace",
       "to": "skill:rhize-ops/delegate-to-teammate",
       "type": "contains"
     },
@@ -2036,6 +2042,24 @@
       "from": "skill:rhize-devflow/test-evidence",
       "source": "frontmatter",
       "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/cross-model-handoff",
+      "source": "frontmatter",
+      "to": "tag:stack/testing",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-ops/cross-model-handoff",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/cross-model-handoff",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
     {
@@ -3863,6 +3887,14 @@
       "kind": "skill",
       "name": "test-evidence",
       "path": "rhize-devflow/skills/test-evidence/SKILL.md"
+    },
+    {
+      "contentHash": "2496b9a7300348031417e74eb94f66cc0391e1396fd84da0491aa54c227eba09",
+      "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
+      "id": "skill:rhize-ops/cross-model-handoff",
+      "kind": "skill",
+      "name": "cross-model-handoff",
+      "path": "rhize-ops/skills/cross-model-handoff/SKILL.md"
     },
     {
       "contentHash": "87ae431525253d064d7e92b28ec515caa994c470068b0d57811e4116cadf3bf6",

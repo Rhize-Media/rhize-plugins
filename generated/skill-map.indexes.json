@@ -190,6 +190,10 @@
       },
       {
         "deeper": [],
+        "skillId": "skill:rhize-ops/cross-model-handoff"
+      },
+      {
+        "deeper": [],
         "skillId": "skill:rhize-ops/parallel-agent-optimization"
       }
     ],
@@ -1188,6 +1192,28 @@
         {
           "kind": "tag",
           "label": "testing",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-ops/cross-model-handoff": [
+        {
+          "kind": "name",
+          "label": "cross-model-handoff",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "testing",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
           "weight": 2
         }
       ],

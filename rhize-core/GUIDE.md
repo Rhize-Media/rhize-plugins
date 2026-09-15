@@ -62,3 +62,11 @@ skipping the item. Fix the underlying script and re-run.
 
 **Bump-version dry-runs by default** — that's `/rhize-ops:bump-version`, a separate command that
 stays in `rhize-ops`; it isn't part of this plugin.
+
+## Cross-model bridge inventory
+
+The operations evaluation catalog includes `cross-model-handoff` with offline trigger and
+quality contracts. The setup artifact inventory documents its private job data and
+versioned installation. These catalog checks do not launch native Claude/Codex workers
+or prove live delegation; run the separate synthetic checks described in
+[rhize-ops bridge operations](../rhize-ops/docs/agent-bridge.md) after explicit setup.

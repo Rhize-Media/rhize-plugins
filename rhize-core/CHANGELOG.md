@@ -4,10 +4,13 @@
 
 ### Added
 
+- _2026-09-15_ version bump — 1.0.3 → 1.0.4 (patch); marketplace 2.72.0 → 2.72.1.
 - _2026-09-06_ version bump — 1.0.2 → 1.0.3 (patch); marketplace 2.69.0 → 2.69.1.
 - _2026-09-04_ version bump — 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.
 
 ### Changed
+
+- Include the shared Claude/Codex bridge skill in the operations evaluation catalog and document its private setup artifacts. Offline coverage does not run provider canaries.
 
 - _2026-09-06_ Regenerate the setup artifact inventory for private paired-memory measurements; runtime behavior is unchanged.
 

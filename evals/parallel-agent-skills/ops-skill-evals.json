@@ -54,6 +54,44 @@
         {"id": "temporary-output-boundary", "patterns": ["Always render to `/tmp` first", "never overwrite"]},
         {"id": "refresh-is-explicit", "patterns": ["explicit-request-only", "do not run monitor.py on every dashboard render"]}
       ]
+    },
+    {
+      "id": "cross-model-handoff",
+      "source": "rhize-ops/skills/cross-model-handoff/SKILL.md",
+      "include_patterns": [
+        "ask (?:claude|codex) to (?:review|fix)",
+        "cross-model (?:review|task)"
+      ],
+      "positive_cases": [
+        "bridge-positive"
+      ],
+      "negative_cases": [
+        "bridge-docs-near-miss",
+        "bridge-local-near-miss"
+      ],
+      "quality_contracts": [
+        {
+          "id": "no-worker-tools",
+          "patterns": [
+            "workers have \\*\\*no tools\\*\\*",
+            "coordinator"
+          ]
+        },
+        {
+          "id": "source-bound-integration",
+          "patterns": [
+            "every returned file hash",
+            "SHA-256"
+          ]
+        },
+        {
+          "id": "no-fallback",
+          "patterns": [
+            "Do not silently substitute a model",
+            "same\\s+request"
+          ]
+        }
+      ]
     }
   ],
   "cases": [
@@ -101,6 +139,9 @@
       "id": "dashboard-cost-near-miss",
       "prompt": "Give me the skill cost and ROI report, not the usage dashboard.",
       "expected": []
-    }
+    },
+    {"id": "bridge-positive", "prompt": "Ask Codex to review this plan independently.", "expected": ["cross-model-handoff"]},
+    {"id": "bridge-docs-near-miss", "prompt": "Explain the difference between Claude and Codex.", "expected": []},
+    {"id": "bridge-local-near-miss", "prompt": "Review this function locally with the current model.", "expected": []}
   ]
 }

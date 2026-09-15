@@ -82,6 +82,7 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
+| `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, testing, workflow-patterns |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |

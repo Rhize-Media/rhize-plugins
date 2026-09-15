@@ -108,6 +108,30 @@
       "source": "derived",
       "tracked": "outside-repo",
       "optional": true
+    },
+    {
+      "id": "agent-bridge-jobs",
+      "path": "<home>/.rhize/agent-bridge/",
+      "kind": "directory",
+      "purpose": "Private frozen inputs, native outputs, isolated file proposals and durable job status for the Claude/Codex bridge.",
+      "viewer": "Use the rhize-bridge job_status tool; inspect job artifacts locally without sharing raw prompts or code.",
+      "lifetime": "persistent",
+      "confidentiality": "client",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    },
+    {
+      "id": "agent-bridge-installation",
+      "path": "<home>/.rhize/agent-bridge-releases/",
+      "kind": "directory",
+      "purpose": "Reviewed versioned bridge scripts, source digests and private configuration backups installed during explicit bridge setup.",
+      "viewer": "Inspect the selected rhize-bridge MCP command in each host and compare the script SHA-256 with the installation receipt.",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
     }
   ],
   "evaluations": {

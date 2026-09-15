@@ -35,6 +35,8 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | refactor-gate-state | rhize-devflow | <home>/.claude/rhize-devflow/refactor-gate/ | ls ~/.claude/rhize-devflow/refactor-gate/ | per-run | none | derived | outside-repo |
 | test-evidence-leases | rhize-devflow | <home>/.rhize/test-evidence/leases | cat ~/.rhize/test-evidence/leases | regenerated | none | derived | outside-repo |
 | test-evidence-packets | rhize-devflow | <home>/.rhize/test-evidence/packets/ | cat ~/.rhize/test-evidence/packets/<packet>.json | per-run | none | derived | outside-repo |
+| agent-bridge-installation | rhize-ops | <home>/.rhize/agent-bridge-releases/ | Inspect the selected rhize-bridge MCP command in each host and compare the script SHA-256 with the installation receipt. | persistent | config | derived | outside-repo |
+| agent-bridge-jobs | rhize-ops | <home>/.rhize/agent-bridge/ | Use the rhize-bridge job_status tool; inspect job artifacts locally without sharing raw prompts or code. | persistent | client | derived | outside-repo |
 | delegate-config | rhize-ops | <home>/.claude/rhize-ops/delegate.config.json | cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing) | persistent | personal | authored | ignored |
 | parallel-agent-optimization-receipts | rhize-ops | <home>/.rhize/parallel-agent-optimization/ | /rhize-ops:parallel-optimize report all | append-only | none | derived | outside-repo |
 | skill-monitor-data | rhize-ops | <home>/.rhize/skill-monitor/ | python3 "$(rhize-ops/scripts/skill_monitor_root.sh)/dashboard.py" | regenerated | none | derived | outside-repo |

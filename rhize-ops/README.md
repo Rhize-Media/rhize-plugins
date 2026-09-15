@@ -5,7 +5,7 @@ Rhize Media's **operations** plugin — internal delegation, hand-offs, and team
 ## Setup
 
 `delegate-to-teammate` needs a one-time setup before first use — see [Commands](#commands) below.
-The other skills and commands work with no prior configuration. `parallel-agent-optimization`
+`cross-model-handoff` needs both native subscription logins and the shared MCP registration described in [bridge operations](docs/agent-bridge.md). The remaining skills and commands work with no prior configuration. `parallel-agent-optimization`
 stores opt-in, privacy-safe v2 lifecycle receipts under `~/.rhize/parallel-agent-optimization/`
 only when it runs. Fleet-level setup (picking which plugins to set up, reviewing guardrail hooks,
 evaluation baselines) moved to the `rhize-core` plugin's `/rhize-core:setup` — see
@@ -13,8 +13,7 @@ evaluation baselines) moved to the `rhize-core` plugin's `/rhize-core:setup` —
 
 Claude Code loads the thin commands plus canonical skills from `.claude-plugin/plugin.json`.
 Codex loads the same skill bodies from `.codex-plugin/plugin.json`; skills with Codex-specific
-interface metadata also ship a `skills/<skill>/agents/openai.yaml` (currently only
-`parallel-agent-optimization`).
+interface metadata also ship a `skills/<skill>/agents/openai.yaml` (`parallel-agent-optimization` and `cross-model-handoff`).
 After installing or updating either host, start a fresh session before checking discovery so a
 previously cached plugin snapshot is not mistaken for the release.
 
@@ -23,6 +22,7 @@ previously cached plugin snapshot is not mistaken for the release.
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
+| `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, testing, workflow-patterns |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
 | `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
@@ -94,6 +94,14 @@ multiple agents. Invoke it before the first dispatch even when the user does not
 Discussion-only requests use `assess` and create no receipt. For execution, parallel agents are the
 default when at least two independent bounded lanes pass the isolation and coordination-benefit
 gates; otherwise the skill selects sequential or gated execution and explains why.
+
+### `cross-model-handoff`
+
+Request an independent review or bounded file task from Claude in Codex, or Codex in
+Claude. Both use the same `rhize-bridge` MCP contract. Workers have no tools; task results
+are validated file proposals in an isolated copy. The coordinator owns testing,
+integration and existing approval gates. Native subscription logins are required;
+there is no API-key or model fallback. See [operations and rollback](docs/agent-bridge.md).
 
 ## Commands
 

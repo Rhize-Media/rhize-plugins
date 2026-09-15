@@ -79,7 +79,7 @@
       "id": "rhize-ops",
       "kind": "plugin",
       "domain": "operations",
-      "skills": ["delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
+      "skills": ["cross-model-handoff", "delegate-to-teammate", "parallel-agent-optimization", "skill-dashboard"],
       "suites": [{"id": "rhize-ops-local", "kind": "python", "path": "evals/parallel-agent-skills/scripts/evaluate_ops_skills.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "operations-existing-vs-rhize", "protocol": "evals/parallel-agent-skills/manifest.json", "arm_a": "user-confirmed existing operations workflow", "arm_b": "rhize-ops", "natural_capture_eligible": true}]
     },

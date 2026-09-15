@@ -4,8 +4,9 @@ This guide explains what the rhize-ops plugin does and how to get the most out o
 
 ## What This Plugin Does
 
-rhize-ops covers three everyday ops jobs:
+rhize-ops covers four everyday ops jobs:
 
+- **Getting a second model’s help** — Claude and Codex can request reviews or bounded file changes from each other through one shared bridge.
 - **Handing work off to a teammate** without losing context — turning a messy session into a clear, encouraging task package they can actually execute.
 - **Watching skill health** — seeing which of your installed skills are earning their keep, so you know what to prune.
 - **Optimizing parallel-agent work** — choosing one safe execution strategy for real work and gathering evidence through isolated comparisons when a replayable fixture exists.
@@ -19,6 +20,19 @@ Before using `delegate-to-teammate` for the first time, run `/rhize-ops:delegate
 The same `parallel-agent-optimization` skill contract is discoverable in Claude Code and Codex.
 Restart the host after installing or updating the plugin before running a discovery smoke; commands
 are Claude adapters, while Codex routes through the canonical skill and its OpenAI metadata.
+
+## Cross-model reviews and tasks
+
+After [bridge setup](docs/agent-bridge.md), ask “Have Codex review this plan” in Claude,
+or “Ask Claude to fix this small function in an isolated copy” in Codex. The shared
+`cross-model-handoff` skill packages only the relevant context and polls the returned job.
+The worker cannot run commands or tests. Your coordinating agent checks the findings or
+patch, tests it, and integrates it within the authorization you already gave. Missing
+context or a failed worker is surfaced; it never silently switches models or API billing.
+
+Use this for second opinions and small, well-described edits. Keep broad repository
+exploration and multi-system migrations with the coordinator. The bridge does not grant
+permission to deploy, publish, upgrade software or send messages.
 
 ## Skills Reference
 

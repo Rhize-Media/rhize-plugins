@@ -263,3 +263,11 @@ other consumer of this engine can rely on, and its deprecation policy.
 
 Once `rhize-core` is installed, `/rhize-ops:rhize-setup` simply forwards here — install it with
 `claude plugin install rhize-core@rhize-plugins`.
+
+## Cross-model bridge inventory
+
+The operations evaluation catalog includes `cross-model-handoff` with offline trigger and
+quality contracts. The setup artifact inventory documents its private job data and
+versioned installation. These catalog checks do not launch native Claude/Codex workers
+or prove live delegation; run the separate synthetic checks described in
+[rhize-ops bridge operations](../rhize-ops/docs/agent-bridge.md) after explicit setup.

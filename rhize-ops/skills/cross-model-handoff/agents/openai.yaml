@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cross-model Handoff"
+  short_description: "Request bounded Claude/Codex reviews and file tasks."
+  default_prompt: "Use $cross-model-handoff to request an authorized review or bounded file task from the other provider through the Rhize bridge."
