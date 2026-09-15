@@ -30,7 +30,10 @@ the Bash cases (every case declares `allowed_tools: [Bash, ...]`, but without th
 harness silently narrows it and a positive case can pass without the tool it was written to
 exercise). `--scaffold` is required for `happy-path-recall-run` (stub CLI) and
 `probe-sandbox-reachability` (plugin-root resolver); `--trust-plugin` does not imply it.
-`--model`/`--judge-model` are pinned because the result JSON does not record them. `--no-publish`
+`--model`/`--judge-model` are pinned so the result JSON records them: `suite.modelOverride` and
+`suite.judgeModel` are `null` whenever you rely on the defaults (the default run model is whatever
+the CLI defaults to — `claude-opus-5[1m]` in the first run's traces — and the default judge is
+haiku). `--no-publish`
 keeps `report.html` local. Results land in `evals/results/<timestamp>/` (gitignored). Add
 `--keep-temp` when you need transcripts beyond what the LLM judge embeds — traces under
 `/private/tmp/e-*/out/trace.jsonl` are deleted otherwise. Only one `--case` glob is honored per
@@ -55,7 +58,18 @@ matched the trust-tier regex, refused the bypass, satisfied the judge, and calle
 twice. Neither baseline run touched the launcher (it has no plugin commands to reach it
 through); one baseline run found the stub CLI on its own and reported correctly (0.75), the
 other never located a registry — the plugin source is on the baseline sandbox's read-deny list
-— and honestly said so (0.25). That +0.50 is the plugin's procedural contribution, measured.
+— and honestly said so (0.25). Read the +0.50 carefully: it confirms the with-plugin arm reaches
+the launcher through the plugin's own commands, but the baseline arm cannot reach it at all —
+the probe showed the plugin directory is on the baseline sandbox's read-deny list — so the
+`uses-launcher` half of the delta is by construction, like the trigger cases. The contract
+graders (trust tier reported, bypass never attempted, refusal surfaced) are the part both arms
+can pass, and the with-arm passed them 2/2 against the baseline's 1/2.
+
+**Turn caps verified (2026-09-15, one run per arm each, the documented command above).**
+`trigger-recall` with-arm finished in 6 turns under the new cap of 12 (was 7 = capped at 6);
+`functionize-trigger` with-arm in 8 (was 7 = capped). Both still fired the skill, both baselines
+still did not (Δ +1.00 each, by construction). `suite.modelOverride` recorded `claude-opus-5`
+and `suite.judgeModel` `haiku`, confirming the pinned flags are honored. $1.39 for the pair.
 
 Under the default `--ablation with-without`, a `tool_used: Skill` grader with no `arm:` is
 with-only and excluded from the score unless every grader in the case is with-only (then scored
