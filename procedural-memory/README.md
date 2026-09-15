@@ -182,8 +182,23 @@ Tests live at the repo root, not under this plugin: `tests/procedural-memory/tes
 
 ## Hooks: capturing promotion candidates during a session
 
-Two hooks, deliberately split by cost, both advisory-only (never block, never write to the
-registry):
+Three hooks, all advisory-only (never block, never write to the registry). The first is a
+one-line environment bridge; the other two are the candidate-capture pair, deliberately split by
+cost.
+
+**`session-start-env.sh`** (SessionStart) appends
+`export PROCEDURAL_MEMORY_PLUGIN_ROOT='<plugin root>'` to `$CLAUDE_ENV_FILE`, the per-session
+script Claude Code loads into every later Bash tool call. It exists because Claude Code
+substitutes `${CLAUDE_PLUGIN_ROOT}` into plugin *config text* (commands, hooks) at load time but
+never exports it to the shell — measured 2026-09-15 both inside `claude plugin eval` and in an
+ordinary session — so a shell command that names the launcher through the variable expands to
+`/scripts/rhize-skill-launcher.sh` and fails with 127. The slash commands never had this problem;
+prose guidance and eval prompts that reach the launcher from Bash did. With the export in place:
+`"$PROCEDURAL_MEMORY_PLUGIN_ROOT/scripts/rhize-skill-launcher.sh" recall "<task>"`. The name is
+plugin-specific on purpose (several plugins load at once), the root falls back to the script's own
+parent directory if the runner ever withholds the variable, and the hook exits 0 in every case
+with no subprocess heavier than `pwd`. Tested under `/bin/sh` and dash
+(`tests/procedural-memory/test_session_start_env_hook.py`).
 
 **`post-bash-candidate-queue.sh`** (PostToolUse, matcher `Bash`) fires on *every* Bash call in
 *every* session. It pattern-matches `tool_input.command` against known test/build invocations

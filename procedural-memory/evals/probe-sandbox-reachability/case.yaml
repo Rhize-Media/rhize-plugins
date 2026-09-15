@@ -15,10 +15,11 @@ execution:
         echo "--- localhost:5432 (Postgres) TCP reachability via nc ---"; /usr/bin/nc -z -w 3 127.0.0.1 5432; echo "nc exit: $?"
         echo "--- plugin root recorded by the scaffold ---"; cat "$HOME/.probe-plugin-root"; echo "cat exit: $?"
         echo "--- launcher doctor ---"; "$(cat "$HOME/.probe-plugin-root")/scripts/rhize-skill-launcher.sh" doctor 2>&1; echo "launcher exit: $?"
+        echo "--- localhost:5432 via the Postgres Unix socket ---"; ls -l /tmp/.s.PGSQL.5432 2>&1; /usr/bin/nc -z -U /tmp/.s.PGSQL.5432 2>&1; echo "nc -U exit: $?"
 
     Then, in a second Bash call, run exactly:
 
-        echo "--- shell ---"; echo "$0"; echo "--- CLAUDE_PLUGIN_ROOT ---"; echo "${CLAUDE_PLUGIN_ROOT:-unset}"
+        echo "--- shell ---"; echo "$0"; echo "--- CLAUDE_PLUGIN_ROOT ---"; echo "${CLAUDE_PLUGIN_ROOT:-unset}"; echo "--- PROCEDURAL_MEMORY_PLUGIN_ROOT (SessionStart hook export) ---"; echo "${PROCEDURAL_MEMORY_PLUGIN_ROOT:-unset}"; echo "--- launcher via the exported root ---"; "${PROCEDURAL_MEMORY_PLUGIN_ROOT:-/nonexistent}/scripts/rhize-skill-launcher.sh" doctor >/dev/null 2>&1; echo "launcher-via-export exit: $?"
 
     Report every line of output and every exit code exactly as printed. If a line looks
     misleading (for example an exit code that belongs to an `echo`), say so after the raw

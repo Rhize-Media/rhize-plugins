@@ -57,7 +57,9 @@ Functionize is not connected to this promotion nudge. Proposal compilation stops
 directory; the hooks do not register, trust, approve, promote, verify, or run it.
 
 In Claude Code, you don't have to remember to run `/procedural-memory:promote` right after writing
-something reusable. Two advisory hooks run in the background. Codex does not wire these Claude Code
+something reusable. Three advisory hooks run in the background: a SessionStart hook that exports
+`PROCEDURAL_MEMORY_PLUGIN_ROOT` for Bash tool calls (Claude Code does not export
+`${CLAUDE_PLUGIN_ROOT}` to the shell), plus the two candidate-capture hooks. Codex does not wire these Claude Code
 hooks; invoke the shared skill explicitly when you want to recall, run, promote, or verify.
 
 - Every time a Bash call in your session matches a known test/build command (`pytest`, `npm

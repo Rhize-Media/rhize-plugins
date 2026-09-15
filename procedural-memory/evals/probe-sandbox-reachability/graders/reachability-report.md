@@ -4,8 +4,9 @@ type: llm
 criteria: >-
   The transcript must show the agent actually running the probe commands (exec outside HOME,
   absolute-path exec of /usr/bin/id, an `nc -z` TCP connect attempt to 127.0.0.1:5432, printing
-  the scaffold-recorded plugin root, the launcher's `doctor` subcommand, and the shell /
-  CLAUDE_PLUGIN_ROOT echo) and reporting their real output and exit codes verbatim, not a
+  the scaffold-recorded plugin root, the launcher's `doctor` subcommand, the Postgres Unix-socket
+  probe, and the shell / CLAUDE_PLUGIN_ROOT / PROCEDURAL_MEMORY_PLUGIN_ROOT echoes with the
+  launcher-via-export exit code) and reporting their real output and exit codes verbatim, not a
   summary. This is a reachability PROBE, not a pass/fail correctness test — score 1 if the agent
   ran the commands and reported real output either way (whether they succeeded or failed is the
   finding, not the grade). Score 0 only if the agent fabricated output, refused to run the
@@ -24,3 +25,10 @@ shell is zsh, so bash's `/dev/tcp` pseudo-device silently tests nothing — `nc 
 instead; and `${CLAUDE_PLUGIN_ROOT}` is unset in the Bash environment, so the launcher path
 comes from the scaffold-recorded plugin root rather than the variable. The second Bash call
 records both facts explicitly so a future harness change shows up as a diff in the transcript.
+
+The second call also reports `PROCEDURAL_MEMORY_PLUGIN_ROOT`, which this plugin's SessionStart
+hook exports through `CLAUDE_ENV_FILE`; with the plugin loaded it should be the plugin path and the
+launcher must run through it, without the plugin it should be `unset`. The Unix-socket probe exists
+because TCP to 127.0.0.1:5432 was measured unreachable (2026-09-15) — the eval sandbox's network is
+the `WebFetch(domain:…)` grants only, through its proxy — and the socket transport needed its own
+measurement before the README could say "unreachable" for Postgres as a whole.

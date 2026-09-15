@@ -33,6 +33,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-15_ version bump — **procedural-memory** 0.5.7 → 0.5.8 (patch); marketplace 2.72.1 → 2.72.2.
 - _2026-09-15_ version bump — **rhize-core** 1.0.3 → 1.0.4 (patch); marketplace 2.72.0 → 2.72.1.
 - _2026-09-15_ version bump — **rhize-ops** 0.24.0 → 0.25.0 (minor); marketplace 2.71.0 → 2.72.0.
 - _2026-09-15_ version bump — **procedural-memory** 0.5.6 → 0.5.7 (patch); marketplace 2.71.0 → 2.71.1.

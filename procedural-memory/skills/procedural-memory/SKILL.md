@@ -48,7 +48,10 @@ plugin root and delegates to the canonical `scripts/rhize-skill-launcher.sh`, wh
 `rhize-skill` binary portably (env override -> PATH -> known dev-machine default -> loud refusal)
 and checks it is not older than this plugin expects before every call. Never construct or hardcode a
 path to `rhize-skill` directly. Claude Code's slash commands continue to reach the same canonical
-launcher through `${CLAUDE_PLUGIN_ROOT}`.
+launcher through `${CLAUDE_PLUGIN_ROOT}` (substituted into command text at load time). From a Bash
+tool call, that variable is not exported; use `$PROCEDURAL_MEMORY_PLUGIN_ROOT` instead, which this
+plugin's SessionStart hook exports for the session:
+`"$PROCEDURAL_MEMORY_PLUGIN_ROOT/scripts/rhize-skill-launcher.sh" recall "<task>"`.
 
 ```
 bash scripts/procedural-memory.sh recall "<task description>"

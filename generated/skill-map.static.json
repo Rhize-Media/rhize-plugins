@@ -279,6 +279,12 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "hook:procedural-memory/session-start-env",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "skill:procedural-memory/functionize",
       "type": "contains"
     },
@@ -3111,6 +3117,17 @@
       "status": "wired"
     },
     {
+      "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/session-start-env.sh\"",
+      "event": "SessionStart",
+      "id": "hook:procedural-memory/session-start-env",
+      "kind": "hook",
+      "matcher": "",
+      "name": "session-start-env",
+      "owner": "procedural-memory",
+      "path": "procedural-memory/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/launcher-vault-hint.py\"",
       "event": "PreToolUse",
       "id": "hook:project-launcher/launcher-vault-hint",
@@ -3647,7 +3664,7 @@
       "path": "procedural-memory/skills/functionize/SKILL.md"
     },
     {
-      "contentHash": "15d20f1b59c134066b7d13ec8db17e35d9f598d8425b78333800cf9fcca0fe3c",
+      "contentHash": "8ded4f0a6a66fe63fd4ece1c25313efa06ee2f028e56ab3709d04b158fbe5750",
       "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",

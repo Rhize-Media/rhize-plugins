@@ -168,20 +168,32 @@ to `/scripts/rhize-skill-launcher.sh` and exited 127. The case now uses `nc -z` 
 (`scripts/resolve-plugin-root.sh`) that records the plugin root, resolved from its own `$0`,
 into the sandbox HOME.
 
-Measured answers, both arms, identical unless noted:
+Measured answers (2026-09-15, rerun with the SessionStart export hook in place; both arms
+identical unless noted):
 
 | Probe | Result |
 | --- | --- |
 | Exec an absolute path outside the sandbox HOME (`/usr/bin/true`, `/usr/bin/id -u`) | Works; runs as the real uid (501). No `<sandbox_violations>`. |
-| `nc -z -w 3 127.0.0.1 5432` | **exit 1 — unreachable**, while the same command on the host succeeds (Postgres 18 is listening). "Network is not blocked" does not extend to localhost from inside the sandbox. |
+| `nc -z -w 3 127.0.0.1 5432` | **exit 1 — unreachable**, while the same command on the host succeeds (Postgres 18 is listening). |
+| `nc -z -U /tmp/.s.PGSQL.5432` (Postgres Unix socket) | **`Operation not permitted`** on the socket path, exit 1: the host `/tmp` is read-denied; the socket transport is blocked too. |
+| Same two probes with `--allow-tools Bash "WebFetch(domain:127.0.0.1)"` | Identical: exit 1 / exit 1. The eval sandbox's network is the `WebFetch(domain:…)` grants through its HTTP proxy; a domain grant does not open raw TCP or sockets. |
 | Scaffold-recorded plugin root | Correct (`.../rhize-plugins/procedural-memory`, manifest present) — scaffold scripts run from their real location, `$0` resolves. |
-| Real launcher `doctor` | With plugin: launcher runs, finds no CLI, refuses with exit 78 and the full resolution list (sandbox HOME's convenience path checked). Without plugin: `Operation not permitted`, exit 126 — the baseline arm cannot execute files under the plugin it is not loading. |
-| `CLAUDE_PLUGIN_ROOT` | unset in both arms. |
+| Real launcher `doctor` via the scaffold path | With plugin: launcher runs, finds no CLI, refuses with exit 78. Without plugin: `Operation not permitted`, exit 126 — the baseline arm cannot execute files under the plugin it is not loading. |
+| `CLAUDE_PLUGIN_ROOT` in the Bash tool | unset in both arms (it is substituted into config text at load time, never exported). |
+| `PROCEDURAL_MEMORY_PLUGIN_ROOT` (this plugin's SessionStart hook, via `CLAUDE_ENV_FILE`) | **With plugin: the plugin path**, and `"$PROCEDURAL_MEMORY_PLUGIN_ROOT/scripts/rhize-skill-launcher.sh" doctor` runs (exit 78, the honest refusal). Without plugin: unset, exit 127. The variable is therefore also a plugin-loaded indicator. |
+
+**The Postgres wall, named precisely.** The harness builds the sandbox itself (extracted from the
+2.1.270 binary): `network.allowedDomains` = the `WebFetch(domain:…)` grants, egress only through the
+sandbox proxy, no localhost/Unix-socket allowance, no case-level key, and any managed setting that
+would loosen it (`sandbox.enableWeakerNetworkIsolation`, `allowUnsandboxedCommands`,
+`excludedCommands`, `filesystem.disabled`, …) makes the harness refuse the Bash grant outright.
+Nothing in this plugin can change that, and nothing should: the real registry executes artifacts.
 
 Consequences for the rest of the suite: fixture mode is not just prudent, it is the only way —
-the real registry's Postgres is unreachable from a case; and any case that needs a plugin
-script must reach it through the plugin's own commands (where the root is substituted) or a
-scaffold, never through the variable in a shell command.
+the real registry's Postgres is unreachable from a case over TCP and over its socket; and a case
+that needs a plugin script from Bash reaches it through `$PROCEDURAL_MEMORY_PLUGIN_ROOT` (the
+SessionStart export, with-plugin only), the plugin's own commands (root substituted at load), or a
+scaffold — never through `${CLAUDE_PLUGIN_ROOT}` in a shell command.
 
 ## Suite layout
 

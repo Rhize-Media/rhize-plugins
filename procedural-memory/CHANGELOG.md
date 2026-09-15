@@ -6,6 +6,18 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-15_ version bump — 0.5.7 → 0.5.8 (patch); marketplace 2.72.1 → 2.72.2.
+- _2026-09-15_ `hooks/session-start-env.sh` (SessionStart): exports `PROCEDURAL_MEMORY_PLUGIN_ROOT`
+  through `$CLAUDE_ENV_FILE` so Bash tool calls can reach `scripts/rhize-skill-launcher.sh` by an
+  absolute path. Claude Code substitutes `${CLAUDE_PLUGIN_ROOT}` into command/hook text at load time
+  but never exports it to the shell (measured in `claude plugin eval` and in a normal session), so
+  shell commands that named the launcher through the variable expanded to `/scripts/...` and failed
+  with 127. Advisory-only, exit 0 always, POSIX sh, tested under sh and dash. SKILL.md names the
+  exported variable as the Bash-side path; the slash commands are unchanged. The sandbox probe now
+  also checks the exported root and the Postgres Unix socket, and `evals/README.md` names the
+  network wall precisely: the eval sandbox's egress is the `WebFetch(domain:…)` grants only, so
+  localhost Postgres (TCP or socket) is unreachable from any case by harness design — fixture mode
+  is not a workaround but the only option.
 - _2026-09-15_ version bump — 0.5.6 → 0.5.7 (patch); marketplace 2.71.0 → 2.71.1.
 
 ### Changed
