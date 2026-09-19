@@ -129,6 +129,8 @@ def command_opportunity(args: argparse.Namespace) -> int:
         result = aggregate(store.receipts())
         result["configuration"] = store.read("config.json")
         result["health"] = {host: store.read(f"health/{host}.json") for host in ("claude", "codex")}
+        from memory_context.hook_health import Health
+        result["hookHealth"] = Health(Path(__file__).resolve().parents[2], store.root.parent / "hook-health-v1").status()
         result["queuedPairs"] = len(list((store.root / "queue").glob("*.json")))
         result["pendingRetrievalPairs"] = sum((store.read(str(p.relative_to(store.root))) or {}).get("status") == "pending" for p in (store.root / "reservations").glob("*.json"))
     print(json.dumps(result, indent=2, sort_keys=True))

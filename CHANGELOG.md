@@ -33,6 +33,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-19_ version bump — **rhize-context-manager** 0.32.2 → 0.32.3 (patch); marketplace 2.73.2 → 2.73.3.
 - Context Manager caches observed model identity at Stop for later memory measurements, preserving
   original prompt-time identity and rejecting stale-turn cache updates.
 - _2026-09-19_ version bump — **rhize-context-manager** 0.32.1 → 0.32.2 (patch); marketplace 2.73.1 → 2.73.2.
