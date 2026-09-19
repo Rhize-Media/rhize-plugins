@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-19_ version bump — 2.21.1 → 2.22.0 (minor); marketplace 2.73.3 → 2.74.0.
 - _2026-09-09_ version bump — 2.21.0 → 2.21.1 (patch); marketplace 2.70.0 → 2.70.1.
 
 ### Fixed
