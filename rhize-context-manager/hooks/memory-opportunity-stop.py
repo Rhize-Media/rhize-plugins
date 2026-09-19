@@ -2,6 +2,9 @@
 """Event-specific discovery entry point for the shared paired-measurement hook."""
 from pathlib import Path
 import runpy
+import sys
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        sys.argv.extend(["--event", "Stop"])
     runpy.run_path(str(Path(__file__).with_name("memory-opportunity.py")), run_name="__main__")

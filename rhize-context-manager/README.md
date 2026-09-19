@@ -159,17 +159,26 @@ thresholds, and calibration data.
 | `context-experiment-finalizer.js` | `Stop` | Writes one evidence-backed terminal receipt. Completed continuous attempts remain enabled; failed, incomplete, stale, or malformed evidence freezes further claims. |
 
 `memory-opportunity.py` additionally handles SessionStart, UserPromptSubmit, PostToolUse and Stop
-for Claude and current Codex native hooks. Its silent producer executes **both A and B** for each
+for Claude and current Codex native hooks. Its bounded producer executes **both A and B** for each
 eligible configured opportunity; an isolated answer worker also runs **both arms** on the same
 question/model. Older Codex clients can use the explicit host-neutral CLI. Plugin installation,
 native hook trust, configuration and observed capture are separate states. Existing provider
 experiments keep their own authorization gates. See the
 [paired measurement contract](skills/memory-context/references/paired-evaluation.md).
-These passive hook commands produce no output and return success when a versioned plugin
-entrypoint is unavailable or fails. In Codex, a Stop hook's exit code 2 and stderr request an
-automatic continuation, so a missing measurement script must not become a model-facing prompt.
-The guard is limited to paired measurement hooks; other hook decisions and trust controls remain
-unchanged.
+These passive commands return success without blocking or requesting a Stop continuation.
+Normal capture and intentional skips stay quiet. Missing entrypoints, failed children and failed
+answer drains produce a fixed `systemMessage` warning and private bounded diagnostics under
+`memory-context/hook-health-v1`. One warning is emitted per active incident per event/host/install;
+repeated failures remain visible in status. Foreground success cannot clear a worker failure.
+
+Run `python3 scripts/memory_context/hook_runtime.py status` from the plugin root for diagnostics
+even when the measurement engine cannot import. It exits 1 for degraded/unavailable diagnostics;
+`opportunity-status` also includes additive `hookHealth` while retaining its existing exit behavior.
+`operational` describes the runtime, **not complete A/B measurements**; inspect pair receipts.
+No records means `not_run`. Oversized payloads record `payload_too_large` without warnings.
+If Python/the reporter is unavailable, its static warning can repeat. Broken private storage
+warns at SessionStart or on an actual capture failure; durable deduplication is unavailable. Transient diagnostic lock contention alone stays quiet.
+See the [health and recovery contract](skills/memory-context/references/paired-evaluation.md#hook-health-and-recovery).
 
 The five map-reading hooks above (`session-disclosure`, `remediation-suggester`,
 `next-step-suggester`, plus opt-in `skill-router` and `agent-brief-router`) all resolve the same

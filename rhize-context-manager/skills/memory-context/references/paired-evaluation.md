@@ -31,7 +31,7 @@ plugin caches to configure this feature.
 
 ## Native events and activation
 
-`hooks/hooks.json` appends the silent Python entry point to SessionStart, UserPromptSubmit,
+`hooks/hooks.json` appends the nonblocking Python supervisor to SessionStart, UserPromptSubmit,
 PostToolUse and Stop. Claude uses `CLAUDE_PLUGIN_ROOT`; current Codex supplies compatible plugin
 variables and its own `PLUGIN_ROOT`, which identifies the host. Native hook trust must be reviewed
 through the host. Installation alone does not prove trust or execution. Older clients can pipe
@@ -60,6 +60,53 @@ worker next runs, including at an exhausted budget. Interrupted answer claims be
 on the next drain; they are never converted to successful runs. Disabling stops new capture and
 new pair starts; an already running pair finishes both arms. Status exposes queued and pending
 retrieval pairs, configuration and per-host observed event health. No recurring poller is installed.
+
+## Hook health and recovery
+
+The four passive hook commands always allow the user task to continue. Their stdlib supervisor
+is independent of the capture engine's imports. It bounds foreground execution below the host's
+10-second limit, validates a small outcome protocol, discards raw child output and records a
+categorical failure without prompt, tool, transcript, path or exception-body content. Warnings
+contain only a fixed `systemMessage`, never a decision or continuation request.
+
+`opportunity-status.hookHealth` separates runtime status from receipt completeness. If that runner
+cannot import, use the standalone command from the installed plugin's root:
+
+```bash
+python3 scripts/memory_context/hook_runtime.py status
+```
+
+Statuses are `not_run`, `operational`, `degraded` or `unavailable`; this standalone command returns
+1 for the latter two. Records include the CLI host (`claude`/`codex`), event or worker lane,
+installation fingerprint, last outcome, sanitized failure category/count, timestamps and worker
+launch identity. `disabled`, `ineligible`, `scope_denied`, `unavailable` source material and
+`payload_too_large` are explicit non-capture outcomes, not complete measurements. An operational
+runtime must still be evaluated against actual A/B receipts and their `actuallyRan` fields.
+
+Private state uses 0700 directories, 0600 files, a 64 KiB document and at most 32 records. Old
+installation records are evictable; current-install failures remain until recovery. Atomic incident
+reporting deduplicates concurrent warnings. Each event/host/install has its own lane, so a shared
+broken import can warn once for each of the four events. Changing error categories without recovery
+does not repeat the warning. A repaired event clears its runtime failure; it does not backfill lost
+measurements or clear a failed worker. A later recurrence warns again.
+
+Detached workers hold an inherited launch lock, with all stdio disconnected from the host. Their
+starting/running/completed/failed state is distinct from foreground capture. A released launch lock
+with a persisted active worker marks `worker_died` on the next event/status inspection, including
+abrupt termination. A held lock indicates a live worker regardless of age; status adds a `longRunning` advisory
+after 900 seconds without claiming the worker is dead. There is no additional
+supervisor timeout or automatic provider retry. Existing arm deadlines, queue reconciliation and
+budgets remain authoritative. A busy drain does not resolve a prior failure. Worker failures appear
+in standalone status immediately after recording and warn on the next native event; no poller is
+installed. Worker completion means the drain ran, not that every answer pair succeeded.
+
+A missing Python interpreter or reporter produces a static shell warning. Corrupt, unsafe or
+unwritable diagnostic storage warns at SessionStart or on actual capture failure, without exposing
+raw errors; successful tool events do not repeatedly warn. These cases cannot promise persistent
+deduplication. Transient document-lock contention alone skips diagnostics quietly and
+reports unavailable to a concurrent status check. If capture itself failed during contention, the
+hook still emits a static warning. Native hook trust/reload is required after package updates;
+packaged shell tests do not prove activation in an already-running host task.
 
 ## Interpretation and promotion
 

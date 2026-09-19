@@ -830,7 +830,11 @@ def test_plugin_hooks_preserve_existing_entries_and_add_paired_host_measurements
     assert any("context-experiment-selector.js" in value for value in prompt_commands)
     assert any("context-experiment-finalizer.js" in value for value in stop_commands)
     for event in ("SessionStart", "UserPromptSubmit", "PostToolUse", "Stop"):
-        assert sum("memory-opportunity" in hook["command"] for group in hooks[event] for hook in group["hooks"]) == 1
+        commands = [hook["command"] for group in hooks[event] for hook in group["hooks"]
+                    if "hook_runtime.py" in hook["command"]]
+        assert len(commands) == 1
+        assert f'" {event} ' in commands[0]
+        assert '"systemMessage"' in commands[0]
 
 
 def test_cross_host_docs_describe_native_hooks_and_explicit_fallback() -> None:

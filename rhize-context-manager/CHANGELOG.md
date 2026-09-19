@@ -24,6 +24,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-19_ version bump — 0.32.2 → 0.32.3 (patch); marketplace 2.73.2 → 2.73.3.
+- Correct passive measurement failure handling: nonblocking warnings, bounded private diagnostics, independently observed answer workers and standalone health status replace silent failure suppression. Preserve real A/B capture, model attribution, authorization and budgets; add failure, privacy, lock, killed-worker and capture-recovery regressions.
+
 - _2026-09-19_ version bump — 0.32.1 → 0.32.2 (patch); marketplace 2.73.1 → 2.73.2.
 - _2026-09-19_ version bump — 0.32.0 → 0.32.1 (patch); marketplace 2.73.0 → 2.73.1.
 - Memory benchmark evidence: session-scoped Claude model provenance, conservative answer eligibility, auth deferral without budget consumption, versioned curated grading and private blind review packets. The controlled pilot runner records pinned repeated A/B trials and empty-evidence controls; shared reporting includes both hosts and actual native arm arrays. These collection changes do not establish a general benefit claim.
