@@ -229,7 +229,8 @@ class NativeHookPackageTests(unittest.TestCase):
             self.assertTrue(all(receipt["arms"][a]["actuallyRan"] for a in ("A", "B")))
             self.assertTrue(receipt["observation"]["ended"])
             self.assertEqual(receipt["observation"]["toolCalls"], 1)
-        self.assertEqual(self.health(root)["status"], "operational")
+        final_health = self.health(root)
+        self.assertEqual(final_health["status"], "operational", final_health)
 
     def test_bootstrap_import_protocol_and_payload_boundaries(self):
         root = self.make_versioned_package("boundaries")

@@ -1,8 +1,9 @@
 # Procedural-memory deterministic evaluations
 
 The existing `procedural-memory/evals/` suite remains the canonical agent-eval suite; native runs became available
-in September 2026. See that directory's README for version-stamped results and sandbox limits. This directory adds a free local collision contract for both discovered skills:
-`procedural-memory` and `functionize`.
+in September 2026. See that directory's README for version-stamped results and sandbox limits. This directory adds a free local collision contract for three discovered skills:
+`procedural-memory`, `functionize` and `rhize-content-engine`. The new skill cases check explicit
+name collisions only; they do not classify general task intent or replace the task-agent decision.
 
 ```bash
 python3 evals/procedural-memory/run_evals.py

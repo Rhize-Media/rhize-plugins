@@ -460,8 +460,8 @@ def validate_catalog(repo_root: Path, catalog_path: Path | None = None) -> dict[
             safe_repo_path(repo_root, benchmark["protocol"], f"{component_id}.benchmark.protocol")
             if not isinstance(benchmark["natural_capture_eligible"], bool):
                 raise SetupError(f"{component_id} benchmark capture eligibility must be boolean")
-    if plugin_skill_count != 57:
-        raise SetupError(f"published plugin coverage must total 57 skills, found {plugin_skill_count}")
+    if plugin_skill_count != 58:
+        raise SetupError(f"published plugin coverage must total 58 skills, found {plugin_skill_count}")
     return catalog
 
 

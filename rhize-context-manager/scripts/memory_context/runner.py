@@ -23,7 +23,17 @@ def _time(value: str | None) -> datetime | None:
 def command_preview(args: argparse.Namespace) -> int:
     request_path = Path(args.input).expanduser().resolve(strict=True)
     document = json.loads(request_path.read_text(encoding="utf-8"))
-    manifest, payload = MemoryContextAssembler().assemble(document, _time(args.now))
+    assembler = MemoryContextAssembler()
+    if getattr(args, "procedural_launcher", None):
+        from memory_context.procedural_adapter import recall, ProceduralMemoryContextAssembler
+        assembler = ProceduralMemoryContextAssembler()
+        request = document["request"]
+        if any(a.get("name") == "procedural-memory" for a in document.get("adapters", [])):
+            raise ValueError("procedural adapter already supplied; do not mix snapshots")
+        adapter = recall(Path(args.procedural_launcher), request["query"], tenant=request["tenant"],
+                         project=request["project"], task=request.get("task"))
+        document.setdefault("adapters", []).append(adapter)
+    manifest, payload = assembler.assemble(document, _time(args.now))
     store = MemoryStore(Path(args.data_dir).expanduser() if args.data_dir else default_memory_root())
     manifest_path, payload_path = store.write(manifest, payload)
     print(json.dumps({
@@ -144,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
     preview.add_argument("--input", required=True)
     preview.add_argument("--data-dir")
     preview.add_argument("--now")
+    preview.add_argument("--procedural-launcher", help="Opt-in canonical installed launcher for bounded offline metadata recall")
     verify = subparsers.add_parser("verify")
     verify.add_argument("--manifest", required=True)
     verify.add_argument("--payload", required=True)

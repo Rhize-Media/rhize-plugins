@@ -207,3 +207,8 @@ explicit retention. Add `--project /absolute/project` for project-specific decis
 Use `plugins list` to review and `plugins forget` to remove a decision. Keep never
 suppresses safety findings. Plugin-prune displays the rationale and refuses Claude
 disable actions for Codex rows; Claude snapshots cannot establish Codex dormancy.
+
+## Content workflow evaluation coverage
+
+The evaluation catalog includes the canonical `procedural-memory:rhize-content-engine` skill.
+Local coverage checks do not execute or approve its graph, enable capture, or establish task benefit.

@@ -92,9 +92,10 @@ versioned, machine-readable read contract (`rhize-procedural-recall-v1`). The ad
 it may expose artifact identity, trust, health, verification revision, and provenance as a
 `procedure-reference`, but it never runs the artifact or turns similarity into execution authority.
 
-Until `rhize-skill` exposes that exact JSON contract, memory assembly must report the procedural lane
-as `unavailable`. It must not scrape this skill, parse human CLI prose, query registry tables directly,
-or call `run` as a fallback. Execution remains exclusively behind this skill's existing digest,
+`recall "<task>" --json` exposes that offline metadata contract on supported runtimes. It reads current
+registry identities rather than the potentially stale embedding index. Use the supported metadata
+adapter; an absent/older CLI remains `unavailable`. Do not scrape this skill, parse human CLI prose,
+query registry tables directly, or call `run` as a fallback. Execution remains exclusively behind this skill's existing digest,
 trust, health, and user-approval gates.
 
 ## Read the registry, never write to it directly
@@ -104,3 +105,11 @@ This plugin only ever talks to the registry through `rhize-skill`. Never hand-ed
 the digest/provenance guarantees the whole trust model depends on. If a user wants to inspect
 what's there, read the registry's own `README.md`/`STATE.md` (informational only) rather than
 patching artifacts by hand.
+
+## Workflow selection before composition
+
+For repeatable multi-step content, reporting, deployment or document work, do one bounded metadata
+lookup before composing a replacement. Use `rhize-content-engine` for RHIZE article requests.
+Record reuse, adaptation, unavailable, no match, or a candidate for later capture through Context
+Manager workflow selection. New candidates require observed repeatable steps and validation;
+selection does not promote or authorize an artifact.

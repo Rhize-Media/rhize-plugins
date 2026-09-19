@@ -2,6 +2,12 @@
 
 ## Verified facts
 
+- 2026-09-19: workflow discovery repair adds the canonical RHIZE Content Engine skill,
+  declared/approved-root inventory and inert procedural metadata. The opt-in checkpoint creates
+  pending opportunities; the task agent records scope, run and source identity before composition.
+  Recommendation, decision, execution, validation and capture are distinct. Completion ordering
+  remains operator-reported; benchmark evidence lives outside this repository.
+
 - 2026-09-19: paired-measurement commands in `rhize-context-manager/hooks/hooks.json` resolve
   through `${CLAUDE_PLUGIN_ROOT}`. Codex documents this compatibility variable and a versioned
   marketplace cache; source does not embed a specific cache version.
@@ -38,6 +44,17 @@
 
 ## Lessons learned
 
+- A new skill must update both the generated inventory and central evaluation catalogs/coverage.
+  The core and ops compatibility copies remain byte-identical. Release CI caught this omission.
+- Preserve the pinned incumbent memory core byte-for-byte. Procedural metadata preview extends it
+  only through an opt-in assembler; changing a source hash is not permission to repin Arm A.
+
+- Keyword classification failed negated destinations and quoted instructions in two frozen
+  diagnostic sets. Use the current task agent's full conversation context for workflow choice;
+  capture pending/skipped/unavailable outcomes rather than adding unbounded routing rules.
+- A selection receipt is not proof of workflow execution. Keep run/source bindings, latest stage
+  status and separate decided/selected counters; preserve failed experiments and missing data.
+
 - An infrastructure failure on Codex Stop differs from a normal silent hook skip: stderr plus exit 2
   is interpreted as a request to continue the agent. Non-blocking telemetry hooks must protect the
   process boundary as well as catch errors inside the script.
@@ -46,6 +63,11 @@
   not change.
 
 ## Last session
+
+- 2026-09-19 workflow repair: Context Manager 0.33.0 and Procedural Memory plugin 0.6.0 source
+  prepared. Independent read-only review found no remaining blockers after counter/router review.
+  Runtime metadata/staging and local graph are a separate runtime change. Broad hook activation,
+  native trust and graph approval remain separate; no frozen Harbor treatment was changed.
 
 - 2026-09-19: verified no other reachable branch or shared checkout contained a fix, added a
   fail-silent process boundary to all four native paired-measurement events, and added isolated

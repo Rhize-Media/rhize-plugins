@@ -22,8 +22,8 @@ exposes the four registry slash commands and advisory hooks; both hosts discover
 `procedural-memory` and `functionize` skills with self-relative launchers. Codex does not claim
 Claude's hook lifecycle. Unified memory may
 consume procedural metadata only through the versioned, recall-only
-`rhize-procedural-recall-v1` contract. That adapter is not available yet, so memory assembly must
-report the procedural lane as unavailable. It must not parse human CLI output, query registry tables
+`rhize-procedural-recall-v1` contract. Supported runtimes now expose offline `recall --json`; older or missing runtimes remain
+unavailable. The metadata bridge never executes an artifact. It must not parse human CLI output, query registry tables
 directly, or call `run` as a fallback; similarity never grants execution authority.
 
 ## Setup
@@ -90,6 +90,7 @@ registry and execution verbs are intentionally unreachable through that launcher
 | --- | --- | --- |
 | `functionize` | Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through… | automation, functionize |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
+| `rhize-content-engine` | Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog… | content-authoring, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
 ### Functionize proposal boundary
@@ -328,3 +329,17 @@ conformance only.
 Also real, and free: `tests/procedural-memory/test-launcher.sh` runs the launcher's
 resolution-order and version-gate logic directly (no Claude session) and includes a proven
 deliberately-broken-case-that-goes-red.
+
+## Workflow discovery and content drafting
+
+The `rhize-content-engine` skill is the canonical RHIZE article entrypoint on both hosts,
+distinct from ECC content-engine. It selects local-draft or explicitly authorized CMS-draft
+scope, uses fresh offline registry metadata, and requires validation plus canonical benchmark
+capture. Full public publishing is unsupported. Changed graphs retain normal live-review,
+health and digest-bound approval gates. The authored `content-engine-local` graph is staged
+through `rhize-skill graph stage`; staging is not promotion or execution approval.
+
+Context Manager records opportunities and explicit workflow decisions before composition.
+Failed/partial outcomes remain separate from successful article benchmarks. Future manual
+rows use `run bench-append --offline` through the launcher; never replay an existing legacy row
+merely to obtain a newer receipt.

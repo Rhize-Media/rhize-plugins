@@ -687,38 +687,48 @@ def collect_third_party_ecosystem(
         )
         plugin_count += 1
 
-        skills_dir = install_path / "skills"
-        if skills_dir.is_dir():
-            for skill_dir in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
-                skill_md = skill_dir / "SKILL.md"
-                if not skill_md.is_file():
-                    continue
-                try:
-                    raw = skill_md.read_bytes()
-                    text = raw.decode("utf-8")
-                except (OSError, UnicodeDecodeError):
-                    skipped_entries += 1
-                    continue
-                frontmatter, _ = split_frontmatter(text)
-                description = frontmatter.get("description", "")
-                if not isinstance(description, str):
-                    description = str(description)
-                skill_id = f"skill:{safe_marketplace}/{safe_name}/{_id_safe(skill_dir.name)}"
-                nodes.append(
-                    {
-                        "id": skill_id,
-                        "kind": "skill",
-                        "name": _safe_label(skill_dir.name),
-                        "path": _home_relative(skill_md),
-                        "description": _truncate(description),
-                        "contentHash": hashlib.sha256(raw).hexdigest(),
-                        "origin": "third-party",
-                    }
-                )
-                edges.append(
-                    {"from": plugin_id, "to": skill_id, "type": "contains", "source": "marketplace"}
-                )
+        # Manifest-declared roots may be a skill itself ("./") or a directory
+        # containing skills. A declared root never permits escaping the plugin.
+        declared = (manifest_data if isinstance(manifest_data, dict) else {}).get("skills", ["./skills"])
+        if isinstance(declared, str):
+            declared = [declared]
+        if not isinstance(declared, list):
+            declared = []
+            skipped_entries += 1
+        skill_paths = set()
+        for relative in declared:
+            try:
+                if not isinstance(relative, str) or Path(relative).is_absolute():
+                    raise ValueError("invalid skill root")
+                root = (install_path / relative).resolve()
+                root.relative_to(install_path.resolve())
+                if not root.is_dir():
+                    raise ValueError("missing skill root")
+                if (root / "SKILL.md").is_file():
+                    skill_paths.add(root / "SKILL.md")
+                else:
+                    skill_paths.update(root.glob("*/SKILL.md"))
+            except (OSError, ValueError):
+                skipped_entries += 1
+        for skill_md in sorted(skill_paths):
+            try:
+                skill_md.resolve().relative_to(install_path.resolve())
+                if skill_md.stat().st_size > 262144:
+                    raise ValueError("oversized skill")
+                raw = skill_md.read_bytes()
+                frontmatter, _ = split_frontmatter(raw.decode("utf-8"))
+                skill_name = str(frontmatter.get("name") or name) if skill_md.parent.resolve() == install_path.resolve() else skill_md.parent.name
+                skill_id = f"skill:{safe_marketplace}/{safe_name}/{_id_safe(skill_name)}"
+                if any(node["id"] == skill_id for node in nodes):
+                    raise ValueError("duplicate skill identity")
+                nodes.append({"id": skill_id, "kind": "skill", "name": _safe_label(skill_name),
+                              "path": _home_relative(skill_md),
+                              "description": _truncate(str(frontmatter.get("description", ""))),
+                              "contentHash": hashlib.sha256(raw).hexdigest(), "origin": "third-party"})
+                edges.append({"from": plugin_id, "to": skill_id, "type": "contains", "source": "marketplace"})
                 skill_count += 1
+            except (OSError, UnicodeDecodeError, ValueError):
+                skipped_entries += 1
 
         commands_dir = install_path / "commands"
         if commands_dir.is_dir():
@@ -761,6 +771,64 @@ def collect_third_party_ecosystem(
     return nodes, edges, summary, f"enabled set: {enabled_note}"
 
 
+def collect_local_skills(config_path: Path | None) -> tuple[list[dict], list[dict], dict]:
+    """Private operator allowlist; never included in the distributable static map."""
+    summary = {"roots": 0, "skills": 0, "skippedEntries": 0, "status": "not_configured", "truncatedRoots": 0, "truncatedSkills": 0}
+    if config_path is None:
+        return [], [], summary
+    config, error = _load_json(config_path)
+    if error or not isinstance(config, dict) or config.get("schemaVersion") != 1 or not isinstance(config.get("approvedSkillRoots"), list):
+        summary["status"] = "unavailable"
+        return [], [], summary
+    summary["truncatedRoots"] = max(0, len(config["approvedSkillRoots"]) - 32)
+    nodes, edges = [], []
+    seen = set()
+    for source in config["approvedSkillRoots"][:32]:
+        try:
+            configured_root = Path(source["path"]).expanduser()
+            if not configured_root.is_absolute():
+                raise ValueError("local source must be absolute")
+            root = configured_root.resolve(strict=True)
+            source_id = source["id"]
+            if not root.is_dir() or not isinstance(source_id, str) or not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", source_id):
+                raise ValueError("invalid root")
+            plugin_id = f"plugin:local/{source_id}"
+            if plugin_id in seen:
+                raise ValueError("duplicate local source")
+            seen.add(plugin_id)
+            nodes.append({"id": plugin_id, "kind": "plugin", "name": source_id, "path": _home_relative(root), "origin": "local-approved"})
+            summary["roots"] += 1
+            # At most two container levels (e.g. synced/<id>/<skill>), not an
+            # unbounded recursive scan. No symlink traversal outside allowlist.
+            paths = sorted(set([root / "SKILL.md", *root.glob("*/SKILL.md"), *root.glob("*/*/SKILL.md")]))
+            summary["truncatedSkills"] += max(0, len(paths) - 1000)
+            for skill_md in paths[:1000]:
+                if not skill_md.is_file():
+                    continue
+                try:
+                    skill_md.resolve().relative_to(root)
+                    if skill_md.stat().st_size > 262144:
+                        raise ValueError("oversized skill")
+                    raw = skill_md.read_bytes()
+                    frontmatter, _ = split_frontmatter(raw.decode("utf-8"))
+                    name = str(frontmatter.get("name") or skill_md.parent.name)
+                    skill_id = f"skill:local/{source_id}/{_id_safe(name)}"
+                    if skill_id in seen:
+                        raise ValueError("duplicate local skill identity")
+                    seen.add(skill_id)
+                    nodes.append({"id": skill_id, "kind": "skill", "name": _safe_label(name), "path": _home_relative(skill_md),
+                                  "description": _truncate(str(frontmatter.get("description", ""))),
+                                  "contentHash": hashlib.sha256(raw).hexdigest(), "origin": "local-approved"})
+                    edges.append({"from": plugin_id, "to": skill_id, "type": "contains", "source": "marketplace"})
+                    summary["skills"] += 1
+                except (OSError, UnicodeDecodeError, ValueError):
+                    summary["skippedEntries"] += 1
+        except (OSError, TypeError, KeyError, ValueError):
+            summary["skippedEntries"] += 1
+    summary["status"] = "partial" if summary["skippedEntries"] or summary["truncatedRoots"] or summary["truncatedSkills"] else "available"
+    return nodes, edges, summary
+
+
 def build(
     static_path: Path,
     installed_plugins_path: Path,
@@ -769,6 +837,7 @@ def build(
     global_settings_path: Path | None = None,
     local_settings_path: Path | None = None,
     tags_catalog_note: str = "not loaded",
+    local_sources_path: Path | None = None,
 ) -> tuple[dict, dict]:
     """Return (local_doc, resolved_doc). `tags_catalog_note` is the source note
     from load_tags_catalog(); main() loads the catalog once and passes both the
@@ -801,6 +870,9 @@ def build(
         )
     )
 
+    local_nodes, local_edges, local_summary = collect_local_skills(local_sources_path)
+    third_party_nodes.extend(local_nodes)
+    third_party_edges.extend(local_edges)
     generated_at = datetime.now(timezone.utc).isoformat()
 
     local_doc = {
@@ -811,6 +883,7 @@ def build(
         "cooccurrenceSummary": cooc_summary,
         "followsEdges": follows_edges,
         "followsSummary": follows_summary,
+        "localSources": local_summary,
         "thirdParty": {
             "nodes": third_party_nodes,
             "edges": third_party_edges,
@@ -946,6 +1019,7 @@ def main() -> int:
     ap.add_argument("--tags-catalog", default=None,
                      help="default: catalog/tags.json — the topic/stack vocabulary used to "
                           "infer third-party router signals (see infer_tags_for_skill())")
+    ap.add_argument("--local-sources", default=None, help="Private JSON schemaVersion 1 approvedSkillRoots [{id,path}]; no implicit home scan")
     ap.add_argument("--report-inferred", action="store_true",
                      help="print a per-skill inferred-tag table for every third-party skill "
                           "and exit — no files are written")
@@ -984,6 +1058,7 @@ def main() -> int:
     local_doc, resolved_doc = build(
         static_path, installed_plugins_path, stack_config_path, cooccurrence_path,
         global_settings_path, local_settings_path, tags_catalog_note,
+        Path(args.local_sources) if args.local_sources else None,
     )
 
     if args.report_inferred:

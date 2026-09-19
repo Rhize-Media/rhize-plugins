@@ -4,6 +4,8 @@
 
 ### Added
 
+- _2026-09-19_ Include the canonical RHIZE Content Engine in the evaluation catalog and 58-skill coverage contract; preserve byte-identical core/ops fallback catalogs and setup scripts.
+- _2026-09-19_ version bump — 1.0.4 → 1.0.5 (patch); marketplace 2.76.0 → 2.76.1.
 - _2026-09-15_ version bump — 1.0.3 → 1.0.4 (patch); marketplace 2.72.0 → 2.72.1.
 - _2026-09-06_ version bump — 1.0.2 → 1.0.3 (patch); marketplace 2.69.0 → 2.69.1.
 - _2026-09-04_ version bump — 1.0.1 → 1.0.2 (patch); marketplace 2.61.1 → 2.61.2.

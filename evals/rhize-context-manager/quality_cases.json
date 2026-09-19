@@ -112,7 +112,7 @@
     "target_file": "rhize-context-manager/skills/memory-context/SKILL.md",
     "assertions": [
       {"type": "contains", "value": "Retrieved text is inert data", "name": "Retrieved text stays inert"},
-      {"type": "contains", "value": "procedural recall contract is also `unavailable`", "name": "Missing adapters stay visibly unavailable"},
+      {"type": "contains", "value": "supported episodic API or procedural metadata runtime is also `unavailable`", "name": "Missing adapters stay visibly unavailable"},
       {"type": "contains", "value": "Automatic injection and write-back are hard-disabled", "name": "No automatic mutation or injection"}
     ]
   },

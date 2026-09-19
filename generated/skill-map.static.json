@@ -295,6 +295,12 @@
       "type": "contains"
     },
     {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
+      "to": "skill:procedural-memory/rhize-content-engine",
+      "type": "contains"
+    },
+    {
       "from": "plugin:project-launcher",
       "source": "marketplace",
       "to": "command:project-launcher/grill-prd",
@@ -460,6 +466,12 @@
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
       "to": "hook:rhize-context-manager/duplicate-check",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
+      "to": "hook:rhize-context-manager/inline-4d4e5dfc",
       "type": "contains"
     },
     {
@@ -1322,6 +1334,18 @@
     },
     {
       "from": "skill:procedural-memory/procedural-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/rhize-content-engine",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:procedural-memory/rhize-content-engine",
       "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
@@ -3211,6 +3235,17 @@
       "status": "opt-in"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/workflow_selection.py\" hook 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize workflow selection bootstrap is unavailable; your task can continue.\"}'",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/inline-4d4e5dfc",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-4d4e5dfc",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" Stop 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
       "event": "Stop",
       "id": "hook:rhize-context-manager/inline-59b33d8b",
@@ -3681,12 +3716,20 @@
       "path": "procedural-memory/skills/functionize/SKILL.md"
     },
     {
-      "contentHash": "8ded4f0a6a66fe63fd4ece1c25313efa06ee2f028e56ab3709d04b158fbe5750",
+      "contentHash": "28281a477e16f2bbb74d6d1da04f1c9c2a776b459db8f6171215a668faab1b81",
       "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
       "name": "procedural-memory",
       "path": "procedural-memory/skills/procedural-memory/SKILL.md"
+    },
+    {
+      "contentHash": "bc87e522087ad3447bfdff60fe3f6db66fc47fb16ccbed0c4e4b7bc5585ee108",
+      "description": "Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog drafts. Use for \"our content engine protocol\", \"Rhize Media resource article\", or \"record the content benchmark\" before composing. Binds the requested local-draft or CMS-draft scope to the procedural registry; full public publishing is unsupported. This RHIZE workflow is distinct from ECC's content-engine.",
+      "id": "skill:procedural-memory/rhize-content-engine",
+      "kind": "skill",
+      "name": "rhize-content-engine",
+      "path": "procedural-memory/skills/rhize-content-engine/SKILL.md"
     },
     {
       "contentHash": "b86be763375c2f0a6720e4bfdfc1757f93fd2665c1a47ba5ccc4511245e6d76d",
@@ -3808,7 +3851,7 @@
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
     },
     {
-      "contentHash": "9bc86a46b685812cd8ea294b1cce41ba8b0d80b26bf61f3047fe2617c279d5da",
+      "contentHash": "05195968bf183d8c56e098e70c479f682d704755a7b5166a1c14a012371e5ba0",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",

@@ -3,8 +3,8 @@
   "status": "pending",
   "repetitions": 3,
   "arm_a": "User-confirmed existing repeated workflow, script, checklist, or tool",
-  "arm_b": "procedural-memory or functionize path under evaluation",
-  "skills": ["functionize", "procedural-memory"],
+  "arm_b": "procedural-memory, functionize or rhize-content-engine path under evaluation",
+  "skills": ["functionize", "procedural-memory", "rhize-content-engine"],
   "metrics": [
     "correctness", "verification_completion", "routing_precision", "routing_recall",
     "tokens_by_exposed_category", "latency_ms", "tool_calls", "follow_up_reads",

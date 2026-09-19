@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-19_ Include the canonical RHIZE Content Engine in the evaluation catalog and 58-skill coverage contract; preserve byte-identical core/ops fallback catalogs and setup scripts.
+- _2026-09-19_ version bump — 0.25.0 → 0.25.1 (patch); marketplace 2.76.1 → 2.76.2.
 - _2026-09-15_ version bump — 0.24.0 → 0.25.0 (minor); marketplace 2.71.0 → 2.72.0.
 - Shared Claude/Codex MCP bridge and cross-model-handoff skill for subscription-backed reviews and bounded isolated file proposals, with UUID deduplication, cancellation, restart detection and coordinator-owned verification.
 

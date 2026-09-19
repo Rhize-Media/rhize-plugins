@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-19_ Add the canonical RHIZE Content Engine entrypoint with explicit local/CMS draft scope, canonical benchmark capture and current offline registry metadata. Full publishing remains unsupported; graph trust and host activation are separate.
+- _2026-09-19_ version bump — 0.5.8 → 0.6.0 (minor); marketplace 2.75.0 → 2.76.0.
 - _2026-09-15_ version bump — 0.5.7 → 0.5.8 (patch); marketplace 2.72.1 → 2.72.2.
 - _2026-09-15_ `hooks/session-start-env.sh` (SessionStart): exports `PROCEDURAL_MEMORY_PLUGIN_ROOT`
   through `$CLAUDE_ENV_FILE` so Bash tool calls can reach `scripts/rhize-skill-launcher.sh` by an
