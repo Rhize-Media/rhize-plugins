@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" >/dev/null 2>&1 || true; else :; fi",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" >/dev/null 2>&1 || true; else :; fi",
             "timeout": 10
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" >/dev/null 2>&1 || true; else :; fi",
             "timeout": 10
           }
         ]
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\"",
+            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" >/dev/null 2>&1 || true; else :; fi",
             "timeout": 10
           }
         ]

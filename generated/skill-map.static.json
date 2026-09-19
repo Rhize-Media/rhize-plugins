@@ -3194,7 +3194,7 @@
       "status": "opt-in"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\"",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" >/dev/null 2>&1 || true; else :; fi",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-context-manager/memory-opportunity",
       "kind": "hook",
@@ -3205,7 +3205,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\"",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" >/dev/null 2>&1 || true; else :; fi",
       "event": "SessionStart",
       "id": "hook:rhize-context-manager/memory-opportunity-session",
       "kind": "hook",
@@ -3216,7 +3216,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\"",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" >/dev/null 2>&1 || true; else :; fi",
       "event": "Stop",
       "id": "hook:rhize-context-manager/memory-opportunity-stop",
       "kind": "hook",
@@ -3227,7 +3227,7 @@
       "status": "wired"
     },
     {
-      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\"",
+      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" >/dev/null 2>&1 || true; else :; fi",
       "event": "PostToolUse",
       "id": "hook:rhize-context-manager/memory-opportunity-tool",
       "kind": "hook",
