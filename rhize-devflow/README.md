@@ -87,6 +87,13 @@ you verify it. After any install or update:
    behind this repo — re-run `claude plugin marketplace update rhize-plugins` then
    `claude plugin update rhize-devflow`, then repeat steps 1–3 in a new session.
 
+## Optional static evidence
+
+An explicitly supplied [Skylos report](docs/skylos-evidence.md) adds bounded, source-bound static
+findings to `devflow.py evidence --skylos-report`. It requires a separately provisioned pinned
+runtime and a working macOS sandbox. It is advisory, has no automatic hook or installation, and
+never replaces tests or review. Unsupported execution is reported as unavailable.
+
 ## Product boundary
 
 | Owner | Responsibility |

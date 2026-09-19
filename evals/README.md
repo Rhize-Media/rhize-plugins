@@ -26,6 +26,7 @@ evals/
 ├── rhize-core/            # Platform control-plane offline test-suite gate
 ├── rhize-tasks/           # Rhize Tasks deterministic contracts + benefit protocol
 ├── procedural-memory/     # Procedural Memory deterministic contracts
+├── skylos/                # Optional local static-evidence comparison and isolation acceptance
 ├── skill-forge/           # External SkillForge safety/evolve integration harness
 ├── parallel-agent-skills/ # Rhize routing + isolated guide-comparison protocols
 └── results/               # Auto-generated benchmark reports
@@ -335,6 +336,15 @@ contracts, no DataForSEO calls); `trigger_evals.json`/`quality_evals.json` are l
 for the shared `evals/run_evals.py` harness (needs DataForSEO credentials). Run the local gate
 with `python3 evals/seo-aeo-geo/run_local_evals.py`. The local gate writes nothing; the live
 harness writes results into `evals/results/`.
+
+### skylos
+
+Compares the existing deterministic Devflow evidence inventory (Arm A) with the same inventory plus
+the opt-in, sandboxed Skylos adapter (Arm B). Thirteen inert source fixtures record explicit rule and
+location targets, misses, availability, coverage, timing and source preservation. This is not a
+full agent-review or productivity comparison. Run the isolation acceptance first, then
+`python3 evals/skylos/run.py --python /absolute/dedicated-venv/bin/python`; the runtime must contain
+Skylos 4.38.0. See [setup](skylos/README.md) and [recorded limitations](skylos/RESULTS.md).
 
 ### skill-forge
 

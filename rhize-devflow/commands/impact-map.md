@@ -103,6 +103,11 @@ unaffected paths for a material change.
 ## Invariants and must-not-change boundaries
 - <historical attribution, authorization, idempotency, transaction, compatibility, etc.>
 
+## Invariant clauses (optional for static evidence)
+| Clause | Owning symbol/path | Structural evidence | Independent acceptance check | Static hint / unresolved gap |
+|---|---|---|---|---|
+| <invariant> | <owner> | <confirmed source or graph edge> | <behavioral oracle> | <advisory Skylos rule, or unavailable> |
+
 ## Current structural touchpoints
 | Repository | Entry point or symbol | Why affected | Evidence |
 |---|---|---|---|

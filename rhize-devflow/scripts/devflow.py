@@ -69,6 +69,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import importlib.util
 import json
 import os
 import py_compile
@@ -904,7 +905,7 @@ def _codegraph_evidence(repo: Path, findings: list[dict]) -> dict:
     }
 
 
-def run_evidence(repo: Path, base_arg: Optional[str], as_json: bool) -> int:
+def run_evidence(repo: Path, base_arg: Optional[str], as_json: bool, skylos_report: Optional[Path] = None) -> int:
     if not repo.is_dir():
         print(f"ERROR: --repo does not exist or is not a directory: {repo}", file=sys.stderr)
         return 2
@@ -962,6 +963,19 @@ def run_evidence(repo: Path, base_arg: Optional[str], as_json: bool) -> int:
         "healthy": is_healthy(findings),
     }
 
+    if skylos_report is not None:
+        spec = importlib.util.spec_from_file_location("devflow_skylos", Path(__file__).with_name("skylos_evidence.py"))
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        advisory = adapter.verify_report(repo_root, base_arg, skylos_report)
+        result["skylos"] = advisory
+        if not advisory["accepted"]:
+            findings.append(make_finding("skylos-report-invalid", "warning", advisory["reason"], None))
+        else:
+            # Separate supporting evidence from repo health/test and release verdicts.
+            findings.append(make_finding("skylos-advisory", "info", "Skylos static evidence: " + advisory["report"]["status"], None))
+        result["healthy"] = is_healthy(findings)
+
     if as_json:
         print(json.dumps(result, indent=2, sort_keys=False))
     else:
@@ -1005,6 +1019,8 @@ def build_parser() -> argparse.ArgumentParser:
     evidence_p.add_argument("--repo", type=Path, default=None, help="Repository to inspect (defaults to cwd).")
     evidence_p.add_argument("--base", type=str, default=None, help="Base ref to diff against (defaults to upstream, then default branch).")
 
+    evidence_p.add_argument("--skylos-report", type=Path, help="Explicit local advisory report; requires --base and never launches a scanner.")
+
     return parser
 
 
@@ -1022,7 +1038,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             return run_doctor(plugin_root, args.json)
         if args.subcommand == "evidence":
             repo = args.repo.resolve() if args.repo else Path.cwd()
-            return run_evidence(repo, args.base, args.json)
+            return run_evidence(repo, args.base, args.json, args.skylos_report)
     except Exception as exc:  # noqa: BLE001 - top-level safety net per CLI contract
         print(f"ERROR: internal error: {exc}", file=sys.stderr)
         return 2

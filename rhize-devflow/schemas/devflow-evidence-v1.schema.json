@@ -188,6 +188,17 @@
         }
       }
     },
+    "skylos": {
+      "description": "Optional advisory scanner packet. Acceptance checks consistency and freshness, not trusted execution or release readiness.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "reason", "report"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "reason": {"type": ["string", "null"]},
+        "report": {"anyOf": [{"type": "null"}, {"$ref": "skylos-evidence-v1.schema.json"}]}
+      }
+    },
     "healthy": {
       "type": "boolean",
       "description": "true iff every finding has severity \"info\". Mirrors the process exit code: 0 when true, 1 when false."

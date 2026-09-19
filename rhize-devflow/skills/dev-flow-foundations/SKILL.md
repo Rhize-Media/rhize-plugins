@@ -223,3 +223,10 @@ implementing, then gate the merge.
 | [SKILL-refinement-meta-v1.md](SKILL-refinement-meta-v1.md) | Skill improvement |
 | [SKILL-foundations-index.md](SKILL-foundations-index.md) | Original index |
 | [Claude-dev-flow-optimization.md](Claude-dev-flow-optimization.md) | Overview document |
+
+## Advisory static evidence
+
+For an explicitly requested Skylos integration, follow [the evidence contract](../../docs/skylos-evidence.md).
+Map invariant clauses to owning symbols, structural evidence, independent acceptance checks and named
+gaps. Static findings supplement that map; they never become structural truth, executable contracts
+from prose, permission to remove code, or regression/release proof. Context Pack remains WATCH.

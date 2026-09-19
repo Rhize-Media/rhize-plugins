@@ -1854,6 +1854,17 @@
       "type": "topic-tag"
     },
     {
+      "driftCheck": {
+        "method": "content-hash",
+        "upstreamPath": "duriantaco/skylos",
+        "upstreamRepo": "github.com"
+      },
+      "from": "skill:rhize-devflow/dev-flow-foundations",
+      "source": "sources-md",
+      "to": "external:github.com/duriantaco/skylos",
+      "type": "fork-of"
+    },
+    {
       "from": "skill:rhize-devflow/dev-flow-foundations",
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
@@ -2988,6 +2999,12 @@
       "name": "ecc:swift-build-resolver (agent)"
     },
     {
+      "id": "external:github.com/duriantaco/skylos",
+      "kind": "external",
+      "name": "dev-flow-foundations",
+      "url": "https://github.com/duriantaco/skylos"
+    },
+    {
       "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally.",
       "id": "external:humanizer-humanizer",
       "kind": "external",
@@ -3857,7 +3874,8 @@
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
     },
     {
-      "contentHash": "89adb28f00bb1ed38c334a9e69680f707cf97633c392ce06eb1bdf89ac56fa38",
+      "contentHash": "b68a7a9e46847a8765c238743b8e96e418ffc0b16dac68d76f241267695e05b0",
+      "contentHashNormalized": "1765f5ab8a37a039d69869adaa4dab25714a87ddac4b3b0e48e0372de5037338",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
@@ -3898,7 +3916,7 @@
       "path": "rhize-devflow/skills/simplify/SKILL.md"
     },
     {
-      "contentHash": "289ad30bde02a9bb4e5b889089120b417b50c6036551503982658300780758f6",
+      "contentHash": "5929934c3f32999178d6798e6c6f41de81e78536603497340cfc8784859650cf",
       "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including an explicit unavailable status while trusted test execution is not implemented. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",

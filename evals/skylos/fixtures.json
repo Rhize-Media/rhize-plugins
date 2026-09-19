@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "python-clean",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "expected": [],
+      "notes": "No seeded defect; unrelated findings require manual classification."
+    },
+    {
+      "id": "python-phantom",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    return validate_token(\"input\")\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L012",
+          "file": "app.py",
+          "line": 2
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-stub",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    raise NotImplementedError(\"finish implementation\")\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L026",
+          "file": "app.py",
+          "line": 1
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-disabled-tls",
+      "before": {
+        "app.py": "import requests\ndef fetch(url):\n    return requests.get(url, timeout=5)\n"
+      },
+      "after": {
+        "app.py": "import requests\ndef fetch(url):\n    return requests.get(url, timeout=5, verify=False)\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L011",
+          "file": "app.py",
+          "line": 3
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-missing-timeout",
+      "before": {
+        "app.py": "import requests\ndef fetch(url):\n    return requests.get(url, timeout=5)\n"
+      },
+      "after": {
+        "app.py": "import requests\ndef fetch(url):\n    return requests.get(url)\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L031",
+          "file": "app.py",
+          "line": 3
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-swallowed-error",
+      "before": {
+        "app.py": "def value():\n    return int(\"bad\")\n"
+      },
+      "after": {
+        "app.py": "def value():\n    try:\n        return int(\"bad\")\n    except Exception:\n        pass\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L030",
+          "file": "app.py",
+          "line": 4
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-weakened-test",
+      "before": {
+        "app.py": "def value():\n    return 1\n",
+        "test_app.py": "from app import value\ndef test_value():\n    assert value() == 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    return 1\n",
+        "test_app.py": "from app import value\ndef test_value():\n    assert True\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-A101",
+          "file": "test_app.py",
+          "line": 3
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-no-regression-test",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    return 2\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-A102",
+          "file": "app.py",
+          "line": 1
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "python-unrelated-test",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value():\n    return 2\n",
+        "test_other.py": "def test_other():\n    assert 2 + 2 == 4\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-A102",
+          "file": "app.py",
+          "line": 1
+        }
+      ],
+      "notes": "Intentional heuristic blind spot: unrelated test must not count as regression proof."
+    },
+    {
+      "id": "python-dynamic-reference",
+      "before": {
+        "app.py": "def value():\n    return 1\n"
+      },
+      "after": {
+        "app.py": "def value(namespace, name):\n    return getattr(namespace, name)()\n"
+      },
+      "expected": [],
+      "notes": "No seeded defect; unresolved dynamic behavior must remain explicit."
+    },
+    {
+      "id": "typescript-clean",
+      "before": {
+        "app.ts": "export function value(): number { return 1; }\n"
+      },
+      "after": {
+        "app.ts": "export function value(): number { return 1; }\n"
+      },
+      "expected": [],
+      "notes": "No seeded defect; Python behavior modeling does not prove TypeScript behavior."
+    },
+    {
+      "id": "typescript-missing-export",
+      "before": {
+        "lib.ts": "export function value(): number { return 1; }\n",
+        "app.ts": "import { value } from \"./lib\";\nexport const result = value();\n"
+      },
+      "after": {
+        "lib.ts": "export function value(): number { return 1; }\n",
+        "app.ts": "import { missing } from \"./lib\";\nexport const result = missing();\n"
+      },
+      "expected": [
+        {
+          "rule_id": "SKY-L023",
+          "file": "app.ts",
+          "line": 1
+        }
+      ],
+      "notes": ""
+    },
+    {
+      "id": "typescript-clean-change",
+      "before": {
+        "app.ts": "export const value = 1;\n"
+      },
+      "after": {
+        "app.ts": "export const value = 2;\n"
+      },
+      "expected": [],
+      "notes": "Changed TypeScript must report unmodeled behavior even if Python comparison says unchanged."
+    }
+  ]
+}

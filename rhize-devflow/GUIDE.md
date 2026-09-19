@@ -70,6 +70,14 @@ Session lifecycle (`/start`, `/done`, `/context-hygiene`) is owned by the paired
 `rhize-context-manager` plugin, not this one — `/done` there delegates code-change review to
 `/rhize-devflow:review` when Dev Flow is installed and code changed this session.
 
+## Adding optional Skylos evidence
+
+Use Skylos when static defect hints would help inspect a Python/JavaScript/TypeScript change.
+Follow [setup and interpretation](docs/skylos-evidence.md), pass the same explicit base as review,
+and save the report outside the target checkout. Review findings against each impact-map invariant;
+retain incomplete coverage and unavailable execution as gaps. A clean report cannot approve a
+release or establish that a regression test protects behavior.
+
 ## Skills Reference
 
 ### dev-flow-foundations

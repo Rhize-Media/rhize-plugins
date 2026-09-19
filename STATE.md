@@ -95,3 +95,25 @@
   correction, active-worker eviction protection, long-running status advisory and detached fixture
   cleanup were incorporated. Runner success returns0 and resolved installation identity match
   were verified directly. No new worker watchdog can orphan separate native process groups.
+
+## Skylos advisory integration — 2026-09-19
+
+- Devflow can consume an explicitly provided, source/base/policy-bound Skylos 4.38.0 report.
+  Scanner execution is optional and isolated on macOS with a dedicated runtime; no automatic
+  installation, hooks, uploads, source execution or cleanup is added. Context Pack remains WATCH.
+- The approved inert sentinel verified selected-source reads, unrelated-content denial, denied
+  source writes/networking, scratch writes and unchanged source. Serial scanning avoids IPC
+  permissions; direct Command Line Tools Git avoids Apple's launcher shim in the sandbox.
+- All 13 real fixture pairs ran. Seven Arm B cases had findings, four were incomplete and two had
+  no findings. Strict rule/location matching detected 5/9 targets; two expectation mismatches and
+  two missing-test-impact targets remain explicit in evals/skylos/RESULTS.md. No task-benefit claim.
+- The 407-test Devflow suite passed. Independent implementation review passed after fixing malformed
+  input handling, failed/missing coverage, non-Python behavior gaps and read-only Git boundaries.
+- General rule: schema/digest acceptance is consistency and freshness, never an execution
+  attestation. Static findings cannot prove regression coverage or approve release. Required
+  checks must complete; non-applicable language checks must be explicit.
+- Runtime support is initially macOS/Apple Command Line Tools. Other hosts fail closed.
+  The existing test-evidence runner still reports execution_unavailable.
+- Final merged-tree validation: 1,507 tests passed, 5 skipped and 18 subtests passed. All ten plugin
+  manifests, marketplace, configuration lint, skill-map/setup freshness and doctor passed. Tests
+  using temporary HOME must use the real Node binary rather than the mise shim.

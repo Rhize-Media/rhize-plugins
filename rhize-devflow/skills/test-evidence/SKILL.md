@@ -42,3 +42,8 @@ restoration. Packets stay local and are never copied verbatim into Jira.
 
 This skill is distinct from `data-mutation-consistency` and `/mutation-check`, which inspect cache,
 CMS, and data-write consistency rather than mutation testing.
+
+Optional [Skylos static evidence](../../docs/skylos-evidence.md) may flag assertion weakening or a
+missing changed test. These are advisory candidates: an unrelated changed test can satisfy the
+upstream heuristic. Record the governing invariant and independent oracle yourself. Scanner results
+do not execute tests and cannot change this skill's `execution_unavailable` status.
