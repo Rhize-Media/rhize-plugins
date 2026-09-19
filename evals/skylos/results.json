@@ -1,0 +1,779 @@
+{
+  "adapter_sha256": "4fe6c5a56665aa7658027ed2277f7d3b4a1cb3ce53dbf4f09f138f7ff703426f",
+  "corpus_sha256": "f8727a9873c763a26eb0026910948718d7442d44823da7c3aa01b83c0a5580c6",
+  "host": "Darwin",
+  "limits": [
+    "Single host and one trial per fixture; no statistical or productivity claim.",
+    "Arm A is deterministic evidence inventory, not a complete agent review.",
+    "Unmatched findings need manual classification; do not infer false positives.",
+    "Incomplete execution can detect hints but does not establish clean coverage."
+  ],
+  "python_version": "3.12.14",
+  "rows": [
+    {
+      "arm": "A",
+      "elapsed_ms": 204,
+      "expected": [],
+      "expected_count": 0,
+      "fixture": "python-clean",
+      "fixture_hash": "c46aeacaede35f5cbbcf5bae073ea0a5b8dc708ac666a86cecab3db0fc850200",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 2094,
+      "expected": [],
+      "expected_count": 0,
+      "findings": [],
+      "fixture": "python-clean",
+      "fixture_hash": "c46aeacaede35f5cbbcf5bae073ea0a5b8dc708ac666a86cecab3db0fc850200",
+      "note": "No seeded defect; unrelated findings require manual classification.",
+      "ran": true,
+      "reasons": [],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 1890,
+      "scanner_status": "no_findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 236,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 2,
+          "outcome": "missed",
+          "rule_id": "SKY-L012"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-phantom",
+      "fixture_hash": "b3227a04ef0425c90829a3100b9286c75c2763d5dfb813e41cc6d8acce89ba02",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 2415,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 2,
+          "outcome": "detected",
+          "rule_id": "SKY-L012"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 2,
+          "file": "app.py",
+          "rule_id": "SKY-L012",
+          "severity": "CRITICAL",
+          "start_line": 2
+        }
+      ],
+      "fixture": "python-phantom",
+      "fixture_hash": "b3227a04ef0425c90829a3100b9286c75c2763d5dfb813e41cc6d8acce89ba02",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 2179,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 211,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-L026"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-stub",
+      "fixture_hash": "74eb133fcf0c47fd7cacb94f9b790825612c815685aeafd95c66de9d3a8cac14",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 2334,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-L026"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 2,
+          "file": "app.py",
+          "rule_id": "SKY-L026",
+          "severity": "MEDIUM",
+          "start_line": 2
+        }
+      ],
+      "fixture": "python-stub",
+      "fixture_hash": "74eb133fcf0c47fd7cacb94f9b790825612c815685aeafd95c66de9d3a8cac14",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 2123,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 241,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 3,
+          "outcome": "missed",
+          "rule_id": "SKY-L011"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-disabled-tls",
+      "fixture_hash": "aa4f03a20dec373cc33476537627999e4f43fe7de66a8065bc05cb4bedb90133",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 2641,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 3,
+          "outcome": "detected",
+          "rule_id": "SKY-L011"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 3,
+          "file": "app.py",
+          "rule_id": "SKY-L011",
+          "severity": "HIGH",
+          "start_line": 3
+        }
+      ],
+      "fixture": "python-disabled-tls",
+      "fixture_hash": "aa4f03a20dec373cc33476537627999e4f43fe7de66a8065bc05cb4bedb90133",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 2400,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 513,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 3,
+          "outcome": "missed",
+          "rule_id": "SKY-L031"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-missing-timeout",
+      "fixture_hash": "ea088a9d8ccb8ff8d875e686987c8e04d49b10e22decc3cb96da0288ec6b3386",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 2328,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 3,
+          "outcome": "detected",
+          "rule_id": "SKY-L031"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 3,
+          "file": "app.py",
+          "rule_id": "SKY-L031",
+          "severity": "MEDIUM",
+          "start_line": 3
+        }
+      ],
+      "fixture": "python-missing-timeout",
+      "fixture_hash": "ea088a9d8ccb8ff8d875e686987c8e04d49b10e22decc3cb96da0288ec6b3386",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 1815,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 492,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 4,
+          "outcome": "missed",
+          "rule_id": "SKY-L030"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-swallowed-error",
+      "fixture_hash": "9781276e4fafcc23e96a8e750b35e80ae5ed834dc6c8e61c14435af1ea185478",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 3052,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 4,
+          "outcome": "detected",
+          "rule_id": "SKY-L030"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 4,
+          "file": "app.py",
+          "rule_id": "SKY-L030",
+          "severity": "MEDIUM",
+          "start_line": 4
+        }
+      ],
+      "fixture": "python-swallowed-error",
+      "fixture_hash": "9781276e4fafcc23e96a8e750b35e80ae5ed834dc6c8e61c14435af1ea185478",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 2560,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 517,
+      "expected": [
+        {
+          "file": "test_app.py",
+          "line": 3,
+          "outcome": "missed",
+          "rule_id": "SKY-A101"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-weakened-test",
+      "fixture_hash": "2633adce38b6598c3af1c70358bc55ee9f37daaabb1ab6261449183c61563411",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 5531,
+      "expected": [
+        {
+          "file": "test_app.py",
+          "line": 3,
+          "outcome": "detected",
+          "rule_id": "SKY-A101"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 3,
+          "file": "test_app.py",
+          "rule_id": "SKY-A101",
+          "severity": "MEDIUM",
+          "start_line": 3
+        }
+      ],
+      "fixture": "python-weakened-test",
+      "fixture_hash": "2633adce38b6598c3af1c70358bc55ee9f37daaabb1ab6261449183c61563411",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 5014,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py",
+          "test_app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 686,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-A102"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-no-regression-test",
+      "fixture_hash": "1a11d91dc1892e601ffd34ed21f9b186230e899fbbeb8368d5cde77f46ad82b8",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 6782,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-A102"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [],
+      "fixture": "python-no-regression-test",
+      "fixture_hash": "1a11d91dc1892e601ffd34ed21f9b186230e899fbbeb8368d5cde77f46ad82b8",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven",
+        "scanner_incomplete"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 6096,
+      "scanner_status": "incomplete",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 603,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-A102"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "python-unrelated-test",
+      "fixture_hash": "ca70fcad46054f6e8dd967c111dc412738909497c0d6a82186856ffd99b313b0",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 6535,
+      "expected": [
+        {
+          "file": "app.py",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-A102"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [],
+      "fixture": "python-unrelated-test",
+      "fixture_hash": "ca70fcad46054f6e8dd967c111dc412738909497c0d6a82186856ffd99b313b0",
+      "note": "Intentional heuristic blind spot: unrelated test must not count as regression proof.",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven",
+        "scanner_incomplete"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 5932,
+      "scanner_status": "incomplete",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py",
+          "test_other.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 396,
+      "expected": [],
+      "expected_count": 0,
+      "fixture": "python-dynamic-reference",
+      "fixture_hash": "b5f65ef35a4776ec49418c6994047ec237c2d81e1730b322dd6c6ce1ef5d33dd",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 2,
+        "state": "complete"
+      },
+      "elapsed_ms": 3463,
+      "expected": [],
+      "expected_count": 0,
+      "findings": [],
+      "fixture": "python-dynamic-reference",
+      "fixture_hash": "b5f65ef35a4776ec49418c6994047ec237c2d81e1730b322dd6c6ce1ef5d33dd",
+      "note": "No seeded defect; unresolved dynamic behavior must remain explicit.",
+      "ran": true,
+      "reasons": [
+        "behavior_unproven",
+        "scanner_incomplete"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 3067,
+      "scanner_status": "incomplete",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.py"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 529,
+      "expected": [],
+      "expected_count": 0,
+      "fixture": "typescript-clean",
+      "fixture_hash": "c1f0a11014a5f1258a3f52540788610f36afc30986eb75a33045c24c59062adb",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 1,
+        "state": "complete"
+      },
+      "elapsed_ms": 4405,
+      "expected": [],
+      "expected_count": 0,
+      "findings": [],
+      "fixture": "typescript-clean",
+      "fixture_hash": "c1f0a11014a5f1258a3f52540788610f36afc30986eb75a33045c24c59062adb",
+      "note": "No seeded defect; Python behavior modeling does not prove TypeScript behavior.",
+      "ran": true,
+      "reasons": [],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 3876,
+      "scanner_status": "no_findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.ts"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 1151,
+      "expected": [
+        {
+          "file": "app.ts",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-L023"
+        }
+      ],
+      "expected_count": 1,
+      "fixture": "typescript-missing-export",
+      "fixture_hash": "88508b170f27b38f10083e7ff06819fd5b2957e07196539b2f7915f3a200d76f",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 1,
+        "state": "complete"
+      },
+      "elapsed_ms": 4975,
+      "expected": [
+        {
+          "file": "app.ts",
+          "line": 1,
+          "outcome": "missed",
+          "rule_id": "SKY-L023"
+        }
+      ],
+      "expected_count": 1,
+      "findings": [
+        {
+          "advisory": true,
+          "end_line": 1,
+          "file": "app.ts",
+          "rule_id": "SKY-L012",
+          "severity": "CRITICAL",
+          "start_line": 1
+        }
+      ],
+      "fixture": "typescript-missing-export",
+      "fixture_hash": "88508b170f27b38f10083e7ff06819fd5b2957e07196539b2f7915f3a200d76f",
+      "note": "",
+      "ran": true,
+      "reasons": [
+        "behavior_non_python_unmodeled"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 3824,
+      "scanner_status": "findings",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.ts",
+          "lib.ts"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    },
+    {
+      "arm": "A",
+      "elapsed_ms": 326,
+      "expected": [],
+      "expected_count": 0,
+      "fixture": "typescript-clean-change",
+      "fixture_hash": "0c80a2b5589d5fcaadfbe095bdb1ebcf9bb0655c6b282e57650badbfd7df29ec",
+      "note": "Baseline inventories evidence; it has no Skylos defect detector.",
+      "ran": true,
+      "scanner_status": "not_requested",
+      "test_candidate_count": 0,
+      "variant": "devflow-deterministic-evidence"
+    },
+    {
+      "arm": "B",
+      "coverage": {
+        "check_count": 1,
+        "state": "complete"
+      },
+      "elapsed_ms": 3023,
+      "expected": [],
+      "expected_count": 0,
+      "findings": [],
+      "fixture": "typescript-clean-change",
+      "fixture_hash": "0c80a2b5589d5fcaadfbe095bdb1ebcf9bb0655c6b282e57650badbfd7df29ec",
+      "note": "Changed TypeScript must report unmodeled behavior even if Python comparison says unchanged.",
+      "ran": true,
+      "reasons": [
+        "behavior_non_python_unmodeled"
+      ],
+      "report_accepted": true,
+      "scanner_elapsed_ms": 2697,
+      "scanner_status": "incomplete",
+      "scope": {
+        "deleted_files": [],
+        "excluded_file_count": 0,
+        "files": [
+          "app.ts"
+        ],
+        "full_repository_coverage": false
+      },
+      "source_unchanged": true,
+      "variant": "devflow-plus-skylos-static"
+    }
+  ],
+  "scanner_version": "4.38.0",
+  "schema_version": "rhize-skylos-eval-v1"
+}

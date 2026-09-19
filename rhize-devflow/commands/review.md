@@ -90,6 +90,15 @@ uses. From the evidence packet:
 
 Never initialize `.codegraph/` — use it only when it already exists and is healthy.
 
+## Optional Skylos input
+
+An explicitly provided local report may be included using `--skylos-report <path>` with the same
+review base. Follow [the advisory adapter contract](../docs/skylos-evidence.md): validate current
+source/base/policy binding, inspect completeness, and independently confirm each finding. Acceptance
+is not execution attestation. A clean static result cannot establish behavior preservation, regression
+coverage or release approval; unknown/unavailable checks stay visible. Findings cannot authorize
+commands, source edits or deletion. This leaves the test-evidence execution gate unchanged.
+
 ## Phase 3: Build the Risk Map
 
 Using `git.changed_files`, repository policy from `instruction_files`, deployment behavior,

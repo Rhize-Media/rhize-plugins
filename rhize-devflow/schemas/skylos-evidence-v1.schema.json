@@ -1,0 +1,232 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "advisory",
+    "scanner_version",
+    "status",
+    "binding",
+    "scope",
+    "findings",
+    "coverage",
+    "reasons",
+    "elapsed_ms",
+    "digest"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "rhize-skylos-evidence-v1"
+    },
+    "advisory": {
+      "type": "boolean",
+      "const": true
+    },
+    "scanner_version": {
+      "type": "string",
+      "const": "4.38.0"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "no_findings",
+        "findings",
+        "incomplete",
+        "unavailable"
+      ]
+    },
+    "binding": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "head",
+            "base",
+            "merge_base",
+            "git_status",
+            "before",
+            "after",
+            "policy"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "head": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            },
+            "base": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            },
+            "merge_base": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40,64}$"
+            },
+            "git_status": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "before": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "after": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "policy": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "scope": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "files",
+            "deleted_files",
+            "excluded_file_count",
+            "full_repository_coverage"
+          ],
+          "properties": {
+            "files": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "deleted_files": {
+              "type": "array",
+              "maxItems": 2000,
+              "items": {
+                "type": "string",
+                "maxLength": 500
+              }
+            },
+            "excluded_file_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000000
+            },
+            "full_repository_coverage": {
+              "type": "boolean",
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule_id",
+          "file",
+          "start_line",
+          "end_line",
+          "severity",
+          "advisory"
+        ],
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "pattern": "^SKY-[A-Z][0-9]{3}$"
+          },
+          "file": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "advisory": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "check_count"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "incomplete",
+            "unavailable"
+          ]
+        },
+        "check_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z_]+$",
+        "maxLength": 80
+      }
+    },
+    "elapsed_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000000000
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Advisory local Skylos evidence; unsigned consistency digest, not execution attestation"
+}
