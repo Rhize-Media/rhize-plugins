@@ -17,6 +17,11 @@
 
 ## General rules
 
+- Keep private benchmark findings, raw research results and article evidence in the operator's
+  consolidated vault. Repository evaluation code, fixtures and versioned validation contracts
+  remain with their implementation; machine-local output routes must preserve this boundary.
+- Relocating evidence requires source/destination hash verification and a reversible archive.
+  Preserve historical receipts unchanged and record their path mapping separately.
 - Passive paired-measurement hooks must not block, continue, or alter user work when capture is
   unavailable. Preserve A/B, privacy, scope, authorization, and hook-trust gates.
 - Do not mutate the global Codex config or installed cache to repair a version-root issue without
