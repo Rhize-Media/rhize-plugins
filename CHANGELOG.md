@@ -33,6 +33,8 @@ point-in-time record.
 
 ### Added
 
+- Memory benchmark evidence: session-scoped Claude model provenance, conservative answer eligibility, auth deferral without budget consumption, versioned curated grading and private blind review packets. The controlled pilot runner records pinned repeated A/B trials and empty-evidence controls; shared reporting includes both hosts and actual native arm arrays. These collection changes do not establish a general benefit claim.
+- _2026-09-19_ version bump — **rhize-context-manager** 0.31.0 → 0.32.0 (minor); marketplace 2.72.2 → 2.73.0.
 - _2026-09-15_ version bump — **procedural-memory** 0.5.7 → 0.5.8 (patch); marketplace 2.72.1 → 2.72.2.
 - _2026-09-15_ version bump — **rhize-core** 1.0.3 → 1.0.4 (patch); marketplace 2.72.0 → 2.72.1.
 - _2026-09-15_ version bump — **rhize-ops** 0.24.0 → 0.25.0 (minor); marketplace 2.71.0 → 2.72.0.

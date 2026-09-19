@@ -41,7 +41,7 @@ query catalog).
   has pre-existing environmental `@types/node`/`node:fs` errors).
 - vitest output is teed to `~/Library/Application Support/rtk/tee/` — read the newest file there,
   never pass `--reporter=basic`. Git fixture repos need `-c core.excludesFile=/dev/null`.
-- `claude plugin eval` is org-gated on this machine — build static validators instead.
+- `claude plugin eval` became available here in September 2026. Keep native routing/procedure evals separate from controlled task-benefit benchmarks; see `procedural-memory/evals/README.md`.
 - Executors/agent sessions never `git push` — the orchestrator does.
 
 ## Required operational checks

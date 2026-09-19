@@ -1,9 +1,15 @@
 import copy
 import json
+import pytest
 from datetime import datetime, timezone
 
 from memory_context.model_evaluation import evaluate_answers, parse_output, driver_command, drain
 from memory_context.opportunities import PairStore
+
+
+@pytest.fixture(autouse=True)
+def subscription_preflight(monkeypatch):
+    monkeypatch.setattr("memory_context.model_evaluation.authenticated", lambda host: True)
 
 
 def test_both_answer_arms_attempted_after_failure(tmp_path):
@@ -192,3 +198,21 @@ def test_symlink_queue_cannot_remove_outside_json(tmp_path):
     with pytest.raises(ValueError, match="symlinks"):
         drain(store)
     assert packet.exists()
+
+
+def test_auth_preflight_preserves_pair_budget(tmp_path, monkeypatch):
+    from memory_context.core import format_time, utc_now
+    from memory_context.opportunities import handle_event
+    from memory_context import model_evaluation
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "STATE.md").write_text("# Release policy\nVerify tests.")
+    store = PairStore(tmp_path / "store")
+    store.configure([workspace])
+    event = {"session_id":"s", "turn_id":"t", "cwd":str(workspace), "model":"m", "prompt":"Recall the release policy"}
+    pair = handle_event(store, "claude", "UserPromptSubmit", event)
+    monkeypatch.setattr(model_evaluation, "authenticated", lambda host: False)
+    assert drain(store)["deferredPairs"] == 1
+    assert store.read(f"receipts/{pair['pairId']}.json")["answerStatus"] == "deferred_auth"
+    assert store.read(f"queue/{pair['pairId']}.json") is not None
+    assert list((store.root / "budgets").glob("*.json")) == []

@@ -14,10 +14,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from .model_identity import resolve_model, answer_eligibility
 from .awareness import build_catalog, canonical, estimated_tokens, expand_catalog, render_context
 from .core import MemoryContextAssembler, MemoryStore, _write_private_replace, default_memory_root, format_time, sha256, utc_now
 
-IMPLEMENTATION_HASHES = {name: sha256(Path(__file__).with_name(name).read_bytes()) for name in ("core.py", "awareness.py", "opportunities.py")}
+IMPLEMENTATION_HASHES = {name: sha256(Path(__file__).with_name(name).read_bytes()) for name in ("core.py", "awareness.py", "opportunities.py", "model_identity.py")}
 ARMS = ("A", "B")
 PROTOCOL = "rhize-memory-pair-v1"
 FILES = ("STATE.md", "CLAUDE.md", "AGENTS.md", "README.md")
@@ -143,7 +144,7 @@ def run_pair(document: dict[str, Any], root: Path, *, host: str, model: str | No
              evidence_kind: str, now: datetime | None = None) -> tuple[dict[str, Any], dict[str, str]]:
     if host not in {"claude", "codex", "host-neutral"} or evidence_kind not in {"curated", "natural", "hook-smoke"}:
         raise ValueError("invalid measurement host or evidence kind")
-    if model is not None and (not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}", model)):
+    if model is not None and (not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/\[\]-]{0,127}", model)):
         raise ValueError("invalid model identity")
     if len(canonical(document).encode()) > MAX_BYTES:
         raise ValueError("paired input exceeds limit")
@@ -235,8 +236,10 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         health.update(eventsObserved=health["eventsObserved"] + 1, lastEvent=event_name, lastSeen=format_time(stamp))
         store.write(f"health/{host}.json", health)
         session_state = store.read(f"sessions/{session_key}.json") or {}
+        if event_name in {"SessionStart", "UserPromptSubmit"}:
+            model, model_source = resolve_model(host, event, session_state)
+            session_state.update(model=model, modelIdentitySource=model_source)
         if event_name == "SessionStart":
-            session_state["model"] = event.get("model")
             store.write(f"sessions/{session_key}.json", session_state)
             return {"status": "observed"}
         if event_name != "UserPromptSubmit":
@@ -269,6 +272,8 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         # An ineligible new turn must not be attributed to the preceding measured turn.
         prior_state = dict(session_state)
         store.write(f"sessions/{session_key}.json", {"model": session_state.get("model")})
+        health["promptsObserved"] = health.get("promptsObserved", 0) + 1
+        store.write(f"health/{host}.json", health)
         prompt = event.get("prompt")
         if not isinstance(prompt, str) or len(prompt.encode()) > 16000 or not SIGNALS.search(prompt):
             return {"status": "ineligible"}
@@ -278,9 +283,7 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         if not document["adapters"][0]["candidates"]:
             return {"status": "unavailable"}
         turn = event.get("turn_id") or store.fingerprint(prompt)
-        model = event.get("model") or session_state.get("model")
-        if not isinstance(model, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,127}", model):
-            model = None
+        model = session_state.get("model")
         pair_id = store.fingerprint(canonical([host, session, turn, model, document, IMPLEMENTATION_HASHES]))
         existing = store.read(f"receipts/{pair_id}.json")
         if existing:
@@ -292,13 +295,20 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         with tempfile.TemporaryDirectory(prefix="retrieval-", dir=store.root) as directory:
             pair, contexts = run_pair(document, Path(directory), host=host, model=model, evidence_kind="natural", now=stamp)
         pair["pairId"] = pair_id
+        pair["modelIdentitySource"] = session_state.get("modelIdentitySource", "unavailable")
+        pair["answerEligibility"] = answer_eligibility(prompt)
+        pair["gradingStatus"] = "unavailable_rubric"
         pair["observation"] = {"toolCalls": 0, "toolErrors": 0, "unidentifiedToolEvents": 0, "ended": False, "correctness": None}
         pair["answerStatus"] = "queued" if model and config["answerPairsPerHostDay"] and pair["comparisonStatus"] == "complete" else "unavailable_model" if not model else "unavailable_retrieval" if pair["comparisonStatus"] != "complete" else "disabled"
+        if pair["answerStatus"] == "queued" and pair["answerEligibility"] != "bounded_question_candidate":
+            pair["answerStatus"] = "ineligible_answer_task"
         if pair["answerStatus"] == "queued" and len(list((store.root / "queue").glob("*.json"))) >= 100:
             pair["answerStatus"] = "deferred_queue_full"
         if pair["answerStatus"] == "queued":
             store.write(f"queue/{pair_id}.json", {"pairId": pair_id, "host": host, "model": model, "createdAt": format_time(stamp),
                         "question": prompt, "contexts": contexts, "sourceBindings": bindings, "rubric": None, "evidenceKind": "natural"})
+        health["pairsCaptured"] = health.get("pairsCaptured", 0) + 1
+        store.write(f"health/{host}.json", health)
         store.write(f"receipts/{pair_id}.json", pair)
         reservation["status"] = pair["comparisonStatus"]
         store.write(f"reservations/{pair_id}.json", reservation)

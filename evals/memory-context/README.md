@@ -55,3 +55,39 @@ Cached token accounting differs by host and is normalized in `totalInputTokens`.
 
 Natural opportunities use the same engine through native hooks. Follow the
 [configuration and interpretation contract](../../rhize-context-manager/skills/memory-context/references/paired-evaluation.md).
+
+## Controlled quality pilot
+
+`pilot-2026-09.json` is a three-case calibration corpus (release evidence, superseded policy,
+absent information). It is newly curated, not historical production evidence or a held-out main
+study. Keep it separate from natural receipts and the older ten-case gauntlet.
+
+Real answers now require `--baseline-commit <confirmed-incumbent-sha>`. The runner checks that the
+incumbent assembler matches those exact Git bytes before spending any calls. `--repetitions 3`
+alternates A/B answer order. `--max-answer-calls 27` caps the declared calls before execution;
+`--empty-control` adds an after-pair empty-evidence probe graded for abstention, not an additional
+incumbent. Do not use its always-after position for a latency comparison. No automatic retry
+changes a failed trial into a pass. All reservations exist before execution; each trial updates
+the report so interruptions remain visible.
+
+Use `--retain-review` only for an explicitly selected, shareable corpus. It saves 0600 full-answer
+packets in a sibling 0700 directory, labels responses opaquely for blinded review, and keeps the
+arm mapping in the run report. Delete that explicitly selected review directory after its agreed
+review period; passive natural capture continues to retain answer hashes only. Term/source grades
+are versioned, record rubric hashes and each check, and leave independent semantic review pending.
+An empty rubric is invalid. Negative grader fixtures prove wrong answers, missing citations and
+unsupported answers do not silently pass.
+
+Example (each host gets its own report, model pin and subscription quota):
+
+```bash
+python3 evals/memory-context/run_gauntlet.py --host claude --model <exact-model> --answers \
+  --corpus evals/memory-context/pilot-2026-09.json --repetitions 3 \
+  --baseline-commit <user-confirmed-sha> --retain-review --empty-control \
+  --max-answer-calls 27 --output /absolute/private/claude-pilot.json
+```
+
+Use the same corpus, baseline, repetitions and limits with `--host codex` and its explicit model.
+Judge quality within each host. Different native host overhead and unrelated task samples cannot
+support a model ranking. Pilot results establish measurement feasibility and reveal failure cases;
+choose a separate main-study corpus and sample size from the desired precision before running it.

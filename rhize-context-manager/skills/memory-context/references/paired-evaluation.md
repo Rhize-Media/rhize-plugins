@@ -81,3 +81,24 @@ case count. Bootstrap intervals are descriptive for this small corpus; even an a
 cannot establish non-inferiority. Keep RTK/Headroom and other stack choices fixed within each pair.
 No default catalog injection, procedural adapter, or promotion follows from a token-only win.
 Use the prior research plan's held-out correctness and privacy gates before adoption.
+
+## Evidence-quality revision
+
+Model provenance is now explicit (`hook_event`, `session_transcript_last_assistant`,
+`session_event_cache`, `unavailable`). Transcript fallback is restricted to the hook's matching
+Claude session and a bounded tail; it never guesses from another session or a global model alias.
+The last observed assistant model may precede a user model switch, so the provenance matters.
+The answer worker always pins its own model and separately checks the returned identity.
+
+Natural prompts are classified before queuing: candidate informational questions can reach the
+answer probe; tool/action and unclassified requests retain local construction evidence but get
+`ineligible_answer_task`. This heuristic is routing evidence, not proof of answerability.
+Natural semantic quality stays ungraded unless an explicit reviewed task rubric is supplied by a
+curated experiment. The common report retains both Claude and Codex rows and separates missing
+model, queue, auth, grading and completed-pair counts.
+
+Auth preflight is outside the shared receipt lock and before daily budget consumption. A failed
+login check yields `deferred_auth`; it cannot become a zero-cost success, and it does not extend
+the existing one-hour private-packet retention period. The next legitimate drain can retry auth.
+Curated runs may explicitly retain blinded full-answer review packets; this does not change
+passive retention. See the marketplace's `evals/memory-context/README.md` for the controlled runner.

@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "name": "memory-quality-pilot-2026-09",
+  "provenance": "New curated calibration fixtures, not historical client outcomes. Created before model runs; not a held-out main study.",
+  "cases": [
+    {
+      "id": "release-evidence",
+      "question": "What evidence must the Atlas release review contain before approval?",
+      "sources": [
+        {
+          "id": "release-rule",
+          "heading": "Atlas release review evidence",
+          "body": "The Atlas release review must contain a passing migration rehearsal and an accessibility audit. A screenshot alone is insufficient."
+        },
+        {
+          "id": "travel",
+          "heading": "Team travel",
+          "body": "The team travel calendar uses the Pacific time zone."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "migration",
+          "accessibility"
+        ],
+        "forbiddenTerms": [
+          "screenshot alone is sufficient",
+          "skip the audit"
+        ],
+        "requiredSourceIds": [
+          "release-rule"
+        ],
+        "expectedAbstention": false
+      }
+    },
+    {
+      "id": "revised-retention",
+      "question": "According to the current Beacon retention policy, how many days are exports retained, and which policy is superseded?",
+      "sources": [
+        {
+          "id": "retention-old",
+          "heading": "Beacon retention policy archive",
+          "body": "Policy R1 required retaining exports for 90 days. It was superseded by R2."
+        },
+        {
+          "id": "retention-current",
+          "heading": "Current Beacon retention policy R2",
+          "body": "Policy R2 is current and requires retaining exports for 14 days. R2 supersedes R1; the old 90-day limit must not be used."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [
+          "14",
+          "R1"
+        ],
+        "forbiddenTerms": [
+          "retain exports for 90 days",
+          "current limit is 90"
+        ],
+        "requiredSourceIds": [
+          "retention-current"
+        ],
+        "expectedAbstention": false
+      }
+    },
+    {
+      "id": "absent-budget",
+      "question": "What is the approved budget for the Cedar migration?",
+      "sources": [
+        {
+          "id": "meeting",
+          "heading": "Cedar migration planning meeting",
+          "body": "The Cedar migration planning meeting is on Thursday. This record contains no budget approval or amount."
+        }
+      ],
+      "rubric": {
+        "requiredTerms": [],
+        "forbiddenTerms": [
+          "$10,000",
+          "5000"
+        ],
+        "requiredSourceIds": [],
+        "expectedAbstention": true
+      }
+    }
+  ]
+}

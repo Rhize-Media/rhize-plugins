@@ -15,6 +15,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
+from evidence_report import native_summary
 
 
 def metric_text(value: float | int | None, percent: bool = False) -> str:
@@ -224,6 +225,8 @@ def main():
     # Merge
     trigger = merge_trigger_results(all_results)
     quality = merge_quality_results(all_results)
+    native = [native_summary(r) for r in all_results if "claudeVersion" in r and isinstance(r.get("cases"), list)]
+    unsupported = sum(not list(result_sections(r)) and not ("claudeVersion" in r and isinstance(r.get("cases"), list)) for r in all_results)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
 
@@ -233,6 +236,8 @@ def main():
         "source_count": len(files),
         "trigger": trigger,
         "quality": quality,
+        "native": native,
+        "unsupported_source_count": unsupported,
     }
 
     # Output
@@ -250,6 +255,10 @@ def main():
         json.dump(aggregated, f, indent=2)
 
     report = generate_aggregate_report(trigger, quality, files, timestamp)
+    if native:
+        report += "\n## Native Claude evals\n\n" + "\n".join(f"- {r['startedAt']}: {r['actualRuns']} actual arm runs; model {r['model'] or 'unavailable'}. Routing/procedure evidence; task benefit requires a separate gate." for r in native) + "\n"
+    if unsupported:
+        report += f"\nUnsupported source shapes: {unsupported}; excluded, not scored as zero.\n"
     with open(md_path, "w") as f:
         f.write(report)
 

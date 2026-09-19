@@ -275,3 +275,22 @@ per UTC day, with one worker and a bounded queue. This consumes existing subscri
 Run the ten-case personal-work gauntlet for quicker feedback; it covers your recurring work
 patterns but is curated, not recorded historical performance. Natural task completion is not a
 correctness grade. See [setup, commands and interpretation](skills/memory-context/references/paired-evaluation.md).
+
+## Paired measurement evidence quality
+
+Claude model identity is taken from explicit hook metadata, a bounded matching session transcript
+tail under `~/.claude/projects/`, or previously observed session metadata, with its provenance
+recorded. Missing identity remains unavailable. No transcript content is retained. Both hosts
+label tool/action requests separately from candidate questions before starting tool-free answers.
+Natural answer correctness remains `unavailable_rubric`; successful execution is not a grade.
+
+The answer worker checks subscription auth before reserving daily budget. Auth failures defer
+the whole pair without consuming budget; the existing one-hour queue expiry still applies.
+Existing private scope, source-freshness, no-API-fallback and whole-pair limits remain enforced.
+
+The curated gauntlet supports a confirmed `--baseline-commit`, `--repetitions`, a call ceiling,
+`--empty-control`, and explicit `--retain-review`. Review packets are private, use opaque response
+labels, and contain full answers only for the deliberately selected corpus. Versioned term/source
+checks expose individual failures and a rubric digest. Human review stays pending until performed.
+The runner persists reservations and every completed trial as it goes; repetitions do not count
+as additional unique tasks. See `evals/memory-context/README.md` in the marketplace checkout.

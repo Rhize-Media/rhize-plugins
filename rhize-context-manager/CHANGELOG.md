@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Memory benchmark evidence: session-scoped Claude model provenance, conservative answer eligibility, auth deferral without budget consumption, versioned curated grading and private blind review packets. The controlled pilot runner records pinned repeated A/B trials and empty-evidence controls; shared reporting includes both hosts and actual native arm arrays. These collection changes do not establish a general benefit claim.
+- _2026-09-19_ version bump — 0.31.0 → 0.32.0 (minor); marketplace 2.72.2 → 2.73.0.
 - Deterministic context doctor with bounded read-only probes, OK/PROBLEM/NOT_RUN outcomes,
   current-run provenance, calculated coverage/deltas, immutable private evidence and rendering.
 - Optional Sentry check-in transport for independent missed-run monitoring, plus deliberate

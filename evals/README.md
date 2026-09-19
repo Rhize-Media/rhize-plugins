@@ -269,8 +269,8 @@ upgraded in place.
 ### procedural-memory
 
 Grades a free local collision contract (one positive, two negatives) for the `procedural-memory`
-and `functionize` skills, plus the org-gated canonical suite in `procedural-memory/evals/` (still
-the authoritative agent-eval suite). Run with `python3 evals/procedural-memory/run_evals.py` and
+and `functionize` skills, plus the native canonical suite in `procedural-memory/evals/`
+(the authoritative agent-eval suite; available here since September 2026). Run with `python3 evals/procedural-memory/run_evals.py` and
 `python3 procedural-memory/evals/validate-suite.py --eval-dir procedural-memory/evals`. Writes
 nothing to disk.
 
@@ -354,6 +354,11 @@ with `python3 evals/skill-map/run.py`, which runs `eval_routing.py`, `eval_discl
 `eval_remediation.py` in sequence. Writes one timestamped result file into `evals/results/`
 (gitignored) in the same schema shape as `run_evals.py`'s output.
 
+### tests
+
+`evals/tests/` contains deterministic evidence adapter checks for native arm counts,
+both-host visibility, missing stores, and routine comparison boundaries.
+
 ## Plugin-Specific Notes
 
 ### seo-aeo-geo
@@ -394,3 +399,17 @@ baseline-versus-Rhize v2 readiness decision.
 The Rhize-side integration harness requires an explicit checkout/binary path, detects version
 drift, measures a labeled safety precision/recall corpus and local scan latency, and defines a
 digest-pinned pre/post evolve non-inferiority protocol. It never edits or adopts into SkillForge.
+
+## Evidence coverage across hosts
+
+Run `python3 evals/evidence_report.py --output /absolute/private/evidence.json` to inventory
+the existing memory, routine and native Claude stores. Override `--memory-root`, `--routine-root`
+and `--central-root` for non-default deployments. Both Claude and Codex are explicit rows; missing
+stores are unavailable. Host/model/implementation/driver strata remain separate. Natural capture
+counts describe observed opportunities only, not all eligible work. Individual comparable routine
+flags never establish a controlled pair. Native `runsPerCase` is ignored in favor of actual arm
+arrays; environment-invalid attempts and turn truncations are retained separately.
+
+`aggregate_results.py` also recognizes native `aggregate-result.json` inputs, reports their actual
+arm counts separately from legacy trigger/quality scores, and reports unsupported source shapes.
+Neither command launches benchmarks, mutates prior receipts, or invents task-quality results.
