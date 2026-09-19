@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" >/dev/null 2>&1 || true; else :; fi",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" UserPromptSubmit 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
             "timeout": 10
           }
         ]
@@ -48,7 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" >/dev/null 2>&1 || true; else :; fi",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" SessionStart 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
             "timeout": 10
           }
         ]
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" >/dev/null 2>&1 || true; else :; fi",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" PostToolUse 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
             "timeout": 10
           }
         ]
@@ -99,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" >/dev/null 2>&1 || true; else :; fi",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" Stop 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
             "timeout": 10
           }
         ]

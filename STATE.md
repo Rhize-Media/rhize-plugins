@@ -12,8 +12,8 @@
   registry here. The exact plugin root loaded by the historical task is not recoverable from current
   state.
 - A Python missing-file error exits nonzero with stderr. Codex treats a Stop hook's exit code 2 plus
-  stderr as a continuation request. The paired measurement commands now swallow entrypoint/runtime
-  failures and return success without output.
+  stderr as a continuation request. Release 0.32.1 suppressed these failures. The corrective release retains exit zero while
+  emitting a bounded warning and persisting private diagnostic state.
 
 ## General rules
 
@@ -68,3 +68,30 @@
   Explicit turn bindings now survive unmeasured prompts, while late-resolved model identity is
   excluded from pair identity. Regressions pin both cases and mixed prompt/Stop turn-id presence.
   Hosts that omit explicit turn identifiers cannot supply a reliable stale-event comparison.
+
+## Passive measurement corrective release — 2026-09-19
+
+- Verified the four passive hooks still suppressed missing entrypoint and runner failures on base
+  5788492, after the separate 0.32.2 attribution fix. No historical cache cause was established.
+- Claude Code Fable (native observed claude-fable-5-1) reviewed the full private plan before source
+  implementation. Incorporated flock/fd inheritance, detached stdio, dead-worker lock probes,
+  superseded-install eviction, quiet oversized-payload handling and atomic warning deduplication.
+- New stdlib runtime separates foreground and worker diagnostics from actual A/B completeness.
+  Missing/corrupt diagnostic storage remains unavailable, never healthy; runtime recovery cannot
+  reconstruct lost measurements. No existing capture/attribution engine or budget was rewritten.
+- Baseline: 214 focused tests passed. Corrected full suite: 1,461 passed, 5 skipped and 18
+  subtests passed; Dev Flow release suite: 362 passed. Marketplace/all ten plugin manifests,
+  configuration lint, map freshness, setup-artifact freshness and doc idempotence passed.
+  Packaged failure/recovery exercises do not establish native-host activation.
+- Full-suite concurrency testing reproduced macOS ENOENT during simultaneous O_CREAT|O_NOFOLLOW
+  lock creation. Exclusive creation followed by no-create reopening preserves no-follow safety;
+  25 repeated concurrent first-create/dedup cycles passed. Process-inspection and Git-hardlink
+  tests require execution outside the restricted sandbox; both pass with required access.
+- General rule: passive measurements may let user work continue, but failure must remain observable.
+  A worker that retains a host pipe can block the host despite start_new_session; disconnect all
+  stdio and validate the inherited lock. A/B receipt completeness is separate from runtime health.
+
+- Fable implementation review found no security/data-integrity blocker; its minor warning-cadence
+  correction, active-worker eviction protection, long-running status advisory and detached fixture
+  cleanup were incorporated. Runner success returns0 and resolved installation identity match
+  were verified directly. No new worker watchdog can orphan separate native process groups.

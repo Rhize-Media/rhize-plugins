@@ -465,25 +465,25 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
-      "to": "hook:rhize-context-manager/memory-opportunity",
+      "to": "hook:rhize-context-manager/inline-59b33d8b",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
-      "to": "hook:rhize-context-manager/memory-opportunity-session",
+      "to": "hook:rhize-context-manager/inline-947c84c4",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
-      "to": "hook:rhize-context-manager/memory-opportunity-stop",
+      "to": "hook:rhize-context-manager/inline-aea286d5",
       "type": "contains"
     },
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
-      "to": "hook:rhize-context-manager/memory-opportunity-tool",
+      "to": "hook:rhize-context-manager/inline-cc8cfb80",
       "type": "contains"
     },
     {
@@ -3211,45 +3211,45 @@
       "status": "opt-in"
     },
     {
-      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity.py\" >/dev/null 2>&1 || true; else :; fi",
-      "event": "UserPromptSubmit",
-      "id": "hook:rhize-context-manager/memory-opportunity",
-      "kind": "hook",
-      "matcher": "",
-      "name": "memory-opportunity",
-      "owner": "rhize-context-manager",
-      "path": "rhize-context-manager/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-session.py\" >/dev/null 2>&1 || true; else :; fi",
-      "event": "SessionStart",
-      "id": "hook:rhize-context-manager/memory-opportunity-session",
-      "kind": "hook",
-      "matcher": "",
-      "name": "memory-opportunity-session",
-      "owner": "rhize-context-manager",
-      "path": "rhize-context-manager/hooks/hooks.json",
-      "status": "wired"
-    },
-    {
-      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-stop.py\" >/dev/null 2>&1 || true; else :; fi",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" Stop 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
       "event": "Stop",
-      "id": "hook:rhize-context-manager/memory-opportunity-stop",
+      "id": "hook:rhize-context-manager/inline-59b33d8b",
       "kind": "hook",
       "matcher": "",
-      "name": "memory-opportunity-stop",
+      "name": "inline-59b33d8b",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"
     },
     {
-      "command": "if [ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" ]; then python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/memory-opportunity-tool.py\" >/dev/null 2>&1 || true; else :; fi",
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" PostToolUse 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
       "event": "PostToolUse",
-      "id": "hook:rhize-context-manager/memory-opportunity-tool",
+      "id": "hook:rhize-context-manager/inline-947c84c4",
       "kind": "hook",
       "matcher": "",
-      "name": "memory-opportunity-tool",
+      "name": "inline-947c84c4",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" SessionStart 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
+      "event": "SessionStart",
+      "id": "hook:rhize-context-manager/inline-aea286d5",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-aea286d5",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/memory_context/hook_runtime.py\" UserPromptSubmit 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize passive measurement bootstrap is unavailable; capture health is unknown. Your task can continue.\"}'",
+      "event": "UserPromptSubmit",
+      "id": "hook:rhize-context-manager/inline-cc8cfb80",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-cc8cfb80",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"
