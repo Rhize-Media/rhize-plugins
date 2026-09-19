@@ -232,6 +232,12 @@ the right one, and health-checks the whole thing.
 
 ## Troubleshooting
 
+- **Codex reports a missing `memory-opportunity-*.py` hook or repeats the error at Stop** →
+  Codex runs marketplace plugins from a versioned cache root. Start a fresh task after the plugin
+  update so it loads the current hook definition. The paired measurement commands now exit silently
+  if their entrypoint is unavailable or fails; a missing measurement entrypoint must not request a
+  Stop continuation. Review and trust the current hook definition through Codex after an update;
+  installing a plugin does not grant hook trust.
 - **`/impact-map` is unknown, or only shows a deprecation notice** → the executable command is
   `/rhize-devflow:impact-map`; install/update the `rhize-devflow` plugin, then start a new session.
   This plugin's own `/impact-map` is a deprecated adapter that only points you to the command

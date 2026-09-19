@@ -165,6 +165,11 @@ question/model. Older Codex clients can use the explicit host-neutral CLI. Plugi
 native hook trust, configuration and observed capture are separate states. Existing provider
 experiments keep their own authorization gates. See the
 [paired measurement contract](skills/memory-context/references/paired-evaluation.md).
+These passive hook commands produce no output and return success when a versioned plugin
+entrypoint is unavailable or fails. In Codex, a Stop hook's exit code 2 and stderr request an
+automatic continuation, so a missing measurement script must not become a model-facing prompt.
+The guard is limited to paired measurement hooks; other hook decisions and trust controls remain
+unchanged.
 
 The five map-reading hooks above (`session-disclosure`, `remediation-suggester`,
 `next-step-suggester`, plus opt-in `skill-router` and `agent-brief-router`) all resolve the same
