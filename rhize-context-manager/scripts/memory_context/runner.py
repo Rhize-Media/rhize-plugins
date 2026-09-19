@@ -23,15 +23,17 @@ def _time(value: str | None) -> datetime | None:
 def command_preview(args: argparse.Namespace) -> int:
     request_path = Path(args.input).expanduser().resolve(strict=True)
     document = json.loads(request_path.read_text(encoding="utf-8"))
+    assembler = MemoryContextAssembler()
     if getattr(args, "procedural_launcher", None):
-        from memory_context.procedural_adapter import recall
+        from memory_context.procedural_adapter import recall, ProceduralMemoryContextAssembler
+        assembler = ProceduralMemoryContextAssembler()
         request = document["request"]
         if any(a.get("name") == "procedural-memory" for a in document.get("adapters", [])):
             raise ValueError("procedural adapter already supplied; do not mix snapshots")
         adapter = recall(Path(args.procedural_launcher), request["query"], tenant=request["tenant"],
                          project=request["project"], task=request.get("task"))
         document.setdefault("adapters", []).append(adapter)
-    manifest, payload = MemoryContextAssembler().assemble(document, _time(args.now))
+    manifest, payload = assembler.assemble(document, _time(args.now))
     store = MemoryStore(Path(args.data_dir).expanduser() if args.data_dir else default_memory_root())
     manifest_path, payload_path = store.write(manifest, payload)
     print(json.dumps({

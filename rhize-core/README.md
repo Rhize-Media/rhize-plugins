@@ -271,3 +271,8 @@ quality contracts. The setup artifact inventory documents its private job data a
 versioned installation. These catalog checks do not launch native Claude/Codex workers
 or prove live delegation; run the separate synthetic checks described in
 [rhize-ops bridge operations](../rhize-ops/docs/agent-bridge.md) after explicit setup.
+
+## Content workflow evaluation coverage
+
+The evaluation catalog includes the canonical `procedural-memory:rhize-content-engine` skill.
+Local coverage checks do not execute or approve its graph, enable capture, or establish task benefit.

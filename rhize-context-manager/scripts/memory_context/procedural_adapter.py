@@ -59,3 +59,43 @@ def from_response(value: dict, *, tenant: str, project: str, task: str | None = 
         status = 'stale'
     return {'name': 'procedural-memory', 'memoryType': 'procedural', 'protocolVersion': PROTOCOL,
             'status': status, 'reason': 'metadata_reference_only', 'candidates': candidates}
+
+
+# Keep the incumbent core byte-identical for pinned Arm A studies. This opt-in
+# assembler adds only the supported procedural lane; other adapters use the core.
+from .core import MemoryContextAssembler, ADAPTER_STATUSES, _strict_keys, _safe_id
+
+
+class ProceduralMemoryContextAssembler(MemoryContextAssembler):
+    def _normalize_adapter(self, value, request, now):
+        if not isinstance(value, dict) or value.get('name') != 'procedural-memory':
+            return super()._normalize_adapter(value, request, now)
+        _strict_keys(value, {'name', 'memoryType', 'status', 'reason', 'protocolVersion', 'candidates'}, 'adapter')
+        if value.get('memoryType') != 'procedural':
+            raise ValueError('procedural adapter requires the procedural lane')
+        status = value.get('status')
+        if status not in ADAPTER_STATUSES:
+            raise ValueError('adapter status is invalid')
+        reason = _safe_id(value.get('reason', 'none'), 'adapter reason')
+        if value.get('protocolVersion') != PROTOCOL:
+            status, reason = 'unavailable', 'supported_metadata_read_not_supplied'
+        raw = value.get('candidates', [])
+        if not isinstance(raw, list) or len(raw) > 10:
+            raise ValueError('procedural candidates must be a bounded array')
+        if raw and status not in {'available', 'partial'}:
+            raise ValueError('only an available or partial adapter may return candidates')
+        candidates, rejected = [], {}
+        for candidate in raw:
+            normalized, exclusion = self._normalize_candidate(candidate, 'procedural-memory', 'procedural', status, request, now)
+            if normalized:
+                candidates.append(normalized)
+            else:
+                rejected[exclusion] = rejected.get(exclusion, 0) + 1
+        if status == 'available' and not raw:
+            status = 'empty'
+        return {'name':'procedural-memory','memoryType':'procedural','status':status,'reason':reason}, candidates, rejected
+
+    def _normalize_candidate(self, value, adapter_name, memory_type, adapter_status, request, now):
+        if memory_type == 'procedural' and (not isinstance(value, dict) or adapter_name != 'procedural-memory' or value.get('sourceSystem') != 'procedural-memory' or value.get('contentRole') != 'procedure-reference'):
+            raise ValueError('procedural candidates must be supported metadata references')
+        return super()._normalize_candidate(value, adapter_name, memory_type, adapter_status, request, now)

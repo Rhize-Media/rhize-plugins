@@ -37,6 +37,48 @@
         {"id": "source-free-history", "patterns": ["redacts and aggregates", "never evaluated or\\s+executed"]},
         {"id": "proposal-boundary", "patterns": ["Stop at the proposal boundary", "grants no\\s+registration, trust, approval, promotion, verification, or execution authority"]}
       ]
+    },
+    {
+      "id": "rhize-content-engine",
+      "source": "procedural-memory/skills/rhize-content-engine/SKILL.md",
+      "include_patterns": [
+        "use (?:the )?rhize[ -]content[ -]engine"
+      ],
+      "exclude_patterns": [
+        "\\becc\\b"
+      ],
+      "positive_cases": [
+        "content-explicit-positive"
+      ],
+      "negative_cases": [
+        "content-ecc-negative",
+        "content-explanation-negative"
+      ],
+      "quality_contracts": [
+        {
+          "id": "scope-boundary",
+          "patterns": [
+            "local-draft",
+            "Full publishing",
+            "Unsupported"
+          ]
+        },
+        {
+          "id": "capture-boundary",
+          "patterns": [
+            "run bench-append --offline",
+            "Failed/partial/unavailable"
+          ]
+        },
+        {
+          "id": "source-binding",
+          "patterns": [
+            "--source-sha256",
+            "--run-id",
+            "Never add `--approve-unreviewed`"
+          ]
+        }
+      ]
     }
   ],
   "cases": [
@@ -69,6 +111,23 @@
       "id": "functionize-promotion-collision",
       "prompt": "Promote this captured script into the procedural registry; do not Functionize it.",
       "expected": ["procedural-memory"]
+    },
+    {
+      "id": "content-explicit-positive",
+      "prompt": "Use the RHIZE Content Engine to regenerate our resource article as a local draft.",
+      "expected": [
+        "rhize-content-engine"
+      ]
+    },
+    {
+      "id": "content-ecc-negative",
+      "prompt": "Use ECC content-engine to adapt this post for social channels.",
+      "expected": []
+    },
+    {
+      "id": "content-explanation-negative",
+      "prompt": "Explain what a content engine is in one sentence.",
+      "expected": []
     }
   ]
 }

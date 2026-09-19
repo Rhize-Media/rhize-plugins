@@ -81,3 +81,6 @@ returns unavailable with null counts. Consumed holdouts become diagnostics after
 present later native decisions on them as a fresh blinded evaluation. Capture host, variant,
 selector digest, lookup duration and actual stage evidence. Do not infer time savings or model
 benefit from a routing hit, a fixture pass or a small hand-authored prompt set.
+
+The procedural preview uses a separate opt-in assembler. The incumbent `memory_context/core.py`
+remains byte-identical to its pinned Arm A source; existing controlled studies are not repinned.

@@ -68,7 +68,7 @@
       "id": "procedural-memory",
       "kind": "plugin",
       "domain": "knowledge-context",
-      "skills": ["functionize", "procedural-memory"],
+      "skills": ["functionize", "procedural-memory", "rhize-content-engine"],
       "suites": [
         {"id": "procedural-memory-local", "kind": "python", "path": "evals/procedural-memory/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true},
         {"id": "procedural-memory-portable-schema", "kind": "python", "path": "procedural-memory/evals/validate-suite.py", "args": [], "cwd": "procedural-memory", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}

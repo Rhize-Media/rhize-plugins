@@ -60,7 +60,7 @@ def test_catalog_covers_every_skill_and_groups_obsidian_with_context() -> None:
     completed = run_cli("validate", "--repo-root", str(REPO))
     assert completed.returncode == 0, completed.stdout + completed.stderr
     result = json.loads(completed.stdout)
-    assert result["plugin_skills"] == 57
+    assert result["plugin_skills"] == 58
     assert result["components"] == 11
     assert result["domains"]["knowledge-context"] == [
         "obsidian-second-brain", "rhize-context-manager", "procedural-memory"

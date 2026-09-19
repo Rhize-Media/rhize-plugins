@@ -172,3 +172,19 @@ def test_packaged_checkpoint_missing_entrypoint_is_nonblocking(tmp_path):
     result=subprocess.run(command,shell=True,executable='/bin/sh',capture_output=True,text=True,env=env,timeout=8)
     assert result.returncode==0 and result.stderr==''
     assert 'unavailable' in json.loads(result.stdout)['systemMessage']
+
+
+def test_procedural_preview_is_optin_and_baseline_unchanged():
+    import subprocess
+    from datetime import datetime,timezone
+    from memory_context.core import MemoryContextAssembler
+    from memory_context.procedural_adapter import ProceduralMemoryContextAssembler
+    core=SCRIPTS/'memory_context/core.py'
+    assert core.read_bytes()==subprocess.check_output(['git','show','e184246a5d325320126b18f6d3906b1d921fc025:rhize-context-manager/scripts/memory_context/core.py'],cwd=ROOT)
+    candidate={'sourceSystem':'procedural-memory','sourceId':'a'*64,'sourceRevision':'b'*64,'tenant':'t','project':'p','sensitivity':'internal','trustClass':'unverified','retentionClass':'session','contentRole':'procedure-reference','recordedAt':'2026-09-19T00:00:00Z','provenance':['graph:content-engine@2.0.0'],'relevance':1.0,'content':'Inert graph reference'}
+    document={'schemaVersion':1,'request':{'tenant':'t','project':'p','query':'article'},'adapters':[{'name':'procedural-memory','memoryType':'procedural','status':'available','protocolVersion':'rhize-procedural-recall-v1','candidates':[candidate]}]}
+    with pytest.raises(ValueError):MemoryContextAssembler().assemble(document)
+    manifest,_=ProceduralMemoryContextAssembler().assemble(document,datetime(2026,9,19,tzinfo=timezone.utc))
+    assert len(manifest['candidates'])==1 and manifest['candidates'][0]['processingPolicy']=='reference-only'
+    candidate['contentRole']='policy-reference'
+    with pytest.raises(ValueError):ProceduralMemoryContextAssembler().assemble(document)

@@ -44,6 +44,11 @@
 
 ## Lessons learned
 
+- A new skill must update both the generated inventory and central evaluation catalogs/coverage.
+  The core and ops compatibility copies remain byte-identical. Release CI caught this omission.
+- Preserve the pinned incumbent memory core byte-for-byte. Procedural metadata preview extends it
+  only through an opt-in assembler; changing a source hash is not permission to repin Arm A.
+
 - Keyword classification failed negated destinations and quoted instructions in two frozen
   diagnostic sets. Use the current task agent's full conversation context for workflow choice;
   capture pending/skipped/unavailable outcomes rather than adding unbounded routing rules.
