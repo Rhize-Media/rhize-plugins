@@ -19,6 +19,15 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/workflow_selection.py\" hook 2>/dev/null || printf '%s\\n' '{\"systemMessage\":\"Rhize workflow selection bootstrap is unavailable; your task can continue.\"}'",
+            "timeout": 6
+          }
+        ]
       }
     ],
     "PreToolUse": [

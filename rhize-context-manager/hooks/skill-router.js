@@ -48,11 +48,14 @@
 // risk). Among qualifying skills, the highest total weight wins; ties break
 // on skill id (deterministic, no randomness).
 //
-// BUDGET: <150ms warm. No network, no child processes; the map is read
+// BUDGET: <150ms warm without workflow opt-in; opt-in bridge deadline 4.5s.
+// No network; the optional metadata selector is a bounded child. The map is read
 // synchronously once per invocation.
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const { execFileSync } = require('child_process');
 
 // Shared primitives (index/map reading, tokenize, scoring, logging) live in
 // hooks/lib/route-core.js so agent-brief-router.js can reuse them without
@@ -98,6 +101,25 @@ function computeMessage() {
   const sessionId = typeof data.session_id === 'string' ? data.session_id : null;
   if (!prompt) return null;
 
+  let workflowMessage = null;
+  let workflowHandled = false;
+  // One shared selector owns opted-in workflow decisions. Both the legacy
+  // router and packaged hook use its atomic receipt; configuration alone
+  // never suppresses advice. A failed bridge falls back to this router.
+  try {
+    const root = process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share');
+    const cfgPath = path.join(root, 'rhize', 'workflow-selection', 'config.json');
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    if (cfg.schemaVersion === 1 && cfg.enabled === true) {
+      const output = execFileSync('python3', [path.join(__dirname, '..', 'scripts', 'workflow_selection.py'), 'hook', '--router-bridge'], {
+        input: raw, encoding: 'utf8', timeout: 4500, maxBuffer: 16384, stdio: ['pipe','pipe','ignore'],
+      });
+      const bridge = JSON.parse(output);
+      workflowHandled = bridge.handled === true;
+      workflowMessage = bridge.hookOutput?.hookSpecificOutput?.additionalContext || null;
+    }
+  } catch (_) { /* missing/untrusted/unavailable selector: preserve old routing */ }
+
   const promptTokens = tokenize(prompt);
   const ctxHash = contextHash(prompt);
 
@@ -109,9 +131,10 @@ function computeMessage() {
         return doc ? route(doc, promptTokens, prompt) : null;
       })();
 
-  const message = formatMatch(match);
+  const overlaps = workflowHandled && match && /\/(?:rhize-content-engine|content-engine)$/.test(match.skillId) && !/\becc\b/i.test(prompt);
+  const message = [workflowMessage, overlaps ? null : formatMatch(match)].filter(Boolean).join(' ') || null;
   if (message) {
-    return { message, sessionId, suggested: match.skillId, contextHash: ctxHash };
+    return { message, sessionId, suggested: match ? match.skillId : null, contextHash: ctxHash };
   }
   return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash };
 }

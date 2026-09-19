@@ -119,7 +119,7 @@ class MemoryContextAssembler:
 
         defaults = {
             "host-episodic": ("episodic", "supported_api_not_supplied"),
-            "procedural-memory": ("procedural", "machine_readable_recall_not_implemented"),
+            "procedural-memory": ("procedural", "supported_metadata_read_not_supplied"),
         }
         for name, (memory_type, reason) in defaults.items():
             if name not in seen_adapters:
@@ -255,10 +255,8 @@ class MemoryContextAssembler:
         protocol = value.get("protocolVersion")
         if name == "host-episodic" and protocol != "supported-episodic-read-v1":
             status, reason = "unavailable", "supported_api_not_supplied"
-        if name == "procedural-memory":
-            # The planned JSON recall contract is not shipped yet. Merely claiming its
-            # future version must not turn prose or registry access into an adapter.
-            status, reason = "unavailable", "machine_readable_recall_not_implemented"
+        if name == "procedural-memory" and protocol != "rhize-procedural-recall-v1":
+            status, reason = "unavailable", "supported_metadata_read_not_supplied"
         raw_candidates = value.get("candidates", [])
         if not isinstance(raw_candidates, list):
             raise ValueError("adapter candidates must be an array")
@@ -350,6 +348,8 @@ class MemoryContextAssembler:
         content_role = value.get("contentRole", "data")
         if content_role not in CONTENT_ROLES:
             raise ValueError("candidate contentRole is invalid")
+        if memory_type == "procedural" and (adapter_name != "procedural-memory" or source_system != "procedural-memory" or content_role != "procedure-reference"):
+            raise ValueError("procedural candidates must be supported metadata references")
         authority = _authority(memory_type, source_system, content_role, trust)
         source_hash = sha256(source_id)
         content_hash = sha256(content)

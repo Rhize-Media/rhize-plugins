@@ -124,3 +124,17 @@ context needs to re-review and re-approve; this plugin won't do that silently.
 **Nothing meaningful comes back from `/recall`** — the registry may genuinely not have anything
 close to the task yet. That's a real answer, not a failure; consider whether the task is worth
 capturing and promoting once you've solved it by hand.
+
+## Workflow discovery and content drafting
+
+The `rhize-content-engine` skill is the canonical RHIZE article entrypoint on both hosts,
+distinct from ECC content-engine. It selects local-draft or explicitly authorized CMS-draft
+scope, uses fresh offline registry metadata, and requires validation plus canonical benchmark
+capture. Full public publishing is unsupported. Changed graphs retain normal live-review,
+health and digest-bound approval gates. The authored `content-engine-local` graph is staged
+through `rhize-skill graph stage`; staging is not promotion or execution approval.
+
+Context Manager records opportunities and explicit workflow decisions before composition.
+Failed/partial outcomes remain separate from successful article benchmarks. Future manual
+rows use `run bench-append --offline` through the launcher; never replay an existing legacy row
+merely to obtain a newer receipt.

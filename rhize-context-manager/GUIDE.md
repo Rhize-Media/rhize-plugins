@@ -308,3 +308,15 @@ labels, and contain full answers only for the deliberately selected corpus. Vers
 checks expose individual failures and a rubric digest. Human review stays pending until performed.
 The runner persists reservations and every completed trial as it goes; repetitions do not count
 as additional unique tasks. See `evals/memory-context/README.md` in the marketplace checkout.
+
+## Workflow selection before composition
+
+See [workflow selection](docs/workflow-selection.md) for the opt-in shared Claude/Codex
+UserPromptSubmit selector, private opportunity/decision/outcome receipts and explicit local
+skill-source allowlist. Metadata recall uses the supported procedural-memory launcher and
+never executes registry artifacts. Recommendation, selection, execution, validation and capture
+are separate events; no-match and unfinished opportunities remain in the denominator.
+
+`memory-context preview --procedural-launcher /absolute/installed/launcher.sh` opts into the
+bounded offline metadata bridge. It refuses mixed procedural snapshots; missing or old runtimes
+remain unavailable. The existing preview-only injection/write-back policy is unchanged.

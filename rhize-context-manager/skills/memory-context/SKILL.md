@@ -46,8 +46,9 @@ the agent's query document. It uses the governed in-memory store only: no live N
 write operation, raw Cypher, or graph dump is exposed. Only bounded query records enter the private
 memory payload.
 Missing stores are `unavailable`; purged or revision-mismatched snapshots are `stale`. An absent
-supported episodic API or machine-readable procedural recall contract is also `unavailable`, never
-an empty store. Do not scrape host private state, parse prose output, invoke a procedure, or
+supported episodic API or procedural metadata runtime is also `unavailable`, never an empty store.
+On supported runtimes, pass `preview --procedural-launcher /absolute/installed/launcher.sh`
+to obtain bounded offline `rhize-procedural-recall-v1` references with current source digests. Do not scrape host private state, parse prose output, invoke a procedure, or
 substitute Graphiti.
 
 Packs and the revocation index are mode `0600` beneath the host-neutral Rhize data root. The required

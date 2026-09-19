@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-19_ Add opt-in workflow opportunity/decision capture, run-bound completion evidence, supported metadata-only procedural recall, and declared/approved local skill roots. Pending, unavailable and skipped opportunities remain separate; native activation is opt-in.
+- _2026-09-19_ version bump — 0.32.3 → 0.33.0 (minor); marketplace 2.74.0 → 2.75.0.
 - _2026-09-19_ version bump — 0.32.2 → 0.32.3 (patch); marketplace 2.73.2 → 2.73.3.
 - Correct passive measurement failure handling: nonblocking warnings, bounded private diagnostics, independently observed answer workers and standalone health status replace silent failure suppression. Preserve real A/B capture, model attribution, authorization and budgets; add failure, privacy, lock, killed-worker and capture-recovery regressions.
 

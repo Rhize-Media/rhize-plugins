@@ -59,7 +59,7 @@ def test_unsupported_host_and_procedural_adapters_are_unavailable_not_empty() ->
     assert statuses["host-episodic"]["status"] == "unavailable"
     assert statuses["host-episodic"]["reason"] == "supported_api_not_supplied"
     assert statuses["procedural-memory"]["status"] == "unavailable"
-    assert statuses["procedural-memory"]["reason"] == "machine_readable_recall_not_implemented"
+    assert statuses["procedural-memory"]["reason"] == "supported_metadata_read_not_supplied"
 
 
 def test_private_write_verify_revision_and_exact_source_purge(tmp_path: Path) -> None:
