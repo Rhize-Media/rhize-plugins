@@ -33,6 +33,9 @@ point-in-time record.
 
 ### Added
 
+- Context Manager caches observed model identity at Stop for later memory measurements, preserving
+  original prompt-time identity and rejecting stale-turn cache updates.
+- _2026-09-19_ version bump — **rhize-context-manager** 0.32.1 → 0.32.2 (patch); marketplace 2.73.1 → 2.73.2.
 - _2026-09-19_ version bump — **rhize-context-manager** 0.32.0 → 0.32.1 (patch); marketplace 2.73.0 → 2.73.1.
 - Memory benchmark evidence: session-scoped Claude model provenance, conservative answer eligibility, auth deferral without budget consumption, versioned curated grading and private blind review packets. The controlled pilot runner records pinned repeated A/B trials and empty-evidence controls; shared reporting includes both hosts and actual native arm arrays. These collection changes do not establish a general benefit claim.
 - _2026-09-19_ version bump — **rhize-context-manager** 0.31.0 → 0.32.0 (minor); marketplace 2.72.2 → 2.73.0.

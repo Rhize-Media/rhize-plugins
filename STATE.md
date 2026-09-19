@@ -47,3 +47,24 @@
   version-root and repeated-Stop regression coverage. The 120 Context Manager tests and 362 Dev
   Flow release tests pass. Version 0.32.1 is prepared but not installed in Codex; active tasks must
   reload and the changed hook definition must be reviewed/trusted by the host.
+
+## Benchmark capture follow-through — 2026-09-19
+
+- Model metadata may first become visible near the transcript tail at Stop. Capture now persists
+  that bounded, matching-session observation even without a pending pair. Later prompts may use
+  the session cache; existing receipt model/answer-status fields remain unchanged.
+- A clean native smoke must use an explicit stdin boundary. A Python heredoc inherited by a
+  Claude subprocess contaminated the smoke prompt; this was not host-added action guidance.
+  Controlled answer drivers already use explicit stdin PIPE and were unaffected.
+- The expanded exploratory memory screen completed 180 calls across both hosts, with frozen
+  source snapshots preserved before this patch. Synthetic transport completion and term checks
+  are separate from semantic review and do not establish general benefit.
+- Cold source review checked stale-turn handling, no-pair persistence, scope, bounded transcript
+  reads and immutable prompt-time evidence. Focused regressions cover each boundary. Version
+  0.32.2 follows the separately merged 0.32.1 hook-containment release; installation and observed
+  native activation are verified separately from source checks.
+
+- Independent model review found delayed-Stop and replay-counting edge cases in the initial patch.
+  Explicit turn bindings now survive unmeasured prompts, while late-resolved model identity is
+  excluded from pair identity. Regressions pin both cases and mixed prompt/Stop turn-id presence.
+  Hosts that omit explicit turn identifiers cannot supply a reliable stale-event comparison.

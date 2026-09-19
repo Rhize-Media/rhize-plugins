@@ -236,9 +236,16 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         health.update(eventsObserved=health["eventsObserved"] + 1, lastEvent=event_name, lastSeen=format_time(stamp))
         store.write(f"health/{host}.json", health)
         session_state = store.read(f"sessions/{session_key}.json") or {}
-        if event_name in {"SessionStart", "UserPromptSubmit"}:
+        if (event_name == "Stop" and event.get("turn_id") and session_state.get("explicitTurnKey")
+                and session_state["explicitTurnKey"] != store.fingerprint(str(event["turn_id"]))):
+            return {"status": "stale_turn_ignored"}
+        if event_name in {"SessionStart", "UserPromptSubmit", "Stop"}:
             model, model_source = resolve_model(host, event, session_state)
             session_state.update(model=model, modelIdentitySource=model_source)
+            # At Stop the assistant metadata is near the bounded transcript tail.
+            # Cache it even if this turn did not create a measurement pair.
+            if event_name == "Stop":
+                store.write(f"sessions/{session_key}.json", session_state)
         if event_name == "SessionStart":
             store.write(f"sessions/{session_key}.json", session_state)
             return {"status": "observed"}
@@ -249,7 +256,8 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
             receipt = store.read(f"receipts/{pair_id}.json")
             if not receipt:
                 return {"status": "pending"}
-            if event.get("turn_id") and session_state.get("turnKey") != store.fingerprint(str(event["turn_id"])):
+            if (event.get("turn_id") and session_state.get("explicitTurnKey")
+                    and session_state["explicitTurnKey"] != store.fingerprint(str(event["turn_id"]))):
                 return {"status": "stale_turn_ignored"}
             observation = receipt["observation"]
             if event_name == "PostToolUse":
@@ -266,12 +274,18 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
                         observation["toolErrors"] += int(isinstance(response, dict) and response.get("is_error") is True)
             elif event_name in {"Stop", "Interrupt", "SessionEnd"}:
                 observation.update(ended=True, endEvent=event_name, endedAt=format_time(stamp))
+                if event_name == "Stop":
+                    observation.update(model=session_state.get("model"),
+                                       modelIdentitySource=session_state.get("modelIdentitySource", "unavailable"))
             store.write(f"sessions/{session_key}.json", session_state)
             store.write(f"receipts/{pair_id}.json", receipt)
             return {"status": "observed", "pairId": pair_id}
         # An ineligible new turn must not be attributed to the preceding measured turn.
         prior_state = dict(session_state)
-        store.write(f"sessions/{session_key}.json", {"model": session_state.get("model")})
+        explicit_turn_key = store.fingerprint(str(event["turn_id"])) if event.get("turn_id") else None
+        store.write(f"sessions/{session_key}.json", {"model": session_state.get("model"),
+                    "modelIdentitySource": session_state.get("modelIdentitySource"),
+                    "explicitTurnKey": explicit_turn_key})
         health["promptsObserved"] = health.get("promptsObserved", 0) + 1
         store.write(f"health/{host}.json", health)
         prompt = event.get("prompt")
@@ -284,7 +298,8 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
             return {"status": "unavailable"}
         turn = event.get("turn_id") or store.fingerprint(prompt)
         model = session_state.get("model")
-        pair_id = store.fingerprint(canonical([host, session, turn, model, document, IMPLEMENTATION_HASHES]))
+        # Late model discovery must not turn delivery of the same prompt into a new pair.
+        pair_id = store.fingerprint(canonical([host, session, turn, document, IMPLEMENTATION_HASHES]))
         existing = store.read(f"receipts/{pair_id}.json")
         if existing:
             store.write(f"sessions/{session_key}.json", prior_state)
@@ -312,7 +327,9 @@ def handle_event(store: PairStore, host: str, event_name: str, event: dict[str, 
         store.write(f"receipts/{pair_id}.json", pair)
         reservation["status"] = pair["comparisonStatus"]
         store.write(f"reservations/{pair_id}.json", reservation)
-        store.write(f"sessions/{session_key}.json", {"pairId": pair_id, "model": model, "toolIds": [], "turnKey": store.fingerprint(str(turn))})
+        store.write(f"sessions/{session_key}.json", {"pairId": pair_id, "model": model,
+                    "modelIdentitySource": session_state.get("modelIdentitySource"), "toolIds": [],
+                    "turnKey": store.fingerprint(str(turn)), "explicitTurnKey": explicit_turn_key})
         return {"status": pair["comparisonStatus"], "pairId": pair_id}
 
 

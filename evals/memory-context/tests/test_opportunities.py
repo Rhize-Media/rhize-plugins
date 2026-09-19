@@ -169,3 +169,100 @@ def test_secret_docs_and_outside_workspace_are_not_read(tmp_path):
     event = {"session_id":"s", "cwd":str(workspace), "prompt":"Recall prior memory"}
     assert handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)["status"] == "unavailable"
     assert handle_event(store, "claude", "UserPromptSubmit", {**event,"cwd":str(tmp_path)}, now=NOW)["status"] == "scope_denied"
+
+
+@pytest.mark.parametrize("first_prompt,measured", [("What is the release policy?", True), ("Hello", False)])
+def test_stop_caches_model_after_bounded_transcript_becomes_available(tmp_path, monkeypatch, first_prompt, measured):
+    from pathlib import Path
+    from memory_context.model_identity import MAX_TAIL
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "STATE.md").write_text("# Release policy\nVerify before release.")
+    transcript = tmp_path / ".claude/projects/workspace/session.jsonl"
+    transcript.parent.mkdir(parents=True)
+    transcript.write_text("")
+    store = PairStore(tmp_path / "state")
+    store.configure([workspace], 0)
+    event = {"session_id": "session", "turn_id": "t1", "cwd": str(workspace),
+             "transcript_path": str(transcript), "prompt": first_prompt}
+    first = handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)
+    assert first["status"] == ("complete" if measured else "ineligible")
+    assert len(store.receipts()) == int(measured)
+    original = store.read(f"receipts/{first['pairId']}.json") if measured else None
+    transcript.write_text(json.dumps({"type": "assistant", "sessionId": "session",
+                                     "message": {"model": "claude-model"}}) + "\n")
+    result = handle_event(store, "claude", "Stop", event, now=NOW)
+    assert result["status"] == ("observed" if measured else "no_pending_pair")
+    if measured:
+        receipt = store.read(f"receipts/{first['pairId']}.json")
+        assert receipt["model"] is original["model"] is None
+        assert receipt["answerStatus"] == original["answerStatus"]
+        assert receipt["observation"]["model"] == "claude-model"
+        assert receipt["observation"]["modelIdentitySource"] == "session_transcript_last_assistant"
+        assert receipt["observation"]["correctness"] is None
+    # A large startup record pushes the assistant metadata out of the read window.
+    with transcript.open("a") as stream:
+        stream.write(json.dumps({"type": "user", "padding": "x" * (MAX_TAIL + 1)}) + "\n")
+    next_pair = handle_event(store, "claude", "UserPromptSubmit",
+                             {**event, "turn_id": "t2", "prompt": "Recall the release policy"}, now=NOW)
+    receipt = store.read(f"receipts/{next_pair['pairId']}.json")
+    assert receipt["model"] == "claude-model"
+    assert receipt["modelIdentitySource"] == "session_event_cache"
+
+
+def test_stale_stop_cannot_replace_session_model(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "STATE.md").write_text("# Release policy\nVerify before release.")
+    store = PairStore(tmp_path / "state")
+    store.configure([workspace], 0)
+    event = {"session_id": "session", "turn_id": "current", "cwd": str(workspace),
+             "model": "current-model", "prompt": "Recall the release policy"}
+    handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)
+    state_path = f"sessions/{store.fingerprint('claude:session')}.json"
+    before = store.read(state_path)
+    receipt = store.receipts()[0]
+    assert handle_event(store, "claude", "Stop", {**event, "turn_id": "old", "model": "old-model"}, now=NOW)["status"] == "stale_turn_ignored"
+    assert store.read(state_path) == before
+    assert store.receipts()[0] == receipt
+
+    handle_event(store, "claude", "UserPromptSubmit", {**event, "turn_id": "next", "prompt": "Hello"}, now=NOW)
+    before = store.read(state_path)
+    assert handle_event(store, "claude", "Stop", {**event, "model": "old-model"}, now=NOW)["status"] == "stale_turn_ignored"
+    assert store.read(state_path) == before
+    assert store.receipts()[0] == receipt
+
+
+def test_prompt_replay_after_stop_model_discovery_remains_one_pair(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "STATE.md").write_text("# Release policy\nVerify before release.")
+    store = PairStore(tmp_path / "state")
+    store.configure([workspace], 2)
+    event = {"session_id": "session", "turn_id": "t1", "cwd": str(workspace), "prompt": "Recall the release policy"}
+    first = handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)
+    handle_event(store, "claude", "Stop", {**event, "model": "observed-model"}, now=NOW)
+    replay = handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)
+    assert replay == {"status": "duplicate", "pairId": first["pairId"]}
+    assert len(store.receipts()) == 1
+    assert store.receipts()[0]["answerStatus"] == "unavailable_model"
+    assert store.read("health/claude.json")["pairsCaptured"] == 1
+    assert not list((store.root / "queue").glob("*.json"))
+
+
+def test_stop_with_new_turn_id_when_prompt_omitted_it_is_not_stale(tmp_path):
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "STATE.md").write_text("# Release policy\nVerify before release.")
+    store = PairStore(tmp_path / "state")
+    store.configure([workspace], 0)
+    event = {"session_id": "session", "cwd": str(workspace), "prompt": "Recall the release policy"}
+    pair = handle_event(store, "claude", "UserPromptSubmit", event, now=NOW)
+    assert handle_event(store, "claude", "Stop", {**event, "turn_id": "new-id", "model": "m"}, now=NOW)["status"] == "observed"
+    # A later Stop without metadata retains the known model, with cache provenance.
+    handle_event(store, "claude", "Stop", event, now=NOW)
+    receipt = store.read(f"receipts/{pair['pairId']}.json")
+    assert receipt["model"] is None
+    assert receipt["observation"]["model"] == "m"
+    assert receipt["observation"]["modelIdentitySource"] == "session_event_cache"

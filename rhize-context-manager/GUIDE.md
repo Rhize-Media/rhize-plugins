@@ -286,8 +286,14 @@ correctness grade. See [setup, commands and interpretation](skills/memory-contex
 
 Claude model identity is taken from explicit hook metadata, a bounded matching session transcript
 tail under `~/.claude/projects/`, or previously observed session metadata, with its provenance
-recorded. Missing identity remains unavailable. No transcript content is retained. Both hosts
-label tool/action requests separately from candidate questions before starting tool-free answers.
+recorded. Stop events cache the resolved model for later prompts, including turns without a
+measurement pair. A known mismatched turn is ignored; hosts without explicit turn identifiers
+cannot provide that stale-event check. Replayed prompts do not create another pair merely because
+the model became known. Stop-only completion metadata records that event's provenance (which may
+be a cache lookup); original prompt-time identity and answer status are never rewritten.
+Interrupt/SessionEnd do not add this optional completion identity. A first prompt can still have
+unavailable identity. No transcript content is retained. Both hosts label tool/action requests
+separately from candidate questions before starting tool-free answers.
 Natural answer correctness remains `unavailable_rubric`; successful execution is not a grade.
 
 The answer worker checks subscription auth before reserving daily budget. Auth failures defer
