@@ -14,6 +14,24 @@ from workflow_selection import opportunity, decide, record, finish, hook_message
 from memory_context.procedural_adapter import from_response
 
 
+@pytest.mark.parametrize('payload,env,explicit,expected', [
+    ({}, {'CODEX_THREAD_ID': 'parent'}, 'unknown', 'unknown'),
+    ({}, {'CODEX_THREAD_ID': 'parent', 'CLAUDE_CODE_ENTRYPOINT': 'cli'}, 'unknown', 'claude'),
+    ({'thread_id': 'native'}, {}, 'unknown', 'codex'),
+    ({}, {'PLUGIN_ROOT': '/installed/plugin'}, 'unknown', 'codex'),
+    ({}, {'CLAUDE_CODE_ENTRYPOINT': 'cli'}, 'unknown', 'claude'),
+    ({'thread_id': 'native'}, {'CLAUDE_CODE_ENTRYPOINT': 'parent'}, 'unknown', 'unknown'),
+    ({}, {'PLUGIN_ROOT': '/installed/plugin', 'CLAUDE_CODE_ENTRYPOINT': 'cli'}, 'unknown', 'unknown'),
+    ({'thread_id': 42}, {'PLUGIN_ROOT': ' ', 'CLAUDE_CODE_ENTRYPOINT': ''}, 'unknown', 'unknown'),
+    ({}, {}, 'unknown', 'unknown'),
+    ({'thread_id': 'native'}, {'PLUGIN_ROOT': '/parent'}, 'claude', 'claude'),
+    ({}, {'CLAUDE_CODE_ENTRYPOINT': 'parent'}, 'codex', 'codex'),
+])
+def test_host_inference_does_not_trust_inherited_session(payload, env, explicit, expected):
+    from workflow_selection import detect_host
+    assert detect_host(payload, env, explicit) == expected
+
+
 def test_opportunity_dedup_and_privacy(tmp_path):
     payload = {'prompt':'Write a resource article about private topic xyz', 'session_id':'secret-session','turn_id':'turn1'}
     first, changed = opportunity(payload, 'codex', tmp_path, {})
