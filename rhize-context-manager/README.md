@@ -337,3 +337,7 @@ are separate events; no-match and unfinished opportunities remain in the denomin
 `memory-context preview --procedural-launcher /absolute/installed/launcher.sh` opts into the
 bounded offline metadata bridge. It refuses mixed procedural snapshots; missing or old runtimes
 remain unavailable. The existing preview-only injection/write-back policy is unchanged.
+
+## Host attribution
+
+Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.

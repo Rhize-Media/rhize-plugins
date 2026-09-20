@@ -110,12 +110,27 @@ def opportunity(payload, host, root, config):
     return locked_update(root, identity, lambda old: (old, False) if old else (result, True))
 
 
+def detect_host(payload, env, explicit='unknown'):
+    if explicit in {'claude', 'codex'}:
+        return explicit
+    def present(value):
+        return isinstance(value, str) and bool(value.strip())
+    # Session variables can survive a cross-host child process. They are not
+    # sufficient host evidence; contradictory native signals remain unknown.
+    codex = present(payload.get('thread_id')) or present(env.get('PLUGIN_ROOT'))
+    claude = present(env.get('CLAUDE_CODE_ENTRYPOINT'))
+    if codex == claude:
+        return 'unknown'
+    return 'codex' if codex else 'claude'
+
+
 def hook_message(receipt):
     return ("Workflow selection checkpoint before substantial work. For RHIZE resource articles, consult "
             "procedural-memory:rhize-content-engine; for other repeatable multi-step work use "
             "procedural-memory:procedural-memory recall --json. Decide from the user's full request: reuse, adapt, "
             "no_match, unavailable, candidate, or skip for a simple/non-workflow task. Do not infer publishing "
-            "permission or invent a matching workflow. Record the choice before composition with "
+            "permission or invent a matching workflow. "
+            f"Opportunity ID: {receipt['opportunityId']}. Record the choice before composition with "
             f"python3 {shlex.quote(str(Path(__file__).resolve()))} decide --id {receipt['opportunityId']} (see the skill), then record "
             "actual execution, validation and capture separately. This checkpoint grants no execution authority.")
 
@@ -286,9 +301,7 @@ def main():
             if len(raw) > MAX_INPUT: raise ValueError('hook input budget exceeded')
             payload = json.loads(raw)
             if not isinstance(payload, dict): raise ValueError('invalid hook input')
-            host = args.host
-            if host == 'unknown':
-                host = 'codex' if payload.get('thread_id') or os.environ.get('CODEX_THREAD_ID') or os.environ.get('PLUGIN_ROOT') else 'claude' if os.environ.get('CLAUDE_CODE_ENTRYPOINT') else 'unknown'
+            host = detect_host(payload, os.environ, args.host)
             receipt, fresh = opportunity(payload, host, args.root, config)
             message = hook_message(receipt) if receipt and fresh else None
             output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit', 'additionalContext': message}} if message else None

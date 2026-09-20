@@ -84,3 +84,7 @@ benefit from a routing hit, a fixture pass or a small hand-authored prompt set.
 
 The procedural preview uses a separate opt-in assembler. The incumbent `memory_context/core.py`
 remains byte-identical to its pinned Arm A source; existing controlled studies are not repinned.
+
+## Host attribution
+
+Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.

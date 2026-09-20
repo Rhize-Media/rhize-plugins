@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- Workflow host attribution now rejects inherited-session-only identity and retains conflicting native signals as unknown. Cross-host canaries must isolate host/session environment markers; historical mislabeled receipts are preserved.
+
 - 2026-09-19: workflow discovery repair adds the canonical RHIZE Content Engine skill,
   declared/approved-root inventory and inert procedural metadata. The opt-in checkpoint creates
   pending opportunities; the task agent records scope, run and source identity before composition.

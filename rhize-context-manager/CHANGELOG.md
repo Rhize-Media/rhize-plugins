@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Fix workflow host attribution for nested native CLIs: inherited Codex session IDs alone no longer select Codex, conflicting native host signals remain unknown, and checkpoint text names the opportunity ID explicitly.
+- _2026-09-19_ version bump — 0.33.0 → 0.33.1 (patch); marketplace 2.76.2 → 2.76.3.
 - _2026-09-19_ Add opt-in workflow opportunity/decision capture, run-bound completion evidence, supported metadata-only procedural recall, and declared/approved local skill roots. Pending, unavailable and skipped opportunities remain separate; native activation is opt-in.
 - _2026-09-19_ version bump — 0.32.3 → 0.33.0 (minor); marketplace 2.74.0 → 2.75.0.
 - _2026-09-19_ version bump — 0.32.2 → 0.32.3 (patch); marketplace 2.73.2 → 2.73.3.
