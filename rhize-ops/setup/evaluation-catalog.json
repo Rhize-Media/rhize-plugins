@@ -21,7 +21,7 @@
     {
       "id": "operations",
       "title": "Operations",
-      "components": ["rhize-ops", "rhize-tasks"]
+      "components": ["rhize-ops", "rhize-tasks", "rhize-outreach"]
     },
     {
       "id": "engineering-delivery",
@@ -90,6 +90,14 @@
       "skills": ["manage-task-preferences", "plan-my-day", "reconcile-rhize-tasks", "review-task-opportunities", "rhize-tasks-doctor", "rhize-tasks-setup"],
       "suites": [{"id": "rhize-tasks-local", "kind": "python", "path": "evals/rhize-tasks/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "tasks-existing-vs-rhize", "protocol": "evals/rhize-tasks/benefit-benchmark.json", "arm_a": "user-confirmed existing task workflow", "arm_b": "rhize-tasks", "natural_capture_eligible": true}]
+    },
+    {
+      "id": "rhize-outreach",
+      "kind": "plugin",
+      "domain": "operations",
+      "skills": ["reconcile-outreach-delivery", "review-outreach-businesses", "review-outreach-email", "review-outreach-package", "rhize-outreach-doctor", "rhize-outreach-setup", "run-outreach-campaign"],
+      "suites": [{"id": "rhize-outreach-local", "kind": "python", "path": "evals/rhize-outreach/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
+      "benchmarks": [{"id": "outreach-manual-vs-plugin", "protocol": "evals/rhize-outreach/benchmark_spec.json", "arm_a": "user-confirmed existing manual outreach workflow", "arm_b": "rhize-outreach", "natural_capture_eligible": true}]
     },
     {
       "id": "rhize-devflow",

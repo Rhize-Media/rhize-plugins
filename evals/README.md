@@ -25,6 +25,7 @@ evals/
 ├── rhize-context-manager/ # Context Manager deterministic contracts
 ├── rhize-core/            # Platform control-plane offline test-suite gate
 ├── rhize-tasks/           # Rhize Tasks deterministic contracts + benefit protocol
+├── rhize-outreach/        # Rhize Outreach portable setup, safety and workflow contracts
 ├── procedural-memory/     # Procedural Memory deterministic contracts
 ├── skylos/                # Optional local static-evidence comparison and isolation acceptance
 ├── skill-forge/           # External SkillForge safety/evolve integration harness
@@ -36,7 +37,7 @@ Directories with `trigger_evals.json` or `quality_evals.json` are auto-discovere
 harness. Other components deliberately use offline runners with component-specific schemas so they
 cannot be swept into a paid model run by accident.
 
-The offline coverage gates account for all 56 currently published Rhize plugin skills. That is a
+The offline coverage gates account for all 65 currently published Rhize plugin skills. That is a
 coverage statement, not a benefit claim: most live and controlled Arm A/Arm B cohorts are still
 pending, and every checked-in benchmark contract says so explicitly.
 
@@ -75,6 +76,7 @@ python3 evals/rhize-context-manager/run_evals.py
 python3 evals/rhize-core/run_evals.py
 python3 evals/parallel-agent-skills/scripts/evaluate_ops_skills.py
 python3 evals/rhize-tasks/run_evals.py
+python3 evals/rhize-outreach/run_evals.py
 python3 evals/procedural-memory/run_evals.py
 ```
 
@@ -238,6 +240,13 @@ nothing to disk; it is not evidence of a live Neo4j deployment.
 Grades the host-neutral memory adapter for Claude Code and Codex: byte-equivalent manifests,
 conflict preservation, inert untrusted content, scope denial, TTL/source-revision invalidation,
 and (for the graph fixture) tenant/ACL denial and purge, without opening a database connection.
+
+### rhize-outreach
+
+Grades the portable Rhize Outreach plugin contract: manifest parity, pinned runtime and template
+compatibility, secret-safe setup, no-send defaults, required human review gates and explicit
+delivery reconciliation. Run with `python3 evals/rhize-outreach/run_evals.py`. Writes no result
+artifact; the paired `benchmark_spec.json` defines the later manual-versus-plugin outcome study.
 Run with `python3 -m pytest -q evals/memory-context/tests`. Writes nothing to disk; deterministic
 contract evidence only, not operational retrieval evidence.
 

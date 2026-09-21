@@ -1,0 +1,89 @@
+{
+  "schema": 3,
+  "plugin": "rhize-outreach",
+  "items": [],
+  "dependencies": [
+    {
+      "name": "git",
+      "kind": "cli",
+      "purpose": "Installs and verifies the pinned Rhize Outreach runtime checkout.",
+      "required": true,
+      "degradedBehavior": "Setup cannot install or verify the outreach runtime.",
+      "replacement": {
+        "suggestion": "Install Xcode Command Line Tools or Git for Mac.",
+        "warning": "There is no supported runtime installation path without Git."
+      }
+    },
+    {
+      "name": "node",
+      "kind": "cli",
+      "purpose": "Runs the TypeScript outreach runtime and its local review interface.",
+      "required": true,
+      "degradedBehavior": "Campaign execution and the review UI are unavailable.",
+      "replacement": {
+        "suggestion": "Install Node.js 24 or newer.",
+        "warning": "Older Node versions are outside the runtime's supported engine range."
+      }
+    },
+    {
+      "name": "macOS Keychain",
+      "kind": "platform",
+      "purpose": "Stores operator-entered Supabase and connector secrets outside plugin configuration.",
+      "required": true,
+      "degradedBehavior": "The supported setup wizard cannot persist secrets safely.",
+      "replacement": {
+        "suggestion": "Run the plugin on a Rhize-managed Mac.",
+        "warning": "Plaintext files and chat messages are not supported secret-storage replacements."
+      }
+    },
+    {
+      "name": "rhize-outreach runtime",
+      "kind": "data",
+      "purpose": "The versioned workflow runtime this plugin controls; the plugin does not duplicate its business logic.",
+      "required": true,
+      "degradedBehavior": "Setup, doctor and review skills remain readable, but campaigns cannot run.",
+      "source": "https://github.com/Rhize-Media/rhize-outreach",
+      "pin": "5104082e2e17ac8663a20f165e6247485927e4cc"
+    }
+  ],
+  "wizard": {
+    "skill": "rhize-outreach:setup",
+    "purpose": "Install the pinned runtime, collect local configuration safely, connect the operator workspace and run a no-send dry run.",
+    "when": "required",
+    "args": ["--from-rhize-setup"]
+  },
+  "doctor": {
+    "kind": "skill",
+    "value": "rhize-outreach:doctor"
+  },
+  "artifacts": [
+    {
+      "id": "application-support",
+      "path": "<home>/Library/Application Support/Rhize Outreach/",
+      "kind": "directory",
+      "purpose": "Non-secret setup state, pinned runtime checkout metadata, logs and redacted doctor receipts.",
+      "viewer": "cat \"$HOME/Library/Application Support/Rhize Outreach/config.json\"",
+      "lifetime": "persistent",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": false
+    },
+    {
+      "id": "handoff-drafts",
+      "path": "<home>/Library/Application Support/Rhize Outreach/handoff/",
+      "kind": "directory",
+      "purpose": "Generated Tom setup email and prompt containing variable names and instructions but no secret values.",
+      "viewer": "ls \"$HOME/Library/Application Support/Rhize Outreach/handoff\"",
+      "lifetime": "regenerated",
+      "confidentiality": "config",
+      "source": "derived",
+      "tracked": "outside-repo",
+      "optional": true
+    }
+  ],
+  "evaluations": {
+    "catalog": "rhize-evaluations-v1",
+    "component": "rhize-outreach"
+  }
+}

@@ -28,6 +28,8 @@
   { "slug": "content-optimization", "kind": "topic", "gloss": "On-page content and structured-data optimization" },
   { "slug": "rank-tracking", "kind": "topic", "gloss": "SERP position and ranking monitoring" },
   { "slug": "ai-visibility", "kind": "topic", "gloss": "AI/answer-engine optimization and LLM citation visibility" },
+  { "slug": "outreach", "kind": "topic", "gloss": "Prospect research, personalized outreach preparation, and human-reviewed delivery" },
+  { "slug": "prospecting", "kind": "topic", "gloss": "Finding and qualifying potential customers from sourced business evidence" },
   { "slug": "obsidian", "kind": "stack", "gloss": "Obsidian vault/app-specific skills" },
   { "slug": "functionize", "kind": "stack", "gloss": "Functionize CLI-pattern mining and inert proposal compilation" },
   { "slug": "nextjs", "kind": "stack", "gloss": "Next.js codebases" },
@@ -38,6 +40,8 @@
   { "slug": "neo4j", "kind": "stack", "gloss": "Neo4j graph database tooling" },
   { "slug": "sentry", "kind": "stack", "gloss": "Sentry error tracking/instrumentation" },
   { "slug": "vercel", "kind": "stack", "gloss": "Vercel deployment platform" },
+  { "slug": "postgresql", "kind": "stack", "gloss": "PostgreSQL databases and transaction workflows" },
+  { "slug": "supabase", "kind": "stack", "gloss": "Supabase database, authentication, storage, and row-level security" },
   {
     "slug": "build-failure",
     "kind": "condition",

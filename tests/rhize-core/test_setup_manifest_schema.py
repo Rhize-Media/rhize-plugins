@@ -263,4 +263,4 @@ def test_wizard_declaring_plugins_have_resolvable_commands() -> None:
         command_path = REPO / command_plugin / "commands" / f"{command_name}.md"
         assert command_path.is_file(), f"{plugin} wizard references missing command {command_path}"
         assert evaluation_setup.command_has_description_frontmatter(command_path.read_text(encoding="utf-8"))
-    assert wizards_found == 5, "expected exactly 5 plugins to declare a wizard in this release"
+    assert wizards_found == 6, "expected exactly 6 plugins to declare a wizard in this release"

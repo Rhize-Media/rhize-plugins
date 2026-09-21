@@ -1,0 +1,8 @@
+{
+  "name": "rhize-outreach",
+  "version": "0.1.0",
+  "description": "Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.",
+  "author": { "name": "Rhize Media" },
+  "homepage": "https://rhize.media",
+  "keywords": ["outreach", "prospecting", "website-audit", "gmail", "gohighlevel", "rhize"]
+}

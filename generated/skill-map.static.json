@@ -907,6 +907,90 @@
       "type": "contains"
     },
     {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/businesses",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/campaign",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/email",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/package",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/reconcile",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "command:rhize-outreach/setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/review-outreach-businesses",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/review-outreach-email",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/rhize-outreach-doctor",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/rhize-outreach-setup",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-outreach",
+      "source": "marketplace",
+      "to": "skill:rhize-outreach/run-outreach-campaign",
+      "type": "contains"
+    },
+    {
       "from": "plugin:rhize-tasks",
       "source": "marketplace",
       "to": "command:rhize-tasks/doctor",
@@ -2188,6 +2272,162 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "source": "frontmatter",
+      "to": "tag:topic/data-consistency",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "source": "frontmatter",
+      "to": "tag:topic/prospecting",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "source": "frontmatter",
+      "to": "tag:topic/content-authoring",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "frontmatter",
+      "to": "tag:topic/seo-audit",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "frontmatter",
+      "to": "tag:topic/visualization",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "source": "frontmatter",
+      "to": "tag:stack/postgresql",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "source": "frontmatter",
+      "to": "tag:stack/supabase",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/observability",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:stack/postgresql",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:stack/supabase",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:topic/workflow-patterns",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/run-outreach-campaign",
+      "source": "frontmatter",
+      "to": "tag:stack/postgresql",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/run-outreach-campaign",
+      "source": "frontmatter",
+      "to": "tag:stack/supabase",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/run-outreach-campaign",
+      "source": "frontmatter",
+      "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/run-outreach-campaign",
+      "source": "frontmatter",
+      "to": "tag:topic/outreach",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/run-outreach-campaign",
+      "source": "frontmatter",
+      "to": "tag:topic/prospecting",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-tasks/manage-task-preferences",
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
@@ -2831,6 +3071,55 @@
       "kind": "command",
       "name": "rhize-setup",
       "path": "rhize-ops/commands/rhize-setup.md"
+    },
+    {
+      "description": "Review researched candidates or add a manual business",
+      "id": "command:rhize-outreach/businesses",
+      "kind": "command",
+      "name": "businesses",
+      "path": "rhize-outreach/commands/businesses.md"
+    },
+    {
+      "description": "Start or resume a Rhize Outreach campaign",
+      "id": "command:rhize-outreach/campaign",
+      "kind": "command",
+      "name": "campaign",
+      "path": "rhize-outreach/commands/campaign.md"
+    },
+    {
+      "description": "Diagnose Rhize Outreach without provider writes",
+      "id": "command:rhize-outreach/doctor",
+      "kind": "command",
+      "name": "doctor",
+      "path": "rhize-outreach/commands/doctor.md"
+    },
+    {
+      "description": "View or revise the current prospect outreach email",
+      "id": "command:rhize-outreach/email",
+      "kind": "command",
+      "name": "email",
+      "path": "rhize-outreach/commands/email.md"
+    },
+    {
+      "description": "Generate or review the selected prospect's website and audit package",
+      "id": "command:rhize-outreach/package",
+      "kind": "command",
+      "name": "package",
+      "path": "rhize-outreach/commands/package.md"
+    },
+    {
+      "description": "Reconcile Gmail or GHL delivery state without automatic retry",
+      "id": "command:rhize-outreach/reconcile",
+      "kind": "command",
+      "name": "reconcile",
+      "path": "rhize-outreach/commands/reconcile.md"
+    },
+    {
+      "description": "Install or resume the Rhize Outreach setup wizard",
+      "id": "command:rhize-outreach/setup",
+      "kind": "command",
+      "name": "setup",
+      "path": "rhize-outreach/commands/setup.md"
     },
     {
       "description": "Diagnose the local Rhize Tasks service safely",
@@ -3605,6 +3894,13 @@
       "path": "rhize-ops"
     },
     {
+      "description": "Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.",
+      "id": "plugin:rhize-outreach",
+      "kind": "plugin",
+      "name": "rhize-outreach",
+      "path": "rhize-outreach"
+    },
+    {
       "description": "Turns your approved Jira work into a realistic daily plan on your Mac by blocking time on your calendar and creating reminders — for anyone juggling Jira tickets against their own schedule.",
       "id": "plugin:rhize-tasks",
       "kind": "plugin",
@@ -3999,6 +4295,62 @@
       "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
     },
     {
+      "contentHash": "78820740764ef82b6817d996bb120619f3997fdf57f9de3378b10c0ae29253c0",
+      "description": "Reconcile Gmail or GHL draft/delivery intent state after an ambiguous, failed or manually completed action without duplicate contact.",
+      "id": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "kind": "skill",
+      "name": "reconcile-outreach-delivery",
+      "path": "rhize-outreach/skills/reconcile-outreach-delivery/SKILL.md"
+    },
+    {
+      "contentHash": "706801c8271b8e57da2c8a3e1b5b5e6f590aad8d430519cdf3029c1d1b44f3dc",
+      "description": "Review researched candidate businesses or add a manually found business before selecting one for deliverables.",
+      "id": "skill:rhize-outreach/review-outreach-businesses",
+      "kind": "skill",
+      "name": "review-outreach-businesses",
+      "path": "rhize-outreach/skills/review-outreach-businesses/SKILL.md"
+    },
+    {
+      "contentHash": "ff93cdf599a00f2e961ffe37111011b306e85712842d485d319e2998c80c35d7",
+      "description": "Open, revise and accept the personalized outreach email bound to the accepted website and audit package.",
+      "id": "skill:rhize-outreach/review-outreach-email",
+      "kind": "skill",
+      "name": "review-outreach-email",
+      "path": "rhize-outreach/skills/review-outreach-email/SKILL.md"
+    },
+    {
+      "contentHash": "83f12c66b89322234c6fa3602c3913f3b8f7cf22e0ac86f9f1283eb3362ed904",
+      "description": "Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and rendering checks.",
+      "id": "skill:rhize-outreach/review-outreach-package",
+      "kind": "skill",
+      "name": "review-outreach-package",
+      "path": "rhize-outreach/skills/review-outreach-package/SKILL.md"
+    },
+    {
+      "contentHash": "170cb8d3a5e2b6d7ea71dccfc170c7f843918a4bb1a764b1542946661bb89b28",
+      "description": "Diagnose the Rhize Outreach plugin, pinned runtime, templates, shared workspace and connector readiness without running discovery, publishing or sending.",
+      "id": "skill:rhize-outreach/rhize-outreach-doctor",
+      "kind": "skill",
+      "name": "rhize-outreach-doctor",
+      "path": "rhize-outreach/skills/rhize-outreach-doctor/SKILL.md"
+    },
+    {
+      "contentHash": "96b0f45adb173948c8f65abcfb31c1d52db338be1aa6880c288b7b56b377be23",
+      "description": "Install or resume the seven-stage Rhize Outreach setup wizard on a Mac. Use for first install, runtime alignment, Supabase workspace connection, connector configuration or a no-send dry run.",
+      "id": "skill:rhize-outreach/rhize-outreach-setup",
+      "kind": "skill",
+      "name": "rhize-outreach-setup",
+      "path": "rhize-outreach/skills/rhize-outreach-setup/SKILL.md"
+    },
+    {
+      "contentHash": "50432a93895e87e018d7770a4c858567ede3da07939abfd1a3b05dec599b34a1",
+      "description": "Start or resume the Rhize Outreach graph from market selection through a researched shortlist. Use when choosing an area and industry or continuing a saved campaign.",
+      "id": "skill:rhize-outreach/run-outreach-campaign",
+      "kind": "skill",
+      "name": "run-outreach-campaign",
+      "path": "rhize-outreach/skills/run-outreach-campaign/SKILL.md"
+    },
+    {
       "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
       "description": "Review and update Rhize Tasks planning preferences through the authenticated local dashboard. Use to change working hours, buffers, routines, reconciliation, or bounded-replanning rules.",
       "id": "skill:rhize-tasks/manage-task-preferences",
@@ -4144,6 +4496,12 @@
       "name": "obsidian"
     },
     {
+      "description": "PostgreSQL databases and transaction workflows",
+      "id": "tag:stack/postgresql",
+      "kind": "tag",
+      "name": "postgresql"
+    },
+    {
       "description": "Python runtimes and tooling",
       "id": "tag:stack/python",
       "kind": "tag",
@@ -4166,6 +4524,12 @@
       "id": "tag:stack/seo",
       "kind": "tag",
       "name": "seo"
+    },
+    {
+      "description": "Supabase database, authentication, storage, and row-level security",
+      "id": "tag:stack/supabase",
+      "kind": "tag",
+      "name": "supabase"
     },
     {
       "description": "Browser/E2E testing tooling",
@@ -4288,10 +4652,22 @@
       "name": "observability"
     },
     {
+      "description": "Prospect research, personalized outreach preparation, and human-reviewed delivery",
+      "id": "tag:topic/outreach",
+      "kind": "tag",
+      "name": "outreach"
+    },
+    {
       "description": "Scaffolding and planning new projects or features",
       "id": "tag:topic/project-planning",
       "kind": "tag",
       "name": "project-planning"
+    },
+    {
+      "description": "Finding and qualifying potential customers from sourced business evidence",
+      "id": "tag:topic/prospecting",
+      "kind": "tag",
+      "name": "prospecting"
     },
     {
       "description": "Source lineage, evidence binding, and invalidation metadata",

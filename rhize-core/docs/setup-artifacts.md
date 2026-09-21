@@ -40,6 +40,8 @@ Every file or directory a Rhize plugin's setup wizard or day-to-day use can writ
 | delegate-config | rhize-ops | <home>/.claude/rhize-ops/delegate.config.json | cat ~/.claude/rhize-ops/delegate.config.json (redact identifiers before sharing) | persistent | personal | authored | ignored |
 | parallel-agent-optimization-receipts | rhize-ops | <home>/.rhize/parallel-agent-optimization/ | /rhize-ops:parallel-optimize report all | append-only | none | derived | outside-repo |
 | skill-monitor-data | rhize-ops | <home>/.rhize/skill-monitor/ | python3 "$(rhize-ops/scripts/skill_monitor_root.sh)/dashboard.py" | regenerated | none | derived | outside-repo |
+| application-support | rhize-outreach | <home>/Library/Application Support/Rhize Outreach/ | cat "$HOME/Library/Application Support/Rhize Outreach/config.json" | persistent | config | derived | outside-repo |
+| handoff-drafts | rhize-outreach | <home>/Library/Application Support/Rhize Outreach/handoff/ | ls "$HOME/Library/Application Support/Rhize Outreach/handoff" | regenerated | config | derived | outside-repo |
 | application-support | rhize-tasks | <home>/Library/Application Support/Rhize Tasks/ | cat "~/Library/Application Support/Rhize Tasks/installation.json" | persistent | personal | derived | outside-repo |
 | helper-launch-agent | rhize-tasks | <home>/Library/LaunchAgents/media.rhize.tasks.reminders-helper.plist | launchctl print gui/$(id -u)/media.rhize.tasks.reminders-helper | persistent | config | derived | outside-repo |
 | routine-launch-agent | rhize-tasks | <home>/Library/LaunchAgents/media.rhize.tasks.plist | launchctl print gui/$(id -u)/media.rhize.tasks | persistent | config | derived | outside-repo |

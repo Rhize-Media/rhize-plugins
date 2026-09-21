@@ -183,18 +183,19 @@ def test_discover_reports_schema_1_as_evaluation_missing(tmp_path: Path) -> None
     assert any("evaluation catalog missing" in warning for warning in result["warnings"])
 
 
-def test_discover_dry_run_against_the_real_dev_repo_finds_all_ten_plugins(tmp_path: Path) -> None:
+def test_discover_dry_run_against_the_real_dev_repo_finds_all_eleven_plugins(tmp_path: Path) -> None:
     """Verification step from the task brief: a dry run against this dev repo (read-only —
-    --home/--project point at throwaway fixtures) must print all ten plugins, including the new
+    --home/--project point at throwaway fixtures) must print all eleven plugins, including the new
     rhize-core split (repo-shape R-B)."""
     home = tmp_path / "home"
     code, result = run_cli("discover", "--json", "--home", str(home), "--project", str(REPO))
     assert code == 0, result
     assert result["source"]["kind"] == "dev-repo"
-    assert len(result["plugins"]) == 10
+    assert len(result["plugins"]) == 11
     assert {p["name"] for p in result["plugins"]} == {
         "obsidian-second-brain", "procedural-memory", "project-launcher", "rhize-context-manager",
-        "rhize-core", "rhize-cowork", "rhize-devflow", "rhize-ops", "rhize-tasks", "seo-aeo-geo",
+        "rhize-core", "rhize-cowork", "rhize-devflow", "rhize-ops", "rhize-outreach",
+        "rhize-tasks", "seo-aeo-geo",
     }
 
 

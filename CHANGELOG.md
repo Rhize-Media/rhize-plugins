@@ -24,6 +24,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - [rhize-tasks/CHANGELOG.md](./rhize-tasks/CHANGELOG.md)
 - [rhize-cowork/CHANGELOG.md](./rhize-cowork/CHANGELOG.md)
 - [procedural-memory/CHANGELOG.md](./procedural-memory/CHANGELOG.md)
+- [rhize-outreach/CHANGELOG.md](./rhize-outreach/CHANGELOG.md)
 
 Entries before 2026-09-03 live in
 [docs/release/CHANGELOG-history.md](./docs/release/CHANGELOG-history.md), preserved verbatim as a
@@ -33,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-21_ added **rhize-outreach** 0.1.0 with dual Claude/Codex setup, reviewed workflow skills and a pinned no-send runtime; marketplace 2.76.3 → 2.77.0.
 - _2026-09-19_ version bump — **rhize-context-manager** 0.33.0 → 0.33.1 (patch); marketplace 2.76.2 → 2.76.3.
 - _2026-09-19_ version bump — **rhize-ops** 0.25.0 → 0.25.1 (patch); marketplace 2.76.1 → 2.76.2.
 - _2026-09-19_ version bump — **rhize-core** 1.0.4 → 1.0.5 (patch); marketplace 2.76.0 → 2.76.1.

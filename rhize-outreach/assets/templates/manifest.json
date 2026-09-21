@@ -1,0 +1,9 @@
+{
+  "schema": "rhize-outreach-template-manifest-v1",
+  "templates": [
+    {"id": "operator-review-shell", "path": "operator-review-shell.html", "sha256": "84757ce359f9ecfbd5bf71310089295db1aa419871ebc8e1b0647037573bf116"},
+    {"id": "report-shell", "path": "report-shell.html", "sha256": "cfab243428329a880185f16ce0e8bbc28cdab0e16b407cdefbbebba3adff9fe6"},
+    {"id": "website-shell", "path": "website-shell.html", "sha256": "de2e427d3178530fe8676893350134586c3c159edda89b597a4472ca606d4ca8"},
+    {"id": "template-styles", "path": "template.css", "sha256": "8486c43c072ee703169eb5ee42194805ec588d83865b191bf31c953a84e5a892"}
+  ]
+}

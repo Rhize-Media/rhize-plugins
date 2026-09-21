@@ -103,6 +103,20 @@
         "skillId": "skill:rhize-ops/delegate-to-teammate"
       }
     ],
+    "postgresql": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/rhize-outreach-doctor"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/run-outreach-campaign"
+      }
+    ],
     "python": [
       {
         "deeper": [],
@@ -169,6 +183,20 @@
       {
         "deeper": [],
         "skillId": "skill:seo-aeo-geo/serp-intelligence"
+      }
+    ],
+    "supabase": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/rhize-outreach-doctor"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
+      },
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/run-outreach-campaign"
       }
     ],
     "testing": [
@@ -1297,6 +1325,185 @@
         {
           "kind": "tag",
           "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/reconcile-outreach-delivery": [
+        {
+          "kind": "name",
+          "label": "reconcile-outreach-delivery",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "data-consistency",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/review-outreach-businesses": [
+        {
+          "kind": "name",
+          "label": "review-outreach-businesses",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "prospecting",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/review-outreach-email": [
+        {
+          "kind": "name",
+          "label": "review-outreach-email",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "content-authoring",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "review",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/review-outreach-package": [
+        {
+          "kind": "name",
+          "label": "review-outreach-package",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "review",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "seo-audit",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "visualization",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/rhize-outreach-doctor": [
+        {
+          "kind": "name",
+          "label": "rhize-outreach-doctor",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "observability",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "postgresql",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "supabase",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/rhize-outreach-setup": [
+        {
+          "kind": "name",
+          "label": "rhize-outreach-setup",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "postgresql",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "supabase",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "workflow-patterns",
+          "weight": 2
+        }
+      ],
+      "skill:rhize-outreach/run-outreach-campaign": [
+        {
+          "kind": "name",
+          "label": "run-outreach-campaign",
+          "weight": 1
+        },
+        {
+          "kind": "tag",
+          "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "outreach",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "postgresql",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "prospecting",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "supabase",
           "weight": 2
         }
       ],

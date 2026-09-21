@@ -1,0 +1,14 @@
+{
+  "schema_version": "rhize-benefit-benchmark-v1",
+  "id": "outreach-manual-vs-plugin",
+  "component": "rhize-outreach",
+  "arms": {
+    "a": "user-confirmed existing manual outreach workflow",
+    "b": "rhize-outreach"
+  },
+  "claims": [
+    "The plugin preserves the four human checkpoints while making setup and resumption repeatable.",
+    "The setup and doctor flow does not expose secret values or send outreach."
+  ],
+  "natural_capture_eligible": true
+}

@@ -146,3 +146,11 @@
 - Final merged-tree validation: 1,507 tests passed, 5 skipped and 18 subtests passed. All ten plugin
   manifests, marketplace, configuration lint, skill-map/setup freshness and doctor passed. Tests
   using temporary HOME must use the real Node binary rather than the mise shim.
+
+## Rhize Outreach plugin — 2026-09-21 (RT-180)
+
+- Added the internal `rhize-outreach` plugin as the control/distribution layer for the separate runtime. Claude and Codex manifests expose setup, doctor, campaign, business review/manual entry, package review, email review and delivery reconciliation skills.
+- The seven-stage loopback wizard installs pinned runtime commit `5104082e2e17ac8663a20f165e6247485927e4cc`, keeps non-secret settings in Application Support and writes entered credentials only to macOS Keychain. Gmail/GHL default to draft-only; Vercel defaults disabled.
+- Setup verifies runtime/template compatibility and can run the redacted runtime doctor plus exact workflow-skill resolver without discovery, provider writes, publishing or sending. Generated Tom handoff files contain variable names and local-entry instructions, never secret values.
+- Focused evidence: Plugin Creator validation passes; offline evaluation 12/12, plugin tests 4/4 and setup-manifest tests 36/36 pass. The complete repository suite passes 1,538 tests with 5 skipped and 18 subtests. Generated skill-map/catalog/docs include the new plugin and outreach/prospecting/PostgreSQL/Supabase tags.
+- No production Supabase deployment, data cutover, provider call, public deployment, email draft creation or send occurred. Shared-repository migration and live connector execution remain later reviewed slices.

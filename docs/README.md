@@ -66,6 +66,12 @@ Version 0.2.3. Sets up the starter files describing a new Cowork client's busine
 Version 0.6.0. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
 
 [README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#procedural-memory)
+
+### rhize-outreach
+
+Version 0.1.0. Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.
+
+[README](../rhize-outreach/README.md) · [GUIDE](../rhize-outreach/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#rhize-outreach)
 <!-- SKILL-MAP:END -->
 
 ## Cross-plugin references
