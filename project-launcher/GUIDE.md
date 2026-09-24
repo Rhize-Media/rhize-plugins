@@ -131,11 +131,32 @@ advisory: PRD requirements, code checks, and approval gates still decide what sh
 
 For hosted Jev, make `TYPESAFE_API_KEY` available only to the project session. For a
 local Laya-compatible server, set `TYPESAFE_BASE_URL` to its loopback base URL and
-optionally `LAYA_API_KEY`. Phase 6 runs a synthetic probe, then
+optionally `LAYA_API_KEY`. On Apple Silicon, start the Python reference
+server bound to `127.0.0.1` and evaluate `TYPESAFE_DEFAULT_MODEL=typed-decisions`
+as one pinned pilot candidate. Laya's default English and multilingual checkpoints
+must be scored separately; the synthetic probe checks connectivity, not accuracy.
+The client starts in `shadow` mode, and `RHIZE_DECISION_MODE=advisory` requires an
+explicit choice after task-relevant evaluation. Phase 6 runs a synthetic probe, then
 `python3 .claude/rhize-decision/typed_decision.py status`. If either fails, the
 handoff is blocked until the provider is available. No real project text is used
 by this probe. During GSD execution, inspect
 `.planning/decision-layer/receipts.jsonl` for per-agent calls and token usage.
+
+For a local pilot, install the pinned Python server in a separate local directory
+with Python 3.12, then run it in one terminal:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install 'laya[serve]==0.3.20'
+LAYA_HOST=127.0.0.1 LAYA_DEVICE=mps LAYA_MODELS=typed-decisions .venv/bin/laya-serve
+```
+
+The first launch downloads the selected checkpoint. In the Project Launcher/GSD
+session, set `TYPESAFE_BASE_URL=http://127.0.0.1:8000`,
+`TYPESAFE_DEFAULT_MODEL=typed-decisions`, and `RHIZE_DECISION_MODE=shadow` before
+the synthetic probe. Record the package version, model returned in receipts,
+device, cold/warm latency, and memory use; compare the checkpoint with the
+incumbent path on the frozen task-specific corpus before enabling advisory mode.
 
 ## Tips
 

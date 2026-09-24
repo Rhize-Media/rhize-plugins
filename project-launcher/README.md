@@ -27,8 +27,12 @@ state hash in `.planning/decision-layer/receipts.jsonl`; it never stores request
 The installer adds that receipt file to the new project's `.gitignore`.
 Installed `SubagentStart` and `SubagentStop` hooks require each GSD planner, executor,
 and verifier to make its own call or record an unavailable attempt. Recommendations
-are advisory and cannot bypass tests or approval gates. Set `RHIZE_DECISION_MODE=shadow`
-to record calls without recommendations.
+cannot bypass tests or approval gates. The default `shadow` mode records calls
+without recommendations. Set `RHIZE_DECISION_MODE=advisory` only after validating
+the selected checkpoint on task-relevant cases. For local Laya, set
+`TYPESAFE_DEFAULT_MODEL=typed-decisions` to pin that candidate for a pilot;
+without an override, Laya chooses its own checkpoint. Record the actual returned
+model in receipts.
 
 From a scaffolded project, run `python3 .claude/rhize-decision/typed_decision.py status`
 and `gsd-sdk query agent-skills gsd-planner` (also executor and verifier). A `ready`

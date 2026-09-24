@@ -22,13 +22,15 @@ SPEC.loader.exec_module(MODULE)
 
 
 @contextmanager
-def provider_server(answer_choice="ready", malformed=False):
+def provider_server(answer_choice="ready", malformed=False, seen=None):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             if self.path != "/v1/systemone":
                 self.send_error(404)
                 return
             request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            if seen is not None:
+                seen.append(request)
             result = {"model": "fixture", "answers": {}, "usage": {"input_tokens": 12, "output_tokens": 2}}
             for name, question in request["questions"].items():
                 result["answers"][name] = {
@@ -127,6 +129,38 @@ class TypedDecisionTests(unittest.TestCase):
                 MODULE.decide(self.project, "launch-probe", request, probe=True)
         self.assertEqual(MODULE.status(self.project)["status"], "blocked")
         self.assertEqual(json.loads((self.project / MODULE.RECEIPTS).read_text())["outcome"], "unavailable")
+
+    def test_local_model_is_explicit_and_mode_defaults_to_shadow(self):
+        MODULE.install(self.project)
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        seen = []
+        with provider_server(seen=seen) as base:
+            with patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}, clear=True):
+                result = MODULE.decide(self.project, "gsd-planner", request)
+            with patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "TYPESAFE_DEFAULT_MODEL": "typed-decisions"}, clear=True):
+                MODULE.decide(self.project, "gsd-planner", request)
+            with patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "RHIZE_DECISION_MODE": "advisory"}, clear=True):
+                advisory = MODULE.decide(self.project, "gsd-planner", request)
+        self.assertNotIn("model", seen[0])
+        self.assertEqual(seen[1]["model"], "typed-decisions")
+        self.assertEqual(result["status"], "shadow")
+        self.assertEqual(result["recommendations"], {})
+        self.assertEqual(advisory["recommendations"], {"next": "ready"})
+
+    def test_hosted_jev_keeps_default_model(self):
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        seen = []
+        with provider_server(seen=seen) as base:
+            with patch.object(MODULE, "endpoint", return_value=(base + "/v1/systemone", "", "jev")), patch.dict(os.environ, {}, clear=True):
+                MODULE.call_provider(request)
+        self.assertEqual(seen[0]["model"], "jev-latest")
+
+    def test_invalid_mode_never_calls_provider(self):
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with patch.dict(os.environ, {"RHIZE_DECISION_MODE": "active"}), patch.object(MODULE, "call_provider") as call:
+            with self.assertRaisesRegex(MODULE.DecisionError, "shadow or advisory"):
+                MODULE.decide(self.project, "gsd-planner", request)
+        call.assert_not_called()
 
     def test_hosted_jev_requires_a_key(self):
         with patch.dict(os.environ, {"TYPESAFE_BASE_URL": "https://api.typesafe.ai"}, clear=True):

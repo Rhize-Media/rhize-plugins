@@ -2,6 +2,13 @@
 
 ## Verified facts
 
+- 2026-09-24: Laya 0.3.20's Jev-compatible server ignores unknown Jev model IDs and
+  routes to a base checkpoint. Project Launcher 1.9.1 omits a forced model on local
+  calls unless `TYPESAFE_DEFAULT_MODEL` is set; hosted Jev retains `jev-latest`.
+  New clients default to shadow because Laya's published generic benchmarks do not
+  validate Rhize software-development decisions. A synthetic probe establishes
+  connectivity/schema only; evaluate a pinned checkpoint before advisory use.
+
 - 2026-09-24: Devflow 2.23.0 adds a per-invocation `required` prompt-hook policy for an explicit
   implementation task kind while leaving the installed hook on `auto`. The off study condition is
   physical plugin omission, not a runtime gate disable. A frozen 48-prompt product-contract corpus
