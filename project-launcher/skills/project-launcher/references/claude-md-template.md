@@ -63,4 +63,4 @@ When populating this template:
 2. **Include credentials context** — Where are API keys stored? (env vars, n8n credentials, etc.)
 3. **Reference real paths** — Use actual file paths from the scaffold, not abstract descriptions
 4. **Match the PRD** — Every technology, integration, and design decision from the PRD should appear here
-5. **Write for an autonomous Claude** — This file is read by `/gsd:autonomous`; it needs enough context to make good decisions without asking
+5. **Write for an autonomous Claude** — This file is read by `/gsd-autonomous`; it needs enough context to make good decisions without asking

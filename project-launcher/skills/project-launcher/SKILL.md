@@ -30,7 +30,7 @@ metadata:
 
 Take a project idea from initial concept through research, requirements gathering, PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff — producing everything needed for autonomous development.
 
-This skill codifies a proven methodology. Each phase has specific outputs that feed the next, and the entire pipeline is designed to produce a project that can be handed to `/gsd:autonomous` and run unattended.
+This skill codifies a proven methodology. Each phase has specific outputs that feed the next, and the entire pipeline is designed to produce a project that can be handed to `/gsd-autonomous` and run unattended.
 
 ## The 6-Phase Pipeline
 
@@ -46,7 +46,7 @@ Phase 4: Critical Gap Analysis (/grill-me)
 Phase 5: Project Scaffolding
   ↓ (directory + CLAUDE.md + .planning/)
 Phase 6: GSD v2 Handoff
-  ↓ (ready for /gsd:autonomous)
+  ↓ (ready for /gsd-autonomous)
 ```
 
 ---
@@ -182,7 +182,7 @@ Use the template at `references/prd-template.md`. Key sections:
 - Be specific about API endpoints, data shapes, and integration patterns
 - Include the skills and MCP servers needed at each workflow step
 - Call out assumptions explicitly so the gap analysis can challenge them
-- Write for the audience: a Claude instance running `/gsd:autonomous` that needs to understand every detail
+- Write for the audience: a Claude instance running `/gsd-autonomous` that needs to understand every detail
 
 See `references/plan-discipline.md` for the cross-cutting review-surface methodology: plan-as-approval-gate, lead-with-reuse, decide-the-hard-to-reverse-bets-first, a cheap adversarial self-review pass, and when to add diagrams/wireframes.
 
@@ -255,6 +255,7 @@ After the grill-me session, update the PRD with all resolved questions and new r
 │   ├── ROADMAP.md               # Phases and plans
 │   ├── STATE.md                 # Current position tracker
 │   └── config.json              # GSD workflow config
+├── skills/rhize-typed-decision/  # Injected into planner/executor/verifier agents
 ├── prd/
 │   └── {project-name}-prd-v2.md # Final PRD (post gap analysis) — GSD machine spec
 ├── plans/
@@ -262,6 +263,7 @@ After the grill-me session, update the PRD with all resolved questions and new r
 ├── {deliverable-dirs}/          # Project-specific (workflows/, src/, etc.)
 └── .claude/                     # GSD v2 framework (installed via npx)
     ├── settings.json
+    ├── rhize-decision/typed_decision.py # Project-local Jev/Laya client
     ├── agents/
     ├── commands/gsd/
     ├── hooks/
@@ -271,8 +273,21 @@ After the grill-me session, update the PRD with all resolved questions and new r
 ### Install GSD v2
 
 ```bash
-cd {project-dir} && npx get-shit-done-cc --claude --local
+npx --yes get-shit-done-cc@1.42.3 --claude --local
 ```
+
+Run this with `{project-dir}` as the working directory. Verify the installed version is `1.42.3` and `.claude/commands/gsd/autonomous.md` exists before continuing.
+
+After GSD installation, run the Project Launcher decision installer (from the plugin root):
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/typed_decision.py" install --project "{project-dir}"
+python3 "{project-dir}/.claude/rhize-decision/typed_decision.py" probe --project "{project-dir}"
+python3 "{project-dir}/.claude/rhize-decision/typed_decision.py" status --project "{project-dir}"
+```
+
+The probe uses synthetic text and requires `TYPESAFE_API_KEY` for hosted Jev, or a running local Laya-compatible endpoint set through `TYPESAFE_BASE_URL`. Set `RHIZE_DECISION_MODE=shadow` for observation only; the default `advisory` mode emits recommendations above the confidence threshold. GSD agents must call the client at planning, execution, and verification checkpoints via the injected project-local skill. Inspect `gsd-sdk query agent-skills` for all three agent types in the installed GSD version. If the probe, query, or status fails, mark handoff blocked. Do not describe instruction injection alone as proof of future calls; check receipts during the project run.
+Preserve the installer's `/.planning/decision-layer/receipts.jsonl` `.gitignore` entry when adding other project ignores.
 
 ### Install Hookify Guardrails (Next.js + Rhize stack projects)
 
@@ -320,7 +335,7 @@ Generate from the PRD:
 - **REQUIREMENTS.md**: Copy all FRs and NFRs, organized by feature group
 - **ROADMAP.md**: Break PRD into phases (1-2 weeks each), each phase into plans (1 context window each)
 - **STATE.md**: Initialize at Phase 01, Plan 0, status "Ready for autonomous execution"
-- **config.json**: `{ "workflow": { "_auto_chain_active": false } }`
+- **config.json**: Preserve GSD's generated config. The decision installer adds `agent_skills` entries for `gsd-planner`, `gsd-executor`, and `gsd-verifier` without replacing existing values.
 
 ### Roadmap Planning Guidelines
 
@@ -343,15 +358,18 @@ Verify all of these exist and are consistent:
 - [ ] `CLAUDE.md` references correct file paths and MCP servers
 - [ ] `CLAUDE.md` includes `## Execution Strategy: Worktree + Subagent-Driven Development (MANDATORY)` section
 - [ ] `CLAUDE.md` includes `## Post-Phase Verification` section with `/sc:reflect` + `/simplify` command
-- [ ] `.claude/settings.json` has `superpowers@claude-plugins-official` set to `true`
+- [ ] `.claude/settings.json` has the GSD hooks and typed-decision `SubagentStart`/`SubagentStop` hooks; check `superpowers@claude-plugins-official` only if the project chose that plugin
 - [ ] `.planning/PROJECT.md` matches PRD executive summary
 - [ ] `.planning/REQUIREMENTS.md` covers all PRD requirements
 - [ ] `.planning/ROADMAP.md` has realistic phases with concrete plans
 - [ ] `.planning/STATE.md` is initialized correctly
 - [ ] `.planning/config.json` exists
+- [ ] Project-local typed decision client and skill exist; `agent_skills` maps all three GSD agent types
+- [ ] A fresh successful synthetic provider probe is recorded and `typed_decision.py status` returns `ready`
+- [ ] Installed GSD version is recorded and `gsd-sdk query agent-skills` includes the skill for planner, executor, verifier
 - [ ] `prd/` contains the final PRD v2 (GSD machine spec)
 - [ ] `plans/<slug>/plan.mdx` exists and is `status: approved` (the reviewed surface)
-- [ ] `.claude/` contains GSD v2 framework (check `.claude/get-shit-done/VERSION`)
+- [ ] `.claude/get-shit-done/VERSION` is `1.42.3` and `.claude/commands/gsd/autonomous.md` exists
 - [ ] Git repo is initialized
 - [ ] Deliverable directories exist (even if empty with .gitkeep)
 
@@ -365,12 +383,13 @@ Present to the user:
 **Project**: {name}
 **Location**: {path}
 **GSD Version**: {version}
+**Decision Layer**: {provider, model, mode, probe receipt timestamp, GSD skill-query result}
 **Phases**: {count} phases, {plan_count} plans
 **Estimated Duration**: {weeks} weeks
 
 ### To Start Autonomous Execution:
 1. Open a new Claude Code session in `{project-dir}`
-2. Run `/gsd:autonomous`
+2. Run `/gsd-autonomous`
 3. GSD will drive: discuss → plan → execute → verify for each phase
 
 ### What You'll Need:

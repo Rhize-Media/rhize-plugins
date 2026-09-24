@@ -29,8 +29,10 @@ If no PRD is found, tell the user to run `/launch-project` for the full pipeline
    - `ROADMAP.md` — Break PRD into phases and plans (see `references/gsd-handoff-guide.md`)
    - `STATE.md` — Initialize at Phase 01
    - `config.json` — Default GSD config
-5. **Install GSD v2** — `npx get-shit-done-cc --claude --local`
-6. **Initialize git** — `git init`, create `.gitignore`
+5. **Install GSD** — `npx --yes get-shit-done-cc@1.42.3 --claude --local`; verify `.claude/get-shit-done/VERSION` is `1.42.3` and `.claude/commands/gsd/autonomous.md` exists
+5a. **Install the typed decision layer** — After GSD installation, run `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/typed_decision.py" install --project "<project-dir>"`. The installer adds project-local client and skill files and merges `.planning/config.json` `agent_skills` for `gsd-planner`, `gsd-executor`, and `gsd-verifier`.
+5b. **Probe and check** — Configure `TYPESAFE_API_KEY` for hosted Jev, or `TYPESAFE_BASE_URL=http://127.0.0.1:8000` for a running Laya-compatible server. Run `python3 "<project-dir>/.claude/rhize-decision/typed_decision.py" probe --project "<project-dir>"`, then `status --project "<project-dir>"`. Both must succeed. Inspect `gsd-sdk query agent-skills gsd-planner`, `gsd-executor`, and `gsd-verifier` from the project root to confirm GSD loads the skill. A missing provider or failed probe means the scaffold is **blocked**, not ready for handoff.
+6. **Initialize git** — `git init`; preserve the installer's `/.planning/decision-layer/receipts.jsonl` entry when adding the project's other `.gitignore` rules
 7. **Create deliverable directories** — Based on project type (workflows/, src/, scripts/, templates/)
 8. **Offer hookify guardrails** — If the project uses the Rhize Next.js stack (Next.js + Supabase + Sanity), offer the starter rule set from `references/hookify-rules/nextjs-rhize-stack/` as an opt-in choice. Installing never auto-wires guardrails silently (same contract `rhize-ops/commands/rhize-setup.md` follows for the fleet-level setup wizard). List the seven available rules:
 
@@ -57,5 +59,5 @@ If no PRD is found, tell the user to run `/launch-project` for the full pipeline
 
    See `references/hookify-rules/nextjs-rhize-stack/README.md` for the full rule table (event, action, prerequisites). Record the selected/skipped rules in the scaffold summary (step 11).
 9. **Copy PRD** — Into `prd/` directory
-10. **Run handoff checklist** — Verify all files exist and are consistent
-11. **Brief user** — How to start `/gsd:autonomous`; include the hookify copied/skipped table from step 8 in the summary
+10. **Run handoff checklist** — Verify all files, the installed GSD skill query, and the typed-decision receipt are consistent
+11. **Brief user** — How to start `/gsd-autonomous`; include the decision layer status and hookify copied/skipped table from step 8
