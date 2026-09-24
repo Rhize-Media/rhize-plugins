@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "rhize-plugins",
-  "version": "2.79.0",
+  "version": "2.79.1",
   "description": "Curated Claude Code and Codex plugins by Rhize Media — knowledge, context, development workflow, operations, SEO, and web tooling",
   "owner": {
     "name": "Rhize Media"
@@ -72,7 +72,7 @@
       "name": "project-launcher",
       "source": "./project-launcher",
       "description": "Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.",
-      "version": "1.9.0",
+      "version": "1.9.1",
       "author": {
         "name": "Rhize Media"
       },

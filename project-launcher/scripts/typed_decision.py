@@ -160,7 +160,11 @@ def endpoint() -> tuple[str, str, str]:
 def call_provider(request: dict) -> tuple[dict, int, str]:
     url, key, provider = endpoint()
     payload = dict(request)
-    payload.setdefault("model", os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-latest"))
+    model = os.environ.get("TYPESAFE_DEFAULT_MODEL")
+    if model:
+        payload.setdefault("model", model)
+    elif provider == "jev":
+        payload.setdefault("model", "jev-latest")
     headers = {"Content-Type": "application/json"}
     if key:
         headers["Authorization"] = f"Bearer {key}"
@@ -201,19 +205,19 @@ def decide(project: Path, checkpoint: str, request: dict, probe: bool = False, a
         raise DecisionError("checkpoint must be 1-80 characters")
     if agent_id is not None and (not agent_id or len(agent_id) > 128):
         raise DecisionError("agent_id must be 1-128 characters")
+    mode = os.environ.get("RHIZE_DECISION_MODE", "shadow")
+    if mode not in {"shadow", "advisory"}:
+        raise DecisionError("RHIZE_DECISION_MODE must be shadow or advisory")
     try:
         result, latency, provider = call_provider(request)
     except DecisionError:
         append_receipt(project, checkpoint, request, None, None, None, "unavailable", agent_id)
         raise
-    mode = os.environ.get("RHIZE_DECISION_MODE", "advisory")
-    if mode not in {"shadow", "advisory"}:
-        raise DecisionError("RHIZE_DECISION_MODE must be shadow or advisory")
     recommendations = {
         name: answer["choice"] for name, answer in result["answers"].items()
         if answer["type"] == "choice" and answer["confidence"] >= 0.70 and mode == "advisory"
     }
-    outcome = "probe" if probe else ("advisory" if recommendations else "abstain")
+    outcome = "probe" if probe else ("shadow" if mode == "shadow" else ("advisory" if recommendations else "abstain"))
     receipt = append_receipt(project, checkpoint, request, result, latency, provider, outcome, agent_id)
     return {"status": outcome, "answers": result["answers"], "recommendations": recommendations, "receipt": receipt}
 
