@@ -172,3 +172,21 @@
 - Setup verifies runtime/template compatibility and can run the redacted runtime doctor plus exact workflow-skill resolver without discovery, provider writes, publishing or sending. Generated Tom handoff files contain variable names and local-entry instructions, never secret values.
 - Focused evidence: Plugin Creator validation passes; offline evaluation 12/12, plugin tests 4/4 and setup-manifest tests 36/36 pass. The complete repository suite passes 1,538 tests with 5 skipped and 18 subtests. Generated skill-map/catalog/docs include the new plugin and outreach/prospecting/PostgreSQL/Supabase tags.
 - No production Supabase deployment, data cutover, provider call, public deployment, email draft creation or send occurred. Shared-repository migration and live connector execution remain later reviewed slices.
+
+
+## Jev/Laya Project Launcher decision path — 2026-09-24
+
+- Verified against a disposable local install of `get-shit-done-cc@1.42.3`: Claude Code
+  exposes `/gsd-autonomous`, and `gsd-sdk query agent-skills` loads the project-local
+  typed-decision skill for `gsd-planner`, `gsd-executor`, and `gsd-verifier`. The older
+  `/gsd:autonomous` handoff text was stale for this host.
+- Project Launcher installs a Jev-compatible standard-library client, merges GSD
+  `agent_skills`, and adds agent-scoped start/stop hooks. The stop hook checks an agent's
+  own receipt; a synthetic probe and status check gate the ready claim. Provider
+  unavailability is explicit, and no hosted call with real project content has run.
+- Focused tests use a local fake `/v1/systemone` server. These prove wire validation,
+  config preservation, malformed-response fallback, privacy-safe receipts, and per-agent
+  receipt matching, but do not establish Jev/Laya accuracy or task efficiency gains.
+- The full nine-workstream implementation and Arm A/B benchmark ladder remain in the
+  vault plan. Duplicate coding-agent control runs have a hard 1,000,000-token ceiling;
+  no such run has been spent yet.

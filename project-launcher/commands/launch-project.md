@@ -32,5 +32,5 @@ The user may provide:
 - Save PRD to `{project_root}/prd/` if project dir exists, otherwise `~/.claude/plans/` temporarily
 - The approval gate is the rendered `plan.mdx` (via `rhize-visual-plan`), not the raw PRD — get `status: approved` before scaffolding (Phase 5)
 - Always run gap analysis in Phase 4 — use `grill-me` skill if available, otherwise follow Phase 4 question categories from SKILL.md
-- Install GSD v2 via `npx get-shit-done-cc --claude --local` in Phase 5
+- Install pinned GSD 1.42.3 via `npx --yes get-shit-done-cc@1.42.3 --claude --local` in Phase 5, then install and probe the project-local typed decision layer per `/scaffold-gsd`. Phase 6 must report a blocked handoff if the provider probe, GSD agent skill query, or decision-layer status fails.
 - Offer to save a summary note to Obsidian after Phase 6

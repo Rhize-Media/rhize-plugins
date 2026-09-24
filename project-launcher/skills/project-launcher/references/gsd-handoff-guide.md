@@ -14,11 +14,13 @@ GSD v2 (Get Shit Done, `get-shit-done-cc` npm package) drives autonomous develop
 ### Installation
 
 ```bash
-cd {project-dir} && npx get-shit-done-cc --claude --local
+npx --yes get-shit-done-cc@1.42.3 --claude --local
 ```
 
+Run from the project directory. Verify `.claude/get-shit-done/VERSION` reads `1.42.3`.
+
 This installs:
-- `.claude/commands/gsd/` — All /gsd:* slash commands
+- `.claude/commands/gsd/` — GSD commands; Claude Code exposes `/gsd-autonomous`
 - `.claude/agents/` — 18 specialized agents
 - `.claude/hooks/` — Context monitor, prompt guard, statusline
 - `.claude/get-shit-done/` — Core framework (workflows, templates, references)
@@ -101,13 +103,12 @@ progress:
 
 ### config.json
 
-```json
-{
-  "workflow": {
-    "_auto_chain_active": false
-  }
-}
-```
+Preserve the config created by GSD and add the project-local typed decision skill
+through `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/typed_decision.py" install --project "{project-dir}"`.
+The installer merges `agent_skills` entries for `gsd-planner`, `gsd-executor`, and
+`gsd-verifier`, and adds the two per-agent hooks to `.claude/settings.json`. Run it
+after the GSD install so GSD cannot overwrite the mapping. Do not write a key to
+config or project files.
 
 ## Handoff Checklist
 
@@ -133,8 +134,15 @@ Before telling the user the project is ready:
    - [ ] `.claude/commands/gsd/` directory populated
    - [ ] `.claude/agents/` directory populated
    - [ ] `.claude/hooks/` directory populated
+   - [ ] Installed version is `1.42.3` and `/gsd-autonomous` is available
 
-4. **Project structure**
+4. **Typed decision layer**
+   - [ ] Project-local client and skill copied; all three GSD `agent_skills` queries load it
+   - [ ] `SubagentStart` and `SubagentStop` hooks registered for the three GSD agent types
+   - [ ] Synthetic Jev/Laya provider probe succeeds and client `status` returns `ready`
+   - [ ] Handoff reports blocked when the provider or mapping is unavailable
+
+5. **Project structure**
    - [ ] Git initialized
    - [ ] .gitignore includes secrets, node_modules, .env
    - [ ] PRD v2 saved in `prd/` directory
@@ -184,7 +192,7 @@ Every GSD plan MUST be executed via a sub-agent running in a git worktree (`isol
 
 **Why**: This project has ~70K tokens of standing context (SuperClaude + plugins + MCP tools). A single context window cannot hold that overhead AND complete a meaningful plan. Worktree sub-agents start fresh with only the CLAUDE.md and plan file loaded.
 
-**Pattern for `/gsd:autonomous` and `/gsd:execute-phase`**:
+**Pattern for `/gsd-autonomous` and `/gsd-execute-phase`**:
 \```
 For each plan in the phase:
   1. Agent(isolation: "worktree") → orchestrate the plan
@@ -253,7 +261,7 @@ This means every committed piece of work has passed 3 independent reviews before
 The user opens a new Claude Code session in the project directory and runs:
 
 ```
-/gsd:autonomous
+/gsd-autonomous
 ```
 
 GSD will:

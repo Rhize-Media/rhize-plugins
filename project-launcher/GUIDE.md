@@ -28,7 +28,7 @@ The full pipeline has six phases. Each phase produces something the next phase n
 3. **PRD + Visual Plan** — Claude writes a full Product Requirements Document (the machine-readable spec GSD will build from), then renders it into a `plan.mdx` visual plan — the human-friendly review surface with diagrams, file maps, and data contracts. **You review and approve the visual plan, not the raw PRD.**
 4. **Critical Gap Analysis** — Before anyone scaffolds anything, the PRD gets stress-tested: failure modes, missing error handling, scalability assumptions, security gaps, cost estimates. This produces PRD v2.
 5. **Project Scaffolding** — Claude creates the actual project directory: `CLAUDE.md`, `.planning/` (PROJECT.md, REQUIREMENTS.md, ROADMAP.md, STATE.md), the GSD v2 framework, and deliverable directories.
-6. **GSD v2 Handoff** — A final checklist verifies everything's in place and consistent, then Claude briefs you on how to kick off `/gsd:autonomous`.
+6. **GSD Handoff** — A final checklist verifies the plan, GSD 1.42.3 installation, and a live synthetic Jev/Laya decision probe before Claude briefs you on `/gsd-autonomous`.
 
 **Where you can jump in:** you don't have to run the whole thing at once.
 
@@ -118,7 +118,24 @@ Invokes `rhize-visual-plan` directly to turn any plan (not just a project-launch
 
 ## How It All Fits Together
 
-Research feeds the interview so you're only asked what research couldn't answer. The interview's answers get compiled straight into the PRD — you never have to repeat yourself. The PRD then gets distilled into the visual plan (`plan.mdx`): the PRD is the exhaustive, numbered machine spec that GSD reads; the visual plan is the reviewable version with diagrams and file maps that a human actually looks at and approves. Gap analysis stress-tests the PRD before that approval sticks, producing PRD v2 — and the visual plan gets refreshed to match, so what you approved and what GSD receives never drift apart. Only after the visual plan is approved does scaffolding happen: the PRD becomes the source for `CLAUDE.md` and every `.planning/` doc, and the visual plan travels with the project into `plans/<slug>/plan.mdx`. The handoff checklist is the last gate — it confirms the PRD, the approved plan, and the scaffolded directory all agree before you're told it's safe to run `/gsd:autonomous`.
+Research feeds the interview so you're only asked what research couldn't answer. The interview's answers get compiled straight into the PRD — you never have to repeat yourself. The PRD then gets distilled into the visual plan (`plan.mdx`): the PRD is the exhaustive, numbered machine spec that GSD reads; the visual plan is the reviewable version with diagrams and file maps that a human actually looks at and approves. Gap analysis stress-tests the PRD before that approval sticks, producing PRD v2 — and the visual plan gets refreshed to match, so what you approved and what GSD receives never drift apart. Only after the visual plan is approved does scaffolding happen: the PRD becomes the source for `CLAUDE.md` and every `.planning/` doc, and the visual plan travels with the project into `plans/<slug>/plan.mdx`. The handoff checklist confirms the PRD, approved plan, GSD skill injection, and a live decision probe before you're told it's safe to run `/gsd-autonomous`.
+
+## Typed decision layer at project launch
+
+Project Launcher copies a Python client into the new project and configures GSD
+`agent_skills` for its planner, executor, and verifier. Each agent asks a bounded
+choice question at its checkpoint. Claude Code hooks check that the specific agent
+made a client call before its work ends; a provider failure creates an unavailable
+receipt and the agent uses the existing GSD judgment path. The decision answer is
+advisory: PRD requirements, code checks, and approval gates still decide what ships.
+
+For hosted Jev, make `TYPESAFE_API_KEY` available only to the project session. For a
+local Laya-compatible server, set `TYPESAFE_BASE_URL` to its loopback base URL and
+optionally `LAYA_API_KEY`. Phase 6 runs a synthetic probe, then
+`python3 .claude/rhize-decision/typed_decision.py status`. If either fails, the
+handoff is blocked until the provider is available. No real project text is used
+by this probe. During GSD execution, inspect
+`.planning/decision-layer/receipts.jsonl` for per-agent calls and token usage.
 
 ## Tips
 
@@ -139,6 +156,8 @@ Research feeds the interview so you're only asked what research couldn't answer.
 
 **The visual plan looks thin or skips diagrams entirely:** That's often correct, not a bug — `rhize-visual-plan` deliberately skips visual surfaces for architecture-only or copy-only plans rather than forcing chrome onto something that doesn't need it. If you do want diagrams and the plan is genuinely multi-file or data-heavy, say so explicitly.
 
-**GSD v2 handoff checklist fails on `.claude/settings.json`:** The scaffold step expects `superpowers@claude-plugins-official` set to `true` in that file. If it's missing, the GSD install step may not have completed — rerun `/scaffold-gsd` or set the flag manually.
+**GSD handoff checklist fails on `.claude/settings.json`:** Verify the pinned GSD install completed and that typed decision `SubagentStart` and `SubagentStop` hooks are present. The older `superpowers@claude-plugins-official` setting is a separate project preference, not proof of GSD or decision-layer readiness.
+
+**Decision layer status is blocked:** Set the provider environment variable and run the synthetic `probe` command from the scaffolded project. Check `gsd-sdk query agent-skills` for planner, executor, and verifier. The project should not be described as ready until these checks pass.
 
 **A skill it suggests during scaffolding gets blocked:** Project-launcher gates any skill it suggests through a safety check before adding it, and refuses anything rated HIGH/CRITICAL risk. This is intentional — it won't silently add an unvetted skill just because it looked relevant to your stack.

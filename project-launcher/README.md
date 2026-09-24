@@ -14,6 +14,27 @@ instead of failing. Connect the ones relevant to your work — DataForSEO and `s
 content projects, Sentry/PostHog for apps you'll instrument, and so on — and run `/launch-project`
 or `/write-prd` with whatever subset you have.
 
+**GSD handoff dependency:** Phase 5 installs a project-local typed decision client and GSD
+skill for planner, executor, and verifier. Phase 6 requires a successful synthetic request
+to a Jev-compatible `/v1/systemone` provider. Use `TYPESAFE_API_KEY` for hosted Jev,
+or set `TYPESAFE_BASE_URL` to a running loopback Laya server. Optional `LAYA_API_KEY`
+authenticates to a local server that requires it. Keys stay in the environment. An
+unavailable provider blocks the handoff ready claim. This integration pins GSD 1.42.3,
+which exposes `/gsd-autonomous` in Claude Code.
+
+The client records checkpoint, model, latency, provider token usage, outcome, and a
+state hash in `.planning/decision-layer/receipts.jsonl`; it never stores request state.
+The installer adds that receipt file to the new project's `.gitignore`.
+Installed `SubagentStart` and `SubagentStop` hooks require each GSD planner, executor,
+and verifier to make its own call or record an unavailable attempt. Recommendations
+are advisory and cannot bypass tests or approval gates. Set `RHIZE_DECISION_MODE=shadow`
+to record calls without recommendations.
+
+From a scaffolded project, run `python3 .claude/rhize-decision/typed_decision.py status`
+and `gsd-sdk query agent-skills gsd-planner` (also executor and verifier). A `ready`
+status proves configuration and a recent provider probe; inspect per-agent receipts
+during the project to verify runtime use.
+
 ## Commands
 
 | Command | Description |
