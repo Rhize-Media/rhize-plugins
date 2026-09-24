@@ -22,6 +22,8 @@ from typing import Any
 
 
 SCHEMA_VERSION = "rhize-refactor-gate-v1"
+ACTIVATION_POLICIES = {"auto", "required"}
+IMPLEMENTATION_TASK_KIND = "implementation"
 REQUIRED_PLAN_SECTIONS = (
     "current behavior",
     "intended semantic delta",
@@ -273,6 +275,104 @@ def file_fingerprint(path: Path) -> str | None:
         return sha256_file(path) if path.is_file() else None
     except OSError:
         return None
+
+
+def prompt_sha256(prompt: str) -> str:
+    return hashlib.sha256(prompt.encode()).hexdigest()
+
+
+def should_activate(prompt: str, policy: str, task_kind: str) -> bool:
+    if policy == "required":
+        return task_kind == IMPLEMENTATION_TASK_KIND
+    return is_material_prompt(prompt)
+
+
+def plugin_version() -> str:
+    manifest = Path(__file__).resolve().parents[1] / ".claude-plugin/plugin.json"
+    try:
+        value = json.loads(manifest.read_text()).get("version")
+    except (OSError, json.JSONDecodeError):
+        value = None
+    return value if isinstance(value, str) and value else "unavailable"
+
+
+def source_commit() -> str:
+    result = run(["git", "rev-parse", "HEAD"], Path(__file__).resolve().parents[1])
+    commit = result.stdout.strip().lower() if result.returncode == 0 else ""
+    return commit if re.fullmatch(r"[0-9a-f]{40}", commit) else "unavailable"
+
+
+def source_identity() -> dict[str, str]:
+    return {
+        "plugin_version": plugin_version(),
+        "source_commit": source_commit(),
+        "gate_source_sha256": sha256_file(Path(__file__).resolve()),
+    }
+
+
+def new_lifecycle(
+    workspace: Path,
+    prompt: str | None,
+    policy: str,
+    task_kind: str,
+    reason_code: str,
+    at: str,
+) -> dict[str, Any]:
+    digest = prompt_sha256(prompt) if prompt is not None else None
+    trial_material = f"{workspace}\0{digest or ''}\0{at}".encode()
+    return {
+        "trial_id": hashlib.sha256(trial_material).hexdigest()[:24],
+        "activation": {"policy": policy, "reason_code": reason_code, "task_kind": task_kind},
+        "prompt_sha256": digest,
+        "source_identity": source_identity(),
+        "hook_event_counts": {
+            "UserPromptSubmit": 1 if prompt is not None else 0,
+            "PreToolUse": 0,
+            "Stop": 0,
+        },
+        "events": [{"phase": "pending", "at": at, "verdict": "activated"}]
+        if prompt is not None
+        else [],
+    }
+
+
+def ensure_lifecycle(state: dict[str, Any], workspace: Path) -> dict[str, Any]:
+    lifecycle = state.get("lifecycle")
+    if isinstance(lifecycle, dict):
+        return lifecycle
+    lifecycle = new_lifecycle(
+        workspace,
+        None,
+        "auto",
+        "",
+        "manual-prepare",
+        state.get("created_at") or utc_now(),
+    )
+    state["lifecycle"] = lifecycle
+    return lifecycle
+
+
+def count_hook_event(state: dict[str, Any], workspace: Path, event: str) -> None:
+    lifecycle = ensure_lifecycle(state, workspace)
+    counts = lifecycle.setdefault("hook_event_counts", {})
+    counts[event] = int(counts.get(event, 0)) + 1
+
+
+def active_receipt(state: dict[str, Any] | None) -> bool:
+    return bool(
+        state
+        and state.get("phase") in {"pending", "prepared", "implementation", "reconciled"}
+    )
+
+
+def append_lifecycle_event(
+    state: dict[str, Any], workspace: Path, phase: str, at: str, verdict: str | None = None
+) -> None:
+    lifecycle = ensure_lifecycle(state, workspace)
+    event = {"phase": phase, "at": at}
+    if verdict is not None:
+        event["verdict"] = verdict
+    lifecycle.setdefault("events", []).append(event)
 
 
 def run(command: list[str], cwd: Path, timeout: int = 30) -> subprocess.CompletedProcess[str]:
@@ -570,13 +670,13 @@ def prepare(workspace: Path, plan: Path, query: str) -> int:
         and {canonical(item["root"]) for item in previous_repositories}
         == set(repositories)
     )
+    prepared_at = utc_now()
     state: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
         "workspace": str(workspace),
         "phase": "prepared",
-        "created_at": previous.get("created_at", utc_now()),
-        "prepared_at": utc_now(),
-        "prompt": previous.get("prompt"),
+        "created_at": previous.get("created_at", prepared_at),
+        "prepared_at": prepared_at,
         "query": query,
         "plan": {
             "path": str(plan),
@@ -593,6 +693,9 @@ def prepare(workspace: Path, plan: Path, query: str) -> int:
         "registries": discover_registries(workspace, repositories, query),
         "reconciliation": None,
     }
+    if isinstance(previous.get("lifecycle"), dict):
+        state["lifecycle"] = previous["lifecycle"]
+    append_lifecycle_event(state, workspace, "prepared", prepared_at, "prepared")
     write_state(workspace, state)
     print(json.dumps(state, indent=2, sort_keys=False))
     return 0
@@ -667,15 +770,17 @@ def reconcile(workspace: Path) -> int:
         and Path(path).name.lower() not in plan_text
     ]
     if unmapped:
+        failed_at = utc_now()
         state["phase"] = "implementation"
         state["reconciliation"] = {
-            "at": utc_now(),
+            "at": failed_at,
             "verdict": "OUT_OF_SYNC",
             "changed_files": changed,
             "unmapped_files": unmapped,
             "exceptions": exceptions,
             "structural_evidence": structural,
         }
+        append_lifecycle_event(state, workspace, "reconciled", failed_at, "OUT_OF_SYNC")
         write_state(workspace, state)
         sys.stderr.write(
             "BLOCKED: actual changed files are missing from the impact map: "
@@ -694,6 +799,7 @@ def reconcile(workspace: Path) -> int:
         "exceptions": exceptions,
         "structural_evidence": structural,
     }
+    append_lifecycle_event(state, workspace, "reconciled", state["reconciled_at"], verdict)
     write_state(workspace, state)
     print(json.dumps(state, indent=2, sort_keys=False))
     return 0
@@ -774,35 +880,54 @@ def is_config_path(path: str) -> bool:
     return False
 
 
-def hook_prompt() -> int:
+def hook_prompt(
+    activation_policy: str = "auto",
+    task_kind: str = "",
+) -> int:
     if gate_disabled():
         return 0
     payload = read_payload()
     if not payload:
         return 0
     prompt = payload.get("prompt") or payload.get("user_prompt")
-    if not isinstance(prompt, str) or not is_material_prompt(prompt):
-        return 0
-    if "/rhize-devflow:impact-map" in prompt:
-        return 0
     workspace = payload_workspace(payload)
     if is_filesystem_root(workspace):
         # Fail open and write nothing: a root receipt would match every path on the machine.
         return 0
     current = read_state(workspace)
+    if active_receipt(current):
+        count_hook_event(current, workspace, "UserPromptSubmit")
+        write_state(workspace, current)
+    if not isinstance(prompt, str) or not should_activate(prompt, activation_policy, task_kind):
+        return 0
+    if activation_policy == "auto" and "/rhize-devflow:impact-map" in prompt:
+        return 0
     if current and current.get("phase") in {"prepared", "implementation"}:
-        current["latest_prompt"] = prompt
+        current["latest_prompt_sha256"] = prompt_sha256(prompt)
         current["updated_at"] = utc_now()
         write_state(workspace, current)
     else:
+        created_at = utc_now()
+        reason_code = (
+            "material-prompt-selector"
+            if activation_policy == "auto"
+            else "caller-declared-implementation"
+        )
         write_state(
             workspace,
             {
                 "schema_version": SCHEMA_VERSION,
                 "workspace": str(workspace),
                 "phase": "pending",
-                "created_at": utc_now(),
-                "prompt": prompt,
+                "created_at": created_at,
+                "lifecycle": new_lifecycle(
+                    workspace,
+                    prompt,
+                    activation_policy,
+                    task_kind,
+                    reason_code,
+                    created_at,
+                ),
             },
         )
     print(
@@ -816,9 +941,12 @@ def hook_prompt() -> int:
     return 0
 
 
-def enforce_write_payload(payload: dict[str, Any]) -> int:
+def enforce_write_payload(payload: dict[str, Any], *, count_invocation: bool = True) -> int:
     cwd = payload_workspace(payload)
     workspace, state = find_state_for_path(cwd)
+    if count_invocation and active_receipt(state):
+        count_hook_event(state, workspace, "PreToolUse")
+        write_state(workspace, state)
     paths = extract_write_paths(payload)
     relevant = [
         relative
@@ -843,8 +971,16 @@ def enforce_write_payload(payload: dict[str, Any]) -> int:
     if phase == "reconciled":
         state["reconciliation"] = None
     if phase in {"prepared", "reconciled"}:
+        implementation_started_at = utc_now()
         state["phase"] = "implementation"
-        state["implementation_started_at"] = utc_now()
+        state["implementation_started_at"] = implementation_started_at
+        append_lifecycle_event(
+            state,
+            workspace,
+            "implementation",
+            implementation_started_at,
+            "source-write-observed",
+        )
         write_state(workspace, state)
     return 0
 
@@ -857,6 +993,8 @@ def hook_write() -> int:
         workspace = canonical(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
         _workspace, state = find_state_for_path(workspace)
         if state and state.get("phase") in {"pending", "prepared", "implementation", "reconciled"}:
+            count_hook_event(state, _workspace, "PreToolUse")
+            write_state(_workspace, state)
             sys.stderr.write(
                 "BLOCKED: active refactor gate could not validate a malformed write payload. "
                 "Retry the write with a valid harness payload.\n"
@@ -912,18 +1050,24 @@ def hook_command() -> int:
         )
     elif isinstance(tool_input, str):
         command = tool_input
+    cwd = payload_workspace(payload)
+    is_release = isinstance(command, str) and bool(RELEASE_COMMAND.search(command))
+    event_hint = release_command_repo_hint(command, cwd) if is_release else cwd
+    event_workspace, event_state = find_state_for_path(event_hint)
+    if active_receipt(event_state):
+        count_hook_event(event_state, event_workspace, "PreToolUse")
+        write_state(event_workspace, event_state)
     if isinstance(command, str) and "*** Begin Patch" in command:
-        write_result = enforce_write_payload(payload)
+        write_result = enforce_write_payload(payload, count_invocation=False)
         if write_result != 0:
             return write_result
-    if not isinstance(command, str) or not RELEASE_COMMAND.search(command):
+    if not is_release:
         return 0
-    cwd = payload_workspace(payload)
     # A `git -C <path>` command targets a different repo than the payload's own cwd;
     # resolve that target once and use it for both the receipt lookup and the dirty
     # check below, so a receipt under the -C target is not missed.
-    hint = release_command_repo_hint(command, cwd)
-    _workspace, state = find_state_for_path(hint)
+    hint = event_hint
+    state = event_state
     phase = state.get("phase") if state else None
     if phase not in {None, "reconciled", "completed", "dismissed"}:
         if phase in {"pending", "prepared"}:
@@ -951,6 +1095,9 @@ def hook_stop() -> int:
         return 0
     cwd = payload_workspace(payload)
     _workspace, state = find_state_for_path(cwd)
+    if state and state.get("phase") not in {None, "completed", "dismissed"}:
+        count_hook_event(state, _workspace, "Stop")
+        write_state(_workspace, state)
     if state and state.get("phase") == "implementation":
         sys.stderr.write(
             "BLOCKED: implementation changed after preparation but has not been reconciled. "
@@ -961,6 +1108,9 @@ def hook_stop() -> int:
         workspace = canonical(state["workspace"])
         state["phase"] = "completed"
         state["completed_at"] = utc_now()
+        append_lifecycle_event(
+            state, workspace, "completed", state["completed_at"], "completed"
+        )
         write_state(workspace, state)
     return 0
 
@@ -977,6 +1127,7 @@ def dismiss(workspace: Path, reason: str) -> int:
     state["phase"] = "dismissed"
     state["dismissed_at"] = utc_now()
     state["dismissal_reason"] = reason.strip()
+    append_lifecycle_event(state, workspace, "dismissed", state["dismissed_at"], "dismissed")
     write_state(workspace, state)
     print(json.dumps(state, indent=2, sort_keys=False))
     return 0
@@ -1003,7 +1154,12 @@ def status(workspace: Path, as_json: bool) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
-    for hook in ("hook-prompt", "hook-write", "hook-command", "hook-stop"):
+    prompt_parser = sub.add_parser("hook-prompt")
+    prompt_parser.add_argument(
+        "--activation-policy", choices=sorted(ACTIVATION_POLICIES), default="auto"
+    )
+    prompt_parser.add_argument("--task-kind", default="")
+    for hook in ("hook-write", "hook-command", "hook-stop"):
         sub.add_parser(hook)
     prepare_parser = sub.add_parser("prepare")
     prepare_parser.add_argument("--workspace", required=True)
@@ -1023,7 +1179,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     if args.command == "hook-prompt":
-        return hook_prompt()
+        return hook_prompt(args.activation_policy, args.task_kind.strip().lower())
     if args.command == "hook-write":
         return hook_write()
     if args.command == "hook-command":

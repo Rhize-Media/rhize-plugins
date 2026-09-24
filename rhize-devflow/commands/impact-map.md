@@ -5,257 +5,78 @@ description: CodeGraph-first impact mapping that separates current dependency tr
 
 # Impact Map
 
-Map a change before implementation, then reconcile the completed diff against the same evidence.
+Map before implementation; reconcile the completed diff against the same evidence.
 
 ## Core Contract
 
-- **CodeGraph is authoritative for current structural truth:** symbols, callers, callees,
-  references, tests, and dependency paths that exist now.
-- **The impact map is authoritative for intended change:** business behavior, data scope,
-  invariants, planned symbols, operational effects, risks, and acceptance criteria.
-- Do not copy CodeGraph's full dependency output into the map. Record only the relevant evidence
-  and the semantic delta the graph cannot express.
-- Label facts as **evidence**, **inference**, or **planned**. Never present an inferred edge as a
-  confirmed caller.
+- **CodeGraph is authoritative for current structural truth.**
+- **The impact map is authoritative for intended change.**
+- Label facts as **evidence**, **inference**, or **planned**. Never present an inferred edge as a confirmed caller.
+- Preserve repository instructions, unrelated work, release authority, and every named invariant.
 
-## Triggers
+## Phase 1: Establish Scope
 
-Use before implementing or materially changing a feature, bug fix, refactor, schema, migration,
-cache path, authorization rule, external integration, or cross-repository contract.
-
-## Phase 1: Establish Scope and Repository Rules
-
-1. Read repository instructions and required context files.
-2. Check Git state and preserve unrelated work.
-3. Identify every repository root involved. A frontend/backend workspace is two graphs, not one.
-4. Check `COMPONENT_REGISTRY.md` or the project's equivalent when present.
-5. State the requested outcome and any ambiguity that would materially change implementation.
-
-Do not write implementation code yet. Follow the repository's confirmation rule: present the map
-and pause only when confirmation is required or a material product choice remains unresolved.
-Existing explicit implementation authorization is not invalidated by this command.
+Read repository instructions and required context. Check Git state, identify every repository root, inspect `COMPONENT_REGISTRY.md` when present, and state the requested outcome. Existing implementation authorization still applies.
 
 ## Phase 2: Discover Current Structural Truth
 
-Run this decision for **each repository root**.
+For each repository root:
 
-### When `.codegraph/` exists
-
-Use CodeGraph before text search or manual file reading:
+1. If `.codegraph/` exists, use CodeGraph before text search or manual reads. Prefer the MCP interface when available. For the CLI, require `command -v codegraph` and a healthy `codegraph status`, synchronize a stale index, then run:
 
 ```bash
-codegraph status
 codegraph explore "<entry points, symbols, behavior, callers, and tests>"
 codegraph impact <symbol>
-codegraph affected <changed-or-planned-existing-files>
+codegraph affected <planned-existing-files>
 ```
 
-Prefer the `codegraph_explore` MCP tool when available. Use its health/status metadata when the
-interface exposes it; when it exposes only exploration, begin with a narrow query and treat a
-successful indexed response as availability evidence. An MCP error indicating a missing, stale, or
-corrupt index triggers the fallback below. Do not require a shell preflight when MCP is the active
-interface.
+2. If the index or interface is missing, corrupt, stale after synchronization, or unsupported, record the condition and use `rg` plus targeted reads. Never run `codegraph init`.
 
-If the MCP tool is unavailable, use the shell CLI only after `command -v codegraph` succeeds. Treat
-`codegraph status` as the CLI preflight: do not run or trust shell graph queries until it exits zero
-and reports a healthy, current index. If neither interface is available, status exits nonzero, the
-index is missing or corrupt, or synchronization fails, record the exact unavailable/stale condition
-and fall back to `rg` plus targeted reads. If status reports a stale but otherwise healthy index,
-run `codegraph sync` and repeat status before querying. Never silently treat unhealthy graph output
-as current. Use `codegraph node`, `callers`, or `callees` only for a narrower follow-up.
+Identify entry points, owners, callers, schemas, caches, permissions, tests, dynamic dispatch, generated code, configuration, and external boundaries.
 
-### When `.codegraph/` does not exist
+## Phase 3: Persist the Semantic Map
 
-Do not initialize CodeGraph. Indexing is a project/user decision. Fall back to `rg` and targeted
-reads:
+Persist a descriptive plan under the repository’s required plan directory with these headings:
+
+- `Current behavior and evidence`
+- `Intended semantic delta`
+- `Invariants and must-not-change boundaries`
+- `Current structural touchpoints`
+- `Planned additions and deletions`
+- `External and operational effects`
+- `Acceptance tests`
+- `Explicitly unaffected paths`
+- `Unknowns and confidence`
+- `Implementation order`
+
+## Phase 4: Prepare and Implement
+
+Before the first source edit, run:
 
 ```bash
-rg -n "<symbol-or-route>" .
-rg --files | rg "<feature-or-domain>"
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare --workspace "<root>" --plan "<plan>" --query "<same discovery query>"
 ```
 
-Use the same fallback when CodeGraph cannot parse a relevant language or generated/runtime edge.
-
-### Structural questions to answer
-
-- What are the public, administrative, job, CLI, or event entry points?
-- Which symbols own the behavior, and which callers consume them?
-- What types, schemas, migrations, caches, query keys, permissions, and transactions participate?
-- Which tests currently cover those paths?
-- Are there dynamic dispatch, reflection, generated code, configuration, environment, or external
-  systems that CodeGraph cannot see?
-- For multiple repositories, where is the API/event/schema boundary between their separate graphs?
-
-## Phase 3: Build the Semantic Impact Map
-
-Use this output. Omit empty sections, but never omit invariants, acceptance tests, or explicitly
-unaffected paths for a material change.
-
-```markdown
-# Impact Map: <change>
-
-## Current behavior and evidence
-- <observed behavior, entry point, and concise CodeGraph/source evidence>
-
-## Intended semantic delta
-- <what users/data/system behavior must change>
-
-## Invariants and must-not-change boundaries
-- <historical attribution, authorization, idempotency, transaction, compatibility, etc.>
-
-## Invariant clauses (optional for static evidence)
-| Clause | Owning symbol/path | Structural evidence | Independent acceptance check | Static hint / unresolved gap |
-|---|---|---|---|---|
-| <invariant> | <owner> | <confirmed source or graph edge> | <behavioral oracle> | <advisory Skylos rule, or unavailable> |
-
-## Current structural touchpoints
-| Repository | Entry point or symbol | Why affected | Evidence |
-|---|---|---|---|
-
-## Planned additions and deletions
-- <new routes, commands, migrations, tests, or removals that do not exist in CodeGraph yet>
-
-## External and operational effects
-- <database migration, cache, queue, analytics, deployment order, repair/backfill, credentials>
-
-## Reuse opportunities
-- <registry entry or existing implementation to reuse>
-
-## Acceptance tests
-- <observable behavior and failure/concurrency/boundary cases>
-
-## Explicitly unaffected paths
-- <nearby behavior that must remain scoped as it is>
-
-## Unknowns and confidence
-- <known graph blind spots, assumptions, and how they will be verified>
-
-## Implementation order
-1. <smallest failing test or contract first>
-2. <source-system implementation>
-3. <integration/cache/UI>
-4. <validation and reconciliation>
-```
-
-Persist the map only when project instructions require a plan file or the work must survive a
-session boundary. Otherwise, keep it in the response or active plan. Do not create a generic
-`IMPACT_MAP.md` by default.
-
-## Phase 4: Execute From the Map
-
-### Record the enforcement receipt
-
-Persist the map in the repository's required plan location, then run the gate CLI before the
-first production/source edit. Use the installed script path printed by the refactor gate's prompt
-hook. In Claude installations that expose the plugin root, the equivalent command is:
-
-```bash
-python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare \
-  --workspace "<workspace-root>" \
-  --plan "<workspace-root>/.claude/plans/<descriptive-name>.md" \
-  --query "<entry points, symbols, behavior, callers, and tests>"
-```
-
-The receipt command performs the structural preflight for every discovered Git root, reads and
-hashes any component registry, and records explicit `rg` fallback evidence where CodeGraph is
-absent or unhealthy. It never initializes CodeGraph. Do not bypass the gate merely because a
-repository lacks one of the optional artifacts.
-
-### Optional local context-pack bridge
-
-When `rhize-context-manager` is installed, the persisted semantic map may guide its native local
-discovery. Use the exact installed `runner.py` path printed by the context selector (or resolve it
-from that plugin) and pass the same plan explicitly:
-
-```bash
-python3 "<installed-rhize-context-manager>/scripts/context_experiments/runner.py" pack \
-  --provider native \
-  --repo "<workspace-root>" \
-  --query "<the same entry points, symbols, behavior, callers, and tests>" \
-  --impact-map "<workspace-root>/.claude/plans/<descriptive-name>.md"
-```
-
-The bridge is local-only. It stores only the map content hash, normalized term-set hash, and seed
-count in the pack manifest. It never stores the plan path/text, initializes CodeGraph, or upgrades
-a planned edge into structural evidence. A healthy existing CodeGraph remains first; absent,
-stale, corrupt, dynamic, generated, or unsupported edges take the documented `rg`/targeted-read
-fallback, and unsafe packs remain rejected.
-
-1. Start with a failing acceptance or contract test.
-2. Implement the smallest source-system change satisfying the semantic delta.
-3. Preserve every must-not-change boundary.
-4. Update the map when implementation evidence disproves an assumption or reveals a new consumer.
-5. Run focused tests first, then the repository's required broader gates.
-
-The graph suggests coverage; it does not prove runtime correctness, transaction ordering,
-authorization, cache timing, or external-system behavior. Those require tests and, when relevant,
-deployment-specific evidence.
+The gate records CodeGraph or fallback evidence and blocks source edits until preparation. Implement the smallest mapped change, preserve invariants, update the map when evidence changes scope, and run focused then repository-required checks.
 
 ## Phase 5: Reconcile After Implementation
 
-For every repository root, repeat the same discovery branch used before implementation.
-
-For roots with a healthy existing CodeGraph index:
-
-```bash
-codegraph sync
-codegraph explore "<the same entry points, symbols, behavior, callers, and tests>"
-codegraph affected <actual-changed-files>
-```
-
-Use equivalent MCP synchronization/health operations when exposed. Otherwise use the CLI only when
-available. If the index cannot be refreshed after the implementation, record it as stale and take
-the fallback branch; do not claim that the graph agrees.
-
-For roots that used the fallback — including roots where CodeGraph is still unavailable or
-unhealthy — repeat the original `rg` queries and targeted reads against the completed source. Map
-the actual changed files, their consumers, and their tests. Do not award `IN_SYNC` merely because
-that root has no graph.
-
-Then compare the actual diff and graph with the impact map:
-
-- Every changed production file traces to the intended semantic delta.
-- Every new symbol/route/migration/test now appears in the graph where supported.
-- Expected callers, caches, permissions, and tests remain connected.
-- No explicitly unaffected path changed accidentally.
-- Any deliberate deviation requires you to update the impact map with its rationale.
+Repeat the original discovery branch for every root. For a healthy index run `codegraph sync`, the same `codegraph explore`, and `codegraph affected <actual-changed-files>`; otherwise repeat the original `rg` queries and targeted reads. Compare the actual diff, structural evidence, tests, and semantic map.
 
 Report one **Reconciliation verdict**:
 
-- `IN_SYNC` — structural evidence (CodeGraph or fallback), actual diff, and semantic map agree.
-- `IN_SYNC_WITH_EXCEPTIONS` — named dynamic/generated/external edges require manual evidence.
-- `OUT_OF_SYNC` — missing consumer, unexplained diff, stale graph, or unverified invariant remains.
+- `IN_SYNC` — evidence, diff, and map agree.
+- `IN_SYNC_WITH_EXCEPTIONS` — named dynamic, generated, or external edges need manual evidence.
+- `OUT_OF_SYNC` — an unexplained diff, missing consumer, stale graph, or unverified invariant remains.
 
-Do not declare completion while the verdict is `OUT_OF_SYNC`.
-
-Record that verdict in the enforcement receipt before commit or completion:
+Commit, push, merge, and completion remain blocked until reconciliation. Record the verdict:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile \
-  --workspace "<workspace-root>"
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace "<root>"
 ```
 
-If the map changed, run `prepare` again before further source edits. If the task was classified as
-a material change incorrectly, record the false positive rather than silently bypassing it:
+Do not declare completion while `OUT_OF_SYNC`. If the map changed, run `prepare` again. For a documented false positive, use `dismiss --workspace "<root>" --reason "<specific reason>"`.
 
-```bash
-python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" dismiss \
-  --workspace "<workspace-root>" \
-  --reason "<specific non-implementation reason>"
-```
+## On-Demand Reference
 
-## Common Failure Modes
-
-- **File-list map:** duplicates CodeGraph and omits why behavior changes.
-- **Graph-only planning:** cannot represent planned code, business invariants, or operational risk.
-- **Blind graph trust:** misses dynamic dispatch, runtime configuration, external systems, and data
-  semantics.
-- **Unrequested indexing:** creates `.codegraph/` in a repository whose owner did not choose it.
-- **Single-root analysis:** misses the other side of a frontend/backend or service boundary.
-- **No reconciliation:** leaves a pre-implementation map stale as soon as the code changes.
-
-## Related Workflows
-
-- `/rhize-context-manager:done` — final verification after reconciliation.
-- `/rhize-context-manager:context-hygiene` — preserve the map when work crosses a session boundary.
-- `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).
+Load [`../docs/impact-map-reference.md`](../docs/impact-map-reference.md) only for the full output template, multi-repository examples, context-pack bridge, fallback details, troubleshooting, and failure modes.

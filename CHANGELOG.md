@@ -34,6 +34,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-24_ version bump — **rhize-devflow** 2.23.0 → 2.23.1 (patch); marketplace 2.78.0 → 2.78.1.
+- _2026-09-24_ version bump — **rhize-devflow** 2.22.0 → 2.23.0 (minor); marketplace 2.77.0 → 2.78.0.
 - _2026-09-21_ added **rhize-outreach** 0.1.0 with dual Claude/Codex setup, reviewed workflow skills and a pinned no-send runtime; marketplace 2.76.3 → 2.77.0.
 - _2026-09-19_ version bump — **rhize-context-manager** 0.33.0 → 0.33.1 (patch); marketplace 2.76.2 → 2.76.3.
 - _2026-09-19_ version bump — **rhize-ops** 0.25.0 → 0.25.1 (patch); marketplace 2.76.1 → 2.76.2.

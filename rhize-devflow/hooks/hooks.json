@@ -1,5 +1,5 @@
 {
-  "description": "rhize-devflow auto-wires one cross-harness workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits, and reconciliation before commit/completion. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
+  "description": "rhize-devflow auto-wires the auto-selection workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits, and reconciliation before commit/completion. Trusted adapters may invoke the same gate with required activation and an explicit implementation task kind; the study control omits the plugin instead of disabling the gate. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
   "hooks": {
     "UserPromptSubmit": [
       {
