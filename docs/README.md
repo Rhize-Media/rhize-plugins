@@ -33,7 +33,7 @@ Version 1.8.3. Walks a new project from a rough idea through research, requireme
 
 ### rhize-devflow
 
-Version 2.23.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.23.1. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [9 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 

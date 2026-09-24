@@ -241,6 +241,11 @@ for intended change — business behavior, invariants, planned symbols, operatio
 acceptance criteria. After implementation it confirms your actual changes matched the map —
 cleanly, with noted deviations, or it blocks completion until they agree.
 
+The always-loaded command stays at 500 words or fewer. Load
+[`docs/impact-map-reference.md`](./docs/impact-map-reference.md) only for the full template,
+multi-repository examples, context-pack bridge, fallback details, troubleshooting, and failure
+modes; the compact command retains every required section, gate command, and reconciliation verdict.
+
 For material implementation/refactor/simplification prompts, the installed plugin enforces this sequence in
 `auto` mode. Trusted orchestrators can invoke the same prompt hook with
 `--activation-policy required --task-kind implementation` when task intent is already known and

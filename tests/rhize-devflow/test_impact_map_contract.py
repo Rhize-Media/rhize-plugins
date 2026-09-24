@@ -10,6 +10,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 COMMAND = REPO_ROOT / "rhize-devflow/commands/impact-map.md"
+REFERENCE = REPO_ROOT / "rhize-devflow/docs/impact-map-reference.md"
 CM_ADAPTER = REPO_ROOT / "rhize-context-manager/commands/impact-map.md"
 FOUNDATION = (
     REPO_ROOT
@@ -95,53 +96,42 @@ def test_dev_flow_is_the_only_impact_map_command_owner() -> None:
     assert replaces_edge in graph["edges"]
 
 
-def test_command_uses_codegraph_before_text_search_when_indexed() -> None:
+def test_command_is_compact_and_uses_codegraph_before_text_search() -> None:
     command = COMMAND.read_text()
-    indexed = section_between(
-        command,
-        "### When `.codegraph/` exists",
-        "### When `.codegraph/` does not exist",
-    )
-    indexed_normalized = normalized(indexed).lower()
-    assert "Use CodeGraph before text search or manual file reading:" in indexed
+    assert len(command.split()) <= 500
+    assert "Load [`../docs/impact-map-reference.md`]" in command
+    assert "use CodeGraph before text search or manual reads" in command
     for required in (
         "codegraph status",
         "codegraph explore",
         "codegraph impact",
         "codegraph affected",
-        "do not run or trust shell graph queries until it exits zero",
-        "index is missing or corrupt",
         "command -v codegraph",
-        "if neither interface is available",
-        "do not require a shell preflight when mcp is the active interface",
-        "mcp error indicating a missing, stale, or corrupt index triggers the fallback",
+        "missing, corrupt, stale after synchronization, or unsupported",
+        "Never run `codegraph init`",
     ):
-        assert required in indexed_normalized
+        assert required.lower() in command.lower()
     assert "Use `rg` before CodeGraph" not in command
     assert "Use text search before CodeGraph" not in command
     assert "grep -r" not in command
 
 
-def test_command_has_safe_absent_stale_and_multi_repo_fallbacks() -> None:
+def test_on_demand_reference_retains_safe_fallback_and_multi_repo_details() -> None:
     command = COMMAND.read_text()
-    missing = section_between(
-        command,
-        "### When `.codegraph/` does not exist",
-        "### Structural questions to answer",
-    )
-    assert normalized(missing).startswith(
-        "Do not initialize CodeGraph. Indexing is a project/user decision. "
-        "Fall back to `rg` and targeted reads:"
-    )
-    assert "codegraph init" not in command.lower()
-    assert "initialize CodeGraph automatically" not in command
+    reference = REFERENCE.read_text()
+    reference_normalized = normalized(reference).lower()
+    assert len(reference.split()) > len(command.split())
+    assert "the command owns the executable contract" in reference
     for required in (
-        "stale",
-        "each repository root",
+        "Do not require a shell preflight when MCP is the active interface",
+        "MCP error indicating a missing, stale, or corrupt index triggers the fallback",
+        "Do not initialize CodeGraph. Indexing is a project/user decision",
+        "For multiple repositories",
         "dynamic dispatch",
         "external systems",
+        "Common Failure Modes",
     ):
-        assert required in command.lower()
+        assert required.lower() in reference_normalized
 
 
 def test_impact_map_is_semantic_delta_not_a_second_dependency_dump() -> None:
@@ -162,25 +152,51 @@ def test_impact_map_is_semantic_delta_not_a_second_dependency_dump() -> None:
     assert "Generate `IMPACT_MAP.md`" not in command
 
 
+def test_progressive_disclosure_preserves_required_sections_and_gate_commands() -> None:
+    command = COMMAND.read_text()
+    reference = REFERENCE.read_text()
+    required_sections = (
+        "Current behavior and evidence",
+        "Intended semantic delta",
+        "Invariants and must-not-change boundaries",
+        "Current structural touchpoints",
+        "Planned additions and deletions",
+        "External and operational effects",
+        "Acceptance tests",
+        "Explicitly unaffected paths",
+        "Unknowns and confidence",
+        "Implementation order",
+    )
+    for section in required_sections:
+        assert f"`{section}`" in command
+        assert f"## {section}" in reference
+    for required in (
+        "refactor_gate.py\" prepare",
+        "refactor_gate.py\" reconcile",
+        "dismiss --workspace",
+        "blocks source edits until preparation",
+        "Commit, push, merge, and completion remain blocked until reconciliation",
+    ):
+        assert required in command
+
+
 def test_command_requires_post_implementation_reconciliation() -> None:
     command = COMMAND.read_text()
     reconciliation = section_between(
         command,
         "## Phase 5: Reconcile After Implementation",
-        "## Common Failure Modes",
+        "## On-Demand Reference",
     )
     reconciliation_normalized = normalized(reconciliation)
     for required in (
         "codegraph sync",
-        "update the impact map",
         "Report one **Reconciliation verdict**",
-        "`IN_SYNC` — structural evidence (CodeGraph or fallback), actual diff, and semantic map agree.",
-        "`IN_SYNC_WITH_EXCEPTIONS` — named dynamic/generated/external edges require manual evidence.",
-        "`OUT_OF_SYNC` — missing consumer, unexplained diff, stale graph, or unverified invariant remains.",
-        "Do not declare completion while the verdict is `OUT_OF_SYNC`.",
-        "For every repository root, repeat the same discovery branch used before implementation.",
-        "repeat the original `rg` queries and targeted reads against the completed source",
-        "Do not award `IN_SYNC` merely because that root has no graph.",
+        "`IN_SYNC` — evidence, diff, and map agree.",
+        "`IN_SYNC_WITH_EXCEPTIONS` — named dynamic, generated, or external edges need manual evidence.",
+        "`OUT_OF_SYNC` — an unexplained diff, missing consumer, stale graph, or unverified invariant remains.",
+        "Do not declare completion while `OUT_OF_SYNC`.",
+        "Repeat the original discovery branch for every root.",
+        "repeat the original `rg` queries and targeted reads",
     ):
         assert required in reconciliation_normalized
     lowered = reconciliation.lower()
@@ -223,9 +239,10 @@ def test_foundation_and_docs_share_the_same_contract() -> None:
 def main() -> int:
     tests = [
         test_dev_flow_is_the_only_impact_map_command_owner,
-        test_command_uses_codegraph_before_text_search_when_indexed,
-        test_command_has_safe_absent_stale_and_multi_repo_fallbacks,
+        test_command_is_compact_and_uses_codegraph_before_text_search,
+        test_on_demand_reference_retains_safe_fallback_and_multi_repo_details,
         test_impact_map_is_semantic_delta_not_a_second_dependency_dump,
+        test_progressive_disclosure_preserves_required_sections_and_gate_commands,
         test_command_requires_post_implementation_reconciliation,
         test_foundation_and_docs_share_the_same_contract,
     ]

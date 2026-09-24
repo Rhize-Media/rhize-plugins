@@ -2,6 +2,16 @@
 
 ## Verified facts
 
+- 2026-09-24: Devflow 2.23.0 adds a per-invocation `required` prompt-hook policy for an explicit
+  implementation task kind while leaving the installed hook on `auto`. The off study condition is
+  physical plugin omission, not a runtime gate disable. A frozen 48-prompt product-contract corpus
+  checks both Claude and Codex payload shapes, source-bound lifecycle events, prompt hashing, and
+  completion parity without provider calls.
+- 2026-09-24: the 2.23.1 progressive-disclosure candidate reduces the always-loaded impact-map
+  command from 1,606 to 494 words. Deterministic checks retain CodeGraph preflight/fallback, every
+  required semantic-map section, prepare/reconcile/dismiss commands, and all reconciliation
+  verdicts; detailed examples and troubleshooting remain in an on-demand reference.
+
 - Workflow host attribution now rejects inherited-session-only identity and retains conflicting native signals as unknown. Cross-host canaries must isolate host/session environment markers; historical mislabeled receipts are preserved.
 
 - 2026-09-19: workflow discovery repair adds the canonical RHIZE Content Engine skill,
@@ -24,6 +34,10 @@
   emitting a bounded warning and persisting private diagnostic state.
 
 ## General rules
+
+- Benchmark control arms for a safety/workflow plugin should omit the plugin entirely. Do not add
+  an `off` branch to a safety gate merely to model the control; it still exposes treatment assets
+  and creates a bypass surface.
 
 - Keep private benchmark findings, raw research results and article evidence in the operator's
   consolidated vault. Repository evaluation code, fixtures and versioned validation contracts
@@ -65,6 +79,10 @@
   not change.
 
 ## Last session
+
+- 2026-09-24 Devflow Harbor v2 source candidates: T1 and T2 were built as separate commits in an
+  isolated worktree. Provider-free routing/lifecycle and full Devflow validation passed. No Harbor,
+  Docker, provider, installed-cache, automation, vault, or benchmark-output mutation occurred.
 
 - 2026-09-19 workflow repair: Context Manager 0.33.0 and Procedural Memory plugin 0.6.0 source
   prepared. Independent read-only review found no remaining blockers after counter/router review.

@@ -6,6 +6,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-24_ version bump — 2.23.0 → 2.23.1 (patch); marketplace 2.78.0 → 2.78.1.
+- _2026-09-24_ **Progressive-disclosure impact mapping.** The always-loaded command is 500 words
+  or fewer while retaining CodeGraph preflight/fallback, the required semantic-map sections,
+  `prepare`, implementation, reconciliation, verdict, and dismissal contracts. Detailed rationale,
+  examples, the optional context-pack bridge, troubleshooting, and failure modes moved to an
+  on-demand reference and are checked against the compact command deterministically.
 - _2026-09-24_ version bump — 2.22.0 → 2.23.0 (minor); marketplace 2.77.0 → 2.78.0.
 - _2026-09-24_ **Versioned activation and source-bound lifecycle evidence.** The installed prompt
   hook remains `auto`; trusted adapters can select `required` per invocation with an explicit
