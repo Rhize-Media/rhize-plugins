@@ -215,6 +215,7 @@ plugin cache):
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" doctor [--json] [--plugin-root PATH]
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/devflow.py" evidence [--json] [--repo PATH] [--base REF]
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" status --workspace PATH [--json]
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" hook-prompt [--activation-policy auto|required] [--task-kind KIND]
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" prepare --workspace PATH --plan PATH --query TEXT
 python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" reconcile --workspace PATH
 ```
@@ -240,8 +241,13 @@ install and initialize it in a client repo.
   read-only JSON status is authoritative for freshness; the older database-vs-tracked-file mtime
   comparison remains only as a compatibility fallback, so newer unsupported Markdown/JSON does
   not create a false-stale finding.
-- **`refactor_gate.py`** is the stateful Claude/Codex enforcement runtime. A material-change prompt
-  creates pending workspace state; `prepare` validates and hashes the semantic map, discovers
+- **`refactor_gate.py`** is the stateful Claude/Codex enforcement runtime. Its installed hook uses
+  `auto`, where the existing material-change selector creates pending workspace state. A trusted
+  orchestrator can invoke `hook-prompt --activation-policy required --task-kind implementation`
+  to require the workflow without rewriting issue-style task prose. A benchmark `off` arm omits
+  the plugin entirely instead of adding an activation-policy bypass; the separately documented
+  emergency operator bypass remains unchanged. `prepare`
+  validates and hashes the semantic map, discovers
   nested Git roots, runs an existing healthy CodeGraph index (or records the `rg` fallback), and
   reads/hashes any component registry. `reconcile` repeats the same structural branch and refuses
   `OUT_OF_SYNC` changed files. Re-preparing after an impact-map correction preserves the original
@@ -251,7 +257,11 @@ install and initialize it in a client repo.
   share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
   for the remainder of the turn so a late source write invalidates it; the successful Stop boundary
   closes it as `completed`, preventing an old receipt from locking an unrelated future task. A
-  later material prompt always starts a fresh pending receipt. A workspace that resolves to the
+  later qualifying prompt always starts a fresh pending receipt. Each new receipt stores a prompt
+  hash (never raw prompt text), activation policy/fixed reason code/task kind, plugin version, source commit
+  when Git metadata is present, gate-source hash, per-handler invocation counts while the receipt
+  is active, and append-only timestamped
+  lifecycle events/verdicts. A workspace that resolves to the
   **filesystem root is never armed** — automatic arming and `prepare` both no-op there (`prepare`
   warns on stderr and still exits 0), and the workspace-containment lookup skips any root receipt
   it finds. A root receipt contains every path on the machine, so one written by a Projectless
@@ -298,7 +308,7 @@ their evidence remains interoperable without claiming identical lifecycle wiring
 
 | Runtime | Event | Matcher | Tier | Behavior |
 |--------|-------|---------|------|----------|
-| `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Classifies explicit material implementation/refactor/simplification prompts and creates a pending receipt. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated. |
+| `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Installed hook uses `auto` to classify explicit material implementation/refactor/simplification prompts. Trusted adapters may use per-invocation `required` with task kind `implementation`; no prompt rewrite or persistent bypass is needed. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated in `auto`. |
 | `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts, **config-only paths, and `claudedocs/` prose** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
 | `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. |
 | `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |

@@ -6,6 +6,13 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-24_ version bump — 2.22.0 → 2.23.0 (minor); marketplace 2.77.0 → 2.78.0.
+- _2026-09-24_ **Versioned activation and source-bound lifecycle evidence.** The installed prompt
+  hook remains `auto`; trusted adapters can select `required` per invocation with an explicit
+  implementation task kind, while the off study arm omits Devflow rather than disabling a safety
+  gate or adding a new bypass. Receipts now store prompt hashes instead of raw task text and bind append-only phase events,
+  active handler-invocation counts, a policy-derived reason code, plugin version, source commit when available, and gate-source
+  hash. A frozen 48-prompt provider-free corpus checks both Claude and Codex payload shapes.
 - _2026-09-19_ version bump — 2.21.1 → 2.22.0 (minor); marketplace 2.73.3 → 2.74.0.
 - _2026-09-09_ version bump — 2.21.0 → 2.21.1 (patch); marketplace 2.70.0 → 2.70.1.
 

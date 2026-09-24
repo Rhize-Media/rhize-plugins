@@ -241,13 +241,20 @@ for intended change — business behavior, invariants, planned symbols, operatio
 acceptance criteria. After implementation it confirms your actual changes matched the map —
 cleanly, with noted deviations, or it blocks completion until they agree.
 
-For material implementation/refactor/simplification prompts, the installed plugin now enforces this sequence.
+For material implementation/refactor/simplification prompts, the installed plugin enforces this sequence in
+`auto` mode. Trusted orchestrators can invoke the same prompt hook with
+`--activation-policy required --task-kind implementation` when task intent is already known and
+issue-style prose would not match the selector. The control condition omits Devflow entirely;
+the activation contract adds no runtime `off` switch to weaken an installed gate. The existing
+documented emergency operator bypass remains separate.
 It allows the plan to be written, then blocks source edits until the command's `prepare` step has
 validated the persisted map, queried every existing healthy CodeGraph index (or recorded the
 fallback), and read any component registry. After source changes begin, commit/push/merge and
 normal completion stay blocked until reconciliation confirms the diff matches the map — see the
 [README](./README.md#doctor-evidence-and-refactor-gate-clis) for the exact verdict names. The
-receipt is shared between Claude and Codex.
+receipt is shared between Claude and Codex. New receipts keep only the prompt hash, activation
+policy/fixed reason code/task kind, exact available source identity, active handler-invocation counts, and append-only phase
+events; they do not retain raw task text.
 
 **When the gate blocks you — what each message means and what to do.** The gate is four hooks
 around one receipt file per workspace (`~/.claude/rhize-devflow/refactor-gate/`); every message
@@ -448,7 +455,8 @@ applies automatically when you're adding error tracking.
 ## Tips for Getting the Best Results
 
 **Run `/rhize-devflow:impact-map` before touching code on anything non-trivial.** The default-on
-gate now enforces that rule for explicit material-change prompts. If it classifies a genuinely
+`auto` gate enforces that rule for explicit material-change prompts; an orchestrator with an
+explicit implementation task kind can select `required` for wording-independent enforcement. If it classifies a genuinely
 read-only task incorrectly, use the printed `dismiss --reason` command so the exception remains
 reviewable; do not disable the gate silently.
 
