@@ -22,22 +22,27 @@ authenticates to a local server that requires it. Keys stay in the environment. 
 unavailable provider blocks the handoff ready claim. This integration pins GSD 1.42.3,
 which exposes `/gsd-autonomous` in Claude Code.
 
-The client records checkpoint, model, latency, provider token usage, outcome, and a
-state hash in `.planning/decision-layer/receipts.jsonl`; it never stores request state.
+The client records checkpoint, requested and routed model, question IDs, latency,
+provider token usage, outcome, and a state hash in
+`.planning/decision-layer/receipts.jsonl`; it never stores request state.
 The installer adds that receipt file to the new project's `.gitignore`.
 Installed `SubagentStart` and `SubagentStop` hooks require each GSD planner, executor,
-and verifier to make its own call or record an unavailable attempt. Recommendations
-cannot bypass tests or approval gates. The default `shadow` mode records calls
+and verifier to make its own call or record an unavailable attempt. Their
+Foreman-style multi-check call returns an observational `candidate_directive`;
+it cannot change a worker or bypass tests or approval gates. The default `shadow` mode records calls
 without recommendations. Set `RHIZE_DECISION_MODE=advisory` only after validating
 the selected checkpoint on task-relevant cases. For local Laya, set
 `TYPESAFE_DEFAULT_MODEL=typed-decisions` to pin that candidate for a pilot;
 without an override, Laya chooses its own checkpoint. Record the actual returned
-model in receipts.
+model and routed checkpoint in receipts. The launch probe rejects a different
+local checkpoint and requires Laya's `instructions` field. Research and holdout
+evaluation instructions live in [evals/typed-decision](../evals/typed-decision/README.md).
 
 From a scaffolded project, run `python3 .claude/rhize-decision/typed_decision.py status`
 and `gsd-sdk query agent-skills gsd-planner` (also executor and verifier). A `ready`
 status proves configuration and a recent provider probe; inspect per-agent receipts
-during the project to verify runtime use.
+during the project to verify runtime use. Run `status` with the same provider and
+model environment as the probe; a changed or missing local model pin blocks readiness.
 
 ## Commands
 
