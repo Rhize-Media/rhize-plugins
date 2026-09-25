@@ -92,6 +92,12 @@ installed skill path. The CLI itself has no host-specific imports or environment
    `get_related_artifacts`. Tenant, namespace, corpus, ACL, trust, depth, result, and runtime limits
    are enforced in code; a model cannot omit them or submit Cypher.
 
+For a measured local Laya pilot, add `--typed-shadow --typed-signal <bounded-token>` to an already
+authorized `query` call. The scorer sees only metadata for up to eight ACL-filtered results and
+records its ranking under `typedShadow`; the governed result order, content, ACL, trust and source
+checks remain unchanged. Do not send graph properties, source text or a raw query as signals. See
+[the pilot contract](../../../docs/typed-decision-layer.md).
+
 ## Identity hygiene and review
 
 The library contains deterministic in-process contracts for normalization, candidate generation,

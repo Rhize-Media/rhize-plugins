@@ -6,6 +6,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-25_ version bump — 1.10.0 → 1.11.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
+- Extend the existing one-call GSD planner/executor/verifier supervision with skill/workflow, graph, retention, model/worker, tool-risk and browser QA checks. Add a private 1,000,000-token duplicate-control ledger for later software-task trials.
+
+- _2026-09-25_ version bump — 1.10.0 → 1.11.0 (minor); marketplace 2.84.0 → 2.85.0.
 - _2026-09-24_ Local Laya checkpoint routing evidence and fixed Foreman-style GSD supervision questions for planner, executor, and verifier. A bounded local research runner compares pinned checkpoints, question wording, and abstention thresholds on human-adjudicated labels with a locked holdout and Arm A evidence.
 - _2026-09-24_ version bump — 1.9.1 → 1.10.0 (minor); marketplace 2.79.1 → 2.80.0.
 - _2026-09-24_ version bump — 1.9.0 → 1.9.1 (patch); marketplace 2.79.0 → 2.79.1.

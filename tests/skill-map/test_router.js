@@ -377,6 +377,26 @@ check('[logging] appendFileSync of one line stays well within the 50ms hook budg
   assert.strictEqual(core.routeFromIndex(collision, core.tokenize('Use ecc:accessibility'), 'Use ecc:accessibility'), null);
 }
 
+check('[laya shadow] unavailable local model preserves incumbent suggestion and private receipt', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
+    const prompt = 'help me get git and context tooling set up';
+    const baseline = runRouter(tmpHome, prompt);
+    const shadow = runRouterFull(tmpHome, prompt, 'session-shadow', {
+      RHIZE_LAYA_SKILL_SHADOW: '1', RHIZE_LAYA_BASE_URL: 'http://127.0.0.1:1',
+    });
+    assert.strictEqual(shadow.status, 0, shadow.stderr);
+    assert.strictEqual(shadow.stdout, baseline.stdout);
+    const receipts = path.join(tmpHome, '.local', 'share', 'rhize', 'typed-decisions', 'receipts');
+    const names = fs.readdirSync(receipts);
+    assert.strictEqual(names.length, 1);
+    const receipt = JSON.parse(fs.readFileSync(path.join(receipts, names[0]), 'utf8'));
+    assert.strictEqual(receipt.status, 'unavailable');
+    assert.strictEqual(receipt.incumbentAltered, false);
+    assert.strictEqual(fs.statSync(path.join(receipts, names[0])).mode & 0o777, 0o600);
+  });
+});
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed.`);
   process.exit(1);

@@ -11,6 +11,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-25_ version bump — 0.25.2 → 0.26.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
+- Add bounded local Laya shadow ranking of pre-authorized model and worker options. Preserve user pin, task-graph validation and host dispatch authority.
+
+- _2026-09-25_ version bump — 0.25.2 → 0.26.0 (minor); marketplace 2.83.0 → 2.84.0.
 - _2026-09-24_ version bump — 0.25.1 → 0.25.2 (patch); marketplace 2.81.1 → 2.81.2.
 - _2026-09-19_ Include the canonical RHIZE Content Engine in the evaluation catalog and 58-skill coverage contract; preserve byte-identical core/ops fallback catalogs and setup scripts.
 - _2026-09-19_ version bump — 0.25.0 → 0.25.1 (patch); marketplace 2.76.1 → 2.76.2.

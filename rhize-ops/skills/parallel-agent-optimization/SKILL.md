@@ -14,6 +14,12 @@ metadata:
 
 # Parallel Agent Optimization
 
+An explicitly enabled local Laya pilot can call `scripts/typed_routing.py --mode shadow`
+after `assess` has produced legal model or worker options. Supply bounded task signals,
+an incumbent and the user-pin fact. The ranking is private observational evidence; the
+validated task graph and host still decide dispatch. See
+[the typed pilot contract](../../../docs/typed-decision-layer.md).
+
 Choose the smallest safe execution graph, give every lane a bounded contract, and verify the joined
 result. This is the self-contained Rhize strategy; do not load another parallel-agent skill at
 runtime.

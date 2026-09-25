@@ -38,6 +38,16 @@ python3 evals/typed-decision/research.py --phase holdout \
 
 The ledger rejects a candidate never kept on development data and a second holdout run for the same corpus. Preserve the exact ledger and source hashes. The CLI does not provide a tamper-proof enclave; keep the holdout in the reviewer's separate workspace until the freeze. Real promotion needs the predeclared quality/safety bounds in the private decision-layer plan, an independent review and matched software-task outcomes. The 1,000,000-token cap applies to incremental coding-agent tokens for duplicate controlled tasks; local research calls do not consume that cap, but their inference time and compute are reported separately.
 
+## Task outcome trials and control budget
+
+Use `task_trials.py` with a private SQLite path. Hash the frozen task and fixture externally and use the same hashes for both arms. Before each duplicate control, write current host token-limit evidence to an owner-only file and call `reserve-control --task-hash <sha256> --fixture-hash <sha256> --limit-tokens <maximum> --host-limit-evidence <file>`. The reservation checks the global 1,000,000-token allowance under a SQLite write lock. The host must actually enforce that maximum during the run; the ledger cannot interrupt an agent. If the host lacks a per-run limit, do not launch that duplicate control.
+
+Finalize the reserved ID with `finalize --run-id <id> --arm A_control --status completed|failed|incomplete --usage-file <file> --outcome accepted|rejected|undetermined --outcome-evidence <file> --wall-ms <milliseconds>`. The usage JSON records `input_tokens`, `output_tokens`, `cache_read_tokens`, `cache_write_tokens`, and `reasoning_tokens`; nullable ancillary counts stay null. Missing input/output usage requires `--usage-unavailable-reason` and charges the full reservation. Report any host limit overrun instead of masking it. Finalize B treatments and single-execution randomized A/B tasks with their own IDs and the same task/fixture hashes.
+
+The private outcome evidence is a JSON object with exactly `schema: "rhize-typed-task-outcome-v1"`, `outcome` matching the CLI, `quality_score` from 0 to 100 or null, Boolean `required_checks_passed` and `independent_review_passed`, nonnegative integer `critical_failure_count` and `rework_count`, and the frozen `rubric_sha256`. An `accepted` outcome requires scored quality, passed checks and independent review, and zero critical failures. Freeze the rubric before running either arm and preserve the underlying review packet separately. `report` distinguishes assigned from evaluable pairs; only completed runs with reported input/output tokens, quality, wall time, a determinate outcome and the same rubric contribute to the paired B-minus-A mean deltas. The ledger stores hashes and compact scores, not prompts or source code. Its outcomes are operator-reported and need independent acceptance evidence.
+
+Run a small replayable 4–6-pair pilot with identical rubric and frozen fixtures, then use randomized single-execution tasks on the real project. Predeclare quality, time and token analyses; count all fallbacks and missing data. Keep the duplicate-control total below the user's 1,000,000 incremental coding-agent token ceiling.
+
 ## Known limitations
 
 - No real Rhize labels have been imported yet; fixtures only prove the evaluator contract.

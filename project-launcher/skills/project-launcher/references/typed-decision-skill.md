@@ -5,6 +5,12 @@ description: Use the project-local Jev or Laya typed decision client at GSD plan
 
 # Typed decision layer for GSD
 
+Planner checks also cover skill/workflow fit, graph context relevance and retention
+safety. Executor checks include authorized model/worker fit and tool trace risk;
+verifier checks include browser QA coverage. All remain observational and use the
+same single bounded call per agent checkpoint. See
+[the full pilot](../../../../docs/typed-decision-layer.md).
+
 At a meaningful checkpoint in each `gsd-planner`, `gsd-executor`, and `gsd-verifier` assignment, run the fixed, bounded supervision questions through `.claude/rhize-decision/typed_decision.py`. Use only the current phase's summary and evidence. Do not send secrets, source files, private customer data, or full PRDs to a hosted provider.
 
 Write a temporary JSON evidence object outside the repository, then pipe it to the project-local client. The `SubagentStart` hook supplies your `agent_id`; include it exactly so the `SubagentStop` hook can verify this agent's own call:

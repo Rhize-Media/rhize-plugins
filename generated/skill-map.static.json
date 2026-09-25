@@ -3853,7 +3853,7 @@
       "path": "rhize-ops"
     },
     {
-      "description": "Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.",
+      "description": "Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.",
       "id": "plugin:rhize-outreach",
       "kind": "plugin",
       "name": "rhize-outreach",
@@ -4005,8 +4005,8 @@
       "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps."
     },
     {
-      "contentHash": "9de885deef334253d4f2927d2341d64145c8b7d52edd74f53a1f18f7d1d4d220",
-      "contentHashNormalized": "c4111db0514e24f69dbcc8f3fe434a057f69cdb8e8d13994791fa8a26aecf9f2",
+      "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",
+      "contentHashNormalized": "49199bc51bfde24d7d5dc535f2473ddf984794d3f57af12a5ab6db1c83c129c7",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
@@ -4074,7 +4074,7 @@
       "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
     },
     {
-      "contentHash": "1bf67261685f74ff8b06f04d2e57b35ba1530f78f594c5821899d21b31f1fa0c",
+      "contentHash": "f79270e788aa6bc59b7f1b35ae4d91469ccfa0d3bfb68978061e9f308e218f0d",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
@@ -4238,7 +4238,7 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "b16f50f10906ff7172bce686cf60c1ac80bd4c3f4a828753596d6669bab5b261",
+      "contentHash": "b3c74a1fa0a5501ef0003d0053d4be912c27ce0701c66f73254a95878878689c",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",

@@ -414,3 +414,5 @@ From the "self-improving agent system" pattern — no run is complete until it l
 - **`templates/rules/openwolf.md`** — canonical OpenWolf protocol rule (previously copy-pasted per repo, had drifted). Copy into `.claude/rules/` ONLY in repos that have a `.wolf/` directory.
 
 Dev Flow can optionally record local Laya multi-check shadow signals at impact-map, check, test-evidence, review and completion checkpoints. The [typed checkpoint contract](docs/typed-checkpoint.md) keeps all deterministic gates and release authority unchanged; no accuracy or task-benefit claim is established.
+
+The [typed decision pilot](../docs/typed-decision-layer.md) additionally scores source-bound tool-risk and legal browser QA candidates through `scripts/typed_selection.py`. It cannot authorize an action or change a check, review, or release gate.

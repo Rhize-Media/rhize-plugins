@@ -69,8 +69,13 @@ Renders the live skill-monitor audit dashboard — aggregates every per-run snap
 ### `parallel-agent-optimization`
 
 Applies one self-contained Rhize routing strategy and records a strict lifecycle receipt so future
-runs compound into evidence. Ordinary `apply` runs execute once and remain observational. An
-explicit `compare` runs baseline and Rhize as separate, counterbalanced arms only in fresh
+runs compound into evidence. Ordinary `apply` runs execute once and remain observational.
+
+For a local Laya pilot, `scripts/typed_routing.py --mode shadow` ranks only pre-authorized
+model or worker options from bounded metadata. It records the incumbent and user pin, but
+cannot dispatch an agent or override either. See [the decision layer contract](../docs/typed-decision-layer.md).
+
+An explicit `compare` runs baseline and Rhize as separate, counterbalanced arms only in fresh
 replayable environments; it never repeats a live task. ECC and Superpowers are attribution/update
 references, not runtime resources.
 

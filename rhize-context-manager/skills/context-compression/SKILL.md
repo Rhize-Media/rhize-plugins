@@ -11,6 +11,12 @@ metadata:
 
 # Context Compression Strategies
 
+For an explicitly measured local Laya retention pilot, use the separate
+`scripts/context_experiments/typed_candidates.py --mode shadow --evidence <current source artifact>`
+with bounded `context_retention` metadata. Include each protected anchor in `incumbentIds`.
+The scorer cannot remove anchors or alter this skill's compression decision. See
+[the typed pilot contract](../../../docs/typed-decision-layer.md).
+
 When agent sessions generate millions of tokens of conversation history, compression becomes mandatory. The naive approach is aggressive compression to minimize tokens per request. The correct optimization target is tokens per task: total tokens consumed to complete a task, including re-fetching costs when compression loses critical information.
 
 ## When to Activate

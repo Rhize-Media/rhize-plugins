@@ -459,6 +459,11 @@ applies automatically when you're adding error tracking.
 
 ## Tips for Getting the Best Results
 
+The optional local Laya pilot can rank legal tool-risk and approved browser QA
+candidates after current evidence is recorded. It does not run a browser action,
+clear a check, or approve release. See [the pilot matrix](../docs/typed-decision-layer.md)
+and [the source-bound adapter](docs/typed-checkpoint.md).
+
 **Run `/rhize-devflow:impact-map` before touching code on anything non-trivial.** The default-on
 `auto` gate enforces that rule for explicit material-change prompts; an orchestrator with an
 explicit implementation task kind can select `required` for wording-independent enforcement. If it classifies a genuinely

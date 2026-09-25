@@ -197,6 +197,11 @@ routine JSON needs 0.18+). A newer source version alone does not imply npm publi
 
 ## Host inventory and explicit retention
 
+For an explicitly measured local Laya pilot, the Ops typed routing adapter ranks
+only already-authorized model or worker options and records the user pin. The host
+still validates the task graph and chooses whether to dispatch. See
+[the pilot matrix](../docs/typed-decision-layer.md).
+
 Export Codex user config/cache evidence with
 `python3 scripts/host_inventory.py --project /absolute/project > codex-inventory.json`
 (Python 3.11+), then use Skill Forge 0.19+
