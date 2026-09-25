@@ -1,9 +1,129 @@
 {
-  "name": "rhize-media",
+  "name": "rhize-plugins",
   "interface": {
     "displayName": "Rhize Media"
   },
   "plugins": [
+    {
+      "name": "rhize-core",
+      "source": {
+        "source": "local",
+        "path": "./rhize-core"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "seo-aeo-geo",
+      "source": {
+        "source": "local",
+        "path": "./seo-aeo-geo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Marketing"
+    },
+    {
+      "name": "obsidian-second-brain",
+      "source": {
+        "source": "local",
+        "path": "./obsidian-second-brain"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "project-launcher",
+      "source": {
+        "source": "local",
+        "path": "./project-launcher"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    },
+    {
+      "name": "rhize-devflow",
+      "source": {
+        "source": "local",
+        "path": "./rhize-devflow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    },
+    {
+      "name": "rhize-context-manager",
+      "source": {
+        "source": "local",
+        "path": "./rhize-context-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    },
+    {
+      "name": "rhize-ops",
+      "source": {
+        "source": "local",
+        "path": "./rhize-ops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rhize-tasks",
+      "source": {
+        "source": "local",
+        "path": "./rhize-tasks"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "rhize-cowork",
+      "source": {
+        "source": "local",
+        "path": "./rhize-cowork"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "procedural-memory",
+      "source": {
+        "source": "local",
+        "path": "./procedural-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    },
     {
       "name": "rhize-outreach",
       "source": {
