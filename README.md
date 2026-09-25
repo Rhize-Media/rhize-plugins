@@ -14,6 +14,8 @@ https://github.com/Rhize-Media/rhize-plugins
 
 All plugins below will become available for installation. Each plugin may need its own environment variables or MCP server credentials — check that plugin's `README.md` **Setup**/**Installation** section before first use.
 
+For Codex CLI, use `codex plugin marketplace add https://github.com/Rhize-Media/rhize-plugins` for a first install or `codex plugin marketplace upgrade rhize-plugins` for an existing one, then install the desired `plugin@rhize-plugins`. The Codex catalog mirrors the plugin roster in the Claude marketplace; a catalog parity test checks the name and local sources. Restart the host after plugin updates so it loads the new hook paths.
+
 ## Plugin Catalog
 
 <!-- SKILL-MAP:BEGIN -->

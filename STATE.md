@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-09-25: A Codex marketplace upgrade of the released decision-layer source failed because the tracked Codex catalog declared `rhize-media` and listed only Outreach while the existing configured marketplace is `rhize-plugins`. The catalog repair aligns its name and all 11 published plugin paths with the Claude marketplace; the parity test guards this host activation path.
+
 - 2026-09-25: The local Laya decision-layer source now includes bounded shadow candidates for
   skill/workflow fit, governed graph relevance, protected context retention, Dev Flow tool-risk
   and browser QA, authorized model/worker fit, and the existing project-local GSD checkpoints.

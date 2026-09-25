@@ -34,6 +34,8 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-25_ Restore Codex marketplace refresh by aligning its catalog name and complete plugin roster with the Claude marketplace. Add a parity regression check; plugin versions and runtime behavior are unchanged.
+
 - _2026-09-25_ Complete the local Laya shadow candidate surfaces across skill/workflow routing,
   graph relevance, context retention, Dev Flow tool/browser checkpoints, authorized worker/model
   fit and GSD supervision. Add private task-trial accounting with a 1,000,000-token ceiling for
