@@ -2,6 +2,10 @@
 
 ## Verified facts
 
+- 2026-09-24: Updating Project Launcher to 1.10.0 during an already-running Codex task left that task's edit hook pointing to removed cache version 1.9.1; `apply_patch` failed before any source edit. The prepared Dev Flow gate and shell edit path worked in the isolated worktree. Start a fresh task after plugin updates to reload hook paths; do not treat installed version metadata as proof that a running task reloaded its hooks.
+
+- 2026-09-24: A disposable 26-file Git fixture produced a source-bound native Context Pack with two entries; the opt-in local Laya shadow scored both and recorded the routed `typed-decisions` checkpoint without altering pack inclusion. A synthetic Dev Flow `check` call recorded four bounded Noul scores and a `verify` candidate bound to the current evidence file hash. This is functional integration only; Laya checkpoint confidence and Rhize task benefit remain unmeasured.
+
 - 2026-09-24: Laya 0.3.20's Jev-compatible server ignores unknown Jev model IDs and
   routes to a base checkpoint. Project Launcher 1.9.1 omits a forced model on local
   calls unless `TYPESAFE_DEFAULT_MODEL` is set; hosted Jev retains `jev-latest`.

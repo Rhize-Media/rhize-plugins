@@ -258,3 +258,7 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" dismiss \
 - `/rhize-context-manager:done` — final verification after reconciliation.
 - `/rhize-context-manager:context-hygiene` — preserve the map when work crosses a session boundary.
 - `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).
+
+## Optional local Laya shadow signal
+
+When `RHIZE_LAYA_DEVFLOW_SHADOW=1`, after the deterministic impact map and its evidence file exist, invoke `scripts/typed_checkpoint.py --stage impact-map --mode shadow` with the bounded state in [the adapter contract](typed-checkpoint.md). Record the private receipt beside Arm A's impact-map verdict. An unavailable signal leaves the mapping obligations unchanged.

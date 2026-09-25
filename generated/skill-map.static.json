@@ -4090,7 +4090,7 @@
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
     },
     {
-      "contentHash": "83f94ac291a5c41cea71d50afac5dc3f041e8c982f3e3114dbaca27fc3b5692f",
+      "contentHash": "79693bc599fe0f1026d6a080c6712ef871b8425ed92febc7032c3402b80e990a",
       "description": "Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or review task. Use when a bounded dependency-aware pack may reduce targeted reads without hiding critical contracts. Do not use for trivial lookups, highly dynamic code, automatic prompt injection, or as a replacement for exact source verification.",
       "id": "skill:rhize-context-manager/context-pack",
       "kind": "skill",

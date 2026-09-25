@@ -42,6 +42,8 @@ The offline coverage gates account for all 65 currently published Rhize plugin s
 coverage statement, not a benefit claim: most live and controlled Arm A/Arm B cohorts are still
 pending, and every checked-in benchmark contract says so explicitly.
 
+Local Laya graph-relevance and Dev Flow checkpoint smoke tests exercise opt-in shadow contracts only. Their scores are not human-adjudicated relevance labels or paired accepted-task outcomes; the frozen typed-decision research corpus and controlled Arm A/B trials remain the benefit gates.
+
 ## Prerequisites
 
 - `claude` CLI installed and authenticated

@@ -412,3 +412,5 @@ From the "self-improving agent system" pattern — no run is complete until it l
 - **`hooks/protect-files.sh`** — OPT-IN PreToolUse gate; see the Hooks section above and `setup/manifest.json` for matcher, tier, and wiring details.
 - **`templates/hookify/`** — warn-level hookify rules for Next.js/Sanity repos (stop-checks, sanity-schema hint, seo hint, pr-review-on-create). Copy the relevant ones into a repo's `.claude/` as `hookify.<name>.local.md`.
 - **`templates/rules/openwolf.md`** — canonical OpenWolf protocol rule (previously copy-pasted per repo, had drifted). Copy into `.claude/rules/` ONLY in repos that have a `.wolf/` directory.
+
+Dev Flow can optionally record local Laya multi-check shadow signals at impact-map, check, test-evidence, review and completion checkpoints. The [typed checkpoint contract](docs/typed-checkpoint.md) keeps all deterministic gates and release authority unchanged; no accuracy or task-benefit claim is established.

@@ -204,3 +204,7 @@ stale evidence is a fixable gap. `cleanup_failed` is `FAIL_REQUIRES_HUMAN`. An e
 - [`docs/review-lessons.md`](docs/review-lessons.md) — stack-based specialist routing,
   the Sentry-bot PR-comment fold-in, aggregation rules, the `.env.example` false-positive
   rule, and the pre-merge checklist distilled from prior gate runs.
+
+## Optional local Laya shadow signal
+
+When `RHIZE_LAYA_DEVFLOW_SHADOW=1`, after this command's deterministic `review` evidence exists, call `scripts/typed_checkpoint.py --stage review --mode shadow` with the current deterministic evidence file and the bounded signal state in [the adapter contract](../docs/typed-checkpoint.md). Record its private receipt alongside Arm A's verdict. After all required checks and independent review, a separate `--stage completion` shadow call may record a finish candidate; it never approves completion. An unavailable model leaves the original verdict intact. A candidate directive does not change this command's obligations or approval gates.

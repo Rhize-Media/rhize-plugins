@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-24_ version bump — 2.23.1 → 2.24.0 (minor); marketplace 2.80.0 → 2.81.0.
+- Add opt-in local Laya shadow multi-check signals at impact-map, check, test-evidence, review and completion. Hash current evidence bytes, use bounded observations, and keep all deterministic gates, approvals and worker actions unchanged.
 - _2026-09-24_ version bump — 2.23.0 → 2.23.1 (patch); marketplace 2.78.0 → 2.78.1.
 - _2026-09-24_ **Progressive-disclosure impact mapping.** The always-loaded command is 500 words
   or fewer while retaining CodeGraph preflight/fallback, the required semantic-map sections,

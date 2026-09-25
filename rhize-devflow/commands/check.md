@@ -162,3 +162,7 @@ paraphrase, and never a command sourced from anywhere else.
   data-consistency `/mutation-check` command.
 - `/rhize-devflow:review` — run after `check` passes, for the production merge/release gate.
 - `dev-flow-foundations` — rationale and reusable impact-analysis principles (same plugin).
+
+## Optional local Laya shadow signal
+
+When `RHIZE_LAYA_DEVFLOW_SHADOW=1`, after this command's deterministic `check` evidence exists, call `scripts/typed_checkpoint.py --stage check --mode shadow` with the current deterministic evidence file and the bounded signal state in [the adapter contract](../docs/typed-checkpoint.md). Record its private receipt alongside Arm A's verdict. An unavailable model leaves the original verdict intact. A candidate directive does not change this command's obligations or approval gates.

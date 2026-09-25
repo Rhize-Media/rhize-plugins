@@ -39,3 +39,13 @@ The manifest is source-free; repository-relative paths and bounded reason counts
 inspection. Source-location details appear only in the private mode-`0600` prompt pack. Never publish
 the prompt pack, treat estimated token reduction as task correctness, or inject it automatically.
 Re-run verification immediately before reuse; any snapshot or source-hash drift requires a rebuild.
+
+## Optional local Laya relevance shadow
+
+Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass a redacted one-line `--decision-task` on a native `pack` call to score up to eight already selected entries. The runner first verifies the exact pack against current source, then asks the pinned local `typed-decisions` checkpoint about candidate metadata. It writes an immutable private mode-0600 `.relevance.<id>.json` receipt and returns `decisionShadow` with Arm A inclusion, ranked scores, latency, usage, source snapshot and model route. A stale/rejected pack, model error, or missing task summary returns unavailable without changing the pack or existing fallback. Scores do not exclude required targets, alter CodeGraph, or establish context recall. Use human-adjudicated relevance labels and accepted-task follow-up reads for evaluation.
+
+```bash
+RHIZE_LAYA_GRAPH_SHADOW=1 TYPESAFE_DEFAULT_MODEL=typed-decisions scripts/context-pack.sh pack \
+  --provider native --repo /absolute/repo --query "account sync behavior" \
+  --decision-task "Implement account synchronization safely"
+```

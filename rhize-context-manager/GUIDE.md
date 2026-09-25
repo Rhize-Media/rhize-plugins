@@ -324,3 +324,5 @@ remain unavailable. The existing preview-only injection/write-back policy is unc
 ## Host attribution
 
 Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.
+
+For a measured graph/code relevance pilot, the native Context Pack command can add an opt-in local Laya shadow score after source verification. It keeps all deterministic pack entries and records a private Arm A/B score receipt. See [Context Pack](commands/context-pack.md).
