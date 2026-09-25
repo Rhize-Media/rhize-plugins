@@ -219,3 +219,13 @@
 - The full nine-workstream implementation and Arm A/B benchmark ladder remain in the
   vault plan. Duplicate coding-agent control runs have a hard 1,000,000-token ceiling;
   no such run has been spent yet.
+
+
+## Rhize Outreach graph installer — 2026-09-24
+
+- The selected-business graph runtime is pinned to `c8778dda0bba65380bee5d8a7bf99e214a8b22fa`. It runs locally through Codex CLI and stops for human package and email review. It does not send email or publish pages.
+- Marketplace Outreach setup is a token-protected loopback wizard for local prerequisites, storage location and explicit pinned install. Config is path-only. Legacy credential-collecting setup code was removed.
+- The current plugin has no GHL/Gmail, shared Supabase, Resend or Vercel adapter. Background website generation cannot execute the UI/UX Pro Max CLI or browser-rendered visual QA; the run receipt must keep those limitations explicit.
+- After upstream marketplace 2.81.0 shipped, rebased the Outreach candidate onto that release so Dev Flow 2.24.0 and Context Manager 0.35.0 remain intact. Candidate versions: marketplace 2.81.2, Outreach 0.2.0, core 1.0.6, ops 0.25.2.
+- Post-rebase checks: setup wizard 5/5, focused plugin/core setup tests 19/19, outreach eval 5/5, Dev Flow tests 427 passed, plugin config and skill-map checks passed, and setup-artifact freshness passed. The coordinated version check reports no pending release-contract errors.
+- The runtime and plugin are committed locally; neither has been published or installed on another host. Published main remains 2.81.0 until promotion.

@@ -11,4 +11,4 @@ metadata:
 
 Open the current workflow's email panel in one step. Verify recipient, sender, subject, body, concept URL, audit attachment, booking link and proof references against the accepted package. Missing release inputs keep the message in draft state.
 
-Use Humanizer as an editing pass. Do not claim the outreach is non-automated; describe the specific work completed for this business. Accepting copy does not publish a site or send email.
+Use Humanizer when that skill is available to the active host; otherwise do not claim that the pass ran. Do not claim the outreach is non-automated; describe the specific work completed for this business. Accepting copy does not publish a site or send email.

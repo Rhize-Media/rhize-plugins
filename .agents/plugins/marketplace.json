@@ -1,0 +1,20 @@
+{
+  "name": "rhize-media",
+  "interface": {
+    "displayName": "Rhize Media"
+  },
+  "plugins": [
+    {
+      "name": "rhize-outreach",
+      "source": {
+        "source": "local",
+        "path": "./rhize-outreach"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Marketing"
+    }
+  ]
+}

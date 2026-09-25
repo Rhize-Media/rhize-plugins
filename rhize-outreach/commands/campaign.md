@@ -4,4 +4,4 @@ argument-hint: "[campaign name or resume]"
 allowed-tools: [Skill, Bash, Read]
 ---
 
-Invoke `rhize-outreach:run-outreach-campaign` with `$ARGUMENTS`.
+Invoke `rhize-outreach:rhize-outreach-run` with `$ARGUMENTS`.

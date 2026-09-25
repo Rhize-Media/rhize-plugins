@@ -56,11 +56,14 @@ in parallel and wants that done safely. Reach for it when handing a task to a te
 skill usage, or coordinating parallel agent work. Start with → [GUIDE](./rhize-ops/GUIDE.md).
 
 **rhize-tasks** — for anyone juggling approved Jira tickets against their own calendar, on a Mac.
+
 Turns your Jira work into a realistic daily plan: it blocks focus time on one dedicated Google
 Calendar and creates matching entries in Apple Reminders, without ever treating your personal
 calendar as Rhize's to schedule. Reach for it when you want one honest answer to "what should I
 work on now?" Its runtime is fetched from its own repository at a pinned release during setup,
 so upgrading or rolling it back is a tag, not a copy. Start with → [GUIDE](./rhize-tasks/GUIDE.md).
+
+**rhize-outreach** — internal prospect research and reviewed website/audit/email-draft workflow for the Rhize team. It runs locally and requires a signed-in Codex CLI. Start with → [GUIDE](./rhize-outreach/GUIDE.md).
 
 ### Engineering & Delivery
 
@@ -112,7 +115,7 @@ rhize-ops? `/rhize-ops:rhize-setup` keeps working for one release and simply for
 | Profile | Recommended set |
 | --- | --- |
 | **Solo developer** — building your own projects | rhize-core, rhize-ops, rhize-devflow, rhize-context-manager. Add obsidian-second-brain if you keep notes in Obsidian, and project-launcher when an idea is ready to become a real project. |
-| **Client engineering team** — shipping software for clients | rhize-core, rhize-ops, rhize-devflow, rhize-context-manager, project-launcher, rhize-cowork (client kickoff), and rhize-tasks if the team plans work off Jira. |
+| **Client engineering team** — shipping software for clients | rhize-core, rhize-ops, rhize-devflow, rhize-context-manager, project-launcher, rhize-cowork (client kickoff), and rhize-tasks if the team plans work off Jira, plus rhize-outreach for prospect preparation. |
 | **Content / SEO team** — auditing and optimizing sites, no code shipping | rhize-core, seo-aeo-geo, and obsidian-second-brain if research and reports live in a vault. |
 
 procedural-memory and `@rhize/skill-forge` are power-user tools — add them once you notice the

@@ -1,14 +1,10 @@
 {
-  "schema_version": "rhize-benefit-benchmark-v1",
-  "id": "outreach-manual-vs-plugin",
-  "component": "rhize-outreach",
+  "schemaVersion": 1,
+  "purpose": "Compare workflow support with operator-led manual preparation; no outcome or efficiency claim is established by setup tests.",
   "arms": {
-    "a": "user-confirmed existing manual outreach workflow",
-    "b": "rhize-outreach"
+    "a": "operator-led manual prospect preparation",
+    "b": "Rhize Outreach local review-gated workflow"
   },
-  "claims": [
-    "The plugin preserves the four human checkpoints while making setup and resumption repeatable.",
-    "The setup and doctor flow does not expose secret values or send outreach."
-  ],
-  "natural_capture_eligible": true
+  "measurements": [],
+  "natural_capture_eligible": false
 }

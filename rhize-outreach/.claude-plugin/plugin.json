@@ -1,8 +1,17 @@
 {
   "name": "rhize-outreach",
-  "version": "0.1.0",
-  "description": "Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.",
-  "author": { "name": "Rhize Media" },
+  "version": "0.2.0",
+  "description": "Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.",
+  "author": {
+    "name": "Rhize Media"
+  },
   "homepage": "https://rhize.media",
-  "keywords": ["outreach", "prospecting", "website-audit", "gmail", "gohighlevel", "rhize"]
+  "keywords": [
+    "outreach",
+    "prospecting",
+    "website-audit",
+    "gmail",
+    "gohighlevel",
+    "rhize"
+  ]
 }

@@ -4,53 +4,85 @@
   "items": [],
   "dependencies": [
     {
+      "name": "macOS",
+      "kind": "platform",
+      "purpose": "Supported host for the local workflow and browser launch.",
+      "required": true,
+      "degradedBehavior": "The plugin setup and local launch are not supported on this host.",
+      "replacement": {
+        "suggestion": "Run the workflow from a supported Mac.",
+        "warning": "No non-macOS runtime has been validated."
+      }
+    },
+    {
       "name": "git",
       "kind": "cli",
-      "purpose": "Installs and verifies the pinned Rhize Outreach runtime checkout.",
+      "purpose": "Fetches the exact Rhize Outreach runtime commit from its source repository.",
       "required": true,
-      "degradedBehavior": "Setup cannot install or verify the outreach runtime.",
+      "degradedBehavior": "The pinned runtime cannot be installed or checked for source drift.",
       "replacement": {
-        "suggestion": "Install Xcode Command Line Tools or Git for Mac.",
-        "warning": "There is no supported runtime installation path without Git."
+        "suggestion": "Install Git and verify access to github.com.",
+        "warning": "A local copy without the pinned origin is not accepted."
       }
     },
     {
       "name": "node",
       "kind": "cli",
-      "purpose": "Runs the TypeScript outreach runtime and its local review interface.",
+      "purpose": "Node.js 24.12 or newer runs the pinned workflow runtime.",
       "required": true,
-      "degradedBehavior": "Campaign execution and the review UI are unavailable.",
+      "degradedBehavior": "The runtime cannot be installed or started.",
       "replacement": {
-        "suggestion": "Install Node.js 24 or newer.",
-        "warning": "Older Node versions are outside the runtime's supported engine range."
+        "suggestion": "Install Node.js 24.12 or newer.",
+        "warning": "Older Node versions are not supported."
       }
     },
     {
-      "name": "macOS Keychain",
-      "kind": "platform",
-      "purpose": "Stores operator-entered Supabase and connector secrets outside plugin configuration.",
+      "name": "npm",
+      "kind": "cli",
+      "purpose": "Installs the pinned runtime dependencies with npm ci.",
       "required": true,
-      "degradedBehavior": "The supported setup wizard cannot persist secrets safely.",
+      "degradedBehavior": "The runtime dependencies cannot be installed reproducibly.",
       "replacement": {
-        "suggestion": "Run the plugin on a Rhize-managed Mac.",
-        "warning": "Plaintext files and chat messages are not supported secret-storage replacements."
+        "suggestion": "Install the npm version bundled with supported Node.js.",
+        "warning": "Do not use npm install to change the lockfile."
+      }
+    },
+    {
+      "name": "PostgreSQL binaries",
+      "kind": "cli",
+      "purpose": "initdb, pg_ctl, and createdb manage the private local workflow database.",
+      "required": true,
+      "degradedBehavior": "The local workflow service cannot start its isolated database.",
+      "replacement": {
+        "suggestion": "Install PostgreSQL command-line tools and select their bin directory.",
+        "warning": "The app does not connect to Rhize Scan or another shared Supabase project."
+      }
+    },
+    {
+      "name": "Codex CLI",
+      "kind": "cli",
+      "purpose": "Runs the constrained local graph worker; the user must be signed in to ChatGPT.",
+      "required": true,
+      "degradedBehavior": "Agent stages cannot run; the local operator UI and saved data remain available.",
+      "replacement": {
+        "suggestion": "Install Codex CLI and authenticate with the intended ChatGPT account.",
+        "warning": "Current graph execution is Codex-only."
       }
     },
     {
       "name": "rhize-outreach runtime",
       "kind": "data",
-      "purpose": "The versioned workflow runtime this plugin controls; the plugin does not duplicate its business logic.",
+      "purpose": "The local-first operator UI and resumable selected-business workflow, fetched at an immutable commit.",
       "required": true,
-      "degradedBehavior": "Setup, doctor and review skills remain readable, but campaigns cannot run.",
+      "degradedBehavior": "No workflow service is available.",
       "source": "https://github.com/Rhize-Media/rhize-outreach",
-      "pin": "5104082e2e17ac8663a20f165e6247485927e4cc"
+      "pin": "c8778dda0bba65380bee5d8a7bf99e214a8b22fa"
     }
   ],
   "wizard": {
     "skill": "rhize-outreach:setup",
-    "purpose": "Install the pinned runtime, collect local configuration safely, connect the operator workspace and run a no-send dry run.",
-    "when": "required",
-    "args": ["--from-rhize-setup"]
+    "purpose": "Check local prerequisites, fetch the pinned runtime, and configure private local storage.",
+    "when": "required"
   },
   "doctor": {
     "kind": "skill",
@@ -58,28 +90,40 @@
   },
   "artifacts": [
     {
-      "id": "application-support",
-      "path": "<home>/Library/Application Support/Rhize Outreach/",
-      "kind": "directory",
-      "purpose": "Non-secret setup state, pinned runtime checkout metadata, logs and redacted doctor receipts.",
+      "id": "installation-config",
+      "path": "<home>/Library/Application Support/Rhize Outreach/config.json",
+      "kind": "file",
+      "purpose": "Non-secret runtime revision, source/data/artifact paths, PostgreSQL bin directory, and local port.",
       "viewer": "cat \"$HOME/Library/Application Support/Rhize Outreach/config.json\"",
       "lifetime": "persistent",
-      "confidentiality": "config",
+      "confidentiality": "personal",
       "source": "derived",
-      "tracked": "outside-repo",
+      "tracked": "home",
       "optional": false
     },
     {
-      "id": "handoff-drafts",
-      "path": "<home>/Library/Application Support/Rhize Outreach/handoff/",
+      "id": "runtime-source",
+      "path": "<home>/Library/Application Support/Rhize Outreach/source/",
       "kind": "directory",
-      "purpose": "Generated Tom setup email and prompt containing variable names and instructions but no secret values.",
-      "viewer": "ls \"$HOME/Library/Application Support/Rhize Outreach/handoff\"",
-      "lifetime": "regenerated",
-      "confidentiality": "config",
+      "purpose": "Versioned checkout of the pinned Rhize Outreach runtime and its installed dependencies.",
+      "viewer": "git -C \"$HOME/Library/Application Support/Rhize Outreach/source/<commit>\" rev-parse HEAD",
+      "lifetime": "persistent",
+      "confidentiality": "none",
       "source": "derived",
-      "tracked": "outside-repo",
-      "optional": true
+      "tracked": "home",
+      "optional": false
+    },
+    {
+      "id": "local-workspace-data",
+      "path": "<home>/Library/Application Support/Rhize Outreach/data/",
+      "kind": "directory",
+      "purpose": "Private local PostgreSQL state and generated deliverables; kept outside the versioned runtime checkout.",
+      "viewer": "ls \"$HOME/Library/Application Support/Rhize Outreach/data/\"",
+      "lifetime": "persistent",
+      "confidentiality": "personal",
+      "source": "derived",
+      "tracked": "home",
+      "optional": false
     }
   ],
   "evaluations": {

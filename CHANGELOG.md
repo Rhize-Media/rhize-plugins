@@ -34,6 +34,10 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-24_ **rhize-outreach** 0.1.0 → 0.2.0 adds the pinned local-runtime wizard and reviewed selected-business workflow; included in marketplace 2.81.2.
+- _2026-09-24_ version bump — **rhize-ops** 0.25.1 → 0.25.2 (patch); marketplace 2.81.1 → 2.81.2.
+- _2026-09-24_ version bump — **rhize-core** 1.0.5 → 1.0.6 (patch); marketplace 2.81.0 → 2.81.1.
+
 - _2026-09-24_ version bump — **rhize-context-manager** 0.33.1 → 0.35.0 (minor; 0.34.0 reserved for an unreleased held-out study); **rhize-devflow** 2.23.1 → 2.24.0 (minor); marketplace 2.80.0 → 2.81.0.
 - _2026-09-24_ version bump — **project-launcher** 1.9.1 → 1.10.0 (minor); marketplace 2.79.1 → 2.80.0.
 - _2026-09-24_ version bump — **project-launcher** 1.9.0 → 1.9.1 (patch); marketplace 2.79.0 → 2.79.1.

@@ -1,14 +1,14 @@
 ---
 name: reconcile-outreach-delivery
-description: Reconcile Gmail or GHL draft/delivery intent state after an ambiguous, failed or manually completed action without duplicate contact.
+description: Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured sender.
 metadata:
   rhize:
-    topics: [outreach, data-consistency, automation]
+    topics: [outreach, data-consistency]
     stacks: []
 ---
 
-# Reconcile Outreach Delivery
+# Outreach Delivery Status
 
-Read the immutable delivery intent and latest provider receipt. Compare recipient, sender, payload and attachment digests. Gmail draft creation and GHL preparation are reversible; a send outcome is not.
+The current runtime has no GHL or Gmail adapter and cannot create or reconcile provider drafts. A reviewed email remains a local draft artifact. Do not claim provider delivery or update suppression based on a local draft.
 
-Never retry an unknown provider outcome automatically. Verify provider state, record the receipt or explicit manual-send confirmation, and update the shared suppression before another route becomes eligible. Do not send as part of reconciliation unless the user separately requests the exact reviewed message action.
+When a delivery adapter is added, require an immutable intent with recipient and payload digest, inspect provider state after ambiguous failures, and never retry an unknown outcome automatically. Sending must remain an explicit user action on the exact reviewed message.

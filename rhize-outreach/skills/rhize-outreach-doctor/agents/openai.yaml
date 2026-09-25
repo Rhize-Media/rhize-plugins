@@ -1,4 +1,4 @@
 interface:
   display_name: "Rhize Outreach Doctor"
-  short_description: "Check runtime, templates and connector readiness"
-  default_prompt: "Use $rhize-outreach-doctor to diagnose this Rhize Outreach installation without sending or publishing."
+  short_description: "Check the local outreach workflow health"
+  default_prompt: "Use $rhize-outreach-doctor to inspect my local Rhize Outreach setup without changing it."

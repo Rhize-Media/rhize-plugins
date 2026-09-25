@@ -116,11 +116,11 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `reconcile-outreach-delivery` | Reconcile Gmail or GHL draft/delivery intent state after an ambiguous, failed or manually completed action without duplicate contact. | automation, data-consistency, outreach |
+| `reconcile-outreach-delivery` | Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured send… | data-consistency, outreach |
 | `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach, prospecting |
 | `review-outreach-email` | Open, revise and accept the personalized outreach email bound to the accepted website and audit package. | content-authoring, outreach, review |
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review, seo-audit, visualization |
-| `rhize-outreach-doctor` | Diagnose the Rhize Outreach plugin, pinned runtime, templates, shared workspace and connector readiness without running discovery, publishi… | observability, outreach, postgresql, supabase |
-| `rhize-outreach-setup` | Install or resume the seven-stage Rhize Outreach setup wizard on a Mac. | automation, outreach, postgresql, supabase, workflow-patterns |
-| `run-outreach-campaign` | Start or resume the Rhize Outreach graph from market selection through a researched shortlist. | automation, outreach, postgresql, prospecting, supabase |
+| `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |
+| `rhize-outreach-run` | Start the local Rhize Outreach operator and resume the selected-business agent graph. | automation, workflow-patterns |
+| `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, workflow-patterns |
 <!-- SKILL-MAP:END -->

@@ -95,7 +95,7 @@
       "id": "rhize-outreach",
       "kind": "plugin",
       "domain": "operations",
-      "skills": ["reconcile-outreach-delivery", "review-outreach-businesses", "review-outreach-email", "review-outreach-package", "rhize-outreach-doctor", "rhize-outreach-setup", "run-outreach-campaign"],
+      "skills": ["reconcile-outreach-delivery", "review-outreach-businesses", "review-outreach-email", "review-outreach-package", "rhize-outreach-doctor", "rhize-outreach-setup", "rhize-outreach-run"],
       "suites": [{"id": "rhize-outreach-local", "kind": "python", "path": "evals/rhize-outreach/run_evals.py", "args": [], "cwd": ".", "network": "none", "cost": "free", "timeout_seconds": 120, "automatic": true}],
       "benchmarks": [{"id": "outreach-manual-vs-plugin", "protocol": "evals/rhize-outreach/benchmark_spec.json", "arm_a": "user-confirmed existing manual outreach workflow", "arm_b": "rhize-outreach", "natural_capture_eligible": true}]
     },

@@ -1,6 +1,4 @@
 ---
-description: Diagnose Rhize Outreach without provider writes
-allowed-tools: [Skill, Bash, Read]
+description: Check the local Rhize Outreach installation and service without changing it.
 ---
-
-Invoke `rhize-outreach:rhize-outreach-doctor` and report only its redacted result.
+Use the `rhize-outreach-doctor` skill. Run its read-only health checks and report only redacted status. Do not restart services or repair paths without the user's request.

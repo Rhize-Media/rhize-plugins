@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rhize Outreach Run"
+  short_description: "Run and review a selected-business package"
+  default_prompt: "Use $rhize-outreach-run to start the local operator and resume its selected-business workflow."

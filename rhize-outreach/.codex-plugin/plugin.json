@@ -1,7 +1,7 @@
 {
   "name": "rhize-outreach",
-  "version": "0.1.0",
-  "description": "Runs Rhize Media's researched prospecting, website concept, audit and reviewed outreach workflow from Claude Code or Codex.",
+  "version": "0.2.0",
+  "description": "Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.",
   "author": {
     "name": "Rhize Media"
   },
@@ -21,7 +21,11 @@
     "longDescription": "Choose a market, review researched businesses, generate a multi-page website concept and public audit, then review a personalized email before any delivery action.",
     "developerName": "Rhize Media",
     "category": "Productivity",
-    "capabilities": ["Interactive", "Read", "Write"],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "defaultPrompt": [
       "Set up Rhize Outreach on this Mac.",
       "Start or resume a researched prospect campaign.",

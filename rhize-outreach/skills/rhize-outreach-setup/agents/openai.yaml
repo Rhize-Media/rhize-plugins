@@ -1,4 +1,4 @@
 interface:
   display_name: "Rhize Outreach Setup"
-  short_description: "Install and configure Rhize Outreach safely"
-  default_prompt: "Use $rhize-outreach-setup to install or resume Rhize Outreach setup on this Mac."
+  short_description: "Set up the local outreach workflow safely"
+  default_prompt: "Use $rhize-outreach-setup to open and complete the local Rhize Outreach setup wizard."

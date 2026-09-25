@@ -1,7 +1,5 @@
 ---
-description: Reconcile Gmail or GHL delivery state without automatic retry
-argument-hint: "[delivery intent id]"
-allowed-tools: [Skill, Bash, Read]
+description: Check whether Rhize Outreach has an email delivery adapter
 ---
 
-Invoke `rhize-outreach:reconcile-outreach-delivery` with `$ARGUMENTS`.
+Use the `reconcile-outreach-delivery` skill. The current runtime has no GHL or Gmail connection, so it cannot reconcile provider delivery state. Do not report a local draft as sent.
