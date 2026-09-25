@@ -30,6 +30,7 @@ evals/
 ├── skylos/                # Optional local static-evidence comparison and isolation acceptance
 ├── skill-forge/           # External SkillForge safety/evolve integration harness
 ├── parallel-agent-skills/ # Rhize routing + isolated guide-comparison protocols
+├── typed-decision/        # Local Laya candidate research with locked holdout
 └── results/               # Auto-generated benchmark reports
 ```
 
@@ -267,6 +268,14 @@ six deterministic task classes, three repetitions each, in counterbalanced order
 routing/collision gate runs via `python3 evals/parallel-agent-skills/scripts/evaluate_ops_skills.py`.
 Writes a provisional then finalized `receipt.json` per run under an explicit `--output` directory
 (not committed) and reservation state to `RUN_RESERVATION.json`.
+
+### typed-decision
+
+The local Laya research runner prepares human-adjudicated cases into separate train,
+validation and locked holdout files, then evaluates bounded candidate batches with
+recorded Arm A comparisons and a one-time holdout gate. It makes no coding-agent
+calls and does not claim task benefit from synthetic fixtures. See
+[its data contract and commands](typed-decision/README.md).
 
 ### procedural-engineering
 

@@ -172,6 +172,24 @@
   manifests, marketplace, configuration lint, skill-map/setup freshness and doctor passed. Tests
   using temporary HOME must use the real Node binary rather than the mise shim.
 
+## Local Laya and typed-decision research — 2026-09-24
+
+- Laya 0.3.20 imports and serves on loopback on Apple MPS outside the restricted tool sandbox. A real
+  `typed-decisions` request routes to `convaiinnovations/laya/typed-decisions`; the generic response
+  `model` is `laya-rl-agent` and does not identify the checkpoint. The shipped checkpoint emitted an
+  invalid-temperature warning on first load, so confidence is not yet calibrated for Rhize tasks.
+- Laya requires a nonempty `instructions` field on every typed question. The old synthetic Project
+  Launcher probe returned HTTP 422 without it. The corrected project-local copy passed a live
+  synthetic probe and the GSD verifier multi-check contract, both in shadow mode.
+- Karpathy autoresearch's original training code needs NVIDIA CUDA. The local Rhize research runner
+  applies its fixed-evaluator and keep/discard method to Laya checkpoint, question and threshold
+  candidates. Its `prepare` phase physically separates train, validation and holdout files; candidate
+  search does not receive a holdout path. A four-case synthetic run verified search and one-time
+  holdout mechanics only; no real benchmark labels or software-task benefit exist yet.
+- Foreman-style GSD checks produce a deterministic observational directive and numeric assessment
+  receipts. They do not steer, stop, retry, finish or approve a worker. Graph relevance, Dev Flow
+  lifecycle supervision, calibration, and matched task-benefit trials remain open workstreams.
+
 ## Rhize Outreach plugin — 2026-09-21 (RT-180)
 
 - Added the internal `rhize-outreach` plugin as the control/distribution layer for the separate runtime. Claude and Codex manifests expose setup, doctor, campaign, business review/manual entry, package review, email review and delivery reconciliation skills.

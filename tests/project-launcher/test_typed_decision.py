@@ -22,7 +22,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 @contextmanager
-def provider_server(answer_choice="ready", malformed=False, seen=None):
+def provider_server(answer_choice="ready", malformed=False, seen=None, routed_model=None):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             if self.path != "/v1/systemone":
@@ -32,11 +32,16 @@ def provider_server(answer_choice="ready", malformed=False, seen=None):
             if seen is not None:
                 seen.append(request)
             result = {"model": "fixture", "answers": {}, "usage": {"input_tokens": 12, "output_tokens": 2}}
+            if routed_model is not None:
+                result["routing"] = {"model": routed_model, "repo": f"fixture/{routed_model}"}
             for name, question in request["questions"].items():
-                result["answers"][name] = {
-                    "type": "choice", "choice": answer_choice, "confidence": 0.95,
-                    "probabilities": {key: 0.95 if key == answer_choice else 0.05 for key in question["criteria"]},
-                }
+                if question["type"] == "noul":
+                    result["answers"][name] = {"type": "noul", "noul": 0.9 if name == "needs_verification" else 0.1}
+                else:
+                    result["answers"][name] = {
+                        "type": "choice", "choice": answer_choice, "confidence": 0.95,
+                        "probabilities": {key: 0.95 if key == answer_choice else 0.05 for key in question["criteria"]},
+                    }
             if malformed:
                 result["answers"] = {}
             body = json.dumps(result).encode()
@@ -97,13 +102,13 @@ class TypedDecisionTests(unittest.TestCase):
 
     def test_probe_then_advisory_decision_produces_privacy_safe_receipts(self):
         MODULE.install(self.project)
-        request = {"state": "phase secret-free summary", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
-        with provider_server() as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "RHIZE_DECISION_MODE": "advisory"}):
+        request = {"state": "phase secret-free summary", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with provider_server(routed_model="typed-decisions") as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "TYPESAFE_DEFAULT_MODEL": "typed-decisions", "RHIZE_DECISION_MODE": "advisory"}):
             probe = MODULE.decide(self.project, "launch-probe", request, probe=True)
             result = MODULE.decide(self.project, "gsd-planner", request)
+            self.assertEqual(MODULE.status(self.project)["status"], "ready")
         self.assertEqual(probe["status"], "probe")
         self.assertEqual(result["recommendations"], {"next": "ready"})
-        self.assertEqual(MODULE.status(self.project)["status"], "ready")
         receipt_text = (self.project / MODULE.RECEIPTS).read_text()
         self.assertNotIn("phase secret-free summary", receipt_text)
         self.assertIn('"input_tokens": 12', receipt_text)
@@ -114,16 +119,18 @@ class TypedDecisionTests(unittest.TestCase):
         start = MODULE.hook(self.project, "SubagentStart", payload)
         self.assertIn("--agent-id agent-123", start["hookSpecificOutput"]["additionalContext"])
         self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload)["decision"], "block")
-        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         with provider_server() as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}):
             MODULE.decide(self.project, "gsd-executor", request, agent_id="agent-other")
             self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload)["decision"], "block")
             MODULE.decide(self.project, "gsd-executor", request, agent_id="agent-123")
+            self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload)["decision"], "block")
+            MODULE.supervise(self.project, "gsd-executor", {"phase": "synthetic"}, agent_id="agent-123")
         self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload), {})
 
     def test_malformed_provider_answer_records_unavailable(self):
         MODULE.install(self.project)
-        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         with provider_server(malformed=True) as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}):
             with self.assertRaises(MODULE.DecisionError):
                 MODULE.decide(self.project, "launch-probe", request, probe=True)
@@ -132,7 +139,7 @@ class TypedDecisionTests(unittest.TestCase):
 
     def test_local_model_is_explicit_and_mode_defaults_to_shadow(self):
         MODULE.install(self.project)
-        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         seen = []
         with provider_server(seen=seen) as base:
             with patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}, clear=True):
@@ -148,7 +155,7 @@ class TypedDecisionTests(unittest.TestCase):
         self.assertEqual(advisory["recommendations"], {"next": "ready"})
 
     def test_hosted_jev_keeps_default_model(self):
-        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         seen = []
         with provider_server(seen=seen) as base:
             with patch.object(MODULE, "endpoint", return_value=(base + "/v1/systemone", "", "jev")), patch.dict(os.environ, {}, clear=True):
@@ -156,7 +163,7 @@ class TypedDecisionTests(unittest.TestCase):
         self.assertEqual(seen[0]["model"], "jev-latest")
 
     def test_invalid_mode_never_calls_provider(self):
-        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
         with patch.dict(os.environ, {"RHIZE_DECISION_MODE": "active"}), patch.object(MODULE, "call_provider") as call:
             with self.assertRaisesRegex(MODULE.DecisionError, "shadow or advisory"):
                 MODULE.decide(self.project, "gsd-planner", request)
@@ -171,6 +178,64 @@ class TypedDecisionTests(unittest.TestCase):
         with patch.dict(os.environ, {"TYPESAFE_BASE_URL": "https://untrusted.example"}):
             with self.assertRaisesRegex(MODULE.DecisionError, "hosted Jev or loopback Laya"):
                 MODULE.endpoint()
+
+    def test_question_requires_instructions_before_provider_call(self):
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with self.assertRaisesRegex(MODULE.DecisionError, "instructions"):
+            MODULE.validate_request(request)
+
+    def test_probe_rejects_wrong_local_checkpoint_and_records_route(self):
+        MODULE.install(self.project)
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with provider_server(routed_model="english") as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "TYPESAFE_DEFAULT_MODEL": "typed-decisions"}):
+            with self.assertRaisesRegex(MODULE.DecisionError, "different checkpoint"):
+                MODULE.decide(self.project, "launch-probe", request, probe=True)
+        self.assertEqual(MODULE.status(self.project)["status"], "blocked")
+        receipt = json.loads((self.project / MODULE.RECEIPTS).read_text())
+        self.assertEqual(receipt["outcome"], "route_mismatch")
+        self.assertEqual(receipt["routed_model"], "english")
+
+    def test_local_launch_status_requires_pinned_checkpoint(self):
+        MODULE.install(self.project)
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with provider_server(routed_model="english") as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}, clear=True):
+            MODULE.decide(self.project, "launch-probe", request, probe=True)
+            self.assertEqual(MODULE.status(self.project)["status"], "blocked")
+
+    def test_latest_failed_probe_revokes_prior_readiness(self):
+        MODULE.install(self.project)
+        request = {"state": "synthetic", "questions": {"next": {"type": "choice", "instructions": "Choose next step", "criteria": {"ready": "Proceed", "blocked": "Investigate"}}}}
+        with patch.dict(os.environ, {"TYPESAFE_DEFAULT_MODEL": "typed-decisions"}):
+            with provider_server(routed_model="typed-decisions") as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}):
+                MODULE.decide(self.project, "launch-probe", request, probe=True)
+                self.assertEqual(MODULE.status(self.project)["status"], "ready")
+            with provider_server(routed_model="english") as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base}):
+                with self.assertRaises(MODULE.DecisionError):
+                    MODULE.decide(self.project, "launch-probe", request, probe=True)
+                self.assertEqual(MODULE.status(self.project)["status"], "blocked")
+        self.assertEqual(MODULE.status(self.project)["status"], "blocked")
+
+    def test_foreman_style_supervision_is_shadow_only_and_evidence_bounded(self):
+        MODULE.install(self.project)
+        state = {"phase": "verification", "required_checks_passed": True, "independent_review_passed": False}
+        with provider_server() as base, patch.dict(os.environ, {"TYPESAFE_BASE_URL": base, "RHIZE_DECISION_MODE": "shadow"}):
+            result = MODULE.supervise(self.project, "gsd-verifier", state, agent_id="agent-123")
+        self.assertEqual(result["status"], "shadow")
+        self.assertEqual(result["recommendations"], {})
+        self.assertEqual(result["candidate_directive"], "verify")
+        receipt = json.loads((self.project / MODULE.RECEIPTS).read_text())
+        self.assertEqual(receipt["question_ids"], sorted(MODULE.SUPERVISOR_CHECKS["gsd-verifier"]))
+        self.assertEqual(receipt["candidate_directive"], "verify")
+        self.assertEqual(receipt["assessment"]["needs_verification"], 0.9)
+        self.assertNotIn("phase", json.dumps(receipt))
+
+    def test_supervisor_finish_proposal_requires_real_checks_and_review(self):
+        answers = {name: {"type": "noul", "noul": 0.9} for name in MODULE.SUPERVISOR_CHECKS["gsd-verifier"]}
+        answers["needs_verification"]["noul"] = 0.1
+        answers["needs_human"]["noul"] = 0.1
+        answers["agents_md_drift"]["noul"] = 0.1
+        self.assertEqual(MODULE.candidate_directive("gsd-verifier", answers, {"required_checks_passed": True}), "continue")
+        self.assertEqual(MODULE.candidate_directive("gsd-verifier", answers, {"required_checks_passed": True, "independent_review_passed": True}), "finish_candidate")
 
 
 if __name__ == "__main__":

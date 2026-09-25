@@ -123,11 +123,11 @@ Research feeds the interview so you're only asked what research couldn't answer.
 ## Typed decision layer at project launch
 
 Project Launcher copies a Python client into the new project and configures GSD
-`agent_skills` for its planner, executor, and verifier. Each agent asks a bounded
-choice question at its checkpoint. Claude Code hooks check that the specific agent
+`agent_skills` for its planner, executor, and verifier. Each agent asks fixed,
+bounded supervision questions at a meaningful checkpoint. Claude Code hooks check that the specific agent
 made a client call before its work ends; a provider failure creates an unavailable
 receipt and the agent uses the existing GSD judgment path. The decision answer is
-advisory: PRD requirements, code checks, and approval gates still decide what ships.
+observational in shadow mode: PRD requirements, code checks, and approval gates still decide what ships.
 
 For hosted Jev, make `TYPESAFE_API_KEY` available only to the project session. For a
 local Laya-compatible server, set `TYPESAFE_BASE_URL` to its loopback base URL and
@@ -141,6 +141,8 @@ explicit choice after task-relevant evaluation. Phase 6 runs a synthetic probe, 
 handoff is blocked until the provider is available. No real project text is used
 by this probe. During GSD execution, inspect
 `.planning/decision-layer/receipts.jsonl` for per-agent calls and token usage.
+The ready status checks the most recent probe against the current provider and
+model environment, so rerun it after changing either setting.
 
 For a local pilot, install the pinned Python server in a separate local directory
 with Python 3.12, then run it in one terminal:
@@ -157,6 +159,15 @@ session, set `TYPESAFE_BASE_URL=http://127.0.0.1:8000`,
 the synthetic probe. Record the package version, model returned in receipts,
 device, cold/warm latency, and memory use; compare the checkpoint with the
 incumbent path on the frozen task-specific corpus before enabling advisory mode.
+The local probe also checks that the server actually routed `typed-decisions`;
+its generic response `model` field alone is insufficient. The reference checkpoint
+has emitted a calibration-temperature warning during local startup, so its
+confidence is uncalibrated until the Rhize holdout says otherwise. The
+[typed-decision research runner](../evals/typed-decision/README.md) provides a
+bounded autoresearch-style search and locked holdout using benchmark labels.
+Foreman-style multi-check results and a deterministic candidate directive are
+recorded in shadow for planner, executor, and verifier; no automatic steering,
+stopping, completion or release is enabled by this pilot.
 
 ## Tips
 
