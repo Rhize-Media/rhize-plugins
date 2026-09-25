@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-24_ version bump — 0.33.1 → 0.35.0 (minor; 0.34.0 reserved for an unreleased held-out study); marketplace 2.80.0 → 2.81.0.
+- Add opt-in local Laya shadow relevance scoring after native Context Pack source verification. Rank at most eight metadata-only candidates, retain every deterministic pack entry, and record checkpoint identity, Arm A inclusion, latency and usage in a private receipt.
 - Fix workflow host attribution for nested native CLIs: inherited Codex session IDs alone no longer select Codex, conflicting native host signals remain unknown, and checkpoint text names the opportunity ID explicitly.
 - _2026-09-19_ version bump — 0.33.0 → 0.33.1 (patch); marketplace 2.76.2 → 2.76.3.
 - _2026-09-19_ Add opt-in workflow opportunity/decision capture, run-bound completion evidence, supported metadata-only procedural recall, and declared/approved local skill roots. Pending, unavailable and skipped opportunities remain separate; native activation is opt-in.

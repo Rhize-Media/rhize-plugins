@@ -72,3 +72,13 @@ hook writes an Arm A/B receipt. Codex uses this same native provider through exp
 invocation; it does not auto-run the Claude hook lifecycle. The receipt deliberately warns that task
 correctness and follow-up reads still require human review; estimated token reduction is not an
 adoption decision by itself.
+
+## Optional local Laya relevance shadow
+
+Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass a redacted one-line `--decision-task` on a native `pack` call to score up to eight already selected entries. The runner first verifies the exact pack against current source, then asks the pinned local `typed-decisions` checkpoint about candidate metadata. It writes an immutable private mode-0600 `.relevance.<id>.json` receipt and returns `decisionShadow` with Arm A inclusion, ranked scores, latency, usage, source snapshot and model route. A stale/rejected pack, model error, or missing task summary returns unavailable without changing the pack or existing fallback. Scores do not exclude required targets, alter CodeGraph, or establish context recall. Use human-adjudicated relevance labels and accepted-task follow-up reads for evaluation.
+
+```bash
+RHIZE_LAYA_GRAPH_SHADOW=1 TYPESAFE_DEFAULT_MODEL=typed-decisions scripts/context-pack.sh pack \
+  --provider native --repo /absolute/repo --query "account sync behavior" \
+  --decision-task "Implement account synchronization safely"
+```

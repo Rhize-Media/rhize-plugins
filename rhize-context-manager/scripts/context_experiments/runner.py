@@ -1351,9 +1351,33 @@ def command_pack(args: argparse.Namespace) -> int:
         accepted = manifest["policy"]["acceptedForInjection"]
         target_paths = [manifest["targetPath"]]
         arm_b_variant = "context-compiler-pack"
+    decision_shadow = None
+    if provider_name == "native" and os.environ.get("RHIZE_LAYA_GRAPH_SHADOW") == "1":
+        if not args.decision_task:
+            decision_shadow = {"status": "unavailable", "reasonCode": "redacted_task_required", "variant": "A_incumbent"}
+        else:
+            try:
+                from context_experiments.typed_relevance import rank_pack
+                decision_shadow = rank_pack(
+                    repo, manifest_path, prompt_path, args.decision_task,
+                    os.environ.get("TYPESAFE_DEFAULT_MODEL", "typed-decisions"),
+                    os.environ.get("RHIZE_LAYA_BASE_URL", "http://127.0.0.1:8000"),
+                )
+            except (OSError, ValueError, TypeError, KeyError) as exc:
+                decision_shadow = {"status": "unavailable", "reasonCode": type(exc).__name__, "variant": "A_incumbent"}
+        shadow_path = manifest_path.with_name(manifest_path.stem + ".relevance." + uuid.uuid4().hex + ".json")
+        try:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+            fd = os.open(shadow_path, flags, 0o600)
+            with os.fdopen(fd, "w") as handle:
+                handle.write(json.dumps(decision_shadow, sort_keys=True) + "\n")
+            decision_shadow["receiptPath"] = str(shadow_path)
+        except OSError:
+            decision_shadow = {"status": "unavailable", "reasonCode": "receipt_write_failed", "variant": "A_incumbent"}
     print(
         json.dumps(
             {
+                **({"decisionShadow": decision_shadow} if decision_shadow is not None else {}),
                 "schemaVersion": manifest["schemaVersion"],
                 "mode": "preview_only",
                 "provider": provider_name,
@@ -1503,6 +1527,7 @@ def build_parser() -> argparse.ArgumentParser:
     pack.add_argument("--repo", required=True)
     pack.add_argument("--target", action="append", default=[])
     pack.add_argument("--query")
+    pack.add_argument("--decision-task", help="redacted one-line task summary for opt-in local Laya shadow ranking")
     pack.add_argument("--impact-map")
     pack.add_argument("--checkout")
     pack.add_argument("--max-hops", type=int, default=2)
