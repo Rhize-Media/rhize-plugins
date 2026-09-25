@@ -22,6 +22,11 @@ authenticates to a local server that requires it. Keys stay in the environment. 
 unavailable provider blocks the handoff ready claim. This integration pins GSD 1.42.3,
 which exposes `/gsd-autonomous` in Claude Code.
 
+The [expanded pilot](../docs/typed-decision-layer.md) records skill, workflow, graph, retention,
+Dev Flow and routing candidates alongside the project's planner/executor/verifier checks. The
+new project uses its project-local Laya client in shadow mode when the server probe succeeds;
+verify that installation and every agent receipt at handoff before claiming activation.
+
 The client records checkpoint, requested and routed model, question IDs, latency,
 provider token usage, outcome, and a state hash in
 `.planning/decision-layer/receipts.jsonl`; it never stores request state.

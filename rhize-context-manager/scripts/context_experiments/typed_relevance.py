@@ -21,7 +21,7 @@ def sha(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
-def local_call(base_url: str, request: dict) -> tuple[dict, float]:
+def local_call(base_url: str, request: dict, timeout: float = 12) -> tuple[dict, float]:
     parsed = urlparse(base_url)
     if (parsed.scheme != "http" or parsed.hostname not in {"127.0.0.1", "localhost", "::1"}
             or parsed.username or parsed.password or parsed.query or parsed.fragment
@@ -29,7 +29,7 @@ def local_call(base_url: str, request: dict) -> tuple[dict, float]:
         raise ValueError("Laya URL must be loopback HTTP without credentials or path")
     started = time.monotonic()
     with urlopen(Request(base_url.rstrip("/") + "/v1/systemone", data=json.dumps(request).encode(),
-                         headers={"Content-Type": "application/json"}, method="POST"), timeout=12) as response:
+                         headers={"Content-Type": "application/json"}, method="POST"), timeout=timeout) as response:
         raw = response.read(262145)
     if len(raw) > 262144:
         raise ValueError("Laya response too large")

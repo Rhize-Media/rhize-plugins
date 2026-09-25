@@ -72,6 +72,8 @@ missing roots and unreadable entries are reported. Plugin manifests may declare 
 
 ## Measurement
 
+For an explicitly enabled Laya pilot, `RHIZE_LAYA_WORKFLOW_SHADOW=1` scores the fixed workflow catalog using bounded prompt tokens after the native opportunity is recorded. `RHIZE_LAYA_SKILL_SHADOW=1` similarly scores a bounded shortlist in the skill router. Both have private Arm B receipts and leave the actual selector and user request in control. See [the shared typed decision contract](../../docs/typed-decision-layer.md). A shadow score is not a selected workflow or a benefit measurement.
+
 Arm A is the pre-repair router. Arm B is this selection mechanism. Freeze cases and source hashes
 before evaluation; holdout cases must not be used to tune the implementation. Mechanism checks,
 native hook delivery, natural workflow adherence and task benefit are separate evidence classes.

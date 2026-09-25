@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Sequence
@@ -21,6 +23,7 @@ if __package__ in {None, ""}:
     )
     from graph_memory.store import InMemoryNeo4jAdapter, QueryBudget, StoreError
     from graph_memory.translate import GraphifyTranslator
+    from context_experiments.typed_candidates import assess as assess_candidates, write_receipt
 else:
     from .contract import ContractError, canonical_json, compile_ontology, load_json, sha256_value
     from .decisions import (
@@ -32,6 +35,7 @@ else:
     )
     from .store import InMemoryNeo4jAdapter, QueryBudget, StoreError
     from .translate import GraphifyTranslator
+    from context_experiments.typed_candidates import assess as assess_candidates, write_receipt
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,6 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument("--depth", type=int, default=1)
     query.add_argument("--limit", type=int, default=20)
     query.add_argument("--runtime-ms", type=int, default=250)
+    query.add_argument("--typed-shadow", action="store_true", help="score authorized results with local Laya without changing them")
+    query.add_argument("--typed-signal", action="append", default=[], help="redacted one-token task signal; at most eight")
+    query.add_argument("--typed-model", default="typed-decisions")
+    query.add_argument("--typed-base-url", default="http://127.0.0.1:8000")
+    query.add_argument("--typed-receipt-root", type=Path, default=Path.home() / ".local/share/rhize/typed-decisions/receipts")
 
     migrate = subparsers.add_parser("migrate", help="verify checksummed migrations in the fake adapter")
     migrate.add_argument("--role", required=True, choices=[InMemoryNeo4jAdapter.MIGRATION_ROLE])
@@ -251,7 +260,7 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         idempotency_key=f"query-preview:{compilation['compilationId']}",
         expected_current=None,
     )
-    return store.query(
+    result = store.query(
         args.operation,
         tenant_key=compilation["tenantKey"],
         namespace_key=compilation["namespaceKey"],
@@ -262,6 +271,41 @@ def _run(args: argparse.Namespace) -> dict[str, Any]:
         query_text=args.query_text,
         record_id=args.record_id,
     )
+    if args.typed_shadow:
+        result["typedShadow"] = _score_authorized_graph_results(args, result, compilation)
+    return result
+
+
+def _score_authorized_graph_results(args: argparse.Namespace, result: dict, compilation: dict) -> dict:
+    """Score only records the governed query has already ACL-filtered."""
+    if not result["results"]:
+        return {"status": "not_applicable", "variant": "A_incumbent", "reasonCode": "no_visible_results"}
+    try:
+        if not 1 <= len(args.typed_signal) <= 8 or any(not re.fullmatch(r"[a-z][a-z0-9_-]{0,47}", item) for item in args.typed_signal):
+            raise ValueError("bounded redacted task signals required")
+        visible = result["results"][:8]
+        candidates = []
+        for record in visible:
+            candidate_id = "g" + hashlib.sha256(record["governedId"].encode()).hexdigest()[:16]
+            hints = [re.sub(r"[^a-z0-9_-]+", "-", str(record[key]).lower()).strip("-")[:48] or "unknown" for key in ("recordType", "subtype", "trust")]
+            candidates.append({"id": candidate_id, "hints": hints, "protected": True})
+        state = {"schema": "rhize-typed-candidates-v1", "capability": "graph_memory",
+                 "sourceSha256": sha256_value({"compilationId": compilation["compilationId"], "result": result}),
+                 "taskSignals": args.typed_signal, "candidates": candidates,
+                 "incumbentIds": [item["id"] for item in candidates]}
+        assessment = assess_candidates(state, args.typed_model, args.typed_base_url)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        assessment = {"status": "unavailable", "variant": "A_incumbent",
+                      "reasonCode": type(exc).__name__, "incumbentAltered": False}
+    try:
+        receipt = str(write_receipt(assessment, args.typed_receipt_root))
+    except (OSError, ValueError):
+        receipt = None
+        assessment = {"status": "unavailable", "variant": "A_incumbent"}
+    return {"status": assessment["status"], "variant": assessment["variant"],
+            "candidatesEvaluated": min(len(result["results"]), 8),
+            "candidatesDeferred": max(len(result["results"]) - 8, 0),
+            "receipt": receipt, "resultsAltered": False}
 
 
 def _run_decision(args: argparse.Namespace) -> dict[str, Any]:

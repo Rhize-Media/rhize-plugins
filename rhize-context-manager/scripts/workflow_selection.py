@@ -124,6 +124,31 @@ def detect_host(payload, env, explicit='unknown'):
     return 'codex' if codex else 'claude'
 
 
+def shadow_workflow_selection(prompt, receipt, root, base_url, call=None):
+    """Assess the fixed catalog without classifying or changing the agent decision."""
+    from context_experiments.typed_candidates import assess, write_receipt
+    from context_experiments.typed_relevance import local_call
+
+    allowed = {"article", "resource", "documentation", "software", "planning",
+               "workflow", "publish", "research", "review", "project", "simple"}
+    signals = sorted({word for word in re.findall(r"[a-z]+", prompt.lower()) if word in allowed})[:8]
+    catalog = receipt["catalog"]
+    state = {"schema": "rhize-typed-candidates-v1", "capability": "skill_workflow",
+             "sourceSha256": digest(json.dumps(catalog, sort_keys=True)), "taskSignals": signals,
+             "candidates": [
+                 {"id": "content", "hints": ["resource", "article", "content-engine"], "protected": False},
+                 {"id": "general", "hints": ["repeatable", "workflow", "procedural-memory"], "protected": False},
+                 {"id": "none", "hints": ["simple", "no-match"], "protected": False},
+             ], "incumbentIds": []}
+    try:
+        scoring_call = call or (lambda url, request: local_call(url, request, timeout=1.2))
+        result = assess(state, "typed-decisions", base_url, scoring_call)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        result = {"status": "unavailable", "variant": "A_incumbent",
+                  "reasonCode": type(exc).__name__, "incumbentAltered": False}
+    return write_receipt({**result, "opportunityId": receipt["opportunityId"]}, root.parent / "typed-shadow")
+
+
 def hook_message(receipt):
     return ("Workflow selection checkpoint before substantial work. For RHIZE resource articles, consult "
             "procedural-memory:rhize-content-engine; for other repeatable multi-step work use "
@@ -303,6 +328,12 @@ def main():
             if not isinstance(payload, dict): raise ValueError('invalid hook input')
             host = detect_host(payload, os.environ, args.host)
             receipt, fresh = opportunity(payload, host, args.root, config)
+            if receipt and fresh and os.environ.get('RHIZE_LAYA_WORKFLOW_SHADOW') == '1':
+                try:
+                    shadow_workflow_selection(payload['prompt'], receipt, args.root,
+                                              os.environ.get('RHIZE_LAYA_BASE_URL', 'http://127.0.0.1:8000'))
+                except (OSError, ValueError):
+                    pass  # Model and receipt availability cannot suppress the incumbent checkpoint.
             message = hook_message(receipt) if receipt and fresh else None
             output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit', 'additionalContext': message}} if message else None
             if args.router_bridge:

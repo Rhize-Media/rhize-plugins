@@ -122,6 +122,13 @@ Research feeds the interview so you're only asked what research couldn't answer.
 
 ## Typed decision layer at project launch
 
+The updated single GSD checkpoint call now covers skill/workflow fit, graph
+relevance, retention safety, authorized model/worker fit, tool risk, and browser
+QA as the phase allows. These are shadow signals alongside the other plugins'
+[typed pilot](../docs/typed-decision-layer.md). To measure accepted-task benefit,
+use the private [trial ledger](../evals/typed-decision/README.md); duplicate Arm A
+controls share the 1,000,000-token ceiling and require a host-enforced run limit.
+
 Project Launcher copies a Python client into the new project and configures GSD
 `agent_skills` for its planner, executor, and verifier. Each agent asks fixed,
 bounded supervision questions at a meaningful checkpoint. Claude Code hooks check that the specific agent

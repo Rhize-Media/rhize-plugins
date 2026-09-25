@@ -52,6 +52,7 @@
 // No network; the optional metadata selector is a bounded child. The map is read
 // synchronously once per invocation.
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -72,6 +73,51 @@ const {
   contextHash,
   logSuggestion,
 } = require(path.join(__dirname, 'lib', 'route-core.js'));
+
+function shadowShortlist(index, promptTokens, incumbent) {
+  if (!index || !incumbent || incumbent.signals.some((signal) => signal.label === 'explicit skill request')) return null;
+  const scored = [];
+  for (const [skillId, signals] of Object.entries(index.signals || {})) {
+    const matched = signals.filter((signal) => {
+      const words = [...tokenize(signal.label)];
+      return words.length > 0 && words.every((word) => promptTokens.has(word));
+    });
+    if (matched.length < 2 || !matched.some((signal) => signal.weight >= 1)) continue;
+    scored.push({ skillId, score: matched.reduce((sum, signal) => sum + signal.weight, 0), signals: matched });
+  }
+  scored.sort((a, b) => b.score - a.score || a.skillId.localeCompare(b.skillId));
+  const selected = scored.slice(0, 5);
+  if (!selected.some((item) => item.skillId === incumbent.skillId)) {
+    selected.pop();
+    selected.push({ skillId: incumbent.skillId, score: incumbent.score, signals: incumbent.signals });
+  }
+  if (!selected.length) return null;
+  const id = (skillId) => 's' + crypto.createHash('sha256').update(skillId).digest('hex').slice(0, 16);
+  const hint = (label) => String(label).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
+  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.flatMap((signal) => [...tokenize(signal.label)])))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
+  return {
+    schema: 'rhize-typed-candidates-v1', capability: 'skill_workflow',
+    sourceSha256: crypto.createHash('sha256').update(JSON.stringify(index)).digest('hex'),
+    taskSignals,
+    candidates: selected.map((item) => ({ id: id(item.skillId), hints: item.signals.map((signal) => hint(signal.label)).filter(Boolean).slice(0, 6), protected: false })),
+    incumbentIds: [id(incumbent.skillId)],
+  };
+}
+
+function shadowSkillDecision(index, promptTokens, incumbent, workflowHandled) {
+  if (process.env.RHIZE_LAYA_SKILL_SHADOW !== '1' || workflowHandled) return null;
+  const state = shadowShortlist(index, promptTokens, incumbent);
+  if (!state) return null;
+  try {
+    const args = [path.join(__dirname, '..', 'scripts', 'context_experiments', 'typed_candidates.py'), '--mode', 'shadow'];
+    if (process.env.RHIZE_LAYA_BASE_URL) args.push('--base-url', process.env.RHIZE_LAYA_BASE_URL);
+    const raw = execFileSync('python3', args, {
+      input: JSON.stringify(state), encoding: 'utf8', timeout: 2500, maxBuffer: 16384, stdio: ['pipe', 'pipe', 'ignore'],
+    });
+    const result = JSON.parse(raw);
+    return { status: result.status, count: state.candidates.length };
+  } catch (_) { return { status: 'unavailable', count: state.candidates.length }; }
+}
 
 function formatMatch(match) {
   if (!match) return null;
@@ -103,6 +149,7 @@ function computeMessage() {
 
   let workflowMessage = null;
   let workflowHandled = false;
+  let workflowAttempted = false;
   // One shared selector owns opted-in workflow decisions. Both the legacy
   // router and packaged hook use its atomic receipt; configuration alone
   // never suppresses advice. A failed bridge falls back to this router.
@@ -111,6 +158,7 @@ function computeMessage() {
     const cfgPath = path.join(root, 'rhize', 'workflow-selection', 'config.json');
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     if (cfg.schemaVersion === 1 && cfg.enabled === true) {
+      workflowAttempted = true;
       const output = execFileSync('python3', [path.join(__dirname, '..', 'scripts', 'workflow_selection.py'), 'hook', '--router-bridge'], {
         input: raw, encoding: 'utf8', timeout: 4500, maxBuffer: 16384, stdio: ['pipe','pipe','ignore'],
       });
@@ -130,13 +178,14 @@ function computeMessage() {
         const doc = readMap();
         return doc ? route(doc, promptTokens, prompt) : null;
       })();
+  const typed = shadowSkillDecision(routerIndex, promptTokens, match, workflowAttempted);
 
   const overlaps = workflowHandled && match && /\/(?:rhize-content-engine|content-engine)$/.test(match.skillId) && !/\becc\b/i.test(prompt);
   const message = [workflowMessage, overlaps ? null : formatMatch(match)].filter(Boolean).join(' ') || null;
   if (message) {
-    return { message, sessionId, suggested: match ? match.skillId : null, contextHash: ctxHash };
+    return { message, sessionId, suggested: match ? match.skillId : null, contextHash: ctxHash, typed };
   }
-  return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash };
+  return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash, typed };
 }
 
 function main() {
@@ -157,6 +206,8 @@ function main() {
         hook: 'router',
         suggested: result.suggested,
         context_hash: result.contextHash,
+        typed_status: result.typed?.status || null,
+        typed_candidate_count: result.typed?.count || null,
       });
     } else if (result && result.sampled) {
       logSuggestion({

@@ -2,6 +2,17 @@
 
 ## Verified facts
 
+- 2026-09-25: The local Laya decision-layer source now includes bounded shadow candidates for
+  skill/workflow fit, governed graph relevance, protected context retention, Dev Flow tool-risk
+  and browser QA, authorized model/worker fit, and the existing project-local GSD checkpoints.
+  The focused changed-path suite passed 77 Python cases and 11 router cases; a full plugin run
+  passed 1,605 cases with 5 skipped and one unrelated process-cleanup timing failure that passed
+  alone. Candidate scores leave incumbent decisions and hard gates in force. The private task
+  trial ledger reserves duplicate controls under the 1,000,000-token ceiling, validates a
+  frozen outcome rubric, and reports only complete matched pairs as evaluable; it cannot enforce
+  a host runtime limit. There are no adjudicated real labels, paired accepted-task outcomes, or
+  newly scaffolded project receipts yet, so benefit and active promotion remain unproven.
+
 - 2026-09-24: Updating Project Launcher to 1.10.0 during an already-running Codex task left that task's edit hook pointing to removed cache version 1.9.1; `apply_patch` failed before any source edit. The prepared Dev Flow gate and shell edit path worked in the isolated worktree. Start a fresh task after plugin updates to reload hook paths; do not treat installed version metadata as proof that a running task reloaded its hooks.
 
 - 2026-09-24: A disposable 26-file Git fixture produced a source-bound native Context Pack with two entries; the opt-in local Laya shadow scored both and recorded the routed `typed-decisions` checkpoint without altering pack inclusion. A synthetic Dev Flow `check` call recorded four bounded Noul scores and a `verify` candidate bound to the current evidence file hash. This is functional integration only; Laya checkpoint confidence and Rhize task benefit remain unmeasured.

@@ -24,6 +24,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-25_ version bump — 0.35.0 → 0.36.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
+- Add opt-in local Laya shadow scoring for bounded skill and workflow candidates, governed graph query metadata, and source-bound context retention. Keep protected anchors, ACLs, deterministic selectors, and decisions authoritative.
+
+- _2026-09-25_ version bump — 0.35.0 → 0.36.0 (minor); marketplace 2.81.2 → 2.82.0.
 - _2026-09-24_ version bump — 0.33.1 → 0.35.0 (minor; 0.34.0 reserved for an unreleased held-out study); marketplace 2.80.0 → 2.81.0.
 - Add opt-in local Laya shadow relevance scoring after native Context Pack source verification. Rank at most eight metadata-only candidates, retain every deterministic pack entry, and record checkpoint identity, Arm A inclusion, latency and usage in a private receipt.
 - Fix workflow host attribution for nested native CLIs: inherited Codex session IDs alone no longer select Codex, conflicting native host signals remain unknown, and checkpoint text names the opportunity ID explicitly.

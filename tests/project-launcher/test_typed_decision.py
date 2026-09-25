@@ -237,6 +237,20 @@ class TypedDecisionTests(unittest.TestCase):
         self.assertEqual(MODULE.candidate_directive("gsd-verifier", answers, {"required_checks_passed": True}), "continue")
         self.assertEqual(MODULE.candidate_directive("gsd-verifier", answers, {"required_checks_passed": True, "independent_review_passed": True}), "finish_candidate")
 
+    def test_full_stack_gsd_questions_stay_in_one_bounded_call(self):
+        self.assertEqual(len(MODULE.SUPERVISOR_CHECKS["gsd-planner"]), 7)
+        self.assertEqual(len(MODULE.SUPERVISOR_CHECKS["gsd-executor"]), 8)
+        self.assertEqual(len(MODULE.SUPERVISOR_CHECKS["gsd-verifier"]), 8)
+        self.assertIn("graph_context_relevant", MODULE.SUPERVISOR_CHECKS["gsd-planner"])
+        self.assertIn("tool_trace_risk", MODULE.SUPERVISOR_CHECKS["gsd-executor"])
+        self.assertIn("browser_qa_complete", MODULE.SUPERVISOR_CHECKS["gsd-verifier"])
+        risk = {"tool_trace_risk": {"type": "noul", "noul": 0.95}}
+        self.assertEqual(MODULE.candidate_directive("gsd-executor", risk, {}), "investigate")
+        browser = {"browser_qa_complete": {"type": "noul", "noul": 0.1},
+                   "tests_sufficient": {"type": "noul", "noul": 0.9}}
+        self.assertEqual(MODULE.candidate_directive("gsd-verifier", browser,
+                         {"browser_qa_applicable": True}), "verify")
+
 
 if __name__ == "__main__":
     unittest.main()

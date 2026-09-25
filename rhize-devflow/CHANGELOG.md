@@ -6,6 +6,10 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-25_ version bump — 2.24.0 → 2.25.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
+- Add source-bound local Laya shadow ranking for legal tool-risk and approved browser QA candidates. No action, approval, check, review or release gate changes.
+
+- _2026-09-25_ version bump — 2.24.0 → 2.25.0 (minor); marketplace 2.82.0 → 2.83.0.
 - _2026-09-24_ version bump — 2.23.1 → 2.24.0 (minor); marketplace 2.80.0 → 2.81.0.
 - Add opt-in local Laya shadow multi-check signals at impact-map, check, test-evidence, review and completion. Hash current evidence bytes, use bounded observations, and keep all deterministic gates, approvals and worker actions unchanged.
 - _2026-09-24_ version bump — 2.23.0 → 2.23.1 (patch); marketplace 2.78.0 → 2.78.1.

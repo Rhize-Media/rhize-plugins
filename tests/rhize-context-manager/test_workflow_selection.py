@@ -206,3 +206,25 @@ def test_procedural_preview_is_optin_and_baseline_unchanged():
     assert len(manifest['candidates'])==1 and manifest['candidates'][0]['processingPolicy']=='reference-only'
     candidate['contentRole']='policy-reference'
     with pytest.raises(ValueError):ProceduralMemoryContextAssembler().assemble(document)
+
+
+def test_laya_workflow_shadow_keeps_operator_selection_and_redacts_prompt(tmp_path):
+    from workflow_selection import shadow_workflow_selection
+    payload = {'prompt': 'Review a resource article for secret-client-123',
+               'session_id': 'private-session', 'turn_id': 'one'}
+    receipt, _ = opportunity(payload, 'codex', tmp_path / 'receipts', {})
+    seen = {}
+    def fake_call(_url, request):
+        seen.update(request)
+        return {'routing': {'model': 'typed-decisions'},
+                'answers': {f'c{i}': {'type': 'noul', 'noul': score}
+                            for i, score in enumerate((0.8, 0.3, 0.1))},
+                'usage': {'input_tokens': 12, 'output_tokens': 3}}, 3.0
+    path = shadow_workflow_selection(payload['prompt'], receipt, tmp_path / 'receipts',
+                                     'http://127.0.0.1:8000', fake_call)
+    output = json.loads(path.read_text())
+    assert output['status'] == 'shadow' and output['opportunityId'] == receipt['opportunityId']
+    assert 'secret-client-123' not in json.dumps(seen)
+    assert 'private-session' not in json.dumps(seen)
+    assert receipt['selection'] is None
+    assert path.stat().st_mode & 0o777 == 0o600

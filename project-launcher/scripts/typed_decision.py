@@ -24,6 +24,10 @@ HOOK_EVENTS = ("SubagentStart", "SubagentStop")
 SUPERVISOR_CHECKS = {
     "gsd-planner": {
         "requirements_covered": "Does the plan cover every stated requirement with a concrete verification route?",
+        "skill_workflow_fit": "Are the selected skill and workflow candidates relevant to the stated plan?",
+        "graph_context_relevant": "Are the included source-bound graph and code context candidates relevant to this plan?",
+        "context_retention_safe": "Will planned context compaction preserve requirements, decisions, and unresolved risks?",
+        "worker_route_fit": "Are the pre-authorized worker choices suitable for this plan?",
         "planning_uncertainty": "Does unresolved uncertainty materially threaten the plan?",
         "needs_human": "Does this decision require human input or approval now?",
     },
@@ -33,6 +37,8 @@ SUPERVISOR_CHECKS = {
         "worker_stuck": "Is the worker looping or repeatedly failing without progress?",
         "work_off_track": "Is the work materially drifting from the requested outcome?",
         "agents_md_drift": "Does the work conflict with repository agent instructions?",
+        "model_route_fit": "Is the pre-authorized model choice suitable for the current implementation work?",
+        "tool_trace_risk": "Do observed tool or trace signals warrant additional risk review?",
         "needs_human": "Does the work require human input or approval now?",
     },
     "gsd-verifier": {
@@ -40,6 +46,7 @@ SUPERVISOR_CHECKS = {
         "requirements_satisfied": "Does the result satisfy every stated requirement?",
         "ready_to_finish": "Is there enough evidence to consider this task complete?",
         "tests_sufficient": "Do the executed tests adequately cover the changed behavior and risks?",
+        "browser_qa_complete": "If browser QA is applicable, do its functional, error, accessibility and responsive checks have evidence?",
         "needs_verification": "Is further independent verification needed?",
         "agents_md_drift": "Does the result conflict with repository agent instructions?",
         "needs_human": "Does completion require human input or approval now?",
@@ -247,9 +254,13 @@ def candidate_directive(checkpoint: str, answers: dict, state: dict) -> str:
 
     if yes("needs_human", 0.80):
         return "escalate"
-    if yes("agents_md_drift", 0.80) or yes("work_off_track", 0.80) or yes("worker_stuck", 0.80):
+    if yes("agents_md_drift", 0.80) or yes("work_off_track", 0.80) or yes("worker_stuck", 0.80) or yes("tool_trace_risk", 0.80):
+        return "investigate"
+    if checkpoint == "gsd-planner" and state.get("compaction_performed") is True and not yes("context_retention_safe", 0.75):
         return "investigate"
     if checkpoint == "gsd-verifier":
+        if state.get("browser_qa_applicable") is True and not yes("browser_qa_complete", 0.75):
+            return "verify"
         if yes("needs_verification", 0.65) or not yes("tests_sufficient", 0.75):
             return "verify"
         if (all(yes(name, 0.75) for name in ("implementation_complete", "requirements_satisfied", "ready_to_finish"))

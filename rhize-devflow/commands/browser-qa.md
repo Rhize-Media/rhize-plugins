@@ -5,6 +5,11 @@ description: Scenario-driven browser acceptance check — functional path, conso
 
 # Browser QA
 
+When a local Laya pilot is explicitly enabled, `scripts/typed_selection.py` can rank
+already legal, approved test-surface scenarios using bounded metadata and current evidence.
+Use its `browser_qa` profile in shadow mode; keep the scenario and browser authority in this
+command. See [the typed selection contract](../docs/typed-checkpoint.md).
+
 One scenario-driven acceptance workflow, replacing the former `browser-help` /
 `browser-debug` / `browser-perf` / `browser-test` split. It sequences *what* to verify;
 the mechanics of *how* to drive a browser belong to whichever browser tool is actually
