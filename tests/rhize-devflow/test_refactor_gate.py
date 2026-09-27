@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -57,11 +58,19 @@ def init_repo(path: Path) -> None:
     git(path, "commit", "-qm", "initial")
 
 
-def write_plan(path: Path, mentioned_files: tuple[str, ...] = ()) -> None:
+def write_plan(
+    path: Path,
+    mentioned_files: tuple[str, ...] = (),
+    *,
+    preparation_id: str | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     files = "\n".join(f"- `{name}`" for name in mentioned_files)
+    preparation = f"Preparation ID: {preparation_id}\n" if preparation_id else ""
     path.write_text(
         f"""# Impact Map: Example refactor
+
+{preparation}Discovery query: `Refactor the application example safely`
 
 ## Current behavior and evidence
 - Existing behavior.
@@ -209,6 +218,128 @@ def test_pending_gate_blocks_claude_write_and_codex_patch_but_allows_plan(tmp_pa
         },
     )
     assert plan_write.returncode == 0
+
+
+def test_pending_gate_auto_prepares_one_recent_complete_map_before_source_write(
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    pending = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, "Refactor the application code"),
+    )
+    preparation_id = re.search(r"Preparation ID: ([a-f0-9]{24})", pending.stdout)
+    assert preparation_id
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",), preparation_id=preparation_id.group(1))
+
+    result = run_gate(
+        state_dir,
+        "hook-write",
+        payload={"cwd": str(workspace), "tool_input": {"file_path": str(workspace / "src/example.ts")}},
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Prepared the only complete impact map" in result.stdout
+    status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+    receipt = json.loads(status.stdout)
+    assert receipt["phase"] == "implementation"
+    assert Path(receipt["plan"]["path"]) == plan
+    assert [event["phase"] for event in receipt["lifecycle"]["events"]] == [
+        "pending",
+        "prepared",
+        "implementation",
+    ]
+
+
+def test_pending_gate_keeps_multiple_recent_maps_blocked(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    pending = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, "Refactor the application code"),
+    )
+    preparation_id = re.search(r"Preparation ID: ([a-f0-9]{24})", pending.stdout)
+    assert preparation_id
+    write_plan(workspace / ".claude/plans/first.md", preparation_id=preparation_id.group(1))
+    write_plan(workspace / ".claude/plans/second.md", preparation_id=preparation_id.group(1))
+
+    result = run_gate(
+        state_dir,
+        "hook-write",
+        payload={"cwd": str(workspace), "tool_input": {"file_path": str(workspace / "src/example.ts")}},
+    )
+
+    assert result.returncode == 2
+    assert "2 recent maps" in result.stderr
+    status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+    assert json.loads(status.stdout)["phase"] == "pending"
+
+
+def test_pending_gate_does_not_auto_prepare_a_map_from_another_request(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    first = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, "Refactor the application code"),
+    )
+    first_id = re.search(r"Preparation ID: ([a-f0-9]{24})", first.stdout)
+    assert first_id
+    plan = workspace / ".claude/plans/old.md"
+    write_plan(plan, preparation_id=first_id.group(1))
+    os.utime(plan, (0, 0))
+
+    second = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, "Fix the application route"),
+    )
+    second_id = re.search(r"Preparation ID: ([a-f0-9]{24})", second.stdout)
+    assert second_id and second_id.group(1) != first_id.group(1)
+    result = run_gate(
+        state_dir,
+        "hook-write",
+        payload={"cwd": str(workspace), "tool_input": {"file_path": str(workspace / "src/example.ts")}},
+    )
+
+    assert result.returncode == 2
+    assert "no recent complete map matching the active Preparation ID" in result.stderr
+
+
+def test_pending_gate_does_not_auto_prepare_an_incomplete_map(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    pending = run_gate(
+        state_dir,
+        "hook-prompt",
+        payload=prompt_payload(workspace, "Refactor the application code"),
+    )
+    preparation_id = re.search(r"Preparation ID: ([a-f0-9]{24})", pending.stdout)
+    assert preparation_id
+    plan = workspace / ".claude/plans/incomplete.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(
+        f"Preparation ID: {preparation_id.group(1)}\n"
+        "Discovery query: `Refactor the application example safely`\n"
+        "This map lacks the required sections.\n"
+    )
+
+    result = run_gate(
+        state_dir,
+        "hook-write",
+        payload={"cwd": str(workspace), "tool_input": {"file_path": str(workspace / "src/example.ts")}},
+    )
+
+    assert result.returncode == 2
+    assert "no recent complete map matching the active Preparation ID" in result.stderr
 
 
 def test_prepare_requires_complete_plan_and_records_registry_fallback(tmp_path: Path) -> None:
@@ -692,4 +823,3 @@ def test_prepare_at_filesystem_root_is_a_warning_not_a_failure(tmp_path: Path) -
     assert result.returncode == 0, result.stderr
     assert "SKIPPED" in result.stderr
     assert list(state_dir.glob("*.json")) == []
-

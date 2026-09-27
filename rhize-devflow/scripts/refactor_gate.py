@@ -31,6 +31,8 @@ REQUIRED_PLAN_SECTIONS = (
     "acceptance tests",
     "implementation order",
 )
+DISCOVERY_QUERY_LINE = re.compile(r"(?im)^Discovery query:\s*(.+?)\s*$")
+PREPARATION_ID_LINE = re.compile(r"(?im)^Preparation ID:\s*([a-f0-9]{24})\s*$")
 PLANNING_PATHS = (
     ".claude/plans/",
     ".codex/plans/",
@@ -643,7 +645,7 @@ def state_plan_is_current(state: dict[str, Any]) -> bool:
     return bool(plan.is_file() and expected and sha256_file(plan) == expected)
 
 
-def prepare(workspace: Path, plan: Path, query: str) -> int:
+def prepare(workspace: Path, plan: Path, query: str, *, quiet: bool = False) -> int:
     if is_filesystem_root(workspace):
         # Warn, but exit 0 and write nothing. A nonzero exit here would be a NEW failure
         # mode in automation that cannot ask a human; a no-op only ever removes a block.
@@ -697,7 +699,8 @@ def prepare(workspace: Path, plan: Path, query: str) -> int:
         state["lifecycle"] = previous["lifecycle"]
     append_lifecycle_event(state, workspace, "prepared", prepared_at, "prepared")
     write_state(workspace, state)
-    print(json.dumps(state, indent=2, sort_keys=False))
+    if not quiet:
+        print(json.dumps(state, indent=2, sort_keys=False))
     return 0
 
 
@@ -880,6 +883,38 @@ def is_config_path(path: str) -> bool:
     return False
 
 
+def recent_impact_maps(workspace: Path, state: dict[str, Any]) -> list[tuple[Path, str]]:
+    """Find complete maps authored for this pending receipt, with explicit query metadata."""
+    raw_created_at = state.get("created_at")
+    lifecycle = state.get("lifecycle")
+    trial_id = lifecycle.get("trial_id") if isinstance(lifecycle, dict) else None
+    if not isinstance(raw_created_at, str) or not isinstance(trial_id, str):
+        return []
+    try:
+        created_at = dt.datetime.fromisoformat(raw_created_at.replace("Z", "+00:00"))
+    except ValueError:
+        return []
+    plans_dir = workspace / ".claude" / "plans"
+    if not plans_dir.is_dir():
+        return []
+
+    matches: list[tuple[Path, str]] = []
+    for candidate in plans_dir.glob("*.md"):
+        try:
+            if candidate.stat().st_mtime < created_at.timestamp():
+                continue
+            text = validate_plan(canonical(candidate), workspace)
+        except (OSError, ValueError):
+            continue
+        preparation_match = PREPARATION_ID_LINE.search(text)
+        query_match = DISCOVERY_QUERY_LINE.search(text)
+        if preparation_match and preparation_match.group(1) == trial_id and query_match:
+            query = query_match.group(1).strip().strip("`").strip('"').strip()
+            if query:
+                matches.append((canonical(candidate), query))
+    return matches
+
+
 def hook_prompt(
     activation_policy: str = "auto",
     task_kind: str = "",
@@ -930,11 +965,20 @@ def hook_prompt(
                 ),
             },
         )
+    active = read_state(workspace) or {}
+    lifecycle = active.get("lifecycle")
+    preparation_id = lifecycle.get("trial_id", "") if isinstance(lifecycle, dict) else ""
+    auto_prepare_hint = (
+        f" If the single-map auto-prepare fallback is needed, begin the map with "
+        f"Preparation ID: {preparation_id} and Discovery query: <the exact query used for the map>."
+        if active.get("phase") == "pending"
+        else ""
+    )
     print(
         "<user-prompt-submit-hook>\n"
         "Refactor evidence gate: impact-map evidence is required before source edits. "
         "Run /rhize-devflow:impact-map, persist its map, then execute the prepare command "
-        "shown by that workflow.\n"
+        f"shown by that workflow.{auto_prepare_hint}\n"
         f"Gate CLI: {Path(__file__).resolve()}\n"
         "</user-prompt-submit-hook>"
     )
@@ -960,11 +1004,31 @@ def enforce_write_payload(payload: dict[str, Any], *, count_invocation: bool = T
         return 0
     phase = state.get("phase")
     if phase == "pending":
-        sys.stderr.write(
-            "BLOCKED: source edits require a prepared refactor-evidence receipt. "
-            "Run /rhize-devflow:impact-map and its prepare command first.\n"
+        candidates = recent_impact_maps(workspace, state)
+        if len(candidates) != 1:
+            reason = (
+                "no recent complete map matching the active Preparation ID and Discovery query was found"
+                if not candidates
+                else f"{len(candidates)} recent maps match the active Preparation ID and Discovery query"
+            )
+            sys.stderr.write(
+                "BLOCKED: source edits require a prepared refactor-evidence receipt; "
+                f"{reason}. Keep the map in .claude/plans and run: python3 "
+                f"{Path(__file__).resolve()} prepare --workspace \"{workspace}\" "
+                "--plan \"<selected-map>\" --query \"<same discovery query>\".\n"
+            )
+            return 2
+        plan, query = candidates[0]
+        if prepare(workspace, plan, query, quiet=True) != 0:
+            return 2
+        sys.stdout.write(
+            "Prepared the only complete impact map created for this request before the source write.\n"
         )
-        return 2
+        state = read_state(workspace)
+        if not state:
+            sys.stderr.write("BLOCKED: auto-prepared impact-map receipt could not be re-read\n")
+            return 2
+        phase = state.get("phase")
     if phase in {"prepared", "implementation", "reconciled"} and not state_plan_is_current(state):
         sys.stderr.write("BLOCKED: impact map changed after preparation; run prepare again.\n")
         return 2

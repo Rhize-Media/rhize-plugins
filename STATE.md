@@ -79,8 +79,10 @@
   omission and wrong compatibility variable are not supported by current evidence; a transiently
   incomplete or removed task-pinned cache root remains possible, but Codex's historical update
   lifecycle evidence is unavailable.
-- The new hook definition has not yet been installed or trusted in Codex. Existing tasks must reload
-  the plugin root; updated hooks require host review/trust before execution.
+- Native review was completed for the previously presented workflow-selection hook. The local
+  opt-in configuration is now present, and a synthetic smoke of the installed Context Manager
+  0.36.0 hook emitted the expected checkpoint. Trust status for any later hook digest still needs
+  verification in a fresh host session.
 
 ## Lessons learned
 
@@ -92,6 +94,10 @@
 - Keyword classification failed negated destinations and quoted instructions in two frozen
   diagnostic sets. Use the current task agent's full conversation context for workflow choice;
   capture pending/skipped/unavailable outcomes rather than adding unbounded routing rules.
+- The Dev Flow prompt gate repeatedly interrupted work when a complete impact map existed but its
+  separate `prepare` call was missed. The repair auto-prepares only one recent complete map bound
+  to the exact prompt receipt ID and discovery query; ambiguity, stale metadata or invalid sections
+  remain blocked.
 - A selection receipt is not proof of workflow execution. Keep run/source bindings, latest stage
   status and separate decided/selected counters; preserve failed experiments and missing data.
 

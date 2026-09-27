@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-26_ version bump — 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
 - _2026-09-25_ version bump — 2.24.0 → 2.25.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
 - Add source-bound local Laya shadow ranking for legal tool-risk and approved browser QA candidates. No action, approval, check, review or release gate changes.
 
@@ -29,6 +30,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 - _2026-09-09_ version bump — 2.21.0 → 2.21.1 (patch); marketplace 2.70.0 → 2.70.1.
 
 ### Fixed
+
+- _2026-09-26_ If a material-work prompt is pending and exactly one complete impact map created
+  for that request carries its opaque `Preparation ID:` plus an explicit `Discovery query:` line,
+  the first source-write hook prepares that map before allowing the write. Missing, stale, invalid,
+  or ambiguous maps remain blocked. This removes a repeated interruption without weakening the
+  receipt or reconciliation gates.
 
 - _2026-09-09_ the refactor gate no longer arms a receipt at the filesystem root, and never matches
   one during workspace lookup. A Projectless context (no repository cwd) resolved its workspace to
