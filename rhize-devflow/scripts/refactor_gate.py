@@ -45,14 +45,16 @@ PLANNING_FILES = {
     "CURRENT_SPRINT.md",
     "STATE.md",
 }
-# Generated-documentation trees: prose an agent writes *about* work, not the work.
-# `claudedocs/` is the established convention for Claude-authored analysis notes, and a
-# routine that records its findings there hits the gate on every run with nothing to map —
-# the change has no symbol, caller, test, or semantic delta to describe.
+# Context and documentation are prose about work, not source implementation.
+# Keep this shared by write, reconciliation, and release classification so a
+# permitted context update cannot become an unmapped-source failure later.
 DOCS_PATHS = (
     "claudedocs/",
+    ".planning/",
+    "docs/",
 )
-DOCS_EXTENSIONS = {".md", ".mdx", ".markdown", ".txt", ".rst"}
+DOCS_FILES = PLANNING_FILES | {"README.md", "ROADMAP.md", "GUIDE.md", "CHANGELOG.md"}
+DOCS_EXTENSIONS = {".md", ".markdown", ".txt", ".rst"}
 CONFIG_EXTENSIONS = {".json", ".yaml", ".yml", ".toml", ".ini", ".properties", ".cfg", ".conf"}
 CONFIG_BASENAMES = {
     ".npmrc",
@@ -857,12 +859,13 @@ def is_planning_path(path: str) -> bool:
 
 def is_docs_path(path: str) -> bool:
     normalized = path.replace("\\", "/")
-    if not any(normalized.startswith(prefix) for prefix in DOCS_PATHS):
-        return False
-    # Extension precedence mirrors is_config_path, and for the same reason: without it the
-    # exemption is a trivial bypass — park the code under `claudedocs/`, edit it ungated,
-    # then move it. Only prose extensions are exempt; `claudedocs/scripts/fix.py` stays gated.
-    return PurePosixPath(normalized).suffix.lower() in DOCS_EXTENSIONS
+    posix = PurePosixPath(normalized)
+    # Check extension first: executable code (including MDX) remains gated even
+    # inside a documentation tree. Named context files can live in subprojects.
+    return posix.suffix.lower() in DOCS_EXTENSIONS and (
+        posix.name in DOCS_FILES
+        or any(normalized.startswith(prefix) for prefix in DOCS_PATHS)
+    )
 
 
 def is_config_path(path: str) -> bool:
@@ -1078,7 +1081,7 @@ def release_command_repo_hint(command: str, cwd: Path) -> Path:
 
 
 def release_targets_only_exempt_changes(hint: Path) -> bool | None:
-    """True if every dirty path in the repo rooted at/above `hint` is config or planning.
+    """True if every dirty path at/above `hint` is config, planning, or documentation.
 
     None means the repo toplevel could not be resolved, so the caller should fall back
     to the existing unconditional block rather than guess.
@@ -1144,7 +1147,7 @@ def hook_command() -> int:
                 return 0
         sys.stderr.write(
             "BLOCKED: commit/push/merge requires a reconciled refactor-evidence receipt. "
-            "Only config/planning-only changes are exempt from this gate. "
+            "Only configuration, planning, or documentation-only changes are exempt from this gate. "
             "Run refactor_gate.py reconcile first.\n"
         )
         return 2

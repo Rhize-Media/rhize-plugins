@@ -74,7 +74,9 @@ assert_exit "hook-write .claude/plans/x.md (planning still exempt)" 0 "$(hook_wr
 assert_exit "hook-write .eslintrc.js (code extension wins)" 2 "$(hook_write "$TMPWS/.eslintrc.js")"
 assert_exit "hook-write claudedocs/a/notes.md (docs exempt)" 0 "$(hook_write "$TMPWS/claudedocs/a/notes.md")"
 assert_exit "hook-write claudedocs/scripts/fix.py (code under docs still blocked)" 2 "$(hook_write "$TMPWS/claudedocs/scripts/fix.py")"
-assert_exit "hook-write docs/notes.md (only claudedocs/ is exempt)" 2 "$(hook_write "$TMPWS/docs/notes.md")"
+assert_exit "hook-write docs/notes.md (documentation exempt)" 0 "$(hook_write "$TMPWS/docs/notes.md")"
+assert_exit "hook-write .planning/STATE.md (context exempt)" 0 "$(hook_write "$TMPWS/.planning/STATE.md")"
+assert_exit "hook-write .planning/fix.py (source still blocked)" 2 "$(hook_write "$TMPWS/.planning/fix.py")"
 
 # --- hook-command matrix (phase is still "pending": no gated write ever landed) ---
 git -C "$TMPWS" checkout -q -- src/app.ts 2>/dev/null || true

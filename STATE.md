@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-09-27: Context-document gate repair reproduces the rejected `.planning/STATE.md` patch and expands the shared prose classifier to `.planning/`, `docs/`, and standard nested context Markdown filenames. Source code, MDX, and mixed source/context edits remain gated. Baseline regression: 17 failures / 13 passes; repaired focused suite: 66 passes. The initial sandboxed Devflow run had 466 passes and the previously observed `process_cleanup_unavailable` subprocess-cleanup failure; the unchanged test passes outside the sandbox. Full suite outside the sandbox: 1,671 passed, 5 existing skips, 18 subtests passed. All eleven plugin manifests, marketplace, configuration lint, generated skill-map/setup freshness, idempotent documentation rendering, and Devflow doctor passed. Cold self-review checked shared write/reconciliation/release consumers and preserved hook approval configuration. Reconciliation uses an explicit rg fallback in the isolated worktree, which has no CodeGraph index. Release: Devflow 2.25.2 / marketplace 2.86.1; the host must load the updated plugin before native-hook behavior changes.
+
 - 2026-09-27: Workflow decision measurement pilot adds opt-in background inference bound to the existing opportunity, visible missing-capture denominators, a deterministic review queue, source-bound human labels/task outcomes and a bounded research coordinator. Stop is observational only; it cannot establish acceptance. Empty allowlisted task signals abstain instead of sending an uninformative request. The coordinator preserves failed attempts and never runs holdout or promotes a candidate. Real human labels and causal task-benefit evidence remain outstanding.
 
 

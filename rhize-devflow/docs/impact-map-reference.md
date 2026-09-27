@@ -245,6 +245,10 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor_gate.py" dismiss \
 
 ## Common Failure Modes
 
+- **Context classified as source:** routine `.planning/STATE.md`, `docs/` prose, and standard
+  context Markdown filenames (including nested projects) do not require a source impact map.
+  The write, reconciliation, and release classifiers share this exemption. Executable files,
+  MDX, and mixed source/context edits still require the source evidence gate.
 - **File-list map:** duplicates CodeGraph and omits why behavior changes.
 - **Graph-only planning:** cannot represent planned code, business invariants, or operational risk.
 - **Blind graph trust:** misses dynamic dispatch, runtime configuration, external systems, and data

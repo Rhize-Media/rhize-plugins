@@ -276,9 +276,13 @@ below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor
 | `reconcile` says `no prepared impact-map receipt exists` | A reconciled receipt was closed as `completed` when a turn ended | Run `prepare` again (new baseline from the current tree), then `reconcile` |
 | A release or write is blocked but `status --workspace <repo>` says `reconciled` | The hook resolves the repo from the **payload's cwd**, not from a `cd` inside your command; a cwd outside any repo matched a stale receipt at `/` written by an older version | Use `git -C /absolute/repo/path …` (a shell variable is not expanded by the hint parser), and clear the stale file: `refactor_gate.py status --workspace /` then `dismiss --workspace /`, or delete it from `~/.claude/rhize-devflow/refactor-gate/`. Since 2.20.4 the gate refuses to arm at the filesystem root and ignores any root receipt |
 
-Plan files under `.claude/plans/`, `CLAUDE.md`/`AGENTS.md`/`STATE.md`, config files (`.json`,
-`.yaml`, `.toml`, lockfiles, ignore files), and prose under `claudedocs/` (`.md`, `.txt`, `.rst`
-— code parked there stays gated) are never gated. To set a receipt aside deliberately, run
+Plan files under `.claude/plans/`, standard context Markdown files (`CLAUDE`, `AGENTS`,
+`STATE`, `CURRENT_SPRINT`, `README`, `ROADMAP`, `GUIDE`, `CHANGELOG`, including nested files),
+config files (`.json`, `.yaml`, `.toml`, lockfiles, ignore files), and prose under `.planning/`,
+`docs/`, or `claudedocs/` (`.md`, `.markdown`, `.txt`, `.rst`) are exempt from this source gate.
+Executable files and MDX in those documentation directories remain gated, as do mixed source
+and context edits. The same classification applies to write, reconciliation, and release checks.
+To set a receipt aside deliberately, run
 `refactor_gate.py dismiss --workspace <repo> --reason "<why>"`; `RHIZE_REFACTOR_GATE=off` in the
 environment is the emergency bypass, and both leave a record. Bash commands whose text contains a
 release command (`git commit`, `git push`, `git merge`) are checked even when they only write a file

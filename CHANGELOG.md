@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-27_ version bump — **rhize-devflow** 2.25.1 → 2.25.2 (patch); marketplace 2.86.0 → 2.86.1.
 - Add the workflow decision pilot research coordinator and its collection/review contract; live behavior remains shadow-only.
 - _2026-09-27_ version bump — **rhize-context-manager** 0.36.0 → 0.37.0 (minor); marketplace 2.85.0 → 2.86.0.
 - _2026-09-26_ version bump — **rhize-devflow** 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
