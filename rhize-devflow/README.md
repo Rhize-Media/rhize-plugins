@@ -252,7 +252,10 @@ install and initialize it in a client repo.
   reads/hashes any component registry. `reconcile` repeats the same structural branch and refuses
   `OUT_OF_SYNC` changed files. Re-preparing after an impact-map correction preserves the original
   Git/dirty baseline, so already-written implementation cannot be silently blessed as pre-existing.
-  Receipts live under
+  Context-only updates are exempt: standard context Markdown filenames at any depth and prose
+  under `.planning/`, `docs/`, and `claudedocs/`. Executable files and MDX in those directories,
+  and mixed source/documentation changes, still require evidence. This rule is shared by write,
+  reconciliation, and release checks. Receipts live under
   `~/.claude/rhize-devflow/refactor-gate/`, keyed by canonical workspace path, so both harnesses
   share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
   for the remainder of the turn so a late source write invalidates it; the successful Stop boundary

@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- **Context-document gate repair.** Allow prose in `.planning/` and `docs/` and standard context Markdown files in nested projects. Share exemptions across write, reconciliation and release checks; keep executable files, MDX and mixed source/documentation edits gated. Regression reproduces the rejected `.planning/STATE.md` Codex patch.
+- _2026-09-27_ version bump — 2.25.1 → 2.25.2 (patch); marketplace 2.86.0 → 2.86.1.
 - _2026-09-26_ version bump — 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
 - _2026-09-25_ version bump — 2.24.0 → 2.25.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
 - Add source-bound local Laya shadow ranking for legal tool-risk and approved browser QA candidates. No action, approval, check, review or release gate changes.

@@ -98,6 +98,77 @@ def write_plan(
 RELEASE_FIXTURE = "git " + "commit -m unrelated-work"
 
 
+@pytest.mark.parametrize("entrypoint", ["hook-write", "hook-command"])
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        (".planning/STATE.md", 0),
+        (".planning/phases/01/01-SUMMARY.md", 0),
+        ("docs/design-record.md", 0),
+        ("docs/context/notes.rst", 0),
+        ("README.md", 0),
+        ("packages/app/AGENTS.md", 0),
+        ("packages/app/STATE.md", 0),
+        (".planning/fix.py", 2),
+        ("docs/fix.ts", 2),
+        ("docs/component.mdx", 2),
+        (".planning/component.mdx", 2),
+        ("claudedocs/component.mdx", 2),
+        ("src/example.ts", 2),
+        ("src/content.md", 2),
+    ],
+)
+def test_context_documents_are_exempt_but_source_stays_gated(
+    tmp_path: Path, entrypoint: str, path: str, expected: int
+) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    # Native edit paths and the exact absolute-path Codex patch shape both matter.
+    tool_input = {"file_path": str(workspace / path)} if entrypoint == "hook-write" else {
+        "input": f"*** Begin Patch\n*** Update File: {workspace / path}\n@@\n-old\n+new\n*** End Patch"
+    }
+    result = run_gate(state_dir, entrypoint, payload={"cwd": str(workspace), "tool_input": tool_input})
+    assert result.returncode == expected, result.stderr
+    status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+    assert json.loads(status.stdout)["phase"] == "pending"
+
+
+def test_context_document_patch_cannot_hide_a_source_edit(tmp_path: Path) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    patch = "*** Begin Patch\n*** Update File: .planning/STATE.md\n@@\n-old\n+new\n*** Update File: src/example.ts\n@@\n-old\n+new\n*** End Patch"
+    result = run_gate(state_dir, "hook-command", payload={"cwd": str(workspace), "tool_input": {"input": patch}})
+    assert result.returncode == 2
+
+
+@pytest.mark.parametrize("path", [".planning/STATE.md", "docs/triage.md", "packages/app/AGENTS.md"])
+def test_context_only_release_and_reconciliation_exemptions(tmp_path: Path, path: str) -> None:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    prepared = run_gate(state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan), "--query", "Refactor the application example safely")
+    assert prepared.returncode == 0, prepared.stderr
+    document = workspace / path
+    document.parent.mkdir(parents=True, exist_ok=True)
+    document.write_text("Verified investigation findings.\n")
+    payload = {"cwd": str(workspace), "tool_input": {"command": RELEASE_FIXTURE}}
+    allowed = run_gate(state_dir, "hook-command", payload=payload)
+    assert allowed.returncode == 0, allowed.stderr
+    # Docs need no mention in the source impact map, but source is never exempt.
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    blocked = run_gate(state_dir, "hook-command", payload=payload)
+    assert blocked.returncode == 2, blocked.stderr
+    reconciled = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert reconciled.returncode == 0, reconciled.stderr
+
+
 def prompt_payload(workspace: Path, prompt: str) -> dict:
     return {"prompt": prompt, "cwd": str(workspace), "hook_event_name": "UserPromptSubmit"}
 
