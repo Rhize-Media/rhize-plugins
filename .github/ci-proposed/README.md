@@ -1,11 +1,11 @@
 # CI proposals
 
-`.github/workflows/` is protected (the `protect-files.sh` hook blocks agent edits), so any new or
-changed workflow is drafted here first and promoted by a maintainer with `git mv` into
-`.github/workflows/`.
+Workflow changes may be edited directly under the user-approved CI hardening scope.
+The global protect-files policy lifted its CI path gate on September 4, 2026.
+This directory retains historical proposal context; no proposal is pending.
 
-**Promoted so far:** `validate.yml` on 2026-09-03 — the gate mirroring the local release
-contracts `scripts/bump_version.py`'s `REPOSITORY_CONTRACTS` runs on every version bump (pytest,
-plugin manifest validation, config lint, Dev Flow doctor, skill-map freshness, setup-artifacts
-freshness, idempotent docs render). It now runs on every push and pull request; see its run history
-under Actions. No proposal is pending; the directory is empty between proposals.
+`validate.yml` preserves the repository release contracts, including the PR version check,
+with one dependency setup. It runs for main pushes and PRs targeting main. Narrative docs
+skip all push/PR workflows; shipped skill/command/agent instructions and operational
+reference/template directories still trigger validation. `tag-release.yml` runs only when
+main changes `.claude-plugin/marketplace.json`, and serializes stateful publishing.

@@ -117,7 +117,7 @@ This repo uses one convention consistently across every plugin — know it once,
 | **`CHANGELOG.md`** | Maintainers and contributors | Marketplace-level record: version bumps and cross-plugin programs; each plugin keeps its own `CHANGELOG.md`, and everything before 2026-09-03 is preserved in [`docs/release/CHANGELOG-history.md`](./docs/release/CHANGELOG-history.md) |
 | **[`evals/README.md`](./evals/README.md)** | Maintainers | Index of every evaluation suite: what it grades, how to run it, what it writes |
 | **[`docs/session-guardrails.md`](./docs/session-guardrails.md)** | Agents and maintainers | Harvested session guardrails (hot files, re-read loops, token figures) kept out of `CLAUDE.md`, which is a short router |
-| **[`.github/workflows/validate.yml`](./.github/workflows/validate.yml)** | Maintainers | The live CI gate mirroring the local release contracts (promoted from `.github/ci-proposed/` on 2026-09-03; new proposals still start there) |
+| **[`.github/workflows/validate.yml`](./.github/workflows/validate.yml)** | Maintainers | The live CI gate mirroring local release contracts, including PR version validation |
 
 **Rule of thumb:** if you're asking "how do I install/configure this" or "what does this plugin ship," read the README. If you're asking "how do I actually use this to get something done," read the GUIDE.
 
@@ -250,3 +250,21 @@ review before enabling a plugin's hooks.
 ## License
 
 Proprietary — Rhize Media. All rights reserved.
+
+## CI cost and release contract
+
+Main pushes and PRs targeting main run the Linux `validate` job with a 15-minute timeout.
+Feature-branch pushes do not duplicate PR runs. Superseded validation runs cancel; the
+marketplace-only tag publisher serializes without cancellation and has a five-minute timeout.
+Narrative Markdown, root `docs/`, `.claude/`, `.wolf/` and `STATE.md` skip CI. Shipped
+`skills/`, `commands/`, `agents/`, `references/`, `templates/`, plugin `docs/` operational
+references and Codex migrated instruction directories remain tested, including Markdown.
+Docs-only changes receive no required-check result and must accompany tested code for any
+future required-check promotion rule.
+
+Pinned Python test dependencies and the static Claude CLI validator install with download
+caches. Claude is used only for `plugin validate`; CI has no model calls or Copilot dependency.
+Weekly grouped minor/patch Dependabot updates cover Actions and these two CI dependency
+manifests; major updates stay separate, and nothing auto-merges. Changes run the same
+validation and version contracts. The former separate `version-check / check` job is now the
+`Validate version bumps` step of `validate`; required-check settings need separate review.
