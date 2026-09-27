@@ -48,6 +48,8 @@ def test_ci_is_bounded_and_publishing_is_not_cancelled():
     for name in ('validate.yml', 'tag-release.yml'):
         data = workflow(name)
         assert data['concurrency']['cancel-in-progress'] == ('true' if name == 'validate.yml' else 'false')
+        if name == 'tag-release.yml':
+            assert data['concurrency']['queue'] == 'max'
         for job in data['jobs'].values():
             assert job['runs-on'] == 'ubuntu-latest'
             assert 0 < int(job['timeout-minutes']) <= 15

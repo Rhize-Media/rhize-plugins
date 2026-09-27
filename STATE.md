@@ -269,3 +269,5 @@
   Version contract passed its 435-test suite (166.40s). The initial sandbox-denied process
   cleanup retry passed unchanged with required permissions. Hosted green and docs-only no-run
   evidence remain the publishing coordinator's acceptance gates.
+
+2026-09-27 CI review correction: stateful tag/OIDC publishers explicitly use queue:max with cancellation off. This preserves up to100 pending runs; default concurrency retains only one pending run. Pure CI cancellation stays enabled. No release/tag was triggered to test publication.
