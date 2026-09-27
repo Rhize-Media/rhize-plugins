@@ -251,3 +251,23 @@
 - After upstream marketplace 2.81.0 shipped, rebased the Outreach candidate onto that release so Dev Flow 2.24.0 and Context Manager 0.35.0 remain intact. Candidate versions: marketplace 2.81.2, Outreach 0.2.0, core 1.0.6, ops 0.25.2.
 - Post-rebase checks: setup wizard 5/5, focused plugin/core setup tests 19/19, outreach eval 5/5, Dev Flow tests 427 passed, plugin config and skill-map checks passed, and setup-artifact freshness passed. The coordinated version check reports no pending release-contract errors.
 - Plugin commit `661172e9b3d4734f5edc260c293878fe9029f7ac` is published on marketplace `main` and tag `v2.81.2`; the feature branch is also pushed. Runtime commit `c8778dda0bba65380bee5d8a7bf99e214a8b22fa` remains a pinned separate source branch. A fresh-machine install and external delivery have not been run.
+
+## CI hardening — September 27, 2026
+
+- Local CI changes consolidate PR version validation into the static release-contract job,
+  restrict push validation to main, and keep executable instruction/reference Markdown in
+  scope while skipping narrative docs. Pure validation cancels superseded runs; marketplace
+  tag publication retains serialization without cancellation. No runtime, hook, manifest or
+  plugin version changed.
+- Actions resolve to verified commit SHAs; Python test packages and Claude 2.1.278 are pinned
+  and cached. The npm validator wrapper requires its explicit install.cjs binary-copy step;
+  `npm ci --ignore-scripts` alone leaves its executable unavailable. Static manifest validation
+  needs no model login or provider call. Existing Dependabot cooldown is retained.
+- Actionlint, all twelve static manifest checks, configuration lint, doctor, skill/setup
+  freshness and render idempotence passed locally. Three focused CI contract tests passed.
+  Full repository suite passed: 1,639 tests, five pre-existing skips and 18 subtests (334.96s).
+  Version contract passed its 435-test suite (166.40s). The initial sandbox-denied process
+  cleanup retry passed unchanged with required permissions. Hosted green and docs-only no-run
+  evidence remain the publishing coordinator's acceptance gates.
+
+2026-09-27 CI review correction: stateful tag/OIDC publishers explicitly use queue:max with cancellation off. This preserves up to100 pending runs; default concurrency retains only one pending run. Pure CI cancellation stays enabled. No release/tag was triggered to test publication.
