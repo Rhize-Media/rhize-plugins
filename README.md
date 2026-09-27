@@ -268,3 +268,5 @@ Weekly grouped minor/patch Dependabot updates cover Actions and these two CI dep
 manifests; major updates stay separate, and nothing auto-merges. Changes run the same
 validation and version contracts. The former separate `version-check / check` job is now the
 `Validate version bumps` step of `validate`; required-check settings need separate review.
+
+CI acceptance (2026-09-27): [reviewed PR run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36345891442) and [main control run](https://github.com/Rhize-Media/rhize-plugins/actions/runs/36346107124). This separate narrative-only README change is the push/PR docs-filter acceptance case; settled run results are recorded in the cross-repository hardening report.
