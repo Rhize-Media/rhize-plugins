@@ -34,6 +34,8 @@ point-in-time record.
 
 ### Added
 
+- Add the workflow decision pilot research coordinator and its collection/review contract; live behavior remains shadow-only.
+- _2026-09-27_ version bump — **rhize-context-manager** 0.36.0 → 0.37.0 (minor); marketplace 2.85.0 → 2.86.0.
 - _2026-09-26_ version bump — **rhize-devflow** 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
 - _2026-09-25_ Restore Codex marketplace refresh by aligning its catalog name and complete plugin roster with the Claude marketplace. Add a parity regression check; plugin versions and runtime behavior are unchanged.
 

@@ -501,6 +501,12 @@
     {
       "from": "plugin:rhize-context-manager",
       "source": "marketplace",
+      "to": "hook:rhize-context-manager/inline-d0b4a9c5",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-context-manager",
+      "source": "marketplace",
       "to": "hook:rhize-context-manager/next-step-suggester",
       "type": "contains"
     },
@@ -3533,6 +3539,17 @@
       "kind": "hook",
       "matcher": "",
       "name": "inline-cc8cfb80",
+      "owner": "rhize-context-manager",
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/decision_pilot.py\" stop 2>/dev/null || true",
+      "event": "Stop",
+      "id": "hook:rhize-context-manager/inline-d0b4a9c5",
+      "kind": "hook",
+      "matcher": "",
+      "name": "inline-d0b4a9c5",
       "owner": "rhize-context-manager",
       "path": "rhize-context-manager/hooks/hooks.json",
       "status": "wired"

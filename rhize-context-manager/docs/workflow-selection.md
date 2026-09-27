@@ -59,7 +59,7 @@ Selection binds a workflow, authorized variant, artifact digest and run ID. Ever
 that binding; changed source or intent requires a new opportunity. Selection and stage records
 are operator-reported and file-digest-bound; they do not prove arbitrary evidence is true or that
 selection preceded the first substantial write. A write/start observation is needed for that claim. Passed capture requires a shaped canonical append receipt.
-A receipt is not a signature or authority to execute. No Stop hook or continuation loop is added.
+A receipt is not a signature or authority to execute. The optional decision pilot adds a silent Stop observation; it never requests continuation or marks acceptance.
 
 ## Inventory and privacy
 
@@ -90,3 +90,6 @@ remains byte-identical to its pinned Arm A source; existing controlled studies a
 ## Host attribution
 
 Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.
+
+The [decision measurement pilot](decision-pilot.md) provides the integrated, asynchronous alternative
+to the older environment-only scorer. Its Arm A/B identities are separate from the discovery study above.

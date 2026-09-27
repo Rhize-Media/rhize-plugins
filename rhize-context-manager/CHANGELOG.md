@@ -24,6 +24,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Add opt-in workflow decision measurement with detached local scoring, missing-capture coverage, human review labels, evidence-bound task outcomes and silent exact-turn Stop observations.
+- Add bounded recurring research coordination; insufficient labels hold the cycle, failed attempts remain visible, and holdout/promotion remain separate.
+- _2026-09-27_ version bump — 0.36.0 → 0.37.0 (minor); marketplace 2.85.0 → 2.86.0.
 - _2026-09-25_ version bump — 0.35.0 → 0.36.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
 - Add opt-in local Laya shadow scoring for bounded skill and workflow candidates, governed graph query metadata, and source-bound context retention. Keep protected anchors, ACLs, deterministic selectors, and decisions authoritative.
 

@@ -72,7 +72,7 @@ def validate(value: object) -> dict:
     return value
 
 
-def assess(value: dict, model: str, base_url: str, call=local_call) -> dict:
+def build_request(value: dict, model: str) -> dict:
     value = validate(value)
     if not isinstance(model, str) or not TOKEN.fullmatch(model):
         raise ValueError("pinned model must be a bounded token")
@@ -91,6 +91,12 @@ def assess(value: dict, model: str, base_url: str, call=local_call) -> dict:
         "capability": capability, "taskSignals": value["taskSignals"],
         "candidates": value["candidates"],
     }, "questions": questions}
+    return request
+
+
+def assess(value: dict, model: str, base_url: str, call=local_call) -> dict:
+    request = build_request(value, model)
+    capability = value["capability"]
     result, latency = call(base_url, request)
     usage = result.get("usage")
     if (not isinstance(usage, dict) or any(

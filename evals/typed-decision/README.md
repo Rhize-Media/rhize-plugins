@@ -54,3 +54,10 @@ Run a small replayable 4–6-pair pilot with identical rubric and frozen fixture
 - Laya 0.3.20's `typed-decisions` checkpoint emitted an invalid-temperature warning on first load, so its confidence needs task-specific calibration. Hold advisory mode until that is resolved or measured on the locked corpus.
 - The candidate runner changes questions/checkpoints/thresholds, not Laya weights. Domain fine-tuning is a separate experiment after sufficient labels and a compatible training environment exist; compare it as another pinned candidate, then use the same holdout and project trial.
 - Foreman-style thresholds are provisional and only produce `candidate_directive` in shadow. `FINISH` requires actual passed checks and independent review even as a candidate.
+
+## Integrated workflow pilot
+
+`pilot_cycle.py --research-root PRIVATE_DIRECTORY` coordinates an opt-in workflow cohort with the
+fixed evaluator described above. It generates five bounded wording/threshold candidates, preserves
+failed attempts, serializes local inference, and freezes a candidate for review. No holdout or promotion
+is automatic. See the [collection and human review contract](../../rhize-context-manager/docs/decision-pilot.md).

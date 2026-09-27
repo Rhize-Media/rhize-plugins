@@ -33,13 +33,13 @@ Version 1.11.0. Walks a new project from a rough idea through research, requirem
 
 ### rhize-devflow
 
-Version 2.25.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.25.1. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [9 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
-Version 0.36.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.37.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 

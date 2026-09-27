@@ -345,3 +345,10 @@ Workflow host attribution uses native host signals and reports conflicts as `unk
 The optional local Laya shadow scorer ranks verified Context Pack candidates without changing inclusion. Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass `--decision-task` to a native pack preview; see [Context Pack](commands/context-pack.md). No real relevance or task-benefit result is established.
 
 The [typed decision pilot](../docs/typed-decision-layer.md) also scores bounded skill and workflow shortlists, governed graph query results, and source-bound retention candidates. All scores remain private shadow evidence; existing selectors and protected context continue to decide.
+
+## Workflow decision measurement pilot
+
+The opt-in [workflow pilot](docs/decision-pilot.md) connects existing workflow opportunities to
+background local Laya scores, a human review queue and evidence-bound task outcomes. Reports count
+missing capture and usage explicitly. The bounded research coordinator waits for reviewed labels,
+freezes development candidates for review, and never promotes live behavior or runs holdout.

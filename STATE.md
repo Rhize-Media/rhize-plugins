@@ -2,6 +2,9 @@
 
 ## Verified facts
 
+- 2026-09-27: Workflow decision measurement pilot adds opt-in background inference bound to the existing opportunity, visible missing-capture denominators, a deterministic review queue, source-bound human labels/task outcomes and a bounded research coordinator. Stop is observational only; it cannot establish acceptance. Empty allowlisted task signals abstain instead of sending an uninformative request. The coordinator preserves failed attempts and never runs holdout or promotes a candidate. Real human labels and causal task-benefit evidence remain outstanding.
+
+
 - 2026-09-25: A Codex marketplace upgrade of the released decision-layer source failed because the tracked Codex catalog declared `rhize-media` and listed only Outreach while the existing configured marketplace is `rhize-plugins`. The catalog repair aligns its name and all 11 published plugin paths with the Claude marketplace; the parity test guards this host activation path.
 
 - 2026-09-25: The local Laya decision-layer source now includes bounded shadow candidates for

@@ -23,3 +23,10 @@ The Project Launcher handoff installs and probes the project-local client when t
 Use [the fixed research evaluator](../evals/typed-decision/README.md) for decision accuracy and calibration. Build at least 200 human-adjudicated cases per decision type, with at least 50 in the locked 25% holdout; include safety and authorization strata. Keep candidate search separate from one-shot holdout. Evaluate each accepted task for correctness, required checks, review outcome, wall time, coding-agent input/output tokens, local Laya usage and latency, fallbacks, and abstentions. An unavailable usage field is missing evidence, not zero.
 
 Run 4–6 replayable paired tasks as a pilot only after fixing the rubric and environment. Then favor single-execution randomized tasks in the upcoming project so normal delivery does not double its token cost. Reserve every duplicate Arm A control with `evals/typed-decision/task_trials.py`; its 1,000,000-token ceiling covers incremental coding-agent tokens for duplicate controls, and the host must enforce the per-run limit. Stop new paired controls when the ledger cannot reserve them. Local research inference is reported separately. A candidate needs the predeclared quality and safety bounds plus independent review before promotion; current synthetic checks do not satisfy that gate.
+
+## Workflow measurement rollout
+
+The [workflow pilot](../rhize-context-manager/docs/decision-pilot.md) is the first integrated collection
+path. It records opportunity coverage, bound background scores, human review labels and task outcomes.
+The recurring research coordinator is `evals/typed-decision/pilot_cycle.py`; no labels means a held
+research cycle, and a kept development candidate still requires separate holdout and task trials.

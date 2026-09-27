@@ -100,6 +100,8 @@ def opportunity(payload, host, root, config):
               'classification': classification, 'recommendation': None, 'selection': None,
               'events': [], 'terminalStatus': None, 'capabilityStatus': 'not_requested',
               'selectorDigest': digest(Path(__file__).read_bytes())}
+    if config.get('decisionPilot') == {'enabled': True, 'mode': 'shadow'}:
+        result['decisionPilot'] = 'shadow-v1'
     # Present the canonical entrypoint, not a guessed task classification.
     # The current task agent has the conversation/authorization context.
     result['catalog'] = {'content': 'procedural-memory:rhize-content-engine',
@@ -150,6 +152,9 @@ def shadow_workflow_selection(prompt, receipt, root, base_url, call=None):
 
 
 def hook_message(receipt):
+    pilot = (" Laya workflow pilot is collecting a shadow decision for this opportunity. At task completion, record "
+             f"a source-bound task outcome with python3 {shlex.quote(str(Path(__file__).with_name('decision_pilot.py')))} outcome --id {receipt['opportunityId']} --evidence PRIVATE_JSON (see {Path(__file__).parent.parent / 'docs/decision-pilot.md'}); unavailable "
+             "usage stays null, and a Stop event does not establish acceptance." if receipt.get("decisionPilot") else "")
     return ("Workflow selection checkpoint before substantial work. For RHIZE resource articles, consult "
             "procedural-memory:rhize-content-engine; for other repeatable multi-step work use "
             "procedural-memory:procedural-memory recall --json. Decide from the user's full request: reuse, adapt, "
@@ -157,7 +162,7 @@ def hook_message(receipt):
             "permission or invent a matching workflow. "
             f"Opportunity ID: {receipt['opportunityId']}. Record the choice before composition with "
             f"python3 {shlex.quote(str(Path(__file__).resolve()))} decide --id {receipt['opportunityId']} (see the skill), then record "
-            "actual execution, validation and capture separately. This checkpoint grants no execution authority.")
+            "actual execution, validation and capture separately. This checkpoint grants no execution authority." + pilot)
 
 
 def decide(root, args):
@@ -328,7 +333,13 @@ def main():
             if not isinstance(payload, dict): raise ValueError('invalid hook input')
             host = detect_host(payload, os.environ, args.host)
             receipt, fresh = opportunity(payload, host, args.root, config)
-            if receipt and fresh and os.environ.get('RHIZE_LAYA_WORKFLOW_SHADOW') == '1':
+            if receipt and receipt.get('decisionPilot') == 'shadow-v1' and config.get('decisionPilot') == {'enabled': True, 'mode': 'shadow'}:
+                try:
+                    from decision_pilot import enqueue
+                    enqueue(payload['prompt'], receipt, args.root.parent / 'pilot')
+                except (OSError, ValueError):
+                    pass  # Missing observation is counted against the opportunity denominator.
+            elif receipt and fresh and os.environ.get('RHIZE_LAYA_WORKFLOW_SHADOW') == '1':
                 try:
                     shadow_workflow_selection(payload['prompt'], receipt, args.root,
                                               os.environ.get('RHIZE_LAYA_BASE_URL', 'http://127.0.0.1:8000'))
