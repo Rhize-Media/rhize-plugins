@@ -146,7 +146,19 @@ RELEASE_COMMAND = re.compile(
     r"(?:\bgit(?:\s+-C\s+\S+)?\s+(?:commit|push|merge)\b|\bgh\s+pr\s+merge\b)",
     re.IGNORECASE,
 )
-GIT_DASH_C_PATH = re.compile(r"\bgit\s+-C\s+(\"([^\"]+)\"|'([^']+)'|(\S+))")
+# A bare path token stops at shell metacharacters so e.g. `-C /repo&&echo hi` does not
+# swallow the operator into the path; a quoted path may contain anything.
+_PATH_TOKEN = r"\"([^\"]+)\"|'([^']+)'|([^\s&;|()<>]+)"
+GIT_DASH_C_PATH = re.compile(r"\bgit\s+-C\s+(" + _PATH_TOKEN + r")")
+GIT_DIR_FLAG_PATH = re.compile(r"--git-dir=(" + _PATH_TOKEN + r")")
+WORK_TREE_FLAG_PATH = re.compile(r"--work-tree=(" + _PATH_TOKEN + r")")
+# Anchored at the very start of the command: only a single leading `cd <dir> &&`/
+# `cd <dir>;` counts as unambiguous. A subshell (`(cd ... )`) or `pushd` never matches
+# this pattern at all, so they fall through to the cwd fallback without special-casing.
+LEADING_CD_PREFIX = re.compile(r"^\s*cd\s+(" + _PATH_TOKEN + r")\s*(?:&&|;)\s*")
+# A variable or command-substitution token anywhere in a resolved path keeps the day's
+# behavior (cwd) rather than expanding it ourselves.
+AMBIGUOUS_PATH_TOKEN = re.compile(r"[$`]")
 
 
 def utc_now() -> str:
@@ -988,8 +1000,13 @@ def hook_prompt(
     return 0
 
 
-def enforce_write_payload(payload: dict[str, Any], *, count_invocation: bool = True) -> int:
-    cwd = payload_workspace(payload)
+def enforce_write_payload(
+    payload: dict[str, Any],
+    *,
+    count_invocation: bool = True,
+    cwd_override: Path | None = None,
+) -> int:
+    cwd = cwd_override if cwd_override is not None else payload_workspace(payload)
     workspace, state = find_state_for_path(cwd)
     if count_invocation and active_receipt(state):
         count_hook_event(state, workspace, "PreToolUse")
@@ -1071,13 +1088,103 @@ def hook_write() -> int:
     return enforce_write_payload(payload)
 
 
-def release_command_repo_hint(command: str, cwd: Path) -> Path:
-    """Resolve the directory a release command targets: honor `git -C <path>` if present."""
-    match = GIT_DASH_C_PATH.search(command)
+def _quoted_or_bare(match: re.Match[str]) -> str:
+    return match.group(2) or match.group(3) or match.group(4) or ""
+
+
+def explicit_git_target(command: str) -> tuple[str, bool] | None:
+    """Return `(raw_path, from_git_dir_flag)` for the first `git -C`, `--work-tree=`, or
+    `--git-dir=` argument in `command`, checked in that priority order.
+
+    These flags anchor the git invocation explicitly regardless of any `cd`, so they are
+    resolved before a leading `cd` prefix is even considered.
+    """
+    for pattern, from_git_dir_flag in (
+        (GIT_DASH_C_PATH, False),
+        (WORK_TREE_FLAG_PATH, False),
+        (GIT_DIR_FLAG_PATH, True),
+    ):
+        match = pattern.search(command)
+        if match:
+            raw = _quoted_or_bare(match)
+            if raw:
+                return raw, from_git_dir_flag
+    return None
+
+
+def leading_cd_target(command: str) -> str | None:
+    """Return the raw argument of a single, unambiguous leading `cd <dir> &&`/`cd <dir>;`.
+
+    Only exactly one `cd` in the whole command counts. Any further `cd` after the leading
+    one — whether immediately chained (`cd a && cd b && ...`) or separated by another
+    command (`cd a && npm test && cd b && git commit`) — makes the target ambiguous: the
+    caller keeps today's cwd-based behavior instead of guessing which one the command
+    actually meant to be in when the git verb ran. A subshell (`(cd ... )`) or `pushd`
+    never matches the anchored pattern at all, so they fall through to the same cwd
+    fallback without special-casing.
+    """
+    match = LEADING_CD_PREFIX.match(command)
     if not match:
+        return None
+    raw = _quoted_or_bare(match)
+    if not raw or AMBIGUOUS_PATH_TOKEN.search(raw):
+        return None
+    remainder = command[match.end() :]
+    if re.search(r"(?:^|[;&|]|\n)\s*cd\s", remainder):
+        return None
+    return raw
+
+
+def resolve_relative_to(raw: str, base: Path) -> Path:
+    if raw.startswith("~") or os.path.isabs(raw):
+        return canonical(raw)
+    return canonical(base / raw)
+
+
+def repo_root_or_fallback(candidate: Path, cwd: Path) -> Path:
+    """Resolve `candidate`'s Git repo root; fall back to `cwd` if it is not a directory
+    inside a Git repository — the same trust the gate already places in `cwd` itself when
+    nothing more specific is known. Never point a check at a directory with no receipt and
+    no dirty-tree signal of its own just because a command happened to name it.
+    """
+    if not candidate.is_dir():
         return cwd
-    raw = match.group(2) or match.group(3) or match.group(4)
-    return canonical(raw) if os.path.isabs(raw) else canonical(cwd / raw)
+    top = run(["git", "rev-parse", "--show-toplevel"], candidate)
+    if top.returncode != 0 or not top.stdout.strip():
+        return cwd
+    return canonical(top.stdout.strip())
+
+
+def resolve_command_target_directory(command: str, cwd: Path) -> Path:
+    """Resolve the Git workspace a shell command targets, when unambiguous.
+
+    Checked in order: an explicit `git -C <dir>` / `--work-tree=<dir>` / `--git-dir=<dir>`
+    (these anchor the git invocation regardless of shell state), then a single leading
+    `cd <dir> &&` or `cd <dir>;` prefix with no further `cd` anywhere later in the command
+    (absolute, `~`, or relative to `cwd`). Anything ambiguous — any further `cd` after the
+    leading one, a subshell, `pushd`, or a variable/command substitution in the path —
+    keeps today's behavior and returns `cwd` unchanged rather than guessing. A resolved
+    directory that does not exist or is not inside a Git repository also falls back to
+    `cwd` for the same reason.
+    """
+    if not command:
+        return cwd
+
+    explicit = explicit_git_target(command)
+    if explicit is not None:
+        raw, from_git_dir_flag = explicit
+        if AMBIGUOUS_PATH_TOKEN.search(raw):
+            return cwd
+        candidate = resolve_relative_to(raw, cwd)
+        if from_git_dir_flag and candidate.name == ".git":
+            candidate = candidate.parent
+        return repo_root_or_fallback(candidate, cwd)
+
+    cd_target = leading_cd_target(command)
+    if cd_target is not None:
+        return repo_root_or_fallback(resolve_relative_to(cd_target, cwd), cwd)
+
+    return cwd
 
 
 def release_targets_only_exempt_changes(hint: Path) -> bool | None:
@@ -1119,20 +1226,28 @@ def hook_command() -> int:
         command = tool_input
     cwd = payload_workspace(payload)
     is_release = isinstance(command, str) and bool(RELEASE_COMMAND.search(command))
-    event_hint = release_command_repo_hint(command, cwd) if is_release else cwd
+    # A leading `cd <dir> &&`/`cd <dir>;`, a `git -C <path>`, or a `--git-dir=`/
+    # `--work-tree=` flag can target a different repo than the payload's own cwd;
+    # resolve that target once (falling back to cwd whenever it is ambiguous or does
+    # not resolve to a real Git repo) and reuse it for the receipt lookup, the
+    # patch-carried source-write check, and the dirty check below, so a receipt under
+    # the resolved target is not missed.
+    resolved_hint = (
+        resolve_command_target_directory(command, cwd) if isinstance(command, str) else cwd
+    )
+    event_hint = resolved_hint if is_release else cwd
     event_workspace, event_state = find_state_for_path(event_hint)
     if active_receipt(event_state):
         count_hook_event(event_state, event_workspace, "PreToolUse")
         write_state(event_workspace, event_state)
     if isinstance(command, str) and "*** Begin Patch" in command:
-        write_result = enforce_write_payload(payload, count_invocation=False)
+        write_result = enforce_write_payload(
+            payload, count_invocation=False, cwd_override=resolved_hint
+        )
         if write_result != 0:
             return write_result
     if not is_release:
         return 0
-    # A `git -C <path>` command targets a different repo than the payload's own cwd;
-    # resolve that target once and use it for both the receipt lookup and the dirty
-    # check below, so a receipt under the -C target is not missed.
     hint = event_hint
     state = event_state
     phase = state.get("phase") if state else None
