@@ -189,7 +189,8 @@ def test_research_held_without_labels_and_no_agent_launch(tmp_path):
     module = load_cycle()
     result = module.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research', run=lambda *a, **kw: pytest.fail('launched'))
     assert result['status'] == 'held' and result['labels'] == 0
-    assert not (tmp_path/'research').exists()
+    hold = next((tmp_path/'research'/'workflow-pilot-v2'/'holds').glob('*.json'))
+    assert json.loads(hold.read_text())['reason'] == 'insufficient_human_labels'
     assert len(module.candidates()) <= 12
 
 
@@ -217,9 +218,9 @@ def test_research_search_only_failure_preserved_and_retry_deduplicated(tmp_path)
         assert '--phase' in command and command[command.index('--phase')+1] == 'search'
         assert '--holdout' not in command and kwargs['timeout'] <= 180
         return SimpleNamespace(returncode=1)
-    result = module.cycle(root, receipts, tmp_path/'research', minimum=20, run=fail)
+    result = module.legacy_cycle(root, receipts, tmp_path/'research', minimum=20, run=fail)
     assert result['status'] == 'failed' and len(calls) == 1
-    assert module.cycle(root, receipts, tmp_path/'research', minimum=20, run=fail)['status'] == 'unchanged'
+    assert module.legacy_cycle(root, receipts, tmp_path/'research', minimum=20, run=fail)['status'] == 'unchanged'
     assert len(calls) == 1
     assert next((tmp_path/'research').glob('*/status.json')).stat().st_mode & 0o777 == 0o600
 
@@ -238,7 +239,7 @@ def test_research_freezes_candidate_but_does_not_promote(tmp_path):
         sha = workflow.digest(json.dumps(options[0], sort_keys=True, separators=(',', ':')))
         Path(command[command.index('--ledger')+1]).write_text(json.dumps({'status': 'keep', 'candidate_sha256': sha})+'\n')
         return SimpleNamespace(returncode=0)
-    result = module.cycle(root, receipts, tmp_path/'research', minimum=20, run=run)
+    result = module.legacy_cycle(root, receipts, tmp_path/'research', minimum=20, run=run)
     assert result['status'] == 'review_required' and result['holdout'] == 'not_run'
     assert result['promotion'] == 'not_performed' and result['releaseEligible'] is False
     assert next((tmp_path/'research').glob('*/frozen-candidate.json')).is_file()

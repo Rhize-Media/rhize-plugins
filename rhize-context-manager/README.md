@@ -352,3 +352,11 @@ The opt-in [workflow pilot](docs/decision-pilot.md) connects existing workflow o
 background local Laya scores, a human review queue and evidence-bound task outcomes. Reports count
 missing capture and usage explicitly. The bounded research coordinator waits for reviewed labels,
 freezes development candidates for review, and never promotes live behavior or runs holdout.
+
+The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
+is sealed before the incumbent consultation/selection; background events and continuations have
+explicit dispositions, while missing or conflicting context remains visible. Catalog consultation,
+catalog match and actual execution are separate facts. Reports preserve v1 results and add v2
+coverage plus a deduplicated daily review packet. The explicit `decision_measure.py` check wrapper
+records real exit status, duration and output hashes without turning a passed check into task
+acceptance. Human adjudication and native host reload/trust remain separate requirements.

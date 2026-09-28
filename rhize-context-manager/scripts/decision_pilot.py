@@ -85,7 +85,12 @@ def enqueue(prompt, receipt, root, spawn=True):
             pass  # Observation remains pending and is visible to report/heartbeat.
 
 
-def drain(root, call=None):
+def enqueue_v2(context, receipt, root, spawn=True, receipts=None):
+    from decision_pilot_v2 import enqueue
+    return enqueue(context, receipt, root, spawn=spawn, receipts=receipts)
+
+
+def drain(root, call=None, receipts=None, cohort=None):
     from context_experiments.typed_candidates import assess
     from context_experiments.typed_relevance import local_call
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -98,24 +103,38 @@ def drain(root, call=None):
         except BlockingIOError:
             return {'status': 'busy'}
         started, processed = time.monotonic(), 0
-        for identity, observation in inventory(root / 'observations'):
-            if (root / 'results' / (identity + '.json')).exists():
+        from decision_pilot_v2 import ensure_root
+        ensure_root(root)
+        if cohort not in {None, 'v1', 'v2'}:
+            raise ValueError('invalid drain cohort')
+        observations = [(False, identity, value) for identity, value in inventory(root / 'observations')] if cohort != 'v2' else []
+        if cohort != 'v1':
+            observations += [(True, identity, value) for identity, value in inventory(root / 'v2/observations')]
+        for v2, identity, observation in observations:
+            collection = root / 'v2' if v2 else root
+            if (collection / 'results' / (identity + '.json')).exists():
                 continue
             if processed >= 20 or time.monotonic() - started > 45:
                 break
             request_started = time.monotonic()
             try:
-                if observation.get('schema') != SCHEMA or observation.get('sourceSha256') != source_digest():
+                if v2:
+                    from decision_pilot_v2 import assess as assess_v2
+                    result = assess_v2(observation, receipts or root.parent / 'receipts',
+                                       call or (lambda url, request: local_call(url, request, timeout=5)), root=root)
+                elif observation.get('schema') != SCHEMA or observation.get('sourceSha256') != source_digest():
                     raise ValueError('source_changed')
-                if not observation['state']['taskSignals']:
+                elif not observation['state']['taskSignals']:
                     raise ValueError('insufficient_task_signals')
-                result = assess(observation['state'], 'typed-decisions', 'http://127.0.0.1:8000',
-                                call or (lambda url, request: local_call(url, request, timeout=5)))
+                elif not v2:
+                    result = assess(observation['state'], 'typed-decisions', 'http://127.0.0.1:8000',
+                                    call or (lambda url, request: local_call(url, request, timeout=5)))
             except (OSError, ValueError, KeyError, TypeError) as exc:
+                from decision_pilot_v2 import failure_reason
                 result = {'status': 'unavailable', 'variant': 'A_incumbent',
-                          'reasonCode': str(exc) if str(exc) in {'source_changed', 'insufficient_task_signals'} else type(exc).__name__, 'incumbentAltered': False,
+                          'reasonCode': failure_reason(exc) if v2 else (str(exc) if isinstance(exc, ValueError) and str(exc) in {'source_changed', 'insufficient_task_signals'} else type(exc).__name__), 'incumbentAltered': False,
                           'latencyMs': round((time.monotonic() - request_started) * 1000, 3), 'usage': None}
-            save_once(root / 'results', identity, {**result, 'opportunityId': identity,
+            save_once(collection / 'results', identity, {**result, 'opportunityId': identity,
                                                   'observedAt': time.time()})
             processed += 1
         return {'status': 'drained', 'processed': processed}
@@ -149,7 +168,7 @@ def joined(root, receipts):
     return rows
 
 
-def report(root, receipts):
+def legacy_report(root, receipts):
     rows = joined(root, receipts)
     valid = [r for r in rows if r['armB'] is not None]
     compared = [r for r in valid if r['armA'] is not None]
@@ -199,6 +218,15 @@ def report(root, receipts):
             'claimScope': 'observational coverage and reviewed decision accuracy; no causal productivity claim'}
 
 
+def report(root, receipts):
+    from decision_pilot_v2 import joined as joined_v2, report as report_v2, packet
+    legacy = legacy_report(root, receipts)
+    rows = joined_v2(root, receipts)
+    return {**legacy, 'legacyCohort': 'workflow-pilot-v1',
+            'totalRawEvents': legacy['opportunities'] + len(rows),
+            'v2Coverage': report_v2(root, receipts, rows), 'dailyPacket': packet(rows)}
+
+
 def queue(root, receipts):
     items = []
     for row in joined(root, receipts):
@@ -214,11 +242,25 @@ def queue(root, receipts):
                           'armA': row['armA'], 'armB': row['armB'],
                           'state': (row['observation'] or {}).get('state'),
                           'requires': 'Human must inspect original task context; bounded signals alone may be insufficient.'})
-    return {'schema': SCHEMA, 'items': items}
+    from decision_pilot_v2 import joined as joined_v2, packet
+    return {'schema': SCHEMA, 'items': items, 'dailyPacket': packet(joined_v2(root, receipts))}
 
 
-def bind_evidence(root, identity, evidence, kind):
-    observation = read_json(root / 'observations' / (identity + '.json'))
+def bind_evidence(root, identity, evidence, kind, receipts=None):
+    from decision_pilot_v2 import ensure_root
+    ensure_root(root)
+    v2_path = root / 'v2/observations' / (identity + '.json')
+    if v2_path.is_symlink():
+        raise ValueError('symlink observation refused')
+    if v2_path.exists():
+        from decision_pilot_v2 import validate_observation
+        observation = read_json(v2_path)
+        validate_observation(observation, receipts or root.parent / 'receipts', identity, require_current_source=True, root=root)
+        if kind == 'labels' and observation['disposition']['eligible'] is not True:
+            raise ValueError('only eligible routing decisions can receive v2 labels')
+        root = root / 'v2'
+    else:
+        observation = read_json(root / 'observations' / (identity + '.json'))
     if evidence.is_symlink():
         raise ValueError('symlink evidence refused')
     value = read_json(evidence)
@@ -268,18 +310,26 @@ def stop(root, receipts, payload, host):
         return {'status': 'unavailable', 'reason': 'exact_native_turn_required'}
     identity = digest(host + ':' + session + ':' + turn)
     path = receipts / (identity + '.json')
-    if not path.is_file() or read_json(path).get('decisionPilot') != 'shadow-v1':
+    if not path.is_file() or read_json(path).get('decisionPilot') not in {'shadow-v1', 'shadow-v2'}:
         return {'status': 'unavailable', 'reason': 'no_matching_pilot_opportunity'}
     receipt = read_json(path)
+    if receipt.get('decisionPilot') == 'shadow-v2':
+        root = root / 'v2'
     elapsed = max(0, round((time.time() - datetime.fromisoformat(receipt['observedAt']).timestamp()) * 1000))
     value = {'opportunityId': identity, 'basis': 'native_stop_observed', 'accepted': None, 'elapsedMs': elapsed}
     locked_update(root / 'stops', identity, lambda old: (old, False) if old else (value, True))
     return {'status': 'recorded', 'opportunityId': identity}
 
 
-def export_cases(root, receipts, output):
-    cases = []
-    for row in joined(root, receipts):
+def export_cases(root, receipts, output, cohort='v1'):
+    if cohort not in {'v1', 'v2'}:
+        raise ValueError('invalid export cohort')
+    if cohort == 'v2':
+        from decision_pilot_v2 import export_cases as export_v2
+        cases = export_v2(root, receipts)
+    else:
+        cases = []
+    for row in joined(root, receipts) if cohort == 'v1' else []:
         if not row['label'] or not row['observation']:
             continue
         label = row['label']
@@ -305,28 +355,29 @@ def main():
     ap.add_argument('--root', type=Path, default=DEFAULT_ROOT / 'pilot')
     ap.add_argument('--receipts', type=Path, default=DEFAULT_ROOT / 'receipts')
     sub = ap.add_subparsers(dest='command', required=True)
-    for command in ('drain', 'report', 'queue', 'stop'):
+    for command in ('report', 'queue', 'stop'):
         sub.add_parser(command)
+    sp = sub.add_parser('drain'); sp.add_argument('--cohort', choices=('v1', 'v2'))
     for command in ('adjudicate', 'outcome'):
         sp = sub.add_parser(command); sp.add_argument('--id', required=True); sp.add_argument('--evidence', type=Path, required=True)
-    sp = sub.add_parser('export'); sp.add_argument('--out', type=Path, required=True)
+    sp = sub.add_parser('export'); sp.add_argument('--out', type=Path, required=True); sp.add_argument('--cohort', choices=('v1', 'v2'), default='v1')
     args = ap.parse_args()
     try:
         if getattr(args, 'id', None) and not re.fullmatch('[0-9a-f]{64}', args.id):
             raise ValueError('invalid opportunity id')
         if args.command == 'drain':
-            result = drain(args.root)
+            result = drain(args.root, receipts=args.receipts, cohort=args.cohort)
         elif args.command == 'report':
             result = report(args.root, args.receipts)
         elif args.command == 'queue':
             result = queue(args.root, args.receipts)
         elif args.command in {'adjudicate', 'outcome'}:
-            result = bind_evidence(args.root, args.id, args.evidence, 'labels' if args.command == 'adjudicate' else 'outcomes')
+            result = bind_evidence(args.root, args.id, args.evidence, 'labels' if args.command == 'adjudicate' else 'outcomes', receipts=args.receipts)
         elif args.command == 'export':
-            result = export_cases(args.root, args.receipts, args.out)
+            result = export_cases(args.root, args.receipts, args.out, cohort=args.cohort)
         else:
             config = read_json(DEFAULT_ROOT / 'config.json')
-            if config.get('decisionPilot') != {'enabled': True, 'mode': 'shadow'}:
+            if config.get('decisionPilot') not in ({'enabled': True, 'mode': 'shadow'}, {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}):
                 return 0
             raw = sys.stdin.buffer.read(65537)
             if len(raw) > 65536:

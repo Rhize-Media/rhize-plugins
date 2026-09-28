@@ -6,11 +6,30 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
+
+
+PILOT_COHORT = "workflow-pilot-v2"
+
+
+def decode_route(row, result, threshold):
+    # A single decoder is shared with live shadow collection.
+    scripts = str(Path(__file__).resolve().parents[2] / 'rhize-context-manager/scripts')
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    from pilot_routing import decode_scores
+    scores = {}
+    for index, choice in enumerate(row['candidate_ids']):
+        answer = result['answers'][f'c{index}']
+        if answer.get('type') != 'noul':
+            raise ValueError('provider answer type mismatch')
+        scores[choice] = answer.get('noul')
+    return decode_scores(scores, abstain_below=threshold, exclusions=row['state'].get('exclusions', []))
 
 
 def digest(value: object) -> str:
@@ -48,6 +67,20 @@ def read_jsonl(path: Path) -> list[dict]:
                 raise ValueError("research runner supports choice and noul only")
         if not isinstance(row.get("state"), (str, dict, list)):
             raise ValueError("state must be a string, object, or array")
+    cohorts = {row.get('cohort_version') for row in rows}
+    if PILOT_COHORT in cohorts:
+        if cohorts != {PILOT_COHORT}:
+            raise ValueError('mixed pilot cohort')
+        for row in rows:
+            if (not isinstance(row.get('state'), dict)
+                    or row.get('candidate_ids') != ['content', 'general', 'none']
+                    or row.get('routing_choice') not in row['candidate_ids']
+                    or row.get('arm_a_choice') not in [None, *row['candidate_ids']]
+                    or row['labels'] != {f'c{i}': choice == row['routing_choice']
+                                         for i, choice in enumerate(row['candidate_ids'])}):
+                raise ValueError('invalid pilot routing label')
+            if row['routing_choice'] == 'content' and 'content_creation' in row['state'].get('exclusions', []):
+                raise ValueError('label_contradicts_exclusions')
     return rows
 
 
@@ -112,6 +145,19 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
                 usage[key] = None
             elif usage[key] is not None:
                 usage[key] += measured_usage[key]
+        if row.get('cohort_version') == PILOT_COHORT:
+            decoded = decode_route(row, result, candidate.get('abstain_below', 0.0))
+            score = totals[f"{row['decision_type']}:{row['stratum']}"]
+            score['count'] += 1
+            if decoded['choice'] is None:
+                score['abstained'] += 1
+                score['critical_misses'] += int(row['stratum'].startswith('critical'))
+            elif decoded['choice'] == row['routing_choice']:
+                score['correct'] += 1
+            elif row['stratum'].startswith('critical'):
+                score['critical_misses'] += 1
+            # Independent relevance values are not calibrated route probabilities.
+            continue
         for name, question in questions.items():
             answer = result["answers"][name]
             label = row["labels"][name]
@@ -170,6 +216,19 @@ def evaluate(rows: list[dict], candidate: dict, call) -> dict:
 
 def arm_a_metrics(rows: list[dict]) -> dict | str:
     """Score recorded incumbent outcomes; absence stays unavailable, never zero."""
+    if rows and all(row.get('cohort_version') == PILOT_COHORT for row in rows):
+        if any(row.get('arm_a_choice') is None for row in rows):
+            return 'unavailable'
+        by_stratum = defaultdict(lambda: {'count': 0, 'correct': 0, 'critical_misses': 0})
+        for row in rows:
+            score = by_stratum[f"{row['decision_type']}:{row['stratum']}"]
+            score['count'] += 1
+            correct = row['arm_a_choice'] == row['routing_choice']
+            score['correct'] += int(correct)
+            score['critical_misses'] += int(not correct and row['stratum'].startswith('critical'))
+        return {'count': len(rows), 'accuracy': sum(s['correct'] for s in by_stratum.values()) / len(rows),
+                'critical_misses': sum(s['critical_misses'] for s in by_stratum.values()),
+                'by_stratum': dict(sorted(by_stratum.items())), 'unit': 'routing_case'}
     if any(not isinstance(row.get("arm_a"), dict) or set(row["arm_a"]) != set(row["labels"]) for row in rows):
         return "unavailable"
     count = correct = critical_misses = 0
@@ -208,8 +267,21 @@ def check_holdout_authority(ledger: list[dict], dataset_hash: str, seed_hash: st
         raise ValueError("locked holdout was already used for this dataset")
 
 
-def prepare_corpus(rows: list[dict], seed: str, out_dir: Path) -> dict:
-    splits = partition(rows, seed)
+def prepare_corpus(rows: list[dict], seed: str, out_dir: Path, *, split_assignments=None) -> dict:
+    if split_assignments is None:
+        splits = partition(rows, seed)
+    else:
+        if (set(split_assignments) != {row['group_id'] for row in rows}
+                or set(split_assignments.values()) - {'train', 'validation', 'holdout'}):
+            raise ValueError('invalid frozen split assignments')
+        splits = {name: [row for row in rows if split_assignments[row['group_id']] == name]
+                  for name in ('train', 'validation', 'holdout')}
+        seen = set()
+        for values in splits.values():
+            keys = {key for row in values for key in row.get('grouping_keys', [])}
+            if seen & keys:
+                raise ValueError('duplicate identity crosses split')
+            seen.update(keys)
     if any(not values for values in splits.values()):
         raise ValueError("train, validation and holdout each need at least one task group")
     type_counts = {kind: sum(row["decision_type"] == kind for row in rows) for kind in {row["decision_type"] for row in rows}}
@@ -220,6 +292,10 @@ def prepare_corpus(rows: list[dict], seed: str, out_dir: Path) -> dict:
                 "seed_sha256": digest(seed), "split_sha256": {name: digest(values) for name, values in splits.items()},
                 "split_counts": {name: len(values) for name, values in splits.items()},
                 "type_counts": type_counts, "release_eligible": release_eligible}
+    if rows and all(row.get('cohort_version') == PILOT_COHORT for row in rows):
+        manifest.update(cohort_version=PILOT_COHORT, normalization_version='workflow-input-v2',
+                        holdout_grouping_keys=sorted({key for row in splits['holdout'] for key in row['grouping_keys']}),
+                        release_eligible=False)
     out_dir.mkdir(mode=0o700, parents=True, exist_ok=False)
     for name, values in splits.items():
         path = out_dir / f"{name}.jsonl"
@@ -272,6 +348,10 @@ def main() -> int:
                   "validation": verified_split(args.validation, manifest, "validation")}
         if {row["group_id"] for row in splits["train"]} & {row["group_id"] for row in splits["validation"]}:
             raise ValueError("task group crosses train and validation")
+        train_keys = {key for row in splits['train'] for key in row.get('grouping_keys', [])}
+        validation_keys = {key for row in splits['validation'] for key in row.get('grouping_keys', [])}
+        if train_keys & validation_keys:
+            raise ValueError('duplicate identity crosses train and validation')
     else:
         if not args.holdout or args.train or args.validation:
             parser.error("holdout requires --holdout only")
@@ -322,7 +402,11 @@ def main() -> int:
                  "seed_sha256": seed_hash, "release_eligible": manifest["release_eligible"],
                  "candidate_sha256": digest(candidate), "candidate_id": candidate["id"], "model": candidate["model"],
                  "status": status, "split_counts": manifest["split_counts"],
-                 "train": train, "validation": validation, "holdout": holdout, "arm_a": arm_a}
+                 "train": train, "validation": validation, "holdout": holdout, "arm_a": arm_a,
+                 "arm_a_coverage": {name: {"recorded": sum(row.get('arm_a_choice') is not None for row in values),
+                                           "total": len(values)}
+                                    for name, values in splits.items()}
+                 if manifest.get('cohort_version') == PILOT_COHORT else None}
         with args.ledger.open("a") as handle:
             handle.write(json.dumps(entry, sort_keys=True) + "\n")
         print(json.dumps({"candidate_id": candidate["id"], "candidate_sha256": digest(candidate),

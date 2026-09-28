@@ -339,3 +339,15 @@ The opt-in [workflow pilot](docs/decision-pilot.md) connects existing workflow o
 background local Laya scores, a human review queue and evidence-bound task outcomes. Reports count
 missing capture and usage explicitly. The bounded research coordinator waits for reviewed labels,
 freezes development candidates for review, and never promotes live behavior or runs holdout.
+
+For v2, follow the prompt checkpoint in order: record the bounded task context, consult the
+appropriate catalog, record the consultation, then select or decline an actual workflow. A catalog
+search with no matching graph is still a consultation. Link a continuation to its existing task;
+do not create another independent routing trial for a status update or background callback.
+
+Wrap an already-required check with `decision_measure.py --id OPPORTUNITY_ID --timeout 300 --
+COMMAND ...` to collect its real exit status and duration once. The command's result remains
+authoritative even when capture is unavailable. This records a check, not user acceptance or
+unavailable coding-agent token counts. Use the daily packet to inspect distinct cases, and use
+explicit human adjudication only after reviewing the original task. See the [v2 lifecycle and
+evidence contract](docs/decision-pilot.md) before opting in.

@@ -2,6 +2,14 @@
 
 This pilot uses a loopback Laya server with the `typed-decisions` checkpoint. Existing selectors, safety gates, approvals, and project execution remain authoritative. Arm A is the incumbent decision; Arm B is a scored candidate recorded in a private receipt. A score is neither permission nor proof of improved software outcomes.
 
+The workflow measurement v2 cohort seals a bounded intent envelope before Arm A consultation,
+keeps catalog consultation distinct from match/execution, and reports eligible, excluded, held,
+unknown and missing-context events separately. Its scorer and development evaluator share one
+routing decision function. Background callbacks and continuations are not independent routing
+trials. Actual check exit/time artifacts can support task review; they cannot establish human
+acceptance or attribute an Arm A outcome to an unexecuted Arm B recommendation. V1 evidence stays
+separate and unchanged. See the [workflow contract](../rhize-context-manager/docs/decision-pilot.md).
+
 | Candidate | Entry point | Activation | Existing authority |
 |---|---|---|---|
 | Skill fit | Context Manager `skill-router.js` | `RHIZE_LAYA_SKILL_SHADOW=1` | Deterministic skill suggestion and explicit user request |

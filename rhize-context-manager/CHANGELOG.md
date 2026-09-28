@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-28_ version bump — 0.37.0 → 0.38.0 (minor); marketplace 2.88.0 → 2.89.0.
 - Add opt-in workflow decision measurement with detached local scoring, missing-capture coverage, human review labels, evidence-bound task outcomes and silent exact-turn Stop observations.
 - Add bounded recurring research coordination; insufficient labels hold the cycle, failed attempts remain visible, and holdout/promotion remain separate.
 - _2026-09-27_ version bump — 0.36.0 → 0.37.0 (minor); marketplace 2.85.0 → 2.86.0.
