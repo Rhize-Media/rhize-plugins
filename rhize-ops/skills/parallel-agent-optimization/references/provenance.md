@@ -28,6 +28,22 @@ upstream skills or their examples. Historical candidate and combined-arm v1 smok
 as non-comparable screening evidence. New runtime and controlled execution never load either
 source and never create an ECC+Superpowers arm.
 
+## Goal ancestry (task-graph v2)
+
+The `objective`/`purpose` fields added in `task-graph-v2.schema.json` absorb Paperclip's "goal
+ancestry" pattern: every dispatched lane carries the graph-level objective and done signal it serves,
+not just its own deliverable.
+
+| Source | Upstream commit | License |
+| --- | --- | --- |
+| Paperclip (goal-ancestry pattern) | `0f14d26` | MIT |
+
+Source URL: https://github.com/paperclipai/paperclip
+
+No Paperclip code is vendored — this is a schema/validator-level restatement of the pattern in
+Rhize's own prose and Python, subject to the same drift-boundary review as the ECC/Superpowers rows
+above.
+
 ## Drift boundary
 
 The existing `ai-stack-version-drift` scheduled review is the sole version sensor. It may compare

@@ -77,13 +77,15 @@ agents, reserve a run, or write a receipt.
 
 ### Apply
 
-Run the Rhize strategy exactly once on the real task. First render the bounded nodes, dependencies,
-read/write territories, resource capacities, authority gates, output contracts, and
-coordinator-owned verification into an ephemeral graph. Supply a verified-or-unknown Claude Code
-or Codex host profile and validate it before dispatch. Unknown concurrency degrades to sequential
-guidance; an unordered write collision, conflicting resource declaration, missing coordinator
-slot, invalid retry, or incomplete authority gate fails before dispatch. The host remains the
-scheduler and executor:
+Run the Rhize strategy exactly once on the real task. First render the graph-level objective and
+done signal, then the bounded nodes — each with its own purpose (why this lane serves the
+objective), dependencies, read/write territories, resource capacities, authority gates, output
+contracts — and coordinator-owned verification into an ephemeral `rhize-task-graph-v2` graph
+(`references/task-graph-v2.schema.json`; new graphs must use v2, never v1). Supply a
+verified-or-unknown Claude Code or Codex host profile and validate it before dispatch. Unknown
+concurrency degrades to sequential guidance; an unordered write collision, conflicting resource
+declaration, missing coordinator slot, invalid retry, incomplete authority gate, missing objective,
+or missing/duplicate lane purpose fails before dispatch. The host remains the scheduler and executor:
 
 ```bash
 python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/validate_task_graph.py" \

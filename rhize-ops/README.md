@@ -91,6 +91,14 @@ outputs, retry safety, lifecycle state, and complete fan-in. Claude Code and Cod
 schemas and Python validator. The host still schedules agents; only content-free receipt-v2 counts
 persist, while historical v1 receipts remain readable and labeled legacy.
 
+The task graph carries goal ancestry: schema `rhize-task-graph-v2` (new graphs must use v2) requires
+a graph-level `objective` (`goal` + `done_signal`) and a per-node `purpose` stating why that lane
+serves the objective, not just what it delivers. A legacy `rhize-task-graph-v1` graph still validates
+for back-compat, returning the advisory warning `objective_missing_v1`. Objective and purpose text
+follows the same rule as every other task-content field: the validator never echoes it back in
+`validate`/`next-wave`/`validate-results` output. See
+[task-graph-contract.md](skills/parallel-agent-optimization/references/task-graph-contract.md).
+
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
 **Required triggers:** any mention, discussion, proposal, plan, review, benchmark, optimization, or

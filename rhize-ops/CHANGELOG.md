@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-27_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.86.1 → 2.87.0.
+- _2026-09-27_ Add `rhize-task-graph-v2` schema (goal ancestry): a required graph-level `objective` (`goal` + `done_signal`) and a required per-node `purpose`. `validate_task_graph.py` accepts both v1 (advisory `objective_missing_v1` warning) and v2; rejects whitespace-only objective/purpose text and a purpose that duplicates its deliverable after whitespace-normalize + casefold. Validator output never echoes objective/purpose text. New graphs must use v2. Absorbs Paperclip's goal-ancestry pattern (MIT, no code vendored — see `references/provenance.md`).
 - _2026-09-25_ version bump — 0.25.2 → 0.26.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
 - Add bounded local Laya shadow ranking of pre-authorized model and worker options. Preserve user pin, task-graph validation and host dispatch authority.
 

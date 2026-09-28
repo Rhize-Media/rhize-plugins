@@ -14,7 +14,9 @@ from pathlib import Path
 from typing import Any
 
 
-GRAPH_VERSION = "rhize-task-graph-v1"
+GRAPH_VERSION_V1 = "rhize-task-graph-v1"
+GRAPH_VERSION_V2 = "rhize-task-graph-v2"
+GRAPH_VERSIONS = {GRAPH_VERSION_V1: 1, GRAPH_VERSION_V2: 2}
 HOST_VERSION = "rhize-host-capability-v1"
 STATE_VERSION = "rhize-task-state-v1"
 STATUSES = {
@@ -51,6 +53,12 @@ def exact(value: Any, keys: set[str], label: str) -> dict[str, Any]:
 def positive(value: Any, label: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 1:
         raise GraphError(f"{label} must be a positive integer")
+    return value
+
+
+def bounded_text(value: Any, min_length: int, max_length: int, label: str) -> str:
+    if not isinstance(value, str) or not value.strip() or not (min_length <= len(value) <= max_length):
+        raise GraphError(f"{label} must be a non-blank string between {min_length} and {max_length} characters")
     return value
 
 
@@ -126,9 +134,13 @@ def validate_host(raw: Any) -> tuple[dict[str, Any], int]:
 
 
 def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
-    graph = exact(raw, {"schema_version", "expected_checkout_fingerprint", "concurrency_budget", "coordinator_slots_reserved", "context_item_budget", "nodes"}, "graph")
-    if graph["schema_version"] != GRAPH_VERSION:
-        raise GraphError(f"schema_version must be {GRAPH_VERSION}")
+    version = raw.get("schema_version") if isinstance(raw, dict) else None
+    if version not in GRAPH_VERSIONS:
+        raise GraphError(f"schema_version must be one of {sorted(GRAPH_VERSIONS)}")
+    is_v2 = GRAPH_VERSIONS[version] == 2
+    base_graph_keys = {"schema_version", "expected_checkout_fingerprint", "concurrency_budget", "coordinator_slots_reserved", "context_item_budget", "nodes"}
+    graph_keys = base_graph_keys | ({"objective"} if is_v2 else set())
+    graph = exact(raw, graph_keys, "graph")
     if not isinstance(graph["expected_checkout_fingerprint"], str) or len(graph["expected_checkout_fingerprint"]) != 64 or any(
         character not in "0123456789abcdef" for character in graph["expected_checkout_fingerprint"]
     ):
@@ -140,7 +152,12 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
         raise GraphError("nodes must be a non-empty array")
     if reserved >= budget:
         raise GraphError("coordinator reservation leaves no worker slot")
-    node_keys = {"id", "deliverable", "inputs", "output_contract", "depends_on", "reads", "writes", "resources", "requires_approval", "external_effect", "optional", "timeout_seconds", "retry", "verification_owner"}
+    if is_v2:
+        objective = exact(graph["objective"], {"goal", "done_signal"}, "graph.objective")
+        bounded_text(objective["goal"], 1, 300, "objective.goal")
+        bounded_text(objective["done_signal"], 1, 300, "objective.done_signal")
+    base_node_keys = {"id", "deliverable", "inputs", "output_contract", "depends_on", "reads", "writes", "resources", "requires_approval", "external_effect", "optional", "timeout_seconds", "retry", "verification_owner"}
+    node_keys = base_node_keys | ({"purpose"} if is_v2 else set())
     nodes: dict[str, dict[str, Any]] = {}
     resource_capacities: dict[str, int] = {}
     for index, value in enumerate(graph["nodes"]):
@@ -150,6 +167,10 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
             raise GraphError("node ids must be non-empty and unique")
         if not isinstance(node["deliverable"], str) or not node["deliverable"].strip() or len(node["deliverable"]) > 500:
             raise GraphError(f"{node_id} needs a bounded deliverable")
+        if is_v2:
+            bounded_text(node["purpose"], 1, 240, f"{node_id}.purpose")
+            if node["purpose"].strip().casefold() == node["deliverable"].strip().casefold():
+                raise GraphError(f"{node_id}.purpose must differ from its deliverable")
         for field in ("inputs", "depends_on", "reads", "writes", "resources"):
             if not isinstance(node[field], list):
                 raise GraphError(f"{node_id}.{field} must be an array")
@@ -240,7 +261,8 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
         raise GraphError("context_item_budget=1 cannot reduce a multi-item fan-in")
     fan_in_levels = 1 if total_items <= item_budget else math.ceil(math.log(total_items, item_budget))
     return {
-        "schema_version": GRAPH_VERSION,
+        "schema_version": version,
+        "warnings": [] if is_v2 else ["objective_missing_v1"],
         "graph_fingerprint": fingerprint(graph),
         "host_worker_cap": worker_cap,
         "edge_counts": {name: edge_counts[name] for name in ("data", "write_lock", "resource_pool", "approval", "external_effect")},

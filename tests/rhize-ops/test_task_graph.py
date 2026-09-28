@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -26,8 +28,8 @@ def host(status="verified", value=4):
     }
 
 
-def node(node_id, *, depends=(), writes=(), resources=(), optional=False, approval=False, effect="none"):
-    return {
+def node(node_id, *, depends=(), writes=(), resources=(), optional=False, approval=False, effect="none", purpose=None):
+    value = {
         "id": node_id,
         "deliverable": f"bounded {node_id} result",
         "inputs": [],
@@ -43,17 +45,27 @@ def node(node_id, *, depends=(), writes=(), resources=(), optional=False, approv
         "retry": {"max_attempts": 1, "idempotent": False, "renew_approval": False},
         "verification_owner": "coordinator",
     }
+    if purpose is not None:
+        value["purpose"] = purpose
+    return value
 
 
-def graph(nodes):
-    return {
-        "schema_version": "rhize-task-graph-v1",
+def objective(goal="Ship the goal-ancestry absorption", done_signal="v2 schema and validator ship together"):
+    return {"goal": goal, "done_signal": done_signal}
+
+
+def graph(nodes, *, version="rhize-task-graph-v1", objective_value=None):
+    value = {
+        "schema_version": version,
         "expected_checkout_fingerprint": "0" * 64,
         "concurrency_budget": 4,
         "coordinator_slots_reserved": 1,
         "context_item_budget": 4,
         "nodes": nodes,
     }
+    if objective_value is not None:
+        value["objective"] = objective_value
+    return value
 
 
 def state(value):
@@ -280,3 +292,123 @@ def test_claude_and_codex_discover_one_canonical_graph_skill():
     assert "Pass\n`$ARGUMENTS` unchanged" in command
     assert codex["skills"] == "./skills/"
     assert "$parallel-agent-optimization" in agent
+
+
+# --- Goal ancestry (task-graph v2) ---
+
+
+def test_v1_graph_still_validates_with_advisory_objective_missing_warning():
+    value = graph([node("work")])
+    result = task_graph.validate_graph(value, 4)
+    assert result["schema_version"] == "rhize-task-graph-v1"
+    assert result["warnings"] == ["objective_missing_v1"]
+    assert result["waves"] == [["work"]]
+
+
+def test_v2_graph_with_objective_and_purpose_validates_without_warning():
+    value = graph(
+        [node("work", purpose="Delivers the objective's required evidence")],
+        version="rhize-task-graph-v2",
+        objective_value=objective(),
+    )
+    result = task_graph.validate_graph(value, 4)
+    assert result["schema_version"] == "rhize-task-graph-v2"
+    assert result["warnings"] == []
+    assert result["waves"] == [["work"]]
+
+
+def test_v2_graph_missing_objective_is_rejected():
+    value = graph([node("work", purpose="Delivers the objective's required evidence")], version="rhize-task-graph-v2")
+    with pytest.raises(task_graph.GraphError, match="graph"):
+        task_graph.validate_graph(value, 4)
+
+
+def test_v2_node_missing_purpose_is_rejected():
+    value = graph([node("work")], version="rhize-task-graph-v2", objective_value=objective())
+    with pytest.raises(task_graph.GraphError, match="nodes\\[0\\]"):
+        task_graph.validate_graph(value, 4)
+
+
+@pytest.mark.parametrize("field", ("goal", "done_signal"))
+def test_v2_rejects_whitespace_only_objective_fields(field):
+    bad_objective = objective()
+    bad_objective[field] = "   "
+    value = graph(
+        [node("work", purpose="Delivers the objective's required evidence")],
+        version="rhize-task-graph-v2",
+        objective_value=bad_objective,
+    )
+    with pytest.raises(task_graph.GraphError, match=f"objective.{field}"):
+        task_graph.validate_graph(value, 4)
+
+
+def test_v2_rejects_whitespace_only_purpose():
+    value = graph([node("work", purpose="   ")], version="rhize-task-graph-v2", objective_value=objective())
+    with pytest.raises(task_graph.GraphError, match="work.purpose"):
+        task_graph.validate_graph(value, 4)
+
+
+def test_v2_rejects_purpose_equal_to_deliverable_after_normalize_and_casefold():
+    value = graph(
+        [node("work", purpose="  Bounded WORK Result  ")],
+        version="rhize-task-graph-v2",
+        objective_value=objective(),
+    )
+    with pytest.raises(task_graph.GraphError, match="purpose must differ"):
+        task_graph.validate_graph(value, 4)
+
+
+def test_next_wave_and_validate_results_work_on_a_v2_graph():
+    value = graph(
+        [node("work", purpose="Delivers the objective's required evidence")],
+        version="rhize-task-graph-v2",
+        objective_value=objective(),
+    )
+    current = state(value)
+    validated = task_graph.validate_state(current, value)
+    assert task_graph.next_wave(value, validated, 2)["ready"] == ["work"]
+
+    current["nodes"]["work"].update(
+        previous_status="running", status="completed", output_contract_satisfied=True, output_count=1
+    )
+    result = task_graph.validate_results(value, task_graph.validate_state(current, value))
+    assert result["synthesis_allowed"] is True
+
+
+def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), *args], capture_output=True, text=True, check=False
+    )
+
+
+def test_v2_validator_cli_never_echoes_objective_or_purpose_text(tmp_path):
+    marker_goal = "SECRET-GOAL-MARKER-12345"
+    marker_done = "SECRET-DONE-MARKER-67890"
+    marker_purpose = "SECRET-PURPOSE-MARKER-ABCDE"
+    value = graph(
+        [node("work", purpose=marker_purpose)],
+        version="rhize-task-graph-v2",
+        objective_value={"goal": marker_goal, "done_signal": marker_done},
+    )
+    graph_path = tmp_path / "graph.json"
+    graph_path.write_text(json.dumps(value))
+    host_path = tmp_path / "host.json"
+    host_path.write_text(json.dumps(host()))
+    state_path = tmp_path / "state.json"
+    state_path.write_text(json.dumps(state(value)))
+
+    validated = _run_cli("validate", "--graph", str(graph_path), "--capabilities", str(host_path))
+    assert validated.returncode == 0, validated.stdout + validated.stderr
+
+    next_wave_result = _run_cli(
+        "next-wave", "--graph", str(graph_path), "--capabilities", str(host_path), "--state", str(state_path)
+    )
+    assert next_wave_result.returncode == 0, next_wave_result.stdout + next_wave_result.stderr
+
+    results = _run_cli("validate-results", "--graph", str(graph_path), "--state", str(state_path))
+    assert results.returncode == 0, results.stdout + results.stderr
+
+    for marker in (marker_goal, marker_done, marker_purpose):
+        assert marker not in validated.stdout and marker not in validated.stderr
+        assert marker not in next_wave_result.stdout and marker not in next_wave_result.stderr
+        assert marker not in results.stdout and marker not in results.stderr

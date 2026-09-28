@@ -3,8 +3,33 @@
 The graph is a pre-dispatch safety artifact, not a scheduler or authorization token. It may contain
 task descriptions and paths while the task is active; never persist it in receipt or Jira storage.
 
-Use `scripts/validate_task_graph.py` with a graph matching `task-graph-v1.schema.json` and a host
-profile matching `host-capability-v1.schema.json`:
+## Schema versions
+
+Two schema versions exist: `task-graph-v1.schema.json` (`schema_version: "rhize-task-graph-v1"`) and
+`task-graph-v2.schema.json` (`schema_version: "rhize-task-graph-v2"`). **New graphs must use v2.**
+v1 remains readable for back-compat only — `validate` still accepts it, but the response carries the
+advisory warning code `objective_missing_v1` so a v1 graph is never silently treated as carrying goal
+ancestry.
+
+v2 is v1 plus goal ancestry: a required top-level `objective` object (`goal`, `done_signal`, each a
+non-blank string of 1–300 characters) stating what the whole dispatch is for and how the coordinator
+knows it is done, and a required per-node `purpose` (a non-blank string of 1–240 characters) stating
+why that specific lane exists and how its deliverable serves the objective — not a restatement of
+`deliverable`. The validator rejects a `purpose` that equals its node's `deliverable` after
+whitespace-trimming and casefolding, so a lane cannot satisfy the requirement by copy-pasting its
+`deliverable` text. Every other v1 rule — cycles, write-lock and resource-pool collisions, host
+concurrency, coordinator capacity, authority gates, bounded outputs, retry safety, lifecycle state,
+and fan-in — applies unchanged to v2 graphs; v2 only adds the objective/purpose fields and their
+validation, it does not relax anything v1 already enforces.
+
+Objective and purpose text is a pre-dispatch input like `deliverable`, `reads`, and `writes`: the
+validator never echoes it back. `validate`, `next-wave`, and `validate-results` output contains only
+structural facts (waves, edge counts, warnings, capacity, status) — never the graph's task content,
+including the new `objective`/`purpose` fields.
+
+Use `scripts/validate_task_graph.py` with a graph matching `task-graph-v2.schema.json` (or, for a
+legacy graph, `task-graph-v1.schema.json`) and a host profile matching
+`host-capability-v1.schema.json`:
 
 ```bash
 python3 scripts/validate_task_graph.py validate --graph /tmp/graph.json --capabilities /tmp/host.json
@@ -15,8 +40,8 @@ python3 scripts/validate_task_graph.py validate-results --graph /tmp/graph.json 
 The validator derives data edges from `depends_on`. Write territory and single-capacity resource
 collisions must be ordered by a data dependency; otherwise validation fails instead of inventing an
 order. All writers targeting one shared checkout are conservatively serialized, even when their file
-territories are disjoint; parallel writers require separately isolated worktrees outside this v1 graph.
-Approval and external-effect nodes are gated and remain coordinator-owned. Unknown host
+territories are disjoint; parallel writers require separately isolated worktrees outside this
+ephemeral graph. Approval and external-effect nodes are gated and remain coordinator-owned. Unknown host
 concurrency degrades to a single worker. A retry beyond the first attempt is legal only for an
 idempotent node, and any approval/external-effect retry must renew approval.
 
@@ -32,8 +57,8 @@ declared item bounds; raw node outputs are never included in the validation resp
 `next-wave` reports downstream nodes whose failed, cancelled, timed-out, or blocked dependency must
 be closed as `blocked_dependency`; it never silently leaves them eligible.
 
-Task-graph v1 has no nullable-edge contract. Therefore a producer marked `skipped_optional` does
-not satisfy any `depends_on` edge: `next-wave` closes its pending dependents as
-`blocked_dependency`, and state validation rejects any dependent that already started. A future
+Neither task-graph v1 nor v2 has a nullable-edge contract. Therefore a producer marked
+`skipped_optional` does not satisfy any `depends_on` edge: `next-wave` closes its pending dependents
+as `blocked_dependency`, and state validation rejects any dependent that already started. A future
 nullable dependency must be an explicit schema change rather than an inference from node
 optionality.

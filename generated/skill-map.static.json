@@ -4255,7 +4255,7 @@
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
     },
     {
-      "contentHash": "b3c74a1fa0a5501ef0003d0053d4be912c27ce0701c66f73254a95878878689c",
+      "contentHash": "80a6548c264449e84e0a420ee645597d45923a1ef11ffdcd8aece1f5ec6e8dc8",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",

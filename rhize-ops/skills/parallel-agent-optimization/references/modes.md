@@ -31,17 +31,24 @@ operations, shared mutations, approval decisions, and final integration behind e
 
 ## Contract every agent lane
 
-Give one agent one independent problem domain. Every brief must be self-contained and specify:
+Give one agent one independent problem domain. Every brief must be self-contained and lead with the
+graph's objective and this lane's purpose, then specify:
 
-1. objective and done signal;
-2. exact scope and inputs;
-3. allowed outputs or write territory;
-4. protected files/state and prohibited effects;
-5. required checks; and
-6. return shape: outcome, evidence, changed state, blockers, and residual risk.
+1. the graph-level objective and its done signal — the outcome the whole dispatch serves, stated
+   once and carried into every lane's brief;
+2. this lane's purpose — why this specific lane exists and how its deliverable serves the objective,
+   not just what to do;
+3. exact scope and inputs;
+4. allowed outputs or write territory;
+5. protected files/state and prohibited effects;
+6. required checks; and
+7. return shape: outcome, evidence, changed state, blockers, and residual risk.
 
 Do not send a vague umbrella task or make an agent reconstruct the coordinator's context. Do not
-split related failures before confirming they have independent causes.
+split related failures before confirming they have independent causes. A validated ephemeral graph
+(task-graph v2) carries this same objective/purpose ancestry structurally — see
+[task-graph-contract.md](task-graph-contract.md) — so the brief and the graph never disagree about
+why a lane exists.
 
 ## Integrate and report
 

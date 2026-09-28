@@ -77,11 +77,14 @@ overlapped, and whether the result checked out — but never the actual prompts,
 or IDs involved. A run that didn't finish cleanly shows up as `audit-pending` so you know to follow
 up on it. Full schema: [README](./README.md#parallel-agent-optimization).
 
-For execution, sketch nodes and dependencies before dispatch. The canonical skill validates that
-file-disjoint work is also independent of checkout state, rate pools, approvals, and external
-effects. Unknown host capacity becomes a sequential wave, and a missing required result blocks the
-join. Claude Code and Codex share this host-neutral contract; neither host needs the other's hooks or
-environment variables.
+For execution, sketch the graph's objective and done signal first, then each node's dependencies and
+its own purpose — why that lane serves the objective — before dispatch. The canonical skill validates
+that file-disjoint work is also independent of checkout state, rate pools, approvals, and external
+effects, and (schema `rhize-task-graph-v2`, the version new graphs must use) that the objective and
+every lane's purpose are present, non-blank, and not a copy of the lane's own deliverable. Unknown
+host capacity becomes a sequential wave, and a missing required result blocks the join. Claude Code
+and Codex share this host-neutral contract; neither host needs the other's hooks or environment
+variables.
 
 **Example prompt:**
 > "/rhize-ops:parallel-optimize assess would parallel agents help with this repository audit?"
