@@ -15,21 +15,12 @@ One entry per external-skill ingestion decision.
 - **Verified:** exact installed source and MIT license inspection; focused lifecycle/privacy/readiness tests; legacy v1 compatibility
 - **Drift check:** `use existing ai-stack-version-drift review to compare the recorded installed versions and skill digests; human-review changes without altering runtime automatically`
 - **Notes:** Runtime is self-contained. Sources are attribution/update references only. The 2026-08-27 four-arm smoke remains archived non-comparable screening evidence; new comparisons are baseline versus Rhize.
-
-## paperclip (paperclipai/paperclip) — 2026-09-27
-- **Source:** https://github.com/paperclipai/paperclip
-- **Upstream ref:** `0f14d26` (2026-09-27); latest stable release v2026.916.1
-- **License:** MIT (repo-root LICENSE, "Copyright (c) 2025 Paperclip AI")
-- **Verb:** WATCH (platform) · ABSORB (three design patterns) · REJECT (31 shippable skills) · DEFER (`simplified-english`), all human-authorized by Jim
-- **Graph relation:** provenance-only
-- **Target:** rhize-ops:parallel-agent-optimization (goal ancestry: task-graph v2 `objective` plus per-lane `purpose`). The other ABSORB targets are outside this marketplace: claude-routines `scheduled/codex/run_guard.py` (slot-idempotent admission, coalesce-if-active lease, skip-missed, owner record, invocation budget) and the rhize-infra Sentry triage spend breaker (per-run `--max-budget-usd` and a monthly reserve/reconcile cap). `simplified-english` was installed as-is into `~/.agents/skills` (ledger: agents-skills `skills/SOURCES.md`).
-- **Took:** design patterns only, re-implemented from the published design. No Paperclip code, prompts or skill bodies were vendored into rhize-plugins.
-- **Verified:**
-  - skill-forge 0.21.0 gate scan of all 32 shippable SKILL.md files plus `@paperclipai/mcp-server`.
-  - Skill-map overlap < 0.2 for every file (control self-match 0.982).
-  - Independent Codex review (rhize-bridge jobs `6f1c2a8e`, `9a4d7c21`).
-  - task-graph v2 tests: 339 passed (tests/rhize-ops + tests/config-lint).
-- **Drift check:** `git -C <paperclip clone> fetch && git log --oneline 0f14d26..origin/master -- packages/adapters/claude-local/src/server/permissions.ts packages/shared/src/telemetry doc/plugins/PLUGIN_SPEC.md`. The WATCH revisit triggers are permission bypass becoming opt-in, telemetry becoming opt-in, and the plugin spec leaving "early runtime".
-- **Notes:**
-  - Platform not adopted: CLI adapters bypass permissions by default (Claude `--dangerously-skip-permissions`, Codex `--dangerously-bypass-approvals-and-sandbox`), telemetry is on by default, and it overlaps claude-routines, Puppetmaster and rhize-bridge.
-  - Vault: "Forge decision - paperclip (2026-09-27)" and "Paperclip — Forge Assessment (2026-09-27)".
+- **Additional source (2026-09-27):** https://github.com/paperclipai/paperclip @ `0f14d26`, MIT (repo-root LICENSE, "Copyright (c) 2025 Paperclip AI"). Pattern taken: goal ancestry → task-graph v2 (required `objective` with `done_signal`, plus per-lane `purpose`). No Paperclip code, prompts or skill bodies vendored.
+- **Paperclip decision (2026-09-27, human-authorized):**
+  - ABSORB here and into two targets outside this marketplace: claude-routines `scheduled/codex/run_guard.py` (slot-idempotent admission, coalesce-if-active lease, skip-missed, owner record, invocation budget) and the rhize-infra Sentry triage spend breaker.
+  - WATCH the platform: CLI adapters bypass permissions and send telemetry by default, and it overlaps claude-routines, Puppetmaster and rhize-bridge.
+  - REJECT 31 shippable skills.
+  - DEFER `simplified-english` into `~/.agents/skills` (ledger: agents-skills `skills/SOURCES.md`).
+  - Gate evidence: skill-forge 0.21.0 scanned all 32 SKILL.md files plus the MCP server; skill-map overlap < 0.2 everywhere (control self-match 0.982); independent Codex reviews on rhize-bridge jobs `6f1c2a8e` and `9a4d7c21`.
+  - Revisit the WATCH if permission bypass or telemetry becomes opt-in.
+  - Vault: "Forge decision - paperclip (2026-09-27)".
