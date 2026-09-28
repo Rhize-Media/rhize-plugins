@@ -358,6 +358,16 @@ def test_v2_rejects_purpose_equal_to_deliverable_after_normalize_and_casefold():
         task_graph.validate_graph(value, 4)
 
 
+def test_v2_rejects_purpose_equal_to_deliverable_with_internal_whitespace():
+    value = graph(
+        [node("work", purpose="Bounded   work\tresult")],
+        version="rhize-task-graph-v2",
+        objective_value=objective(),
+    )
+    with pytest.raises(task_graph.GraphError, match="purpose must differ"):
+        task_graph.validate_graph(value, 4)
+
+
 def test_next_wave_and_validate_results_work_on_a_v2_graph():
     value = graph(
         [node("work", purpose="Delivers the objective's required evidence")],

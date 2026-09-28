@@ -169,7 +169,7 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
             raise GraphError(f"{node_id} needs a bounded deliverable")
         if is_v2:
             bounded_text(node["purpose"], 1, 240, f"{node_id}.purpose")
-            if node["purpose"].strip().casefold() == node["deliverable"].strip().casefold():
+            if " ".join(node["purpose"].split()).casefold() == " ".join(node["deliverable"].split()).casefold():
                 raise GraphError(f"{node_id}.purpose must differ from its deliverable")
         for field in ("inputs", "depends_on", "reads", "writes", "resources"):
             if not isinstance(node[field], list):
