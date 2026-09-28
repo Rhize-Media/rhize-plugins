@@ -85,7 +85,10 @@ contracts — and coordinator-owned verification into an ephemeral `rhize-task-g
 verified-or-unknown Claude Code or Codex host profile and validate it before dispatch. Unknown
 concurrency degrades to sequential guidance; an unordered write collision, conflicting resource
 declaration, missing coordinator slot, invalid retry, incomplete authority gate, missing objective,
-or missing/duplicate lane purpose fails before dispatch. The host remains the scheduler and executor:
+or missing/duplicate lane purpose fails before dispatch. A writer lane that runs in its own git
+worktree or copy declares `isolation` with the root's `root-fingerprint`, and the graph declares
+`shared_root_fingerprint` for the shared checkout, so writers in distinct roots can share a wave. Size `concurrency_budget` for every concurrent lane plus the coordinator.
+The host remains the scheduler and executor:
 
 ```bash
 python3 "${RHIZE_OPS_ROOT}/skills/parallel-agent-optimization/scripts/validate_task_graph.py" \

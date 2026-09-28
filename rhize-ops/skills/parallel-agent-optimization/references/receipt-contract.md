@@ -83,6 +83,12 @@ may also be null so finalization never requires invented zeros. All supplied cou
 Duplicate finalization is rejected. `audit-pending` identifies accepted reservations without
 terminal receipts and flags those older than the configured threshold.
 
+Observed agent concurrency above `task_graph.declared_concurrency_cap` is a routing-contract
+failure. `completed` and `incomplete` finalizations reject it. Finalize a known overrun as `failed`
+with the true declared cap and agent intervals. Never raise the cap or drop the task-graph block to
+make it pass. Every receipt stores the derived `concurrency_cap_exceeded` (`true`/`false`, or `null`
+when there is no task-graph block), and reports count `concurrency_cap_violations` per evidence class.
+
 Pre-task-graph v2 receipts and task-graph receipts that predate `required_completed` remain readable
 and visible as migration history, but reports exclude them from current graph-completeness and
 readiness metrics. They are never rewritten in place.

@@ -422,3 +422,222 @@ def test_v2_validator_cli_never_echoes_objective_or_purpose_text(tmp_path):
         assert marker not in validated.stdout and marker not in validated.stderr
         assert marker not in next_wave_result.stdout and marker not in next_wave_result.stderr
         assert marker not in results.stdout and marker not in results.stderr
+
+
+# --- Isolated-worktree writers (task-graph v2 `isolation`) ---------------------------------
+
+ROOT_A = "a" * 64
+ROOT_B = "b" * 64
+ROOT_C = "c" * 64
+
+
+def isolated(node_value, root, kind="worktree"):
+    node_value["isolation"] = {"kind": kind, "root_fingerprint": root}
+    return node_value
+
+
+def v2_node(node_id, **kwargs):
+    return node(node_id, purpose=f"Lane {node_id} advances the shared objective", **kwargs)
+
+
+SHARED_ROOT = "d" * 64
+
+
+def v2_graph(nodes, *, shared_root=SHARED_ROOT, **overrides):
+    value = graph(nodes, version="rhize-task-graph-v2", objective_value=objective())
+    if shared_root is not None:
+        value["shared_root_fingerprint"] = shared_root
+    value.update(overrides)
+    return value
+
+
+def test_isolated_writers_with_distinct_roots_share_a_wave_without_write_locks():
+    value = v2_graph(
+        [
+            isolated(v2_node("repo_a", writes=("src",)), ROOT_A),
+            isolated(v2_node("repo_b", writes=("src",)), ROOT_B),
+            isolated(v2_node("repo_c", writes=("src",)), ROOT_C),
+        ]
+    )
+    result = task_graph.validate_graph(value, 4, isolation_supported=True)
+    assert result["edge_counts"]["write_lock"] == 0
+    assert result["waves"] == [["repo_a", "repo_b", "repo_c"]]
+    assert result["isolated_write_roots"] == 3
+
+
+def test_isolated_waves_still_respect_the_worker_cap():
+    value = v2_graph(
+        [isolated(v2_node(f"repo_{index}", writes=("src",)), str(index) * 64) for index in range(1, 5)]
+    )
+    result = task_graph.validate_graph(value, 4, isolation_supported=True)
+    assert result["host_worker_cap"] == 3
+    assert [len(wave) for wave in result["waves"]] == [3, 1]
+
+
+def test_writers_sharing_an_isolated_root_still_serialize():
+    value = v2_graph(
+        [isolated(v2_node("a", writes=("a",)), ROOT_A), isolated(v2_node("b", writes=("b",)), ROOT_A)]
+    )
+    result = task_graph.validate_graph(value, 4, isolation_supported=True)
+    assert result["edge_counts"]["write_lock"] == 1
+    assert result["waves"] == [["a"], ["b"]]
+    assert result["isolated_write_roots"] == 1
+
+
+def test_shared_checkout_writer_and_isolated_writer_do_not_lock_each_other():
+    value = v2_graph([v2_node("local", writes=("src",)), isolated(v2_node("remote", writes=("src",)), ROOT_A)])
+    result = task_graph.validate_graph(value, 4, isolation_supported=True)
+    assert result["edge_counts"]["write_lock"] == 0
+    assert result["waves"] == [["local", "remote"]]
+
+
+def test_overlapping_territories_under_the_same_root_still_require_order():
+    value = v2_graph(
+        [isolated(v2_node("a", writes=("src",)), ROOT_A), isolated(v2_node("b", writes=("src/x.py",)), ROOT_A)]
+    )
+    with pytest.raises(task_graph.GraphError, match="write_lock"):
+        task_graph.validate_graph(value, 4, isolation_supported=True)
+
+
+def test_isolation_requires_verified_host_support_and_fails_closed_by_default():
+    value = v2_graph([isolated(v2_node("a", writes=("src",)), ROOT_A)])
+    with pytest.raises(task_graph.GraphError, match="isolated_worktrees"):
+        task_graph.validate_graph(value, 4)
+    with pytest.raises(task_graph.GraphError, match="isolated_worktrees"):
+        task_graph.validate_graph(value, 4, isolation_supported=False)
+
+
+def test_isolation_root_cannot_be_the_shared_checkout():
+    value = v2_graph([isolated(v2_node("a", writes=("src",)), "0" * 64)])
+    with pytest.raises(task_graph.GraphError, match="shared checkout"):
+        task_graph.validate_graph(value, 4, isolation_supported=True)
+
+
+@pytest.mark.parametrize(
+    "isolation",
+    (
+        {"kind": "worktree", "root_fingerprint": "not-a-hash"},
+        {"kind": "container", "root_fingerprint": "a" * 64},
+        {"kind": "worktree"},
+        {"kind": "worktree", "root_fingerprint": "a" * 64, "path": "/tmp/x"},
+    ),
+)
+def test_malformed_isolation_is_rejected(isolation):
+    item = v2_node("a", writes=("src",))
+    item["isolation"] = isolation
+    with pytest.raises(task_graph.GraphError):
+        task_graph.validate_graph(v2_graph([item]), 4, isolation_supported=True)
+
+
+def test_copy_isolation_kind_is_accepted():
+    value = v2_graph(
+        [isolated(v2_node("a", writes=("src",)), ROOT_A, kind="copy"), isolated(v2_node("b", writes=("src",)), ROOT_B)]
+    )
+    assert task_graph.validate_graph(value, 4, isolation_supported=True)["waves"] == [["a", "b"]]
+
+
+def test_v1_graph_rejects_isolation():
+    item = node("a", writes=("src",))
+    item["isolation"] = {"kind": "worktree", "root_fingerprint": ROOT_A}
+    with pytest.raises(task_graph.GraphError):
+        task_graph.validate_graph(graph([item]), 4, isolation_supported=True)
+
+
+def test_v2_graph_without_isolation_is_unchanged():
+    value = v2_graph([v2_node("a", writes=("a",)), v2_node("b", writes=("b",))])
+    result = task_graph.validate_graph(value, 4)
+    assert result["edge_counts"]["write_lock"] == 1
+    assert result["waves"] == [["a"], ["b"]]
+    assert result["isolated_write_roots"] == 0
+
+
+def test_next_wave_dispatches_isolated_writers_together():
+    value = v2_graph(
+        [isolated(v2_node("repo_a", writes=("src",)), ROOT_A), isolated(v2_node("repo_b", writes=("src",)), ROOT_B)]
+    )
+    validated = task_graph.validate_state(state(value), value)
+    assert task_graph.next_wave(value, validated, 3)["ready"] == ["repo_a", "repo_b"]
+
+
+def test_cli_validate_uses_host_isolation_support_and_never_echoes_fingerprints(tmp_path):
+    value = v2_graph(
+        [isolated(v2_node("repo_a", writes=("src",)), ROOT_A), isolated(v2_node("repo_b", writes=("src",)), ROOT_B)]
+    )
+    graph_path = tmp_path / "graph.json"
+    graph_path.write_text(json.dumps(value))
+    supported = tmp_path / "host.json"
+    supported.write_text(json.dumps(host()))
+    unsupported_host = host()
+    unsupported_host["isolated_worktrees"] = {"status": "unknown", "supported": None}
+    unsupported = tmp_path / "host-unknown.json"
+    unsupported.write_text(json.dumps(unsupported_host))
+
+    ok = _run_cli("validate", "--graph", str(graph_path), "--capabilities", str(supported))
+    assert ok.returncode == 0, ok.stdout + ok.stderr
+    assert json.loads(ok.stdout)["waves"] == [["repo_a", "repo_b"]]
+    assert ROOT_A not in ok.stdout and ROOT_B not in ok.stdout
+
+    refused = _run_cli("validate", "--graph", str(graph_path), "--capabilities", str(unsupported))
+    assert refused.returncode == 2
+    assert "isolated_worktrees" in refused.stderr
+
+    state_path = tmp_path / "state.json"
+    state_path.write_text(json.dumps(state(value)))
+    results = _run_cli("validate-results", "--graph", str(graph_path), "--state", str(state_path))
+    assert results.returncode == 0, results.stdout + results.stderr
+
+
+def _identity(path):
+    import hashlib
+    import os
+
+    info = os.stat(path)
+    return hashlib.sha256(f"{info.st_dev}:{info.st_ino}".encode()).hexdigest()
+
+
+def test_root_fingerprint_hashes_the_git_toplevel_filesystem_identity(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "sub").mkdir(parents=True)
+    subprocess.run(["git", "-c", "core.excludesFile=/dev/null", "init", "-q", str(repo)], check=True)
+    top = _run_cli("root-fingerprint", "--path", str(repo))
+    nested = _run_cli("root-fingerprint", "--path", str(repo / "sub"))
+    assert top.returncode == 0, top.stderr
+    assert json.loads(top.stdout) == {"root_fingerprint": _identity(repo)}
+    assert json.loads(nested.stdout) == {"root_fingerprint": _identity(repo)}
+
+    plain = tmp_path / "copy"
+    plain.mkdir()
+    assert json.loads(_run_cli("root-fingerprint", "--path", str(plain)).stdout)["root_fingerprint"] == _identity(plain)
+
+
+def test_root_fingerprint_collapses_symlink_and_case_aliases(tmp_path):
+    real = tmp_path / "RealCopy"
+    real.mkdir()
+    link = tmp_path / "link"
+    link.symlink_to(real)
+    expected = json.loads(_run_cli("root-fingerprint", "--path", str(real)).stdout)["root_fingerprint"]
+    assert json.loads(_run_cli("root-fingerprint", "--path", str(link)).stdout)["root_fingerprint"] == expected
+    alias = tmp_path / "realcopy"
+    if alias.exists():  # case-insensitive filesystem (default macOS APFS)
+        assert json.loads(_run_cli("root-fingerprint", "--path", str(alias)).stdout)["root_fingerprint"] == expected
+
+
+def test_isolation_requires_a_shared_root_fingerprint():
+    value = v2_graph([isolated(v2_node("a", writes=("src",)), ROOT_A)], shared_root=None)
+    with pytest.raises(task_graph.GraphError, match="shared_root_fingerprint"):
+        task_graph.validate_graph(value, 4, isolation_supported=True)
+
+
+def test_isolation_root_cannot_be_the_shared_directory():
+    value = v2_graph([isolated(v2_node("a", writes=("src",)), SHARED_ROOT)])
+    with pytest.raises(task_graph.GraphError, match="shared checkout"):
+        task_graph.validate_graph(value, 4, isolation_supported=True)
+
+
+def test_malformed_shared_root_fingerprint_is_rejected_and_v1_rejects_it():
+    with pytest.raises(task_graph.GraphError):
+        task_graph.validate_graph(v2_graph([v2_node("a")], shared_root="nope"), 4)
+    legacy = graph([node("a")])
+    legacy["shared_root_fingerprint"] = SHARED_ROOT
+    with pytest.raises(task_graph.GraphError):
+        task_graph.validate_graph(legacy, 4)

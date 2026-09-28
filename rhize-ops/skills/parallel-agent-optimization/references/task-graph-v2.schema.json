@@ -8,6 +8,7 @@
   "properties": {
     "schema_version": {"const": "rhize-task-graph-v2"},
     "expected_checkout_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "shared_root_fingerprint": {"$comment": "Optional; required when any node declares isolation. root-fingerprint of the shared checkout directory (identity for writer locks); expected_checkout_fingerprint stays the checkout-state drift binding.", "type": "string", "pattern": "^[0-9a-f]{64}$"},
     "concurrency_budget": {"type": "integer", "minimum": 1},
     "coordinator_slots_reserved": {"type": "integer", "minimum": 1},
     "context_item_budget": {"type": "integer", "minimum": 1},
@@ -53,7 +54,13 @@
             "required": ["max_attempts", "idempotent", "renew_approval"],
             "properties": {"max_attempts": {"type": "integer", "minimum": 1, "maximum": 3}, "idempotent": {"type": "boolean"}, "renew_approval": {"type": "boolean"}}
           },
-          "verification_owner": {"const": "coordinator"}
+          "verification_owner": {"const": "coordinator"},
+          "isolation": {
+            "$comment": "Optional. This node writes an isolated checkout (git worktree or copy), not the shared checkout. Writers serialize only within one root. root_fingerprint = validate_task_graph.py root-fingerprint output; requires graph-level shared_root_fingerprint, must differ from it and from expected_checkout_fingerprint, and requires verified host isolated_worktrees support.",
+            "type": "object", "additionalProperties": false,
+            "required": ["kind", "root_fingerprint"],
+            "properties": {"kind": {"enum": ["worktree", "copy"]}, "root_fingerprint": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+          }
         }
       }
     }

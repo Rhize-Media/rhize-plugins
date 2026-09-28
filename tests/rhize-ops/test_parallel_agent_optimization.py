@@ -546,3 +546,56 @@ def test_skill_contract_is_self_contained_and_provenance_only():
     assert "b44def0f" in provenance and "19689230" in provenance
     assert "**Graph relation:** provenance-only" in ledger
     assert "Pass\n`$ARGUMENTS` unchanged" in command
+
+
+# --- Recorded concurrency-cap violations ----------------------------------------------------
+
+def _overrun_input(status):
+    value = final_input(
+        status=status,
+        agents=[
+            {"started_at": "2026-08-30T12:00:10-04:00", "completed_at": "2026-08-30T12:01:10-04:00", "status": "completed"},
+            {"started_at": "2026-08-30T12:00:20-04:00", "completed_at": "2026-08-30T12:01:20-04:00", "status": "completed"},
+        ],
+    )
+    value["task_graph"]["declared_concurrency_cap"] = 1
+    return value
+
+
+def test_completed_status_still_rejects_a_cap_overrun():
+    with pytest.raises(parallel_metrics.ReceiptError, match="observed concurrency"):
+        parallel_metrics.validate_final(_overrun_input("completed"), parallel_metrics.validate_begin(begin_input()))
+
+
+def test_incomplete_status_rejects_a_known_cap_overrun():
+    with pytest.raises(parallel_metrics.ReceiptError, match="failed"):
+        parallel_metrics.validate_final(_overrun_input("incomplete"), parallel_metrics.validate_begin(begin_input()))
+
+
+def test_failed_status_records_a_cap_overrun_with_true_counts():
+    stored = parallel_metrics.validate_final(_overrun_input("failed"), parallel_metrics.validate_begin(begin_input()))
+    assert stored["concurrency_cap_exceeded"] is True
+    assert stored["max_concurrency"] == 2
+    assert stored["task_graph"]["declared_concurrency_cap"] == 1
+
+
+def test_within_cap_receipts_record_no_violation_and_graphless_receipts_record_null():
+    within = parallel_metrics.validate_final(final_input(), parallel_metrics.validate_begin(begin_input()))
+    assert within["concurrency_cap_exceeded"] is False
+    graphless = parallel_metrics.validate_final(
+        final_input(
+            status="incomplete", decision=None, lanes_planned=None, agents=None, verification=None,
+            collisions=None, rework_events=None, correctness_pass=None, task_graph=None,
+        ),
+        parallel_metrics.validate_begin(begin_input()),
+    )
+    assert graphless["concurrency_cap_exceeded"] is None
+
+
+def test_report_counts_recorded_cap_violations(tmp_path):
+    store = tmp_path / "store"
+    reservation = parallel_metrics.begin_run(begin_input(), store)
+    parallel_metrics.finalize_run(reservation["run_id"], _overrun_input("failed"), store)
+    report = parallel_metrics.build_report(store, "all")
+    assert report["evidence"]["observational"]["concurrency_cap_violations"] == 1
+    assert "Concurrency-cap violations recorded: 1" in parallel_metrics.render_markdown(report)

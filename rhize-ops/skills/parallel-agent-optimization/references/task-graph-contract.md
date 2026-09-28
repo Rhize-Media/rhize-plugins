@@ -40,10 +40,52 @@ python3 scripts/validate_task_graph.py validate-results --graph /tmp/graph.json 
 The validator derives data edges from `depends_on`. Write territory and single-capacity resource
 collisions must be ordered by a data dependency; otherwise validation fails instead of inventing an
 order. All writers targeting one shared checkout are conservatively serialized, even when their file
-territories are disjoint; parallel writers require separately isolated worktrees outside this
-ephemeral graph. Approval and external-effect nodes are gated and remain coordinator-owned. Unknown host
+territories are disjoint. Approval and external-effect nodes are gated and remain coordinator-owned. Unknown host
 concurrency degrades to a single worker. A retry beyond the first attempt is legal only for an
 idempotent node, and any approval/external-effect retry must renew approval.
+
+## Isolated writers (v2 `isolation`)
+
+A v2 node that writes a separately isolated checkout (its own git worktree or a disposable copy)
+declares it:
+
+```json
+"isolation": {"kind": "worktree", "root_fingerprint": "<sha256>"}
+```
+
+`kind` is `worktree` or `copy`. `root_fingerprint` is the output of
+`python3 scripts/validate_task_graph.py root-fingerprint --path <isolated root>`: sha256 of the
+filesystem identity (`st_dev:st_ino`) of that root's git toplevel, or of the directory itself for a
+plain copy. Symlinks and case-insensitive spellings of one directory therefore get the same
+fingerprint.
+
+A graph that isolates any node must also declare a top-level `shared_root_fingerprint`: the
+`root-fingerprint` of the shared checkout directory. That is the lock identity for every writer
+without `isolation`. `expected_checkout_fingerprint` keeps its separate job, binding checkout state
+for drift detection. The two hash different things, so neither can stand in for the other.
+
+- **One writer per checkout still holds:** writers serialize only when they share a root. Writers in
+  distinct isolated roots get no `write_lock` edge and may share a wave. A shared-checkout writer and
+  an isolated writer do not lock each other.
+- **Collisions are per root:** overlapping `writes` territories under the same root still need an
+  explicit dependency. Under different roots they are allowed, and reconciling them is the
+  coordinator's integration job at the join.
+- **Fail closed:** `isolation` is rejected unless the host profile reports `isolated_worktrees`
+  `verified` with `supported: true`. It is also rejected when the graph has no
+  `shared_root_fingerprint`, or when the root equals `shared_root_fingerprint` or
+  `expected_checkout_fingerprint`.
+  `validate-results` does not dispatch, so it does not re-check host support.
+- **The worker cap is unchanged:** isolation removes the writer lock but not `host_worker_cap`
+  (`min(concurrency_budget − coordinator_slots_reserved, host concurrency − reserved)`). Declare a
+  budget that covers every lane you intend to run at once, plus the coordinator.
+- **Revalidate each root:** the coordinator revalidates each isolated root before integrating its
+  result, just as it revalidates the shared checkout at wave boundaries.
+- **What the validator can't check:** it compares hashes and can't see where a lane actually runs.
+  Compute `shared_root_fingerprint` and every isolation root with `root-fingerprint` on the
+  directories you really dispatch into, so equal directories always produce equal fingerprints (and
+  therefore serialize). Never invent or reuse a fingerprint.
+- **Privacy:** `validate` reports only the count `isolated_write_roots`, never fingerprints.
+- **v1 stays frozen:** a v1 graph with `isolation` is rejected.
 
 State is versioned `rhize-task-state-v1`. It binds the graph fingerprint and the graph's expected
 checkout fingerprint. Each node records `previous_status` and `status`; the validator rejects

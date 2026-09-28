@@ -545,8 +545,16 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
         )
 
     actual_overlap, concurrent_ms, max_concurrency = interval_metrics(intervals)
-    if task_graph is not None and max_concurrency > task_graph["declared_concurrency_cap"]:
-        raise ReceiptError("observed concurrency exceeds task_graph.declared_concurrency_cap")
+    cap_exceeded = None
+    if task_graph is not None:
+        cap_exceeded = max_concurrency > task_graph["declared_concurrency_cap"]
+        # A known overrun is a routing-contract failure: never a completed run, never "missing
+        # evidence". Record it truthfully as failed rather than altering the declared cap.
+        if cap_exceeded and status != "failed":
+            raise ReceiptError(
+                "observed concurrency exceeds task_graph.declared_concurrency_cap; "
+                "finalize a cap overrun as failed"
+            )
     stored = dict(reservation)
     stored.pop("reserved_at", None)
     stored.update(raw)
@@ -557,6 +565,7 @@ def validate_final(raw: Any, reservation: dict[str, Any]) -> dict[str, Any]:
             "actual_overlap": actual_overlap,
             "concurrent_agent_ms": concurrent_ms,
             "max_concurrency": max_concurrency,
+            "concurrency_cap_exceeded": cap_exceeded,
             "agent_count": len(agents) if agents is not None else None,
             "agent_status_counts": {name: statuses[name] for name in AGENT_STATUSES},
             "verification_completeness": (
@@ -871,6 +880,7 @@ def build_report(store: Path, evidence: str) -> dict[str, Any]:
             "terminal_status_counts": {
                 status: sum(row.get("status") == status for row in rows) for status in TERMINAL_STATUSES
             },
+            "concurrency_cap_violations": sum(row.get("concurrency_cap_exceeded") is True for row in rows),
             "variants": {variant: summarize_variant(by_variant[variant]) for variant in VARIANTS},
         }
         if comparison_counts is not None:
@@ -898,6 +908,7 @@ def render_markdown(report: dict[str, Any]) -> str:
                 f"Stored terminal receipts: {section['stored_runs']}; analyzed completed runs: {section['analyzed_runs']}",
                 f"Pre-task-graph v2 receipts retained but excluded: {section['pre_task_graph_v2_runs']}",
                 f"Pre-required-closure v2 receipts retained but excluded: {section['pre_required_closure_v2_runs']}",
+                f"Concurrency-cap violations recorded: {section['concurrency_cap_violations']}",
                 "",
                 "| Variant | Runs | Correctness | Routing | Verification complete | Median ms | Overlap | Agents | Collisions | Rework | Tools | Tokens |",
                 "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",

@@ -5,7 +5,7 @@
 | Task class | Expected routing | Constraint |
 | --- | --- | --- |
 | `parallel_read` | `parallel` | Independent read/check lanes may overlap. |
-| `disjoint_write` | `parallel` | Isolate writers and declare non-overlapping territories. |
+| `disjoint_write` | `parallel` | Isolate writers (declare v2 `isolation` per worktree/copy) and declare non-overlapping territories. |
 | `shared_state` | `sequential` | One owner controls the shared checkout, file, table, or service. |
 | `dependency_chain` | `sequential` | Do not start downstream work before its input is verified. |
 | `mixed_verification` | `parallel` | Overlap independent checks, then join for interpretation. |

@@ -81,8 +81,15 @@ For execution, sketch the graph's objective and done signal first, then each nod
 its own purpose — why that lane serves the objective — before dispatch. The canonical skill validates
 that file-disjoint work is also independent of checkout state, rate pools, approvals, and external
 effects, and (schema `rhize-task-graph-v2`, the version new graphs must use) that the objective and
-every lane's purpose are present, non-blank, and not a copy of the lane's own deliverable. Unknown
-host capacity becomes a sequential wave, and a missing required result blocks the join. Claude Code
+every lane's purpose are present, non-blank, and not a copy of the lane's own deliverable.
+
+Writers in the same checkout always take turns. When a lane works in its own git worktree or copy,
+mark it with `isolation` so it can run alongside the others. Lanes in different worktrees then share
+a wave, still within the worker limit. Size the concurrency budget for every lane you plan to run at
+once, plus the coordinator. If more agents run at once than the graph allowed, record the run as
+`failed`; the receipt then keeps an honest `concurrency_cap_exceeded` flag.
+
+Unknown host capacity becomes a sequential wave, and a missing required result blocks the join. Claude Code
 and Codex share this host-neutral contract; neither host needs the other's hooks or environment
 variables.
 

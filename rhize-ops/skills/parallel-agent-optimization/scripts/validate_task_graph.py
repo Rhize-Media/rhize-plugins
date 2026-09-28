@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -35,6 +36,7 @@ STATUS_TRANSITIONS = {
     "skipped_optional": {"skipped_optional"},
 }
 EXTERNAL_EFFECTS = {"none", "external_read", "external_write", "paid_call", "production"}
+ISOLATION_KINDS = {"worktree", "copy"}
 NODE_ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 
 
@@ -86,7 +88,13 @@ def territories_overlap(left: str, right: str) -> bool:
     return left == right or left.startswith(right + "/") or right.startswith(left + "/")
 
 
-def bounded_wave(ready: list[str], nodes: dict[str, dict[str, Any]], cap: int) -> list[str]:
+def write_root(node: dict[str, Any], shared_root: str) -> str:
+    """The checkout a node writes: its declared isolated root, else the shared checkout."""
+    isolation = node.get("isolation")
+    return isolation["root_fingerprint"] if isolation else shared_root
+
+
+def bounded_wave(ready: list[str], nodes: dict[str, dict[str, Any]], cap: int, shared_root: str = "") -> list[str]:
     wave: list[str] = []
     usage: Counter[str] = Counter()
     for node_id in ready:
@@ -97,7 +105,8 @@ def bounded_wave(ready: list[str], nodes: dict[str, dict[str, Any]], cap: int) -
         if node["external_effect"] != "none":
             resources.append(("__external_effect__", 1))
         if node["writes"]:
-            resources.append(("__checkout_writer__", 1))
+            # One writer per checkout: writers in distinct isolated roots do not contend.
+            resources.append((f"__checkout_writer__:{write_root(node, shared_root)}", 1))
         if len(wave) >= cap or any(usage[name] >= capacity for name, capacity in resources):
             continue
         wave.append(node_id)
@@ -133,18 +142,34 @@ def validate_host(raw: Any) -> tuple[dict[str, Any], int]:
     return host, cap
 
 
-def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
+def shared_write_root(graph: dict[str, Any]) -> str:
+    """Lock identity for writers without ``isolation``: the shared directory when declared."""
+    return graph.get("shared_root_fingerprint") or graph["expected_checkout_fingerprint"]
+
+
+def is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(character in "0123456789abcdef" for character in value)
+
+
+def validate_graph(raw: Any, host_cap: int, isolation_supported: bool | None = False) -> dict[str, Any]:
+    """Validate a graph. ``isolation_supported`` is the host's verified isolated-worktree support;
+    ``None`` skips that host check for non-dispatch paths (validate-results)."""
     version = raw.get("schema_version") if isinstance(raw, dict) else None
     if version not in GRAPH_VERSIONS:
         raise GraphError(f"schema_version must be one of {sorted(GRAPH_VERSIONS)}")
     is_v2 = GRAPH_VERSIONS[version] == 2
     base_graph_keys = {"schema_version", "expected_checkout_fingerprint", "concurrency_budget", "coordinator_slots_reserved", "context_item_budget", "nodes"}
     graph_keys = base_graph_keys | ({"objective"} if is_v2 else set())
+    if is_v2 and "shared_root_fingerprint" in raw:
+        graph_keys = graph_keys | {"shared_root_fingerprint"}
     graph = exact(raw, graph_keys, "graph")
-    if not isinstance(graph["expected_checkout_fingerprint"], str) or len(graph["expected_checkout_fingerprint"]) != 64 or any(
-        character not in "0123456789abcdef" for character in graph["expected_checkout_fingerprint"]
-    ):
+    if not is_sha256(graph["expected_checkout_fingerprint"]):
         raise GraphError("expected_checkout_fingerprint must be sha256")
+    # expected_checkout_fingerprint tracks checkout STATE (drift). Directory identity for writer
+    # locks is the separately computed shared_root_fingerprint, required once any node isolates.
+    if "shared_root_fingerprint" in graph and not is_sha256(graph["shared_root_fingerprint"]):
+        raise GraphError("shared_root_fingerprint must be sha256")
+    shared_root = shared_write_root(graph)
     budget = positive(graph["concurrency_budget"], "concurrency_budget")
     reserved = positive(graph["coordinator_slots_reserved"], "coordinator_slots_reserved")
     item_budget = positive(graph["context_item_budget"], "context_item_budget")
@@ -161,7 +186,9 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
     nodes: dict[str, dict[str, Any]] = {}
     resource_capacities: dict[str, int] = {}
     for index, value in enumerate(graph["nodes"]):
-        node = exact(value, node_keys, f"nodes[{index}]")
+        # v2 nodes may declare an isolated write root; v1 stays frozen.
+        optional_keys = {"isolation"} if is_v2 and isinstance(value, dict) and "isolation" in value else set()
+        node = exact(value, node_keys | optional_keys, f"nodes[{index}]")
         node_id = node["id"]
         if not isinstance(node_id, str) or not NODE_ID.fullmatch(node_id) or node_id in nodes:
             raise GraphError("node ids must be non-empty and unique")
@@ -207,6 +234,18 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
             if resource["name"] in resource_capacities and resource_capacities[resource["name"]] != capacity:
                 raise GraphError(f"resource {resource['name']} has conflicting capacities")
             resource_capacities[resource["name"]] = capacity
+        if "isolation" in node:
+            isolation = exact(node["isolation"], {"kind", "root_fingerprint"}, f"{node_id}.isolation")
+            if not isinstance(isolation["kind"], str) or isolation["kind"] not in ISOLATION_KINDS:
+                raise GraphError(f"{node_id}.isolation.kind must be one of {sorted(ISOLATION_KINDS)}")
+            if not is_sha256(isolation["root_fingerprint"]):
+                raise GraphError(f"{node_id}.isolation.root_fingerprint must be sha256")
+            if "shared_root_fingerprint" not in graph:
+                raise GraphError(f"{node_id}.isolation requires a graph-level shared_root_fingerprint")
+            if isolation["root_fingerprint"] in {shared_root, graph["expected_checkout_fingerprint"]}:
+                raise GraphError(f"{node_id}.isolation root must not be the shared checkout")
+            if isolation_supported is not None and not isolation_supported:
+                raise GraphError(f"{node_id}.isolation requires verified host isolated_worktrees support")
         nodes[node_id] = node
     for node_id, node in nodes.items():
         for dependency in node["depends_on"]:
@@ -225,8 +264,11 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
     for index, left in enumerate(node_list):
         for right in node_list[index + 1:]:
             ordered = is_ancestor(nodes, left["id"], right["id"]) or is_ancestor(nodes, right["id"], left["id"])
-            shared_checkout_writers = bool(left["writes"] and right["writes"])
-            write_collision = any(territories_overlap(a, b) for a in left["writes"] for b in right["writes"])
+            same_root = write_root(left, shared_root) == write_root(right, shared_root)
+            shared_checkout_writers = bool(left["writes"] and right["writes"]) and same_root
+            write_collision = same_root and any(
+                territories_overlap(a, b) for a in left["writes"] for b in right["writes"]
+            )
             shared_resources = {
                 item["name"] for item in left["resources"]
             } & {item["name"] for item in right["resources"]}
@@ -249,7 +291,7 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
             raise GraphError("graph contains a cycle")
         unscheduled = ready
         while unscheduled:
-            wave = bounded_wave(unscheduled, nodes, worker_cap)
+            wave = bounded_wave(unscheduled, nodes, worker_cap, shared_root)
             if not wave:
                 raise GraphError("resource capacities cannot produce a schedulable wave")
             levels.append(wave)
@@ -265,6 +307,9 @@ def validate_graph(raw: Any, host_cap: int) -> dict[str, Any]:
         "warnings": [] if is_v2 else ["objective_missing_v1"],
         "graph_fingerprint": fingerprint(graph),
         "host_worker_cap": worker_cap,
+        "isolated_write_roots": len(
+            {node["isolation"]["root_fingerprint"] for node in node_list if node["writes"] and "isolation" in node}
+        ),
         "edge_counts": {name: edge_counts[name] for name in ("data", "write_lock", "resource_pool", "approval", "external_effect")},
         "waves": levels,
         "fan_in_levels": fan_in_levels,
@@ -363,7 +408,7 @@ def next_wave(graph: dict[str, Any], state: dict[str, Any], cap: int) -> dict[st
             if nodes[node_id]["external_effect"] != "none" and not state["external_state_revalidated"]:
                 continue
             ready.append(node_id)
-    selected = bounded_wave(ready, nodes, cap)
+    selected = bounded_wave(ready, nodes, cap, shared_write_root(graph))
     return {
         "ready": selected,
         "deferred_ready": [item for item in ready if item not in selected],
@@ -426,6 +471,30 @@ def load(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def root_fingerprint(path: Path) -> str:
+    """sha256 of the filesystem identity (st_dev:st_ino) of the git toplevel containing ``path``, or
+    of ``path`` itself when it is not inside a git work tree (e.g. a plain copy). Filesystem identity
+    collapses symlink and case-insensitive aliases of one directory. Only the digest leaves here."""
+    target = path.resolve()
+    if not target.is_dir():
+        raise GraphError("root-fingerprint --path must be an existing directory")
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(target), "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, check=False, timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        result = None
+    root = Path(result.stdout.strip()).resolve() if result and result.returncode == 0 and result.stdout.strip() else target
+    info = root.stat()
+    return hashlib.sha256(f"{info.st_dev}:{info.st_ino}".encode()).hexdigest()
+
+
+def host_isolation_supported(host: dict[str, Any]) -> bool:
+    capability = host["isolated_worktrees"]
+    return capability["status"] == "verified" and capability["supported"] is True
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     sub = result.add_subparsers(dest="command", required=True)
@@ -438,20 +507,25 @@ def parser() -> argparse.ArgumentParser:
     results = sub.add_parser("validate-results")
     results.add_argument("--graph", type=Path, required=True)
     results.add_argument("--state", type=Path, required=True)
+    fingerprint_root = sub.add_parser("root-fingerprint")
+    fingerprint_root.add_argument("--path", type=Path, required=True)
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
+        if args.command == "root-fingerprint":
+            print(json.dumps({"root_fingerprint": root_fingerprint(args.path)}, indent=2, sort_keys=True))
+            return 0
         graph = load(args.graph)
         if args.command == "validate-results":
-            validate_graph(graph, sys.maxsize)
+            validate_graph(graph, sys.maxsize, isolation_supported=None)
             state = validate_state(load(args.state), graph)
             output = validate_results(graph, state)
         else:
-            _, host_cap = validate_host(load(args.capabilities))
-            validation = validate_graph(graph, host_cap)
+            host, host_cap = validate_host(load(args.capabilities))
+            validation = validate_graph(graph, host_cap, isolation_supported=host_isolation_supported(host))
             if args.command == "validate":
                 output = validation
             else:

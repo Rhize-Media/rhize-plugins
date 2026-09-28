@@ -99,6 +99,21 @@ follows the same rule as every other task-content field: the validator never ech
 `validate`/`next-wave`/`validate-results` output. See
 [task-graph-contract.md](skills/parallel-agent-optimization/references/task-graph-contract.md).
 
+A v2 writer node that runs in its own git worktree or copy declares
+`isolation: {kind: "worktree"|"copy", root_fingerprint}`, and the graph then also declares
+`shared_root_fingerprint` for the shared checkout directory. Get both from
+`validate_task_graph.py root-fingerprint --path <root>`, which prints sha256 of the root's filesystem
+identity (`st_dev:st_ino`), so symlinks and case aliases of one directory match.
+- Writers serialize only within one root, so lanes in distinct roots can share a wave (still within
+  `host_worker_cap`).
+- Isolation requires verified host `isolated_worktrees` support, and each root must differ from
+  `shared_root_fingerprint` (the lock identity) and `expected_checkout_fingerprint` (which only binds
+  checkout state for drift detection).
+- `validate` reports only an `isolated_write_roots` count.
+
+On the receipt side, a known concurrency-cap overrun can only be finalized as `failed`. Receipts
+store a derived `concurrency_cap_exceeded` flag, and `report` counts `concurrency_cap_violations`.
+
 **Invoked as:** `rhize-ops:parallel-agent-optimization`
 
 **Required triggers:** any mention, discussion, proposal, plan, review, benchmark, optimization, or
