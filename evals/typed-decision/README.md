@@ -8,7 +8,7 @@ The runner is a development tool. Keep real labeled cases, candidate files and l
 
 One JSON object per line, with a stable `case_id`, `group_id` (task/source identity), `decision_type`, `stratum`, `label_source`, `adjudicated: true`, bounded `state`, named `questions`, and matching `labels`. Each question has `type: choice|noul` and nonempty `instructions`. Choice questions also have a `criteria` object and a label naming one option. Noul labels are booleans. `arm_a` is an optional map of the incumbent's recorded predictions with the same question IDs; missing Arm A data is reported as unavailable. Use `critical_...` strata for safety and authorization cases. Do not use Laya's own answers as ground truth.
 
-The seed assigns all cases from one group to train, validation, or locked holdout at 50/25/25. The exact corpus, seed and split hashes enter a manifest. A release candidate needs at least 200 adjudicated cases per decision type and at least 50 holdout cases comprising 25% of that type. Smaller runs are exploratory and the ledger says `release_eligible: false`. The operator prepares a new private split directory, then gives the candidate-generating agent only `train.jsonl`, `validation.jsonl`, and `manifest.json`; the reviewer retains `holdout.jsonl` separately.
+For the generic non-pilot case contract, the seed assigns all cases from one group to train, validation, or locked holdout at 50/25/25. The exact corpus, seed and split hashes enter a manifest. A release candidate needs at least 200 adjudicated cases per decision type and at least 50 holdout cases comprising 25% of that type. Smaller runs are exploratory and the ledger says `release_eligible: false`. The operator prepares a new private split directory, then gives the candidate-generating agent only `train.jsonl`, `validation.jsonl`, and `manifest.json`; the reviewer retains `holdout.jsonl` separately.
 
 ## Candidate contract and commands
 
@@ -26,7 +26,7 @@ python3 evals/typed-decision/research.py --phase search \
   --candidates /private/path/candidates.json --ledger /private/path/results.jsonl
 ```
 
-The search phase evaluates train and validation only, ranks candidates first by fewer critical misses, then higher accuracy, then lower abstention, and appends every keep/discard result. Inspect all strata, calibration/Brier sums, latency and token usage; the provisional rank is not a release decision. Select and freeze exactly one kept candidate, put it alone in a candidate file, then run holdout once using the digest printed by search:
+The search phase evaluates train and validation only, ranks candidates first by fewer critical misses, then higher accuracy, then lower abstention, and appends every keep/discard result. Inspect all strata, Brier diagnostics where defined, latency and token usage; the provisional rank is not a release decision. Select and freeze exactly one kept candidate, put it alone in a candidate file, then run holdout once using the digest printed by search:
 
 ```sh
 python3 evals/typed-decision/research.py --phase holdout \
@@ -55,9 +55,67 @@ Run a small replayable 4–6-pair pilot with identical rubric and frozen fixture
 - The candidate runner changes questions/checkpoints/thresholds, not Laya weights. Domain fine-tuning is a separate experiment after sufficient labels and a compatible training environment exist; compare it as another pinned candidate, then use the same holdout and project trial.
 - Foreman-style thresholds are provisional and only produce `candidate_directive` in shadow. `FINISH` requires actual passed checks and independent review even as a candidate.
 
-## Integrated workflow pilot
+## Integrated workflow pilot v2
 
-`pilot_cycle.py --research-root PRIVATE_DIRECTORY` coordinates an opt-in workflow cohort with the
-fixed evaluator described above. It generates five bounded wording/threshold candidates, preserves
-failed attempts, serializes local inference, and freezes a candidate for review. No holdout or promotion
-is automatic. See the [collection and human review contract](../../rhize-context-manager/docs/decision-pilot.md).
+`pilot_cycle.py --research-root PRIVATE_DIRECTORY` is the daily workflow coordinator. Its automatic
+CLI processes only `workflow-pilot-v2`; historical v1 exports and frozen experiments remain intact.
+The older callable `legacy_cycle` is retained for explicit v1 fixture/exploratory compatibility,
+not selected by this CLI. Automatic `--minimum-labels` cannot be below **200**.
+
+V2 export adds `cohort_version`, `normalization_version`, `collection_source_sha256`, opaque
+`grouping_keys`, `task_family`, `host`, `candidate_ids`, human `routing_choice` and nullable
+`arm_a_choice`. Export accepts only eligible decisions with bound human adjudication. It preserves
+the original sealed model state/questions; Arm A is evaluation evidence, never a model feature.
+A no-match catalog result is distinct from an actual general-family consultation.
+
+Use the [collection and human review contract](../../rhize-context-manager/docs/decision-pilot.md)
+for opt-in config, context-before-consult commands, inherited continuations, evidence bases,
+normal-check measurement and focused daily review. Context is agent-asserted, consultation and
+outcomes are operator-reported, measured checks are automatic artifacts, and human labels require
+explicit adjudication. These evidence types cannot substitute for one another.
+
+The workflow objective counts one consultation choice per case. The evaluator imports the same
+`pilot_routing.decode_scores` used by live inference: finite bounded scores, deterministic argmax
+and tie break, exclusion mask, then threshold abstention. It does not grade three binary Noul
+answers as three independent routing decisions. V2 relevance values are uncalibrated and its
+`brier_mean` stays null; generic non-pilot choice/Noul diagnostics retain their existing semantics.
+
+In addition to 200 eligible human labels, provisional development gates apply to the **whole
+corpus**, including the reserved holdout, and require the following. They do not guarantee these
+counts in train or validation separately:
+
+- At least 20 connected independent groups and at least two task domains.
+- At least 20 labels per represented domain; no connected group over 20% of the corpus.
+- Consistent collection-source and normalization versions, with no incompatible cohort mixture.
+
+Diversity failures are reported holds, never silent filtering or release qualifications.
+Mixed source/cohort/normalization metadata holds; malformed exported records produce a
+preserved export-contract failure. Grouping joins session,
+parent/task ancestry, normalized bounded input/template and separate exact prompt hashes. Repeated
+input in different sessions cannot cross splits. Append-only split reservations are stored before
+materializing new split files. Later bridges between assigned splits hold without reassigning the
+old holdout. Legacy held-out identities are checked only through manifest membership metadata;
+missing metadata or overlap holds the v2 cycle without opening old holdout cases. Cross-version
+checks use only unchanged session/prompt identities, not differently normalized input/task keys.
+Legacy membership-manifest digests enter attempt identity, so reviewed metadata correction can
+create a new attempt while preserving the prior hold. Do not delete or rewrite split assignments
+to clear holds. Newly observed groups receive an approximate 50/25/25 hash partition; frozen
+assignments, not a changing group fingerprint, govern their subsequent split.
+
+The coordinator creates five fixed wording/abstention candidates and makes at most 2,400 development
+requests with a default 180-second deadline. It serializes with pending collection inference.
+Corpus/cohort/config/source/scorer/evaluator identities bind each immutable attempt. Failed,
+interrupted and malformed-corpus attempts remain visible and unchanged attempts are not replayed.
+Preflight identity includes actual receipt/context/observation fingerprints and v2 helper sources,
+so a genuine binding-input repair changes the identity. Invalid CLI bounds return structured
+failure JSON; unavailable failure-receipt persistence is reported rather than hidden.
+Insufficient labels creates a separate durable non-error hold, not a failed experiment.
+
+Successful development search freezes one candidate for human review and reports
+`releaseEligible: false`, `holdout: not_run`, and `promotion: not_performed`. The daily job never
+runs a holdout, promotes a candidate, trains weights, fabricates labels or launches duplicate
+coding tasks. The generic holdout commands above describe a separately authorized review workflow;
+they are not part of the automatic pilot. Existing Arm A continues executing throughout shadow
+collection; Arm B recommendations cannot be credited with Arm A's task outcomes. `arm_a_coverage` records
+known/total incumbent choices by split; comparison remains unavailable if even one required
+incumbent choice is missing, rather than substituting a score for missing evidence.

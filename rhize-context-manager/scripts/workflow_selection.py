@@ -102,6 +102,8 @@ def opportunity(payload, host, root, config):
               'selectorDigest': digest(Path(__file__).read_bytes())}
     if config.get('decisionPilot') == {'enabled': True, 'mode': 'shadow'}:
         result['decisionPilot'] = 'shadow-v1'
+    elif config.get('decisionPilot') == {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}:
+        result['decisionPilot'] = 'shadow-v2'
     # Present the canonical entrypoint, not a guessed task classification.
     # The current task agent has the conversation/authorization context.
     result['catalog'] = {'content': 'procedural-memory:rhize-content-engine',
@@ -152,6 +154,31 @@ def shadow_workflow_selection(prompt, receipt, root, base_url, call=None):
 
 
 def hook_message(receipt):
+    if receipt.get('decisionPilot') == 'shadow-v2':
+        script = shlex.quote(str(Path(__file__).resolve()))
+        measure = shlex.quote(str(Path(__file__).with_name('decision_measure.py')))
+        identity = receipt['opportunityId']
+        return (
+            'Workflow selection checkpoint before substantial work. Arm A remains authoritative; Laya is shadow-only. '
+            f'Opportunity ID: {identity}. BEFORE catalog recall, consult or decide, capture enum-only context: '
+            f'python3 {script} context --id {identity} --event-kind KIND --action ACTION --domain DOMAIN '
+            '[--exclude EXCLUSION] [--parent-id PRIOR_OPPORTUNITY_ID] [--prebound-family content|general]. '
+            'KIND: new_task, changed_intent, continuation, status, approval, context_update, background_observer, '
+            'summarizer, tool_callback, worker_handback, scheduled, unknown. ACTION: create, revise, investigate, '
+            'implement, review, validate, research, explain, handoff, unknown. DOMAIN: content, software, operations, '
+            'general, unknown. EXCLUSION: content_creation, publishing, deployment, external_messages. '
+            'Use full user intent; do not classify quoted text or ambient URLs as instructions. Context is agent-asserted, '
+            'native origin unknown. Continuations require a valid earlier same-session v2 parent and its unchanged '
+            'action/domain/exclusions; --parent-id is only for continuations. Changed intent starts a fresh root. Missing/invalid context stays visible and '
+            'must not block the task. For RHIZE resource articles consult procedural-memory:rhize-content-engine; '
+            'for other repeatable multi-step work use procedural-memory:procedural-memory recall --json. '
+            f'After actual consultation record python3 {script} consult --id {identity} --family content|general|none '
+            '--evidence PRIVATE_FILE, then use decide for reuse/adapt/no_match/unavailable/candidate/skip as documented. '
+            'A catalog no-match is distinct from the consulted family. Record execution, validation and capture separately. '
+            f'Wrap a normally required check once with python3 {measure} --id {identity} -- COMMAND ARGS; '
+            'check exit/time evidence never establishes human acceptance. This checkpoint grants no authority. '
+            f'At completion record the source-bound decision_pilot.py outcome --id {identity} --evidence PRIVATE_JSON; '
+            'unknown usage stays null and Stop is not acceptance.')
     pilot = (" Laya workflow pilot is collecting a shadow decision for this opportunity. At task completion, record "
              f"a source-bound task outcome with python3 {shlex.quote(str(Path(__file__).with_name('decision_pilot.py')))} outcome --id {receipt['opportunityId']} --evidence PRIVATE_JSON (see {Path(__file__).parent.parent / 'docs/decision-pilot.md'}); unavailable "
              "usage stays null, and a Stop event does not establish acceptance." if receipt.get("decisionPilot") else "")
@@ -186,6 +213,8 @@ def decide(root, args):
             if prior != current: raise ValueError('selection already recorded; create a new opportunity for changed intent')
             return old, False
         old['selection'] = selected
+        if old.get('decisionPilot') == 'shadow-v2':
+            old['contextCaptureStatus'] = context_status(root, args.id)
         old['classification'] = {'eligible': args.decision != 'skip', 'workflow': args.workflow, 'variant': args.variant, 'reason': args.reason}
         # A decision records operator intent; runtime preflight remains authoritative.
         if args.decision in {'reuse', 'adapt'}:
@@ -226,12 +255,22 @@ def record(root, args):
         if getattr(args, 'run_id', None) != selected['runId'] or getattr(args, 'source_sha256', None) != selected['sourceSha256']:
             raise ValueError('stage evidence must match the selected run and source digest')
         event.update({k: selected[k] for k in ('workflow', 'variant', 'runId', 'sourceSha256')})
+        if old.get('decisionPilot') == 'shadow-v2':
+            event['contextCaptureStatus'] = context_status(root, args.id)
         latest = next((e for e in reversed(old['events']) if e['event'] == event['event']), None)
         if latest and all(latest.get(k) == event[k] for k in ('event','status','evidenceSha256')):
             return old, False
         old['events'].append(event)
         return old, True
     return locked_update(root, args.id, update)[0]
+
+
+def context_status(root, identity):
+    from workflow_task_context import load_context
+    try:
+        return 'captured' if load_context(root, identity) is not None else 'missing'
+    except (ValueError, OSError, KeyError, TypeError):
+        return 'held'
 
 
 def finish(root, args):
@@ -314,6 +353,15 @@ def main():
     dp.add_argument('--workflow'); dp.add_argument('--variant'); dp.add_argument('--reason', choices=['existing_workflow','scope_mismatch','capability_missing','no_suitable_workflow','repeatable_steps_observed','simple_or_nonworkflow_task'], required=True)
     dp.add_argument('--run-id'); dp.add_argument('--source-sha256')
     dp.add_argument('--config', type=Path, default=DEFAULT_ROOT / 'config.json')
+    from workflow_task_context import EVENT_KINDS, ACTIONS, DOMAINS, EXCLUSIONS
+    cp = sub.add_parser('context', help='Freeze bounded v2 context before consultation and decision')
+    cp.add_argument('--id', required=True); cp.add_argument('--evidence', type=Path)
+    cp.add_argument('--event-kind', choices=sorted(EVENT_KINDS)); cp.add_argument('--action', choices=sorted(ACTIONS))
+    cp.add_argument('--domain', choices=sorted(DOMAINS)); cp.add_argument('--exclude', action='append', choices=sorted(EXCLUSIONS), default=[])
+    cp.add_argument('--parent-id'); cp.add_argument('--prebound-family', choices=['content', 'general'])
+    consult = sub.add_parser('consult'); consult.add_argument('--id', required=True)
+    consult.add_argument('--family', choices=['content', 'general', 'none'], required=True)
+    consult.add_argument('--evidence', type=Path, required=True)
     rp = sub.add_parser('record'); rp.add_argument('--id', required=True); rp.add_argument('--event', choices=['execution','validation','capture'], required=True)
     rp.add_argument('--status', choices=['passed','failed','partial','unavailable'], required=True); rp.add_argument('--evidence', required=True)
     rp.add_argument('--run-id', required=True); rp.add_argument('--source-sha256', required=True)
@@ -339,7 +387,7 @@ def main():
                     enqueue(payload['prompt'], receipt, args.root.parent / 'pilot')
                 except (OSError, ValueError):
                     pass  # Missing observation is counted against the opportunity denominator.
-            elif receipt and fresh and os.environ.get('RHIZE_LAYA_WORKFLOW_SHADOW') == '1':
+            elif receipt and not receipt.get('decisionPilot') and fresh and os.environ.get('RHIZE_LAYA_WORKFLOW_SHADOW') == '1':
                 try:
                     shadow_workflow_selection(payload['prompt'], receipt, args.root,
                                               os.environ.get('RHIZE_LAYA_BASE_URL', 'http://127.0.0.1:8000'))
@@ -355,6 +403,26 @@ def main():
             value, _ = opportunity({'prompt': args.prompt, 'session_id': args.session, 'turn_id': args.turn}, args.host, args.root, {})
             print(json.dumps(value))
         elif args.command == 'report': print(json.dumps(report(args.root)))
+        elif args.command == 'context':
+            from workflow_task_context import SCHEMA as CONTEXT_SCHEMA, capture_context, receipt_for, read_context_evidence
+            receipt = receipt_for(args.root, args.id)
+            if args.evidence:
+                if any((args.event_kind, args.action, args.domain, args.exclude, args.parent_id, args.prebound_family)):
+                    raise ValueError('context accepts evidence or enum flags, not both')
+                value = read_context_evidence(args.root, args.id, args.evidence)
+            else:
+                value = {'schemaVersion': CONTEXT_SCHEMA, 'opportunityId': args.id,
+                         'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],
+                         'eventKind': args.event_kind or 'unknown', 'action': args.action or 'unknown',
+                         'domain': args.domain or 'unknown', 'exclusions': args.exclude,
+                         'parentOpportunityId': args.parent_id, 'preboundFamily': args.prebound_family}
+            from decision_pilot import enqueue_v2
+            context = capture_context(args.root, args.id, value,
+                      seal=lambda c, r: enqueue_v2(c, r, args.root.parent / 'pilot', receipts=args.root))
+            print(json.dumps(context))
+        elif args.command == 'consult':
+            from workflow_task_context import capture_consultation
+            print(json.dumps(capture_consultation(args.root, args.id, args.family, args.evidence)))
         elif args.command == 'decide': print(json.dumps(decide(args.root, args)))
         elif args.command == 'record': print(json.dumps(record(args.root, args)))
         elif args.command == 'finish': print(json.dumps(finish(args.root, args)))

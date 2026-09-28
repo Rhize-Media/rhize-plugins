@@ -93,3 +93,9 @@ Workflow host attribution uses native host signals and reports conflicts as `unk
 
 The [decision measurement pilot](decision-pilot.md) provides the integrated, asynchronous alternative
 to the older environment-only scorer. Its Arm A/B identities are separate from the discovery study above.
+
+The decision pilot's opt-in v2 cohort adds a context step before consultation and selection, plus
+a separate consultation receipt. It preserves the selection and execution lifecycle described
+above; `no_match` does not retroactively erase a catalog consultation. Agent-supplied context is
+explicitly an assertion, not trusted native event metadata. The check wrapper records automatic
+process facts separately from operator-reported workflow stages and human task acceptance.
