@@ -24,6 +24,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-28_ version bump — 0.38.0 → 0.39.0 (minor); marketplace 2.89.0 → 2.90.0.
+- Add a versioned taxonomy label importer (`pilot_labels.py`) for the workflow pilot: family, phase, areas, risk stratum and routing choice, with `human_adjudicated` or `ai_model_reviewed` basis, batch import of reviewed AI annotations and a private, revocable label policy (human only by default). It sits outside the collection source digest, so live observations stay importable.
+- Research now uses taxonomy labels under the label policy, scores only explicitly judged routing choices, keeps the 200-label floor, adds per-route, per-family and risk-level coverage gates, and reports label bases on every output; model-reviewed results are marked exploratory. Legacy human labels are unchanged and never merged with taxonomy labels.
 - _2026-09-28_ version bump — 0.37.0 → 0.38.0 (minor); marketplace 2.88.0 → 2.89.0.
 - Add opt-in workflow decision measurement with detached local scoring, missing-capture coverage, human review labels, evidence-bound task outcomes and silent exact-turn Stop observations.
 - Add bounded recurring research coordination; insufficient labels hold the cycle, failed attempts remain visible, and holdout/promotion remain separate.

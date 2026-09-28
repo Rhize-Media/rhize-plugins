@@ -302,3 +302,90 @@ def test_cli_invalid_bounds_is_structured_json(tmp_path):
                               text=True, capture_output=True, timeout=10)
         assert done.returncode == 1 and not done.stderr
         assert json.loads(done.stdout)['reason'] == 'invalid_research_bounds'
+
+
+def taxonomy_case(index):
+    row = case(index)
+    choice = ('content', 'general', 'none')[index % 3]
+    family = {'content': 'content_growth', 'none': 'direct_response'}.get(
+        choice, ('feature_delivery', 'defect_resolution', 'code_health', 'research_analysis')[index % 4])
+    return {**row, 'routing_choice': choice, 'labels': {f'c{i}': c == choice for i, c in enumerate(('content', 'general', 'none'))},
+            'stratum': 'elevated' if index % 4 == 0 else 'routine', 'label_basis': 'ai_model_reviewed',
+            'family': family, 'choice_basis': 'explicit'}
+
+
+def taxonomy_corpus(monkeypatch, rows, count=200, bases=('human_adjudicated', 'ai_model_reviewed'), choice_basis='explicit'):
+    stored = [{'basis': 'ai_model_reviewed', 'choiceBasis': choice_basis, 'opportunityId': cycle.digest(str(i))}
+              for i in range(count)]
+    monkeypatch.setattr(cycle.pilot_labels, 'load_labels', lambda root: stored)
+    monkeypatch.setattr(cycle.pilot_labels, 'load_policy', lambda root: {
+        'schema': 'rhize-pilot-label-policy-v1', 'acceptedBases': list(bases), 'reason': 'fixture', 'setBy': 'jim'})
+    def write(_root, _receipts, output, accepted):
+        assert accepted == list(bases)
+        output.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        return {'status': 'exported', 'count': len(rows), 'sha256': cycle.digest(output.read_bytes())}
+    monkeypatch.setattr(cycle.pilot_labels, 'write_cases', write)
+
+
+def keep_first(command, **kwargs):
+    options = json.loads(Path(command[command.index('--candidates')+1]).read_text())
+    Path(command[command.index('--ledger')+1]).write_text(
+        json.dumps({'status': 'keep', 'candidate_sha256': research.digest(options[0])}) + '\n')
+    return SimpleNamespace(returncode=0)
+
+
+def test_taxonomy_labels_below_floor_hold_with_basis_facts(tmp_path, monkeypatch):
+    taxonomy_corpus(monkeypatch, [], count=8, choice_basis='derived:family-map-v1')
+    result = cycle.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research')
+    assert result['reason'] == 'insufficient_accepted_labels' and result['labels'] == 0
+    assert result['taxonomyLabels'] == 8 and result['derivedChoiceLabels'] == 8
+    taxonomy_corpus(monkeypatch, [], count=8, bases=('human_adjudicated',))
+    result = cycle.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research')
+    assert result['labels'] == 0 and result['acceptedBases'] == ['human_adjudicated']
+
+
+def test_legacy_and_taxonomy_answer_keys_never_merge(tmp_path, monkeypatch):
+    root = tmp_path/'pilot'
+    corpus(monkeypatch, root, [case(i) for i in range(200)])
+    taxonomy_corpus(monkeypatch, [], count=200)
+    result = cycle.cycle(root, tmp_path/'receipts', tmp_path/'research')
+    assert result['reason'] == 'mixed_label_schemas' and result['labels'] == 200
+
+
+def test_taxonomy_path_names_sparse_slices(tmp_path, monkeypatch):
+    rows = [{**taxonomy_case(i), 'routing_choice': 'general', 'family': 'feature_delivery', 'stratum': 'routine',
+             'labels': {'c0': False, 'c1': True, 'c2': False}} for i in range(200)]
+    taxonomy_corpus(monkeypatch, rows)
+    result = cycle.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research', run=keep_first)
+    assert result['reason'] == 'insufficient_diversity'
+    assert set(result['coverage']['taxonomy']['holdReasons']) == {
+        'insufficient_routing_class_coverage', 'insufficient_family_coverage', 'insufficient_risk_coverage'}
+    assert result['labelBasis'] == {'ai_model_reviewed': 200} and 'exploratory' in result['claimScope']
+
+
+def test_taxonomy_search_records_policy_and_never_releases(tmp_path, monkeypatch):
+    taxonomy_corpus(monkeypatch, [taxonomy_case(i) for i in range(200)])
+    result = cycle.cycle(tmp_path/'pilot', tmp_path/'receipts', tmp_path/'research', run=keep_first)
+    assert result['status'] == 'review_required' and result['releaseEligible'] is False
+    assert result['coverage']['taxonomy']['holdReasons'] == []
+    assert result['coverage']['taxonomy']['criticalClaimsSupported'] is False
+    assert result['config']['acceptedBases'] == ['human_adjudicated', 'ai_model_reviewed']
+    assert len(result['config']['labelPolicySha256']) == 64 and result['labelBasis'] == {'ai_model_reviewed': 200}
+
+
+def test_legacy_config_has_no_taxonomy_keys(tmp_path, monkeypatch):
+    root = tmp_path/'pilot'
+    corpus(monkeypatch, root, [case(i) for i in range(200)])
+    result = cycle.cycle(root, tmp_path/'receipts', tmp_path/'research', run=keep_first)
+    assert result['status'] == 'review_required' and 'claimScope' not in result
+    assert set(result['config']) == {'minimum', 'deadline', 'minimumGroups', 'minimumDomains',
+                                     'minimumDomainLabels', 'maximumGroupShare', 'normalization'}
+
+
+def test_research_rows_accept_only_known_label_bases(tmp_path):
+    path = tmp_path/'cases.jsonl'
+    path.write_text(json.dumps(taxonomy_case(1)) + '\n')
+    assert research.read_jsonl(path)[0]['label_basis'] == 'ai_model_reviewed'
+    path.write_text(json.dumps({**taxonomy_case(1), 'label_basis': 'crowd'}) + '\n')
+    with pytest.raises(ValueError, match='label basis'):
+        research.read_jsonl(path)

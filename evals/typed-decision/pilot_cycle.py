@@ -20,6 +20,7 @@ import time
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / 'rhize-context-manager/scripts'))
 from decision_pilot import export_cases, inventory, DEFAULT_ROOT, read_json, locked_update, digest
+import pilot_labels
 
 
 def candidates():
@@ -251,7 +252,7 @@ def legacy_holdout_keys(research_root):
 def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subprocess.run):
     """Automatic v2 development only. Original v1 experiments remain untouched."""
     if type(minimum) is not int or type(deadline) is not int or not 200 <= minimum <= 10000 or not 1 <= deadline <= 1800:
-        raise ValueError('automatic research requires at least 200 human labels')
+        raise ValueError('automatic research requires at least 200 labels')
     if root.is_symlink() or research_root.is_symlink():
         raise ValueError('symlink research root refused')
     version_root = research_root / COHORT
@@ -268,9 +269,28 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
             except FileExistsError:
                 if read_json(path) != value: raise ValueError('conflicting hold receipt')
         return value
+    # Legacy human labels and versioned taxonomy labels are separate answer keys; never merged.
     labels = inventory(root / 'v2/labels')
-    if len(labels) < minimum:
-        return held('insufficient_human_labels', labels=len(labels), required=minimum)
+    taxonomy_labels = pilot_labels.load_labels(root)
+    policy = pilot_labels.load_policy(root) if taxonomy_labels else None
+    if taxonomy_labels:
+        bases = list(policy['acceptedBases'])
+        usable = [label for label in taxonomy_labels if label['basis'] in bases
+                  and label['choiceBasis'] in pilot_labels.RESEARCH_CHOICE_BASES]
+        label_facts = {'labelSchema': pilot_labels.LABEL_SCHEMA, 'acceptedBases': bases,
+                       'labelBasis': dict(sorted(Counter(label['basis'] for label in usable).items())),
+                       'taxonomyLabels': len(taxonomy_labels),
+                       'derivedChoiceLabels': sum(label['choiceBasis'] not in pilot_labels.RESEARCH_CHOICE_BASES
+                                                  for label in taxonomy_labels if label['basis'] in bases)}
+        if labels:
+            return held('mixed_label_schemas', labels=len(labels), **label_facts)
+        labels = usable
+        if len(labels) < minimum:
+            return held('insufficient_accepted_labels', labels=len(labels), required=minimum, **label_facts)
+    else:
+        label_facts = {'labelBasis': {'human_adjudicated': len(labels)}}
+        if len(labels) < minimum:
+            return held('insufficient_human_labels', labels=len(labels), required=minimum, **label_facts)
     root.mkdir(parents=True, exist_ok=True, mode=0o700)
     fd = os.open(root / 'worker.lock', os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0), 0o600)
     with os.fdopen(fd, 'w') as lock:
@@ -279,11 +299,13 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
         evaluator = Path(__file__).with_name('research.py')
         decoder = REPO / 'rhize-context-manager/scripts/pilot_routing.py'
         preflight_key = digest(json.dumps({'labels': labels, 'minimum': minimum, 'deadline': deadline,
+            **({'labelPolicy': policy} if policy else {}),
             'boundInputSha256': bound_input_fingerprint(root, receipts),
             'sources': {str(path.relative_to(REPO)): digest(path.read_bytes()) if path.is_file() else None
                         for path in (evaluator, decoder, Path(__file__),
                                      REPO / 'rhize-context-manager/scripts/decision_pilot.py',
                                      REPO / 'rhize-context-manager/scripts/decision_pilot_v2.py',
+                                     REPO / 'rhize-context-manager/scripts/pilot_labels.py',
                                      REPO / 'rhize-context-manager/scripts/workflow_task_context.py',
                                      REPO / 'rhize-context-manager/scripts/workflow_selection.py')}}, sort_keys=True))
         failures = version_root / 'preflight-failures'
@@ -296,15 +318,17 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
             module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
             with tempfile.TemporaryDirectory(prefix='.export-', dir=version_root) as temporary:
                 exported_path = Path(temporary) / 'cases.jsonl'
-                exported = export_cases(root, receipts, exported_path, cohort='v2')
-                if exported['status'] != 'exported': return held(exported['reason'], labels=len(labels), required=minimum)
+                exported = (pilot_labels.write_cases(root, receipts, exported_path, bases) if policy
+                            else export_cases(root, receipts, exported_path, cohort='v2'))
+                if exported['status'] != 'exported':
+                    return held(exported['reason'], labels=len(labels), required=minimum, **label_facts)
                 rows = module.read_jsonl(exported_path)
                 corpus_bytes = exported_path.read_bytes()
         except (OSError, ValueError, KeyError, TypeError) as exc:
             if isinstance(exc, ValueError) and str(exc) == 'mixed_collection_sources':
                 return held('mixed_collection_source')
             if isinstance(exc, ValueError) and str(exc) == 'label_contradicts_exclusions':
-                return held('label_contradicts_exclusions', labels=len(labels), required=minimum)
+                return held('label_contradicts_exclusions', labels=len(labels), required=minimum, **label_facts)
             failure = {'status': 'failed', 'cohort': COHORT, 'reason': 'invalid_bound_corpus',
                        'errorType': type(exc).__name__, 'runId': preflight_key}
             try:
@@ -313,7 +337,7 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
             except OSError:
                 failure['persistence'] = 'unavailable'
             return failure
-        if len(rows) < minimum: return held('insufficient_bound_labels', labels=len(rows), required=minimum)
+        if len(rows) < minimum: return held('insufficient_bound_labels', labels=len(rows), required=minimum, **label_facts)
         if any(row.get('cohort_version') != COHORT for row in rows): return held('mixed_cohort')
         if any(row.get('normalization_version') != NORMALIZATION for row in rows): return held('mixed_normalization')
         if any(row.get('task_family') not in {'content', 'software', 'operations', 'general'}
@@ -324,6 +348,12 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
             return held('mixed_collection_source')
         config = {'minimum': minimum, 'deadline': deadline, 'minimumGroups': 20, 'minimumDomains': 2,
                   'minimumDomainLabels': 20, 'maximumGroupShare': .2, 'normalization': NORMALIZATION}
+        if policy:
+            config.update({'labelSchema': pilot_labels.LABEL_SCHEMA, 'taxonomyVersion': pilot_labels.TAXONOMY_VERSION,
+                           'acceptedBases': bases, 'researchChoiceBases': list(pilot_labels.RESEARCH_CHOICE_BASES),
+                           'labelPolicySha256': digest(json.dumps(policy, sort_keys=True)),
+                           'taxonomyGates': dict(pilot_labels.GATES)})
+        used_bases = dict(sorted(Counter(row.get('label_basis', 'human_adjudicated') for row in rows).items()))
         versions = {'evaluator': digest(evaluator.read_bytes()), 'scorer': digest(decoder.read_bytes()),
                     'coordinator': digest(Path(__file__).read_bytes())}
         legacy_sha = legacy_manifest_fingerprint(research_root)
@@ -338,7 +368,9 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
         run_dir.mkdir(mode=0o700)
         state = {'status': 'started', 'cohort': COHORT, 'runId': key, 'versions': versions,
                  'sourceSha256': next(iter(sources)), 'legacyMembershipSha256': legacy_sha,
-                 'config': config, 'at': time.time()}
+                 'config': config, 'labelBasis': used_bases, 'at': time.time(),
+                 **({'claimScope': 'exploratory: includes model-reviewed labels; no human-accuracy, holdout or promotion claim'}
+                    if set(used_bases) != {'human_adjudicated'} else {})}
         private_write(run_dir / 'started.json', state)
         def finish(value):
             private_write(run_dir / 'status.json', value)
@@ -351,6 +383,10 @@ def cycle(root, receipts, research_root, minimum=200, deadline=180, run=subproce
             assignments = [value for _, value in inventory(assignment_dir)]
             rows, split_map, records = grouping(rows, assignments)
             coverage = diversity(rows)
+            if policy:
+                taxonomy = pilot_labels.taxonomy_coverage(rows)
+                coverage = {**coverage, 'taxonomy': taxonomy,
+                            'holdReasons': coverage['holdReasons'] + taxonomy['holdReasons']}
             if coverage['holdReasons']:
                 return finish({**state, 'status': 'held', 'reason': 'insufficient_diversity', 'coverage': coverage})
             assignment_dir.mkdir(exist_ok=True, mode=0o700)

@@ -15,6 +15,8 @@ from urllib.request import Request, urlopen
 
 
 PILOT_COHORT = "workflow-pilot-v2"
+# Model-reviewed labels are accepted only when an operator policy exported them; rows record which.
+LABEL_BASES = frozenset({"human_adjudicated", "ai_model_reviewed"})
 
 
 def decode_route(row, result, threshold):
@@ -49,7 +51,9 @@ def read_jsonl(path: Path) -> list[dict]:
             raise ValueError("duplicate case_id")
         ids.add(row["case_id"])
         if row.get("adjudicated") is not True:
-            raise ValueError("every case requires an adjudicated human label")
+            raise ValueError("every case requires an adjudicated label")
+        if row.get("label_basis", "human_adjudicated") not in LABEL_BASES:
+            raise ValueError("unsupported label basis")
         questions, labels = row.get("questions"), row.get("labels")
         if not isinstance(questions, dict) or not questions or not isinstance(labels, dict) or set(questions) != set(labels):
             raise ValueError("questions and labels must be matching nonempty objects")

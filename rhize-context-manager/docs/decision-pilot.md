@@ -145,6 +145,7 @@ Run `python3 scripts/decision_pilot.py` from the Context Manager plugin:
   or human adjudication. Inspect original task context before labeling.
 - `drain`: process pending work; `--cohort v1|v2` selects an explicit cohort when needed.
 - `adjudicate --id ID --evidence PRIVATE_JSON`: import an actual human-reviewed label.
+  New labels using the richer taxonomy go through `pilot_labels.py` instead (see below).
 - `outcome --id ID --evidence PRIVATE_JSON`: attach measured task results, including failures.
 - `export --out NEW_PRIVATE_JSONL --cohort v2`: export eligible, bound human-labeled v2 cases;
   never overwrite. Omitting `--cohort` exports the historical v1 contract.
@@ -195,13 +196,68 @@ The task agent records the outcome at completion. This operator-reported evidenc
 from workflow-selection execution/validation/capture stages; do not invent a workflow run to
 complete an outcome. Unfinished tasks and missing host usage remain visible.
 
+## Versioned taxonomy labels
+
+`scripts/pilot_labels.py` imports labels that use the richer workflow taxonomy
+(`rhize-workflow-taxonomy-v1`): one `family` (feature_delivery, defect_resolution, code_health,
+platform_operations, content_growth, research_analysis, knowledge_management, coordination,
+direct_response), one immediate `phase` (triage, research, plan_design, implement, review,
+validate, release_operate, not_applicable), the affected `areas` (or sole `not_applicable`), a
+risk `stratum` (routine, elevated, critical) with optional `riskFlags`, and the routing `choice`
+(content, general, none). The module sits outside the collection source digest, so releasing it
+does not strand live observations, and it stores records under `pilot/v2/taxonomy-labels`, never in
+the legacy human label store. Labels bind the current source and an eligible v2 decision, are
+immutable, and re-importing an identical record is idempotent.
+
+```json
+{"schema":"rhize-workflow-taxonomy-label-v1","opportunityId":"<64 hex>","sourceSha256":"<64 hex>","taxonomyVersion":"rhize-workflow-taxonomy-v1","basis":"ai_model_reviewed","family":"feature_delivery","phase":"implement","areas":["backend_api"],"stratum":"routine","riskFlags":[],"choice":"general","choiceBasis":"explicit","reviewer":"ai-review-claude-fable-5-1","reviewEvidenceSha256":"<64 hex>"}
+```
+
+`basis` is `human_adjudicated` or `ai_model_reviewed`. AI labels are never recorded as human.
+`choiceBasis` is `explicit` when someone judged the route directly, or `derived:family-map-v1`
+when it was filled from the family (content_growth→content, direct_response→none, otherwise
+general). Research scores the route itself, so it uses only explicit choices; a family does not
+decide the route (a small feature fix can correctly need no workflow). Derived choices still count
+in coverage reports. Future labeling batches should ask for the choice directly.
+
+Commands, run from the plugin directory:
+
+- `pilot_labels.py import --id ID --evidence PRIVATE_JSON` — one label.
+- `pilot_labels.py import-batch --annotations FILE [--dry-run]` — convert a reviewed
+  `rhize-ai-taxonomy-annotations-v1` batch. Only `labeled` records whose model review actually ran
+  with an `accept` or `revise` verdict, and that bind an eligible current-source v2 decision,
+  are imported; every skip is counted by reason.
+- `pilot_labels.py policy show` / `policy set [--accept-ai] --reason TEXT --actor ID` — the private
+  label policy. The default accepts only human labels. `--accept-ai` lets research use
+  model-reviewed labels too; running `set` without it restores human-only. Each change is
+  appended to `label-policy-history.jsonl` with the previous and next policy.
+- `pilot_labels.py report` — counts by basis, family, phase, stratum, choice and choice basis,
+  the research-usable count and the coverage gates below.
+- `pilot_labels.py export --out NEW_PRIVATE_JSONL` — research rows under the current policy.
+
+A model-reviewed label is a model judgment, not human ground truth. Any research result that uses
+one says so (`labelBasis`, `claimScope`) and supports no human-accuracy, holdout or promotion claim.
+
 ## Recurring research
 
 Use the repository's `evals/typed-decision/pilot_cycle.py --research-root PRIVATE_DIRECTORY`.
-The automatic CLI processes **v2 only** and requires at least **200 eligible, source-bound human
-labels**. `--minimum-labels` may increase that floor, never lower it. Legacy `legacy_cycle`
+The automatic CLI processes **v2 only** and requires at least **200 eligible, source-bound labels**
+whose basis the label policy accepts (human only by default). `--minimum-labels` may increase that
+floor, never lower it. Legacy `legacy_cycle`
 remains callable for explicit v1 fixture/exploratory compatibility; the daily CLI does not use it.
-No assistant classifications or duplicate background templates can fill the human-label quota.
+Unreviewed assistant triage and duplicate background templates never count. Legacy human labels
+and taxonomy labels are separate answer keys: if both exist, the cycle holds as
+`mixed_label_schemas` instead of merging them. With taxonomy labels, a short corpus holds as
+`insufficient_accepted_labels` and reports label counts by basis, the accepted bases and how many
+labels have only a derived choice.
+
+The richer taxonomy adds slice gates on top of the 200 floor and the group/domain gates below.
+A flat count cannot show whether each route, family or risk level has enough examples, so the
+cycle also holds until every routing choice has at least 15 labels, at least 4 families have at
+least 15 labels, and at least 20 labels are elevated or critical. Sparse families and routes are
+listed by name. Critical-risk claims stay unsupported until there are at least 20 critical labels.
+These numbers are judgment calls, not statistical guarantees. The accepted bases, the policy
+digest, the taxonomy version and the gates are part of the attempt identity.
 
 Additional provisional development gates apply to the **whole corpus**, including its reserved
 holdout; they are not minimum coverage guarantees for each split. They require at least 20

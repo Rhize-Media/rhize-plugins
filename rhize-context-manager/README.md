@@ -353,6 +353,13 @@ background local Laya scores, a human review queue and evidence-bound task outco
 missing capture and usage explicitly. The bounded research coordinator waits for reviewed labels,
 freezes development candidates for review, and never promotes live behavior or runs holdout.
 
+Richer labels use the versioned taxonomy importer, `scripts/pilot_labels.py`: family, phase,
+areas, risk stratum and routing choice, with `human_adjudicated` or `ai_model_reviewed` basis. A
+private, revocable label policy decides which bases research may use; the default is human only.
+The research cycle keeps the 200-label floor and adds per-route, per-family and risk-level coverage
+gates. Results that include model-reviewed labels are marked exploratory. See [taxonomy
+labels](docs/decision-pilot.md#versioned-taxonomy-labels).
+
 The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
 is sealed before the incumbent consultation/selection; background events and continuations have
 explicit dispositions, while missing or conflicting context remains visible. Catalog consultation,

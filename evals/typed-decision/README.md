@@ -68,6 +68,17 @@ V2 export adds `cohort_version`, `normalization_version`, `collection_source_sha
 the original sealed model state/questions; Arm A is evaluation evidence, never a model feature.
 A no-match catalog result is distinct from an actual general-family consultation.
 
+Versioned taxonomy labels from `rhize-context-manager/scripts/pilot_labels.py` are a separate
+answer key. When they exist, the cycle exports them instead of legacy human labels, using the
+bases the private label policy accepts (human only unless the operator enables
+`ai_model_reviewed`), and holds `mixed_label_schemas` if both kinds are present. Rows then also
+carry `label_basis`, `family`, `phase`, `areas`, `risk_flags`, `choice_basis` and the richer
+`stratum` (`routine`, `elevated`, `critical`; the evaluator still counts `critical*` misses).
+Only explicitly judged routing choices are scored. Slice gates (each route >=15, >=4 families
+>=15, >=20 elevated or critical) apply on top of the 200 floor, and every output reports its label
+bases. `research.py` accepts `label_basis` `human_adjudicated` (the default when missing) or
+`ai_model_reviewed`.
+
 Use the [collection and human review contract](../../rhize-context-manager/docs/decision-pilot.md)
 for opt-in config, context-before-consult commands, inherited continuations, evidence bases,
 normal-check measurement and focused daily review. Context is agent-asserted, consultation and
