@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-28_ version bump — 2.25.2 → 2.25.3 (patch); marketplace 2.90.0 → 2.90.1.
 - **Context-document gate repair.** Allow prose in `.planning/` and `docs/` and standard context Markdown files in nested projects. Share exemptions across write, reconciliation and release checks; keep executable files, MDX and mixed source/documentation edits gated. Regression reproduces the rejected `.planning/STATE.md` Codex patch.
 - _2026-09-27_ version bump — 2.25.1 → 2.25.2 (patch); marketplace 2.86.0 → 2.86.1.
 - _2026-09-26_ version bump — 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
