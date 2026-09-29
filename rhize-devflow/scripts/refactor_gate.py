@@ -49,6 +49,10 @@ PLANNING_FILES = {
 # Keep this shared by write, reconciliation, and release classification so a
 # permitted context update cannot become an unmapped-source failure later.
 DOCS_PATHS = (
+    # Agent-written reports/analyses (the global instructions' designated
+    # location). Prose only: code parked here stays gated like any docs tree.
+    ".claude/analyses/",
+    ".codex/analyses/",
     "claudedocs/",
     ".planning/",
     "docs/",

@@ -75,6 +75,8 @@ assert_exit "hook-write .eslintrc.js (code extension wins)" 2 "$(hook_write "$TM
 assert_exit "hook-write claudedocs/a/notes.md (docs exempt)" 0 "$(hook_write "$TMPWS/claudedocs/a/notes.md")"
 assert_exit "hook-write claudedocs/scripts/fix.py (code under docs still blocked)" 2 "$(hook_write "$TMPWS/claudedocs/scripts/fix.py")"
 assert_exit "hook-write docs/notes.md (documentation exempt)" 0 "$(hook_write "$TMPWS/docs/notes.md")"
+assert_exit "hook-write .claude/analyses/report.md (analysis prose exempt)" 0 "$(hook_write "$TMPWS/.claude/analyses/report.md")"
+assert_exit "hook-write .claude/analyses/probe.py (code under analyses still blocked)" 2 "$(hook_write "$TMPWS/.claude/analyses/probe.py")"
 assert_exit "hook-write .planning/STATE.md (context exempt)" 0 "$(hook_write "$TMPWS/.planning/STATE.md")"
 assert_exit "hook-write .planning/fix.py (source still blocked)" 2 "$(hook_write "$TMPWS/.planning/fix.py")"
 

@@ -253,7 +253,8 @@ install and initialize it in a client repo.
   `OUT_OF_SYNC` changed files. Re-preparing after an impact-map correction preserves the original
   Git/dirty baseline, so already-written implementation cannot be silently blessed as pre-existing.
   Context-only updates are exempt: standard context Markdown filenames at any depth and prose
-  under `.planning/`, `docs/`, and `claudedocs/`. Executable files and MDX in those directories,
+  under `.planning/`, `docs/`, `claudedocs/`, and the agent report folders `.claude/analyses/`
+  and `.codex/analyses/`. Executable files and MDX in those directories,
   and mixed source/documentation changes, still require evidence. This rule is shared by write,
   reconciliation, and release checks. Receipts live under
   `~/.claude/rhize-devflow/refactor-gate/`, keyed by canonical workspace path, so both harnesses

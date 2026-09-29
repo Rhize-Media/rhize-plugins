@@ -279,7 +279,7 @@ below names the next command, and `python3 "$CLAUDE_PLUGIN_ROOT/scripts/refactor
 Plan files under `.claude/plans/`, standard context Markdown files (`CLAUDE`, `AGENTS`,
 `STATE`, `CURRENT_SPRINT`, `README`, `ROADMAP`, `GUIDE`, `CHANGELOG`, including nested files),
 config files (`.json`, `.yaml`, `.toml`, lockfiles, ignore files), and prose under `.planning/`,
-`docs/`, or `claudedocs/` (`.md`, `.markdown`, `.txt`, `.rst`) are exempt from this source gate.
+`docs/`, `claudedocs/`, `.claude/analyses/` or `.codex/analyses/` (`.md`, `.markdown`, `.txt`, `.rst`) are exempt from this source gate.
 Executable files and MDX in those documentation directories remain gated, as do mixed source
 and context edits. The same classification applies to write, reconciliation, and release checks.
 To set a receipt aside deliberately, run
