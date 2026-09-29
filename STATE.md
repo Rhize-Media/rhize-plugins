@@ -2,6 +2,7 @@
 
 ## Verified facts
 
+- 2026-09-29: rhize-ops 0.29.0 / marketplace 2.97.0 (`1672004`, tag `v2.97.0`). delegate-to-teammate Step 2 now also takes Slack clip/huddle context, from a transcript or huddle-notes canvas, via `references/meeting-context-sources.md`. The connected Slack connector's file-read returns clip audio as base64 with no transcript, so audio-only clips are skipped and never guessed. SKILL.md is capped at 28,000 bytes (`test_skill_stays_under_byte_budget`, now 27,537): put new procedure in references. Pushes are gated by the private vault-context pre-push review; update `Plugins/<plugin>.md` + the hub and run `vault-context review` per changed component. Not yet exercised against a real Slack clip transcript.
 - 2026-09-29: The collision report (rhize-context-manager 0.41.0) also reads claude.ai-synced account skills (`~/.claude/skills/synced`), for detection only; resolved outputs are unchanged. This host has 5 cross-origin name collisions: `context-compression`, `context-optimization`, `api-design`, `deep-research` and `rhize-content-engine`. They are same-name, different-content skills that hosts keep apart by prefix. Decision: no rename or `extends`.
 
 - 2026-09-29, MCP follow-ups (marketplace 2.95.0, rebased on procedural-memory 0.8.0 / 2.93.0):
