@@ -33,7 +33,7 @@
       "positive_cases": ["functionize-positive"],
       "negative_cases": ["functionize-one-off-negative", "functionize-promotion-collision"],
       "quality_contracts": [
-        {"id": "compile-only-modes", "patterns": ["exactly three modes", "mine", "generate", "review"]},
+        {"id": "compile-only-modes", "patterns": ["exactly four modes", "mine", "generate", "review", "recipes"]},
         {"id": "source-free-history", "patterns": ["redacts and aggregates", "never evaluated or\\s+executed"]},
         {"id": "proposal-boundary", "patterns": ["Stop at the proposal boundary", "grants no\\s+registration, trust, approval, promotion, verification, or execution authority"]}
       ]

@@ -6,6 +6,15 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 0.7.0 → 0.8.0 (minor); marketplace 2.92.1 → 2.93.0.
+- _2026-09-29_ Add the `recipes` compile-boundary mode to `skills/functionize/scripts/functionize.sh`,
+  mapped to `rhize-skill functionize-recipes` behind the same `--help` capability probe (exit 78 on an
+  older runtime). It ranks the multi-step procedures agents repeat inside one Bash call. Each recipe
+  gets a risk class, and credential, destructive, privileged, upload, remote, database and publish
+  steps are refused. Recipes carry advisory `possibly_covered_by` hints to registry artifacts and
+  learned skills. `--export` writes a bundle (`recipe.json`, `REVIEW.md`, `review.json`) that is
+  secret-scanned in memory before it is written and contains no runnable script. SKILL.md, README
+  and GUIDE are updated; the GUIDE also now says the capture file holds raw command text.
 - _2026-09-28_ Add an async `PostToolUse`/`Bash` hook, `hooks/functionize-capture.py`, that appends
   one redacted-shape record per successful Bash call (`v`/`host`/`ts`/`session_id`/`tool_use_id`/
   `command` only — never tool output, `cwd`, or `transcript_path`) to a local, 0600, rotating

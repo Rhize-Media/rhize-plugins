@@ -95,13 +95,18 @@ registry and execution verbs are intentionally unreachable through that launcher
 
 ### Functionize proposal boundary
 
-Use the `functionize` skill for three compile-only modes:
+Use the `functionize` skill for four compile-only modes:
 
 - `mine` → `rhize-skill functionize`: redact and aggregate repeated CLI shapes, optionally export
   or auto-compile candidates.
 - `generate` → `rhize-skill functionize-generate`: compile one exported v2 manifest into an inert
   proposal bundle.
 - `review` → `rhize-skill functionize-review`: validate and append a digest-bound human decision.
+- `recipes` → `rhize-skill functionize-recipes`: rank the multi-step procedures agents repeat
+  inside one Bash call. Each recipe gets a risk class; credential, destructive, privileged,
+  upload, remote, database and publish steps are refused. Export writes a bundle
+  (`recipe.json`, `REVIEW.md`, `review.json`) that is secret-scanned before it is written and
+  contains no runnable script.
 
 Generated proposals are not registry artifacts. Even a proposal reporting `promotable: true` has
 no trust, approval, health, promotion, or execution authority. Those later actions remain behind

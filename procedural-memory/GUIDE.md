@@ -77,13 +77,20 @@ behalf. "Passed its test command this session" is not the same claim as "registr
 only `/procedural-memory:verify` (or a fresh `/procedural-memory:promote`) ever makes the latter
 claim. If you don't want to capture something, just ignore the nudge — nothing else happens.
 
-**Feeding Functionize from an agent session.** Every successful Bash call also gets one redacted
-line appended, in the background, to a local capture file
+**Feeding Functionize from an agent session.** Every successful Bash call also gets one line
+(the raw command text, redacted later when mined) appended, in the background, to a local capture file
 (`~/.local/share/rhize/functionize/agent-bash.jsonl` by default) — just the command text and its
 two correlation ids, never any tool output. This is what lets
 `bash scripts/functionize.sh mine <cli> --source agent` mine agent-run commands the way it mines
 shell history, alongside Claude Code transcripts and Codex session files. It has nothing to do
 with the promotion nudge above; opt out with `RHIZE_FUNCTIONIZE_CAPTURE=off`.
+
+**Finding procedures worth keeping.** `bash scripts/functionize.sh recipes --since 30d --eligible-only`
+ranks the multi-step procedures agents keep repeating, such as refactor-gate `prepare` then
+`reconcile`, or a commit followed by `git show --stat`. A `possibly_covered_by` hint means a
+registry artifact or learned skill already has those steps: reuse it rather than rebuilding it.
+Export one with `--export <fingerprint> --proposal-dir <dir>` to get a review sheet. Promoting it into
+the registry is still a separate, human-approved step.
 
 ## What this plugin is not
 

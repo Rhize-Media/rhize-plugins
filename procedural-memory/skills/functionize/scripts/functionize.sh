@@ -7,8 +7,8 @@ PLUGIN_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)
 LAUNCHER="$PLUGIN_ROOT/scripts/rhize-skill-launcher.sh"
 
 usage() {
-    echo "usage: functionize.sh <mine|generate|review> [arguments...]" >&2
-    echo "compile-only modes: mine, generate, review" >&2
+    echo "usage: functionize.sh <mine|generate|review|recipes> [arguments...]" >&2
+    echo "compile-only modes: mine, generate, review, recipes" >&2
 }
 
 mode=${1:-}
@@ -21,6 +21,10 @@ case "$mode" in
         ;;
     review)
         command_name="functionize-review"
+        ;;
+    recipes)
+        # Inert multi-step recipe candidates mined from agent Bash history; export-only, never run.
+        command_name="functionize-recipes"
         ;;
     -h|--help)
         usage

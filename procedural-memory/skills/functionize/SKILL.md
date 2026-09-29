@@ -4,8 +4,9 @@ description: >-
   Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles,
   or record a digest-bound human review through the rhize-skill CLI. Use when asked to
   "Functionize" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal,
-  or review a Functionize candidate. This skill never registers, approves, promotes, verifies, or
-  runs a generated artifact; use procedural-memory only when a later gate is separately authorized.
+  review a Functionize candidate, or find repeated multi-step procedures agents run (recipe
+  candidates). This skill never registers, approves, promotes, verifies, or runs a generated
+  artifact; use procedural-memory only when a later gate is separately authorized.
 metadata:
   rhize:
     topics: [automation]
@@ -20,7 +21,7 @@ provenance, and an eval record. Compilation is measurement, not registry admissi
 
 ## Use only the compile-boundary launcher
 
-Call the self-relative launcher from this skill. It exposes exactly three modes and verifies that
+Call the self-relative launcher from this skill. It exposes exactly four modes and verifies that
 the installed `rhize-skill` CLI actually supports the selected command before continuing:
 
 ```bash
@@ -29,6 +30,7 @@ bash scripts/functionize.sh mine <cli> --export-candidate <fingerprint> --propos
 bash scripts/functionize.sh mine <cli> --auto-compile --proposal-dir <dir>
 bash scripts/functionize.sh generate <candidate-manifest> --proposal-dir <dir> [--baseline-sha <sha>]
 bash scripts/functionize.sh review <candidate-manifest> <review-manifest> --ledger <path>
+bash scripts/functionize.sh recipes [--since 30d] [--eligible-only] [--json]
 ```
 
 - `mine` maps to `rhize-skill functionize`: it locally reads shell history, redacts and aggregates
@@ -63,9 +65,40 @@ are read — never a tool's stdout/stderr or any other transcript field — so t
 class is `agent_transcript`, and the compile-only boundary below is unchanged. Set
 `RHIZE_FUNCTIONIZE_CAPTURE=off` to opt a session out of the live capture file entirely.
 
+## Recipe candidates
+
+Most of what agents repeat is a multi-step procedure inside one Bash call, not a single CLI, so the
+wrapper compiler above finds little in agent history. `recipes` maps to
+`rhize-skill functionize-recipes` and mines those procedures instead:
+
+```bash
+bash scripts/functionize.sh recipes [--hosts claude,codex] [--since 30d] [--project GLOB] \
+  [--min-count 3] [--min-sessions 2] [--min-steps 2] [--top 20] [--eligible-only] \
+  [--hide-covered] [--max-variants N] [--json]
+bash scripts/functionize.sh recipes --export <fingerprint> --proposal-dir <dir>
+bash scripts/functionize.sh recipes --export-all --proposal-dir <dir>
+```
+
+- A recipe is keyed by its ordered step shapes: program, known subcommand, flag names, and a typed
+  target (for example `host:*.sanity.io` or `script:refactor_gate.py`). Exploration steps such as
+  `grep` and `head` do not count toward the key. Only allowlisted names reach any output;
+  everything else becomes a typed placeholder, so paths, values and hostname prefixes never appear.
+- Each candidate reports its count, distinct sessions, number of variants, a risk class and any
+  `possibly_covered_by` hint naming a registry artifact or learned skill that already has the same
+  steps. Risk is the union across every grouped call.
+- Credential, destructive, privileged, upload, remote-exec, database and publish steps (including
+  any `git push`) make a recipe **refused**. Refused recipes are listed after the eligible ones and
+  never exported.
+- An export writes `recipe-<fingerprint>/` with `recipe.json` (structured steps), `REVIEW.md` and a
+  `review.json` decision template. The whole bundle is secret-scanned in memory before anything is
+  written, then published atomically. It contains no runnable script.
+
+Report the fingerprint, counts, risk and coverage hint for each recipe you surface. A recipe is a
+review candidate, not a reusable artifact.
+
 ## Stop at the proposal boundary
 
-After mining, generation, or review, report the candidate fingerprint, proposal/evidence paths,
+After mining, recipe export, generation, or review, report the candidate fingerprint, proposal/evidence paths,
 grader status, promotability reason, and refusals. Stop there unless the user separately requests a
 later registry action. A later action uses the `procedural-memory` skill and retains its existing
 digest, provenance, trust, health, approval, and execution gates; never feed a generated proposal
