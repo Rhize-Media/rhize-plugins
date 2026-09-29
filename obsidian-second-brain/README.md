@@ -158,6 +158,12 @@ The plugin bundles an `obsidian-mcp-server` connector via `.mcp.json`. This prov
 
 The server connects to `https://127.0.0.1:27124` (Obsidian's local REST API). Obsidian must be running.
 
+The version is pinned (`obsidian-mcp-server@3.6.0`), so an upstream release can't rename tools out from under the commands. That happened with 3.0.0, which renamed `obsidian_global_search`, `obsidian_read_note` and `obsidian_update_note`. To upgrade:
+
+1. Bump the pin in `.mcp.json`.
+2. Re-record `tests/obsidian-second-brain/fixtures/obsidian-mcp-server-tools.json` from a live `tools/list`.
+3. Run `tests/obsidian-second-brain/test_mcp_tool_names.py`.
+
 > **`OBSIDIAN_BASE_URL` must not end in a trailing slash.** `obsidian-mcp-server` builds every
 > request by plain string concatenation (`${baseUrl}${path}`, `dist/services/obsidian/obsidian-service.js`)
 > and does not normalize the base URL, so a trailing slash produces `https://127.0.0.1:27124//tags/`.
@@ -174,7 +180,7 @@ macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
 
 ```json
 "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh",
-"args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server"]
+"args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server@3.6.0"]
 ```
 
 `scripts/mcp-secret-launcher.sh` resolves `OBSIDIAN_API_KEY` in this order:

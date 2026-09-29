@@ -1,6 +1,6 @@
 ---
 description: Quick-capture a note, idea, or task to your Obsidian vault
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "mcp__workspace__web_fetch", "WebFetch", "WebSearch"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_append_to_note", "mcp__obsidian-mcp-server__obsidian_write_note", "mcp__obsidian-mcp-server__obsidian_patch_note", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "mcp__obsidian-mcp-server__obsidian_manage_tags", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "mcp__workspace__web_fetch", "WebFetch", "WebSearch"]
 argument-hint: <content to capture>
 model: haiku
 ---
@@ -33,7 +33,7 @@ Analyze "$ARGUMENTS" and determine the best capture method:
 - Run `obsidian create name="<descriptive title>" content="<content>"` to create a standalone note.
 - Set properties after creation: `obsidian properties:set file="<title>" tags="<relevant,tags>" type=tags`
 - If a template is appropriate: `obsidian create name="<title>" template="<template name>"`
-- Fall back to obsidian_update_note with obsidian_manage_frontmatter if CLI is unavailable.
+- Fall back to obsidian_write_note (new note) or obsidian_append_to_note, with obsidian_manage_frontmatter if CLI is unavailable.
 
 **If it's a web URL** (starts with http):
 - **Preferred:** Extract with `defuddle parse <url> --md` and create with `obsidian create name="<page title>" content="$(defuddle parse <url> --md)"`. Use `defuddle parse <url> -p title` to auto-name.

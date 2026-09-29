@@ -80,7 +80,7 @@ directly.
 ### Sources to Check (in parallel where possible)
 
 1. **Obsidian Vault** — Search for related notes, past ideas, existing plans
-   - Use `obsidian-second-brain:vault-search` skill or Obsidian MCP (`obsidian_global_search`)
+   - Use `obsidian-second-brain:vault-search` skill or Obsidian MCP (`obsidian_search_notes`)
    - Look for: prior art, related projects, decision history, domain knowledge
    - Check memory files for existing project context
 

@@ -1,6 +1,6 @@
 ---
 description: Periodic review — summarize captures, surface themes, plan ahead
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_search_notes", "mcp__obsidian-mcp-server__obsidian_get_note", "mcp__obsidian-mcp-server__obsidian_append_to_note", "mcp__obsidian-mcp-server__obsidian_write_note", "mcp__obsidian-mcp-server__obsidian_patch_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: [daily|weekly|monthly]
 ---
 

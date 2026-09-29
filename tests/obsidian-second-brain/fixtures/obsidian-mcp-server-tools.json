@@ -1,0 +1,19 @@
+{
+  "package": "obsidian-mcp-server",
+  "version": "3.6.0",
+  "source": "live tools/list probe, 2026-09-29",
+  "tools": [
+    "obsidian_append_to_note",
+    "obsidian_delete_note",
+    "obsidian_get_note",
+    "obsidian_list_notes",
+    "obsidian_list_tags",
+    "obsidian_manage_frontmatter",
+    "obsidian_manage_tags",
+    "obsidian_open_in_ui",
+    "obsidian_patch_note",
+    "obsidian_replace_in_note",
+    "obsidian_search_notes",
+    "obsidian_write_note"
+  ]
+}

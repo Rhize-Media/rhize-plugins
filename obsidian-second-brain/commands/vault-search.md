@@ -1,6 +1,6 @@
 ---
 description: Search your Obsidian vault for notes, tags, or content
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_search_notes", "mcp__obsidian-mcp-server__obsidian_get_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
 argument-hint: <search query>
 model: haiku
 ---
@@ -54,7 +54,7 @@ If qmd is not available or not indexed, fall back to MCP/CLI search for all quer
 When qmd is not available, use the original MCP/CLI search stack:
 
 **General text search:**
-- Use obsidian_global_search for full-text search — it returns rich context snippets.
+- Use obsidian_search_notes (`mode: "text"`) for full-text search — it returns context snippets around each match.
 - Alternatively, `obsidian search query="<query>" format=json` provides structured output for processing.
 
 All tag, property, link-based, and broken content searches work the same regardless of qmd availability.

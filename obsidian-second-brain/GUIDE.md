@@ -357,7 +357,7 @@ qmd collection; keep the compiled output root unindexed until an ACL-aware qmd a
 
 ## Troubleshooting
 
-**Commands fail with "tool not found":** The Obsidian MCP Server isn't connected. Install it and ensure it appears in your MCP connections.
+**Commands fail with "tool not found":** The Obsidian MCP Server isn't connected. Install it and ensure it appears in your MCP connections. If it is connected, check that the server is the pinned `obsidian-mcp-server@3.6.0` from the bundled `.mcp.json`. The commands use the 3.x tool names (`obsidian_search_notes`, `obsidian_get_note`, `obsidian_append_to_note`, `obsidian_write_note`, `obsidian_patch_note`), and a hand-configured 2.x server only has the old ones.
 
 **MCP server won't start, exit code 78, "cannot start this MCP server":** The bundled launcher script (`scripts/mcp-secret-launcher.sh`) couldn't find `OBSIDIAN_API_KEY` anywhere — not in the macOS keychain, and not as a plain exported environment variable — so it refused to start the server rather than let it fail later with a confusing 401/403. The exit message names the missing variable. Fix it either way:
 - macOS: `security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -U -w`

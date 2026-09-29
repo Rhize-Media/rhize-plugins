@@ -137,7 +137,7 @@ The `/vault-setup` command can configure qmd indexing during initial vault setup
 
 ## Fallback Behavior
 
-If qmd is not installed or the vault collection doesn't exist, all commands gracefully fall back to MCP keyword search (`obsidian_global_search`) and CLI search (`obsidian search`). Commands should always check for qmd availability before attempting to use it:
+If qmd is not installed or the vault collection doesn't exist, all commands gracefully fall back to MCP keyword search (`obsidian_search_notes`) and CLI search (`obsidian search`). Commands should always check for qmd availability before attempting to use it:
 
 ```bash
 command -v qmd >/dev/null 2>&1 && echo "qmd available" || echo "qmd not available"

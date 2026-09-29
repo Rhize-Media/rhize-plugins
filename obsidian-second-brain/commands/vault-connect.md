@@ -1,6 +1,6 @@
 ---
 description: Find and build missing connections between related vault notes
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_search_notes", "mcp__obsidian-mcp-server__obsidian_get_note", "mcp__obsidian-mcp-server__obsidian_append_to_note", "mcp__obsidian-mcp-server__obsidian_write_note", "mcp__obsidian-mcp-server__obsidian_patch_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "mcp__obsidian-mcp-server__obsidian_manage_frontmatter", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: [note name|topic|recent]
 ---
 
@@ -21,7 +21,7 @@ Parse "$ARGUMENTS" to determine the starting point:
 
 ## If a specific note is named:
 
-1. **Read the note** — Use obsidian_read_note to get its full content and properties.
+1. **Read the note** — Use obsidian_get_note with `format: "full"` to get its full content and properties.
 2. **Extract key concepts** — Identify the main topics, claims, and entities in the note.
 3. **Search for related notes** — Cast a wide net using the best available tools:
 

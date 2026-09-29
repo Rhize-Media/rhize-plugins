@@ -1,6 +1,6 @@
 ---
 description: Read, summarize, or add to today's daily note
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_update_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_get_note", "mcp__obsidian-mcp-server__obsidian_append_to_note", "mcp__obsidian-mcp-server__obsidian_write_note", "mcp__obsidian-mcp-server__obsidian_patch_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Write", "Edit", "Glob", "Grep"]
 argument-hint: [read|add <content>|summarize]
 model: haiku
 ---
@@ -11,14 +11,14 @@ Parse "$ARGUMENTS" to determine the action:
 
 **"read" or no arguments:**
 - Run `obsidian daily:read` to get today's note content. This resolves the daily note path automatically — no need to guess folder structures.
-- If that fails, fall back to obsidian_list_notes to find the daily logs directory and obsidian_read_note to read the file.
+- If that fails, fall back to obsidian_list_notes to find the daily logs directory and obsidian_get_note to read the file.
 - Present the content cleanly.
 
 **"add <content>" or "append <content>":**
 - Run `obsidian daily:append content="<the content>"` to append to today's note.
 - Format tasks as checkboxes: `obsidian daily:append content="- [ ] <task>"`
 - For multi-line content, use `\n` for line breaks in the content string.
-- If CLI is unavailable, fall back to obsidian_update_note with wholeFileMode="append".
+- If CLI is unavailable, fall back to obsidian_append_to_note without a `section` (appends to the end of the file, creating it if missing).
 
 **"prepend <content>":**
 - Run `obsidian daily:prepend content="<the content>"` to add content to the top.

@@ -1,6 +1,6 @@
 ---
 description: Ask your vault a natural language question and get a synthesized answer
-allowed-tools: ["mcp__obsidian-mcp-server__obsidian_global_search", "mcp__obsidian-mcp-server__obsidian_read_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
+allowed-tools: ["mcp__obsidian-mcp-server__obsidian_search_notes", "mcp__obsidian-mcp-server__obsidian_get_note", "mcp__obsidian-mcp-server__obsidian_list_notes", "Bash", "Read", "Glob", "Grep"]
 argument-hint: <natural language question about your vault>
 model: haiku
 ---
@@ -30,14 +30,14 @@ If qmd is not available, warn the user: "For the best recall experience, install
 
 **Without qmd (fallback):**
 1. Extract 3-5 key terms from the question.
-2. Run `obsidian_global_search` for each key term.
+2. Run `obsidian_search_notes` (`mode: "text"`) for each key term.
 3. Run `obsidian search query="[tag:<relevant-tag>]"` if the question maps to known tags.
 4. Combine and deduplicate results.
 
 ## Step 3: Read and Analyze Top Results
 
 1. Take the top 5-8 most relevant results from the search.
-2. Use `obsidian_read_note` to read the full content of each.
+2. Use `obsidian_get_note` to read the full content of each.
 3. As you read, note which parts of each note are relevant to the question.
 
 ## Step 4: Synthesize an Answer
