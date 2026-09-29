@@ -37,7 +37,8 @@ After that:
 - A cache entry is used only after it is verified against the source hash, so a corrupt or half-finished copy is rebuilt.
 - Concurrent first runs publish a single copy.
 - The viewer's exit status and signals are passed through.
-- A new plugin version with different viewer sources gets a new cache directory. Clean up old ones with `rm -rf ~/.cache/rhize-plan-viewer`.
+- A new plugin version with different viewer sources gets a new cache directory. Clean up old ones with `rm -rf ~/.cache/rhize-plan-viewer`. Leftover `.tmp-*` directories from an interrupted install are removed automatically once they are a day old.
+- Symlinks are refused in the viewer sources, including a symlinked `src/`, and as the cache root itself, on every run. Parent directories of the cache root, such as a symlinked `~/.cache`, are allowed. Verification covers the copied viewer sources, not the installed `node_modules`. The integrity of the dependencies rests on `npm ci` and the committed lockfile.
 - `node bin/launch.mjs --print-root` shows the cache path, and `--prepare-only` installs without running the viewer.
 
 The skill directory never receives `node_modules`. The skill map hashes tracked files only, and the MCP Skills extension's per-skill limit is 512 files / 16 MiB.

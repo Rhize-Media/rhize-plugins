@@ -117,6 +117,7 @@ RELEASE_FIXTURE = "git " + "commit -m unrelated-work"
         (".claude/analyses/mcp-impact.md", 0),
         (".codex/analyses/report.md", 0),
         (".claude/analyses/probe.py", 2),
+        (".codex/analyses/probe.py", 2),
         ("src/example.ts", 2),
         ("src/content.md", 2),
     ],

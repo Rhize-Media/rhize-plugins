@@ -82,3 +82,17 @@ def test_expected_entry_transformation() -> None:
         "cwd": ".",
         "env": {"A": "b"},
     }
+
+
+def test_codex_catalog_plugins_with_bundled_servers_have_codex_manifests() -> None:
+    """A plugin in the Codex catalog that bundles `.mcp.json` must ship a Codex
+    manifest: otherwise Codex loads `.mcp.json` as-is and the unexpanded
+    `${CLAUDE_PLUGIN_ROOT}` launcher path fails (how seo-aeo-geo was broken)."""
+    catalog = json.loads((REPO_ROOT / ".agents" / "plugins" / "marketplace.json").read_text())
+    listed = {entry["name"] for entry in catalog["plugins"]}
+    missing = sorted(
+        name for name in listed
+        if (REPO_ROOT / name / ".mcp.json").is_file()
+        and not (REPO_ROOT / name / ".codex-plugin" / "plugin.json").is_file()
+    )
+    assert not missing, f"bundle .mcp.json but lack .codex-plugin/plugin.json: {missing}"

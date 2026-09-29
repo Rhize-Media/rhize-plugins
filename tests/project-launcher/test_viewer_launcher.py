@@ -151,6 +151,43 @@ def test_symlinks_are_refused(env):
     assert result.returncode == 1 and "not a real directory" in result.stderr
 
 
+def test_symlinked_source_directory_is_refused(env):
+    real_src = env["tmp"] / "real-src"
+    shutil.move(str(env["skill"] / "src"), real_src)
+    (env["skill"] / "src").symlink_to(real_src)
+    result = launch(env, "--print-root")
+    assert result.returncode == 1 and "symlink" in result.stderr
+
+
+def test_symlinked_cache_root_is_refused_even_after_a_valid_install(env):
+    real = env["tmp"] / "real-cache"
+    env["env"]["RHIZE_PLAN_VIEWER_HOME"] = str(real)
+    assert launch(env, "--prepare-only").returncode == 0
+    link = env["tmp"] / "linked-cache"
+    link.symlink_to(real)
+    env["env"]["RHIZE_PLAN_VIEWER_HOME"] = str(link)
+    result = launch(env, "--prepare-only")
+    assert result.returncode == 1 and "not a real directory" in result.stderr
+
+
+def test_stale_temp_dirs_are_swept_and_unwritable_cache_is_explained(env):
+    env["cache"].mkdir(mode=0o700)
+    stale = env["cache"] / ".tmp-deadbeef-1-1"
+    fresh = env["cache"] / ".tmp-deadbeef-2-2"
+    stale.mkdir()
+    fresh.mkdir()
+    old = 1_000_000_000
+    os.utime(stale, (old, old))
+    assert launch(env, "--prepare-only").returncode == 0
+    assert not stale.exists() and fresh.exists()
+    blocked = env["tmp"] / "ro"
+    blocked.mkdir(mode=0o500)
+    env["env"]["RHIZE_PLAN_VIEWER_HOME"] = str(blocked / "cache")
+    result = launch(env, "--prepare-only")
+    blocked.chmod(0o700)
+    assert result.returncode == 1 and "RHIZE_PLAN_VIEWER_HOME" in result.stderr
+
+
 def test_viewer_exit_status_and_signal_propagate(env):
     assert launch(env, "--prepare-only").returncode == 0
     assert launch(env, "serve", str(env["plan"]), "--no-open", STUB_EXIT="7").returncode == 7

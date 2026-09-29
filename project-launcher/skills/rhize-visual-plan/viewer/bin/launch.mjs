@@ -75,7 +75,12 @@ function shippedFiles() {
     }
     files.push(rel);
   }
-  for (const dir of SHIPPED_DIRS) walk(dir, files);
+  for (const dir of SHIPPED_DIRS) {
+    const st = lstatSync(join(SRC, dir), { throwIfNoEntry: false });
+    if (!st) throw new LaunchError(`viewer directory missing: ${dir}`);
+    if (st.isSymbolicLink() || !st.isDirectory()) throw new LaunchError(`refusing symlink in viewer sources: ${dir}`);
+    walk(dir, files);
+  }
   return files.sort();
 }
 
@@ -94,6 +99,9 @@ function cacheRoot() {
   return join(base, "rhize-plan-viewer");
 }
 
+// The cache root itself must be a real, private directory before anything in
+// it is trusted — checked on every run, not only when installing. Its parent
+// directories are not checked: a symlinked ~/.cache is a legitimate setup.
 function ensurePrivateDir(dir) {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   const st = lstatSync(dir);
@@ -134,10 +142,24 @@ function runNpm(cwd) {
   }
 }
 
+const STALE_TMP_MS = 24 * 60 * 60 * 1000;
+
+// A killed install (e.g. SIGKILL during npm ci) leaves a .tmp-* directory of a
+// few hundred MB behind; sweep ones older than a day.
+function sweepStaleTemps(root) {
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    if (!entry.name.startsWith(".tmp-") || !entry.isDirectory()) continue;
+    const abs = join(root, entry.name);
+    const st = lstatSync(abs, { throwIfNoEntry: false });
+    if (st && Date.now() - st.mtimeMs > STALE_TMP_MS) rmSync(abs, { recursive: true, force: true });
+  }
+}
+
 function prepare(files, hash, dest) {
-  if (validInstall(dest, files, hash)) return;
   const root = dirname(dest);
   ensurePrivateDir(root);
+  if (validInstall(dest, files, hash)) return;
+  sweepStaleTemps(root);
   const tmp = join(root, `.tmp-${hash.slice(0, 16)}-${process.pid}-${Date.now()}`);
   try {
     mkdirSync(tmp, { mode: 0o700 });
@@ -189,6 +211,13 @@ function main(argv) {
 try {
   process.exitCode = main(process.argv.slice(2));
 } catch (err) {
-  console.error(`rhize-plan: ${err instanceof LaunchError ? err.message : err.stack}`);
+  if (err instanceof LaunchError) {
+    console.error(`rhize-plan: ${err.message}`);
+  } else if (err && (err.code === "EACCES" || err.code === "EPERM" || err.code === "EROFS")) {
+    console.error(`rhize-plan: cannot write the viewer cache (${err.code}: ${err.path || err.message}). ` +
+      "Set RHIZE_PLAN_VIEWER_HOME to a writable directory.");
+  } else {
+    console.error(`rhize-plan: ${err && err.stack ? err.stack : err}`);
+  }
   process.exitCode = 1;
 }
