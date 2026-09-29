@@ -18,15 +18,33 @@ surface-preset authority).
 
 ## Install
 
-Run this from a git checkout of rhize-plugins, not from the version-pinned plugin cache (`~/.claude/plugins/cache/…` or `~/.codex/plugins/cache/…`), which is replaced on every plugin update:
+Nothing to install by hand. Run the viewer through `bin/launch.mjs`, which uses only Node builtins and works from any install location, including the version-pinned plugin cache (`~/.claude/plugins/cache/…` or `~/.codex/plugins/cache/…`):
 
 ```bash
-cd project-launcher/skills/rhize-visual-plan/viewer
-npm install
+node bin/launch.mjs serve /path/to/plan.mdx
+node bin/launch.mjs build /path/to/plan.mdx -o plan.html
 ```
 
-`node_modules/` is gitignored, so it never becomes part of the skill. The skill map hashes
-tracked files only, and the MCP Skills extension's per-skill limit is 512 files / 16 MiB.
+On first use the launcher does three things:
+
+1. It copies the viewer's shipped files to
+   `${RHIZE_PLAN_VIEWER_HOME:-${XDG_CACHE_HOME:-~/.cache}/rhize-plan-viewer}/<content-hash>/`, a private directory with mode 700.
+2. It runs `npm ci` there against the committed `package-lock.json`. It refuses to install without the lockfile.
+3. It runs `bin/rhize-plan.mjs` from that copy.
+
+After that:
+
+- A cache entry is used only after it is verified against the source hash, so a corrupt or half-finished copy is rebuilt.
+- Concurrent first runs publish a single copy.
+- The viewer's exit status and signals are passed through.
+- A new plugin version with different viewer sources gets a new cache directory. Clean up old ones with `rm -rf ~/.cache/rhize-plan-viewer`.
+- `node bin/launch.mjs --print-root` shows the cache path, and `--prepare-only` installs without running the viewer.
+
+The skill directory never receives `node_modules`. The skill map hashes tracked files only, and the MCP Skills extension's per-skill limit is 512 files / 16 MiB.
+
+### Developing the viewer itself
+
+In a git checkout of rhize-plugins you can still install in place for viewer development: `cd project-launcher/skills/rhize-visual-plan/viewer && npm ci`, then `node bin/rhize-plan.mjs …`. `node_modules/` is gitignored. Never do this inside the plugin cache.
 
 This pulls Vite, React 18, the MDX toolchain, and `mermaid` (mermaid is large —
 the first install can take a minute).
@@ -57,6 +75,8 @@ absolute output path is printed.
 ## Global command (optional)
 
 Link the package once to get a global `rhize-plan` you can run from anywhere:
+
+For viewer development in a checkout (after `npm ci` there):
 
 ```bash
 cd viewer

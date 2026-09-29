@@ -107,7 +107,7 @@ is defined in **`references/mdx-plan-format.md`** — read it before authoring. 
    `Projects/<Project>/Plans/<slug>/plan.mdx` (second-brain source of truth). Use the repo path
    `plans/<slug>/plan.mdx` instead when the plan should live in source control with the code.
 4. **Render & view.** Preview locally with `rhize-plan serve <path>` (live reload), or produce a single
-   self-contained `plan.html` to share with `rhize-plan build <path>` (the viewer is packaged in `viewer/`).
+   self-contained `plan.html` to share with `rhize-plan build <path>`. The viewer is packaged in `viewer/`. `rhize-plan <args>` means `node <this-skill-dir>/viewer/bin/launch.mjs <args>`; see Rendering & Viewing.
    Obsidian also renders the same file for a fast read. Always give the user the actual path so the next
    step is a click.
 5. **Self-review before handoff** (see below) for high-stakes plans — run it concurrently while the user
@@ -141,7 +141,7 @@ real density (existing sidebars, toolbar, chrome).
 
 The viewer is packaged in this skill at **`viewer/`** — a project-agnostic local tool (Vite + `@mdx-js` +
 React, no external plan service) that renders ANY `plan.mdx` from anywhere on disk (the vault or any client
-repo). One-time setup, from a **git checkout** of rhize-plugins: `cd viewer && npm install` (optionally `npm link` for a global `rhize-plan`). Never install inside the version-pinned plugin cache (`~/.claude/plugins/cache/…` or `~/.codex/plugins/cache/…`), which is replaced on every plugin update. `node_modules` stays untracked either way.
+repo). Run it through the launcher, which works from any install, including the version-pinned plugin cache: `node <this-skill-dir>/viewer/bin/launch.mjs serve|build …`. The first run copies the viewer to `~/.cache/rhize-plan-viewer/<content-hash>/` and runs `npm ci` there against the committed lockfile; later runs start in about a second. Nothing is ever installed into the skill directory.
 
 - **Live local preview:** `rhize-plan serve <path-to-plan.mdx|dir>` — opens the browser with HMR; edits to
   the plan reload instantly. The daily review driver.

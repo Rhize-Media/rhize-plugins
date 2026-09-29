@@ -4072,16 +4072,16 @@
       "treeHash": "0de70d0e54696350eafdf144a64597b33c5a1cd21fea46dda516ebb487f3bd65"
     },
     {
-      "contentHash": "583b4fd976cff704a5c632aad59c2d7bf26b61c5cf48cdf146f493290245894e",
+      "contentHash": "5c062b2e5e6cf0fa5debfeaffefb72c4d30ea5b8532677f5183a82d206c98699",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
-      "fileCount": 37,
+      "fileCount": 39,
       "id": "skill:project-launcher/rhize-visual-plan",
       "kind": "skill",
       "name": "rhize-visual-plan",
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
       "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps.",
-      "totalBytes": 417808,
-      "treeHash": "a3e099f46789a782b1e70df22eeb59a85feade12e6b7224b2c68e4537167784b"
+      "totalBytes": 605532,
+      "treeHash": "d4ad58a7da52f70454d9ff84662e8fccc0e210b06d342f88d459890702000b09"
     },
     {
       "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",

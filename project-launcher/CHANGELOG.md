@@ -6,6 +6,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ `rhize-visual-plan`: `viewer/bin/launch.mjs` runs the viewer from any install, including the version-pinned plugin cache, without writing `node_modules` into the skill.
+  - It uses Node builtins only. It copies an explicit list of shipped files to a private, content-addressed cache (`~/.cache/rhize-plan-viewer/<hash>/`, or `RHIZE_PLAN_VIEWER_HOME`) and runs `npm ci` there against the newly committed `viewer/package-lock.json`, refusing unpinned installs.
+  - A cache entry is used only after verification against the source hash; incomplete or tampered copies are rebuilt. Concurrent first runs publish one copy, and exit codes and signals are passed through.
+  - Symlinks in the sources and a symlinked cache root are refused.
+  - This replaces the 1.11.1 "install from a checkout" instruction; in-place `npm ci` remains only for viewer development.
+  - Design reviewed by Codex gpt-6-sol. A real `npm ci` + `build` run produced a 3.4 MB HTML export; eight offline tests use a stub npm.
 - _2026-09-29_ version bump — 1.11.0 → 1.11.1 (patch); marketplace 2.92.0 → 2.92.1.
 - _2026-09-29_ `rhize-visual-plan`: the viewer and Obsidian-plugin install steps now say to run `npm install` from a git checkout of rhize-plugins, never inside the version-pinned plugin cache (replaced on every update). `node_modules` is untracked, so the skill map's tracked-file digest and the MCP Skills extension's 512-file / 16 MiB limit only count what the skill ships. The `project-launcher` skill names the obsidian-mcp-server 3.x search tool (`obsidian_search_notes`); the rename itself shipped with obsidian-second-brain 1.7.6.
 - _2026-09-25_ version bump — 1.10.0 → 1.11.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
