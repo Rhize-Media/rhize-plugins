@@ -63,7 +63,7 @@ Version 0.2.3. Sets up the starter files describing a new Cowork client's busine
 
 ### procedural-memory
 
-Version 0.6.0. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
+Version 0.7.0. Lets Claude find and reuse previously verified scripts and automations instead of rebuilding them from scratch each time — for developers who want proven code reused safely.
 
 [README](../procedural-memory/README.md) · [GUIDE](../procedural-memory/GUIDE.md) · [3 skills](../generated/SKILL-CATALOG.md#procedural-memory)
 
