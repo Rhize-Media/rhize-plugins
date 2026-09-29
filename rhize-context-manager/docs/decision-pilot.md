@@ -304,6 +304,13 @@ Each pass:
    credential word (`"password": "x"`, `api key: x`, `service role key: x`, `SUPABASE_SERVICE_ROLE_KEY=`,
    `pw:`, `pin:`, `session:`) is redacted whole, together with a value written on the following
    lines (JSON, YAML, YAML block scalars), and so is natural language such as `the password is x`.
+   Long credential words match inside names (`PGPASSWORD`, `dbPassword`, `GITHUBTOKEN`, `_authToken`), short ones
+   need a left edge or a camelCase boundary (`userAuth`), and `npm config set <key> <value>` is covered. A word that
+   sits where the value would be (`{"name":"DB_PASSWORD","value":..}`, `<password>..`, a table header, `ENV SECRET v`,
+   netrc `password v`, `Set X to v`) takes its line and the value line below it, and a value below its key inside
+   `[..]`/`{..}` or a YAML list or block is redacted to the closing bracket. Every bound fails closed: a container
+   still open at 50 lines or 4K characters, a YAML block open at the cap, or more than 20,000 escapes redacts the
+   rest. Base64 runs are judged by entropy, so one with no digit is caught. Only the head of a message is ever kept.
    Every pattern is length-bounded and every scan is linear. It is defense in depth, not a
    guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
@@ -345,15 +352,20 @@ characters of user instructions), config, rules and memories are not sent (measu
 `codex debug prompt-input`: 33,747 characters of user context with the real home, 415 with the
 private one). If the CLI refreshed the token during the call, `auth.json` is written back
 atomically (same-directory temp file, 0600, rename) only when the content changed, is a non-empty
-JSON object whose top-level keys are among the original's, the real file still holds what was
-copied, and a dedicated lock (`<codex home>/.laya-auth.lock`) held from copy to write-back was
+JSON object that keeps every key and every non-empty value the original had (including each
+`tokens` sub-key; values may change, since refresh tokens rotate) and adds only known names (`last_refresh`, the
+four `tokens` names, taken from the real file's key names), the real file still holds what was copied, and a
+dedicated lock (`<codex home>/.laya-auth.lock`) held from copy to write-back was
 obtained. The real `auth.json` is opened without following symlinks and must be a regular file we
 own. The summary records only that a write-back happened (`codexAuthWritebacks`) or that changed
-content was not written (`codexAuthWritebackSkipped`), never content. The private copy is removed
+content was not written (`codexAuthWritebackSkipped`), never content; a skipped write-back is also
+a `warnings` entry in the summary and a stderr line telling the operator to run `codex login status` (the exit code
+is unaffected). Never content. The private copy is removed
 after every call, including failures, and copies left by a killed run are swept at the next start.
 A login kept only in the keychain (no `auth.json`) fails closed with `codex_auth_unavailable`.
-Codex output is checked line by line as it arrives: the first event that is not reasoning or a
-message (a tool attempt) kills the process group and fails the call. Residual: Codex still lists the skills under `$HOME/.agents/skills`
+Codex output is checked line by line as it arrives, including a last line with no trailing newline:
+any `item.*` event that is not reasoning or a message (a tool attempt) or a line that is not a JSON object kills
+the process group and fails the call. Residual: Codex still lists the skills under `$HOME/.agents/skills`
 (names and descriptions, about 15K characters); an empty `HOME` for the Codex child would drop
 that catalog. Run `codex debug prompt-input` with the private home during the live canary to confirm
 the prompt. Before any model call the run checks `claude auth status` (must be
@@ -377,20 +389,23 @@ A packet that was already settled (keyed by opportunity, packet digest and taxon
 sent again; the ledger row mirrors the import: it is settled only when the label was stored or by
 design never becomes one, while a skipped or failed import, a timeout or malformed output stays
 retryable. Attempts are counted in two separate ways. Spent-and-unusable model attempts
-(`annotation_failed`, `review_failed`) count toward three. Import outcomes are split: transient ones
-(`import_failed` from an I/O error or lock contention, `not_imported`, a skip reason in the transient list
-such as `lock_busy`) never count and retry freely, and a call cut short by the wall deadline is
-`not_attempted` and spends nothing. Deterministic skips (`label_contradicts_exclusions`,
-`immutable label already exists`, validation-shaped reasons; the allowlist is in the code, and any reason not
-known to be transient counts as deterministic) count toward `MAX_DETERMINISTIC_SKIPS` = 2: after two, that
-packet is no longer selected, so it spends no more model calls, and the run reports it as
-`deterministicSkipExhausted` (also `skipped.deterministic_skip_exhausted`). A changed packet or `--force` starts over. `--force` ignores the ledger. The ledger is written even when the import fails.
+(`annotation_failed`, `review_failed`, including `prompt_too_large`) count toward three. Import outcomes are
+split. Lock contention and I/O errors are not skips: `import_batch` raises, the run records an `import_failed`
+row (BlockingIOError included), and such a row never counts and retries freely, as does `not_imported`; a call cut
+short by the wall deadline is `not_attempted` and spends nothing. Every reason `import_batch` skips a record for
+(`label_contradicts_exclusions`, `immutable label already exists`, any validation message, including new ones) is a
+property of the label or record and counts toward `MAX_DETERMINISTIC_SKIPS` = 2: after two, that packet is no
+longer selected, so it spends no more model calls, and the run reports it as `deterministicSkipExhausted` (also
+`skipped.deterministic_skip_exhausted`). A changed packet or `--force` starts over. `--force` ignores the ledger. The ledger is written even when the import fails.
 `--no-import` changes no label and writes no ledger entry; inspect the run, then
 `pilot_autolabel.py import-run <runDir>` imports it (refusing a directory outside the state
 directory or a changed taxonomy) and ledgers the result. Before importing it validates every record:
 required fields and digests, no duplicate opportunity or case ids, and, for each record that would
 become a label, a reviewer identity from CLI metadata (`native_model_usage`), both annotators present,
-and a reviewer model that is neither annotator's. A run stopped by SIGTERM (launchd) kills
+and a reviewer model that is neither annotator's. It also refuses an unknown status, a record
+whose `runId` is not the directory's, non-empty model names missing, and any record that disagrees with the run's
+`manifest.json` (case, opportunity, source and packet digests). One case plus the fixed framing must fit
+`MAX_PROMPT_BYTES` (256 KiB); a larger case fails alone as `prompt_too_large` instead of being sent. A run stopped by SIGTERM (launchd) kills
 its model children, writes `summary.json` with status `terminated` and `annotations.json` for the
 finished cases, and exits 4; `import-run` recovers them. An unexpected error leaves a `failed`
 summary rather than a bare traceback. Batches are sized on the full prompt (taxonomy, task text,
@@ -399,6 +414,12 @@ packets), and the taxonomy document is capped at 128 KiB.
 Exit codes: 0 done or nothing to do, 1 unavailable or failed, 2 aborted before any model call
 (login, binary, taxonomy), 3 incomplete (deadline, model failures or skipped imports; finished
 cases are still written and imported), 4 terminated by a signal.
+
+Accepted residuals: the Codex login is compared and then replaced without a lock the external `codex` CLI
+takes, so a refresh by another `codex` process in that window can be overwritten by ours (a changed file is
+detected and skipped, but the window is not zero); the prior-context boundary compares transcript timestamps with the
+receipt clock, so clock skew can move it; and the transcript, taxonomy and login reads check a file and then open it,
+which a process running as the same user could race.
 
 Limits: two annotators and a reviewer share model limitations and can agree on a wrong answer, the
 labels are silver data, and a transcript that does not hash-match the receipt (for example one that
