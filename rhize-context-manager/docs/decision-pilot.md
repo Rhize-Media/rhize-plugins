@@ -280,17 +280,31 @@ Each pass:
    four preceding turns. Only turns the user typed are context: assistant prose (where agents
    restate pilot results), sub-agent (`isSidechain`) and compact-summary records, and injected
    boilerplate anywhere in a turn are skipped, and a user turn that talks about the pilot's own
-   arms, scores, consultations or labels is dropped whole. Missing or ambiguous context becomes
-   `insufficient_context` with no model call.
+   arms, scores, consultations or labels is dropped whole. That word filter is only a second layer.
+   The structural rule is a time boundary: a turn is context only if it was typed strictly before
+   both the opportunity's prompt and the session's first pilot artifact (the earliest receipt
+   `observedAt`, observation `createdAt` or result `at` of that session), because from then on pilot
+   output could have been surfaced and restated. A session whose boundary cannot be established (a
+   receipt without a usable timestamp), a prompt record without a timestamp, or a turn without a
+   timestamp yields no preceding context (for the turn: that turn is left out). Missing or
+   ambiguous context becomes `insufficient_context` with no model call.
 
    **Redaction** covers the whole message before any truncation (a partial token at the cut is
-   trimmed): private keys, API and access token families (Anthropic, OpenAI, GitHub, Slack incl.
-   webhooks, Supabase, Google, npm, Vercel, Sanity, Resend, Stripe, AWS, JWTs), `Authorization`
-   and `Bearer` credentials, URL credentials, `sshpass -p`, credential-looking CLI flags, any line
-   whose key name carries a credential word (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=`,
-   `aws_secret_access_key =`), e-mail addresses, phone numbers, long numbers, CRM ids, and any
-   unbroken 32-plus character run with lower case, upper case and a digit. Every pattern is
-   length-bounded; a 26 KB dotted run redacts in milliseconds. It is defense in depth, not a
+   trimmed; a message over 200,000 characters is first cut at a token edge). Matching runs on a
+   normalized view (NFKC, zero-width and format characters dropped, Unicode whitespace as a
+   space, look-alike Cyrillic and Greek letters as Latin, `\uXXXX` and `\xNN` escapes decoded,
+   bounded), and the replacement lands on the original span, so obfuscated keys and split tokens do
+   not survive. It covers private keys, API and access token families (Anthropic, OpenAI, GitHub,
+   GitLab, Slack incl. webhooks, Supabase, Google, npm, Vercel, Sanity, Resend, Stripe, Shopify,
+   DigitalOcean, Hugging Face, Notion, AWS, JWTs), hex runs of 64 or more, `Authorization`,
+   `Bearer` and `Basic` credentials, URL credentials (a password may contain `@`) and secret query
+   parameters, webhook path secrets, `sshpass -p`, `curl -u user:pw`, `mysql -p<pw>`, credential
+   flags, e-mail addresses, phone numbers, long numbers, CRM ids, unbroken 32-plus character
+   key-like runs and longer random-looking base64 runs. Any line whose key name carries a
+   credential word (`"password": "x"`, `api key: x`, `service role key: x`, `SUPABASE_SERVICE_ROLE_KEY=`,
+   `pw:`, `pin:`, `session:`) is redacted whole, together with a value written on the following
+   lines (JSON, YAML, YAML block scalars), and so is natural language such as `the password is x`.
+   Every pattern is length-bounded and every scan is linear. It is defense in depth, not a
    guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
    never each other: Claude (`--claude-model`, default `claude-sonnet-5-5`) and Codex
@@ -331,10 +345,15 @@ characters of user instructions), config, rules and memories are not sent (measu
 `codex debug prompt-input`: 33,747 characters of user context with the real home, 415 with the
 private one). If the CLI refreshed the token during the call, `auth.json` is written back
 atomically (same-directory temp file, 0600, rename) only when the content changed, is a non-empty
-JSON object and the real file still holds what was copied; the summary records only that a
-write-back happened (`codexAuthWritebacks`), never content. The private copy is removed after every
-call, including failures. A login kept only in the keychain (no `auth.json`) fails closed with
-`codex_auth_unavailable`. Residual: Codex still lists the skills under `$HOME/.agents/skills`
+JSON object whose top-level keys are among the original's, the real file still holds what was
+copied, and a dedicated lock (`<codex home>/.laya-auth.lock`) held from copy to write-back was
+obtained. The real `auth.json` is opened without following symlinks and must be a regular file we
+own. The summary records only that a write-back happened (`codexAuthWritebacks`) or that changed
+content was not written (`codexAuthWritebackSkipped`), never content. The private copy is removed
+after every call, including failures, and copies left by a killed run are swept at the next start.
+A login kept only in the keychain (no `auth.json`) fails closed with `codex_auth_unavailable`.
+Codex output is checked line by line as it arrives: the first event that is not reasoning or a
+message (a tool attempt) kills the process group and fails the call. Residual: Codex still lists the skills under `$HOME/.agents/skills`
 (names and descriptions, about 15K characters); an empty `HOME` for the Codex child would drop
 that catalog. Run `codex debug prompt-input` with the private home during the live canary to confirm
 the prompt. Before any model call the run checks `claude auth status` (must be
@@ -357,11 +376,16 @@ never replaces `latest-summary.json`); a `run.lock` that makes an overlapping la
 A packet that was already settled (keyed by opportunity, packet digest and taxonomy digest) is not
 sent again; the ledger row mirrors the import: it is settled only when the label was stored or by
 design never becomes one, while a skipped or failed import, a timeout or malformed output stays
-retryable up to three times. A call cut short by the wall deadline is `not_attempted` and spends
-no attempt. `--force` ignores the ledger. The ledger is written even when the import fails.
+retryable up to three times. Only spent-and-unusable model attempts (`annotation_failed`,
+`review_failed`) count toward those three; a row waiting on the import (`skipped`, `import_failed`,
+`not_imported`) never does, so an import problem cannot suppress a case and cannot retire it. A call cut
+short by the wall deadline is `not_attempted` and spends no attempt. `--force` ignores the ledger. The ledger is written even when the import fails.
 `--no-import` changes no label and writes no ledger entry; inspect the run, then
 `pilot_autolabel.py import-run <runDir>` imports it (refusing a directory outside the state
-directory or a changed taxonomy) and ledgers the result. A run stopped by SIGTERM (launchd) kills
+directory or a changed taxonomy) and ledgers the result. Before importing it validates every record:
+required fields and digests, no duplicate opportunity or case ids, and, for each record that would
+become a label, a reviewer identity from CLI metadata (`native_model_usage`), both annotators present,
+and a reviewer model that is neither annotator's. A run stopped by SIGTERM (launchd) kills
 its model children, writes `summary.json` with status `terminated` and `annotations.json` for the
 finished cases, and exits 4; `import-run` recovers them. An unexpected error leaves a `failed`
 summary rather than a bare traceback. Batches are sized on the full prompt (taxonomy, task text,

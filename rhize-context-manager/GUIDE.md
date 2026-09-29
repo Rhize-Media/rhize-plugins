@@ -361,8 +361,9 @@ redacted local transcript context, a Claude reviewer settles the agreed cases, a
 imported with supersession, which replaces family-derived AI choices with explicitly judged ones and
 archives the old record (never a human label). Transcript context is redacted whole and limited to
 user-typed turns, Codex runs in a private `CODEX_HOME` with only its login, and `import-run` imports
-a saved run. The definitions it embeds are in [workflow-taxonomy.md](docs/workflow-taxonomy.md).
-See [daily AI labeling](docs/decision-pilot.md#daily-ai-labeling).
+a saved run. Known residual: Codex still receives the names and descriptions of the skills under
+`$HOME/.agents/skills` (about 15K characters). The definitions it embeds are in
+[workflow-taxonomy.md](docs/workflow-taxonomy.md). See [daily AI labeling](docs/decision-pilot.md#daily-ai-labeling).
 
 For v2, follow the prompt checkpoint in order: record the bounded task context, consult the
 appropriate catalog, record the consultation, then select or decline an actual workflow. A catalog
