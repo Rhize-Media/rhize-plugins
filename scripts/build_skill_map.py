@@ -210,12 +210,21 @@ def skill_tree_digest(skill_dir: Path) -> dict:
     `.git/` and `node_modules/`. Any other git failure is a BuildError, never a
     silent fallback, so the real repository always hashes the tracked set."""
     rel_dir = skill_dir.relative_to(REPO_ROOT).as_posix()
-    result = subprocess.run(
-        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", rel_dir],
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", f":(literal){rel_dir}/"],
+            capture_output=True,
+            env={**os.environ, "LC_ALL": "C"},  # stable stderr for the check below
+        )
+    except FileNotFoundError as exc:
+        raise BuildError(f"git is required to hash skill directories: {exc}") from exc
     if result.returncode == 0:
         paths = [REPO_ROOT / p.decode("utf-8") for p in result.stdout.split(b"\0") if p]
+        if not paths:
+            raise BuildError(
+                f"{rel_dir} has a SKILL.md but no git-tracked files; `git add` the skill "
+                "before building the map"
+            )
     elif b"not a git repository" in result.stderr:
         paths = [
             p for p in skill_dir.rglob("*")

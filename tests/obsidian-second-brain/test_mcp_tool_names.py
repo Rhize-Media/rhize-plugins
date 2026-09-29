@@ -41,7 +41,10 @@ def test_referenced_tools_exist() -> None:
     missing = {}
     for rel in files:
         text = (REPO_ROOT / rel).read_text()
-        refs = set(MCP_REF.findall(text)) | {r for r in TOOL_REF.findall(text) if "obsidian-mcp-server" in text or r in known}
+        # Every bare obsidian_* name counts in this plugin's own files; elsewhere only
+        # in files that name the server, so unrelated identifiers aren't flagged.
+        checks_bare = rel.startswith("obsidian-second-brain/") or "obsidian-mcp-server" in text
+        refs = set(MCP_REF.findall(text)) | {r for r in TOOL_REF.findall(text) if checks_bare or r in known}
         unknown = sorted(r for r in refs if r not in known and r.startswith("obsidian_") and "mcp" not in r)
         if unknown:
             missing[rel] = unknown

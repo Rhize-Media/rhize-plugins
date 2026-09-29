@@ -65,6 +65,18 @@ def test_tracked_files_only(tmp_path, monkeypatch):
     }
 
 
+def test_unstaged_skill_is_a_build_error(tmp_path, monkeypatch):
+    skill, _ = _make_skill(tmp_path)
+    _git(tmp_path, "init", "-q")
+    monkeypatch.setattr(build, "REPO_ROOT", tmp_path)
+    try:
+        build.skill_tree_digest(skill)
+    except build.BuildError as exc:
+        assert "git add" in str(exc)
+    else:
+        raise AssertionError("expected BuildError for a skill with no tracked files")
+
+
 def test_non_git_fallback_skips_node_modules(tmp_path, monkeypatch):
     skill, files = _make_skill(tmp_path)
     (skill / "node_modules").mkdir()
