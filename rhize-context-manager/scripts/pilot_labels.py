@@ -5,7 +5,8 @@ This module sits outside the collection source digest on purpose: changing it do
 orphan live observations. It stores labels beside, never inside, the legacy human label store.
 Stored labels are immutable except for the documented supersession (see supersession_reason): a
 family-derived AI choice may be replaced by an explicitly judged one, and any AI label by a human
-label. The replaced record is archived, never deleted, and a human label is never replaced.
+label. The replaced record is archived, never deleted, and a human label is never replaced. An archive is
+pending until the replacement is stored and committed after it; only committed archives are counted.
 """
 from __future__ import annotations
 
@@ -134,28 +135,78 @@ def _same_record(old, record):
     return {k: v for k, v in old.items() if k != 'importedAt'} == record
 
 
+def _archive_path(root, old):
+    return root / SUPERSEDED_DIR / (old['opportunityId'] + '-' + old['evidenceSha256'][:16] + '.json')
+
+
+ARCHIVE_MARKS = ('supersededBy', 'supersededReason', 'supersededAt', 'supersededState')
+
+
+def _replacement_of(record):
+    return {'evidenceSha256': record['evidenceSha256'], 'reviewEvidenceSha256': record['reviewEvidenceSha256'],
+            'basis': record['basis'], 'choice': record['choice'], 'choiceBasis': record['choiceBasis'],
+            'reviewer': record['reviewer']}
+
+
 def _archive_superseded(root, old, record, reason):
-    """Preserve the replaced label; safe to repeat after a crash between archive and replace."""
+    """Preserve the replaced label as a PENDING archive; commit_archive() marks it committed only once
+    the replacement is stored. Safe to repeat after a crash: a pending archive is re-validated against the
+    replacement being applied now and rewritten when it names a different one."""
     directory = root / SUPERSEDED_DIR
     if directory.is_symlink():
         raise ValueError('symlink superseded store refused')
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path = directory / (old['opportunityId'] + '-' + old['evidenceSha256'][:16] + '.json')
+    path = _archive_path(root, old)
     if path.is_symlink():
         raise ValueError('symlink superseded record refused')
-    marks = ('supersededBy', 'supersededReason', 'supersededAt')
+    replacement = _replacement_of(record)
     if path.exists():
         kept = read_json(path)
-        if {k: v for k, v in kept.items() if k not in marks} != old:
+        if {k: v for k, v in kept.items() if k not in ARCHIVE_MARKS} != old:
             raise ValueError('superseded_archive_conflict')
-        return path
-    archived = {**old, 'supersededBy': {'evidenceSha256': record['evidenceSha256'],
-                                        'reviewEvidenceSha256': record['reviewEvidenceSha256'],
-                                        'basis': record['basis'], 'choice': record['choice'],
-                                        'choiceBasis': record['choiceBasis'], 'reviewer': record['reviewer']},
-                'supersededReason': reason, 'supersededAt': datetime.now(timezone.utc).isoformat()}
+        if kept.get('supersededState') == 'committed':
+            raise ValueError('superseded_archive_conflict')
+        if kept.get('supersededBy') == replacement and kept.get('supersededReason') == reason \
+                and kept.get('supersededState') == 'pending':
+            return path
+    archived = {**old, 'supersededBy': replacement, 'supersededReason': reason, 'supersededState': 'pending',
+                'supersededAt': datetime.now(timezone.utc).isoformat()}
     _private_write(path, json.dumps(archived, sort_keys=True, indent=2) + '\n', prefix='.superseded-')
     return path
+
+
+def commit_archive(path):
+    """Mark a pending archive committed: the replacement it names is now the stored label."""
+    kept = read_json(path)
+    if kept.get('supersededState') == 'committed':
+        return
+    _private_write(path, json.dumps({**kept, 'supersededState': 'committed'}, sort_keys=True, indent=2) + '\n',
+                   prefix='.superseded-')
+
+
+def reconcile_superseded(root):
+    """Commit pending archives whose replacement is the stored label (a crash between replace and commit).
+
+    A pending archive whose old label is still the stored one belongs to an unfinished replacement and is left alone.
+    """
+    directory = root / SUPERSEDED_DIR
+    if directory.is_symlink():
+        raise ValueError('symlink superseded store refused')
+    if not directory.is_dir():
+        return 0
+    healed = 0
+    for path in sorted(directory.glob('*.json')):
+        if path.is_symlink():
+            continue
+        kept = read_json(path)
+        if kept.get('supersededState') == 'committed':
+            continue
+        active = root / LABEL_DIR / (str(kept.get('opportunityId')) + '.json')
+        if active.is_file() and not active.is_symlink() \
+                and read_json(active).get('evidenceSha256') == (kept.get('supersededBy') or {}).get('evidenceSha256'):
+            commit_archive(path)
+            healed += 1
+    return healed
 
 
 def record_label(root, receipts, value, evidence_sha256, dry_run=False, supersede=False):
@@ -188,7 +239,7 @@ def record_label(root, receipts, value, evidence_sha256, dry_run=False, supersed
     elif dry_run:
         return 'would_record'
 
-    outcome = []
+    outcome, archives = [], []
 
     def update(old):
         if old is not None:
@@ -198,12 +249,14 @@ def record_label(root, receipts, value, evidence_sha256, dry_run=False, supersed
             reason = supersession_reason(old, record) if supersede else None
             if reason is None:
                 raise ValueError('immutable label already exists')
-            _archive_superseded(root, old, record, reason)
+            archives.append(_archive_superseded(root, old, record, reason))
             outcome.append('superseded')
         else:
             outcome.append('recorded')
         return {**record, 'importedAt': datetime.now(timezone.utc).isoformat()}, True
     locked_update(store, value['opportunityId'], update)
+    if archives:
+        commit_archive(archives[0])
     return outcome[0]
 
 
@@ -215,6 +268,8 @@ def import_file(root, receipts, identity, evidence, supersede=False):
     if value.get('opportunityId') != identity:
         raise ValueError('evidence must bind the exact opportunity')
     status = record_label(root, receipts, value, digest(raw), supersede=supersede)
+    if supersede:
+        reconcile_superseded(root)
     return {'status': status, 'opportunityId': identity, 'basis': value['basis']}
 
 
@@ -254,19 +309,28 @@ def import_batch(root, receipts, annotations, dry_run=False, supersede=False):
     records = json.loads(raw)
     if not isinstance(records, list):
         raise ValueError('annotation batch must be a list')
-    outcomes, skipped = Counter(), Counter()
+    if not dry_run:
+        reconcile_superseded(root)
+    outcomes, skipped, dispositions = Counter(), Counter(), []
     for record in records:
         value, reason = batch_label(record) if isinstance(record, dict) else (None, 'malformed_record')
+        identity = record.get('opportunityId') if isinstance(record, dict) else None
         if value is None:
             skipped[reason] += 1
+            dispositions.append({'opportunityId': identity, 'result': 'not_a_label' if str(reason).startswith('status_')
+                                 else 'skipped', 'reason': reason})
             continue
         try:
-            outcomes[record_label(root, receipts, value, digest(raw), dry_run=dry_run, supersede=supersede)] += 1
+            result = record_label(root, receipts, value, digest(raw), dry_run=dry_run, supersede=supersede)
         except ValueError as exc:
             skipped[str(exc)] += 1
+            dispositions.append({'opportunityId': identity, 'result': 'skipped', 'reason': str(exc)})
+            continue
+        outcomes[result] += 1
+        dispositions.append({'opportunityId': identity, 'result': result, 'reason': None})
     return {'status': 'dry_run' if dry_run else 'imported', 'batchSha256': digest(raw), 'records': len(records),
             'results': dict(sorted(outcomes.items())), 'skipped': dict(sorted(skipped.items())), 'basis': AI,
-            'supersede': supersede}
+            'supersede': supersede, 'dispositions': dispositions}
 
 
 def load_policy(root):
@@ -403,10 +467,14 @@ def write_cases(root, receipts, output, bases):
 
 
 def superseded_count(root):
+    """Committed supersessions only: a pending archive is an unfinished replacement, not a supersession."""
     directory = root / SUPERSEDED_DIR
     if directory.is_symlink():
         raise ValueError('symlink superseded store refused')
-    return sum(1 for _ in directory.glob('*.json')) if directory.is_dir() else 0
+    if not directory.is_dir():
+        return 0
+    return sum(1 for path in directory.glob('*.json')
+               if not path.is_symlink() and read_json(path).get('supersededState') == 'committed')
 
 
 def report(root):

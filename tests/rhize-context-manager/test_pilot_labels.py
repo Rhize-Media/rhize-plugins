@@ -295,7 +295,10 @@ def test_archive_step_is_repeatable_and_refuses_a_conflicting_archive(tmp_path):
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({**old, 'supersededBy': {}, 'supersededReason': 'earlier attempt'}))
     assert labels.record_label(root, receipts, explicit, 'b' * 64, supersede=True) == 'superseded'
-    assert json.loads(path.read_text())['supersededReason'] == 'earlier attempt'
+    # An archive that names some other replacement is validated and rewritten, never trusted, then committed.
+    kept = json.loads(path.read_text())
+    assert kept['supersededReason'] == 'derived_to_explicit_choice' and kept['supersededState'] == 'committed'
+    assert kept['supersededBy']['evidenceSha256'] == 'b' * 64
     # A different record occupying the archive name is a hard stop and leaves the label untouched.
     root2, receipts2, receipt2 = make(tmp_path / 'second')
     labels.record_label(root2, receipts2, value(root2, receipt2, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
@@ -334,3 +337,57 @@ def test_supersede_flag_reaches_the_command_line(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(sys, 'argv', argv)
     assert labels.main() == 0
     assert json.loads(capsys.readouterr().out)['results'] == {'superseded': 1}
+
+
+def test_archive_is_pending_until_the_replacement_commits_and_only_committed_counts(tmp_path, monkeypatch):
+    root, receipts, receipt = make(tmp_path)
+    identity = receipt['opportunityId']
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    first = value(root, receipt, choice='none', reviewEvidenceSha256='2' * 64)
+    real = labels.locked_update
+
+    def crash(store, identity, update):
+        # The update callback runs (archiving), then the process dies before the replacement is written.
+        update(labels.read_json(store / (identity + '.json')))
+        raise OSError('simulated crash')
+    monkeypatch.setattr(labels, 'locked_update', crash)
+    with pytest.raises(OSError):
+        labels.record_label(root, receipts, first, 'b' * 64, supersede=True)
+    monkeypatch.setattr(labels, 'locked_update', real)
+    archive = next((root / labels.SUPERSEDED_DIR).glob('*.json'))
+    assert json.loads(archive.read_text())['supersededState'] == 'pending'
+    assert stored_ids(root)[identity]['choiceBasis'] == labels.FAMILY_MAP        # the old label is still active
+    assert labels.superseded_count(root) == 0 and labels.report(root)['superseded'] == 0
+    # A pending archive is not trusted: a different replacement rewrites it and then commits it.
+    second = value(root, receipt, choice='content', reviewEvidenceSha256='3' * 64)
+    assert labels.record_label(root, receipts, second, 'c' * 64, supersede=True) == 'superseded'
+    kept = json.loads(archive.read_text())
+    assert kept['supersededState'] == 'committed' and kept['supersededBy']['evidenceSha256'] == 'c' * 64
+    assert kept['supersededBy']['choice'] == 'content' and labels.superseded_count(root) == 1
+
+
+def test_a_crash_between_replace_and_commit_is_healed_by_the_next_import(tmp_path, monkeypatch):
+    root, receipts, receipt = make(tmp_path)
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    explicit = value(root, receipt, choice='none', reviewEvidenceSha256='2' * 64)
+    monkeypatch.setattr(labels, 'commit_archive', lambda path: (_ for _ in ()).throw(OSError('crash before commit')))
+    with pytest.raises(OSError):
+        labels.record_label(root, receipts, explicit, 'b' * 64, supersede=True)
+    monkeypatch.undo()
+    assert stored_ids(root)[receipt['opportunityId']]['choice'] == 'none' and labels.superseded_count(root) == 0
+    path = write(tmp_path, [annotation(root, receipt, family='feature_delivery', phase='implement',
+                                       areas=['backend_api'], choice='none')], 'annotations.json')
+    labels.import_batch(root, receipts, path, supersede=True)
+    assert labels.superseded_count(root) == 1
+
+
+def test_import_batch_reports_a_disposition_for_every_record(tmp_path):
+    root, receipts, receipt = make(tmp_path, 'one')
+    _, _, other = make(tmp_path, 'two')
+    records = [annotation(root, receipt, family='feature_delivery', phase='implement', areas=['backend_api'], choice='general'),
+               {**annotation(root, other, family=None, phase=None, areas=[], choice=None), 'status': 'checker_disagreement'},
+               {'schema': labels.BATCH_SCHEMA, 'opportunityId': 'f' * 64, 'status': 'labeled'}]
+    result = labels.import_batch(root, receipts, write(tmp_path, records, 'annotations.json'))
+    assert [(d['opportunityId'], d['result']) for d in result['dispositions']] == [
+        (receipt['opportunityId'], 'recorded'), (other['opportunityId'], 'not_a_label'), ('f' * 64, 'skipped')]
+    assert result['dispositions'][1]['reason'] == 'status_checker_disagreement'
