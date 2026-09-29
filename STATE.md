@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-09-29: The collision report (rhize-context-manager 0.41.0) also reads claude.ai-synced account skills (`~/.claude/skills/synced`), for detection only; resolved outputs are unchanged. This host has 5 cross-origin name collisions: `context-compression`, `context-optimization`, `api-design`, `deep-research` and `rhize-content-engine`. They are same-name, different-content skills that hosts keep apart by prefix. Decision: no rename or `extends`.
+
 - 2026-09-29, MCP follow-ups (marketplace 2.95.0, rebased on procedural-memory 0.8.0 / 2.93.0):
   - **Codex and bundled MCP servers:** Codex (CLI 0.158.0) loads a plugin's `.mcp.json` but never expands `${CLAUDE_PLUGIN_ROOT}` or any `${...}` variable. It passes only `HOME`/`PATH`/`USER` to MCP children, and a `config.toml` server of the same name shadows the plugin's. Plugins that bundle servers therefore carry an inline `mcpServers` entry in `.codex-plugin/plugin.json` (`./scripts/…`, `cwd: "."`). `tests/config-lint/test_codex_mcp_parity.py` enforces parity, and also that a Codex-catalog plugin with `.mcp.json` ships a Codex manifest. obsidian-second-brain 1.7.7 and seo-aeo-geo 1.6.0 (a new Codex manifest) are fixed.
   - **Visual-plan viewer:** it runs through `viewer/bin/launch.mjs` (project-launcher 1.12.0), which uses a content-addressed `npm ci` cache under `~/.cache/rhize-plan-viewer/` with a committed lockfile and never writes into the skill.
