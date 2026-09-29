@@ -36,15 +36,17 @@ class DoctorContractTests(unittest.TestCase):
         path.write_text('import json,sys,time,os\nr=json.load(sys.stdin)\n' + body)
         return [sys.executable, str(path)]
 
-    def collect(self, body):
-        return doctor.collect_probe(self.spec, self.context, self.worker(body))
+    def collect(self, body, timeout=5.0):
+        # A fresh interpreter can take longer than a fraction of a second to start
+        # under load; only the timeout test needs a short deadline.
+        return doctor.collect_probe(dict(self.spec, timeout_seconds=timeout), self.context, self.worker(body))
 
     def test_missing_executable_is_not_run(self):
         row = doctor.collect_probe(self.spec, self.context, [str(self.root / 'missing')])
         self.assertEqual((row['outcome'], row['reason']), ('NOT_RUN', 'missing_executable'))
 
     def test_timeout_is_not_run(self):
-        row = self.collect('time.sleep(20)\n')
+        row = self.collect('time.sleep(20)\n', timeout=0.2)
         self.assertEqual((row['outcome'], row['reason']), ('NOT_RUN', 'timeout'))
 
     def test_malformed_and_nonzero_never_pass(self):

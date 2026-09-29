@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ Test-only: `test_context_doctor.py` gives probe workers a realistic 5 s deadline. `test_timeout_is_not_run` keeps an explicit 0.2 s deadline. The old 0.2 s default let interpreter startup under load flip the replayed-identity test about one run in three. `context_doctor.py` is unchanged; 15 consecutive runs pass.
 - _2026-09-29_ version bump — 0.39.0 → 0.40.0 (minor); marketplace 2.91.4 → 2.92.0.
 - _2026-09-29_ `build_local_skill_map.py` reports cross-origin skill-name collisions: bare names, compared case-insensitively, that are shared by skills from more than one origin (a rhize plugin, a third-party plugin, or a local-approved root). Results go to `skill-map.local.json` `nameCollisions` and a `sourceNotes` line, and are printed. They are report-only; no node is renamed or dropped. This follows the MCP Skills extension (SEP-2640) rule that a skill must never silently shadow a same-named skill from another origin.
 - _2026-09-28_ version bump — 0.38.0 → 0.39.0 (minor); marketplace 2.89.0 → 2.90.0.
