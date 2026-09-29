@@ -41,7 +41,9 @@ Inputs and what they produce
 
 2. Each plugin's `skills/*/SKILL.md`
    -> one `skill` node per skill directory that has a SKILL.md (path,
-      description, contentHash = sha256 of the file's raw bytes), plus an
+      description, contentHash = sha256 of the file's raw bytes; treeHash /
+      fileCount / totalBytes over every git-tracked file in the skill
+      directory — see skill_tree_digest()), plus an
       optional `summary` field carried verbatim from the file's
       `metadata.rhize.summary` frontmatter (a short, plain-language sentence
       for human-facing doc tables — see scripts/render_skill_map_docs.py and
@@ -124,7 +126,9 @@ from __future__ import annotations
 import collections
 import hashlib
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -190,6 +194,56 @@ def split_frontmatter(text: str) -> tuple[dict, str]:
 
 def slugify(value: str) -> str:
     return re.sub(r"[^a-z0-9_.\-]+", "-", value.strip().lower()).strip("-")
+
+
+def skill_tree_digest(skill_dir: Path) -> dict:
+    """Return {treeHash, fileCount, totalBytes} over the git-tracked files of a
+    skill directory — the per-file manifest shape of the MCP Skills extension
+    (SEP-2640), collapsed to one digest. Only tracked files count, so the
+    committed artifact reproduces from a clean checkout: untracked build output
+    (e.g. a viewer's node_modules in a dev checkout) never reaches generated/.
+    Canonical form: sha256 over sorted `relpath\\0sha256hex\\0size\\n` lines. A
+    tracked symlink contributes its link text, as git stores it.
+
+    Outside a git work tree (the hermetic fixture trees tests/skill-map/* copy
+    this script into) every file under the skill directory counts, minus
+    `.git/` and `node_modules/`. Any other git failure is a BuildError, never a
+    silent fallback, so the real repository always hashes the tracked set."""
+    rel_dir = skill_dir.relative_to(REPO_ROOT).as_posix()
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "ls-files", "-z", "--", rel_dir],
+        capture_output=True,
+    )
+    if result.returncode == 0:
+        paths = [REPO_ROOT / p.decode("utf-8") for p in result.stdout.split(b"\0") if p]
+    elif b"not a git repository" in result.stderr:
+        paths = [
+            p for p in skill_dir.rglob("*")
+            if not ({".git", "node_modules"} & set(p.relative_to(skill_dir).parts))
+            and (p.is_file() or p.is_symlink())
+        ]
+    else:
+        raise BuildError(
+            f"git ls-files failed for {rel_dir}: {result.stderr.decode(errors='replace').strip()}"
+        )
+    entries = []
+    for path in paths:
+        if path.is_symlink():
+            data = os.readlink(path).encode("utf-8")
+        elif path.is_file():
+            data = path.read_bytes()
+        else:
+            continue  # tracked but deleted in the working tree
+        entries.append((path.relative_to(skill_dir).as_posix(), hashlib.sha256(data).hexdigest(), len(data)))
+    entries.sort()
+    tree = hashlib.sha256()
+    for rel, digest, size in entries:
+        tree.update(f"{rel}\0{digest}\0{size}\n".encode("utf-8"))
+    return {
+        "treeHash": tree.hexdigest(),
+        "fileCount": len(entries),
+        "totalBytes": sum(size for _, _, size in entries),
+    }
 
 
 class Graph:
@@ -347,6 +401,7 @@ def load_skills(
             "path": rel_path,
             "description": description,
             "contentHash": content_hash,
+            **skill_tree_digest(skill_dir),
         }
         summary = rhize_meta.get("summary")
         if summary:

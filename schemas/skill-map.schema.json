@@ -59,6 +59,21 @@
           "description": "sha256 hex digest of the node's source content (e.g. SKILL.md) — the drift-detection anchor. Required for skill nodes.",
           "pattern": "^[a-f0-9]{64}$"
         },
+        "treeHash": {
+          "type": "string",
+          "description": "sha256 hex digest over every git-tracked file in a rhize skill directory: sorted `relpath\\0sha256hex\\0size\\n` lines (see scripts/build_skill_map.py's skill_tree_digest()). Detects drift in references/, scripts/ and templates/ that contentHash (SKILL.md only) cannot. Emitted on static rhize skill nodes.",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fileCount": {
+          "type": "integer",
+          "description": "Number of git-tracked files in the skill directory, SKILL.md included. validate_skill_map.py fails a skill above 512, the MCP Skills extension (SEP-2640) per-skill limit.",
+          "minimum": 1
+        },
+        "totalBytes": {
+          "type": "integer",
+          "description": "Sum of the byte sizes of the files counted by fileCount. validate_skill_map.py fails a skill above 16777216 (16 MiB), the MCP Skills extension (SEP-2640) per-skill limit.",
+          "minimum": 0
+        },
         "contentHashNormalized": {
           "type": "string",
           "description": "sha256 hex digest of a `fork-of` skill node's SKILL.md with the Rhize-injected `metadata.rhize` frontmatter subtree textually removed — see scripts/sources_md.py's strip_rhize_metadata_block() (the canonical, single implementation) for the exact rule. Present only on skill nodes that are the `from` side of a `fork-of` edge — the local half of the three-way drift verdict (see docs/skill-map.md).",

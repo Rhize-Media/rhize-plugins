@@ -156,6 +156,33 @@ def summary_fields_valid(doc):
     return True, None
 
 
+# Per-skill limits fixed by the MCP Skills extension (SEP-2640, "Limits"): a
+# conforming host must accept up to these; a server should not serve beyond.
+MAX_SKILL_FILES = 512
+MAX_SKILL_BYTES = 16 * 1024 * 1024
+
+
+def skill_limits_valid(doc):
+    """A skill node carrying fileCount/totalBytes (scripts/build_skill_map.py's
+    skill_tree_digest()) must stay within the MCP Skills extension limits, so
+    any rhize skill stays servable over MCP. Nodes without the fields (fixtures,
+    third-party overlay nodes) are skipped."""
+    errors = []
+    for i, node in enumerate(doc.get("nodes", [])):
+        if node.get("kind") != "skill":
+            continue
+        node_id = node.get("id", f"nodes[{i}]")
+        file_count = node.get("fileCount")
+        total_bytes = node.get("totalBytes")
+        if isinstance(file_count, int) and file_count > MAX_SKILL_FILES:
+            errors.append(f"{node_id}: {file_count} tracked files, max {MAX_SKILL_FILES}")
+        if isinstance(total_bytes, int) and total_bytes > MAX_SKILL_BYTES:
+            errors.append(f"{node_id}: {total_bytes} tracked bytes, max {MAX_SKILL_BYTES} (16 MiB)")
+    if errors:
+        return False, "; ".join(errors)
+    return True, None
+
+
 def validate_document(doc, label: str) -> bool:
     schema = json.loads(SCHEMA_PATH.read_text())
     jsonschema_mod = try_import_jsonschema()
@@ -176,6 +203,11 @@ def validate_document(doc, label: str) -> bool:
     summary_ok, summary_err = summary_fields_valid(doc)
     if not summary_ok:
         print(f"FAIL {label}: summary field invalid: {summary_err}")
+        return False
+
+    limits_ok, limits_err = skill_limits_valid(doc)
+    if not limits_ok:
+        print(f"FAIL {label}: skill exceeds MCP Skills extension limits: {limits_err}")
         return False
 
     print(f"PASS {label}: schema_valid=True, referentially_valid=True")

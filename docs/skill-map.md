@@ -82,6 +82,19 @@ the anchor used for fork-drift detection in Phase 4. A skill node that is the `f
 `fork-of` edge also carries `contentHashNormalized` — see [Edge Semantics — Deep
 Reference](./skill-map/edge-semantics.md)'s "Three-way drift" section.
 
+Static rhize skill nodes also carry `treeHash`, `fileCount` and `totalBytes`, computed over every
+**git-tracked** file in the skill directory. `treeHash` is the sha256 of the sorted
+`relpath\0sha256hex\0size\n` lines, which is the per-file manifest shape of the MCP Skills
+extension (SEP-2640) collapsed to one digest.
+
+- `--check-stale` therefore fails when any tracked file in a skill changes, including files under
+  `references/`, `scripts/` or `templates/`, not just `SKILL.md`. Rebuild the map with any such
+  edit.
+- Untracked files, such as a viewer's `node_modules` in a dev checkout, never count. A new file
+  is hashed once it is `git add`ed.
+- `validate_skill_map.py` fails a skill above the extension's per-skill limits of 512 files or
+  16 MiB, so every rhize skill stays servable over MCP.
+
 Any node may optionally carry `origin: "rhize" | "third-party"`. A node without this property is
 implicitly `"rhize"`. The static compiler never sets `"third-party"` itself — that value is set
 only by `rhize-context-manager/scripts/build_local_skill_map.py`'s third-party ecosystem inventory (see [Edge

@@ -3910,549 +3910,744 @@
     {
       "contentHash": "246c538b7ab30038c003d08b88eba0c5c0d56349503cf8ce0b914c86557c832c",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. Extract clean, readable markdown from web pages using the Defuddle CLI tool, stripping navigation, ads, and clutter. Use this skill when someone wants to save web content to their Obsidian vault, clip articles, extract clean text from URLs, convert web pages to markdown, or reduce token usage when processing web content. Also triggers on \"web clipper\", \"save article\", \"extract webpage\", \"clean HTML\", or \"convert URL to markdown\". Prefer Defuddle over raw WebFetch for standard web pages, articles, docs, and blog posts.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/defuddle",
       "kind": "skill",
       "name": "defuddle",
       "path": "obsidian-second-brain/skills/defuddle/SKILL.md",
-      "summary": "Pulls clean, readable text from a web page for saving into your Obsidian vault."
+      "summary": "Pulls clean, readable text from a web page for saving into your Obsidian vault.",
+      "totalBytes": 5575,
+      "treeHash": "81651d33d5f05dc33b9e15c6e4f1ed96e729b9fcb3b23a02f0835f0df18e41c2"
     },
     {
       "contentHash": "063be869f23b102e00149ffabc17d7fb57b95f0b02c69405e492dc837cbfee7b",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian canvas or .canvas file request. Create and edit Obsidian canvas files (.canvas) following the JSON Canvas Spec 1.0 with nodes, edges, groups, and visual connections. Use this skill when someone asks about creating or editing Obsidian canvases, building visual knowledge maps, node diagrams, mind maps in Obsidian, connecting notes visually, or working with .canvas files. Also triggers on \"JSON Canvas\", \"canvas file\", \"visual board\", \"Obsidian whiteboard\", or requests to create visual note connections.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/json-canvas",
       "kind": "skill",
       "name": "json-canvas",
       "path": "obsidian-second-brain/skills/json-canvas/SKILL.md",
-      "summary": "Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps."
+      "summary": "Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps.",
+      "totalBytes": 6193,
+      "treeHash": "9b5687b96809fbe6a241cd6c01e56bd3d0e7fcd355ffaa01b31a0bbdf7e53f88"
     },
     {
       "contentHash": "a458001a197fcf8b8d136f3843533f6f66f994cdd9ddc5b07e39d832e5043406",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
+      "fileCount": 2,
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
       "name": "knowledge-compiler",
-      "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md"
+      "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
+      "totalBytes": 4371,
+      "treeHash": "f902ac576368f91224d9bbd8ab3dfcec42ba3a51eee25e6b6c05fc83e8ac8bfe"
     },
     {
       "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian Bases or .base file request. Create and edit Obsidian Base files (.base) for database-like views, filters, formulas, and data summaries within your vault. Use this skill whenever someone asks about Obsidian Bases, creating database views, filtering notes by properties, building task trackers, reading lists, project dashboards, or any structured data view in Obsidian. Also triggers on \".base files\", \"Obsidian database\", \"note database\", \"vault database\", or questions about filters, formulas, and summaries in the context of Obsidian.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/obsidian-bases",
       "kind": "skill",
       "name": "obsidian-bases",
       "path": "obsidian-second-brain/skills/obsidian-bases/SKILL.md",
-      "summary": "Creates and edits Obsidian Base files for database-like views, filters, and dashboards."
+      "summary": "Creates and edits Obsidian Base files for database-like views, filters, and dashboards.",
+      "totalBytes": 10591,
+      "treeHash": "399dfe21195066cefe0657218f740a23c1dbc4f41f69d7517af845862702e689"
     },
     {
       "contentHash": "c38c59e9a97e43ba33543b089d9ef45e1a81d6dcdfb6f11ed45bbb01e25aabbb",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian CLI or terminal automation request. Execute Obsidian vault operations via the official command-line interface (v1.12.4+). Covers reading, creating, searching, and managing notes, tasks, properties, tags, links, daily notes, sync, publish, and plugin/theme development workflows. Use this skill whenever someone asks about Obsidian CLI commands, wants to automate vault operations from the terminal, build shell scripts for Obsidian, manage daily notes programmatically, develop Obsidian plugins/themes with CLI tooling, or integrate Obsidian with AI agents via the CLI. Also use when someone mentions \"obsidian\" combined with terminal, command line, shell, script, automation, cron, or developer tools.",
+      "fileCount": 2,
       "id": "skill:obsidian-second-brain/obsidian-cli",
       "kind": "skill",
       "name": "obsidian-cli",
       "path": "obsidian-second-brain/skills/obsidian-cli/SKILL.md",
-      "summary": "Automates Obsidian vault operations from the terminal using the official command-line tool."
+      "summary": "Automates Obsidian vault operations from the terminal using the official command-line tool.",
+      "totalBytes": 18192,
+      "treeHash": "f693baaa96303188d89ae12aef3617bc218721de52d8876a6c05acb55f05f2a9"
     },
     {
       "contentHash": "ea45229586ee1962b642f5581a33de6ed25fdecd5537eb64e77a548d82c062d9",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian markdown syntax or formatting request. Create and edit Obsidian-flavored Markdown files (.md) with wikilinks, embeds, callouts, properties, block references, comments, and other Obsidian-specific syntax. Use this skill whenever someone asks about writing notes in Obsidian, formatting Obsidian markdown, using wikilinks or internal links, embedding files, creating callouts, managing YAML frontmatter/properties, or any Obsidian markdown syntax question. Also triggers on mentions of Obsidian note formatting, block references, nested tags, or Obsidian-specific markdown extensions.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/obsidian-markdown",
       "kind": "skill",
       "name": "obsidian-markdown",
       "path": "obsidian-second-brain/skills/obsidian-markdown/SKILL.md",
-      "summary": "Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter."
+      "summary": "Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter.",
+      "totalBytes": 7876,
+      "treeHash": "b01834c32b61cde7024e9e2458671548c4e239eb196f0a4f44ee49128828a7ad"
     },
     {
       "contentHash": "3dc4276b26cd107b68491b7121d2030132ad9aee159ca238609962a708ff8a45",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any qmd semantic search, vector search, or vault indexing request. Local-first semantic search for Obsidian vaults using qmd — combines BM25 full-text, vector semantic search, and LLM re-ranking. Use this skill when someone asks about setting up qmd, configuring vault indexing, choosing between search modes (BM25 vs vector vs hybrid), connecting qmd's MCP server to Claude, troubleshooting search quality, or understanding how qmd works. Also triggers on \"semantic search\", \"vector search\", \"qmd\", \"embed vault\", \"vault indexing\", \"search my notes by meaning\", \"find similar notes\", or \"natural language vault search\".",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/qmd-search",
       "kind": "skill",
       "name": "qmd-search",
       "path": "obsidian-second-brain/skills/qmd-search/SKILL.md",
-      "summary": "Sets up and troubleshoots local semantic search over your Obsidian vault using qmd."
+      "summary": "Sets up and troubleshoots local semantic search over your Obsidian vault using qmd.",
+      "totalBytes": 5338,
+      "treeHash": "9e8bd5e09ee1d491da63cb195f722b54b342e776ae44695d8acaef9268914e5e"
     },
     {
       "contentHash": "6113179919813b0f8346d4034e5ce3c2efd922eea4dcf3aaba613632548b48cb",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any PKM methodology or vault organization request. Personal knowledge management methodology for Obsidian vaults — Zettelkasten, PARA, Maps of Content (MOCs), progressive summarization, and atomic notes. Use this skill whenever someone asks about organizing their vault as a second brain, building a knowledge system, creating MOCs or maps of content, linking notes together strategically, applying Zettelkasten or PARA methods, structuring a PKM workflow, deciding where a note should live, or asking \"how should I organize this?\" in the context of Obsidian. Also triggers on \"evergreen notes\", \"literature notes\", \"fleeting notes\", \"permanent notes\", \"note-taking system\", \"knowledge graph\", \"linking my thinking\", or \"connect my notes\".",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/second-brain",
       "kind": "skill",
       "name": "second-brain",
       "path": "obsidian-second-brain/skills/second-brain/SKILL.md",
-      "summary": "Applies knowledge-management methods like Zettelkasten and PARA to organize your vault."
+      "summary": "Applies knowledge-management methods like Zettelkasten and PARA to organize your vault.",
+      "totalBytes": 10158,
+      "treeHash": "ea254557c249ce9cf4cd83a10b1f902123663e3d436d7f4c9c5adb2d53ea97c6"
     },
     {
       "contentHash": "126c6badd5c389880d3b3d68d0bb2db029d893f0e7523c4df24310338fdc3c87",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. Vault health assessment and ongoing alignment with second-brain best practices. Use this skill when someone asks about improving their vault organization, wants to know if their vault follows best practices, asks \"how healthy is my vault\", mentions vault drift or inconsistency, wants to audit their knowledge system, or asks about maintaining their second brain over time. Also triggers on \"vault health\", \"organization check\", \"vault audit\", \"clean up my vault\", \"improve my vault\", \"vault maintenance\", \"align my vault\", \"reorganize my vault\", or \"my vault is messy\". Use this proactively when you notice vault organization issues during other vault operations.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/vault-alignment",
       "kind": "skill",
       "name": "vault-alignment",
       "path": "obsidian-second-brain/skills/vault-alignment/SKILL.md",
-      "summary": "Checks your Obsidian vault's health and organization against best practices."
+      "summary": "Checks your Obsidian vault's health and organization against best practices.",
+      "totalBytes": 14429,
+      "treeHash": "41c5964ad7eaba06082b165a54fe07a0759d515a6d20c32f36c7ce9fe294759a"
     },
     {
       "contentHash": "215545ffbbd59b5d172847c86292c1531c5d74bb5db4a08fa5d19302467e06cc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Obsidian note template or archetype request. Library of proven note templates and archetypes for Obsidian vaults — meeting notes, book reviews, project briefs, weekly reviews, literature notes, permanent notes, and more. Use this skill when someone asks to create a specific type of note (e.g., \"meeting note\", \"book review\", \"project brief\"), wants a template for a recurring note type, asks about frontmatter conventions for different note types, or says things like \"set up a template for\", \"what properties should a X note have\", or \"create a note for my meeting/book/project/review\". Also triggers on \"note template\", \"note archetype\", \"weekly review template\", \"daily template\", or any request to scaffold a structured note.",
+      "fileCount": 1,
       "id": "skill:obsidian-second-brain/vault-templates",
       "kind": "skill",
       "name": "vault-templates",
       "path": "obsidian-second-brain/skills/vault-templates/SKILL.md",
-      "summary": "Provides ready-made note templates for meetings, book reviews, project briefs, and more."
+      "summary": "Provides ready-made note templates for meetings, book reviews, project briefs, and more.",
+      "totalBytes": 9064,
+      "treeHash": "93b9e999afa91341a080fc41b8650d6b01a4b3f579242d1faad364085a73f3bf"
     },
     {
       "contentHash": "5c8c98adcbefa8c9ec43edac5b2b173a856b9509c0900e0e893dba9cfa7e39d8",
       "description": "Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through the rhize-skill CLI. Use when asked to \"Functionize\" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal, or review a Functionize candidate. This skill never registers, approves, promotes, verifies, or runs a generated artifact; use procedural-memory only when a later gate is separately authorized.",
+      "fileCount": 3,
       "id": "skill:procedural-memory/functionize",
       "kind": "skill",
       "name": "functionize",
-      "path": "procedural-memory/skills/functionize/SKILL.md"
+      "path": "procedural-memory/skills/functionize/SKILL.md",
+      "totalBytes": 5312,
+      "treeHash": "421e4de49139e3b133b9367fb5edd3e2e5d6892524c13e2d9a40068a05e0e6ad"
     },
     {
       "contentHash": "28281a477e16f2bbb74d6d1da04f1c9c2a776b459db8f6171215a668faab1b81",
       "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
+      "fileCount": 3,
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
       "name": "procedural-memory",
-      "path": "procedural-memory/skills/procedural-memory/SKILL.md"
+      "path": "procedural-memory/skills/procedural-memory/SKILL.md",
+      "totalBytes": 7422,
+      "treeHash": "99f34d9dccc9f561689b6dd1fd06130151f679fc66aaaf43dc21210582e73bb1"
     },
     {
       "contentHash": "bc87e522087ad3447bfdff60fe3f6db66fc47fb16ccbed0c4e4b7bc5585ee108",
       "description": "Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog drafts. Use for \"our content engine protocol\", \"Rhize Media resource article\", or \"record the content benchmark\" before composing. Binds the requested local-draft or CMS-draft scope to the procedural registry; full public publishing is unsupported. This RHIZE workflow is distinct from ECC's content-engine.",
+      "fileCount": 2,
       "id": "skill:procedural-memory/rhize-content-engine",
       "kind": "skill",
       "name": "rhize-content-engine",
-      "path": "procedural-memory/skills/rhize-content-engine/SKILL.md"
+      "path": "procedural-memory/skills/rhize-content-engine/SKILL.md",
+      "totalBytes": 5410,
+      "treeHash": "adc23b3650424c5d8623dff9872df9ce4e6212cee534b742ae16299116d923e9"
     },
     {
       "contentHash": "f6192081b5b2ca244ebd5d3049c86581e2053905fd27c7cd2e3ee0da7c5063a3",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
+      "fileCount": 16,
       "id": "skill:project-launcher/project-launcher",
       "kind": "skill",
       "name": "project-launcher",
       "path": "project-launcher/skills/project-launcher/SKILL.md",
-      "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."
+      "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder.",
+      "totalBytes": 74104,
+      "treeHash": "83c448f345efe1e3abfc50d469abac90f069bbf29b1c50078643068879f1d374"
     },
     {
       "contentHash": "7cc345ffbb94a61fcce05da9d1b1a0ce52fb29d9930cc1edfae5e12858d86945",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
+      "fileCount": 37,
       "id": "skill:project-launcher/rhize-visual-plan",
       "kind": "skill",
       "name": "rhize-visual-plan",
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
-      "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps."
+      "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps.",
+      "totalBytes": 417015,
+      "treeHash": "52c823bd53cc25a3d71a13e1ac6ea08b3eb9456df68714818a9db6ced37b8207"
     },
     {
       "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",
       "contentHashNormalized": "49199bc51bfde24d7d5dc535f2473ddf984794d3f57af12a5ab6db1c83c129c7",
       "description": "This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task optimization, or durable handoff summaries that preserve decisions, files, risks, and next actions.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/context-compression",
       "kind": "skill",
       "name": "context-compression",
-      "path": "rhize-context-manager/skills/context-compression/SKILL.md"
+      "path": "rhize-context-manager/skills/context-compression/SKILL.md",
+      "totalBytes": 57506,
+      "treeHash": "2ccbbcf691fee032cbb469c8b568269ee93a3a8f790d9dda3f32d36279dc0b16"
     },
     {
       "contentHash": "b1318638f8106efa097e56e7ac7cc4835f8fe614d45dd63a773eff8028f2e1dd",
       "contentHashNormalized": "4e1896f641ddc99cc9cb14322606c6133b9fd520c84d3af0541e64f553c7f928",
       "description": "This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, context confusion, attention-pattern issues, and agent performance degradation caused by accumulated or conflicting context.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/context-degradation",
       "kind": "skill",
       "name": "context-degradation",
-      "path": "rhize-context-manager/skills/context-degradation/SKILL.md"
+      "path": "rhize-context-manager/skills/context-degradation/SKILL.md",
+      "totalBytes": 51765,
+      "treeHash": "b1554af04cfff8de7ba8451a1e9883fdb7bf4bf9b77933584091ed2ef5472cb3"
     },
     {
       "contentHash": "8c0d339d2edebb80187d274ee5bf53755898db78764e65caa26f46bead5b2098",
       "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
+      "fileCount": 16,
       "id": "skill:rhize-context-manager/context-engineering",
       "kind": "skill",
       "name": "context-engineering",
-      "path": "rhize-context-manager/skills/context-engineering/SKILL.md"
+      "path": "rhize-context-manager/skills/context-engineering/SKILL.md",
+      "totalBytes": 158506,
+      "treeHash": "7e002309bbd888666864ba1d35a3545f0725aa457cf62f2211936b2f6ddc0480"
     },
     {
       "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
       "contentHashNormalized": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
       "description": "This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a context window, how attention mechanics work, the U-shaped attention curve, why context quality matters more than quantity, and the mental models needed to interpret every other context-engineering decision. Use this for conceptual explanation, onboarding, and background reading. Route operational work to the specialized skills: debugging attention failures goes to context-degradation, token-efficiency work goes to context-optimization, conversation summarization goes to context-compression, and project-shape decisions go to project-development.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/context-fundamentals",
       "kind": "skill",
       "name": "context-fundamentals",
-      "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md"
+      "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md",
+      "totalBytes": 43423,
+      "treeHash": "e80a5ca05d8e27052d6717e8c56ea4fb7188572bd95afbe099e03a456dbe6bcb"
     },
     {
       "contentHash": "5282cc8e680b06fe075b72bae0c6922e6748b55cb710b6030633b7c80d9fdd08",
       "contentHashNormalized": "7ff1ad288cdb6c0d668c757d23b1c4b315cf3a094a4fcaa91d17e98ab55d02b2",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/context-optimization",
       "kind": "skill",
       "name": "context-optimization",
-      "path": "rhize-context-manager/skills/context-optimization/SKILL.md"
+      "path": "rhize-context-manager/skills/context-optimization/SKILL.md",
+      "totalBytes": 45254,
+      "treeHash": "0a7e234041c7e1f73a3ecd24101f835bdc91945806d3759d3f55a28bda9f2811"
     },
     {
       "contentHash": "79693bc599fe0f1026d6a080c6712ef871b8425ed92febc7032c3402b80e990a",
       "description": "Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or review task. Use when a bounded dependency-aware pack may reduce targeted reads without hiding critical contracts. Do not use for trivial lookups, highly dynamic code, automatic prompt injection, or as a replacement for exact source verification.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/context-pack",
       "kind": "skill",
       "name": "context-pack",
-      "path": "rhize-context-manager/skills/context-pack/SKILL.md"
+      "path": "rhize-context-manager/skills/context-pack/SKILL.md",
+      "totalBytes": 3843,
+      "treeHash": "3ab060d239c930dde6202eacab44c9bdc4370b66383a0b017132eb35ad73cb97"
     },
     {
       "contentHash": "1cbd1e1adbdc1894fb808012105d385733435a256f017551c5202c7e4c8e7c2e",
       "description": "Routing and coexistence brain for the Rhize context stack. Use when deciding WHICH context tool to reach for (Headroom, claude-mem, OpenWolf, Serena, CodeGraph, RTK, graphify, Obsidian, or the preview-only memory-context assembler), when two context layers appear to duplicate or conflict (same context injected twice, slow session start, stacked hooks), or when setting up a new repo and choosing which context tooling it should run. Triggers: \"which memory tool\", \"context is duplicated\", \"session start is slow\", \"set up context tooling\", \"where should this knowledge live\".",
+      "fileCount": 2,
       "id": "skill:rhize-context-manager/context-stack",
       "kind": "skill",
       "name": "context-stack",
-      "path": "rhize-context-manager/skills/context-stack/SKILL.md"
+      "path": "rhize-context-manager/skills/context-stack/SKILL.md",
+      "totalBytes": 14214,
+      "treeHash": "fc807b2d33513e341427735a39008b37ccd4a42be1074dc2f4a6927247824f04"
     },
     {
       "contentHash": "5acd70b0aab1bc078f27af8c0d663d8070a14b98d7d3011526029d41d0207713",
       "contentHashNormalized": "bbde98d3481f1f51394e9fa84bbfff6807d9cce1f91dcf9161280fef17ae7f94",
       "description": "This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, cross-agent handoff files, filesystem memory, or cleanup policies for context stored outside the prompt.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/filesystem-context",
       "kind": "skill",
       "name": "filesystem-context",
-      "path": "rhize-context-manager/skills/filesystem-context/SKILL.md"
+      "path": "rhize-context-manager/skills/filesystem-context/SKILL.md",
+      "totalBytes": 49318,
+      "treeHash": "bf5136f15fbe225b72f34352e3c518363d3aafc16b3c8eb53549880ec19e1b6c"
     },
     {
       "contentHash": "f79270e788aa6bc59b7f1b35ae4d91469ccfa0d3bfb68978061e9f308e218f0d",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
       "name": "graph-memory",
-      "path": "rhize-context-manager/skills/graph-memory/SKILL.md"
+      "path": "rhize-context-manager/skills/graph-memory/SKILL.md",
+      "totalBytes": 13614,
+      "treeHash": "bb17e747cafe00ba2d826403afdb1a986b6cf23c748a00e5f367b41c81ae7bba"
     },
     {
       "contentHash": "aef43aaff1af71c7263d7077d340fa61c00b9c72a3de46557fc0d0aeb2192c15",
       "description": "Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, where the question should be treated as a graphify query first. Turns any input (code, docs, papers, images, videos) into a persistent knowledge graph with god nodes, community detection, and query/path/explain tools.",
+      "fileCount": 10,
       "id": "skill:rhize-context-manager/graphify",
       "kind": "skill",
       "name": "graphify",
-      "path": "rhize-context-manager/skills/graphify/SKILL.md"
+      "path": "rhize-context-manager/skills/graphify/SKILL.md",
+      "totalBytes": 83330,
+      "treeHash": "4295b5712d4c77a2dcd9bc1506959a261788ef73f7d9b710c8af7e1178543b5d"
     },
     {
       "contentHash": "fab3cbf47bdfd2bcb4954a7ffc1ca45022bee7918d1c0f66647299e0db4c0e48",
       "description": "Historical design reference for Graphiti concepts. Use only when reviewing the prior Graphiti decision or comparing its temporal-memory ideas with Rhize's governed Neo4j plans. Do not use this skill to install, configure, route to, or claim adoption of Graphiti.",
+      "fileCount": 1,
       "id": "skill:rhize-context-manager/graphiti-memory",
       "kind": "skill",
       "name": "graphiti-memory",
-      "path": "rhize-context-manager/skills/graphiti-memory/SKILL.md"
+      "path": "rhize-context-manager/skills/graphiti-memory/SKILL.md",
+      "totalBytes": 1920,
+      "treeHash": "4eff0e32eaf29b9619a78fb7518793af4bd459a9e0135c9f8bfac335f8a05372"
     },
     {
       "contentHash": "be8884372f0d2a0d920cc796f250efdab840d1059de7e4d424135dc70d1b26c7",
       "description": "This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it so it actually fires: always-loaded config, a reference skill, a hook, or nowhere. Covers drop tests, redundancy and contradiction resolution, the retrieval-cue placement test, and rule phrasing that survives contact with a future session. Route memory *architecture* (vector stores, knowledge graphs, temporal validity) to memory-systems, context-consumption audits to context-budget, and session handoff summaries to context-compression.",
+      "fileCount": 1,
       "id": "skill:rhize-context-manager/learning-curation",
       "kind": "skill",
       "name": "learning-curation",
-      "path": "rhize-context-manager/skills/learning-curation/SKILL.md"
+      "path": "rhize-context-manager/skills/learning-curation/SKILL.md",
+      "totalBytes": 11221,
+      "treeHash": "f595a3de777984c9ca8112d4223a72eb347a8d9e2da030e6e23a2cc03d9a60cd"
     },
     {
       "contentHash": "05195968bf183d8c56e098e70c479f682d704755a7b5166a1c14a012371e5ba0",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
+      "fileCount": 5,
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",
       "name": "memory-context",
-      "path": "rhize-context-manager/skills/memory-context/SKILL.md"
+      "path": "rhize-context-manager/skills/memory-context/SKILL.md",
+      "totalBytes": 22017,
+      "treeHash": "cce3db22e8daef6e472a00c0f3bd5390ad2fcc927ddc95d366ded03d33425b6c"
     },
     {
       "contentHash": "c53c30d4ee22f521b279b4adec806f465a57b79c9574b291efe796fae37f557c",
       "contentHashNormalized": "b8201ee1cdd68505e74ac55577b9a039b64c78981a30a980f61d7f4afa5d4bac",
       "description": "This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal validity, graph or vector retrieval, memory consolidation, and memory benchmark selection. Route file-backed scratchpads to filesystem-context, handoff summaries to context-compression, and token-efficiency tactics to context-optimization.",
+      "fileCount": 3,
       "id": "skill:rhize-context-manager/memory-systems",
       "kind": "skill",
       "name": "memory-systems",
-      "path": "rhize-context-manager/skills/memory-systems/SKILL.md"
+      "path": "rhize-context-manager/skills/memory-systems/SKILL.md",
+      "totalBytes": 55883,
+      "treeHash": "aee5af85ccd099e731a1afee64f7c0b9df43b0102eda0575bd0b5e943f25d5a0"
     },
     {
       "contentHash": "b3ff7b97ec69c85a82a4fb07365fedfc052ede86ac31a6091d2ed3430613d608",
       "description": "Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged queue, then skill-forge evolve (SkillOpt-Sleep + safety re-gate) refines target skills with auto-promote for gate-passing SKILL.md edits. Use when the user says \"harvest learnings\", \"refine skills\", \"drain the refinement queue\", asks where headroom learn output should go, or when a scheduled refinement pass needs its rules.",
+      "fileCount": 1,
       "id": "skill:rhize-context-manager/refinement-pipeline",
       "kind": "skill",
       "name": "refinement-pipeline",
-      "path": "rhize-context-manager/skills/refinement-pipeline/SKILL.md"
+      "path": "rhize-context-manager/skills/refinement-pipeline/SKILL.md",
+      "totalBytes": 5817,
+      "treeHash": "3b1457e61038c1b73dd160fd2e3a593d22d281bc9edfe28c701e950360ea243e"
     },
     {
       "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
       "contentHashNormalized": "14f5a12b69113bc6450da69c5b4d408fe91601832ab1055ae25311339c84a06b",
       "description": "This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, designing tool schemas and response formats, naming conventions, actionable error recovery messages, MCP server design, tool-set consolidation, and deciding when to add or remove an individual tool. Use this when the unit of work is a single tool or a set of tools. Route project-shape, pipeline architecture, and task-model-fit decisions to project-development; route deciding whether to introduce sub-agents to multi-agent-patterns.",
+      "fileCount": 4,
       "id": "skill:rhize-context-manager/tool-design",
       "kind": "skill",
       "name": "tool-design",
-      "path": "rhize-context-manager/skills/tool-design/SKILL.md"
+      "path": "rhize-context-manager/skills/tool-design/SKILL.md",
+      "totalBytes": 56876,
+      "treeHash": "4df511b22b27da1aa8607bcb43ae2c93c5c36c718463eaf48a0cb8e4933defa7"
     },
     {
       "contentHash": "3d14f04c5f4f0bdcd8fe092bf9826c7f9270203985e77ee3fe56cfb95e50bf0b",
       "description": "Scaffold the four standard Cowork client-context files — CLAUDE.md (operating manual),\nBUSINESS.md (the business/offer/market), PERSONALITY.md (brand voice & tone), and INFO.md\n(links, tools, people). Use when onboarding a client or business into a Cowork workspace, when\nthe user asks to \"create the project context files\" or \"build CLAUDE.md\", or when they drop a\nwebsite or strategy doc and want business context extracted. Works from a website, from strategy\ndocs, or from nothing via a guided interview. Trigger even if the user only names one file —\nbuild the full set unless told otherwise. Not for software projects; a new app, PRD, or code\nscaffold belongs to project-launcher instead.",
+      "fileCount": 5,
       "id": "skill:rhize-cowork/project-kickoff",
       "kind": "skill",
       "name": "project-kickoff",
-      "path": "rhize-cowork/skills/project-kickoff/SKILL.md"
+      "path": "rhize-cowork/skills/project-kickoff/SKILL.md",
+      "totalBytes": 10239,
+      "treeHash": "6ec172b1b79e5832774ea2c854a71925bb6709ed530f5a889f237ac46029c215"
     },
     {
       "contentHash": "d96305ea8157ab5f60ff5698a97d9df2b26fdeae472c8d263442bef1952259a5",
       "description": "DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the active browser capability. Use when the user asks specifically about Chrome DevTools MCP tool names/parameters, connecting to a running Chrome instance, or MCP-level configuration/troubleshooting for that server — not for general \"test in the browser\" requests, which should go through `/rhize-devflow:browser-qa` instead.",
+      "fileCount": 4,
       "id": "skill:rhize-devflow/chrome-devtools-mcp",
       "kind": "skill",
       "name": "chrome-devtools-mcp",
-      "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md"
+      "path": "rhize-devflow/skills/chrome-devtools-mcp/SKILL.md",
+      "totalBytes": 24267,
+      "treeHash": "d9dbfd9b1a38d02cc3f7e47356d3117b3e7a6aa0c8277fa76241d06283b8de47"
     },
     {
       "contentHash": "a8f68b4b0b03dda685e9a8b0432f0e1e8d0b08a02cfd7c55ae273063a889b63a",
       "description": "Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. Use when implementation is complete and the user says \"push to main\" or \"push to dev and main\", or otherwise explicitly asks to ship or promote the completed branch. Treat those phrases as authorization for the appropriate PR-based promotion sequence, not a raw push to a protected branch; preserve narrower user overrides and repository-specific release policy.",
+      "fileCount": 1,
       "id": "skill:rhize-devflow/completed-branch-promotion",
       "kind": "skill",
       "name": "completed-branch-promotion",
-      "path": "rhize-devflow/skills/completed-branch-promotion/SKILL.md"
+      "path": "rhize-devflow/skills/completed-branch-promotion/SKILL.md",
+      "totalBytes": 10911,
+      "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
       "contentHash": "a35de9fe6e547ceaa959ae21ec40c6ca421c12aea230f12e30e6535bcab6474d",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
+      "fileCount": 25,
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
-      "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md"
+      "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md",
+      "totalBytes": 223472,
+      "treeHash": "6edc0f0f13055f90e77f82ba62368041f465c390565d925a9a5014db603365c3"
     },
     {
       "contentHash": "b68a7a9e46847a8765c238743b8e96e418ffc0b16dac68d76f241267695e05b0",
       "contentHashNormalized": "1765f5ab8a37a039d69869adaa4dab25714a87ddac4b3b0e48e0372de5037338",
       "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
+      "fileCount": 8,
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
       "name": "dev-flow-foundations",
-      "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md"
+      "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md",
+      "totalBytes": 104167,
+      "treeHash": "6cc98047bc3534342c41a07f4cbbf72c0b91694198cbba053eb6bc01375b29cd"
     },
     {
       "contentHash": "734f8034733f676e5775580509634afa584b7009f5f4d57b3364de4166fceb24",
       "description": "End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verification using Sentry, Vercel, and GitHub. Use whenever the user mentions an \"error\", \"bug\", \"crash\", \"exception\", \"stack trace\", \"500/404\", \"timeout\", \"failed deployment\", \"production issue/incident\", \"memory leak\", \"bundle size\", or something is \"slow\" or \"broken\" — and when correlating an error spike to a recent deploy or commit. Leads the operational response (Sentry+Vercel correlation, P0/P1/P2 severity, incident protocol); complements the official engineering:* and sentry:* skills.",
+      "fileCount": 22,
       "id": "skill:rhize-devflow/error-lifecycle-management",
       "kind": "skill",
       "name": "error-lifecycle-management",
-      "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md"
+      "path": "rhize-devflow/skills/error-lifecycle-management/SKILL.md",
+      "totalBytes": 114464,
+      "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
     },
     {
       "contentHash": "875ff69e56b8a58cb7fbb1e890aa7bbcbed3054e8e5e278f292dc2a2ed7bbeb9",
       "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
+      "fileCount": 14,
       "id": "skill:rhize-devflow/sanity-development",
       "kind": "skill",
       "name": "sanity-development",
-      "path": "rhize-devflow/skills/sanity-development/SKILL.md"
+      "path": "rhize-devflow/skills/sanity-development/SKILL.md",
+      "totalBytes": 108452,
+      "treeHash": "d973e5a57b322f9f28169a83ef2be743c11e74e28479f29364148cd96ba68057"
     },
     {
       "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",
       "description": "Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (startSpan), and structured logging (logger.fmt). Use when the user wants to \"add Sentry\", \"capture exception\", \"add tracing/spans\", \"instrument\" an API call or user interaction, or \"set up structured logging\" in app code. This is the write-the-code companion to error-lifecycle-management (which handles triage/RCA); for full per-framework SDK setup defer to the official sentry:* developer-kit skills and keep this for Rhize house patterns.",
+      "fileCount": 4,
       "id": "skill:rhize-devflow/sentry-instrumentation",
       "kind": "skill",
       "name": "sentry-instrumentation",
-      "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md"
+      "path": "rhize-devflow/skills/sentry-instrumentation/SKILL.md",
+      "totalBytes": 12348,
+      "treeHash": "1b35d5598b6d965cba7345b076f9604b3d331656f446d6d03830bfac57fa84b9"
     },
     {
       "contentHash": "b2b3b29fd036a85ab18048404f454657e1f538f2556a0e5b582e4b900922b25f",
       "contentHashNormalized": "a58122598ec461f39b57f3448400a816e3a8fbe2b4b48898561d1864df1c8e2b",
       "description": "Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminating unnecessary work without changing behavior. Use after implementation or before delivery when the user asks to simplify, consolidate, deduplicate, reduce complexity, apply React best practices, remove redundant state/effects, or review recent code for a cleaner solution. A verified no-op is valid; never expand into broad redesign or unrelated cleanup.",
+      "fileCount": 1,
       "id": "skill:rhize-devflow/simplify",
       "kind": "skill",
       "name": "simplify",
-      "path": "rhize-devflow/skills/simplify/SKILL.md"
+      "path": "rhize-devflow/skills/simplify/SKILL.md",
+      "totalBytes": 8457,
+      "treeHash": "9a01ac062cb419d322545ed30e4b85e7a767a1e0f328bc6ec8532533e9e7d475"
     },
     {
       "contentHash": "5929934c3f32999178d6798e6c6f41de81e78536603497340cfc8784859650cf",
       "description": "Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence metadata, including an explicit unavailable status while trusted test execution is not implemented. Use before review when tests changed, a change claims regression coverage, or someone asks whether a test actually protects behavior. Do not route data/cache mutation consistency requests here.",
+      "fileCount": 2,
       "id": "skill:rhize-devflow/test-evidence",
       "kind": "skill",
       "name": "test-evidence",
-      "path": "rhize-devflow/skills/test-evidence/SKILL.md"
+      "path": "rhize-devflow/skills/test-evidence/SKILL.md",
+      "totalBytes": 3126,
+      "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
     },
     {
       "contentHash": "2496b9a7300348031417e74eb94f66cc0391e1396fd84da0491aa54c227eba09",
       "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
+      "fileCount": 2,
       "id": "skill:rhize-ops/cross-model-handoff",
       "kind": "skill",
       "name": "cross-model-handoff",
-      "path": "rhize-ops/skills/cross-model-handoff/SKILL.md"
+      "path": "rhize-ops/skills/cross-model-handoff/SKILL.md",
+      "totalBytes": 5776,
+      "treeHash": "41cf92a6d21c4c1d92e32e0d84501e670ac4e2519db8f2f329d10492012dbe3b"
     },
     {
       "contentHash": "87ae431525253d064d7e92b28ec515caa994c470068b0d57811e4116cadf3bf6",
       "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"send this to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json. Run `/rhize-ops:delegate-setup` first if no config exists.",
+      "fileCount": 4,
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
       "name": "delegate-to-teammate",
-      "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md"
+      "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
+      "totalBytes": 48580,
+      "treeHash": "667e6e743215af7bae6a1ef0982ea68890c33f775ed20d173fe0406bd9e64242"
     },
     {
       "contentHash": "1225e0c07d5fa0f5df8e1e8ae7735735faa4addc098d628e9f0bfacd589a10b6",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
+      "fileCount": 12,
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
       "name": "parallel-agent-optimization",
-      "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md"
+      "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md",
+      "totalBytes": 113473,
+      "treeHash": "9b942184d6627b8bc5e602edf063a6d737451e866d28e6a63df832e3c2a1bdeb"
     },
     {
       "contentHash": "c524caf2ba19775c60a49f51feeff7d2860aa913bdd4d9a1fef36638feefb1cb",
       "description": "Render the live skill-monitor audit dashboard. Aggregates every per-run snapshot in the standalone rhize-skill-monitor tool's data/snapshots/ into one interactive view (weekly trend, top skills with rank deltas, direct/indirect leverage, prune candidates, subagent-type breakdown, project rollup, host/Cowork split, week-over-week delta). Use when the user says \"show the skill dashboard\", \"render the audit dashboard\", \"skill usage dashboard\", \"/skill-dashboard\", or asks to visualize skill-monitor data.",
+      "fileCount": 1,
       "id": "skill:rhize-ops/skill-dashboard",
       "kind": "skill",
       "name": "skill-dashboard",
-      "path": "rhize-ops/skills/skill-dashboard/SKILL.md"
+      "path": "rhize-ops/skills/skill-dashboard/SKILL.md",
+      "totalBytes": 5327,
+      "treeHash": "0dadd93a96650d68e5ee15bc82fc6ec186fdd4db8829ff9ae7a6bae0460fe964"
     },
     {
       "contentHash": "d99ad120e43a130e31496524074021a24664709e848fe401600ba4ab21c0b1c2",
       "description": "Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured sender.",
+      "fileCount": 1,
       "id": "skill:rhize-outreach/reconcile-outreach-delivery",
       "kind": "skill",
       "name": "reconcile-outreach-delivery",
-      "path": "rhize-outreach/skills/reconcile-outreach-delivery/SKILL.md"
+      "path": "rhize-outreach/skills/reconcile-outreach-delivery/SKILL.md",
+      "totalBytes": 796,
+      "treeHash": "4dc6eac55f2c0de6078c5ae9ab6ffdcf6e30aca4d16d6d6d6b47e46f324c403d"
     },
     {
       "contentHash": "706801c8271b8e57da2c8a3e1b5b5e6f590aad8d430519cdf3029c1d1b44f3dc",
       "description": "Review researched candidate businesses or add a manually found business before selecting one for deliverables.",
+      "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-businesses",
       "kind": "skill",
       "name": "review-outreach-businesses",
-      "path": "rhize-outreach/skills/review-outreach-businesses/SKILL.md"
+      "path": "rhize-outreach/skills/review-outreach-businesses/SKILL.md",
+      "totalBytes": 799,
+      "treeHash": "55102933fd437447794b0b688539289ab79557ce6d1ffa5c1fcf9d9fde98f940"
     },
     {
       "contentHash": "95b2a51635510183b4d3e51f5d86a397ca86fa2c4f007fe8ed95c276d43f9c0f",
       "description": "Open, revise and accept the personalized outreach email bound to the accepted website and audit package.",
+      "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-email",
       "kind": "skill",
       "name": "review-outreach-email",
-      "path": "rhize-outreach/skills/review-outreach-email/SKILL.md"
+      "path": "rhize-outreach/skills/review-outreach-email/SKILL.md",
+      "totalBytes": 773,
+      "treeHash": "60c8426071117e1e0f762386b6713c660a40c059688d2accdbe580f445880e9d"
     },
     {
       "contentHash": "9055a91b1e7f62a1f16d500ed65e7cbaa93f02eec593e62885a6babc6496eb79",
       "description": "Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and rendering checks.",
+      "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-package",
       "kind": "skill",
       "name": "review-outreach-package",
-      "path": "rhize-outreach/skills/review-outreach-package/SKILL.md"
+      "path": "rhize-outreach/skills/review-outreach-package/SKILL.md",
+      "totalBytes": 1268,
+      "treeHash": "6fd221fa9f0916d2f14dcc97809e4156b9951f739c1e8c3c0938870578cc52c9"
     },
     {
       "contentHash": "43b34a8dc76b8542154fa0b2e5e5834fe306ceebd05b2022af19d17a3b1c1b8d",
       "description": "Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing state.",
+      "fileCount": 2,
       "id": "skill:rhize-outreach/rhize-outreach-doctor",
       "kind": "skill",
       "name": "rhize-outreach-doctor",
-      "path": "rhize-outreach/skills/rhize-outreach-doctor/SKILL.md"
+      "path": "rhize-outreach/skills/rhize-outreach-doctor/SKILL.md",
+      "totalBytes": 1076,
+      "treeHash": "470694e35b06ef54ef8ed315305415a12e589b34bd7a150931e61c1732a5edc8"
     },
     {
       "contentHash": "13589ac4651e136ed5a7b960f4d65814e614286190051ef2b7b2ffb5ef066b67",
       "description": "Start the local Rhize Outreach operator and resume the selected-business agent graph. Use after setup when preparing or reviewing a prospect package.",
+      "fileCount": 2,
       "id": "skill:rhize-outreach/rhize-outreach-run",
       "kind": "skill",
       "name": "rhize-outreach-run",
-      "path": "rhize-outreach/skills/rhize-outreach-run/SKILL.md"
+      "path": "rhize-outreach/skills/rhize-outreach-run/SKILL.md",
+      "totalBytes": 1764,
+      "treeHash": "4270d8613d44ad2c6bbe0ab8c3128ec548f1ff40ffd553c4b5bfa3372481ac70"
     },
     {
       "contentHash": "d5fa5fcf4de4a1b3d9d61a7fa3a90b4782b8153fd4b3348f8c3d33be3558c3c3",
       "description": "Set up or resume the local Rhize Outreach selected-business workflow. Use when installing the plugin, configuring local storage, or repairing an incomplete setup.",
+      "fileCount": 2,
       "id": "skill:rhize-outreach/rhize-outreach-setup",
       "kind": "skill",
       "name": "rhize-outreach-setup",
-      "path": "rhize-outreach/skills/rhize-outreach-setup/SKILL.md"
+      "path": "rhize-outreach/skills/rhize-outreach-setup/SKILL.md",
+      "totalBytes": 1479,
+      "treeHash": "b3b3bc60db06a7cde62b80f84d6adf1049ee7769f3f0e51b609a1a8a8a515e93"
     },
     {
       "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
       "description": "Review and update Rhize Tasks planning preferences through the authenticated local dashboard. Use to change working hours, buffers, routines, reconciliation, or bounded-replanning rules.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/manage-task-preferences",
       "kind": "skill",
       "name": "manage-task-preferences",
-      "path": "rhize-tasks/skills/manage-task-preferences/SKILL.md"
+      "path": "rhize-tasks/skills/manage-task-preferences/SKILL.md",
+      "totalBytes": 2152,
+      "treeHash": "d3bda30de56526161fcf1b9e6cc2f1f0ab98af73f965750984acd28cfffd1f33"
     },
     {
       "contentHash": "e5c739b528e468211f90d88447dff1ba351a493890434e2be3460f7cc9f6b2c0",
       "description": "Build, inspect, and approve a today-first Rhize Tasks plan from the local planning authority. Use for morning planning, catch-up after sleep, carryover review, or deciding what to work on next.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/plan-my-day",
       "kind": "skill",
       "name": "plan-my-day",
-      "path": "rhize-tasks/skills/plan-my-day/SKILL.md"
+      "path": "rhize-tasks/skills/plan-my-day/SKILL.md",
+      "totalBytes": 2596,
+      "treeHash": "7ad965c8342ccbdd7dfe80c7318a4f54a0f746259d7369dc0235105f790a56c5"
     },
     {
       "contentHash": "ce44997fe984fe1d024d729d2a6bc0f599d32990c8b0ed5fef4d70a83dd637fd",
       "description": "Compare local Rhize task state with approved connector state and resolve drift through prompted reconciliation. Use for stale data, carryover mismatches, duplicate suspicion, or source recovery.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/reconcile-rhize-tasks",
       "kind": "skill",
       "name": "reconcile-rhize-tasks",
-      "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md"
+      "path": "rhize-tasks/skills/reconcile-rhize-tasks/SKILL.md",
+      "totalBytes": 3057,
+      "treeHash": "5db1a96fa167a682fd47417e15585eecdb97655dca4ebdb570225a983fe442ab"
     },
     {
       "contentHash": "89df99a57f4b9ff5dbb03d128821af02c40871759aacb0422875e8e1242d3406",
       "description": "Review urgent unassigned Jira work suggested for the configured user by Rhize Tasks competency rules. Use when evaluating additional work without weakening assigned-task priority or approval controls.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/review-task-opportunities",
       "kind": "skill",
       "name": "review-task-opportunities",
-      "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md"
+      "path": "rhize-tasks/skills/review-task-opportunities/SKILL.md",
+      "totalBytes": 2223,
+      "treeHash": "ec8a862c5c7e72ab8d8f3ff0be50baf82bfcf1cb5ce0c05dd78ea395cd24145e"
     },
     {
       "contentHash": "c0fd2aba0beec127dd2b04c32018738df3a107310dad3f0829969ef27eed991e",
       "description": "Diagnose Rhize Tasks installation, local service, source freshness, and scheduling health without mutating connectors. Use when the dashboard is unavailable, stale, degraded, paused, or failing routines.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/rhize-tasks-doctor",
       "kind": "skill",
       "name": "rhize-tasks-doctor",
-      "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md"
+      "path": "rhize-tasks/skills/rhize-tasks-doctor/SKILL.md",
+      "totalBytes": 3141,
+      "treeHash": "96128d9a6cb194b836393746d7b1995aea40976c65442006ca9cd935ae48d3ca"
     },
     {
       "contentHash": "39c6a80b39740fb880feac68bb2aac5c8824680ea9c2da474b70a7ef8e77a209",
       "description": "Set up or resume the seven-stage local Rhize Tasks wizard, including connector discovery, scope approval, planning preferences, routines, and the first approved plan. Use when installing Rhize Tasks, reconnecting a source, or finishing incomplete setup.",
+      "fileCount": 2,
       "id": "skill:rhize-tasks/rhize-tasks-setup",
       "kind": "skill",
       "name": "rhize-tasks-setup",
-      "path": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md"
+      "path": "rhize-tasks/skills/rhize-tasks-setup/SKILL.md",
+      "totalBytes": 5890,
+      "treeHash": "28e4e85229db6424cf66b709d5fdb102bcb5fecc758eb13bcfc0a36c086415f0"
     },
     {
       "contentHash": "424916744ebdedcfa1c644de6f40fdf2573cfdf74212fea7238f56e97fba5cdc",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "fileCount": 4,
       "id": "skill:seo-aeo-geo/aeo-geo-optimization",
       "kind": "skill",
       "name": "aeo-geo-optimization",
       "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md",
-      "summary": "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content."
+      "summary": "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content.",
+      "totalBytes": 18071,
+      "treeHash": "fbf57212afb10558455b44acf5192d1ee8fe445923a0f8a8dc4f60e87cd29cca"
     },
     {
       "contentHash": "941e96cf2583a91746428fba5299532fd8c03fe8307a566afa8d870c140edc21",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "fileCount": 2,
       "id": "skill:seo-aeo-geo/backlink-intelligence",
       "kind": "skill",
       "name": "backlink-intelligence",
       "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md",
-      "summary": "Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks."
+      "summary": "Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks.",
+      "totalBytes": 8579,
+      "treeHash": "e5362099449333a3bc9e39c23da84251a373569c7fbe73b429265d780db26c7f"
     },
     {
       "contentHash": "659c2562538fed0d0edf61fdb7886d2f3458f2e43e59c10f7db7859fd175253b",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
+      "fileCount": 3,
       "id": "skill:seo-aeo-geo/content-seo",
       "kind": "skill",
       "name": "content-seo",
       "path": "seo-aeo-geo/skills/content-seo/SKILL.md",
-      "summary": "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better."
+      "summary": "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better.",
+      "totalBytes": 14070,
+      "treeHash": "8339b73eb24ca8a3d2fe9eeca80f6d612bd5b62a797753c0554afcf5c0fc8f03"
     },
     {
       "contentHash": "ae319aada83d29f0b693a6db841ad9a4a9a69034cdc57b301eb5e701bffd4978",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any keyword research or keyword analysis request. Advanced keyword research, clustering, gap analysis, and opportunity scoring powered by DataForSEO Keywords Data and Labs APIs. Triggers on: \"find keywords\", \"keyword research\", \"keyword analysis\", \"keyword gap analysis\", \"keyword clustering\", \"find search terms\", \"what keywords should I target\", \"competitor keyword analysis\", \"keyword difficulty check\", \"search volume data\", \"long-tail keywords\", \"question keywords\", \"People Also Ask keywords\", \"keyword opportunities\", \"content gap analysis\", \"what are people searching for\", \"keyword cannibalization check\", \"keyword mapping\", or any request involving discovering, analyzing, or prioritizing keywords for SEO or content strategy. Also triggers on \"decision-stage keywords\", \"commercial intent keywords\", \"informational keywords\", \"compare keywords\", \"keyword trends\", or \"seasonal keywords\". Do NOT handle keyword research with general tools — this skill has specialized DataForSEO API workflows.",
+      "fileCount": 3,
       "id": "skill:seo-aeo-geo/keyword-intelligence",
       "kind": "skill",
       "name": "keyword-intelligence",
       "path": "seo-aeo-geo/skills/keyword-intelligence/SKILL.md",
-      "summary": "Researches, clusters, and scores keywords to find what to target for SEO or content strategy."
+      "summary": "Researches, clusters, and scores keywords to find what to target for SEO or content strategy.",
+      "totalBytes": 13215,
+      "treeHash": "f67f9cb0c3171223888e467944f0e4d2b439747220882256fc910d96edc25abe"
     },
     {
       "contentHash": "46802cf15f90b84338355769d613894abf1d5a51d1232d0c6e7a4496cb44eb1d",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. SEO implementation patterns for Next.js and Sanity CMS codebases. Triggers on: \"Next.js SEO\", \"Sanity SEO\", \"Next.js metadata\", \"generateMetadata\", \"Sanity schema for SEO\", \"structured data in Next.js\", \"JSON-LD in Next.js\", \"sitemap.ts\", \"robots.ts\", \"next/image SEO\", \"Sanity GROQ for SEO\", \"Open Graph in Next.js\", \"hreflang in Next.js\", \"canonical URLs in Next.js\", \"SEO component\", \"Sanity SEO fields\", \"portable text SEO\", \"image alt text from Sanity\", \"dynamic metadata from CMS\", \"CMS-driven SEO\", \"headless CMS SEO\", \"Next.js sitemap generation\", \"Sanity redirect management\", \"SEO audit of Next.js codebase\", \"fix SEO in my Next.js app\", or any request involving implementing or fixing SEO in a Next.js + Sanity project. Also triggers on \"audit my codebase for SEO issues\", \"SEO code review\", or \"implement SEO best practices in code\". Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.",
+      "fileCount": 1,
       "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
       "kind": "skill",
       "name": "nextjs-sanity-seo",
       "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
-      "summary": "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data."
+      "summary": "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data.",
+      "totalBytes": 10125,
+      "treeHash": "25d5a3dcb9a8b88cb2bbecd6c30b6b89f4b6c1b32ac4eea836992d4123c586d0"
     },
     {
       "contentHash": "0b751c6950396cd5eaa1c4383a99fba3e04ac8ff84581d9f10e81c28631451ac",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SEO audit or site health check request. Comprehensive SEO site auditing powered by DataForSEO OnPage and SERP APIs. Triggers on: \"audit a website for SEO\", \"run an SEO audit\", \"check SEO health\", \"find SEO issues\", \"crawl my site for problems\", \"what's wrong with my SEO\", \"technical SEO check\", \"on-page SEO analysis\", \"check my meta tags\", \"find broken links\", \"check my Core Web Vitals\", \"page speed analysis\", \"crawlability check\", \"indexation issues\", or any request involving diagnosing or improving a website's search engine optimization. Also triggers when the user shares a URL and asks about its SEO performance or ranking potential. Do NOT handle SEO audit requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "fileCount": 4,
       "id": "skill:seo-aeo-geo/seo-site-audit",
       "kind": "skill",
       "name": "seo-site-audit",
       "path": "seo-aeo-geo/skills/seo-site-audit/SKILL.md",
-      "summary": "Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes."
+      "summary": "Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes.",
+      "totalBytes": 16451,
+      "treeHash": "28851feae643b37d7a1c64846925770f011523c13b7bfcf412a3773f139f831e"
     },
     {
       "contentHash": "2cf2eb6f71924f04b543854d659bdd7fbfd2df2c1a89cd824b051c0e0200eefe",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
+      "fileCount": 2,
       "id": "skill:seo-aeo-geo/serp-intelligence",
       "kind": "skill",
       "name": "serp-intelligence",
       "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md",
-      "summary": "Tracks search rankings and analyzes search results pages to show where you rank and what's around you."
+      "summary": "Tracks search rankings and analyzes search results pages to show where you rank and what's around you.",
+      "totalBytes": 8951,
+      "treeHash": "f60b94ffe47466545c48f64a59912c525581660b0c6eb5766a35b597ab546bab"
     },
     {
       "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",

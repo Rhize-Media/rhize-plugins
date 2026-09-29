@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-29_ Skill map: static rhize skill nodes gain `treeHash`, `fileCount` and `totalBytes` over every git-tracked file in the skill directory. `--check-stale` now also catches drift in `references/`, `scripts/` and `templates/`, so rebuild the map with any tracked skill-file edit. `validate_skill_map.py` fails a skill above the MCP Skills extension (SEP-2640) limits of 512 files or 16 MiB. `schemaVersion` is unchanged; the new properties are optional in the schema.
 - _2026-09-29_ version bump — **rhize-devflow** 2.25.3 → 2.25.4 (patch); marketplace 2.91.0 → 2.91.1.
 - _2026-09-28_ version bump — **procedural-memory** 0.6.0 → 0.7.0 (minor); marketplace 2.90.1 → 2.91.0.
 - _2026-09-28_ version bump — **rhize-devflow** 2.25.2 → 2.25.3 (patch); marketplace 2.90.0 → 2.90.1.
