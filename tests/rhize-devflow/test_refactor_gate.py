@@ -894,3 +894,237 @@ def test_prepare_at_filesystem_root_is_a_warning_not_a_failure(tmp_path: Path) -
     assert result.returncode == 0, result.stderr
     assert "SKIPPED" in result.stderr
     assert list(state_dir.glob("*.json")) == []
+
+
+# --- Command-derived workspace resolution (cd / git -C / --git-dir / --work-tree) -----------
+#
+# Regression coverage for: a session whose payload cwd is repo A running
+# `cd /path/to/repoB && git commit ...` (no `git -C`) must be judged against repo B's own
+# receipt, not repo A's — mirroring the `git -C` support that already existed. Each test below
+# arms repo A with a hard-blocking `implementation`-phase receipt (any release command judged
+# against repo A must return 2) so a returncode of 0 can only mean the gate correctly resolved
+# the command to a *different*, unblocked repo.
+
+
+def arm_implementation_receipt(state_dir: Path, workspace: Path) -> None:
+    """Prepare `workspace`, then trigger a gated source write so its receipt lands in the
+    `implementation` phase — the phase that unconditionally blocks commit/push/merge with no
+    config/planning exemption, making it an unambiguous blocking signal for these tests."""
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan), "--query", "example refactor"
+    ).returncode == 0
+    write_hook = run_gate(
+        state_dir,
+        "hook-write",
+        payload={"cwd": str(workspace), "tool_input": {"file_path": str(workspace / "src/example.ts")}},
+    )
+    assert write_hook.returncode == 0
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+    assert json.loads(status.stdout)["phase"] == "implementation"
+
+
+def test_cd_prefixed_release_is_judged_against_target_repo_not_cwd(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    # Sanity: committing against cwd (repo A) directly is genuinely blocked.
+    direct = run_gate(
+        state_dir, "hook-command", payload={"cwd": str(repo_a), "tool_input": {"command": "git commit -am x"}}
+    )
+    assert direct.returncode == 2, direct.stderr
+
+    # A leading `cd <repoB> &&` must be judged against repo B's (clean, receipt-free) state.
+    redirected = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"cd {repo_b} && git commit -am x"}},
+    )
+    assert redirected.returncode == 0, redirected.stderr
+
+    # A `cd <repoB>;` (semicolon separator) form resolves the same way.
+    redirected_semicolon = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"cd {repo_b}; git commit -am x"}},
+    )
+    assert redirected_semicolon.returncode == 0, redirected_semicolon.stderr
+
+
+def test_git_dash_c_release_is_judged_against_target_repo_not_cwd(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    result = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"git -C {repo_b} commit -am x"}},
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_git_dir_and_work_tree_flags_are_judged_against_target_repo(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    work_tree = run_gate(
+        state_dir,
+        "hook-command",
+        payload={
+            "cwd": str(repo_a),
+            "tool_input": {"command": f"git --work-tree={repo_b} --git-dir={repo_b}/.git commit -am x"},
+        },
+    )
+    assert work_tree.returncode == 0, work_tree.stderr
+
+    git_dir_only = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"git --git-dir={repo_b}/.git commit -am x"}},
+    )
+    assert git_dir_only.returncode == 0, git_dir_only.stderr
+
+
+def test_relative_cd_resolves_against_payload_cwd(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    result = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": "cd ../repoB && git commit -am x"}},
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_ambiguous_multi_cd_stays_cwd_based(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    repo_c = tmp_path / "repoC"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    init_repo(repo_c)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    # Two different leading `cd` targets before the git verb: today's cwd-based behavior
+    # must be kept rather than guessing which target was meant, so this still resolves to
+    # repo A (which is blocked) instead of either repo B or repo C (both clean).
+    chained = run_gate(
+        state_dir,
+        "hook-command",
+        payload={
+            "cwd": str(repo_a),
+            "tool_input": {"command": f"cd {repo_b} && cd {repo_c} && git commit -am x"},
+        },
+    )
+    assert chained.returncode == 2, chained.stderr
+
+    # A second `cd` separated by an intervening command is just as ambiguous as one
+    # immediately chained onto the first — the git verb actually runs in repo C here, not
+    # repo B, so naively taking the *first* `cd` would silently point the check at the
+    # wrong repo instead of falling back to cwd.
+    separated = run_gate(
+        state_dir,
+        "hook-command",
+        payload={
+            "cwd": str(repo_a),
+            "tool_input": {"command": f"cd {repo_b} && npm test && cd {repo_c} && git commit -am x"},
+        },
+    )
+    assert separated.returncode == 2, separated.stderr
+
+
+@pytest.mark.parametrize("bogus_kind", ["nonexistent", "not-a-git-repo"])
+def test_nonexistent_or_non_git_cd_target_falls_back_to_cwd(tmp_path: Path, bogus_kind: str) -> None:
+    repo_a = tmp_path / "repoA"
+    init_repo(repo_a)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    if bogus_kind == "nonexistent":
+        bogus = tmp_path / "does-not-exist"
+    else:
+        bogus = tmp_path / "plain-dir"
+        bogus.mkdir()
+
+    # The `cd` target does not resolve to a real Git repository, so the gate must fall back
+    # to judging the command against cwd (repo A, which is blocked) rather than silently
+    # allowing it because the bogus target has no receipt of its own.
+    result = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"cd {bogus} && git commit -am x"}},
+    )
+    assert result.returncode == 2, result.stderr
+
+
+def test_subshell_and_pushd_cd_stay_cwd_based(tmp_path: Path) -> None:
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    arm_implementation_receipt(state_dir, repo_a)
+
+    subshell = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"(cd {repo_b} && git commit -am x)"}},
+    )
+    assert subshell.returncode == 2, subshell.stderr
+
+    pushd = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"pushd {repo_b} && git commit -am x"}},
+    )
+    assert pushd.returncode == 2, pushd.stderr
+
+    variable = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": "cd $REPO && git commit -am x"}},
+    )
+    assert variable.returncode == 2, variable.stderr
+
+
+def test_apply_patch_source_write_resolves_cd_prefixed_target_repo(tmp_path: Path) -> None:
+    """The same command-derived resolution applies to the patch-carried source-write check
+    (Codex `functions.exec`/apply_patch text arriving through `hook-command`), not just the
+    release-command block."""
+    repo_a = tmp_path / "repoA"
+    repo_b = tmp_path / "repoB"
+    init_repo(repo_a)
+    init_repo(repo_b)
+    state_dir = tmp_path / "state"
+    # repo B is pending (material prompt seen, no map prepared yet), so a gated source write
+    # routed there must be blocked; repo A (cwd) has no receipt at all, so if the write were
+    # mis-attributed to cwd it would be wrongly allowed.
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(repo_b, "Refactor the application code"))
+    patch = "*** Begin Patch\n*** Update File: src/example.ts\n@@\n-old\n+new\n*** End Patch"
+
+    result = run_gate(
+        state_dir,
+        "hook-command",
+        payload={"cwd": str(repo_a), "tool_input": {"command": f"cd {repo_b} && apply_patch <<'EOF'\n{patch}\nEOF"}},
+    )
+    assert result.returncode == 2, result.stderr

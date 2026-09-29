@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-28_ version bump — 2.25.2 → 2.25.3 (patch); marketplace 2.90.0 → 2.90.1.
 - **Context-document gate repair.** Allow prose in `.planning/` and `docs/` and standard context Markdown files in nested projects. Share exemptions across write, reconciliation and release checks; keep executable files, MDX and mixed source/documentation edits gated. Regression reproduces the rejected `.planning/STATE.md` Codex patch.
 - _2026-09-27_ version bump — 2.25.1 → 2.25.2 (patch); marketplace 2.86.0 → 2.86.1.
 - _2026-09-26_ version bump — 2.25.0 → 2.25.1 (patch); marketplace 2.85.0 → 2.85.1.
@@ -33,6 +34,15 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Fixed
 
+- _2026-09-28_ `hook-command` resolves the Git workspace a Bash command targets from the command
+  itself, not only from the payload's cwd: a leading `cd <dir> &&`/`cd <dir>;`, `git -C <dir>`, or
+  `--git-dir=`/`--work-tree=` flag is now honored for the commit/push/merge block and the
+  patch-carried source-write check, matching what `git -C` already did. A session whose cwd is
+  repo A running `cd /path/to/repoB && git commit …` (no `git -C`) was being judged against repo
+  A's receipt and blocked even though the commit happens in repo B. Anything ambiguous (more than
+  one leading `cd`, a subshell, `pushd`, or a variable/command substitution in the path) keeps
+  today's cwd-based behavior, and a resolved target that isn't a real Git repo falls back to cwd —
+  never weakening the gate.
 - _2026-09-26_ If a material-work prompt is pending and exactly one complete impact map created
   for that request carries its opaque `Preparation ID:` plus an explicit `Discovery query:` line,
   the first source-write hook prepares that map before allowing the write. Missing, stale, invalid,
