@@ -3,6 +3,9 @@
 
 This module sits outside the collection source digest on purpose: changing it does not
 orphan live observations. It stores labels beside, never inside, the legacy human label store.
+Stored labels are immutable except for the documented supersession (see supersession_reason): a
+family-derived AI choice may be replaced by an explicitly judged one, and any AI label by a human
+label. The replaced record is archived, never deleted, and a human label is never replaced.
 """
 from __future__ import annotations
 
@@ -48,6 +51,8 @@ REVIEW_VERDICTS = frozenset({'accept', 'revise'})
 LABEL_KEYS = frozenset({'schema', 'opportunityId', 'sourceSha256', 'taxonomyVersion', 'basis', 'family', 'phase',
                         'areas', 'stratum', 'riskFlags', 'choice', 'choiceBasis', 'reviewer', 'reviewEvidenceSha256'})
 LABEL_DIR = 'v2/taxonomy-labels'
+# Replaced labels are moved here, never deleted; load_labels/export/report ignore this directory.
+SUPERSEDED_DIR = 'v2/taxonomy-labels-superseded'
 POLICY_FILE = 'label-policy.json'
 POLICY_HISTORY = 'label-policy-history.jsonl'
 MAX_BATCH = 32 * 1024 * 1024
@@ -109,8 +114,56 @@ def bind(root, receipts, identity):
     return observation
 
 
-def record_label(root, receipts, value, evidence_sha256, dry_run=False):
-    """Validate, bind and store one immutable label; identical re-imports are idempotent."""
+def supersession_reason(old, record):
+    """Why `record` may replace the stored `old` label, or None when the old label stays immutable.
+
+    Only an AI label can ever be replaced: by a human label, or by a label whose routing choice was
+    judged explicitly when the old one was merely derived from its family. A human label, and an AI
+    label whose choice was already judged directly, are never replaced.
+    """
+    if old.get('basis') != AI:
+        return None
+    if record['basis'] == HUMAN:
+        return 'ai_to_human'
+    if old.get('choiceBasis') == FAMILY_MAP and record['choiceBasis'] == 'explicit':
+        return 'derived_to_explicit_choice'
+    return None
+
+
+def _same_record(old, record):
+    return {k: v for k, v in old.items() if k != 'importedAt'} == record
+
+
+def _archive_superseded(root, old, record, reason):
+    """Preserve the replaced label; safe to repeat after a crash between archive and replace."""
+    directory = root / SUPERSEDED_DIR
+    if directory.is_symlink():
+        raise ValueError('symlink superseded store refused')
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path = directory / (old['opportunityId'] + '-' + old['evidenceSha256'][:16] + '.json')
+    if path.is_symlink():
+        raise ValueError('symlink superseded record refused')
+    marks = ('supersededBy', 'supersededReason', 'supersededAt')
+    if path.exists():
+        kept = read_json(path)
+        if {k: v for k, v in kept.items() if k not in marks} != old:
+            raise ValueError('superseded_archive_conflict')
+        return path
+    archived = {**old, 'supersededBy': {'evidenceSha256': record['evidenceSha256'],
+                                        'reviewEvidenceSha256': record['reviewEvidenceSha256'],
+                                        'basis': record['basis'], 'choice': record['choice'],
+                                        'choiceBasis': record['choiceBasis'], 'reviewer': record['reviewer']},
+                'supersededReason': reason, 'supersededAt': datetime.now(timezone.utc).isoformat()}
+    _private_write(path, json.dumps(archived, sort_keys=True, indent=2) + '\n', prefix='.superseded-')
+    return path
+
+
+def record_label(root, receipts, value, evidence_sha256, dry_run=False, supersede=False):
+    """Validate, bind and store one label; identical re-imports are idempotent.
+
+    A stored label is immutable unless `supersede` is set and supersession_reason() allows the
+    replacement; the replaced record is then moved to SUPERSEDED_DIR with the reason.
+    """
     validate_label(value)
     if not isinstance(evidence_sha256, str) or not HEX.fullmatch(evidence_sha256):
         raise ValueError('evidence digest required')
@@ -126,30 +179,42 @@ def record_label(root, receipts, value, evidence_sha256, dry_run=False):
         raise ValueError('symlink label refused')
     if existing.is_file():
         old = read_json(existing)
-        if {k: v for k, v in old.items() if k != 'importedAt'} != record:
+        if _same_record(old, record):
+            return 'already_recorded'
+        if not supersede or supersession_reason(old, record) is None:
             raise ValueError('immutable label already exists')
-        return 'already_recorded'
-    if dry_run:
+        if dry_run:
+            return 'would_supersede'
+    elif dry_run:
         return 'would_record'
+
+    outcome = []
 
     def update(old):
         if old is not None:
-            if {k: v for k, v in old.items() if k != 'importedAt'} != record:
+            if _same_record(old, record):
+                outcome.append('already_recorded')
+                return old, False
+            reason = supersession_reason(old, record) if supersede else None
+            if reason is None:
                 raise ValueError('immutable label already exists')
-            return old, False
+            _archive_superseded(root, old, record, reason)
+            outcome.append('superseded')
+        else:
+            outcome.append('recorded')
         return {**record, 'importedAt': datetime.now(timezone.utc).isoformat()}, True
     locked_update(store, value['opportunityId'], update)
-    return 'recorded'
+    return outcome[0]
 
 
-def import_file(root, receipts, identity, evidence):
+def import_file(root, receipts, identity, evidence, supersede=False):
     if evidence.is_symlink():
         raise ValueError('symlink evidence refused')
     raw = evidence.read_bytes()
     value = read_json(evidence)
     if value.get('opportunityId') != identity:
         raise ValueError('evidence must bind the exact opportunity')
-    status = record_label(root, receipts, value, digest(raw))
+    status = record_label(root, receipts, value, digest(raw), supersede=supersede)
     return {'status': status, 'opportunityId': identity, 'basis': value['basis']}
 
 
@@ -180,7 +245,7 @@ def batch_label(record):
             'reviewEvidenceSha256': digest(canonical(record))}, None
 
 
-def import_batch(root, receipts, annotations, dry_run=False):
+def import_batch(root, receipts, annotations, dry_run=False, supersede=False):
     if annotations.is_symlink():
         raise ValueError('symlink annotations refused')
     if annotations.stat().st_size > MAX_BATCH:
@@ -196,11 +261,12 @@ def import_batch(root, receipts, annotations, dry_run=False):
             skipped[reason] += 1
             continue
         try:
-            outcomes[record_label(root, receipts, value, digest(raw), dry_run=dry_run)] += 1
+            outcomes[record_label(root, receipts, value, digest(raw), dry_run=dry_run, supersede=supersede)] += 1
         except ValueError as exc:
             skipped[str(exc)] += 1
     return {'status': 'dry_run' if dry_run else 'imported', 'batchSha256': digest(raw), 'records': len(records),
-            'results': dict(sorted(outcomes.items())), 'skipped': dict(sorted(skipped.items())), 'basis': AI}
+            'results': dict(sorted(outcomes.items())), 'skipped': dict(sorted(skipped.items())), 'basis': AI,
+            'supersede': supersede}
 
 
 def load_policy(root):
@@ -217,9 +283,9 @@ def load_policy(root):
     return value
 
 
-def _private_write(path, data):
+def _private_write(path, data, prefix='.policy-'):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    handle, temporary = tempfile.mkstemp(prefix='.policy-', dir=path.parent)
+    handle, temporary = tempfile.mkstemp(prefix=prefix, dir=path.parent)
     try:
         with os.fdopen(handle, 'w') as stream:
             stream.write(data); stream.flush(); os.fsync(stream.fileno())
@@ -336,6 +402,13 @@ def write_cases(root, receipts, output, bases):
             'labelBasis': dict(sorted(Counter(c['label_basis'] for c in cases).items()))}
 
 
+def superseded_count(root):
+    directory = root / SUPERSEDED_DIR
+    if directory.is_symlink():
+        raise ValueError('symlink superseded store refused')
+    return sum(1 for _ in directory.glob('*.json')) if directory.is_dir() else 0
+
+
 def report(root):
     policy = load_policy(root)
     labels = load_labels(root)
@@ -344,7 +417,8 @@ def report(root):
     rows = [{'family': l['family'], 'routing_choice': l['choice'], 'stratum': l['stratum']} for l in scored]
     count = lambda key, values: dict(sorted(Counter(v[key] for v in values).items()))
     return {'schema': 'rhize-taxonomy-label-report-v1', 'taxonomyVersion': TAXONOMY_VERSION, 'policy': policy,
-            'labels': len(labels), 'byBasis': count('basis', labels), 'accepted': len(accepted),
+            'labels': len(labels), 'superseded': superseded_count(root), 'byBasis': count('basis', labels),
+            'accepted': len(accepted),
             'byFamily': count('family', accepted), 'byPhase': count('phase', accepted),
             'byStratum': count('stratum', accepted), 'byChoice': count('choice', accepted),
             'byChoiceBasis': count('choiceBasis', accepted), 'researchUsable': len(scored),
@@ -359,8 +433,12 @@ def main():
     ap.add_argument('--receipts', type=Path, default=DEFAULT_ROOT / 'receipts')
     sub = ap.add_subparsers(dest='command', required=True)
     sp = sub.add_parser('import'); sp.add_argument('--id', required=True); sp.add_argument('--evidence', type=Path, required=True)
+    sp.add_argument('--supersede', action='store_true',
+                    help='allow the documented replacement of a derived-choice AI label; the old record is archived')
     sp = sub.add_parser('import-batch'); sp.add_argument('--annotations', type=Path, required=True)
     sp.add_argument('--dry-run', action='store_true')
+    sp.add_argument('--supersede', action='store_true',
+                    help='allow the documented replacement of derived-choice AI labels; old records are archived')
     sub.add_parser('report')
     sp = sub.add_parser('export'); sp.add_argument('--out', type=Path, required=True)
     sp = sub.add_parser('policy'); psub = sp.add_subparsers(dest='action', required=True)
@@ -372,9 +450,9 @@ def main():
         if args.command == 'import':
             if not HEX.fullmatch(args.id):
                 raise ValueError('invalid opportunity id')
-            result = import_file(args.root, args.receipts, args.id, args.evidence)
+            result = import_file(args.root, args.receipts, args.id, args.evidence, supersede=args.supersede)
         elif args.command == 'import-batch':
-            result = import_batch(args.root, args.receipts, args.annotations, dry_run=args.dry_run)
+            result = import_batch(args.root, args.receipts, args.annotations, dry_run=args.dry_run, supersede=args.supersede)
         elif args.command == 'report':
             result = report(args.root)
         elif args.command == 'export':

@@ -367,6 +367,14 @@ The research cycle keeps the 200-label floor and adds per-route, per-family and 
 gates. Results that include model-reviewed labels are marked exploratory. See [taxonomy
 labels](docs/decision-pilot.md#versioned-taxonomy-labels).
 
+`scripts/pilot_autolabel.py` is the daily AI labeling step: two independent no-tools annotators
+(Claude and Codex, subscription CLIs only, no API-key fallback) classify eligible v2 decisions from
+redacted local transcript context, a Claude reviewer settles the agreed cases, and the result is
+imported with supersession, which replaces family-derived AI choices with explicitly judged ones and
+archives the old record (never a human label). The definitions it embeds are in
+[workflow-taxonomy.md](docs/workflow-taxonomy.md). See [daily AI
+labeling](docs/decision-pilot.md#daily-ai-labeling).
+
 The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
 is sealed before the incumbent consultation/selection; background events and continuations have
 explicit dispositions, while missing or conflicting context remains visible. Catalog consultation,

@@ -207,7 +207,9 @@ risk `stratum` (routine, elevated, critical) with optional `riskFlags`, and the 
 (content, general, none). The module sits outside the collection source digest, so releasing it
 does not strand live observations, and it stores records under `pilot/v2/taxonomy-labels`, never in
 the legacy human label store. Labels bind the current source and an eligible v2 decision, are
-immutable, and re-importing an identical record is idempotent.
+immutable except for the supersession rule below, and re-importing an identical record is
+idempotent. The category and routing-choice definitions live in
+[workflow-taxonomy.md](workflow-taxonomy.md).
 
 ```json
 {"schema":"rhize-workflow-taxonomy-label-v1","opportunityId":"<64 hex>","sourceSha256":"<64 hex>","taxonomyVersion":"rhize-workflow-taxonomy-v1","basis":"ai_model_reviewed","family":"feature_delivery","phase":"implement","areas":["backend_api"],"stratum":"routine","riskFlags":[],"choice":"general","choiceBasis":"explicit","reviewer":"ai-review-claude-fable-5-1","reviewEvidenceSha256":"<64 hex>"}
@@ -218,25 +220,106 @@ immutable, and re-importing an identical record is idempotent.
 when it was filled from the family (content_growth→content, direct_response→none, otherwise
 general). Research scores the route itself, so it uses only explicit choices; a family does not
 decide the route (a small feature fix can correctly need no workflow). Derived choices still count
-in coverage reports. Future labeling batches should ask for the choice directly.
+in coverage reports. The [daily AI labeler](#daily-ai-labeling) judges the choice directly.
+
+**Supersession.** A stored label is replaced only through an explicit opt-in (`--supersede`,
+`import_batch(..., supersede=True)`) and only in two cases: an AI label whose choice was merely
+derived may be replaced by a label (AI or human) with an explicit choice, and any AI label may be
+replaced by a human label. A human label is never replaced, and an AI label whose choice was
+already judged directly stays as it is. The replaced record is moved, never deleted, to
+`pilot/v2/taxonomy-labels-superseded/<opportunityId>-<16 hex of its evidence digest>.json` with a
+`supersededBy` summary, the reason (`derived_to_explicit_choice` or `ai_to_human`) and a timestamp.
+Loading, reporting and export read only the live label directory, so a superseded label can never
+be scored. Without the opt-in an import of a different label still fails with
+`immutable label already exists`.
 
 Commands, run from the plugin directory:
 
-- `pilot_labels.py import --id ID --evidence PRIVATE_JSON` — one label.
-- `pilot_labels.py import-batch --annotations FILE [--dry-run]` — convert a reviewed
+- `pilot_labels.py import --id ID --evidence PRIVATE_JSON [--supersede]` — one label.
+- `pilot_labels.py import-batch --annotations FILE [--dry-run] [--supersede]` — convert a reviewed
   `rhize-ai-taxonomy-annotations-v1` batch. Only `labeled` records whose model review actually ran
   with an `accept` or `revise` verdict, and that bind an eligible current-source v2 decision,
-  are imported; every skip is counted by reason.
+  are imported; every skip is counted by reason. `--dry-run --supersede` reports
+  `would_supersede` for each replacement without writing.
 - `pilot_labels.py policy show` / `policy set [--accept-ai] --reason TEXT --actor ID` — the private
   label policy. The default accepts only human labels. `--accept-ai` lets research use
   model-reviewed labels too; running `set` without it restores human-only. Each change is
   appended to `label-policy-history.jsonl` with the previous and next policy.
 - `pilot_labels.py report` — counts by basis, family, phase, stratum, choice and choice basis,
-  the research-usable count and the coverage gates below.
+  the research-usable count, the number of superseded labels and the coverage gates below.
 - `pilot_labels.py export --out NEW_PRIVATE_JSONL` — research rows under the current policy.
 
 A model-reviewed label is a model judgment, not human ground truth. Any research result that uses
 one says so (`labelBasis`, `claimScope`) and supports no human-accuracy, holdout or promotion claim.
+
+### Daily AI labeling
+
+`scripts/pilot_autolabel.py` produces explicit-choice AI labels on a schedule, so research has
+labels that judge the routing choice itself. It sits outside the collection source digest, like
+`pilot_labels.py`, and never touches the legacy human label store or any research gate.
+
+```bash
+python3 scripts/pilot_autolabel.py run --no-import      # inspect first: writes only the private run directory
+python3 scripts/pilot_autolabel.py run                  # daily: label, then import with supersession
+python3 scripts/pilot_autolabel.py run --prepare-only   # select cases and write packets; no model call
+python3 scripts/pilot_autolabel.py status               # latest run summary
+```
+
+Each pass:
+
+1. **Select** eligible, current-source v2 decisions that have no explicit-choice label, no human
+   taxonomy label and no legacy human label, oldest first, up to `--max-cases` (default 15).
+2. **Recover context** from local transcripts (`~/.claude/projects`, `~/.codex/sessions`,
+   `~/.codex/archived_sessions`, or `--transcript-root`). A transcript matches only when the SHA-256
+   of its session UUID equals the receipt's `sessionHash` and the SHA-256 of a user message equals
+   its `promptHash`. A packet holds the redacted request (6,500 characters at most) and at most
+   four preceding turns. Missing or ambiguous context becomes `insufficient_context` with no model
+   call. A prior turn that talks about the pilot's own arms, scores or labels is dropped whole.
+3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
+   never each other: Claude (`--claude-model`, default `claude-sonnet-5-5`) and Codex
+   (`--codex-model`, default `gpt-5.6-sol`).
+4. **Compare and review.** Annotators that disagree on status, family, phase, stratum or choice
+   leave the case unresolved (`checker_disagreement`); no label is created. When they agree on a
+   labeled case, a Claude reviewer (`--reviewer-model`, default `claude-fable-5-1`) answers
+   `accept`, `revise` or `unresolved` for the batch. The label carries the reviewer's identity as
+   reported by Claude's own usage data; a report that does not name the requested model fails the
+   case. Agreed non-labels (`excluded_operational`, `needs_split`, `insufficient_context`) need no
+   reviewer and create no label.
+5. **Compile** `annotations.json` (`rhize-ai-taxonomy-annotations-v1`, explicit `choice`, both
+   annotators and the reviewer recorded) and, unless `--no-import`, import it with supersession, so
+   derived-choice AI labels become explicit ones and the old records are archived.
+
+The taxonomy the models read is [workflow-taxonomy.md](workflow-taxonomy.md), embedded whole and
+recorded as `taxonomySha256`.
+
+**Model calls.** Only the subscription CLIs run, with the flags of the no-tools bridge workers:
+`claude --print --safe-mode --tools ""` with hooks, MCP and slash commands off and `--json-schema`,
+and `codex exec --sandbox read-only --ephemeral --output-schema` with tools, MCP and web search
+disabled. Prompts go to stdin. Before any model call the run checks `claude auth status` (must be
+`claude.ai` / first party) and `codex login status` (ChatGPT login); a missing binary or login
+aborts with exit code 2 and no call. The child environment is an allowlist, so `ANTHROPIC_*`,
+`OPENAI_*` and every other key are never inherited, and there is no API-key fallback. Binary path,
+version and SHA-256 are recorded in the summary. Models, per-call timeout, effort, the wall
+`--deadline-seconds` (default 2,400), packet size and the binaries are flags, or keys of a
+`--config` JSON file.
+
+**State.** The private state directory (default `<workflow-selection root>/autolabel`, mode 0700)
+holds `runs/<id>/` with `manifest.json`, `packets.json` (redacted excerpts), `calls/` (raw model
+output), `annotations.json` and `summary.json`; `latest-summary.json`; a `run.lock` that makes an
+overlapping launch exit quietly; and the append-only `attempts.jsonl` ledger. A packet that was
+already settled (any terminal outcome, keyed by opportunity, packet digest and taxonomy digest) is
+not sent again; infrastructure failures such as a timeout or malformed output retry, up to three
+times; `--force` ignores the ledger. `--no-import` changes no label and writes no ledger entry, so
+a run can be inspected and then imported with
+`pilot_labels.py import-batch --annotations <run>/annotations.json --supersede`.
+
+Exit codes: 0 done or nothing to do, 1 unavailable, 2 aborted before any model call (login, binary,
+taxonomy), 3 incomplete (deadline or model failures; finished cases are still written and imported).
+
+Limits: two annotators and a reviewer share model limitations and can agree on a wrong answer, the
+labels are silver data, and a transcript that does not hash-match the receipt (for example one that
+was edited or compacted) yields `insufficient_context`. Excerpts of transcripts leave the machine
+for the model providers after redaction of tokens, credentials, e-mail addresses and long numbers.
 
 ## Recurring research
 

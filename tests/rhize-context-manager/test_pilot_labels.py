@@ -208,3 +208,129 @@ def test_report_separates_bases_and_research_usable(tmp_path):
     labels.set_policy(root, True, 'fixture', 'jim')
     accepted = labels.report(root)
     assert accepted['accepted'] == 1 and accepted['researchUsable'] == 1 and accepted['byChoice'] == {'general': 1}
+
+
+def stored_ids(root):
+    return {label['opportunityId']: label for label in labels.load_labels(root)}
+
+
+def test_derived_ai_choice_is_superseded_by_explicit_and_old_record_is_preserved(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    identity = receipt['opportunityId']
+    derived = value(root, receipt, choiceBasis=labels.FAMILY_MAP, reviewEvidenceSha256='1' * 64)
+    assert labels.record_label(root, receipts, derived, 'a' * 64) == 'recorded'
+    old = stored_ids(root)[identity]
+    explicit = value(root, receipt, choice='none', reviewEvidenceSha256='2' * 64)
+    # Without the opt-in the label stays immutable, exactly as before.
+    with pytest.raises(ValueError, match='immutable'):
+        labels.record_label(root, receipts, explicit, 'b' * 64)
+    assert labels.record_label(root, receipts, explicit, 'b' * 64, dry_run=True, supersede=True) == 'would_supersede'
+    assert stored_ids(root)[identity] == old and not (root / labels.SUPERSEDED_DIR).exists()
+    assert labels.record_label(root, receipts, explicit, 'b' * 64, supersede=True) == 'superseded'
+    current = stored_ids(root)[identity]
+    assert current['choice'] == 'none' and current['choiceBasis'] == 'explicit' and current['evidenceSha256'] == 'b' * 64
+    archived = list((root / labels.SUPERSEDED_DIR).glob('*.json'))
+    assert [path.name for path in archived] == [identity + '-' + 'a' * 16 + '.json']
+    kept = json.loads(archived[0].read_text())
+    assert {k: v for k, v in kept.items() if not k.startswith('superseded')} == old
+    assert kept['supersededReason'] == 'derived_to_explicit_choice'
+    assert kept['supersededBy']['evidenceSha256'] == 'b' * 64 and kept['supersededBy']['choice'] == 'none'
+    assert archived[0].stat().st_mode & 0o777 == 0o600
+    # The replacement is itself idempotent, and the archive is invisible to every reader.
+    assert labels.record_label(root, receipts, explicit, 'b' * 64, supersede=True) == 'already_recorded'
+    assert len(list((root / labels.SUPERSEDED_DIR).glob('*.json'))) == 1
+    assert [label['opportunityId'] for label in labels.load_labels(root)] == [identity]
+    labels.set_policy(root, True, 'fixture', 'jim')
+    report = labels.report(root)
+    assert report['labels'] == 1 and report['superseded'] == 1 and report['byChoiceBasis'] == {'explicit': 1}
+    assert report['researchUsable'] == 1
+    assert not (root / 'v2/labels').exists()
+
+
+def test_supersession_never_replaces_human_or_directly_judged_ai_labels(tmp_path):
+    root, receipts, explicit_ai = make(tmp_path, 'explicit-ai')
+    _, _, human = make(tmp_path, 'human')
+    labels.record_label(root, receipts, value(root, explicit_ai, choice='general'), 'a' * 64)
+    labels.record_label(root, receipts, value(root, human, basis=labels.HUMAN, reviewer='jim',
+                                              choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    before = stored_ids(root)
+    attempts = [
+        (explicit_ai, {'choice': 'none'}),                                      # AI-explicit -> other AI-explicit
+        (explicit_ai, {'family': 'code_health'}),                               # same choice, other fields
+        (human, {'choice': 'none'}),                                            # human -> explicit AI
+        (human, {'basis': labels.HUMAN, 'reviewer': 'jim2', 'choice': 'content'}),  # human -> other human
+    ]
+    for receipt, overrides in attempts:
+        candidate = value(root, receipt, reviewEvidenceSha256='9' * 64, **overrides)
+        with pytest.raises(ValueError, match='immutable'):
+            labels.record_label(root, receipts, candidate, 'c' * 64, supersede=True)
+    assert stored_ids(root) == before and not (root / labels.SUPERSEDED_DIR).exists()
+
+
+def test_ai_label_may_be_replaced_by_human_label_and_archived(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    identity = receipt['opportunityId']
+    labels.record_label(root, receipts, value(root, receipt, choice='general'), 'a' * 64)
+    human = value(root, receipt, basis=labels.HUMAN, reviewer='jim', choice='none', reviewEvidenceSha256='7' * 64)
+    with pytest.raises(ValueError, match='immutable'):
+        labels.record_label(root, receipts, human, 'd' * 64)
+    assert labels.record_label(root, receipts, human, 'd' * 64, supersede=True) == 'superseded'
+    assert stored_ids(root)[identity]['basis'] == labels.HUMAN
+    kept = json.loads(next((root / labels.SUPERSEDED_DIR).glob('*.json')).read_text())
+    assert kept['basis'] == labels.AI and kept['supersededReason'] == 'ai_to_human'
+    # A human label can no longer be replaced, even by another human label.
+    other = value(root, receipt, basis=labels.HUMAN, reviewer='jim', choice='content', reviewEvidenceSha256='8' * 64)
+    with pytest.raises(ValueError, match='immutable'):
+        labels.record_label(root, receipts, other, 'e' * 64, supersede=True)
+
+
+def test_archive_step_is_repeatable_and_refuses_a_conflicting_archive(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    identity = receipt['opportunityId']
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    old = stored_ids(root)[identity]
+    explicit = value(root, receipt, choice='none', reviewEvidenceSha256='2' * 64)
+    # A crash after archiving but before replacing leaves a matching archive; the retry completes.
+    path = root / labels.SUPERSEDED_DIR / (identity + '-' + 'a' * 16 + '.json')
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({**old, 'supersededBy': {}, 'supersededReason': 'earlier attempt'}))
+    assert labels.record_label(root, receipts, explicit, 'b' * 64, supersede=True) == 'superseded'
+    assert json.loads(path.read_text())['supersededReason'] == 'earlier attempt'
+    # A different record occupying the archive name is a hard stop and leaves the label untouched.
+    root2, receipts2, receipt2 = make(tmp_path / 'second')
+    labels.record_label(root2, receipts2, value(root2, receipt2, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    bad = root2 / labels.SUPERSEDED_DIR / (receipt2['opportunityId'] + '-' + 'a' * 16 + '.json')
+    bad.parent.mkdir(parents=True)
+    bad.write_text(json.dumps({'unrelated': True}))
+    before = stored_ids(root2)
+    with pytest.raises(ValueError, match='superseded_archive_conflict'):
+        labels.record_label(root2, receipts2, value(root2, receipt2, choice='none', reviewEvidenceSha256='2' * 64),
+                            'b' * 64, supersede=True)
+    assert stored_ids(root2) == before
+
+
+def test_batch_supersede_is_opt_in_and_counts_replacements(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    path = write(tmp_path, [annotation(root, receipt, family='feature_delivery', phase='implement',
+                                       areas=['backend_api'], choice='none')], 'annotations.json')
+    plain = labels.import_batch(root, receipts, path)
+    assert plain['results'] == {} and plain['skipped'] == {'immutable label already exists': 1}
+    dry = labels.import_batch(root, receipts, path, dry_run=True, supersede=True)
+    assert dry['results'] == {'would_supersede': 1} and stored_ids(root)[receipt['opportunityId']]['choice'] == 'general'
+    done = labels.import_batch(root, receipts, path, supersede=True)
+    assert done['results'] == {'superseded': 1} and done['supersede'] is True
+    assert stored_ids(root)[receipt['opportunityId']]['choice'] == 'none'
+    assert labels.import_batch(root, receipts, path, supersede=True)['results'] == {'already_recorded': 1}
+
+
+def test_supersede_flag_reaches_the_command_line(tmp_path, capsys, monkeypatch):
+    root, receipts, receipt = make(tmp_path)
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    path = write(tmp_path, [annotation(root, receipt, family='feature_delivery', phase='implement',
+                                       areas=['backend_api'], choice='none')], 'annotations.json')
+    argv = ['pilot_labels.py', '--root', str(root), '--receipts', str(receipts), 'import-batch',
+            '--annotations', str(path), '--supersede']
+    monkeypatch.setattr(sys, 'argv', argv)
+    assert labels.main() == 0
+    assert json.loads(capsys.readouterr().out)['results'] == {'superseded': 1}
