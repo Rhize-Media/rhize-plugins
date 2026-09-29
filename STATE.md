@@ -2,6 +2,15 @@
 
 ## Verified facts
 
+- 2026-09-29, MCP follow-ups (marketplace 2.95.0, rebased on procedural-memory 0.8.0 / 2.93.0):
+  - **Codex and bundled MCP servers:** Codex (CLI 0.158.0) loads a plugin's `.mcp.json` but never expands `${CLAUDE_PLUGIN_ROOT}` or any `${...}` variable. It passes only `HOME`/`PATH`/`USER` to MCP children, and a `config.toml` server of the same name shadows the plugin's. Plugins that bundle servers therefore carry an inline `mcpServers` entry in `.codex-plugin/plugin.json` (`./scripts/…`, `cwd: "."`). `tests/config-lint/test_codex_mcp_parity.py` enforces parity, and also that a Codex-catalog plugin with `.mcp.json` ships a Codex manifest. obsidian-second-brain 1.7.7 and seo-aeo-geo 1.6.0 (a new Codex manifest) are fixed.
+  - **Visual-plan viewer:** it runs through `viewer/bin/launch.mjs` (project-launcher 1.12.0), which uses a content-addressed `npm ci` cache under `~/.cache/rhize-plan-viewer/` with a committed lockfile and never writes into the skill.
+  - **Refactor gate:** Dev Flow 2.25.5 exempts prose under `.claude/analyses/`.
+  - **context-doctor test:** it uses realistic worker deadlines.
+  - **Lessons:**
+    - `git add <dir>` before `build_skill_map.py` stages those files into whichever commit comes next. Commit per plugin with explicit pathspecs, and check each commit with `git show --stat`.
+    - Rebase onto a fresh `origin/main` before running `bump_version.py`: a concurrent release took marketplace 2.93.0 first, and bumping on the stale base produced a colliding version chain.
+
 - 2026-09-29, MCP Tier 1 hardening, following the MCP Skills extension (SEP-2640) and the 2026-07-28 stateless revision:
   - **Skill map:** static skill nodes carry `treeHash`, `fileCount` and `totalBytes` over git-tracked files. `--check-stale` now fails on any tracked skill-file edit (`references/`, `scripts/`, `templates/`) until the map is rebuilt. `validate_skill_map.py` fails skills above 512 files or 16 MiB.
   - **obsidian-mcp-server:** 3.0.0 (2026-04-29) renamed its tools, and the unpinned `npx` had left the vault commands naming tools that did not exist. It is now pinned at 3.6.0 with the 3.x names; `tests/obsidian-second-brain/test_mcp_tool_names.py` checks them against a recorded `tools/list`, which must be re-recorded on any pin bump. dataforseo-mcp-server is pinned at 3.1.1. `tests/config-lint/test_mcp_npx_pins.py` rejects unpinned `npx` servers.

@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 1.11.1 → 1.12.0 (minor); marketplace 2.93.2 → 2.94.0.
 - _2026-09-29_ `rhize-visual-plan`: `viewer/bin/launch.mjs` runs the viewer from any install, including the version-pinned plugin cache, without writing `node_modules` into the skill.
   - It uses Node builtins only. It copies an explicit list of shipped files to a private, content-addressed cache (`~/.cache/rhize-plan-viewer/<hash>/`, or `RHIZE_PLAN_VIEWER_HOME`) and runs `npm ci` there against the newly committed `viewer/package-lock.json`, refusing unpinned installs.
   - A cache entry is used only after verification against the source hash; incomplete or tampered copies are rebuilt. Concurrent first runs publish one copy, and exit codes and signals are passed through.

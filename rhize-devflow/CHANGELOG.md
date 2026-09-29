@@ -6,6 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 2.25.4 → 2.25.5 (patch); marketplace 2.93.0 → 2.93.1.
 - _2026-09-29_ Refactor gate: prose under `.claude/analyses/` and `.codex/analyses/` (`.md`, `.markdown`, `.txt`, `.rst`) is exempt from write, command and release gating, like `claudedocs/`. That is the designated location for agent reports and analyses, and writing a report there used to require an impact-map receipt. Code files under those folders stay gated.
 - _2026-09-29_ version bump — 2.25.3 → 2.25.4 (patch); marketplace 2.91.0 → 2.91.1.
 - **Refactor-gate Stop block scoped to owner sessions.** A read-only session in the same checkout was blocked at every Stop while another session held the workspace in `implementation` (2026-09-28). The gate now records each session whose gated source write it allowed (`owner_sessions`, from the hook payload `session_id`, carried through re-prepare) and blocks Stop only for those owners. Write and release gates stay workspace-wide. A Stop without `session_id`, or a receipt with no recorded owner, still fails closed. Tests: `tests/rhize-devflow/test_refactor_gate.py` Stop-ownership cases.
