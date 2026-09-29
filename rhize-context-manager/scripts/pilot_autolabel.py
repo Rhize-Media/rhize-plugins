@@ -25,6 +25,7 @@ written and imported), 4 terminated by a signal (annotations.json is written; ru
 from __future__ import annotations
 
 import argparse
+import bisect
 import errno
 import fcntl
 import hashlib
@@ -37,6 +38,7 @@ import shutil
 import signal
 import stat
 import subprocess
+import sys
 import tempfile
 import time
 import unicodedata
@@ -70,26 +72,15 @@ LIMITS = {'maxCases': (1, 100), 'packetBytes': (4096, 200000), 'deadlineSeconds'
 MIN_CALL_SECONDS = 15
 MAX_FAILED_CALLS_IN_A_ROW = 3
 MAX_ATTEMPTS = 3
-# An import skip whose reason is a property of the label or record (not of the moment) will recur every run, so it
-# is retried only this many times before the opportunity stops being selected and stops spending model calls.
+# Every reason import_batch skips a record for (label_contradicts_exclusions, immutable label already exists, a
+# validation message, ...) is a property of the label or record, not of the moment, so a skip is retried only this
+# many times before the opportunity stops being selected and stops spending model calls. Lock contention and I/O
+# errors are not skips: they raise, and the run records them as an `import_failed` row that never counts.
 MAX_DETERMINISTIC_SKIPS = 2
-# Skip reasons known to be deterministic (documentation and tests; the rule is the complement below). Anything not in
-# TRANSIENT_SKIP_REASONS is deterministic, so a new validation-shaped failure can never burn calls forever.
-DETERMINISTIC_SKIP_REASONS = frozenset({
-    'immutable label already exists', 'label_contradicts_exclusions', 'no_v2_observation', 'superseded_archive_conflict',
-    'only eligible routing decisions can receive labels', 'label must bind the exact collection source',
-    'evidence digest required', 'requires taxonomy label contract', 'unsupported taxonomy label version',
-    'opportunity, source and review evidence digests required', 'invalid label basis',
-    'invalid family, phase or stratum', 'direct_response requires phase not_applicable',
-    'areas must be distinct known areas or sole not_applicable', 'risk flags must be distinct known flags',
-    'invalid routing choice or choice basis', 'derived choice does not match the family map',
-    'bounded reviewer identity required', 'unsupported_schema', 'taxonomy_version', 'basis_mismatch',
-    'not_model_reviewed', 'invalid_choice', 'malformed_record'})
-# Reasons an importer reports for lock contention or I/O; they say nothing about the label and never count.
-TRANSIENT_SKIP_REASONS = frozenset({'lock_busy', 'io_error'})
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_TRANSCRIPT_BYTES = 256 * 1024 * 1024
 MAX_TAXONOMY_BYTES = 128 * 1024
+MAX_PROMPT_BYTES = 256 * 1024          # one case plus the fixed framing must fit; a larger case fails on its own
 MAX_MESSAGE_CHARS = 200_000            # only ~6.5K is ever used; a larger message is cut (at a token edge) first
 ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
 PROMPT_LIMIT, TURN_LIMIT, PRIOR_TURNS = 6500, 3800, 4
@@ -177,6 +168,8 @@ REDACTIONS = (
      '[REDACTED_PASSWORD]', 1),
     (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret)"
                 r"(?:=|\s{1,8}))" + _STR), '[REDACTED_SECRET]', 1),
+    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm)\s{1,4}config\s{1,4}set\s{1,4}\S{0,200}(?:token|password|secret|auth|key)\S{0,100}\s{1,4})'
+                r'[^\s]{1,512}'), '[REDACTED_SECRET]', 1),
     (re.compile(r'(?i)([?&](?:key|sig|signature|token|access_token|api_key|apikey|secret|password|pwd|auth|code|'
                 r'x-amz-signature|x-goog-signature)=)[^\s&#"\'<>]{1,512}'), '[REDACTED_SECRET]', 1),
     (re.compile(r'\b[\w.+-]{1,64}@[\w.-]{1,255}\.[A-Za-z]{2,24}\b'), '[REDACTED_EMAIL]', 0),
@@ -188,17 +181,35 @@ REDACTIONS = (
 # Key-name-anywhere rule: a credential word in a key name (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=x`,
 # `api key: x`, `Authorization: Basic x`) redacts its whole line, and the lines that carry its value when that
 # sits below (JSON, YAML, YAML block scalars). It is a bounded scan, not one big pattern.
+# Long words match anywhere in a name (PGPASSWORD, dbPassword, GITHUBTOKEN, _authToken). Short, ordinary-looking words
+# need a left edge: not glued to a preceding letter, or a camelCase boundary (userAuth, dbPin). `pass` also matches
+# inside a name (dbpass) except after the few English words that end in it. Trailing guards keep author:, authors:,
+# max_tokens= and passing clean.
+_LEFT = r'(?:(?<![A-Za-z])|(?-i:(?<=[a-z])(?=[A-Z])))'
 CREDENTIAL_WORD = re.compile(
-    r'(?i)(?:(?<![A-Za-z])(?:password|passwd|passphrase|passcode|pass(?![A-Za-z])|pwd|pw(?![A-Za-z])|pin(?![A-Za-z])|'
-    r'creds?(?![A-Za-z])|credentials?|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
-    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|token(?!s)|tokens(?=[ \t]*:)|'
-    r'auth(?:orization)?(?![A-Za-z])|cookies?(?![A-Za-z])|session(?![A-Za-z])|bearer|webhook)|'
+    r'(?i)(?:password|passwd|passphrase|passcode|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
+    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|credentials?|token(?!s)|(?<![A-Za-z_])tokens(?=["\']?[ \t]*[:=])|'
+    r'bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
+    + _LEFT + r'(?:pw|pin|creds?|auth(?:orization)?|cookies?|session)(?![A-Za-z])|'
     r'(?<=[A-Za-z0-9])[ _-]key\b)')
-CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}[\w.-]{1,256}){0,3}["']?[ \t]*[:=]''')
-NATURAL_SECRET = re.compile(r'(?i)(?<![A-Za-z])(?:password|passcode|pwd|pw|pin|secret|api[ _-]?key)\s{1,4}(?:is|was)\s{1,4}\S')
+CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}["']?[ \t]*[:=]''')
+# The word sits where the value would be (a tag, a header, a quoted name, a name/value pair): the line and the next
+# value line carry the secret. Only characters that end a name count, so prose such as "password manager" is spared.
+NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:["',|>]|$)''', re.M)
+# Command and file shapes: `ENV SECRET v`, netrc `password v` / `machine h login u password v`.
+COMMAND_SECRET = re.compile(
+    r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]*(?:password|passwd|passphrase|secret|token|api[_-]?key|'
+    r'credentials?)[\w.-]*[ \t]+\S')
+NETRC_SECRET = re.compile(r'(?im)^[ \t]*password[ \t]+\S+[ \t]*$|\b(?:machine|login)[ \t]+\S+.{0,300}?\bpassword[ \t]+\S')
+NATURAL_SECRET = re.compile(
+    r'(?i)(?:password|passwd|passphrase|passcode|secret|token|api[ _-]?key|apikey|' + _LEFT + r'(?:pwd|pw|pin|creds?))'
+    r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->)\s{0,4})\S')
+SEPARATOR_LINE = re.compile(r'^[\s|:+=-]*$')
+STRONG_WORD = re.compile(r'(?i)password|passwd|passphrase|passcode|secret|token|key|credential')
 BLOCK_OPENERS = ('|', '>', '|-', '>-', '|+', '>+')
 VALUE_BELOW = ('', '[', '{', '(') + BLOCK_OPENERS
 MAX_BLOCK_LINES, MAX_BLOCK_CHARS = 200, 20000
+MAX_CONTAINER_LINES, MAX_CONTAINER_CHARS = 50, 4000
 # Generic fallbacks: a long unbroken key-like run with lower case, upper case and a digit; and, with base64
 # punctuation, a longer run that also looks random.
 KEY_RUN = re.compile(r'(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{32,}')
@@ -347,56 +358,108 @@ def _entropy(run):
     return -sum(n / len(run) * math.log2(n / len(run)) for n in counts.values())
 
 
-def _line_bounds(text, position):
-    start = text.rfind('\n', 0, position) + 1
-    end = text.find('\n', position)
-    return start, (len(text) if end < 0 else end)
+class Lines:
+    """Line boundaries computed once per text, so a match never rescans its line (linear on one giant line)."""
+
+    def __init__(self, text):
+        self.text = text
+        self.breaks = [i for i, c in enumerate(text) if c == '\n']
+
+    def bounds(self, position):
+        index = bisect.bisect_left(self.breaks, position)
+        start = self.breaks[index - 1] + 1 if index else 0
+        end = self.breaks[index] if index < len(self.breaks) else len(self.text)
+        return start, end
 
 
-def _value_below_end(text, key_start, key_end, rest):
-    """End of the lines that hold a value written below its key (block scalar body or the next line)."""
-    end, position = key_end, key_end + 1
-    if rest[:1] in ('|', '>'):
-        indent = len(text[key_start:key_end]) - len(text[key_start:key_end].lstrip(' \t'))
-        lines = 0
-        while position <= len(text) and lines < MAX_BLOCK_LINES and position - key_end < MAX_BLOCK_CHARS:
-            _, stop = _line_bounds(text, position)
-            line = text[position:stop]
-            if line.strip() and len(line) - len(line.lstrip(' \t')) <= indent:
-                break
-            end, position, lines = stop, stop + 1, lines + 1
-            if stop >= len(text):
-                break
-        return end
-    for _ in range(3):                                   # the next non-blank line, skipping a couple of blanks
-        if position > len(text):
-            break
-        _, stop = _line_bounds(text, position)
-        end, blank = stop, not text[position:stop].strip()
-        position = stop + 1
-        if not blank:
+def _container_end(lines, position, depth):
+    """End of the bracket or brace value that starts at `position` with `depth` already open; when it does not
+    close within the bound, everything up to the bound (fail closed)."""
+    text, end, taken = lines.text, position, 0
+    while position <= len(text) and taken < MAX_CONTAINER_LINES and position - end < MAX_CONTAINER_CHARS:
+        start, stop = lines.bounds(position)
+        line = text[start:stop]
+        depth += sum(line.count(c) for c in '[{') - sum(line.count(c) for c in ']}')
+        end, position, taken = stop, stop + 1, taken + 1
+        if depth <= 0 or stop >= len(text):
             break
     return end
 
 
+def _value_below_end(lines, key_start, key_end, rest):
+    """End of the lines that hold a value written below its key: a block scalar body (fail closed: the rest of the
+    message when it is still open at the cap), a bracketed or braced value, a YAML list, or the next value line
+    (table separator rows and a couple of blank lines are skipped over)."""
+    text = lines.text
+    end, position = key_end, key_end + 1
+    if rest[:1] in ('|', '>'):
+        indent = len(text[key_start:key_end]) - len(text[key_start:key_end].lstrip(' \t'))
+        count = 0
+        while position <= len(text):
+            if count >= MAX_BLOCK_LINES or position - key_end >= MAX_BLOCK_CHARS:
+                return len(text)
+            _, stop = lines.bounds(position)
+            line = text[position:stop]
+            if line.strip() and len(line) - len(line.lstrip(' \t')) <= indent:
+                break
+            end, position, count = stop, stop + 1, count + 1
+            if stop >= len(text):
+                break
+        return end
+    if rest[:1] in ('[', '{'):
+        return _container_end(lines, position, 1)
+    for _ in range(6):
+        if position > len(text):
+            break
+        start, stop = lines.bounds(position)
+        line = text[start:stop]
+        end, position = stop, stop + 1
+        if not line.strip() or SEPARATOR_LINE.match(line):
+            continue
+        opener = line.lstrip()[:1]
+        if opener in ('[', '{'):
+            return _container_end(lines, start, 0)
+        if opener == '-':
+            indent = len(line) - len(line.lstrip(' \t'))
+            while position <= len(text):                       # a YAML block list: every following item
+                _, stop = lines.bounds(position)
+                item = text[position:stop]
+                if item.strip() and (not item.lstrip().startswith('-') or len(item) - len(item.lstrip(' \t')) < indent):
+                    break
+                end, position = stop, stop + 1
+                if stop >= len(text):
+                    break
+        break
+    return end
+
+
 def _credential_spans(text):
+    lines = Lines(text)
     spans, covered = [], -1
     for match in CREDENTIAL_WORD.finditer(text):
         if match.start() < covered:
             continue
+        start, end = lines.bounds(match.start())
         tail = CREDENTIAL_TAIL.match(text, match.end())
-        if not tail:
-            continue
-        start, end = _line_bounds(text, match.start())
-        rest = text[tail.end():end].strip(' \t\r"\'')
-        if rest not in VALUE_BELOW:
-            spans.append((start, end))
+        if tail:
+            rest = text[tail.end():end].strip(' \t\r"\'')
+            spans.append((start, end if rest not in VALUE_BELOW else _value_below_end(lines, start, end, rest)))
+        elif STRONG_WORD.search(match.group()):
+            # The word is the value or a tag (`"name": "DB_PASSWORD"`, `<password>`, a table header): take the line
+            # and the value line below it.
+            if not NAME_END.match(text, match.end()):
+                continue
+            spans.append((start, _value_below_end(lines, start, end, '')))
         else:
-            end = _value_below_end(text, start, end, rest)
-            spans.append((start, end))
-        covered = end
-    for match in NATURAL_SECRET.finditer(text):
-        spans.append(_line_bounds(text, match.start()))
+            continue
+        covered = spans[-1][1]
+    for pattern in (NATURAL_SECRET, COMMAND_SECRET, NETRC_SECRET):
+        last = -1
+        for match in pattern.finditer(text):
+            if match.start() >= last:
+                span = lines.bounds(match.start())
+                spans.append(span)
+                last = span[1]
     return [(a, b, '[REDACTED_CREDENTIAL_LINE]') for a, b in spans]
 
 
@@ -414,19 +477,23 @@ def _normalized(char):
 
 
 def detection_view(text):
-    """(view, starts, ends): a normalized copy used only for matching (NFKC, zero-width and format characters
+    """(view, starts, ends, cutoff): a normalized copy used only for matching (NFKC, zero-width and format characters
     dropped, Unicode whitespace as a space, look-alike Cyrillic/Greek letters as Latin, \\uXXXX and \\xNN escapes
-    decoded, at most MAX_ESCAPES). view[j] came from text[starts[j]:ends[j]], so a match redacts the ORIGINAL span.
-    Plain ASCII without escapes is its own view (starts and ends are None)."""
+    decoded). view[j] came from text[starts[j]:ends[j]], so a match redacts the ORIGINAL span. Plain ASCII without
+    escapes is its own view (starts and ends are None). Past MAX_ESCAPES the rest of the text cannot be normalized,
+    so decoding stops there and `cutoff` is the original offset from which everything must be treated as redacted."""
     if text.isascii() and '\\u' not in text and '\\x' not in text:
-        return text, None, None
+        return text, None, None, None
     view, starts, ends = [], [], []
-    position, escapes = 0, 0
+    position, escapes, cutoff = 0, 0, None
     while position < len(text):
         char, stop = text[position], position + 1
-        if char == '\\' and escapes < MAX_ESCAPES:
+        if char == '\\':
             found = ESCAPE.match(text, position)
             if found:
+                if escapes >= MAX_ESCAPES:
+                    cutoff = position
+                    break
                 escapes += 1
                 char, stop = chr(int(found.group(1) or found.group(2), 16)), found.end()
         for piece in _normalized(char):
@@ -434,7 +501,7 @@ def detection_view(text):
             starts.append(position)
             ends.append(stop)
         position = stop
-    return ''.join(view), starts, ends
+    return ''.join(view), starts, ends, cutoff
 
 
 def _view_spans(view):
@@ -448,7 +515,9 @@ def _view_spans(view):
             found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
     for match in KEY_RUN_B64.finditer(view):
         run = match.group()
-        if any(c in run for c in '+/=') and _looks_like_key(run) and _entropy(run) >= 4.2:
+        # With base64 punctuation the entropy alone decides (a base64 secret may have no digit), so ordinary words
+        # and paths, which are far less random, stay.
+        if any(c in run for c in '+/=') and len(set(run)) >= 20 and _entropy(run) >= 4.2:
             found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
     return found
 
@@ -456,12 +525,14 @@ def _view_spans(view):
 def redact(text):
     """Replace secrets and personal identifiers with markers. Matching sees the normalized view; the
     replacement always lands on the original span, so an obfuscated secret cannot survive next to its marker."""
-    view, starts, ends = detection_view(text)
+    view, starts, ends, cutoff = detection_view(text)
     spans = [(a, b, marker) for a, b, marker in _view_spans(view) if b > a]
-    if not spans:
-        return text
     if starts is not None:
         spans = [(starts[a], ends[b - 1], marker) for a, b, marker in spans]
+    if cutoff is not None:
+        spans.append((cutoff, len(text), '[REDACTED_UNDECODABLE_REMAINDER]'))
+    if not spans:
+        return text
     spans.sort(key=lambda span: (span[0], -span[1]))
     merged = []
     for start, end, marker in spans:
@@ -478,14 +549,10 @@ def redact(text):
     return ''.join(parts) + text[position:]
 
 
-def _cut(text, limit, tail):
-    """The first (or last) `limit` characters, with a token cut in half at the edge dropped."""
+def _cut(text, limit):
+    """The first `limit` characters, with a token cut in half at the edge dropped."""
     if len(text) <= limit:
         return text
-    if tail:
-        kept = text[-limit:]
-        partial = re.match(r'\S+', kept) if not text[-limit - 1].isspace() else None
-        return kept[partial.end():] if partial else kept
     kept = text[:limit]
     if text[limit].isspace():
         return kept
@@ -495,18 +562,17 @@ def _cut(text, limit, tail):
     return kept[:edge]
 
 
-def sanitize(text, limit, tail=False):
+def sanitize(text, limit):
     """Redact the WHOLE message first, then bound it, so a secret cut by the bound is never half-exposed.
 
-    Only an absurdly large message is cut before redaction, and that cut also lands on a token edge.
+    Only an absurdly large message is cut before redaction, and that cut also lands on a token edge. Only the
+    head of a message is ever kept: a tail cut could split a key from its value.
     """
-    text = _cut(text, MAX_MESSAGE_CHARS, tail)
+    text = _cut(text, MAX_MESSAGE_CHARS)
     text = redact(text)
     if len(text) <= limit:
         return text, False
-    marker = '[TRUNCATED: more source context exists]'
-    kept = _cut(text, limit, tail)
-    return ((marker + '\n' + kept) if tail else (kept + '\n' + marker)), True
+    return _cut(text, limit) + '\n[TRUNCATED: more source context exists]', True
 
 
 def _clean(text):
@@ -705,13 +771,9 @@ def load_ledger(state):
                 # Only spent-and-unusable model attempts count. A row waiting on the import (skipped, import_failed,
                 # not_imported) never uses up an attempt, so it can neither suppress a retry nor be retried away.
                 state_for['failures'] += 1
-            elif entry.get('disposition') == 'skipped' and entry.get('deterministic', True):
+            elif entry.get('disposition') == 'skipped':
                 state_for['deterministicSkips'] += 1
     return attempts
-
-
-def skip_is_transient(reason):
-    return reason in TRANSIENT_SKIP_REASONS
 
 
 def skips_exhausted(ledger, key):
@@ -799,7 +861,8 @@ def read_auth(home):
     """The bytes of `<home>/auth.json`, opened without following a symlink and checked with fstat (a regular file we
     own, of sane size) that holds a non-empty JSON object."""
     try:
-        fd = os.open(Path(home) / 'auth.json', os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+        # O_NONBLOCK: opening a FIFO named auth.json must not hang; fstat below then refuses it.
+        fd = os.open(Path(home) / 'auth.json', os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
     except OSError:
         raise LabelerError('codex_auth_unavailable')
     try:
@@ -813,6 +876,16 @@ def read_auth(home):
     if _auth_object(raw) is None:
         raise LabelerError('codex_auth_unavailable')
     return raw
+
+
+# Key NAMES of the real ~/.codex/auth.json (inspected by name and type only): auth_mode, OPENAI_API_KEY, last_refresh and
+# tokens{id_token, access_token, refresh_token, account_id}. A refresh may add a name from these sets; nothing else.
+AUTH_ADDABLE_KEYS = frozenset({'last_refresh'})
+AUTH_TOKEN_KEYS = frozenset({'id_token', 'access_token', 'refresh_token', 'account_id'})
+
+
+def _empty(value):
+    return value is None or (isinstance(value, (str, list, dict)) and len(value) == 0)
 
 
 class CodexLogin:
@@ -840,12 +913,20 @@ class CodexLogin:
                 os.close(lock)
         except OSError:
             pass
-        shutil.rmtree(self.private, ignore_errors=True)
-        self.private.mkdir(mode=0o700, parents=True)
-        os.chmod(self.private, 0o700)
-        fd = os.open(self.private / 'auth.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
-        with os.fdopen(fd, 'wb') as stream:
-            stream.write(self.original)
+        try:
+            shutil.rmtree(self.private, ignore_errors=True)
+            self.private.mkdir(mode=0o700, parents=True)
+            os.chmod(self.private, 0o700)
+            fd = os.open(self.private / 'auth.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(self.original)
+        except BaseException:
+            # A failed setup must not leave the lock held or a half-made private home behind.
+            shutil.rmtree(self.private, ignore_errors=True)
+            if self.lock is not None:
+                os.close(self.lock)
+                self.lock = None
+            raise
         return self
 
     def _refreshed(self):
@@ -855,9 +936,23 @@ class CodexLogin:
         return path.read_bytes()
 
     def _acceptable(self, now):
-        """A refresh only adds or renews fields: a non-empty object whose keys are a subset of the original's."""
+        """A refresh may renew values and add a few known fields; it may never remove or empty what the login holds.
+
+        Every original top-level key stays, every original non-null value stays non-null and non-empty, the `tokens`
+        object keeps every sub-key it had (each non-empty), and only names in AUTH_ADDABLE_KEYS (top level) or
+        AUTH_TOKEN_KEYS (inside `tokens`) may be new. Changed values are fine: refresh tokens rotate."""
         new, old = _auth_object(now), _auth_object(self.original)
-        return new is not None and old is not None and set(new) <= set(old)
+        if new is None or old is None or not set(old) <= set(new) or not set(new) - set(old) <= AUTH_ADDABLE_KEYS:
+            return False
+        if any(value is not None and _empty(new[key]) for key, value in old.items()):
+            return False
+        if isinstance(old.get('tokens'), dict):
+            tokens = new['tokens']
+            if not isinstance(tokens, dict) or not set(old['tokens']) <= set(tokens) \
+                    or not set(tokens) - set(old['tokens']) <= AUTH_TOKEN_KEYS \
+                    or any(_empty(tokens[key]) for key in old['tokens']):
+                return False
+        return True
 
     def _write_back(self, now):
         try:
@@ -960,6 +1055,8 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
                                     line, _, rest = bytes(pending).partition(b'\n')
                                     pending = bytearray(rest)
                                     guard(line)
+        if guard is not None and pending:
+            guard(bytes(pending))                            # a last line with no trailing newline is still a line
         return process.wait(timeout=5), output.decode('utf-8', errors='replace'), errors.decode('utf-8', errors='replace')
     finally:
         stop_group(process)
@@ -970,11 +1067,15 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
 
 def codex_line_guard(line):
     """Reject the first Codex event that is not plain reasoning or a message, so a tool attempt is killed at once."""
+    if not line.strip():
+        return
     try:
         value = json.loads(line)
     except ValueError:
-        return
-    if isinstance(value, dict) and value.get('type') in ('item.started', 'item.completed'):
+        raise LabelerError('codex_invalid_output')           # `codex exec --json` prints JSON lines only: fail closed
+    if not isinstance(value, dict):
+        raise LabelerError('codex_invalid_output')
+    if isinstance(value.get('type'), str) and value['type'].startswith('item.'):
         item = value.get('item')
         if not isinstance(item, dict) or item.get('type') not in ('agent_message', 'reasoning'):
             raise LabelerError('codex_attempted_a_tool_or_item')
@@ -1019,7 +1120,7 @@ def parse_native(host, output, model):
             value = json.loads(line)
             if value.get('type') in ('error', 'turn.failed'):
                 raise LabelerError('codex_reported_failure')
-            if value.get('type') in ('item.started', 'item.completed'):
+            if isinstance(value.get('type'), str) and value['type'].startswith('item.'):
                 item = value.get('item', {})
                 if item.get('type') not in ('agent_message', 'reasoning'):
                     raise LabelerError('codex_attempted_a_tool_or_item')
@@ -1043,6 +1144,7 @@ class CliBackend:
         self.effort, self.workdir, self.environ = effort, Path(workdir), environ
         self.count = 0
         self.auth_writebacks = self.auth_writeback_skips = 0
+        self.warnings = []
 
     def _run(self, command, stdin, directory, timeout, codex_home=None, guard=None):
         return run_process(command, stdin, directory, timeout, child_env(self.environ, codex_home), guard)
@@ -1104,7 +1206,12 @@ class CliBackend:
             if login is not None:
                 outcome = login.close()
                 self.auth_writebacks += outcome == 'written'
-                self.auth_writeback_skips += outcome == 'skipped'
+                if outcome == 'skipped':
+                    self.auth_writeback_skips += 1
+                    warning = ('codex auth.json changed during a labeling call but was NOT written back; the real login may hold '
+                               'a spent refresh token. Run `codex login status` (and `codex login` if it fails).')
+                    self.warnings.append(warning)
+                    print('WARNING: ' + warning, file=sys.stderr, flush=True)
         if code != 0:
             raise LabelerError('%s_exit_%s' % (host, code))
         try:
@@ -1164,6 +1271,7 @@ def entry_bytes(entry):
 
 def batch_by_size(items, size_of, budget):
     """Greedy batches whose summed size stays within budget; an item too large for any batch goes alone."""
+    budget = max(budget, 1)                                   # framing alone may exceed the soft budget: one case per batch
     batches, current, used = [], [], 0
     for item in items:
         size = size_of(item)
@@ -1274,7 +1382,13 @@ class Run:
         Batches are sized on the FULL prompt (taxonomy, task text and cases), not on the packets alone.
         """
         framing = len(annotation_prompt(taxonomy, []).encode('utf-8', 'replace'))
-        for batch in batch_by_size(cases, lambda c: entry_bytes(annotation_entry(c)),
+        fitting = []
+        for case in cases:
+            if framing + entry_bytes(annotation_entry(case)) > MAX_PROMPT_BYTES:
+                results[case['caseId']] = {'outcome': 'annotation_failed', 'detail': 'prompt_too_large'}
+            else:
+                fitting.append(case)
+        for batch in batch_by_size(fitting, lambda c: entry_bytes(annotation_entry(c)),
                                    self.config['packetBytes'] - framing):
             self.annotate(taxonomy, batch, results)
             self.review(taxonomy, batch, results)
@@ -1361,7 +1475,13 @@ class Run:
     def _review_batches(self, taxonomy, pending, results):
         framing = len(review_prompt(taxonomy, [], {}).encode('utf-8', 'replace'))
         proposals = self._proposals(pending, results)
-        return batch_by_size(pending, lambda c: entry_bytes(review_entry(c, proposals)),
+        fitting = []
+        for case in pending:
+            if framing + entry_bytes(review_entry(case, proposals)) > MAX_PROMPT_BYTES:
+                results[case['caseId']].update(outcome='review_failed', detail='prompt_too_large')
+            else:
+                fitting.append(case)
+        return batch_by_size(fitting, lambda c: entry_bytes(review_entry(c, proposals)),
                              self.config['packetBytes'] - framing)
 
 
@@ -1484,8 +1604,6 @@ def ledger_entries(cases, results, taxonomy_sha, dispositions, import_failed):
                 entry.update(terminal=found['result'] in IMPORT_TERMINAL, disposition=found['result'])
                 if found.get('reason') and found['result'] not in IMPORT_TERMINAL:
                     entry['importReason'] = found['reason']
-                if found['result'] == 'skipped':
-                    entry['deterministic'] = not skip_is_transient(found.get('reason'))
         entries.append(entry)
     return entries
 
@@ -1517,6 +1635,8 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
             summary['codexAuthWritebacks'] = run.backend.auth_writebacks
         if getattr(run.backend, 'auth_writeback_skips', 0):
             summary['codexAuthWritebackSkipped'] = run.backend.auth_writeback_skips
+        if getattr(run.backend, 'warnings', None):
+            summary['warnings'] = sorted(set(run.backend.warnings))     # never changes the exit code
         write_json(run.run_dir / 'summary.json', summary)
         # An inspection run must never replace what the daily status shows.
         write_json(state / (LATEST_INSPECTION if inspection else LATEST), summary, exclusive=False)
@@ -1622,23 +1742,30 @@ def import_run(config, run_dir):
     return _locked(state, lambda: _import_run(config, state, Path(run_dir)))
 
 
+RECORD_STATUSES = frozenset(STATUSES) | {'checker_disagreement'}
 RUN_RECORD_KEYS = ('schema', 'caseId', 'opportunityId', 'sourceSha256', 'taxonomyVersion', 'basis', 'humanAdjudicated',
                    'status', 'contextPacketSha256', 'taxonomySha256', 'runId', 'annotators')
 
 
-def validate_run_records(records):
+def validate_run_records(records, run_id=None, manifest=None):
     """Check a saved annotations.json before any of it is imported: complete records, unique ids, and for every
     record that would become a label the same reviewer rules the live run enforces (CLI-metadata identity, a
     model that is not an annotator). The generic batch_label stays permissive; this is the labeler's own boundary."""
     if not isinstance(records, list):
         raise LabelerError('annotations_malformed')
     identities, cases = set(), set()
+    entries = ({c.get('caseId'): c for c in manifest.get('cases', []) if isinstance(c, dict)}
+               if isinstance(manifest, dict) else None)
     for record in records:
         if not isinstance(record, dict) or any(key not in record for key in RUN_RECORD_KEYS):
             raise LabelerError('annotations_record_incomplete')
         if record['schema'] != labels.BATCH_SCHEMA or record['basis'] != 'ai_generated_model_reviewed' \
                 or record['humanAdjudicated'] is not False or not isinstance(record['status'], str):
             raise LabelerError('annotations_record_basis')
+        if record['status'] not in RECORD_STATUSES:
+            raise LabelerError('annotations_record_status_unknown')          # never treated as "not a label"
+        if run_id is not None and record['runId'] != run_id:
+            raise LabelerError('annotations_record_from_another_run')
         if not all(isinstance(record[key], str) and labels.HEX.fullmatch(record[key])
                    for key in ('opportunityId', 'sourceSha256', 'contextPacketSha256', 'taxonomySha256')) \
                 or not isinstance(record['caseId'], str) or not isinstance(record['annotators'], list):
@@ -1647,6 +1774,13 @@ def validate_run_records(records):
             raise LabelerError('annotations_duplicate_record')
         identities.add(record['opportunityId'])
         cases.add(record['caseId'])
+        if entries is not None:
+            planned = entries.get(record['caseId'])
+            if planned is None:
+                raise LabelerError('annotations_record_not_in_manifest')
+            if (planned.get('opportunityId'), planned.get('sourceSha256'), planned.get('packetSha256')) != (
+                    record['opportunityId'], record['sourceSha256'], record['contextPacketSha256']):
+                raise LabelerError('annotations_record_disagrees_with_manifest')
         if record['status'] != 'labeled':
             continue
         review = record.get('review')
@@ -1657,7 +1791,8 @@ def validate_run_records(records):
                 or not all(isinstance(review.get(k), str) and review[k] for k in ('observedModel', 'requestedModel')):
             raise LabelerError('annotations_reviewer_identity_not_cli_metadata')
         annotators = [a for a in record['annotators'] if isinstance(a, dict)]
-        if {a.get('provider') for a in annotators} != {'claude', 'codex'} or len(annotators) != 2:
+        if {a.get('provider') for a in annotators} != {'claude', 'codex'} or len(annotators) != 2 \
+                or not all(isinstance(a.get(k), str) and a[k] for a in annotators for k in ('requestedModel', 'observedModel')):
             raise LabelerError('annotations_annotators_incomplete')
         models = {a.get(key) for a in annotators for key in ('requestedModel', 'observedModel')}
         if review['observedModel'] in models or review['requestedModel'] in models:
@@ -1674,7 +1809,11 @@ def _import_run(config, state, run_dir):
         raise LabelerError('run_has_no_annotations')
     _, taxonomy_sha = load_taxonomy()
     records = json.loads(annotations.read_text())
-    validate_run_records(records)
+    try:
+        manifest = json.loads((run_dir / 'manifest.json').read_text())
+    except (OSError, ValueError):
+        raise LabelerError('run_has_no_manifest')
+    validate_run_records(records, run_dir.name, manifest)
     if any(r.get('taxonomySha256') != taxonomy_sha for r in records):
         raise LabelerError('taxonomy_changed_since_the_run')
     run_id = run_dir.name
@@ -1690,8 +1829,6 @@ def _import_run(config, state, run_dir):
                  'terminal': found['result'] in IMPORT_TERMINAL, 'disposition': found['result'], 'via': 'import-run'}
         if not entry['terminal'] and found.get('reason'):
             entry['importReason'] = found['reason']
-        if found['result'] == 'skipped':
-            entry['deterministic'] = not skip_is_transient(found.get('reason'))
         entries.append(entry)
     append_ledger(state, run_id, entries)
     skips = _import_skips(dispositions)

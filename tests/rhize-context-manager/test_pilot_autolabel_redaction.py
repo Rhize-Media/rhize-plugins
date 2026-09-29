@@ -1,4 +1,5 @@
 """Redaction and truncation of what the labeler sends to a model. Invented, obviously fake secrets only."""
+import inspect
 import re
 import sys
 import time
@@ -9,6 +10,10 @@ import pytest
 SCRIPTS = Path(__file__).resolve().parents[2] / 'rhize-context-manager/scripts'
 sys.path.insert(0, str(SCRIPTS))
 import pilot_autolabel as auto
+
+
+# A quadratic pattern takes minutes on these inputs; the limit only has to survive a loaded machine.
+TIME_LIMIT = 8
 
 
 def fake(prefix, body):
@@ -82,27 +87,24 @@ def test_generic_long_mixed_case_digit_run_is_a_secret_but_identifiers_paths_and
 def test_redaction_time_is_linear_on_long_runs(payload):
     started = time.monotonic()
     auto.redact(payload)
-    assert time.monotonic() - started < 2.0, payload[:12]
+    assert time.monotonic() - started < TIME_LIMIT, payload[:12]
 
 
 def test_a_secret_block_before_the_cut_is_redacted_not_cut_in_half():
     body = '\n'.join('MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC%02d' % n for n in range(60))
     text = '-----BEGIN PRIVATE KEY-----\n' + body + '\n-----END PRIVATE KEY-----\ndone'
-    for tail in (False, True):
-        out, cut = auto.sanitize(text, 100, tail=tail)
-        assert 'MIIEvQIBADAN' not in out and 'BEGIN' not in out.replace('[REDACTED_PRIVATE_KEY]', '')
-    assert auto.sanitize(text, 100, tail=True)[0].endswith('done')
+    out, cut = auto.sanitize(text, 100)
+    assert 'MIIEvQIBADAN' not in out and 'BEGIN' not in out.replace('[REDACTED_PRIVATE_KEY]', '')
     # A credential straddling the old 4x pre-slice boundary is redacted before any bound applies.
     token = fake('AKIA', '0123456789ABCDEF')
     text = 'w ' * 195 + token + ' tail ' * 3
-    assert token not in auto.sanitize(text, 400)[0] and token not in auto.sanitize(text, 100, tail=True)[0]
+    assert token not in auto.sanitize(text, 400)[0]
+    assert 'tail' not in inspect.signature(auto.sanitize).parameters           # only the head of a message is ever kept
 
 
 def test_truncation_trims_a_partial_token_at_the_cut():
     out, cut = auto.sanitize('alpha beta gamma delta', 12)
     assert cut is True and out.startswith('alpha beta') and ' g' not in out and 'gamma' not in out
-    out, cut = auto.sanitize('alpha beta gamma delta', 10, tail=True)
-    assert cut is True and out.endswith('\n delta') and 'amma' not in out
     assert auto.sanitize('short text', 100) == ('short text', False)
     # A single unbroken token longer than the bound is dropped rather than half shown.
     out, cut = auto.sanitize('x' * 500, 100)
@@ -144,12 +146,21 @@ def test_obfuscated_tokens_redact_the_original_span():
 
 def test_the_view_is_bounded_and_ascii_text_is_its_own_view():
     text = 'plain ascii text'
-    assert auto.detection_view(text) == (text, None, None)
+    assert auto.detection_view(text) == (text, None, None, None)
     many = '\\u0041' * (auto.MAX_ESCAPES + 500)
     started = time.monotonic()
-    view, starts, ends = auto.detection_view(many)
-    assert time.monotonic() - started < 2 and len(view) == len(many) - 5 * auto.MAX_ESCAPES
-    assert ends[0] == 6 and starts[0] == 0
+    view, starts, ends, cutoff = auto.detection_view(many)
+    assert time.monotonic() - started < TIME_LIMIT and len(view) == auto.MAX_ESCAPES
+    assert ends[0] == 6 and starts[0] == 0 and cutoff == 6 * auto.MAX_ESCAPES
+
+
+def test_past_the_escape_cap_the_remainder_is_redacted_not_left_literal():
+    padding = '\\u0041' * (auto.MAX_ESCAPES + 1)
+    text = padding + ' visible tail ' + fake('gh', 'p_AbCdEfGhIjKlMnOpQrStUvWx1234') + ' end'
+    out = auto.redact(text)
+    assert out.endswith('[REDACTED_UNDECODABLE_REMAINDER]') and 'visible tail' not in out and 'ghp_' not in out
+    within = '\\u0041' * (auto.MAX_ESCAPES - 10) + ' ok ' + fake('gh', 'p_AbCdEfGhIjKlMnOpQrStUvWx1234')
+    assert 'UNDECODABLE' not in auto.redact(within) and 'ghp_' not in auto.redact(within)          # the control
 
 
 @pytest.mark.parametrize('text', ['api key: hunter2hunter', 'secret key=hunter2hunter', 'service role key: hunter2hunter',
@@ -216,8 +227,89 @@ def test_message_bound_is_200k_and_still_linear(tmp_path):
     assert auto.MAX_MESSAGE_CHARS == 200_000
     started = time.monotonic()
     out, cut = auto.sanitize((('ab.' * 1000 + ' ') * 120) + 'tail', 6500)
-    assert cut is True and time.monotonic() - started < 3
+    assert cut is True and time.monotonic() - started < TIME_LIMIT
     view = 'x\u200b' * 100000
     started = time.monotonic()
     auto.redact(view)
-    assert time.monotonic() - started < 3
+    assert time.monotonic() - started < TIME_LIMIT
+
+
+# ---- round 3: concatenated names, name/value shapes, containers, caps -----------------------------
+
+def value_gone(text, secret='v1zzsecret'):
+    out = auto.redact('top: fine\n' + text.replace('VALUE', secret) + '\nend: fine')
+    return secret not in out and out.startswith('top: fine')      # a name-only line may also take the next line
+
+
+@pytest.mark.parametrize('text', [
+    'PGPASSWORD=VALUE', 'MYSQLPASSWORD=VALUE', 'DBPASSWORD=VALUE', 'dbPassword: VALUE', 'userPassword=VALUE',
+    'adminPassword: VALUE', 'accessToken: VALUE', 'refreshToken=VALUE', 'authToken: VALUE', 'apiToken=VALUE',
+    'sessionToken: VALUE', 'clientSecret: VALUE', 'appSecret=VALUE', 'stripeApiKey=VALUE', 'githubToken=VALUE',
+    'GITHUBTOKEN=VALUE', 'MYSECRET=VALUE', 'APISECRET=VALUE', 'mypassword=VALUE', 'dbpass=VALUE', 'userPass: VALUE',
+    '{"idToken":"VALUE"}', '"tokens":"VALUE"', '//registry.npmjs.org/:_authToken=VALUE',
+    'npm config set //registry.npmjs.org/:_authToken VALUE', 'yarn config set npmAuthToken VALUE', 'dbPin=VALUE'])
+def test_concatenated_and_camel_case_credential_names_are_redacted(text):
+    assert value_gone(text), text
+
+
+@pytest.mark.parametrize('text', ['author: Jim', 'authors: A and B', 'max_tokens=4096', 'ssh -p2222 host', 'bypass=true',
+                                  'compass: north', 'trespass: no', 'overpass=1', 'passing: 3', 'what a pass through',
+                                  'the password manager is fine', 'password reset flow', 'sessions were long',
+                                  'The session lasted long', 'spinner: on', 'pinned: 1.2.3', 'cookies were baked',
+                                  'tokens are cheap', 'authentication method', 'Author: A. Writer'])
+def test_the_false_positive_controls_stay_untouched(text):
+    assert auto.redact(text) == text
+
+
+@pytest.mark.parametrize('text', [
+    '{"name":"DB_PASSWORD","value":"VALUE"}', '- name: DB_PASSWORD\n  value: VALUE', '<password>VALUE</password>',
+    '<input name="password" value="VALUE">', 'user,password\nalice,VALUE', 'user,password,email\n\nalice,VALUE,a',
+    '| user | password |\n|---|---|\n| bob | VALUE |', 'ENV SECRET VALUE', 'ARG DB_PASSWORD VALUE', 'export API_TOKEN VALUE',
+    'Set DB_PASSWORD to VALUE', 'the secret should be VALUE', 'password will be VALUE', 'password => VALUE',
+    'api key -> VALUE', 'pw=>VALUE', 'password VALUE', 'machine host.test login me password VALUE',
+    'password (again): VALUE', 'token (old) = VALUE'])
+def test_value_and_tag_shapes_natural_language_and_netrc(text):
+    assert value_gone(text), text
+
+
+def test_a_value_inside_a_container_on_the_next_line_is_redacted_until_it_closes():
+    for text in ('"password":\n[\n  "VALUE",\n  "second-VALUE"\n],', '"password":\n{\n "a": "VALUE",\n "b": ["x", "VALUE"]\n}',
+                 'password:\n  [VALUE, second-VALUE]', 'secret:\n  - VALUE\n  - second-VALUE', '"token": [\n  "VALUE"\n]',
+                 'password: {\n  user: x\n  pass: VALUE\n}'):
+        out = auto.redact('top: fine\n' + text.replace('VALUE', 'v1zzsecret') + '\nafter: fine')
+        assert 'v1zzsecret' not in out and out.startswith('top: fine') and out.endswith('after: fine'), (text, out)
+    # An unclosed container is redacted to the bound (fail closed), and a closed one does not swallow what follows.
+    unclosed = '"password":\n[\n' + ''.join('  "v%dzz",\n' % n for n in range(200)) + 'tail: visible'
+    out = auto.redact(unclosed)
+    assert 'v10zz' not in out and 'v30zz' not in out                                # redacted up to the bound
+    assert auto.redact('"password":\n[\n "VALUE"\n]\nnext: kept').endswith('next: kept')
+
+
+def test_a_yaml_block_still_open_at_the_cap_redacts_the_rest_of_the_message():
+    body = 'password: |\n' + ''.join('  padding line %d\n' % n for n in range(auto.MAX_BLOCK_LINES + 20)) + '  the-real-value-v1zz\n'
+    out = auto.redact('head: ok\n' + body + 'tail: gone-too')
+    assert 'the-real-value-v1zz' not in out and 'tail: gone-too' not in out and out.startswith('head: ok\n')
+    short = auto.redact('head: ok\npassword: |\n  short body v1zz\nnext: kept')
+    assert 'v1zz' not in short and short.endswith('next: kept')                       # the control: a closed block ends
+
+
+def test_base64_without_a_digit_is_caught_by_entropy_but_words_and_paths_are_not():
+    import random
+    rng = random.Random(3)
+    run = ''.join(rng.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/') for _ in range(48))
+    assert any(c in run for c in '+/')
+    assert not any(c.isdigit() for c in run)
+    assert auto.redact('see ' + run + ' now') == 'see [REDACTED_TOKEN] now'
+    for keep in ('/usr/local/lib/python/site/packages/setuptools/command/build/extension/modules',
+                 'supercalifragilisticexpialidocious/electroencephalograph/counterrevolutionaries',
+                 'a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z/a/b/c/d/e/f/g/h'):
+        assert auto.redact(keep) == keep, keep
+
+
+@pytest.mark.parametrize('payload', ['password is x ' * 15000, 'login a ' * 25000, '{"name":"password", ' * 9000,
+                                     'pin to x ' * 20000, 'machine h login u password ' * 7000, 'token: ' * 25000,
+                                     '"password":\n[\n' * 12000])
+def test_credential_line_scans_are_linear_on_one_giant_input(payload):
+    started = time.monotonic()
+    auto.redact(payload[:auto.MAX_MESSAGE_CHARS])
+    assert time.monotonic() - started < TIME_LIMIT, payload[:20]

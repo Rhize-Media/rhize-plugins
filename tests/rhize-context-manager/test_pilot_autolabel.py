@@ -616,6 +616,13 @@ elif behavior == 'empty':
     open(codex_home + '/auth.json', 'w').write('')
 elif behavior == 'garbage':
     open(codex_home + '/auth.json', 'w').write('not json {')
+elif behavior == 'payload':
+    open(codex_home + '/auth.json', 'w').write(open(home + '/codex-payload').read())
+elif behavior == 'noise':
+    import time
+    open(home + '/codex-noise.pid', 'w').write(str(os.getpid()))
+    print('this line is not json', flush=True)
+    time.sleep(60)
 elif behavior == 'newkey':
     open(codex_home + '/auth.json', 'w').write(json.dumps({'tokens': {'access': 'X'}, 'brand_new_top_level_key': 1}))
 elif behavior == 'tool':
@@ -1433,11 +1440,16 @@ def test_a_codex_tool_item_is_killed_on_the_first_line_and_recorded_as_a_failure
     # The guard alone: reasoning and messages pass, anything else (or a malformed item) raises, noise is ignored.
     for fine in ({'type': 'item.completed', 'item': {'type': 'reasoning'}}, {'type': 'turn.started'}):
         auto.codex_line_guard(json.dumps(fine).encode())
-    auto.codex_line_guard(b'not json')
+    auto.codex_line_guard(b'   ')
     for bad in ({'type': 'item.started', 'item': {'type': 'file_change'}}, {'type': 'item.completed'},
-                {'type': 'item.started', 'item': 'text'}):
-        with pytest.raises(auto.LabelerError):
+                {'type': 'item.started', 'item': 'text'}, {'type': 'item.updated', 'item': {'type': 'command_execution'}},
+                {'type': 'item.whatever', 'item': {'type': 'mcp_tool_call'}}):
+        with pytest.raises(auto.LabelerError, match='tool_or_item'):
             auto.codex_line_guard(json.dumps(bad).encode())
+    auto.codex_line_guard(json.dumps({'type': 'item.updated', 'item': {'type': 'agent_message', 'text': 'x'}}).encode())
+    for invalid in (b'not json', b'[1, 2]', b'"text"', b'{"type": "item.completed"'):
+        with pytest.raises(auto.LabelerError, match='codex_invalid_output'):
+            auto.codex_line_guard(invalid)
 
 
 # ---- round 2: ledger counting, run-import validation, and confirmations ------------------------------
@@ -1446,20 +1458,7 @@ def test_import_pending_rows_never_use_up_attempts_but_model_failures_still_do(t
     root, receipts, receipt = make(tmp_path, 'add a report filter')
     transcript(tmp_path, SESSION, [('user', 'add a report filter')])
     real = labels.import_batch
-
-    def skipping(*args, **kwargs):
-        result = real(*args, dry_run=True, **{k: v for k, v in kwargs.items() if k != 'dry_run'})
-        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': 'lock_busy'} for d in result['dispositions']]}
-    monkeypatch.setattr(labels, 'import_batch', skipping)
-    for attempt in range(auto.MAX_ATTEMPTS + 2):
-        summary, code = go(tmp_path, FakeBackend())
-        assert code == 3 and summary['status'] == 'incomplete' and summary['importSkipped'] == {'lock_busy': 1}, attempt
-        assert summary['selected'] == 1                                                  # a transient skip never suppresses
-    assert all(row['terminal'] is False and row['disposition'] == 'skipped' and row['deterministic'] is False
-               for row in ledger_rows(tmp_path))
-    ledger = auto.load_ledger(tmp_path / 'state')
-    assert list(ledger.values()) == [{'terminal': False, 'failures': 0, 'deterministicSkips': 0}]
-    # A failed import (BlockingIOError) is the same: retryable however often it recurs.
+    # Lock contention and I/O errors raise from import_batch; they are recorded as import_failed and never count.
     monkeypatch.setattr(labels, 'import_batch', lambda *a, **k: (_ for _ in ()).throw(BlockingIOError(11, 'busy')))
     for _ in range(auto.MAX_ATTEMPTS + 1):
         assert go(tmp_path, FakeBackend())[0]['reason'] == 'import_failed'
@@ -1581,7 +1580,7 @@ def test_a_deterministic_import_skip_stops_after_two_runs_with_no_further_model_
         spent.append(len(backend.calls))
         assert code == 3 and summary['importSkipped'] == {reason['value']: 1} and summary['selected'] == 1
     assert spent == [3, 3]                                                   # two annotators and a reviewer each time
-    assert all(row['deterministic'] is True for row in ledger_rows(tmp_path))
+    assert all(row['disposition'] == 'skipped' and 'deterministic' not in row for row in ledger_rows(tmp_path))
     for _ in range(3):
         backend = FakeBackend()
         summary, code = go(tmp_path, backend)
@@ -1594,11 +1593,214 @@ def test_a_deterministic_import_skip_stops_after_two_runs_with_no_further_model_
     assert go(tmp_path, FakeBackend(), force=True)[0]['selected'] == 1
 
 
-def test_unknown_skip_reasons_are_deterministic_and_the_known_ones_are_classified():
-    for known in auto.DETERMINISTIC_SKIP_REASONS:
-        assert auto.skip_is_transient(known) is False
-    assert auto.skip_is_transient('some brand new validation message') is False
-    assert auto.skip_is_transient('lock_busy') is True and auto.skip_is_transient(None) is False
-    for reason in ('immutable label already exists', 'label_contradicts_exclusions'):
-        assert reason in auto.DETERMINISTIC_SKIP_REASONS
-    assert auto.MAX_DETERMINISTIC_SKIPS == 2 and auto.MAX_ATTEMPTS == 3                    # the model-failure cap is unchanged
+@pytest.mark.parametrize('reason', ['label_contradicts_exclusions', 'immutable label already exists',
+                                    'a brand new validation message nobody has seen'])
+def test_every_skip_reason_counts_as_deterministic_including_new_ones(tmp_path, monkeypatch, reason):
+    root, receipts, receipt = make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    real = labels.import_batch
+
+    def skipping(*args, **kwargs):
+        result = real(*args, dry_run=True, **{k: v for k, v in kwargs.items() if k != 'dry_run'})
+        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': reason} for d in result['dispositions']]}
+    monkeypatch.setattr(labels, 'import_batch', skipping)
+    calls = 0
+    for _ in range(auto.MAX_DETERMINISTIC_SKIPS + 2):
+        backend = FakeBackend()
+        go(tmp_path, backend)
+        calls += len(backend.calls)
+    assert calls == 3 * auto.MAX_DETERMINISTIC_SKIPS and auto.MAX_ATTEMPTS == 3
+    assert not hasattr(auto, 'TRANSIENT_SKIP_REASONS') and not hasattr(auto, 'skip_is_transient')       # no dead constants
+
+
+# ---- round 3: login refresh rule, FIFO, lock release, guard edges ------------------------------------------
+
+REAL_SHAPE = {'auth_mode': 'chatgpt', 'OPENAI_API_KEY': None, 'last_refresh': 't0',
+              'tokens': {'id_token': 'i0', 'access_token': 'a0', 'refresh_token': 'r0', 'account_id': 'acct'}}
+
+
+def refresh_with(cli, payload, start=REAL_SHAPE):
+    backend, home, claude, codex = cli
+    real = home / '.codex/auth.json'
+    real.write_text(json.dumps(start))
+    (home / 'codex-behavior').write_text('payload')
+    (home / 'codex-payload').write_text(json.dumps(payload))
+    codex_call(backend)
+    return backend, real, json.loads(real.read_text())
+
+
+def tokens(**changes):
+    value = dict(REAL_SHAPE['tokens'])
+    for key, new in changes.items():
+        value.pop(key, None) if new is ... else value.__setitem__(key, new)
+    return value
+
+
+@pytest.mark.parametrize('name,payload', [
+    ('emptied tokens', {**REAL_SHAPE, 'tokens': {}}),
+    ('tokens removed', {k: v for k, v in REAL_SHAPE.items() if k != 'tokens'}),
+    ('a top-level key dropped', {k: v for k, v in REAL_SHAPE.items() if k != 'last_refresh'}),
+    ('the null key dropped', {k: v for k, v in REAL_SHAPE.items() if k != 'OPENAI_API_KEY'}),
+    ('a token sub-key dropped', {**REAL_SHAPE, 'tokens': tokens(refresh_token=...)}),
+    ('a token emptied', {**REAL_SHAPE, 'tokens': tokens(access_token='')}),
+    ('a token nulled', {**REAL_SHAPE, 'tokens': tokens(id_token=None)}),
+    ('a value nulled', {**REAL_SHAPE, 'auth_mode': None}),
+    ('a value emptied', {**REAL_SHAPE, 'auth_mode': ''}),
+    ('tokens replaced by a string', {**REAL_SHAPE, 'tokens': 'x'}),
+    ('an unknown top-level key', {**REAL_SHAPE, 'extra': 'x'}),
+    ('an unknown token key', {**REAL_SHAPE, 'tokens': {**REAL_SHAPE['tokens'], 'extra': 'x'}}),
+    ('empty object', {})])
+def test_a_refresh_that_removes_or_empties_the_login_is_refused_loudly(cli, capsys, name, payload):
+    backend, real, after = refresh_with(cli, payload)
+    assert after == REAL_SHAPE, name                                            # the real login is untouched
+    assert backend.auth_writebacks == 0 and backend.auth_writeback_skips == 1
+    assert 'codex login status' in capsys.readouterr().err and 'codex login status' in backend.warnings[0]
+
+
+def test_a_rotated_refresh_token_and_known_additions_are_written_back(cli, capsys):
+    rotated = {**REAL_SHAPE, 'last_refresh': 't1', 'tokens': tokens(refresh_token='r1', access_token='a1', id_token='i1')}
+    backend, real, after = refresh_with(cli, rotated)
+    assert after == rotated and backend.auth_writebacks == 1 and backend.auth_writeback_skips == 0
+    assert capsys.readouterr().err == '' and stat.S_IMODE(real.stat().st_mode) == 0o600
+    original = {k: v for k, v in REAL_SHAPE.items() if k != 'last_refresh'}           # an allowlisted key may be added
+    added = {**original, 'last_refresh': 't2', 'tokens': tokens(refresh_token='r2')}
+    backend2, real2, after2 = refresh_with(cli, added, start=original)
+    assert after2 == added and backend2.auth_writebacks == 2
+
+
+def test_the_skip_warning_reaches_the_summary_without_changing_the_exit_code(cli, tmp_path):
+    backend, home, claude, codex = cli
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    (home / '.codex/auth.json').write_text(json.dumps(REAL_SHAPE))
+    (home / 'codex-behavior').write_text('payload')
+    (home / 'codex-payload').write_text(json.dumps({**REAL_SHAPE, 'tokens': {}}))
+    summary, code = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
+    assert summary['codexAuthWritebackSkipped'] == 1 and 'codex login status' in summary['warnings'][0]
+    assert code == 3 and json.loads((home / '.codex/auth.json').read_text()) == REAL_SHAPE     # exit 3 is the empty answers, not the warning
+
+
+def test_a_fifo_named_auth_json_cannot_hang_the_run(cli):
+    import threading
+    backend, home, claude, codex = cli
+    real = home / '.codex/auth.json'
+    real.unlink()
+    os.mkfifo(real)
+    caught = []
+
+    def attempt():
+        try:
+            backend.preflight('codex')
+        except auto.LabelerError as exc:
+            caught.append(str(exc))
+    thread = threading.Thread(target=attempt, daemon=True)
+    thread.start()
+    thread.join(10)
+    assert not thread.is_alive() and caught == ['codex_auth_unavailable']
+
+
+def test_the_lock_is_released_when_setup_fails_after_it_was_taken(tmp_path):
+    home = tmp_path / 'codex'
+    home.mkdir()
+    (home / 'auth.json').write_text(json.dumps(REAL_SHAPE))
+    blocker = tmp_path / 'not-a-directory'
+    blocker.write_text('x')
+    with pytest.raises(OSError):
+        auto.CodexLogin(home, blocker / 'codex-home').open()
+    with open(home / '.laya-auth.lock', 'w') as probe:
+        fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)                      # not held any more
+    assert not (blocker / 'codex-home').exists()
+
+
+def test_codex_output_is_checked_to_the_last_byte_and_noise_fails_closed(cli, tmp_path):
+    child = [sys.executable, '-c', 'import sys; sys.stdout.write(\'{"type": "item.started", "item": {"type": "command_execution"}}\'); sys.stdout.flush()']
+    env = auto.child_env({'PATH': os.environ.get('PATH', '')})
+    with pytest.raises(auto.LabelerError, match='tool_or_item'):                  # the final line has no newline
+        auto.run_process(child, b'', tmp_path, 20, env, guard=auto.codex_line_guard)
+    fine = [sys.executable, '-c', 'import sys; sys.stdout.write(\'{"type": "turn.completed"}\')']
+    assert auto.run_process(fine, b'', tmp_path, 20, env, guard=auto.codex_line_guard)[0] == 0
+    backend, home, claude, codex = cli
+    (home / 'codex-behavior').write_text('noise')
+    started = time.monotonic()
+    with pytest.raises(auto.LabelerError, match='codex_invalid_output'):
+        codex_call(backend)
+    assert time.monotonic() - started < 15
+    pid = int((home / 'codex-noise.pid').read_text())
+    for _ in range(50):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError('the Codex process outlived its invalid output')
+
+
+# ---- round 3: saved-run tamper checks and oversized prompts ------------------------------------------------
+
+def test_import_run_rejects_unknown_statuses_other_runs_and_manifest_disagreements(tmp_path):
+    root, receipts, path, records = _saved_run(tmp_path)
+    record, run_dir = records[0], path.parent
+    manifest_path = run_dir / 'manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    other_run = {**record, 'runId': '20260101T000000Z-deadbeef'}
+    empty_names = json.loads(json.dumps(record))
+    empty_names['annotators'][0]['observedModel'] = ''
+    cases = [([{**record, 'status': 'approved'}], 'annotations_record_status_unknown'),
+             ([{**record, 'status': 'not_a_label'}], 'annotations_record_status_unknown'),
+             ([other_run], 'annotations_record_from_another_run'), ([empty_names], 'annotations_annotators_incomplete'),
+             ([{**record, 'caseId': 'C099'}], 'annotations_record_not_in_manifest'),
+             ([{**record, 'contextPacketSha256': 'a' * 64}], 'annotations_record_disagrees_with_manifest'),
+             ([{**record, 'sourceSha256': 'b' * 64}], 'annotations_record_disagrees_with_manifest'),
+             ([{**record, 'opportunityId': 'c' * 64}], 'annotations_record_disagrees_with_manifest')]
+    for altered, reason in cases:
+        path.write_text(json.dumps(altered))
+        with pytest.raises(auto.LabelerError, match=reason):
+            auto.import_run(config_for(tmp_path), run_dir)
+        assert labels.load_labels(root) == [] and ledger_rows(tmp_path) == [], reason
+    path.write_text(json.dumps(records))
+    manifest_path.write_text(json.dumps({**manifest, 'cases': []}))
+    with pytest.raises(auto.LabelerError, match='annotations_record_not_in_manifest'):
+        auto.import_run(config_for(tmp_path), run_dir)
+    manifest_path.unlink()
+    with pytest.raises(auto.LabelerError, match='run_has_no_manifest'):
+        auto.import_run(config_for(tmp_path), run_dir)
+    manifest_path.write_text(json.dumps(manifest))                                            # the control
+    assert auto.import_run(config_for(tmp_path), run_dir)[0]['import']['results'] == {'recorded': 1}
+
+
+def test_a_case_too_large_for_the_prompt_ceiling_fails_alone_without_being_sent(tmp_path, monkeypatch):
+    prompts = ['small request', 'big request ' + 'z' * 3400, 'another small one']
+    for n, prompt in enumerate(prompts):
+        make(tmp_path, prompt, turn='t%d' % n)
+    transcript(tmp_path, SESSION, [('user', prompt) for prompt in prompts])
+    taxonomy, _ = auto.load_taxonomy()
+    framing = len(auto.annotation_prompt(taxonomy, []).encode())
+    # Later packets carry the earlier prompts as context, so the ceiling is set just above the first one and below the rest.
+    packets = read_run_file(go(tmp_path, FakeBackend(), prepare_only=True)[0], 'packets.json')
+    first = auto.entry_bytes(packets[0])
+    ceiling = framing + first + 1500
+    monkeypatch.setattr(auto, 'MAX_PROMPT_BYTES', ceiling)
+    backend = FakeBackend()
+    summary, code = go(tmp_path, backend)
+    assert summary['outcomes'] == {'labeled': 1, 'annotation_failed': 2} and code == 3
+    sent = ''.join(c['prompt'] for c in backend.calls)
+    assert 'big request' not in sent and 'another small one' not in sent and len(cases_in(backend.calls[0]['prompt'])) == 1
+    assert all(len(c['prompt'].encode()) <= ceiling for c in backend.calls)
+    manifest_failed = [r for r in ledger_rows(tmp_path) if r['outcome'] == 'annotation_failed']
+    assert len(manifest_failed) == 2 and all(r['terminal'] is False for r in manifest_failed)
+    assert auto.batch_by_size([1, 2], lambda item: 5, -100) == [[1], [2]]                     # a negative budget is clamped
+
+
+def test_a_review_prompt_that_only_the_proposals_push_over_the_ceiling_fails_that_case(tmp_path, monkeypatch):
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    taxonomy, _ = auto.load_taxonomy()
+    packets = read_run_file(go(tmp_path, FakeBackend(), prepare_only=True)[0], 'packets.json')
+    entry = auto.entry_bytes(packets[0])
+    monkeypatch.setattr(auto, 'MAX_PROMPT_BYTES', len(auto.annotation_prompt(taxonomy, []).encode()) + entry + 20)
+    backend = FakeBackend()
+    summary, code = go(tmp_path, backend)
+    assert code == 3 and summary['outcomes'] == {'review_failed': 1}
+    assert [c['host'] for c in backend.calls] == ['claude', 'codex']                          # the reviewer was never called
+    assert read_run_file(summary, 'summary.json')['outcomes'] == {'review_failed': 1}
