@@ -371,9 +371,10 @@ labels](docs/decision-pilot.md#versioned-taxonomy-labels).
 (Claude and Codex, subscription CLIs only, no API-key fallback) classify eligible v2 decisions from
 redacted local transcript context, a Claude reviewer settles the agreed cases, and the result is
 imported with supersession, which replaces family-derived AI choices with explicitly judged ones and
-archives the old record (never a human label). The definitions it embeds are in
-[workflow-taxonomy.md](docs/workflow-taxonomy.md). See [daily AI
-labeling](docs/decision-pilot.md#daily-ai-labeling).
+archives the old record (never a human label). Transcript context is redacted whole and limited to
+user-typed turns, Codex runs in a private `CODEX_HOME` with only its login, and `import-run` imports
+a saved run. The definitions it embeds are in [workflow-taxonomy.md](docs/workflow-taxonomy.md).
+See [daily AI labeling](docs/decision-pilot.md#daily-ai-labeling).
 
 The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
 is sealed before the incumbent consultation/selection; background events and continuations have

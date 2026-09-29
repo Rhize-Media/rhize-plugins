@@ -229,8 +229,11 @@ replaced by a human label. A human label is never replaced, and an AI label whos
 already judged directly stays as it is. The replaced record is moved, never deleted, to
 `pilot/v2/taxonomy-labels-superseded/<opportunityId>-<16 hex of its evidence digest>.json` with a
 `supersededBy` summary, the reason (`derived_to_explicit_choice` or `ai_to_human`) and a timestamp.
-Loading, reporting and export read only the live label directory, so a superseded label can never
-be scored. Without the opt-in an import of a different label still fails with
+The archive is written as `pending` and marked `committed` only after the replacement is stored, so
+a crash between the two steps never counts as a supersession; a retry re-validates a pending archive
+against the replacement being applied, and the next import commits one whose replacement is already
+stored. Only committed archives are counted. Loading, reporting and export read only the live label
+directory, so a superseded label can never be scored. Without the opt-in an import of a different label still fails with
 `immutable label already exists`.
 
 Commands, run from the plugin directory:
@@ -262,7 +265,8 @@ labels that judge the routing choice itself. It sits outside the collection sour
 python3 scripts/pilot_autolabel.py run --no-import      # inspect first: writes only the private run directory
 python3 scripts/pilot_autolabel.py run                  # daily: label, then import with supersession
 python3 scripts/pilot_autolabel.py run --prepare-only   # select cases and write packets; no model call
-python3 scripts/pilot_autolabel.py status               # latest run summary
+python3 scripts/pilot_autolabel.py import-run <runDir>  # import a saved run (after --no-import, a failed import or a signal)
+python3 scripts/pilot_autolabel.py status               # latest daily run summary
 ```
 
 Each pass:
@@ -273,21 +277,39 @@ Each pass:
    `~/.codex/archived_sessions`, or `--transcript-root`). A transcript matches only when the SHA-256
    of its session UUID equals the receipt's `sessionHash` and the SHA-256 of a user message equals
    its `promptHash`. A packet holds the redacted request (6,500 characters at most) and at most
-   four preceding turns. Missing or ambiguous context becomes `insufficient_context` with no model
-   call. A prior turn that talks about the pilot's own arms, scores or labels is dropped whole.
+   four preceding turns. Only turns the user typed are context: assistant prose (where agents
+   restate pilot results), sub-agent (`isSidechain`) and compact-summary records, and injected
+   boilerplate anywhere in a turn are skipped, and a user turn that talks about the pilot's own
+   arms, scores, consultations or labels is dropped whole. Missing or ambiguous context becomes
+   `insufficient_context` with no model call.
+
+   **Redaction** covers the whole message before any truncation (a partial token at the cut is
+   trimmed): private keys, API and access token families (Anthropic, OpenAI, GitHub, Slack incl.
+   webhooks, Supabase, Google, npm, Vercel, Sanity, Resend, Stripe, AWS, JWTs), `Authorization`
+   and `Bearer` credentials, URL credentials, `sshpass -p`, credential-looking CLI flags, any line
+   whose key name carries a credential word (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=`,
+   `aws_secret_access_key =`), e-mail addresses, phone numbers, long numbers, CRM ids, and any
+   unbroken 32-plus character run with lower case, upper case and a digit. Every pattern is
+   length-bounded; a 26 KB dotted run redacts in milliseconds. It is defense in depth, not a
+   guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
    never each other: Claude (`--claude-model`, default `claude-sonnet-5-5`) and Codex
    (`--codex-model`, default `gpt-5.6-sol`).
 4. **Compare and review.** Annotators that disagree on status, family, phase, stratum or choice
    leave the case unresolved (`checker_disagreement`); no label is created. When they agree on a
-   labeled case, a Claude reviewer (`--reviewer-model`, default `claude-fable-5-1`) answers
-   `accept`, `revise` or `unresolved` for the batch. The label carries the reviewer's identity as
-   reported by Claude's own usage data; a report that does not name the requested model fails the
-   case. Agreed non-labels (`excluded_operational`, `needs_split`, `insufficient_context`) need no
+   labeled case, a Claude reviewer (`--reviewer-model`, default `claude-fable-5-1`, which must
+   differ from both annotator models) answers `accept`, `revise` or `unresolved` for the batch. The
+   reviewer sees each annotator's classification but not its rationale. The label carries the
+   reviewer's identity as reported by Claude's own usage data (`native_model_usage`); a report
+   that does not name the requested model, comes from any other source, or names an annotator's
+   model fails the case. Agreed non-labels (`excluded_operational`, `needs_split`, `insufficient_context`) need no
    reviewer and create no label.
 5. **Compile** `annotations.json` (`rhize-ai-taxonomy-annotations-v1`, explicit `choice`, both
    annotators and the reviewer recorded) and, unless `--no-import`, import it with supersession, so
-   derived-choice AI labels become explicit ones and the old records are archived.
+   derived-choice AI labels become explicit ones and the old records are archived. The import
+   reports a disposition for every record. A label that was skipped (for example because someone
+   judged that choice directly meanwhile) is counted in `importSkipped`, is not remembered as
+   settled, and makes the run `incomplete` (exit 3) instead of `completed`.
 
 The taxonomy the models read is [workflow-taxonomy.md](workflow-taxonomy.md), embedded whole and
 recorded as `taxonomySha256`.
@@ -295,9 +317,31 @@ recorded as `taxonomySha256`.
 **Model calls.** Only the subscription CLIs run, with the flags of the no-tools bridge workers:
 `claude --print --safe-mode --tools ""` with hooks, MCP and slash commands off and `--json-schema`,
 and `codex exec --sandbox read-only --ephemeral --output-schema` with tools, MCP and web search
-disabled. Prompts go to stdin. Before any model call the run checks `claude auth status` (must be
+disabled. Prompts go to stdin. Codex's tool features are switched off by name, verified against
+`codex features list` of the installed CLI (0.158.0): `shell_tool`, `unified_exec`,
+`unified_exec_tty`, `view_image`, `code_mode_host`, `plugins`, `remote_plugin`, `tool_suggest`,
+`js_repl`, `multi_agent_v2` and the older set; `apply_patch_freeform` is `removed` in that CLI and
+is no longer passed. Any tool item in Codex's output fails the call. Note that `codex features
+list` still prints `unified_exec` as enabled under an override, so the lockdown is proven by the
+canary run (no tool item, read-only sandbox), not by that listing.
+
+**Codex egress scope.** Each Codex call gets a private `CODEX_HOME` (mode 0700, inside the run
+directory) that holds only a 0600 copy of `~/.codex/auth.json`, so `~/.codex/AGENTS.md` (about 34K
+characters of user instructions), config, rules and memories are not sent (measured with
+`codex debug prompt-input`: 33,747 characters of user context with the real home, 415 with the
+private one). If the CLI refreshed the token during the call, `auth.json` is written back
+atomically (same-directory temp file, 0600, rename) only when the content changed, is a non-empty
+JSON object and the real file still holds what was copied; the summary records only that a
+write-back happened (`codexAuthWritebacks`), never content. The private copy is removed after every
+call, including failures. A login kept only in the keychain (no `auth.json`) fails closed with
+`codex_auth_unavailable`. Residual: Codex still lists the skills under `$HOME/.agents/skills`
+(names and descriptions, about 15K characters); an empty `HOME` for the Codex child would drop
+that catalog. Run `codex debug prompt-input` with the private home during the live canary to confirm
+the prompt. Before any model call the run checks `claude auth status` (must be
 `claude.ai` / first party) and `codex login status` (ChatGPT login); a missing binary or login
-aborts with exit code 2 and no call. The child environment is an allowlist, so `ANTHROPIC_*`,
+aborts with exit code 2 and no call. Binaries must be absolute paths (`--claude-bin`,
+`--codex-bin`; the daily wrapper resolves them with `mise which`), and a mise shim is refused
+because its version and hash would describe mise, not the CLI. The child environment is an allowlist, so `ANTHROPIC_*`,
 `OPENAI_*` and every other key are never inherited, and there is no API-key fallback. Binary path,
 version and SHA-256 are recorded in the summary. Models, per-call timeout, effort, the wall
 `--deadline-seconds` (default 2,400), packet size and the binaries are flags, or keys of a
@@ -305,16 +349,27 @@ version and SHA-256 are recorded in the summary. Models, per-call timeout, effor
 
 **State.** The private state directory (default `<workflow-selection root>/autolabel`, mode 0700)
 holds `runs/<id>/` with `manifest.json`, `packets.json` (redacted excerpts), `calls/` (raw model
-output), `annotations.json` and `summary.json`; `latest-summary.json`; a `run.lock` that makes an
-overlapping launch exit quietly; and the append-only `attempts.jsonl` ledger. A packet that was
-already settled (any terminal outcome, keyed by opportunity, packet digest and taxonomy digest) is
-not sent again; infrastructure failures such as a timeout or malformed output retry, up to three
-times; `--force` ignores the ledger. `--no-import` changes no label and writes no ledger entry, so
-a run can be inspected and then imported with
-`pilot_labels.py import-batch --annotations <run>/annotations.json --supersede`.
+output), `annotations.json`, `import.json` and `summary.json`; `latest-summary.json` (the last
+daily run only); `latest-inspection.json` (the last `--no-import` or `--prepare-only` run, which
+never replaces `latest-summary.json`); a `run.lock` that makes an overlapping launch exit quietly
+(only a contended lock counts as busy; any other lock error is reported); and the append-only
+`attempts.jsonl` ledger. Only the newest `--retain-runs` run directories (default 30) are kept.
+A packet that was already settled (keyed by opportunity, packet digest and taxonomy digest) is not
+sent again; the ledger row mirrors the import: it is settled only when the label was stored or by
+design never becomes one, while a skipped or failed import, a timeout or malformed output stays
+retryable up to three times. A call cut short by the wall deadline is `not_attempted` and spends
+no attempt. `--force` ignores the ledger. The ledger is written even when the import fails.
+`--no-import` changes no label and writes no ledger entry; inspect the run, then
+`pilot_autolabel.py import-run <runDir>` imports it (refusing a directory outside the state
+directory or a changed taxonomy) and ledgers the result. A run stopped by SIGTERM (launchd) kills
+its model children, writes `summary.json` with status `terminated` and `annotations.json` for the
+finished cases, and exits 4; `import-run` recovers them. An unexpected error leaves a `failed`
+summary rather than a bare traceback. Batches are sized on the full prompt (taxonomy, task text,
+packets), and the taxonomy document is capped at 128 KiB.
 
-Exit codes: 0 done or nothing to do, 1 unavailable, 2 aborted before any model call (login, binary,
-taxonomy), 3 incomplete (deadline or model failures; finished cases are still written and imported).
+Exit codes: 0 done or nothing to do, 1 unavailable or failed, 2 aborted before any model call
+(login, binary, taxonomy), 3 incomplete (deadline, model failures or skipped imports; finished
+cases are still written and imported), 4 terminated by a signal.
 
 Limits: two annotators and a reviewer share model limitations and can agree on a wrong answer, the
 labels are silver data, and a transcript that does not hash-match the receipt (for example one that
