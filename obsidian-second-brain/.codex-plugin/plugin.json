@@ -15,6 +15,18 @@
     "rhize"
   ],
   "skills": "./skills/",
+  "mcpServers": {
+    "obsidian-mcp-server": {
+      "command": "./scripts/mcp-secret-launcher.sh",
+      "args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server@3.6.0"],
+      "cwd": ".",
+      "env": {
+        "OBSIDIAN_BASE_URL": "https://127.0.0.1:27124",
+        "OBSIDIAN_VERIFY_SSL": "false",
+        "OBSIDIAN_ENABLE_CACHE": "true"
+      }
+    }
+  },
   "interface": {
     "displayName": "Obsidian Second Brain",
     "shortDescription": "Evidence-bound Obsidian knowledge workflows",

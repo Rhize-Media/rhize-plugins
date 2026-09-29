@@ -68,7 +68,36 @@ is the command to run once they are resolved. Non-secret settings stay in `env`
 as plain literals.
 
 `${CLAUDE_PLUGIN_ROOT}` is Claude Code's own plugin-directory variable, so the
-reference stays correct wherever the plugin is installed.
+reference stays correct wherever the plugin is installed **in Claude Code**.
+
+### Codex
+
+Codex loads an installed plugin's `.mcp.json` but passes `${CLAUDE_PLUGIN_ROOT}` (and
+`${PLUGIN_ROOT}`) through as literal text in `command`, `args`, `env` and `cwd`, so the
+launcher above fails to spawn there (`No such file or directory`). A plugin that ships an
+MCP server for Codex therefore repeats it as an inline `mcpServers` object in
+`.codex-plugin/plugin.json`, which overrides the same-named `.mcp.json` entry:
+
+```json
+"command": "./scripts/mcp-secret-launcher.sh",
+"args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server@3.6.0"],
+"cwd": "."
+```
+
+`"cwd": "."` runs the server from the installed plugin directory, so the relative path
+resolves. `args` and `env` must match `.mcp.json`; `tests/config-lint/test_codex_mcp_parity.py`
+enforces it for every plugin that has both files.
+
+Codex also starts MCP servers with a stripped environment (`HOME`, `PATH` and `USER` arrive;
+other exported variables do not unless named in `env_vars`), so resolution step 2 below has
+nothing to inherit there: on Codex, credentials come from the keychain helper. A hand-written
+`[mcp_servers.<name>]` block in `~/.codex/config.toml` with the same name shadows the plugin's
+entry.
+
+> Verified empirically against Codex CLI 0.158.0 on 2026-09-29 by installing probe plugins
+> into an isolated `CODEX_HOME` and querying `codex app-server` (`mcpServerStatus/list`).
+> `${PLUGIN_ROOT}`/`${PLUGIN_DATA}` appear in the binary for a newer `$schema`-tagged
+> "Agent Plugins" manifest format; the Rhize manifests do not use it and it was not exercised.
 
 ### Resolution order
 

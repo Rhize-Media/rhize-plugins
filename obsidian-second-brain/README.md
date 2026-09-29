@@ -17,7 +17,7 @@ research pipelines, connection discovery, and vault health management, backed by
 
 ### Installation
 
-Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server.
+Accept the plugin when presented in chat, or install the `.plugin` file from your vault's SKILLS REPO folder. The `.mcp.json` bundled with the plugin will auto-register the Obsidian MCP server in Claude Code; Codex gets the same server from the `mcpServers` entry in `.codex-plugin/plugin.json` (see [Codex](#codex-obsidian-mcp-server) below).
 
 Claude Code discovers commands and skills from `.claude-plugin/plugin.json`; Codex discovers the
 same canonical skills from `.codex-plugin/plugin.json` and each skill's `agents/openai.yaml`.
@@ -207,6 +207,39 @@ export OBSIDIAN_API_KEY=your_api_key_here
 ```
 
 Get your API key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key.
+
+### Codex: Obsidian MCP server
+
+Codex installs the same `obsidian-mcp-server@3.6.0`, but through its own manifest entry, not through
+`.mcp.json`. Codex loads an installed plugin's `.mcp.json` too, but it does **not** expand
+`${CLAUDE_PLUGIN_ROOT}` (or any other `${...}` variable) in `command`, `args`, `env` or `cwd`, so the
+Claude entry's launcher path reaches the OS as the literal text `${CLAUDE_PLUGIN_ROOT}/scripts/...` and
+the server fails to start with `No such file or directory`. `.codex-plugin/plugin.json` therefore
+carries an inline `mcpServers.obsidian-mcp-server` object, which Codex uses in place of the
+same-named `.mcp.json` entry:
+
+```json
+"command": "./scripts/mcp-secret-launcher.sh",
+"args": ["OBSIDIAN_API_KEY", "--", "npx", "obsidian-mcp-server@3.6.0"],
+"cwd": "."
+```
+
+`"cwd": "."` makes Codex run the server from the installed plugin directory, so the relative launcher
+path resolves. `args` and `env` are identical to `.mcp.json`; `tests/config-lint/test_codex_mcp_parity.py`
+fails if the two drift. When you bump the pin, change it in **both** files.
+
+Two Codex-specific limits:
+
+- **Credentials come from the macOS keychain only.** Codex passes a stripped environment to MCP servers
+  (`HOME`, `PATH` and `USER` arrive; a variable you `export` in your shell does not), so the launcher's
+  plain-environment fallback (step 2 above) has nothing to inherit. Store the key with the
+  `security add-generic-password` command below and install the `mcp-secret-launcher` helper. On a
+  machine without them, add the server by hand instead, forwarding the variable in
+  `~/.codex/config.toml` (`[mcp_servers.obsidian-mcp-server]` with `env_vars = ["OBSIDIAN_API_KEY"]`).
+- **A hand-configured server shadows the plugin's.** If `~/.codex/config.toml` already has an
+  `[mcp_servers.obsidian-mcp-server]` block, Codex keeps that one and skips the plugin's duplicate name.
+  Remove the manual block (it is usually unpinned) to use the bundled, pinned entry; `codex mcp list`
+  shows which entry is active. Restart Codex afterwards; an open session keeps the old server list.
 
 ### Obsidian CLI
 

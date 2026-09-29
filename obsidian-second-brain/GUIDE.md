@@ -18,6 +18,7 @@ Before using this plugin, make sure the following are set up:
 The Obsidian MCP Server is the bridge that lets Claude read, search, and modify your vault in real
 time. Without it, MCP-backed workflows fall back where documented. The compiled-knowledge workflow
 does not use MCP, but it requires `python3`, an explicit project config, and approved local roots.
+In Codex the bundled server comes from `.codex-plugin/plugin.json`, and its `OBSIDIAN_API_KEY` must be in the macOS keychain (see Troubleshooting).
 
 **Required for CLI skill:**
 Obsidian v1.12.4 or later, with the CLI registered. Go to Settings → General → Command line interface → Register CLI. After registering, restart your terminal so the `obsidian` binary is on your PATH. Obsidian must be running in the background for CLI commands to execute — the CLI communicates with the running Obsidian instance over a local socket.
@@ -366,6 +367,8 @@ qmd collection; keep the compiled output root unindexed until an ACL-aware qmd a
 Get the key from Obsidian: Settings → Community plugins → Local REST API → Copy API Key. See the README's Connectors section for the full resolution order.
 
 **Every MCP tool returns `Not found: /<something>/` even though the API is up:** `OBSIDIAN_BASE_URL` has a trailing slash. `obsidian-mcp-server` joins the base URL and the path by plain string concatenation, so `https://127.0.0.1:27124/` + `/tags/` becomes `https://127.0.0.1:27124//tags/`, and the Local REST API returns `404` for the doubled path. The error message prints the *single-slash* path, so it reads like a missing note rather than a malformed URL. The bundled `.mcp.json` already ships without the trailing slash — if you overrode `OBSIDIAN_BASE_URL` yourself, drop the trailing slash there too. Quick check: `curl -k -H "Authorization: Bearer $KEY" https://127.0.0.1:27124//tags/` returns 404 while `.../tags/` returns 200.
+
+**In Codex the Obsidian MCP server is missing, fails with "No such file or directory", or exits 78 even though the key is exported:** Codex does not expand `${CLAUDE_PLUGIN_ROOT}`, so the plugin ships a separate Codex entry in `.codex-plugin/plugin.json` (relative `./scripts/mcp-secret-launcher.sh` with `"cwd": "."`); update the plugin and restart Codex. Codex also passes a stripped environment to MCP servers, so a variable you `export` in your shell never reaches the launcher: store the key in the macOS keychain (`security add-generic-password -a "$USER" -s "claude-code:OBSIDIAN_API_KEY" -l "OBSIDIAN_API_KEY" -U -w`) with the `mcp-secret-launcher` helper installed, or configure the server yourself in `~/.codex/config.toml` with `env_vars = ["OBSIDIAN_API_KEY"]`. If `~/.codex/config.toml` already has an `[mcp_servers.obsidian-mcp-server]` block, Codex uses that block and ignores the plugin's; remove it to get the pinned bundled server. `codex mcp list` shows which entry won.
 
 **CLI commands return "command not found":** The CLI hasn't been registered. Open Obsidian → Settings → General → CLI → Register. Then restart your terminal.
 
