@@ -259,8 +259,14 @@ install and initialize it in a client repo.
   `~/.claude/rhize-devflow/refactor-gate/`, keyed by canonical workspace path, so both harnesses
   share them. The CLI never initializes CodeGraph or invents a registry. Reconciliation stays live
   for the remainder of the turn so a late source write invalidates it; the successful Stop boundary
-  closes it as `completed`, preventing an old receipt from locking an unrelated future task. A
-  later qualifying prompt always starts a fresh pending receipt. Each new receipt stores a prompt
+  closes it as `completed`, preventing an old receipt from locking an unrelated future task. The
+  Stop block for an unreconciled `implementation` applies only to the receipt's **owner sessions**:
+  each session whose gated source write the hooks allowed is recorded as an owner (by the hook
+  payload's `session_id`), and owners carry through a re-prepare. Another session working in the
+  same checkout without writing, such as a read-only Q&A session, can end its turn. Write and
+  release gates stay workspace-wide for every session. A Stop with no `session_id`, or a receipt
+  with no recorded owner (older receipts, or `implementation` reached only through an `OUT_OF_SYNC`
+  reconcile), still blocks. A later qualifying prompt always starts a fresh pending receipt. Each new receipt stores a prompt
   hash (never raw prompt text), activation policy/fixed reason code/task kind, plugin version, source commit
   when Git metadata is present, gate-source hash, per-handler invocation counts while the receipt
   is active, and append-only timestamped
@@ -314,7 +320,7 @@ their evidence remains interoperable without claiming identical lifecycle wiring
 | `scripts/refactor_gate.py hook-prompt` | UserPromptSubmit | — | T3 | Installed hook uses `auto` to classify explicit material implementation/refactor/simplification prompts. Trusted adapters may use per-invocation `required` with task kind `implementation`; no prompt rewrite or persistent bypass is needed. Review, audit, investigation, explicit read-only, non-code, and plan-only prompts remain ungated in `auto`. |
 | `scripts/refactor_gate.py hook-write` | PreToolUse | `Edit\|Write\|MultiEdit\|NotebookEdit\|apply_patch` | T4 (blocks) | Allows plan/instruction artifacts, **config-only paths, and `claudedocs/` prose** but blocks source writes until `prepare`; invalidates reconciliation after later edits. A config-only write never advances a `prepared` receipt into `implementation`. |
 | `scripts/refactor_gate.py hook-command` | PreToolUse | `Bash\|exec_command\|functions.exec` | T4 (blocks) | Applies the same source-write gate to patch text carried through Codex/functions.exec, then blocks commit, push, and merge until reconciliation — **unless** the receipt is still `pending`/`prepared` (no gated source write has landed) and every dirty path in the targeted repo is config or planning; a clean tree under such a receipt is also allowed. The target repo is resolved from the command itself when unambiguous — a leading `cd <dir> &&`/`cd <dir>;`, `git -C <dir>`, or `--git-dir=`/`--work-tree=` — and falls back to the payload's own cwd for anything ambiguous (a shell variable/command substitution, more than one leading `cd`, a subshell, `pushd`) or that doesn't resolve to a real Git repo. |
-| `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation; closes a reconciled receipt so it cannot contaminate a later task. |
+| `scripts/refactor_gate.py hook-stop` | Stop | — | T4 (blocks) | Prevents completion before reconciliation for sessions that wrote under the receipt (or any session when identity or owners are missing); closes a reconciled receipt so it cannot contaminate a later task. |
 
 The hook output prints the installed gate-script path. `/rhize-devflow:impact-map` provides the
 exact `prepare`/`reconcile` commands. Missing CodeGraph or component-registry artifacts are not

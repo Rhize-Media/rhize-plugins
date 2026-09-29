@@ -1128,3 +1128,137 @@ def test_apply_patch_source_write_resolves_cd_prefixed_target_repo(tmp_path: Pat
         payload={"cwd": str(repo_a), "tool_input": {"command": f"cd {repo_b} && apply_patch <<'EOF'\n{patch}\nEOF"}},
     )
     assert result.returncode == 2, result.stderr
+
+
+# --- Stop ownership ---------------------------------------------------------------------
+# Regression for 2026-09-28: a read-only Q&A session in the same checkout was blocked at
+# every Stop while a different session held the workspace in "implementation". The Stop
+# block now applies only to sessions that performed a gated source write (the owners);
+# write and release gates stay workspace-wide, and missing identity fails closed.
+
+
+def _prepared_workspace(tmp_path: Path) -> tuple[Path, Path, Path]:
+    workspace = tmp_path / "workspace"
+    init_repo(workspace)
+    state_dir = tmp_path / "state"
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "example refactor",
+    ).returncode == 0
+    return workspace, state_dir, plan
+
+
+def _owned_write(state_dir: Path, workspace: Path, session_id: str) -> None:
+    result = run_gate(
+        state_dir,
+        "hook-write",
+        payload={
+            "session_id": session_id,
+            "cwd": str(workspace),
+            "tool_input": {"file_path": str(workspace / "src/example.ts")},
+        },
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def _stop(state_dir: Path, workspace: Path, session_id: str | None) -> subprocess.CompletedProcess[str]:
+    payload: dict = {"cwd": str(workspace), "hook_event_name": "Stop"}
+    if session_id is not None:
+        payload["session_id"] = session_id
+    return run_gate(state_dir, "hook-stop", payload=payload)
+
+
+def _status(state_dir: Path, workspace: Path) -> dict:
+    return json.loads(run_gate(state_dir, "status", "--workspace", str(workspace), "--json").stdout)
+
+
+def test_stop_blocks_the_session_that_wrote(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "writer-session")
+
+    stopped = _stop(state_dir, workspace, "writer-session")
+
+    assert stopped.returncode == 2
+    assert "has not been reconciled" in stopped.stderr
+    state = _status(state_dir, workspace)
+    assert state["phase"] == "implementation"
+    assert state["owner_sessions"] == ["writer-session"]
+
+
+def test_stop_allows_a_read_only_session_in_the_same_workspace(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "writer-session")
+
+    stopped = _stop(state_dir, workspace, "reader-session")
+
+    assert stopped.returncode == 0, stopped.stderr
+    state = _status(state_dir, workspace)
+    assert state["phase"] == "implementation"
+    assert state["owner_sessions"] == ["writer-session"]
+    # The owner is still held to reconciliation.
+    assert _stop(state_dir, workspace, "writer-session").returncode == 2
+
+
+def test_stop_fails_closed_without_a_session_id(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "writer-session")
+
+    assert _stop(state_dir, workspace, None).returncode == 2
+    assert _stop(state_dir, workspace, "").returncode == 2
+
+
+def test_stop_fails_closed_when_no_owner_was_recorded(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    # A source change made outside the write hooks reaches "implementation" only through an
+    # OUT_OF_SYNC reconcile, which has no session identity to record.
+    (workspace / "src/unmapped.ts").write_text("export const other = 1\n")
+    assert run_gate(state_dir, "reconcile", "--workspace", str(workspace)).returncode == 2
+    assert _status(state_dir, workspace)["phase"] == "implementation"
+
+    assert _stop(state_dir, workspace, "any-session").returncode == 2
+
+
+def test_every_writing_session_is_an_owner(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "session-b")
+    _owned_write(state_dir, workspace, "session-a")
+    _owned_write(state_dir, workspace, "session-b")
+
+    assert _status(state_dir, workspace)["owner_sessions"] == ["session-a", "session-b"]
+    assert _stop(state_dir, workspace, "session-a").returncode == 2
+    assert _stop(state_dir, workspace, "session-b").returncode == 2
+    assert _stop(state_dir, workspace, "session-c").returncode == 0
+
+
+def test_reprepare_during_implementation_keeps_owners(tmp_path: Path) -> None:
+    workspace, state_dir, plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "writer-session")
+    write_plan(plan, ("src/example.ts", "src/extra.ts"))
+    assert run_gate(
+        state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan),
+        "--query", "example refactor",
+    ).returncode == 0
+
+    assert _status(state_dir, workspace)["owner_sessions"] == ["writer-session"]
+
+
+def test_non_owner_stop_does_not_relax_workspace_release_gate(tmp_path: Path) -> None:
+    workspace, state_dir, _plan = _prepared_workspace(tmp_path)
+    _owned_write(state_dir, workspace, "writer-session")
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    assert _stop(state_dir, workspace, "reader-session").returncode == 0
+
+    release = run_gate(
+        state_dir,
+        "hook-command",
+        payload={
+            "session_id": "reader-session",
+            "cwd": str(workspace),
+            "tool_input": {"command": RELEASE_FIXTURE},
+        },
+    )
+
+    assert release.returncode == 2
+    assert "reconciled refactor-evidence receipt" in release.stderr

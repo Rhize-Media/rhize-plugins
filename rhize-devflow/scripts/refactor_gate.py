@@ -183,8 +183,9 @@ def is_filesystem_root(path: Path) -> bool:
 
     A filesystem root can never describe real work, but it *contains* every path on the
     machine — so a receipt armed there matches everything in `find_state_for_path`'s
-    containment scan and blocks writes, releases, and turn end for every session, in every
-    repository. Projectless contexts (no repo cwd) are how such a receipt gets written.
+    containment scan and blocks writes and releases for every session, in every repository
+    (and turn end for its owning sessions, or for every session when no owner was recorded).
+    Projectless contexts (no repo cwd) are how such a receipt gets written.
     """
     resolved = canonical(path)
     return resolved.parent == resolved
@@ -276,6 +277,28 @@ def read_payload() -> dict[str, Any] | None:
 def payload_workspace(payload: dict[str, Any] | None) -> Path:
     raw = (payload or {}).get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
     return canonical(raw)
+
+
+def payload_session_id(payload: dict[str, Any] | None) -> str | None:
+    value = (payload or {}).get("session_id")
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def record_owner(state: dict[str, Any], payload: dict[str, Any]) -> bool:
+    """Record the writing session as an owner of the implementation; True when added.
+
+    Owners are the only sessions the Stop hook holds to reconciliation. Write and release
+    gates stay workspace-wide, so this never widens what any session may change.
+    """
+    session_id = payload_session_id(payload)
+    if session_id is None:
+        return False
+    owners = state.get("owner_sessions")
+    current = {item for item in owners if isinstance(item, str)} if isinstance(owners, list) else set()
+    if session_id in current:
+        return False
+    state["owner_sessions"] = sorted(current | {session_id})
+    return True
 
 
 def sha256_file(path: Path) -> str:
@@ -711,6 +734,11 @@ def prepare(workspace: Path, plan: Path, query: str, *, quiet: bool = False) -> 
     }
     if isinstance(previous.get("lifecycle"), dict):
         state["lifecycle"] = previous["lifecycle"]
+    # Sessions that already wrote under this receipt still own the pending reconciliation.
+    if previous.get("phase") in {"prepared", "implementation"} and isinstance(
+        previous.get("owner_sessions"), list
+    ):
+        state["owner_sessions"] = previous["owner_sessions"]
     append_lifecycle_event(state, workspace, "prepared", prepared_at, "prepared")
     write_state(workspace, state)
     if not quiet:
@@ -1054,6 +1082,11 @@ def enforce_write_payload(
         return 2
     if phase == "reconciled":
         state["reconciliation"] = None
+    owner_added = phase in {"prepared", "implementation", "reconciled"} and record_owner(
+        state, payload
+    )
+    if phase == "implementation" and owner_added:
+        write_state(workspace, state)
     if phase in {"prepared", "reconciled"}:
         implementation_started_at = utc_now()
         state["phase"] = "implementation"
@@ -1281,6 +1314,13 @@ def hook_stop() -> int:
         count_hook_event(state, _workspace, "Stop")
         write_state(_workspace, state)
     if state and state.get("phase") == "implementation":
+        # Only sessions that wrote under this receipt owe the reconciliation. A session with
+        # no identity, or a receipt with no recorded owner (legacy, or reached through an
+        # OUT_OF_SYNC reconcile), fails closed so nothing unreconciled slips past.
+        owners = state.get("owner_sessions")
+        session_id = payload_session_id(payload)
+        if session_id is not None and isinstance(owners, list) and owners and session_id not in owners:
+            return 0
         sys.stderr.write(
             "BLOCKED: implementation changed after preparation but has not been reconciled. "
             "Run the impact-map reconciliation before declaring completion.\n"

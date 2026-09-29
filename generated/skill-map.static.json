@@ -267,6 +267,12 @@
     {
       "from": "plugin:procedural-memory",
       "source": "marketplace",
+      "to": "hook:procedural-memory/functionize-capture",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:procedural-memory",
+      "source": "marketplace",
       "to": "hook:procedural-memory/post-bash-candidate-queue",
       "type": "contains"
     },
@@ -3390,6 +3396,17 @@
       "status": "wired"
     },
     {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/functionize-capture.py\"",
+      "event": "PostToolUse",
+      "id": "hook:procedural-memory/functionize-capture",
+      "kind": "hook",
+      "matcher": "Bash",
+      "name": "functionize-capture",
+      "owner": "procedural-memory",
+      "path": "procedural-memory/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
       "command": "\"${CLAUDE_PLUGIN_ROOT}/hooks/post-bash-candidate-queue.sh\"",
       "event": "PostToolUse",
       "id": "hook:procedural-memory/post-bash-candidate-queue",
@@ -3980,7 +3997,7 @@
       "summary": "Provides ready-made note templates for meetings, book reviews, project briefs, and more."
     },
     {
-      "contentHash": "9497609d8746b1de8606ee10e6eb157526b6bcd0943f0f68d2e8a4a8b54c7d9f",
+      "contentHash": "5c8c98adcbefa8c9ec43edac5b2b173a856b9509c0900e0e893dba9cfa7e39d8",
       "description": "Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through the rhize-skill CLI. Use when asked to \"Functionize\" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal, or review a Functionize candidate. This skill never registers, approves, promotes, verifies, or runs a generated artifact; use procedural-memory only when a later gate is separately authorized.",
       "id": "skill:procedural-memory/functionize",
       "kind": "skill",

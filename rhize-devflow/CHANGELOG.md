@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 2.25.3 → 2.25.4 (patch); marketplace 2.91.0 → 2.91.1.
+- **Refactor-gate Stop block scoped to owner sessions.** A read-only session in the same checkout was blocked at every Stop while another session held the workspace in `implementation` (2026-09-28). The gate now records each session whose gated source write it allowed (`owner_sessions`, from the hook payload `session_id`, carried through re-prepare) and blocks Stop only for those owners. Write and release gates stay workspace-wide. A Stop without `session_id`, or a receipt with no recorded owner, still fails closed. Tests: `tests/rhize-devflow/test_refactor_gate.py` Stop-ownership cases.
 - _2026-09-28_ version bump — 2.25.2 → 2.25.3 (patch); marketplace 2.90.0 → 2.90.1.
 - **Context-document gate repair.** Allow prose in `.planning/` and `docs/` and standard context Markdown files in nested projects. Share exemptions across write, reconciliation and release checks; keep executable files, MDX and mixed source/documentation edits gated. Regression reproduces the rejected `.planning/STATE.md` Codex patch.
 - _2026-09-27_ version bump — 2.25.1 → 2.25.2 (patch); marketplace 2.86.0 → 2.86.1.
