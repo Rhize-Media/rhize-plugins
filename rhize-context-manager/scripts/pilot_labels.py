@@ -202,8 +202,13 @@ def reconcile_superseded(root):
         if kept.get('supersededState') == 'committed':
             continue
         active = root / LABEL_DIR / (str(kept.get('opportunityId')) + '.json')
-        if active.is_file() and not active.is_symlink() \
-                and read_json(active).get('evidenceSha256') == (kept.get('supersededBy') or {}).get('evidenceSha256'):
+        if not active.is_file() or active.is_symlink():
+            continue
+        try:
+            stored = _replacement_of(read_json(active))
+        except KeyError:
+            continue
+        if stored == kept.get('supersededBy'):       # the WHOLE replacement, not just its evidence digest
             commit_archive(path)
             healed += 1
     return healed

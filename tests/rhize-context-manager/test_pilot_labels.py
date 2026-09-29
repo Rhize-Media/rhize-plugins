@@ -391,3 +391,26 @@ def test_import_batch_reports_a_disposition_for_every_record(tmp_path):
     assert [(d['opportunityId'], d['result']) for d in result['dispositions']] == [
         (receipt['opportunityId'], 'recorded'), (other['opportunityId'], 'not_a_label'), ('f' * 64, 'skipped')]
     assert result['dispositions'][1]['reason'] == 'status_checker_disagreement'
+
+
+def test_reconcile_commits_only_when_the_whole_replacement_matches(tmp_path):
+    root, receipts, receipt = make(tmp_path)
+    identity = receipt['opportunityId']
+    labels.record_label(root, receipts, value(root, receipt, choiceBasis=labels.FAMILY_MAP), 'a' * 64)
+    labels.record_label(root, receipts, value(root, receipt, choice='none', reviewEvidenceSha256='2' * 64), 'b' * 64,
+                        supersede=True)
+    archive = next((root / labels.SUPERSEDED_DIR).glob('*.json'))
+    committed = json.loads(archive.read_text())
+    assert committed['supersededState'] == 'committed'
+    active = stored_ids(root)[identity]
+    assert committed['supersededBy'] == labels._replacement_of(active)
+    variants = [{'choice': 'content'}, {'choiceBasis': labels.FAMILY_MAP}, {'basis': labels.HUMAN}, {'reviewer': 'someone-else'},
+                {'reviewEvidenceSha256': '9' * 64}, {'evidenceSha256': 'c' * 64}]
+    for change in variants:
+        # A pending archive that names the same evidence digest but any other replacement field is never trusted.
+        archive.write_text(json.dumps({**committed, 'supersededState': 'pending',
+                                       'supersededBy': {**committed['supersededBy'], **change}}))
+        assert labels.reconcile_superseded(root) == 0
+        assert json.loads(archive.read_text())['supersededState'] == 'pending' and labels.superseded_count(root) == 0
+    archive.write_text(json.dumps({**committed, 'supersededState': 'pending'}))      # the control: an exact match commits
+    assert labels.reconcile_superseded(root) == 1 and labels.superseded_count(root) == 1
