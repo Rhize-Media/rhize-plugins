@@ -29,14 +29,17 @@ import errno
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 import selectors
 import shutil
 import signal
+import stat
 import subprocess
 import tempfile
 import time
+import unicodedata
 import uuid
 from collections import Counter, deque
 from datetime import datetime, timezone
@@ -70,7 +73,8 @@ MAX_ATTEMPTS = 3
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_TRANSCRIPT_BYTES = 256 * 1024 * 1024
 MAX_TAXONOMY_BYTES = 128 * 1024
-MAX_MESSAGE_CHARS = 2_000_000          # cut (at a token edge) before redaction only for absurd messages
+MAX_MESSAGE_CHARS = 200_000            # only ~6.5K is ever used; a larger message is cut (at a token edge) first
+ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
 PROMPT_LIMIT, TURN_LIMIT, PRIOR_TURNS = 6500, 3800, 4
 TIMESTAMP_TOLERANCE_SECONDS = 60
 
@@ -114,36 +118,74 @@ LEAK = re.compile(
     r'\bai[- ](?:model[- ])?(?:review|label)|review(?:er)?[ _-](?:answer|verdict)|decision[- ]pilot|'
     r'\bpilot (?:result|label|score|arm)|\bnoul\b|typed[- ]decision|derived:family|label[ _-](?:basis|policy|store)')
 
-# Token bodies are bounded so no pattern can run away on a long run of look-alike characters.
+# Detection runs on a normalized view of the text (see detection_view); every pattern is length-bounded so none
+# can run away on a long run of look-alike characters. Entry: (pattern, marker, prefix group to keep or 0).
+def _u(*points):
+    return {p: t for p, t in points}
+
+
+HOMOGLYPHS = str.maketrans(_u(
+    (0x0430, 'a'), (0x0435, 'e'), (0x043E, 'o'), (0x0440, 'p'), (0x0441, 'c'), (0x0445, 'x'), (0x0443, 'y'),
+    (0x0456, 'i'), (0x0458, 'j'), (0x0455, 's'), (0x0501, 'd'), (0x04BB, 'h'), (0x051B, 'q'), (0x0475, 'v'),
+    (0x0410, 'A'), (0x0412, 'B'), (0x0415, 'E'), (0x041A, 'K'), (0x041C, 'M'), (0x041D, 'H'), (0x041E, 'O'),
+    (0x0420, 'P'), (0x0421, 'C'), (0x0422, 'T'), (0x0425, 'X'), (0x0405, 'S'), (0x0406, 'I'), (0x0408, 'J'),
+    (0x03BF, 'o'), (0x03B1, 'a'), (0x03BD, 'v'), (0x03C1, 'p'), (0x03C4, 't'), (0x03B9, 'i'), (0x03BA, 'k'),
+    (0x03C5, 'u'), (0x0391, 'A'), (0x0392, 'B'), (0x0395, 'E'), (0x0396, 'Z'), (0x0397, 'H'), (0x0399, 'I'),
+    (0x039A, 'K'), (0x039C, 'M'), (0x039D, 'N'), (0x039F, 'O'), (0x03A1, 'P'), (0x03A4, 'T'), (0x03A5, 'Y'),
+    (0x03A7, 'X'), (0x0131, 'i')))
+ESCAPE = re.compile(r'\\(?:u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2}))')
+MAX_ESCAPES = 20000
+_STR = r"(?:'[^'\n]{0,200}'|\"[^\"\n]{0,200}\"|[^\s'\"]{1,200})"
 REDACTIONS = (
-    (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', re.S), '[REDACTED_PRIVATE_KEY]'),
+    (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', re.S), '[REDACTED_PRIVATE_KEY]', 0),
     (re.compile(r'(?i)\bhttps?://hooks\.slack\.com/services/[\w/-]{1,200}|'
-                r'\bhttps?://(?:discord(?:app)?\.com)/api/webhooks/\d{1,30}/[\w-]{1,200}'), '[REDACTED_WEBHOOK]'),
+                r'\bhttps?://(?:discord(?:app)?\.com)/api/webhooks/\d{1,30}/[\w-]{1,200}'), '[REDACTED_WEBHOOK]', 0),
+    (re.compile(r'(?i)(\bhttps?://[^\s/]{1,100}/(?:[^\s/]{1,60}/){0,4}?(?:webhooks?|hooks?)/)[^\s"\'<>]{8,300}'),
+     '[REDACTED_WEBHOOK]', 1),
     (re.compile(r'(?i)\b(?:sk-ant-[\w-]{1,512}|sk-[\w-]{20,512}|sntrys_[\w-]{1,512}|gh[pousr]_\w{1,512}|'
-                r'github_pat_\w{20,512}|xox[a-z]-[\w%+./=-]{6,512}|AKIA[0-9A-Z]{16}|AIza[\w-]{30,60}|npm_\w{30,100}|'
-                r'vc[a-z]_\w{20,512}|sb_(?:secret|publishable)_[\w-]{8,512}|sbp_\w{16,512}|'
-                r're_(?=[A-Za-z_]{0,100}\d)\w{20,512}|sk(?=[A-Za-z]{0,100}\d)[A-Za-z0-9]{40,300}|'
-                r'(?:pk|sk|rk)_(?:live|test)_\w{1,512})\b'), '[REDACTED_TOKEN]'),
-    (re.compile(r'\beyJ[\w-]{8,2048}\.[\w-]{8,2048}\.[\w-]{8,2048}\b'), '[REDACTED_TOKEN]'),
-    (re.compile(r'(?i)\bbearer\s{1,8}[\w.~+/=-]{16,512}'), 'Bearer [REDACTED_TOKEN]'),
-    (re.compile(r'(?i)(\b[a-z][a-z0-9+.-]{0,30}://)[^\s/@:]{1,256}:[^\s/@]{1,256}@'), r'\1[REDACTED_CREDENTIALS]@'),
-    (re.compile(r"(?i)\bsshpass\s{1,8}-p\s{0,8}(?:'[^']{0,200}'|\"[^\"]{0,200}\"|\S{1,200})"), 'sshpass -p [REDACTED_PASSWORD]'),
+                r'github_pat_\w{20,512}|xox[a-z]-[\w%+./=-]{6,512}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[\w-]{30,60}|'
+                r'npm_\w{30,100}|vc[a-z]_\w{20,512}|vercel_\w{16,512}|sb_(?:secret|publishable)_[\w-]{8,512}|'
+                r'sbp_\w{16,512}|re_\w{20,512}|sk[A-Za-z0-9]{40,300}|shpat_\w{20,512}|glpat-[\w-]{20,512}|'
+                r'dop_v1_\w{20,512}|whsec_\w{16,512}|hf_[A-Za-z0-9]{20,300}|ntn_[A-Za-z0-9]{20,300}|'
+                r'(?:pk|sk|rk)_(?:live|test)_\w{1,512})\b'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'\beyJ[\w-]{8,2048}\.[\w-]{8,2048}\.[\w-]{8,2048}\b'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'(?<![0-9A-Za-z_])[0-9A-Fa-f]{64,}(?![0-9A-Za-z_])'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'(?i)\b(bearer\s{1,8})[\w.~+/=-]{16,512}'), '[REDACTED_TOKEN]', 1),
+    (re.compile(r'\b((?i:basic)\s{1,8})(?=[A-Za-z0-9+/]{0,200}[0-9A-Z+/=])[A-Za-z0-9+/]{8,200}={0,2}'), '[REDACTED_TOKEN]', 1),
+    (re.compile(r'(?i)(\b[a-z][a-z0-9+.-]{0,30}://)[^\s/@:]{1,256}:[^\s/]{1,256}@'), '[REDACTED_CREDENTIALS]@', 1),
+    (re.compile(r'(?i)(\bsshpass\s{1,8}-p\s{0,8})' + _STR), '[REDACTED_PASSWORD]', 1),
+    (re.compile(r"(?<!\S)(--?u(?:ser)?(?:\s{1,4}|=))(?:'[^'\n]{0,200}:[^'\n]{0,200}'|\"[^\"\n]{0,200}:[^\"\n]{0,200}\"|"
+                r"(?=[^\s'\"]{0,200}:)[^\s'\"]{1,200})"), '[REDACTED_CREDENTIALS]', 1),
+    (re.compile(r"(?i)(\b(?:mysql|mysqldump|mysqladmin|mariadb|mongo|mongosh|redis-cli)\b[^\n]{0,200}?\s-p)" + _STR),
+     '[REDACTED_PASSWORD]', 1),
     (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret)"
-                r"(?:=|\s{1,8}))(?:'[^']{0,200}'|\"[^\"]{0,200}\"|[^\s'\"]{1,200})"), r'\1[REDACTED_SECRET]'),
-    (re.compile(r'\b[\w.+-]{1,64}@[\w.-]{1,255}\.[A-Za-z]{2,24}\b'), '[REDACTED_EMAIL]'),
-    (re.compile(r'(?<![\w.+-])(?:\+\d{1,3}[ .-]?)?(?:\(\d{3}\)[ .-]?|\d{3}[ .-])\d{3}[ .-]\d{4}(?![\w-])'), '[REDACTED_PHONE]'),
-    (re.compile(r'(?<![\w+])\+\d{8,15}(?!\d)'), '[REDACTED_PHONE]'),
-    (re.compile(r'(?<!\d)(?:\d[ -]?){13,19}(?!\d)'), '[REDACTED_LONG_NUMBER]'),
-    (re.compile(r'\b00[1-9A-Za-z][A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b'), '[REDACTED_CRM_ID]'),
+                r"(?:=|\s{1,8}))" + _STR), '[REDACTED_SECRET]', 1),
+    (re.compile(r'(?i)([?&](?:key|sig|signature|token|access_token|api_key|apikey|secret|password|pwd|auth|code|'
+                r'x-amz-signature|x-goog-signature)=)[^\s&#"\'<>]{1,512}'), '[REDACTED_SECRET]', 1),
+    (re.compile(r'\b[\w.+-]{1,64}@[\w.-]{1,255}\.[A-Za-z]{2,24}\b'), '[REDACTED_EMAIL]', 0),
+    (re.compile(r'(?<![\w.+-])(?:\+\d{1,3}[ .-]?)?(?:\(\d{3}\)[ .-]?|\d{3}[ .-])\d{3}[ .-]\d{4}(?![\w-])'), '[REDACTED_PHONE]', 0),
+    (re.compile(r'(?<![\w+])\+\d{8,15}(?!\d)'), '[REDACTED_PHONE]', 0),
+    (re.compile(r'(?<!\d)(?:\d[ -]?){13,19}(?!\d)'), '[REDACTED_LONG_NUMBER]', 0),
+    (re.compile(r'\b00[1-9A-Za-z][A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b'), '[REDACTED_CRM_ID]', 0),
 )
-# Key-name-anywhere rule: a credential word inside a key name (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=x`,
-# `aws_secret_access_key = x`, `Authorization: Basic x`) redacts its whole line. It is a scan, not one big
-# pattern, so a long line without credential words costs one linear pass.
-CREDENTIAL_WORD = re.compile(r'(?i)pass(?:word|wd|phrase)|secret|api[_-]?key|apikey|access[_-]?key|private[_-]?key|'
-                             r'service[_-]?role|credentials?|token(?!s)|authorization|bearer')
-CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,64}["']?[ \t]*[:=][ \t]*["']?\S''')
-# Generic fallback: a long unbroken run of key-like characters with lower, upper and a digit is treated as a secret.
+# Key-name-anywhere rule: a credential word in a key name (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=x`,
+# `api key: x`, `Authorization: Basic x`) redacts its whole line, and the lines that carry its value when that
+# sits below (JSON, YAML, YAML block scalars). It is a bounded scan, not one big pattern.
+CREDENTIAL_WORD = re.compile(
+    r'(?i)(?:(?<![A-Za-z])(?:password|passwd|passphrase|passcode|pass(?![A-Za-z])|pwd|pw(?![A-Za-z])|pin(?![A-Za-z])|'
+    r'creds?(?![A-Za-z])|credentials?|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
+    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|token(?!s)|tokens(?=[ \t]*:)|'
+    r'auth(?:orization)?(?![A-Za-z])|cookies?(?![A-Za-z])|session(?![A-Za-z])|bearer|webhook)|'
+    r'(?<=[A-Za-z0-9])[ _-]key\b)')
+CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}[\w.-]{1,256}){0,3}["']?[ \t]*[:=]''')
+NATURAL_SECRET = re.compile(r'(?i)(?<![A-Za-z])(?:password|passcode|pwd|pw|pin|secret|api[ _-]?key)\s{1,4}(?:is|was)\s{1,4}\S')
+BLOCK_OPENERS = ('|', '>', '|-', '>-', '|+', '>+')
+VALUE_BELOW = ('', '[', '{', '(') + BLOCK_OPENERS
+MAX_BLOCK_LINES, MAX_BLOCK_CHARS = 200, 20000
+# Generic fallbacks: a long unbroken key-like run with lower case, upper case and a digit; and, with base64
+# punctuation, a longer run that also looks random.
 KEY_RUN = re.compile(r'(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{32,}')
+KEY_RUN_B64 = re.compile(r'(?<![A-Za-z0-9_+/=-])[A-Za-z0-9_+/=-]{40,}')
 
 SYSTEM = (
     'You label workflow-routing cases for a private pilot. Follow the supplied taxonomy exactly. Case '
@@ -279,37 +321,144 @@ def parse_reviews(value, expected):
 # ---------------------------------------------------------------------------------------------
 # Redaction and transcript recovery
 
-def _redact_credential_lines(text):
-    """Replace every line whose key name carries a credential word with a marker (linear scan)."""
+def _looks_like_key(run):
+    return any(c.islower() for c in run) and any(c.isupper() for c in run) and any(c.isdigit() for c in run)
+
+
+def _entropy(run):
+    counts = Counter(run)
+    return -sum(n / len(run) * math.log2(n / len(run)) for n in counts.values())
+
+
+def _line_bounds(text, position):
+    start = text.rfind('\n', 0, position) + 1
+    end = text.find('\n', position)
+    return start, (len(text) if end < 0 else end)
+
+
+def _value_below_end(text, key_start, key_end, rest):
+    """End of the lines that hold a value written below its key (block scalar body or the next line)."""
+    end, position = key_end, key_end + 1
+    if rest[:1] in ('|', '>'):
+        indent = len(text[key_start:key_end]) - len(text[key_start:key_end].lstrip(' \t'))
+        lines = 0
+        while position <= len(text) and lines < MAX_BLOCK_LINES and position - key_end < MAX_BLOCK_CHARS:
+            _, stop = _line_bounds(text, position)
+            line = text[position:stop]
+            if line.strip() and len(line) - len(line.lstrip(' \t')) <= indent:
+                break
+            end, position, lines = stop, stop + 1, lines + 1
+            if stop >= len(text):
+                break
+        return end
+    for _ in range(3):                                   # the next non-blank line, skipping a couple of blanks
+        if position > len(text):
+            break
+        _, stop = _line_bounds(text, position)
+        end, blank = stop, not text[position:stop].strip()
+        position = stop + 1
+        if not blank:
+            break
+    return end
+
+
+def _credential_spans(text):
     spans, covered = [], -1
     for match in CREDENTIAL_WORD.finditer(text):
-        if match.start() < covered or not CREDENTIAL_TAIL.match(text, match.end()):
+        if match.start() < covered:
             continue
-        start = text.rfind('\n', 0, match.start()) + 1
-        end = text.find('\n', match.end())
-        end = len(text) if end < 0 else end
-        spans.append((start, end))
+        tail = CREDENTIAL_TAIL.match(text, match.end())
+        if not tail:
+            continue
+        start, end = _line_bounds(text, match.start())
+        rest = text[tail.end():end].strip(' \t\r"\'')
+        if rest not in VALUE_BELOW:
+            spans.append((start, end))
+        else:
+            end = _value_below_end(text, start, end, rest)
+            spans.append((start, end))
         covered = end
-    if not spans:
-        return text
-    parts, position = [], 0
-    for start, end in spans:
-        parts += [text[position:start], '[REDACTED_CREDENTIAL_LINE]']
-        position = end
-    return ''.join(parts) + text[position:]
+    for match in NATURAL_SECRET.finditer(text):
+        spans.append(_line_bounds(text, match.start()))
+    return [(a, b, '[REDACTED_CREDENTIAL_LINE]') for a, b in spans]
 
 
-def _redact_key_runs(match):
-    run = match.group()
-    if any(c.islower() for c in run) and any(c.isupper() for c in run) and any(c.isdigit() for c in run):
-        return '[REDACTED_TOKEN]'
-    return run
+def _normalized(char):
+    if char in ZERO_WIDTH:
+        return ''
+    if char in '  \x85':
+        return '\n'
+    if char != '\n' and char.isspace():
+        return ' '
+    if char.isascii():
+        return char
+    folded = unicodedata.normalize('NFKC', char)
+    return ''.join(c for c in folded if unicodedata.category(c) not in ('Cf', 'Mn', 'Me')).translate(HOMOGLYPHS)
+
+
+def detection_view(text):
+    """(view, starts, ends): a normalized copy used only for matching (NFKC, zero-width and format characters
+    dropped, Unicode whitespace as a space, look-alike Cyrillic/Greek letters as Latin, \\uXXXX and \\xNN escapes
+    decoded, at most MAX_ESCAPES). view[j] came from text[starts[j]:ends[j]], so a match redacts the ORIGINAL span.
+    Plain ASCII without escapes is its own view (starts and ends are None)."""
+    if text.isascii() and '\\u' not in text and '\\x' not in text:
+        return text, None, None
+    view, starts, ends = [], [], []
+    position, escapes = 0, 0
+    while position < len(text):
+        char, stop = text[position], position + 1
+        if char == '\\' and escapes < MAX_ESCAPES:
+            found = ESCAPE.match(text, position)
+            if found:
+                escapes += 1
+                char, stop = chr(int(found.group(1) or found.group(2), 16)), found.end()
+        for piece in _normalized(char):
+            view.append(piece)
+            starts.append(position)
+            ends.append(stop)
+        position = stop
+    return ''.join(view), starts, ends
+
+
+def _view_spans(view):
+    found = []
+    for pattern, marker, keep in REDACTIONS:
+        for match in pattern.finditer(view):
+            found.append((match.end(keep) if keep else match.start(), match.end(), marker))
+    found += _credential_spans(view)
+    for match in KEY_RUN.finditer(view):
+        if _looks_like_key(match.group()):
+            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
+    for match in KEY_RUN_B64.finditer(view):
+        run = match.group()
+        if any(c in run for c in '+/=') and _looks_like_key(run) and _entropy(run) >= 4.2:
+            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
+    return found
 
 
 def redact(text):
-    for pattern, replacement in REDACTIONS:
-        text = pattern.sub(replacement, text)
-    return KEY_RUN.sub(_redact_key_runs, _redact_credential_lines(text))
+    """Replace secrets and personal identifiers with markers. Matching sees the normalized view; the
+    replacement always lands on the original span, so an obfuscated secret cannot survive next to its marker."""
+    view, starts, ends = detection_view(text)
+    spans = [(a, b, marker) for a, b, marker in _view_spans(view) if b > a]
+    if not spans:
+        return text
+    if starts is not None:
+        spans = [(starts[a], ends[b - 1], marker) for a, b, marker in spans]
+    spans.sort(key=lambda span: (span[0], -span[1]))
+    merged = []
+    for start, end, marker in spans:
+        if merged and start < merged[-1][1]:
+            last = merged[-1]
+            biggest = marker if end - start > last[3] else last[2]
+            merged[-1] = [last[0], max(last[1], end), biggest, max(last[3], end - start)]
+        else:
+            merged.append([start, end, marker, end - start])
+    parts, position = [], 0
+    for start, end, marker, _ in merged:
+        parts += [text[position:start], marker]
+        position = end
+    return ''.join(parts) + text[position:]
 
 
 def _cut(text, limit, tail):
@@ -321,8 +470,12 @@ def _cut(text, limit, tail):
         partial = re.match(r'\S+', kept) if not text[-limit - 1].isspace() else None
         return kept[partial.end():] if partial else kept
     kept = text[:limit]
-    partial = re.search(r'\S+$', kept) if not text[limit].isspace() else None
-    return kept[:partial.start()] if partial else kept
+    if text[limit].isspace():
+        return kept
+    edge = len(kept)                                 # walk back over the half token (linear, unlike `\S+$`)
+    while edge > 0 and not kept[edge - 1].isspace():
+        edge -= 1
+    return kept[:edge]
 
 
 def sanitize(text, limit, tail=False):
@@ -382,8 +535,12 @@ class TranscriptIndex:
 
     UUID = re.compile(r'([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')
 
-    def __init__(self, roots, wanted):
+    def __init__(self, roots, wanted, boundaries=None):
+        """`boundaries` maps a session hash to the epoch second of that session's first pilot artifact. Only
+        user turns strictly before it (and before the prompt itself) are context; a session without a known
+        boundary gets no preceding context at all."""
         self.roots, self.wanted = [Path(root) for root in roots], wanted
+        self.boundaries = boundaries or {}
         self.paths = None
         self.scanned = {}
 
@@ -405,11 +562,12 @@ class TranscriptIndex:
             self.paths = self._index()
         if session_hash not in self.scanned:
             hashes = self.wanted.get(session_hash, set())
-            self.scanned[session_hash] = self._scan(self.paths.get(session_hash, []), hashes)
+            self.scanned[session_hash] = self._scan(self.paths.get(session_hash, []), hashes,
+                                                    self.boundaries.get(session_hash))
         return self.scanned[session_hash].get(prompt_hash, [])
 
     @staticmethod
-    def _scan(paths, hashes):
+    def _scan(paths, hashes, boundary=None):
         found = {}
         for path in sorted(paths):
             try:
@@ -431,12 +589,19 @@ class TranscriptIndex:
                     # Only what the user typed is context: assistant prose restates pilot results and labels.
                     if role != 'user' or not text:
                         continue
+                    stamp = _timestamp(record.get('timestamp'))
                     if digest(text) in hashes:
+                        # Structural boundary: nothing at or after the session's first pilot artifact, or at or
+                        # after the prompt, can be context; with no provable boundary there is none.
+                        limit = min(boundary, stamp) if boundary is not None and stamp is not None else None
+                        earlier = [t for t in prior if limit is not None and t['stamp'] < limit]
                         found.setdefault(digest(text), []).append(
-                            {'text': text, 'prior': list(prior)[-PRIOR_TURNS:], 'timestamp': record.get('timestamp')})
+                            {'text': text, 'prior': earlier[-PRIOR_TURNS:], 'timestamp': record.get('timestamp')})
+                    if boundary is None or stamp is None or stamp >= boundary:
+                        continue
                     if any(marker in text for marker in BOILERPLATE) or LEAK.search(text):
                         continue
-                    prior.append({'role': 'user', 'text': text})
+                    prior.append({'role': 'user', 'text': text, 'stamp': stamp})
         return found
 
 
@@ -444,7 +609,7 @@ def choose_match(matches, observed_at):
     """One matched occurrence, or a reason it cannot be chosen. Repeated identical context is fine."""
     if not matches:
         return None, 'context_missing'
-    if len({digest(canonical([m['text'], m['prior']])) for m in matches}) == 1:
+    if len({digest(canonical([m['text'], [(t['role'], t['text']) for t in m['prior']]])) for m in matches}) == 1:
         return matches[0], None
     observed = _timestamp(observed_at)
     stamped = [(abs(_timestamp(m['timestamp']) - observed), i) for i, m in enumerate(matches)
@@ -467,18 +632,41 @@ def build_packet(match):
 # ---------------------------------------------------------------------------------------------
 # Selection and the attempt ledger
 
-def candidates(root, receipts):
+def session_boundaries(rows):
+    """sessionHash -> epoch second of the earliest pilot artifact in that session (a receipt, an observation or a
+    result), or None when any of the session's receipts has no usable timestamp. Before that moment no pilot or
+    Laya output can have been surfaced to the user, so only turns typed earlier can be context."""
+    bounds = {}
+    for row in rows:
+        session = row['receipt'].get('sessionHash')
+        if not isinstance(session, str):
+            continue
+        stamps = [_timestamp(row['receipt'].get('observedAt'))]
+        for record, key in ((row.get('observation'), 'createdAt'), (row.get('result'), 'at')):
+            value = record.get(key) if isinstance(record, dict) else None
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                stamps.append(float(value))
+        if session in bounds and bounds[session] is None:
+            continue
+        if stamps[0] is None:
+            bounds[session] = None
+        else:
+            bounds[session] = min([stamp for stamp in stamps if stamp is not None] + [bounds.get(session, stamps[0])])
+    return bounds
+
+
+def candidates(root, receipts, rows=None):
     """Eligible current-source v2 decisions whose routing choice nobody has judged directly yet."""
     stored = {label['opportunityId']: label for label in labels.load_labels(root)}
-    rows = []
-    for row in joined(root, receipts):
+    selected = []
+    for row in (joined(root, receipts) if rows is None else rows):
         if row['bucket'] != 'eligible' or not row['observation'] or row['label']:
             continue
         label = stored.get(row['id'])
         if label and (label['basis'] == labels.HUMAN or label['choiceBasis'] == 'explicit'):
             continue
-        rows.append(row)
-    return sorted(rows, key=lambda r: (str(r['receipt'].get('observedAt') or ''), r['id']))
+        selected.append(row)
+    return sorted(selected, key=lambda r: (str(r['receipt'].get('observedAt') or ''), r['id']))
 
 
 def load_ledger(state):
@@ -496,7 +684,9 @@ def load_ledger(state):
             state_for = attempts.setdefault(key, {'terminal': False, 'failures': 0})
             if entry.get('terminal'):
                 state_for['terminal'] = True
-            else:
+            elif entry.get('outcome') in FAILURES:
+                # Only spent-and-unusable model attempts count. A row waiting on the import (skipped, import_failed,
+                # not_imported) never uses up an attempt, so it can neither suppress a retry nor be retried away.
                 state_for['failures'] += 1
     return attempts
 
@@ -517,11 +707,13 @@ def append_ledger(state, run_id, entries):
 
 def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
     """Build up to maxCases model-ready cases plus every cheap terminal record met on the way."""
-    rows = candidates(root, receipts)
+    every_row = joined(root, receipts)
+    rows = candidates(root, receipts, every_row)
+    boundaries = session_boundaries(every_row)
     wanted = {}
     for row in rows:
         wanted.setdefault(row['receipt']['sessionHash'], set()).add(row['receipt']['promptHash'])
-    index = index_factory(wanted)
+    index = index_factory(wanted, boundaries)
     cases, skipped, ready = [], Counter(), 0
     for row in rows:
         if ready >= config['maxCases']:
@@ -564,66 +756,127 @@ def real_codex_home(environ=None):
     return Path(environ.get('HOME') or Path.home()) / '.codex'
 
 
-def _auth_ok(raw):
+def _auth_object(raw):
     try:
         value = json.loads(raw)
     except ValueError:
-        return False
-    return isinstance(value, dict) and bool(value)
+        return None
+    return value if isinstance(value, dict) and value else None
 
 
-def prepare_codex_home(real_home, private):
-    """A private 0700 CODEX_HOME holding ONLY a 0600 copy of auth.json, so the real ~/.codex (its AGENTS.md,
-    config, rules, memories) is never read by the labeling call. Returns the bytes that were copied."""
-    source = Path(real_home) / 'auth.json'
-    if source.is_symlink() or not source.is_file():
+def read_auth(home):
+    """The bytes of `<home>/auth.json`, opened without following a symlink and checked with fstat (a regular file we
+    own, of sane size) that holds a non-empty JSON object."""
+    try:
+        fd = os.open(Path(home) / 'auth.json', os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    except OSError:
         raise LabelerError('codex_auth_unavailable')
-    raw = source.read_bytes()
-    if not _auth_ok(raw):
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid() or info.st_size > 1 << 20:
+            raise LabelerError('codex_auth_unavailable')
+        with os.fdopen(fd, 'rb', closefd=False) as stream:
+            raw = stream.read()
+    finally:
+        os.close(fd)
+    if _auth_object(raw) is None:
         raise LabelerError('codex_auth_unavailable')
-    private = Path(private)
-    shutil.rmtree(private, ignore_errors=True)
-    private.mkdir(mode=0o700, parents=True)
-    os.chmod(private, 0o700)
-    fd = os.open(private / 'auth.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
-    with os.fdopen(fd, 'wb') as stream:
-        stream.write(raw)
     return raw
 
 
-def finish_codex_home(real_home, private, original):
-    """Remove the private home; return True when a refreshed auth.json was written back to the real one.
+class CodexLogin:
+    """One call's private CODEX_HOME (mode 0700, only a 0600 copy of auth.json, so the real ~/.codex AGENTS.md,
+    config, rules and memories are never read) and the guarded write-back of a token the CLI refreshed.
 
-    The write-back is atomic (same-directory temp file, 0600, os.replace) and happens only when the content
-    changed, is still a non-empty JSON object, and the real file still holds exactly what was copied (a
-    concurrent refresh elsewhere wins). Nothing about the content is ever logged.
-    """
-    private = Path(private)
-    wrote = False
-    try:
-        path = private / 'auth.json'
-        if path.is_file() and not path.is_symlink():
-            now = path.read_bytes()
-            target = Path(real_home) / 'auth.json'
-            if now != original and _auth_ok(now) and target.is_file() and not target.is_symlink() \
-                    and target.read_bytes() == original:
-                handle, temporary = tempfile.mkstemp(prefix='.auth-', dir=str(real_home))
-                try:
-                    with os.fdopen(handle, 'wb') as stream:
-                        stream.write(now)
-                        stream.flush()
-                        os.fsync(stream.fileno())
-                    os.chmod(temporary, 0o600)
-                    os.replace(temporary, target)
-                    wrote = True
-                finally:
-                    if os.path.exists(temporary):
-                        os.unlink(temporary)
-    except OSError:
-        wrote = False
-    finally:
-        shutil.rmtree(private, ignore_errors=True)
-    return wrote
+    A dedicated lock file in the real home serializes copy-to-write-back between labeler processes; when it cannot
+    be taken the call still runs but nothing is written back. close() returns 'unchanged', 'written' or 'skipped'
+    (content changed but not written) and removes the private copy either way. Content is never logged."""
+
+    LOCK = '.laya-auth.lock'
+
+    def __init__(self, real_home, private):
+        self.real, self.private = Path(real_home), Path(private)
+        self.original, self.lock = None, None
+
+    def open(self):
+        self.original = read_auth(self.real)
+        try:
+            lock = os.open(self.real / self.LOCK, os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.lock = lock
+            except OSError:
+                os.close(lock)
+        except OSError:
+            pass
+        shutil.rmtree(self.private, ignore_errors=True)
+        self.private.mkdir(mode=0o700, parents=True)
+        os.chmod(self.private, 0o700)
+        fd = os.open(self.private / 'auth.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(self.original)
+        return self
+
+    def _refreshed(self):
+        path = self.private / 'auth.json'
+        if not path.is_file() or path.is_symlink():
+            return None
+        return path.read_bytes()
+
+    def _acceptable(self, now):
+        """A refresh only adds or renews fields: a non-empty object whose keys are a subset of the original's."""
+        new, old = _auth_object(now), _auth_object(self.original)
+        return new is not None and old is not None and set(new) <= set(old)
+
+    def _write_back(self, now):
+        try:
+            if read_auth(self.real) != self.original:        # somebody else refreshed meanwhile: theirs wins
+                return False
+            handle, temporary = tempfile.mkstemp(prefix='.auth-', dir=str(self.real))
+            try:
+                with os.fdopen(handle, 'wb') as stream:
+                    stream.write(now)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.chmod(temporary, 0o600)
+                os.replace(temporary, self.real / 'auth.json')
+            finally:
+                if os.path.exists(temporary):
+                    os.unlink(temporary)
+            return True
+        except (OSError, LabelerError):
+            return False
+
+    def close(self):
+        status = 'unchanged'
+        try:
+            now = self._refreshed()
+            if now is not None and now != self.original:
+                status = 'written' if self.lock is not None and self._acceptable(now) and self._write_back(now) else 'skipped'
+        except OSError:
+            status = 'unchanged'
+        finally:
+            shutil.rmtree(self.private, ignore_errors=True)
+            if self.lock is not None:
+                os.close(self.lock)
+                self.lock = None
+        return status
+
+
+def sweep_codex_homes(state, current):
+    """Remove private Codex homes a killed run left behind (each holds a copy of the login)."""
+    runs = Path(state) / 'runs'
+    if runs.is_symlink() or not runs.is_dir():
+        return 0
+    swept = 0
+    for run in runs.iterdir():
+        if run.name == current or run.is_symlink() or not run.is_dir() or not RUN_ID.fullmatch(run.name):
+            continue
+        for home in run.glob('call-*/codex-home'):
+            if not home.is_symlink() and home.is_dir():
+                shutil.rmtree(home, ignore_errors=True)
+                swept += 1
+    return swept
 
 
 def stop_group(process):
@@ -634,11 +887,13 @@ def stop_group(process):
     process.wait(timeout=5)
 
 
-def run_process(command, stdin, directory, timeout, env):
-    """Drain both streams and feed stdin without blocking the deadline loop."""
+def run_process(command, stdin, directory, timeout, env, guard=None):
+    """Drain both streams and feed stdin without blocking the deadline loop.
+
+    `guard(line)` sees each complete stdout line as it arrives; if it raises, the process group is killed at once."""
     process = subprocess.Popen(command, cwd=str(directory), env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, start_new_session=True)
-    output, errors = bytearray(), bytearray()
+    output, errors, pending = bytearray(), bytearray(), bytearray()
     offset, deadline = 0, time.monotonic() + timeout
     try:
         with selectors.DefaultSelector() as select:
@@ -668,12 +923,30 @@ def run_process(command, stdin, directory, timeout, env):
                             (output if stream is process.stdout else errors).extend(chunk)
                             if len(output) + len(errors) > MAX_OUTPUT:
                                 raise LabelerError('output_exceeded_limit')
+                            if guard is not None and stream is process.stdout:
+                                pending.extend(chunk)
+                                while b'\n' in pending:
+                                    line, _, rest = bytes(pending).partition(b'\n')
+                                    pending = bytearray(rest)
+                                    guard(line)
         return process.wait(timeout=5), output.decode('utf-8', errors='replace'), errors.decode('utf-8', errors='replace')
     finally:
         stop_group(process)
         for stream in (process.stdin, process.stdout, process.stderr):
             if not stream.closed:
                 stream.close()
+
+
+def codex_line_guard(line):
+    """Reject the first Codex event that is not plain reasoning or a message, so a tool attempt is killed at once."""
+    try:
+        value = json.loads(line)
+    except ValueError:
+        return
+    if isinstance(value, dict) and value.get('type') in ('item.started', 'item.completed'):
+        item = value.get('item')
+        if not isinstance(item, dict) or item.get('type') not in ('agent_message', 'reasoning'):
+            raise LabelerError('codex_attempted_a_tool_or_item')
 
 
 def model_command(host, binary, model, effort, directory, system, schema):
@@ -738,10 +1011,10 @@ class CliBackend:
         self.bins = {'claude': claude_bin or shutil.which('claude'), 'codex': codex_bin or shutil.which('codex')}
         self.effort, self.workdir, self.environ = effort, Path(workdir), environ
         self.count = 0
-        self.auth_writebacks = 0
+        self.auth_writebacks = self.auth_writeback_skips = 0
 
-    def _run(self, command, stdin, directory, timeout, codex_home=None):
-        return run_process(command, stdin, directory, timeout, child_env(self.environ, codex_home))
+    def _run(self, command, stdin, directory, timeout, codex_home=None, guard=None):
+        return run_process(command, stdin, directory, timeout, child_env(self.environ, codex_home), guard)
 
     def preflight(self, host):
         binary = self.bins.get(host)
@@ -767,9 +1040,7 @@ class CliBackend:
             raise LabelerError('subscription_login_missing:' + host)
         if host == 'codex':
             # Every Codex call copies this file into its private home; find out before any model call is spent.
-            source = real_codex_home(self.environ) / 'auth.json'
-            if source.is_symlink() or not source.is_file() or not _auth_ok(source.read_bytes()):
-                raise LabelerError('codex_auth_unavailable')
+            read_auth(real_codex_home(self.environ))
         try:
             _, version, _ = self._run([binary, '--version'], b'', self.workdir, 15)
         except (LabelerError, OSError):
@@ -790,20 +1061,19 @@ class CliBackend:
         command = model_command(host, self.bins[host], model, self.effort, directory, system, schema)
         # Codex takes the instructions in-band; Claude also gets them as its system prompt.
         payload = (system + '\n\n' + prompt) if host == 'codex' else prompt
-        real_home = real_codex_home(self.environ)
-        private = original = None
-        if host == 'codex':
-            private = directory / 'codex-home'
-            original = prepare_codex_home(real_home, private)
+        login = CodexLogin(real_codex_home(self.environ), directory / 'codex-home').open() if host == 'codex' else None
         try:
             try:
                 code, out, err = self._run(command, payload.encode('utf-8', 'replace'), directory, timeout,
-                                           codex_home=private)
+                                           codex_home=login.private if login else None,
+                                           guard=codex_line_guard if login else None)
             except OSError as exc:
                 raise LabelerError(host + '_launch_failed:' + type(exc).__name__)
         finally:
-            if private is not None and finish_codex_home(real_home, private, original):
-                self.auth_writebacks += 1
+            if login is not None:
+                outcome = login.close()
+                self.auth_writebacks += outcome == 'written'
+                self.auth_writeback_skips += outcome == 'skipped'
         if code != 0:
             raise LabelerError('%s_exit_%s' % (host, code))
         try:
@@ -1212,6 +1482,8 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
             summary['reason'] = reason
         if getattr(run.backend, 'auth_writebacks', 0):
             summary['codexAuthWritebacks'] = run.backend.auth_writebacks
+        if getattr(run.backend, 'auth_writeback_skips', 0):
+            summary['codexAuthWritebackSkipped'] = run.backend.auth_writeback_skips
         write_json(run.run_dir / 'summary.json', summary)
         # An inspection run must never replace what the daily status shows.
         write_json(state / (LATEST_INSPECTION if inspection else LATEST), summary, exclusive=False)
@@ -1237,7 +1509,7 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
         try:
             ledger = load_ledger(state)
             run.cases, skipped = prepare_cases(config['root'], config['receipts'],
-                                               lambda wanted: TranscriptIndex(config['transcriptRoots'], wanted),
+                                               lambda wanted, bounds: TranscriptIndex(config['transcriptRoots'], wanted, bounds),
                                                ledger, taxonomy_sha, config)
         except (LabelerError, OSError, ValueError, KeyError, TypeError) as exc:
             return finish('unavailable', 1, 'selection_failed:%s:%s' % (type(exc).__name__, exc))
@@ -1296,6 +1568,7 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
 
     try:
         prune_runs(state, config['retainRuns'], run_id)
+        sweep_codex_homes(state, run_id)
         return body()
     except (Terminated, KeyboardInterrupt):
         try:
@@ -1314,6 +1587,48 @@ def import_run(config, run_dir):
     return _locked(state, lambda: _import_run(config, state, Path(run_dir)))
 
 
+RUN_RECORD_KEYS = ('schema', 'caseId', 'opportunityId', 'sourceSha256', 'taxonomyVersion', 'basis', 'humanAdjudicated',
+                   'status', 'contextPacketSha256', 'taxonomySha256', 'runId', 'annotators')
+
+
+def validate_run_records(records):
+    """Check a saved annotations.json before any of it is imported: complete records, unique ids, and for every
+    record that would become a label the same reviewer rules the live run enforces (CLI-metadata identity, a
+    model that is not an annotator). The generic batch_label stays permissive; this is the labeler's own boundary."""
+    if not isinstance(records, list):
+        raise LabelerError('annotations_malformed')
+    identities, cases = set(), set()
+    for record in records:
+        if not isinstance(record, dict) or any(key not in record for key in RUN_RECORD_KEYS):
+            raise LabelerError('annotations_record_incomplete')
+        if record['schema'] != labels.BATCH_SCHEMA or record['basis'] != 'ai_generated_model_reviewed' \
+                or record['humanAdjudicated'] is not False or not isinstance(record['status'], str):
+            raise LabelerError('annotations_record_basis')
+        if not all(isinstance(record[key], str) and labels.HEX.fullmatch(record[key])
+                   for key in ('opportunityId', 'sourceSha256', 'contextPacketSha256', 'taxonomySha256')) \
+                or not isinstance(record['caseId'], str) or not isinstance(record['annotators'], list):
+            raise LabelerError('annotations_record_incomplete')
+        if record['opportunityId'] in identities or record['caseId'] in cases:
+            raise LabelerError('annotations_duplicate_record')
+        identities.add(record['opportunityId'])
+        cases.add(record['caseId'])
+        if record['status'] != 'labeled':
+            continue
+        review = record.get('review')
+        if not isinstance(review, dict) or review.get('verdict') not in ('accept', 'revise') \
+                or review.get('actuallyRan') is not True:
+            raise LabelerError('annotations_record_not_reviewed')
+        if review.get('identitySource') not in CLI_IDENTITY_SOURCES \
+                or not all(isinstance(review.get(k), str) and review[k] for k in ('observedModel', 'requestedModel')):
+            raise LabelerError('annotations_reviewer_identity_not_cli_metadata')
+        annotators = [a for a in record['annotators'] if isinstance(a, dict)]
+        if {a.get('provider') for a in annotators} != {'claude', 'codex'} or len(annotators) != 2:
+            raise LabelerError('annotations_annotators_incomplete')
+        models = {a.get(key) for a in annotators for key in ('requestedModel', 'observedModel')}
+        if review['observedModel'] in models or review['requestedModel'] in models:
+            raise LabelerError('annotations_reviewer_is_an_annotator_model')
+
+
 def _import_run(config, state, run_dir):
     runs = (state / 'runs').resolve()
     if run_dir.is_symlink() or run_dir.resolve().parent != runs or not RUN_ID.fullmatch(run_dir.name):
@@ -1324,8 +1639,7 @@ def _import_run(config, state, run_dir):
         raise LabelerError('run_has_no_annotations')
     _, taxonomy_sha = load_taxonomy()
     records = json.loads(annotations.read_text())
-    if not isinstance(records, list) or any(not isinstance(r, dict) for r in records):
-        raise LabelerError('annotations_malformed')
+    validate_run_records(records)
     if any(r.get('taxonomySha256') != taxonomy_sha for r in records):
         raise LabelerError('taxonomy_changed_since_the_run')
     run_id = run_dir.name

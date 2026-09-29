@@ -202,7 +202,7 @@ def test_packets_recover_context_by_hash_and_carry_only_the_redacted_request(tmp
         ('assistant', 'the later answer is never included')], codex=True)
     transcript(tmp_path, OTHER_SESSION, [('user', other)])
     config = config_for(tmp_path)
-    cases, skipped = auto.prepare_cases(root, receipts, lambda w: auto.TranscriptIndex(config['transcriptRoots'], w),
+    cases, skipped = auto.prepare_cases(root, receipts, lambda w, b: auto.TranscriptIndex(config['transcriptRoots'], w, b),
                                         {}, 'f' * 64, {**config, 'force': False})
     assert skipped == {} and [c['contextStatus'] for c in cases] == ['ok', 'ok']
     case = next(c for c in cases if c['opportunityId'] == receipt['opportunityId'])
@@ -223,7 +223,7 @@ def test_claude_layout_and_long_text_are_bounded(tmp_path):
     root, receipts, receipt = make(tmp_path, prompt[:15000])
     transcript(tmp_path, SESSION, [('user', 'z' * 9000), ('user', prompt[:15000])])
     config = config_for(tmp_path)
-    cases, _ = auto.prepare_cases(root, receipts, lambda w: auto.TranscriptIndex(config['transcriptRoots'], w),
+    cases, _ = auto.prepare_cases(root, receipts, lambda w, b: auto.TranscriptIndex(config['transcriptRoots'], w, b),
                                   {}, 'f' * 64, {**config, 'force': False})
     packet = cases[0]['packet']
     assert packet['promptTruncated'] is True and len(packet['prompt']) < auto.PROMPT_LIMIT + 100
@@ -237,7 +237,7 @@ def test_recovery_needs_both_hashes_and_refuses_ambiguous_repeats(tmp_path):
     config = config_for(tmp_path)
 
     def prepare():
-        return auto.prepare_cases(root, receipts, lambda w: auto.TranscriptIndex(config['transcriptRoots'], w),
+        return auto.prepare_cases(root, receipts, lambda w, b: auto.TranscriptIndex(config['transcriptRoots'], w, b),
                                   {}, 'f' * 64, {**config, 'force': False})[0][0]
     assert prepare()['contextStatus'] == 'context_missing'
     transcript(tmp_path, OTHER_SESSION, [('user', prompt)])          # right text, wrong session
@@ -616,6 +616,14 @@ elif behavior == 'empty':
     open(codex_home + '/auth.json', 'w').write('')
 elif behavior == 'garbage':
     open(codex_home + '/auth.json', 'w').write('not json {')
+elif behavior == 'newkey':
+    open(codex_home + '/auth.json', 'w').write(json.dumps({'tokens': {'access': 'X'}, 'brand_new_top_level_key': 1}))
+elif behavior == 'tool':
+    import time
+    open(home + '/codex-tool.pid', 'w').write(str(os.getpid()))
+    print(json.dumps({'type': 'item.started', 'item': {'type': 'command_execution', 'command': 'pwd'}}), flush=True)
+    time.sleep(60)
+    open(home + '/tool-kept-running', 'w').write('yes')
 elif behavior == 'fail-refresh':
     open(codex_home + '/auth.json', 'w').write(json.dumps({'tokens': {'access': 'REFRESHED-THEN-FAILED'}}))
     sys.exit(3)
@@ -768,7 +776,7 @@ def raw_transcript(tmp_path, session, rows):
 
 def packet_for(tmp_path, root, receipts):
     config = config_for(tmp_path)
-    cases, _ = auto.prepare_cases(root, receipts, lambda w: auto.TranscriptIndex(config['transcriptRoots'], w),
+    cases, _ = auto.prepare_cases(root, receipts, lambda w, b: auto.TranscriptIndex(config['transcriptRoots'], w, b),
                                   {}, 'f' * 64, {**config, 'force': False})
     return cases[0]['packet']
 
@@ -778,8 +786,11 @@ def packet_for(tmp_path, root, receipts):
 def test_prior_context_skips_sidechain_compact_boilerplate_anywhere_and_widened_leaks(tmp_path):
     root, receipts, receipt = make(tmp_path, 'final request')
 
+    ticks = iter(range(100))
+
     def row(text, **flags):
-        return {'type': 'user', 'timestamp': '2026-09-29T14:00:00Z', 'message': {'role': 'user', 'content': text}, **flags}
+        return {'type': 'user', 'timestamp': '2026-09-29T14:00:%02dZ' % next(ticks),
+                'message': {'role': 'user', 'content': text}, **flags}
     rows = [row('kept first'),
             row('sub-agent brief', isSidechain=True),
             row('compact summary of the session', isCompactSummary=True),
@@ -812,7 +823,7 @@ def test_codex_refreshed_login_is_written_back_atomically_and_never_logged(cli):
     result = codex_call(backend)
     assert json.loads(real.read_text()) == {'tokens': {'access': 'REFRESHED-TOKEN-VALUE'}}
     assert stat.S_IMODE(real.stat().st_mode) == 0o600 and backend.auth_writebacks == 1
-    assert sorted(p.name for p in (home / '.codex').iterdir()) == ['AGENTS.md', 'auth.json', 'config.toml']  # no temp left
+    assert sorted(p.name for p in (home / '.codex').iterdir()) == ['.laya-auth.lock', 'AGENTS.md', 'auth.json', 'config.toml']  # no temp left
     assert 'REFRESHED-TOKEN-VALUE' not in json.dumps(result) and 'ORIGINAL-TOKEN-VALUE' not in json.dumps(result)
     assert not list(backend.workdir.glob('call-*/codex-home'))            # the private copy is gone
 
@@ -996,9 +1007,9 @@ def test_lone_surrogates_in_a_transcript_never_crash_the_run(tmp_path):
     root, receipts, receipt = make(tmp_path, 'add a report filter')
     path = tmp_path / 'transcripts/claude/-proj' / (SESSION + '.jsonl')
     path.parent.mkdir(parents=True)
-    rows = [{'type': 'user', 'message': {'role': 'user', 'content': 'earlier \ud83d question \ude00'}},
-            {'type': 'user', 'message': {'role': 'user', 'content': [{'type': 'text', 'text': 'and \udc00 this'}, {'type': 'text', 'text': 5}]}},
-            {'type': 'user', 'message': {'role': 'user', 'content': 'add a report filter'}}]
+    rows = [{'type': 'user', 'timestamp': '2026-09-29T14:00:01Z', 'message': {'role': 'user', 'content': 'earlier \ud83d question \ude00'}},
+            {'type': 'user', 'timestamp': '2026-09-29T14:00:02Z', 'message': {'role': 'user', 'content': [{'type': 'text', 'text': 'and \udc00 this'}, {'type': 'text', 'text': 5}]}},
+            {'type': 'user', 'timestamp': '2026-09-29T14:00:03Z', 'message': {'role': 'user', 'content': 'add a report filter'}}]
     path.write_text('\n'.join(json.dumps(r) for r in rows) + '\n')
     assert '\\ud83d' in path.read_text()
     summary, code = go(tmp_path, FakeBackend())
@@ -1273,3 +1284,280 @@ def test_the_output_schema_file_is_private(cli):
     codex_call(backend)
     schemas = list(backend.workdir.glob('call-*/schema.json'))
     assert len(schemas) == 2 and all(stat.S_IMODE(p.stat().st_mode) == 0o600 for p in schemas)
+
+
+# ---- structural boundary for prior context -----------------------------------------------------------
+
+def stamped(offset_seconds):
+    """An ISO timestamp relative to now (the receipts of a test are created now)."""
+    from datetime import datetime, timedelta, timezone
+    return (datetime.now(timezone.utc) + timedelta(seconds=offset_seconds)).isoformat()
+
+
+def stamped_rows(turns):
+    return [{'type': 'user', 'timestamp': when, 'message': {'role': 'user', 'content': text}} for when, text in turns]
+
+
+def test_prior_context_stops_at_the_first_pilot_artifact_of_the_session(tmp_path):
+    root, receipts, receipt = make(tmp_path, 'final request')
+    raw_transcript(tmp_path, SESSION, stamped_rows([
+        (stamped(-7200), 'typed long before the pilot existed'), (stamped(-3600), 'typed an hour before'),
+        (stamped(3600), 'typed after outputs could have been surfaced'), (stamped(7200), 'final request')]))
+    packet = packet_for(tmp_path, root, receipts)
+    assert [t['text'] for t in packet['precedingContext']] == ['typed long before the pilot existed', 'typed an hour before']
+    # The bound is the earlier of the prompt and the first artifact: a prompt sent before it also bounds the context.
+    raw_transcript(tmp_path, SESSION, stamped_rows([
+        (stamped(-7200), 'early'), (stamped(-1800), 'late but still before'), (stamped(-600), 'final request')]))
+    assert [t['text'] for t in packet_for(tmp_path, root, receipts)['precedingContext']] == ['early', 'late but still before']
+
+
+def test_prior_context_is_omitted_when_the_boundary_or_a_timestamp_cannot_be_established(tmp_path):
+    root, receipts, receipt = make(tmp_path, 'final request')
+    session = receipt['sessionHash']
+    rows = stamped_rows([(stamped(-7200), 'early one'), (stamped(-3600), 'early two'), (stamped(-60), 'final request')])
+    raw_transcript(tmp_path, SESSION, rows)
+
+    def scan(boundaries, transcript_rows=None):
+        if transcript_rows:
+            raw_transcript(tmp_path, SESSION, transcript_rows)
+        index = auto.TranscriptIndex(config_for(tmp_path)['transcriptRoots'], {session: {receipt['promptHash']}}, boundaries)
+        return index.matches(session, receipt['promptHash'])[0]['prior']
+    assert [t['text'] for t in scan({session: 4102444800.0})] == ['early one', 'early two']    # year 2100: a control
+    assert scan(None) == [] and scan({}) == [] and scan({session: None}) == []             # unknown boundary
+    # The prompt's own record has no usable timestamp: the limit cannot be established.
+    broken = stamped_rows([(stamped(-7200), 'early one'), (stamped(-3600), 'early two')]) + [
+        {'type': 'user', 'message': {'role': 'user', 'content': 'final request'}}]
+    assert scan({session: 4102444800.0}, broken) == []
+    # A prior turn without a timestamp is left out; its neighbours stay.
+    mixed = [{'type': 'user', 'message': {'role': 'user', 'content': 'undated'}}] + stamped_rows([
+        (stamped(-3600), 'dated'), (stamped(-60), 'final request')])
+    assert [t['text'] for t in scan({session: 4102444800.0}, mixed)] == ['dated']
+
+
+def test_session_boundaries_take_the_earliest_artifact_and_fail_closed(tmp_path):
+    root, receipts, first = make(tmp_path, 'first request', turn='a')
+    _, _, second = make(tmp_path, 'second request', turn='b')
+    rows = v2.joined(root, receipts)
+    bounds = auto.session_boundaries(rows)
+    earliest = min(auto._timestamp(r['receipt']['observedAt']) for r in rows)
+    assert bounds == {first['sessionHash']: min(earliest, *[r['observation']['createdAt'] for r in rows])}
+    broken = [{**row, 'receipt': {**row['receipt'], 'observedAt': 'garbage'}} if row['id'] == second['opportunityId'] else row
+              for row in rows]
+    assert auto.session_boundaries(broken) == {first['sessionHash']: None}
+    assert auto.session_boundaries(list(reversed(broken))) == {first['sessionHash']: None}
+
+
+# ---- round 2: Codex login handling and the early tool kill -------------------------------------------
+
+def test_a_refresh_with_new_top_level_keys_or_without_the_lock_is_skipped_and_counted(cli):
+    backend, home, claude, codex = cli
+    real = home / '.codex/auth.json'
+    original = real.read_text()
+    (home / 'codex-behavior').write_text('newkey')
+    codex_call(backend)
+    assert real.read_text() == original and backend.auth_writebacks == 0 and backend.auth_writeback_skips == 1
+    (home / 'codex-behavior').write_text('refresh')
+    with open(home / '.codex/.laya-auth.lock', 'w') as held:                  # another labeler is between copy and write-back
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        result = codex_call(backend)
+    assert result['answer'] == {'answers': []} and real.read_text() == original
+    assert backend.auth_writebacks == 0 and backend.auth_writeback_skips == 2
+    codex_call(backend)                                                       # the lock is free again: the refresh lands
+    assert json.loads(real.read_text())['tokens']['access'] == 'REFRESHED-TOKEN-VALUE' and backend.auth_writebacks == 1
+
+
+def test_the_real_login_is_opened_without_following_symlinks_and_must_be_ours(cli, tmp_path):
+    backend, home, claude, codex = cli
+    real = home / '.codex/auth.json'
+    target = tmp_path / 'elsewhere.json'
+    target.write_text(real.read_text())
+    real.unlink()
+    real.symlink_to(target)
+    for action in (lambda: codex_call(backend), lambda: backend.preflight('codex')):
+        with pytest.raises(auto.LabelerError, match='codex_auth_unavailable'):
+            action()
+    real.unlink()
+    real.mkdir()                                                              # not a regular file
+    with pytest.raises(auto.LabelerError, match='codex_auth_unavailable'):
+        codex_call(backend)
+    assert not (home / 'codex-call.json').exists()
+
+
+def test_writeback_and_skip_counts_reach_the_run_summary(cli, tmp_path):
+    backend, home, claude, codex = cli
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    (home / 'codex-behavior').write_text('refresh')
+    summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
+    assert summary['codexAuthWritebacks'] == 1 and 'codexAuthWritebackSkipped' not in summary
+    assert 'REFRESHED-TOKEN-VALUE' not in json.dumps(summary)
+    (home / 'codex-behavior').write_text('newkey')
+    summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock(), force=True)
+    assert summary['codexAuthWritebackSkipped'] == 1
+
+
+def test_stale_private_codex_homes_from_a_killed_run_are_swept_at_start(tmp_path):
+    root, receipts, receipt = make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    runs = tmp_path / 'state/runs'
+    old = runs / '20260901T000000Z-aaaaaaaa'
+    (old / 'call-001-codex/codex-home').mkdir(parents=True)
+    (old / 'call-001-codex/codex-home/auth.json').write_text('{"tokens": {"a": "b"}}')
+    keep = tmp_path / 'outside-codex-home'
+    keep.mkdir()
+    (keep / 'auth.json').write_text('untouched')
+    (runs / '20260902T000000Z-bbbbbbbb/call-001-codex').mkdir(parents=True)
+    (runs / '20260902T000000Z-bbbbbbbb/call-001-codex/codex-home').symlink_to(keep)
+    go(tmp_path, FakeBackend(), no_import=True)
+    assert not (old / 'call-001-codex/codex-home').exists() and (old / 'call-001-codex').is_dir()
+    assert (keep / 'auth.json').read_text() == 'untouched'                    # a symlink is never followed
+
+
+def test_a_codex_tool_item_is_killed_on_the_first_line_and_recorded_as_a_failure(cli):
+    backend, home, claude, codex = cli
+    (home / 'codex-behavior').write_text('tool')
+    started = time.monotonic()
+    with pytest.raises(auto.LabelerError, match='codex_attempted_a_tool_or_item'):
+        codex_call(backend)
+    assert time.monotonic() - started < 15                                    # not the 30 s call timeout, let alone 60 s
+    pid = int((home / 'codex-tool.pid').read_text())
+    for _ in range(50):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError('the Codex process outlived its tool attempt')
+    assert not (home / 'tool-kept-running').exists() and not list(backend.workdir.glob('call-*/codex-home'))
+    # The guard alone: reasoning and messages pass, anything else (or a malformed item) raises, noise is ignored.
+    for fine in ({'type': 'item.completed', 'item': {'type': 'reasoning'}}, {'type': 'turn.started'}):
+        auto.codex_line_guard(json.dumps(fine).encode())
+    auto.codex_line_guard(b'not json')
+    for bad in ({'type': 'item.started', 'item': {'type': 'file_change'}}, {'type': 'item.completed'},
+                {'type': 'item.started', 'item': 'text'}):
+        with pytest.raises(auto.LabelerError):
+            auto.codex_line_guard(json.dumps(bad).encode())
+
+
+# ---- round 2: ledger counting, run-import validation, and confirmations ------------------------------
+
+def test_import_pending_rows_never_use_up_attempts_but_model_failures_still_do(tmp_path, monkeypatch):
+    root, receipts, receipt = make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    real = labels.import_batch
+
+    def skipping(*args, **kwargs):
+        result = real(*args, dry_run=True, **{k: v for k, v in kwargs.items() if k != 'dry_run'})
+        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': 'label store busy'} for d in result['dispositions']]}
+    monkeypatch.setattr(labels, 'import_batch', skipping)
+    for attempt in range(auto.MAX_ATTEMPTS + 2):
+        summary, code = go(tmp_path, FakeBackend())
+        assert code == 3 and summary['status'] == 'incomplete' and summary['importSkipped'] == {'label store busy': 1}, attempt
+        assert summary['selected'] == 1                                                  # never suppressed
+    assert all(row['terminal'] is False and row['disposition'] == 'skipped' for row in ledger_rows(tmp_path))
+    ledger = auto.load_ledger(tmp_path / 'state')
+    assert list(ledger.values()) == [{'terminal': False, 'failures': 0}]
+    # A failed import (BlockingIOError) is the same: retryable however often it recurs.
+    monkeypatch.setattr(labels, 'import_batch', lambda *a, **k: (_ for _ in ()).throw(BlockingIOError(11, 'busy')))
+    for _ in range(auto.MAX_ATTEMPTS + 1):
+        assert go(tmp_path, FakeBackend())[0]['reason'] == 'import_failed'
+    assert list(auto.load_ledger(tmp_path / 'state').values()) == [{'terminal': False, 'failures': 0}]
+    monkeypatch.setattr(labels, 'import_batch', real)
+    assert go(tmp_path, FakeBackend())[0]['status'] == 'completed'
+    # Control: genuine model failures are still counted and stop after MAX_ATTEMPTS, and deadline cut-offs never count.
+    root2 = tmp_path / 'second'
+    root2.mkdir()
+    make(root2, 'do the thing')
+    transcript(root2, SESSION, [('user', 'do the thing')])
+    for _ in range(auto.MAX_ATTEMPTS):
+        go(root2, FakeBackend(annotate=lambda host, case: {**ANSWER, 'family': 'not_a_family'}))
+    assert go(root2, FakeBackend())[0]['skipped'] == {'already_attempted': 1}
+    root3 = tmp_path / 'third'
+    root3.mkdir()
+    make(root3, 'another thing')
+    transcript(root3, SESSION, [('user', 'another thing')])
+
+    class Late(FakeBackend):
+        def call(self, host, model, system, prompt, schema, timeout):
+            raise auto.LabelerError('timed_out')
+    for _ in range(auto.MAX_ATTEMPTS + 2):
+        summary, _ = go(root3, Late(), config={'deadlineSeconds': 200, 'callTimeoutSeconds': 900})
+        assert summary['outcomes'] == {'not_attempted': 1} and summary['selected'] == 1
+    assert go(root3, FakeBackend())[0]['status'] == 'completed'
+
+
+def _saved_run(tmp_path):
+    root, receipts, receipt = make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    summary, _ = go(tmp_path, FakeBackend(), no_import=True)
+    path = Path(summary['runDir']) / 'annotations.json'
+    return root, receipts, path, json.loads(path.read_text())
+
+
+def test_import_run_validates_the_saved_records_before_importing_anything(tmp_path):
+    root, receipts, path, records = _saved_run(tmp_path)
+    record = records[0]
+    reviewer_is_annotator = json.loads(json.dumps(record))
+    reviewer_is_annotator['review']['observedModel'] = record['annotators'][0]['observedModel']
+    self_reported = json.loads(json.dumps(record))
+    self_reported['review']['identitySource'] = 'model_self_report'
+    unreviewed = {**record, 'review': None}
+    one_annotator = {**record, 'annotators': record['annotators'][:1]}
+    missing = {k: v for k, v in record.items() if k != 'sourceSha256'}
+    human = {**record, 'humanAdjudicated': True}
+    bad_id = {**record, 'opportunityId': 'not-a-digest'}
+    cases = [([record, record], 'annotations_duplicate_record'),
+             ([record, {**record, 'opportunityId': 'f' * 64}], 'annotations_duplicate_record'),      # same caseId, new id
+             ([missing], 'annotations_record_incomplete'), ([bad_id], 'annotations_record_incomplete'),
+             ([human], 'annotations_record_basis'), ([unreviewed], 'annotations_record_not_reviewed'),
+             ([self_reported], 'annotations_reviewer_identity_not_cli_metadata'),
+             ([reviewer_is_annotator], 'annotations_reviewer_is_an_annotator_model'),
+             ([one_annotator], 'annotations_annotators_incomplete'), ({'not': 'a list'}, 'annotations_malformed'),
+             (['junk'], 'annotations_record_incomplete')]
+    for altered, reason in cases:
+        path.write_text(json.dumps(altered))
+        with pytest.raises(auto.LabelerError, match=reason):
+            auto.import_run(config_for(tmp_path), path.parent)
+        assert labels.load_labels(root) == [] and ledger_rows(tmp_path) == [], reason
+    path.write_text(json.dumps(records))                                                        # the control
+    assert auto.import_run(config_for(tmp_path), path.parent)[0]['import']['results'] == {'recorded': 1}
+    # Non-label records (no reviewer involved) stay valid.
+    other = {**record, 'opportunityId': 'e' * 64, 'caseId': 'C002', 'status': 'checker_disagreement', 'review': None}
+    auto.validate_run_records([record, other])
+
+
+def test_review_batches_follow_the_full_prompt_including_proposals(tmp_path, monkeypatch):
+    prompts = ['request %d %s' % (n, 'z' * 3000) for n in range(3)]
+    for n, prompt in enumerate(prompts):
+        make(tmp_path, prompt, turn='t%d' % n)
+    transcript(tmp_path, SESSION, [('user', prompt) for prompt in prompts])
+    big = tmp_path / 'big.md'
+    big.write_text('# Taxonomy\n' + 'rule text. ' * 1800)
+    monkeypatch.setattr(auto, 'TAXONOMY_DOC', big)
+    prepared, _ = go(tmp_path, FakeBackend(), prepare_only=True)
+    packets = read_run_file(prepared, 'packets.json')
+    sizes = [auto.entry_bytes(p) for p in packets]          # later packets carry the earlier prompts as context
+    budget = len(auto.annotation_prompt(big.read_text(), []).encode()) + sizes[0] + sizes[1] + 100
+    backend = FakeBackend()
+    summary, code = go(tmp_path, backend, config={'packetBytes': budget})
+    assert code == 0 and summary['outcomes'] == {'labeled': 3}
+    annotate = [c for c in backend.calls if 'answers' in c['schema']['properties']]
+    review = [c for c in backend.calls if 'reviews' in c['schema']['properties']]
+    assert len(annotate) == 4 and len(review) == 3                       # two annotate batches; the pair splits in review
+    assert sorted(len(cases_in(c['prompt'])) for c in annotate) == [1, 1, 2, 2]
+    assert all(len(c['prompt'].encode()) <= budget for c in backend.calls if len(cases_in(c['prompt'])) > 1)
+    assert sorted(len(cases_in(c['prompt'])) for c in review) == [1, 1, 1]      # proposals push the pair over budget
+
+
+def test_pruning_never_follows_a_symlinked_runs_directory(tmp_path):
+    state = tmp_path / 'state'
+    state.mkdir(mode=0o700)
+    outside = tmp_path / 'outside'
+    victims = [outside / ('2026092%dT000000Z-0000000%d' % (n, n)) for n in range(1, 4)]
+    for victim in victims:
+        victim.mkdir(parents=True)
+        (victim / 'keep.txt').write_text('mine')
+    (state / 'runs').symlink_to(outside)
+    assert auto.prune_runs(state, 1, 'current') == 0 and auto.sweep_codex_homes(state, 'current') == 0
+    assert all((v / 'keep.txt').read_text() == 'mine' for v in victims)
