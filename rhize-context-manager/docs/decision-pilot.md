@@ -308,9 +308,13 @@ Each pass:
    need a left edge or a camelCase boundary (`userAuth`), and `npm config set <key> <value>` is covered. A word that
    sits where the value would be (`{"name":"DB_PASSWORD","value":..}`, `<password>..`, a table header, `ENV SECRET v`,
    netrc `password v`, `Set X to v`) takes its line and the value line below it, and a value below its key inside
-   `[..]`/`{..}` or a YAML list or block is redacted to the closing bracket. Every bound fails closed: a container
-   still open at 50 lines or 4K characters, a YAML block open at the cap, or more than 20,000 escapes redacts the
-   rest. Base64 runs are judged by entropy, so one with no digit is caught. Only the head of a message is ever kept.
+   `[..]`/`{..}` (string-aware, also one the key line itself opens) or a YAML list or block (any header:
+   `|2`, `>2-`, `!!binary |`, `&a |`, `| # c`) is redacted to its end, k8s `name:` / `valueFrom:` / `value:` included.
+   `pwd=`, `DB_PWD=`, `my pass is v` and the arrow `→` are covered while the bare `pwd` command is not, and npm/pnpm
+   `set`/`config set` (flags allowed) and `--otp` are covered. Every bound fails closed: a container still open at
+   50 lines or 4K characters (counted from where it started), a YAML block open at the cap, or more than 20,000
+   escapes redacts the rest of the message. Base64 runs are judged by entropy, so one with no digit is caught, unless the run is a path or URL path made of
+identifier-like segments (words, camelCase, snake or kebab case) with no `+` or `=`. Only the head of a message is ever kept.
    Every pattern is length-bounded and every scan is linear. It is defense in depth, not a
    guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
@@ -353,8 +357,9 @@ characters of user instructions), config, rules and memories are not sent (measu
 private one). If the CLI refreshed the token during the call, `auth.json` is written back
 atomically (same-directory temp file, 0600, rename) only when the content changed, is a non-empty
 JSON object that keeps every key and every non-empty value the original had (including each
-`tokens` sub-key; values may change, since refresh tokens rotate) and adds only known names (`last_refresh`, the
-four `tokens` names, taken from the real file's key names), the real file still holds what was copied, and a
+`tokens` sub-key; values may change, since refresh tokens rotate), adds only known names (`last_refresh`, the
+four `tokens` names, taken from the real file's key names), leaves `auth_mode` unchanged, keeps a null
+`OPENAI_API_KEY` null (no API-key fallback) and holds only non-empty strings in `last_refresh` and `tokens`, the real file still holds what was copied, and a
 dedicated lock (`<codex home>/.laya-auth.lock`) held from copy to write-back was
 obtained. The real `auth.json` is opened without following symlinks and must be a regular file we
 own. The summary records only that a write-back happened (`codexAuthWritebacks`) or that changed
@@ -364,8 +369,12 @@ is unaffected). Never content. The private copy is removed
 after every call, including failures, and copies left by a killed run are swept at the next start.
 A login kept only in the keychain (no `auth.json`) fails closed with `codex_auth_unavailable`.
 Codex output is checked line by line as it arrives, including a last line with no trailing newline:
-any `item.*` event that is not reasoning or a message (a tool attempt) or a line that is not a JSON object kills
-the process group and fails the call. Residual: Codex still lists the skills under `$HOME/.agents/skills`
+any `item.*` event other than `agent_message`, `reasoning` or `error` (a tool attempt), or a line that is not a JSON
+object, kills the process group and fails the call. `error` items are Codex-side warnings (the canary showed
+"Code Mode is unavailable because code-mode host is disabled", which our own lockdown causes, and transport
+fallbacks): they are recorded, at most five per call, 200 characters each and redacted, as `codexWarnings` in the call
+record and can never supply the answer. Top-level `error` events (reconnect notices) are counted as
+`codexTransientErrors` and fail a call only when the turn then fails or never completes. Residual: Codex still lists the skills under `$HOME/.agents/skills`
 (names and descriptions, about 15K characters); an empty `HOME` for the Codex child would drop
 that catalog. Run `codex debug prompt-input` with the private home during the live canary to confirm
 the prompt. Before any model call the run checks `claude auth status` (must be
