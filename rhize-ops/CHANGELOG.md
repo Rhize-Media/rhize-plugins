@@ -11,6 +11,11 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 0.28.1 → 0.29.0 (minor); marketplace 2.96.0 → 2.97.0.
+- _2026-09-29_ delegate-to-teammate Step 2 now also checks Slack audio: clips and huddle recordings, using their auto-generated transcript or huddle-notes canvas, alongside Fireflies.
+  - The AskUserQuestion asks about "a Fireflies meeting OR a Slack audio clip/huddle".
+  - The per-source procedure lives in the new `references/meeting-context-sources.md`: the connector's search tool with `has:file`, huddle keywords, and a date filter, then its file-read or canvas-read tool. Audio with no transcript text is reported and skipped, never decoded or guessed.
+  - The Content Trust Boundary covers Slack transcript/notes text. The Slack permalink goes in the Meeting Context section and the Jira links block, the same way the Fireflies URL does.
 - _2026-09-29_ version bump — 0.28.0 → 0.28.1 (patch); marketplace 2.91.3 → 2.91.4.
 - _2026-09-29_ rhize-bridge MCP version negotiation:
   - `initialize` with an unsupported `protocolVersion` now gets 2025-11-25, the latest supported legacy revision, as the legacy lifecycle specifies. It used to be silently downgraded to 2025-03-26.

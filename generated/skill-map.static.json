@@ -4390,15 +4390,15 @@
       "treeHash": "41cf92a6d21c4c1d92e32e0d84501e670ac4e2519db8f2f329d10492012dbe3b"
     },
     {
-      "contentHash": "87ae431525253d064d7e92b28ec515caa994c470068b0d57811e4116cadf3bf6",
+      "contentHash": "901ffcb39f5c5706bf9c808c2cdfc0b2d31575b9e9b9a042d08c7d83e18bfb74",
       "description": "Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the full handoff brief to Confluence and vault notes as attachments on the Jira issue, and notifying via Slack. ALWAYS use this skill when the user says \"delegate this to [name]\", \"hand this off to [name]\", \"assign this to [name]\", \"send this to [name]\", \"[name] should handle this\", \"create a task for [name]\", or any variation of asking someone to take over a task. Also trigger on a bare \"delegate\", \"hand off\", or \"assign\" in the context of passing work to someone else — the default recipient is whoever is configured at ~/.claude/rhize-ops/delegate.config.json. Run `/rhize-ops:delegate-setup` first if no config exists.",
-      "fileCount": 4,
+      "fileCount": 5,
       "id": "skill:rhize-ops/delegate-to-teammate",
       "kind": "skill",
       "name": "delegate-to-teammate",
       "path": "rhize-ops/skills/delegate-to-teammate/SKILL.md",
-      "totalBytes": 48580,
-      "treeHash": "667e6e743215af7bae6a1ef0982ea68890c33f775ed20d173fe0406bd9e64242"
+      "totalBytes": 52460,
+      "treeHash": "8b3b60ea7521455cc34cf9c62a85ab6cd28ca018be7f5bfd4c5030d3245f5faa"
     },
     {
       "contentHash": "1225e0c07d5fa0f5df8e1e8ae7735735faa4addc098d628e9f0bfacd589a10b6",

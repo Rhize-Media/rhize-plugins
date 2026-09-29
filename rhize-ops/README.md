@@ -30,7 +30,7 @@ previously cached plugin snapshot is not mistaken for the release.
 
 ### `delegate-to-teammate`
 
-Turns the work from the current session into a clearly structured hand-off package for a configured teammate. Handles the full delegation pipeline: context gathering, Fireflies transcript analysis, task formatting, tracker issue creation, Confluence handoff-brief publishing, Jira attachments, and Slack notification with an @mention.
+Turns the work from the current session into a clearly structured hand-off package for a configured teammate. Handles the full delegation pipeline: context gathering, meeting-context lookup (Fireflies transcripts, or Slack audio clips and huddles that have a transcript or huddle-notes canvas), task formatting, tracker issue creation, Confluence handoff-brief publishing, Jira attachments, and Slack notification with an @mention.
 
 **What it writes where:**
 

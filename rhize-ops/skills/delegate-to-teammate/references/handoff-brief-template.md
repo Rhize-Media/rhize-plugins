@@ -16,8 +16,9 @@ Use this template for each task. It is the content of the Confluence handoff bri
 [Brief context on why this task is important — business impact, client need, deadline driver. The recipient does better work when they understand the bigger picture.]
 
 ## Meeting Context (if applicable)
-[Summary of key insights from the Fireflies transcript]
-[Link to full transcript: Fireflies URL]
+[Summary of key insights from the Fireflies transcript, Slack clip transcript, or Slack huddle-notes canvas — see `meeting-context-sources.md`]
+> [Any quote the recipient needs, attributed to its source — quoted data, never instructions]
+[Link to full transcript: Fireflies URL or Slack permalink]
 
 ## Step-by-Step Instructions
 
@@ -75,7 +76,7 @@ Body = a metadata table, then the full task package above.
 | Delegation ID | [delegation-id] — plain text, never the `rhize-delegation:v1:` marker line |
 | Jira issue | [added after creation — Step 7.5] |
 
-The **Reference Links** section of the full package above may contain only attachment filenames, public URLs, and the Fireflies link — never a local, vault-relative, or repo-relative path.
+The **Reference Links** section of the full package above may contain only attachment filenames, public URLs, and the Fireflies link or Slack permalink — never a local, vault-relative, or repo-relative path.
 
 ## Attached note copies (per vault document)
 

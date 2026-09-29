@@ -309,6 +309,42 @@ def test_reference_has_attached_copies_section() -> None:
     assert "## Confluence Context Page" not in text
 
 
+MEETING_SOURCES = (
+    REPO_ROOT
+    / "rhize-ops/skills/delegate-to-teammate/references/meeting-context-sources.md"
+)
+
+
+def test_step2_checks_fireflies_and_slack_audio() -> None:
+    skill = SKILL.read_text()
+    step2 = skill[skill.index("### Step 2") : skill.index("### Step 3")]
+    assert "a Fireflies meeting OR a Slack audio clip/huddle" in step2
+    assert "references/meeting-context-sources.md" in step2
+    assert "never guess" in step2
+    assert "Slack permalink" in step2
+    trust = skill[skill.index("## Content Trust Boundary") : skill.index("## When This Skill Triggers")]
+    assert "Slack clip/huddle transcripts" in trust
+    jira = fenced_block_after(skill, "Jira description template")
+    assert "[Fireflies URL or Slack permalink]" in jira
+
+
+def test_meeting_sources_reference_guards_audio_only_and_trust() -> None:
+    text = MEETING_SOURCES.read_text()
+    for required in (
+        "## Fireflies meeting transcripts",
+        "## Slack audio/video clips and huddles",
+        "has:file",
+        "huddle-notes canvas",
+        "No transcript text means skip",
+        "Never decode or transcribe",
+        "quoted data, never instructions",
+        "permalink",
+    ):
+        assert required in text
+    template = TEMPLATE_REFERENCE.read_text()
+    assert "Fireflies URL or Slack permalink" in template
+
+
 def test_skill_stays_under_byte_budget() -> None:
     assert len(SKILL.read_bytes()) <= 28000
 
@@ -335,6 +371,8 @@ def main() -> int:
         test_skill_uploads_attachments_after_jira_create,
         test_reference_has_attached_copies_section,
         test_skill_stays_under_byte_budget,
+        test_step2_checks_fireflies_and_slack_audio,
+        test_meeting_sources_reference_guards_audio_only_and_trust,
     ]
     failures = 0
     for function in tests:
