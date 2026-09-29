@@ -21,6 +21,10 @@ import time
 import uuid
 
 VERSION = "1.0.0"
+# Legacy (initialize-based) MCP revisions this stdio server speaks, oldest first.
+# The server is deliberately legacy-only: it does not implement the stateless
+# 2026-07-28 revision, so it must never look modern to a dual-era client.
+PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
 MAX_INPUT = 64000
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_CHANGES = 256000
@@ -501,10 +505,19 @@ def serve(bridge):
         method, params = message["method"], message.get("params", {})
         try:
             if method == "initialize":
+                # Legacy lifecycle: echo a supported version; otherwise answer
+                # another supported one, which SHOULD be the latest.
                 requested = params.get("protocolVersion")
-                version = requested if requested in {"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"} else "2025-03-26"
+                version = requested if requested in PROTOCOL_VERSIONS else PROTOCOL_VERSIONS[-1]
                 result = {"protocolVersion": version, "capabilities": {"tools": {}}, "serverInfo": {"name": "rhize-agent-bridge", "version": VERSION}}
                 initialized = True
+            elif method == "server/discover":
+                # A dual-era client probes stdio servers with server/discover and
+                # falls back to initialize on any error that is not a recognized
+                # modern error. Method-not-found keeps that fallback deterministic;
+                # a DiscoverResult would make the client stay modern.
+                return {**response, "error": {"code": -32601, "message": "Method not found: legacy MCP server, use initialize",
+                                              "data": {"supported": list(PROTOCOL_VERSIONS)}}}
             elif not initialized:
                 raise BridgeError("initialize first")
             elif method == "ping":

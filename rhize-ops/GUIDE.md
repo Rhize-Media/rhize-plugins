@@ -34,6 +34,10 @@ Use this for second opinions and small, well-described edits. Keep broad reposit
 exploration and multi-system migrations with the coordinator. The bridge does not grant
 permission to deploy, publish, upgrade software or send messages.
 
+The bridge runs from a pinned copy under `~/.rhize/agent-bridge-releases/<version>/`. Updating
+the plugin does not change the running bridge. Reinstall it from the new release with the
+[install steps](docs/agent-bridge.md#install-and-verify) to pick up a bridge fix.
+
 ## Skills Reference
 
 ### delegate-to-teammate

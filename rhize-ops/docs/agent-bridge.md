@@ -38,8 +38,19 @@ the coordinator to test and integrate. Workers have no tools in either direction
 
 ## Runtime contract
 
-The implementation uses the MCP [stdio transport](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports)
-and [tools protocol](https://modelcontextprotocol.io/specification/2025-03-26/server/tools).
+The implementation uses the MCP [stdio transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)
+and [tools protocol](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
+It is a legacy (initialize-based) server, supporting protocol revisions 2024-11-05 through
+2025-11-25. It answers a requested supported version verbatim. For any other version it answers
+2025-11-25, the latest it supports, as the legacy
+[lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) specifies.
+
+It does not implement the stateless 2026-07-28 revision. A `server/discover` probe gets
+`-32601 Method not found`, with the supported versions in `data.supported`. That is a
+non-modern error, so a dual-era client falls back to `initialize`, as the
+[2026-07-28 versioning rules](https://modelcontextprotocol.io/specification/2026-07-28/basic/lifecycle)
+describe. A client that speaks only the stateless revision cannot use this server until it
+gains dual-era support.
 Only JSON-RPC goes to stdout. Requests return quickly with durable job IDs. SQLite
 binds a UUID to one origin and input, so identical retries never spawn another worker;
 changed requests using the same UUID are rejected. At most two workers run per

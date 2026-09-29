@@ -129,7 +129,7 @@ Request an independent review or bounded file task from Claude in Codex, or Code
 Claude. Both use the same `rhize-bridge` MCP contract. Workers have no tools; task results
 are validated file proposals in an isolated copy. The coordinator owns testing,
 integration and existing approval gates. Native subscription logins are required;
-there is no API-key or model fallback. See [operations and rollback](docs/agent-bridge.md).
+there is no API-key or model fallback. The bridge is a legacy stdio MCP server (up to protocol 2025-11-25). It sends dual-era clients back to `initialize` rather than claiming the stateless 2026-07-28 revision. See [operations and rollback](docs/agent-bridge.md).
 
 ## Commands
 

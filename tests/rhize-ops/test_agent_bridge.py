@@ -242,6 +242,35 @@ def test_job_failures_never_become_success(monkeypatch, tmp_path, failure, origi
         bridge.close()
 
 
+def _stdio(tmp_path, messages):
+    run = subprocess.run([sys.executable, str(SCRIPT), "--origin", "codex", "--state-dir", str(tmp_path.resolve() / "state")],
+                         input="\n".join(map(json.dumps, messages)) + "\n", text=True, capture_output=True, timeout=10)
+    assert run.returncode == 0, run.stderr
+    return [json.loads(line) for line in run.stdout.splitlines()]
+
+
+@pytest.mark.parametrize(("requested", "answered"), [("2025-03-26", "2025-03-26"), ("2025-11-25", "2025-11-25"),
+                                                     ("2026-07-28", "2025-11-25"), (None, "2025-11-25")])
+def test_initialize_answers_requested_or_latest_supported(tmp_path, requested, answered):
+    params = {} if requested is None else {"protocolVersion": requested}
+    rows = _stdio(tmp_path, [{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": params}])
+    assert rows[0]["result"]["protocolVersion"] == answered
+    assert "extensions" not in rows[0]["result"]["capabilities"]
+
+
+def test_server_discover_is_a_non_modern_error_before_and_after_initialize(tmp_path):
+    rows = _stdio(tmp_path, [{"jsonrpc": "2.0", "id": 1, "method": "server/discover", "params": {}},
+                             {"jsonrpc": "2.0", "id": 2, "method": "initialize", "params": {"protocolVersion": "2025-11-25"}},
+                             {"jsonrpc": "2.0", "id": 3, "method": "server/discover", "params": {}}])
+    for row in (rows[0], rows[2]):
+        assert "result" not in row
+        # -32601 is not a modern MCP error (those are -32020..-32099), so a
+        # dual-era client falls back to initialize instead of staying modern.
+        assert row["error"]["code"] == -32601
+        assert row["error"]["data"]["supported"] == list(b.PROTOCOL_VERSIONS)
+    assert rows[1]["result"]["protocolVersion"] == "2025-11-25"
+
+
 @pytest.mark.parametrize("error", [subprocess.TimeoutExpired("git", 10), b.sqlite3.OperationalError("database is locked")])
 def test_submission_operational_failure_keeps_connection_alive(monkeypatch, tmp_path, capsys, error):
     import io

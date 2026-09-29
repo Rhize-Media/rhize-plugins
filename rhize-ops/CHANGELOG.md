@@ -11,6 +11,12 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 0.28.0 → 0.28.1 (patch); marketplace 2.91.3 → 2.91.4.
+- _2026-09-29_ rhize-bridge MCP version negotiation:
+  - `initialize` with an unsupported `protocolVersion` now gets 2025-11-25, the latest supported legacy revision, as the legacy lifecycle specifies. It used to be silently downgraded to 2025-03-26.
+  - `server/discover` gets `-32601` with `data.supported`, a non-modern error, so dual-era clients on the 2026-07-28 revision fall back to `initialize` deterministically. The bridge never claims the stateless revision.
+  - Supported versions: `PROTOCOL_VERSIONS`.
+  - The running bridge is a pinned release copy. Hosts pick this up only after reinstalling the bridge per `docs/agent-bridge.md`.
 - _2026-09-27_ version bump — 0.27.0 → 0.28.0 (minor); marketplace 2.87.0 → 2.88.0.
 - _2026-09-27_ Task-graph v2 nodes may declare `isolation: {kind: "worktree"|"copy", root_fingerprint}`. Writers now serialize per checkout root: lanes in distinct isolated roots get no `write_lock` edge and can share a wave, within `host_worker_cap`. The same-root collision and ordering rules are unchanged. Isolation fails closed without verified host `isolated_worktrees` support. It also requires a graph-level `shared_root_fingerprint` (the shared directory's identity, kept separate from the checkout-state `expected_checkout_fingerprint`), and each isolation root must differ from both. `root-fingerprint --path` hashes filesystem identity (`st_dev:st_ino`), so symlink and case aliases match. Adds the `isolated_write_roots` count. Receipts: a known concurrency-cap overrun can only be finalized as `failed`, stores the derived `concurrency_cap_exceeded` flag, and `report` counts `concurrency_cap_violations`.
 - _2026-09-27_ version bump — 0.26.0 → 0.27.0 (minor); marketplace 2.86.1 → 2.87.0.
