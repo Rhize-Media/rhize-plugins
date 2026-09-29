@@ -255,6 +255,8 @@ Audits a Next.js + Sanity codebase against the `nextjs-sanity-seo` checklist —
 
 ## Troubleshooting
 
+**DataForSEO server version:** the bundled `.mcp.json` pins `dataforseo-mcp-server@3.1.1`, so every machine runs the same server and an upstream release lands only through a reviewed pin bump. `tests/config-lint/test_mcp_npx_pins.py` rejects an unpinned `npx` package.
+
 **Commands return no data or fail silently:** `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD` aren't set, or are set in a shell session Claude isn't inheriting. Confirm both are exported and re-run — every data skill and command depends on them.
 
 **MCP server won't start, exit code 78, "cannot start this MCP server":** The bundled launcher script (`scripts/mcp-secret-launcher.sh`) couldn't find `DATAFORSEO_USERNAME` and/or `DATAFORSEO_PASSWORD` anywhere — not in the macOS keychain, and not as plain exported environment variables — so it refused to start the server rather than let it fail later with a confusing 401/403. The exit message names the missing variable(s). Fix it either way:

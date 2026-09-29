@@ -7,7 +7,7 @@
         "DATAFORSEO_PASSWORD",
         "--",
         "npx",
-        "dataforseo-mcp-server"
+        "dataforseo-mcp-server@3.1.1"
       ],
       "env": {
         "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,AI_OPTIMIZATION,DOMAIN_ANALYTICS,CONTENT_ANALYSIS,BUSINESS_DATA"

@@ -38,7 +38,7 @@ the macOS keychain. Instead, `.mcp.json` invokes a bundled shim:
 
 ```json
 "command": "${CLAUDE_PLUGIN_ROOT}/scripts/mcp-secret-launcher.sh",
-"args": ["DATAFORSEO_USERNAME", "DATAFORSEO_PASSWORD", "--", "npx", "dataforseo-mcp-server"]
+"args": ["DATAFORSEO_USERNAME", "DATAFORSEO_PASSWORD", "--", "npx", "dataforseo-mcp-server@3.1.1"]
 ```
 
 `scripts/mcp-secret-launcher.sh` resolves each variable in this order:
