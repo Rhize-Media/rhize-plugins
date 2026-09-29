@@ -44,6 +44,25 @@ refused. Report each outcome rather than collapsing the run to its exit code. A 
 field means only that the deterministic grader cleared the proposal-quality check; it grants no
 registration, trust, approval, promotion, verification, or execution authority.
 
+## Agent sources
+
+`mine` also reads agent-run commands instead of, or alongside, shell history:
+
+```bash
+bash scripts/functionize.sh mine <cli> --source agent [--hosts claude,codex] [--since 30d] \
+  [--project GLOB] [--transcripts-dir DIR] [--codex-sessions-dir DIR] [--capture-file FILE]
+bash scripts/functionize.sh mine <cli> --source agent --discover
+```
+
+`--source agent` draws from three places: Claude Code session transcripts under
+`~/.claude/projects`, Codex session files under `~/.codex/sessions`, and the live capture file
+this plugin's async `functionize-capture.py` hook writes (`agent-bash.jsonl`, one record per
+successful Bash call). `--discover` lists what each source finds without mining it. Every source
+is read the same way plain shell history is: only the command text and a success/failure signal
+are read — never a tool's stdout/stderr or any other transcript field — so the resulting shape
+class is `agent_transcript`, and the compile-only boundary below is unchanged. Set
+`RHIZE_FUNCTIONIZE_CAPTURE=off` to opt a session out of the live capture file entirely.
+
 ## Stop at the proposal boundary
 
 After mining, generation, or review, report the candidate fingerprint, proposal/evidence paths,

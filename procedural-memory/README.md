@@ -168,8 +168,9 @@ procedural-memory/
 │   └── scripts/procedural-memory.sh          # self-relative cross-host launcher
 ├── scripts/rhize-skill-launcher.sh           # portable CLI resolver + version gate
 ├── hooks/
-│   ├── hooks.json                            # PostToolUse/Bash + Stop, wired
+│   ├── hooks.json                            # SessionStart + PostToolUse/Bash (x2) + Stop, wired
 │   ├── post-bash-candidate-queue.sh          # Tier 1 — cheap, every Bash call
+│   ├── functionize-capture.py                # async — live Functionize agent-source capture
 │   └── session-end-scan.py                   # Tier 2 — heavier, on Stop
 ├── docs/decisions/                           # recorded scope decisions (e.g. no /prune)
 ├── evals/                                    # claude plugin eval suite + validate-suite.py (see evals/README.md)
@@ -183,9 +184,10 @@ Tests live at the repo root, not under this plugin: `tests/procedural-memory/tes
 
 ## Hooks: capturing promotion candidates during a session
 
-Three hooks, all advisory-only (never block, never write to the registry). The first is a
-one-line environment bridge; the other two are the candidate-capture pair, deliberately split by
-cost.
+Four hooks, all advisory-only (never block, never write to the registry). The first is a
+one-line environment bridge, the next two are the candidate-capture pair (deliberately split by
+cost), and the fourth is an unrelated capture feed for the separate Functionize skill — see
+below.
 
 **`session-start-env.sh`** (SessionStart) appends
 `export PROCEDURAL_MEMORY_PLUGIN_ROOT='<plugin root>'` to `$CLAUDE_ENV_FILE`, the per-session
@@ -224,6 +226,23 @@ advisory naming what passed its test/build command this session — plus any fil
 wrote or edited — with a pointer to `/procedural-memory:promote`. It never says "verified"; that
 word is reserved for `/procedural-memory:verify`, the only thing that ever sets a real
 `health=ok`.
+
+**`functionize-capture.py`** (PostToolUse, matcher `Bash`, `async: true`) runs alongside
+`post-bash-candidate-queue.sh` in the same matcher group but serves an unrelated purpose: it is
+the live-capture half of the `functionize` skill's `--source agent`, not the promotion-candidate
+pipeline described above. On each successful Bash call it appends exactly one JSON line —
+`{"v":1,"host":"claude","ts","session_id","tool_use_id","command"}`, six keys only — to
+`${RHIZE_FUNCTIONIZE_CAPTURE_DIR:-~/.local/share/rhize/functionize}/agent-bash.jsonl`. It never
+reads `tool_output`, `tool_use_result`, `tool_response`, `tool_input.description`, `cwd`, or
+`transcript_path`. The `command` is stored raw, the same exposure as the Claude Code transcripts
+already on disk; Functionize redacts it when mining. Because it is `async`, Claude Code runs it in the background, discards its
+output, and does not enforce its timeout — so it also never prints anything and always exits 0,
+even on a malformed payload. The capture directory is created at `0700` and the file at `0600`;
+either being a symlink is a silent refusal to write, and the file rotates once to
+`agent-bash.jsonl.1` past 50 MB (override with `RHIZE_FUNCTIONIZE_CAPTURE_MAX_BYTES`, mainly for
+tests). Opt out entirely with `RHIZE_FUNCTIONIZE_CAPTURE=off` (also accepts `0`/`false`/`disabled`,
+case-insensitive). Tested in
+`tests/procedural-memory/test_functionize_capture_hook.py`.
 
 **Queue file, not `rhize-context-manager`'s.** `~/.claude/procedural-memory/candidate-queue.jsonl`
 follows the same JSONL shape as `~/.claude/context-manager/refinement-queue.jsonl`

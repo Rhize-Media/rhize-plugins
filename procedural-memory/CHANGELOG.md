@@ -6,6 +6,16 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-28_ Add an async `PostToolUse`/`Bash` hook, `hooks/functionize-capture.py`, that appends
+  one redacted-shape record per successful Bash call (`v`/`host`/`ts`/`session_id`/`tool_use_id`/
+  `command` only — never tool output, `cwd`, or `transcript_path`) to a local, 0600, rotating
+  capture file. The `functionize` skill documents the new `--source agent` mode this feeds:
+  `bash scripts/functionize.sh mine <cli> --source agent [--hosts claude,codex] [--since 30d]
+  [--project GLOB] [--transcripts-dir DIR] [--codex-sessions-dir DIR] [--capture-file FILE]` and
+  `--discover`, mining Claude Code transcripts, Codex session files, and this hook's live capture
+  file as `agent_transcript`-class sources. Opt out with `RHIZE_FUNCTIONIZE_CAPTURE=off`. The
+  compile-only Functionize boundary is unchanged.
+- _2026-09-28_ version bump — 0.6.0 → 0.7.0 (minor); marketplace 2.90.0 → 2.91.0.
 - _2026-09-19_ Add the canonical RHIZE Content Engine entrypoint with explicit local/CMS draft scope, canonical benchmark capture and current offline registry metadata. Full publishing remains unsupported; graph trust and host activation are separate.
 - _2026-09-19_ version bump — 0.5.8 → 0.6.0 (minor); marketplace 2.75.0 → 2.76.0.
 - _2026-09-15_ version bump — 0.5.7 → 0.5.8 (patch); marketplace 2.72.1 → 2.72.2.

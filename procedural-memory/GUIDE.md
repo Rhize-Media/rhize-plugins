@@ -57,10 +57,12 @@ Functionize is not connected to this promotion nudge. Proposal compilation stops
 directory; the hooks do not register, trust, approve, promote, verify, or run it.
 
 In Claude Code, you don't have to remember to run `/procedural-memory:promote` right after writing
-something reusable. Three advisory hooks run in the background: a SessionStart hook that exports
+something reusable. Four advisory hooks run in the background: a SessionStart hook that exports
 `PROCEDURAL_MEMORY_PLUGIN_ROOT` for Bash tool calls (Claude Code does not export
-`${CLAUDE_PLUGIN_ROOT}` to the shell), plus the two candidate-capture hooks. Codex does not wire these Claude Code
-hooks; invoke the shared skill explicitly when you want to recall, run, promote, or verify.
+`${CLAUDE_PLUGIN_ROOT}` to the shell), the two candidate-capture hooks, and a separate async hook
+(`functionize-capture.py`) that feeds the `functionize` skill's agent source — see below. Codex
+does not wire these Claude Code hooks; invoke the shared skill explicitly when you want to recall,
+run, promote, or verify.
 
 - Every time a Bash call in your session matches a known test/build command (`pytest`, `npm
   test`, `cargo test`, `go test`, `vitest`, `tsc`, and a few others) and completes, it's quietly
@@ -74,6 +76,14 @@ This is a nudge, not an automation — nothing gets promoted, committed, or inde
 behalf. "Passed its test command this session" is not the same claim as "registry-verified";
 only `/procedural-memory:verify` (or a fresh `/procedural-memory:promote`) ever makes the latter
 claim. If you don't want to capture something, just ignore the nudge — nothing else happens.
+
+**Feeding Functionize from an agent session.** Every successful Bash call also gets one redacted
+line appended, in the background, to a local capture file
+(`~/.local/share/rhize/functionize/agent-bash.jsonl` by default) — just the command text and its
+two correlation ids, never any tool output. This is what lets
+`bash scripts/functionize.sh mine <cli> --source agent` mine agent-run commands the way it mines
+shell history, alongside Claude Code transcripts and Codex session files. It has nothing to do
+with the promotion nudge above; opt out with `RHIZE_FUNCTIONIZE_CAPTURE=off`.
 
 ## What this plugin is not
 
