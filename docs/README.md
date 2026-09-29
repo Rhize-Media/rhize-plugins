@@ -15,13 +15,13 @@ Version 1.0.6. The setup hub — finds the Rhize plugins you have installed, run
 
 ### seo-aeo-geo
 
-Version 1.5.3. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
+Version 1.5.4. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
 
 [README](../seo-aeo-geo/README.md) · [GUIDE](../seo-aeo-geo/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#seo-aeo-geo)
 
 ### obsidian-second-brain
 
-Version 1.7.5. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.7.6. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 
@@ -39,13 +39,13 @@ Version 2.25.4. Rhize Media's software delivery workflow — plan a change, buil
 
 ### rhize-context-manager
 
-Version 0.39.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.40.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
 ### rhize-ops
 
-Version 0.28.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.28.1. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [4 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 

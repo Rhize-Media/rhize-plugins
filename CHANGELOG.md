@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-09-29_ version bump — **rhize-context-manager** 0.39.0 → 0.40.0 (minor); marketplace 2.91.4 → 2.92.0.
 - _2026-09-29_ version bump — **rhize-ops** 0.28.0 → 0.28.1 (patch); marketplace 2.91.3 → 2.91.4.
 - _2026-09-29_ version bump — **obsidian-second-brain** 1.7.5 → 1.7.6 (patch); marketplace 2.91.2 → 2.91.3.
 - _2026-09-29_ version bump — **seo-aeo-geo** 1.5.3 → 1.5.4 (patch); marketplace 2.91.1 → 2.91.2.

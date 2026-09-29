@@ -158,6 +158,11 @@ the right one, and health-checks the whole thing.
 
 ## Tips
 
+- After installing a plugin, run `python3 rhize-context-manager/scripts/build_local_skill_map.py`
+  and read the `name collision` lines. Each one is a skill name shared by two origins, such as a
+  rhize skill and a third-party skill. The host may pick either one when you name the skill
+  without its plugin. Settle it in `learning-curation` by renaming the skill or declaring
+  `extends`. The report never renames or hides anything itself.
 - Run `/context-doctor` when adopting a new repo or after installing/removing any stack
   tool — overlap problems appear at those boundaries. Follow up with `/context-setup` to
   act on anything it flags.

@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 0.39.0 → 0.40.0 (minor); marketplace 2.91.4 → 2.92.0.
+- _2026-09-29_ `build_local_skill_map.py` reports cross-origin skill-name collisions: bare names, compared case-insensitively, that are shared by skills from more than one origin (a rhize plugin, a third-party plugin, or a local-approved root). Results go to `skill-map.local.json` `nameCollisions` and a `sourceNotes` line, and are printed. They are report-only; no node is renamed or dropped. This follows the MCP Skills extension (SEP-2640) rule that a skill must never silently shadow a same-named skill from another origin.
 - _2026-09-28_ version bump — 0.38.0 → 0.39.0 (minor); marketplace 2.89.0 → 2.90.0.
 - Add a versioned taxonomy label importer (`pilot_labels.py`) for the workflow pilot: family, phase, areas, risk stratum and routing choice, with `human_adjudicated` or `ai_model_reviewed` basis, batch import of reviewed AI annotations and a private, revocable label policy (human only by default). It sits outside the collection source digest, so live observations stay importable.
 - Research now uses taxonomy labels under the label policy, scores only explicitly judged routing choices, keeps the 200-label floor, adds per-route, per-family and risk-level coverage gates, and reports label bases on every output; model-reviewed results are marked exploratory. Legacy human labels are unchanged and never merged with taxonomy labels.

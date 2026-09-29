@@ -123,8 +123,12 @@ replaced a prose step the same day):
   map (`skill-map.local.json`, `skill-map.resolved.json`, `skill-map.indexes.resolved.json`
   under `~/.claude/context-manager/`) from the committed static artifact plus optional
   machine-local inputs (enabled plugins, stack config, skill-monitor co-occurrence data,
-  third-party plugin inventory). `/rhize-core:setup` installs the compiled skill map
-  for this machine via `setup_orchestrator.py install-skill-map`, which calls this script
+  third-party plugin inventory). It also reports `nameCollisions`: bare skill names shared by
+  skills from more than one origin, such as a rhize skill and an installed third-party skill
+  with the same name. A host that resolves by bare name can let one silently shadow the other,
+  and the MCP Skills extension (SEP-2640) forbids that for MCP-served skills. This is a report
+  only; decide on a rename or an `extends` declaration through `learning-curation`.
+  `/rhize-core:setup` installs the compiled skill map for this machine via `setup_orchestrator.py install-skill-map`, which calls this script
   to build the overlay whenever it's available at the discovered source root (a dev
   checkout; reported as unavailable from an installed marketplace clone); see
   `docs/skill-map.md` for the artifact shapes.

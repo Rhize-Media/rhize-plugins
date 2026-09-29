@@ -286,6 +286,33 @@ class SafeLabelTests(unittest.TestCase):
         self.assertEqual(len(self.module._safe_label("x" * 500)), self.module.NAME_LABEL_LIMIT)
 
 
+class FindNameCollisionsTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.module = _load_module(BUILD_LOCAL_SKILL_MAP, "build_local_skill_map_collisions")
+
+    def test_same_name_across_origins_case_insensitive(self) -> None:
+        nodes = [
+            {"id": "skill:rhize-devflow/Review", "kind": "skill", "name": "Review"},
+            {"id": "skill:mkt/other/review", "kind": "skill", "name": "review", "origin": "third-party"},
+            {"id": "skill:rhize-ops/unique", "kind": "skill", "name": "unique"},
+            {"id": "command:x/review", "kind": "command", "name": "review"},
+        ]
+        self.assertEqual(self.module.find_name_collisions(nodes), [{
+            "name": "review",
+            "skills": ["skill:mkt/other/review", "skill:rhize-devflow/Review"],
+            "origins": ["mkt/other", "rhize/rhize-devflow"],
+        }])
+
+    def test_two_rhize_plugins_collide_but_one_origin_does_not(self) -> None:
+        nodes = [
+            {"id": "skill:a/doctor", "kind": "skill", "name": "doctor"},
+            {"id": "skill:b/doctor", "kind": "skill", "name": "doctor"},
+            {"id": "skill:mkt/p/solo", "kind": "skill", "name": "solo", "origin": "third-party"},
+            {"id": "skill:mkt/p/solo2", "kind": "skill", "name": "Solo", "origin": "third-party"},
+        ]
+        self.assertEqual([c["name"] for c in self.module.find_name_collisions(nodes)], ["doctor"])
+
+
 class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
     def _write_fixture(self, tmp_path: Path) -> dict:
         """Mirrors tests/skill-map/test_local_build.py's fixture shape: a
@@ -405,6 +432,30 @@ class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
             a_bytes = (out_dir_a / "skill-map.indexes.resolved.json").read_bytes()
             b_bytes = (out_dir_b / "skill-map.indexes.resolved.json").read_bytes()
             self.assertEqual(a_bytes, b_bytes)
+
+    def test_cross_origin_name_collision_is_reported_not_dropped(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fixture = self._write_fixture(tmp_path)
+            clash = tmp_path / "cache" / "wp-i-marketplace" / "wp-i-plugin" / "1.0.0" / "skills" / "context-compression"
+            clash.mkdir(parents=True)
+            (clash / "SKILL.md").write_text("---\nname: context-compression\ndescription: same name, other origin\n---\n")
+            out_dir = tmp_path / "context-manager"
+            result = _run_build("--out-dir", str(out_dir), *fixture["args"])
+            self.assertEqual(result.returncode, 0, result.stderr)
+            local_doc = json.loads((out_dir / "skill-map.local.json").read_text())
+            by_name = {c["name"]: c for c in local_doc["nameCollisions"]}
+            self.assertIn("context-compression", by_name)
+            self.assertEqual(by_name["context-compression"]["skills"], [
+                "skill:rhize-context-manager/context-compression",
+                "skill:wp-i-marketplace/wp-i-plugin/context-compression",
+            ])
+            self.assertNotIn("seo-helper", by_name)
+            self.assertIn("1 bare skill name", local_doc["sourceNotes"]["nameCollisions"])
+            self.assertIn("name collision 'context-compression'", result.stdout)
+            resolved = json.loads((out_dir / "skill-map.resolved.json").read_text())
+            ids = {n["id"] for n in resolved["nodes"]}
+            self.assertIn("skill:wp-i-marketplace/wp-i-plugin/context-compression", ids)
 
     def test_missing_tags_catalog_degrades_without_failing_the_build(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -829,6 +829,34 @@ def collect_local_skills(config_path: Path | None) -> tuple[list[dict], list[dic
     return nodes, edges, summary
 
 
+def _skill_origin(node: dict) -> str:
+    """Origin label for a skill node: the id minus its final name segment
+    (`skill:<plugin>/<name>` -> `rhize/<plugin>`,
+    `skill:<marketplace>/<plugin>/<name>` -> `<marketplace>/<plugin>`)."""
+    parts = node["id"].removeprefix("skill:").split("/")
+    prefix = "/".join(parts[:-1])
+    return prefix if node.get("origin") in ("third-party", "local-approved") else f"rhize/{prefix}"
+
+
+def find_name_collisions(skill_nodes: list[dict]) -> list[dict]:
+    """Bare skill names shared by skills from more than one origin, compared
+    case-insensitively. A host resolving skills by bare name can silently let one
+    shadow another; the MCP Skills extension (SEP-2640) forbids that for
+    MCP-served skills, and curation should catch it for installed ones too.
+    Report only: nothing is renamed or dropped."""
+    by_name: dict[str, list[dict]] = {}
+    for node in skill_nodes:
+        if node.get("kind") == "skill" and node.get("name"):
+            by_name.setdefault(str(node["name"]).lower(), []).append(node)
+    collisions = []
+    for name, nodes in sorted(by_name.items()):
+        origins = {_skill_origin(n) for n in nodes}
+        if len(origins) > 1:
+            collisions.append({"name": name, "skills": sorted(n["id"] for n in nodes),
+                               "origins": sorted(origins)})
+    return collisions
+
+
 def build(
     static_path: Path,
     installed_plugins_path: Path,
@@ -874,6 +902,9 @@ def build(
     third_party_nodes.extend(local_nodes)
     third_party_edges.extend(local_edges)
     generated_at = datetime.now(timezone.utc).isoformat()
+    name_collisions = find_name_collisions(
+        [n for n in static_doc["nodes"] if n["kind"] == "skill"] + third_party_nodes
+    )
 
     local_doc = {
         "generatedAt": generated_at,
@@ -889,6 +920,7 @@ def build(
             "edges": third_party_edges,
             "summary": third_party_summary,
         },
+        "nameCollisions": name_collisions,
         "sourceNotes": {
             "enabledPlugins": enabled_note,
             "stack": stack_note,
@@ -896,6 +928,10 @@ def build(
             "follows": follows_note,
             "thirdParty": third_party_note,
             "tagsCatalog": tags_catalog_note,
+            "nameCollisions": (
+                f"{len(name_collisions)} bare skill name(s) shared across origins"
+                if name_collisions else "no cross-origin skill-name collisions"
+            ),
         },
     }
 
@@ -1085,6 +1121,8 @@ def main() -> int:
     )
     for key, note in local_doc["sourceNotes"].items():
         print(f"  [{key}] {note}")
+    for collision in local_doc["nameCollisions"]:
+        print(f"  name collision '{collision['name']}': {', '.join(collision['skills'])}")
 
     static_indexes_path = Path(args.static_indexes)
     static_indexes_data, indexes_err = _load_json(static_indexes_path)
