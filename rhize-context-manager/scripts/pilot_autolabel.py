@@ -70,6 +70,23 @@ LIMITS = {'maxCases': (1, 100), 'packetBytes': (4096, 200000), 'deadlineSeconds'
 MIN_CALL_SECONDS = 15
 MAX_FAILED_CALLS_IN_A_ROW = 3
 MAX_ATTEMPTS = 3
+# An import skip whose reason is a property of the label or record (not of the moment) will recur every run, so it
+# is retried only this many times before the opportunity stops being selected and stops spending model calls.
+MAX_DETERMINISTIC_SKIPS = 2
+# Skip reasons known to be deterministic (documentation and tests; the rule is the complement below). Anything not in
+# TRANSIENT_SKIP_REASONS is deterministic, so a new validation-shaped failure can never burn calls forever.
+DETERMINISTIC_SKIP_REASONS = frozenset({
+    'immutable label already exists', 'label_contradicts_exclusions', 'no_v2_observation', 'superseded_archive_conflict',
+    'only eligible routing decisions can receive labels', 'label must bind the exact collection source',
+    'evidence digest required', 'requires taxonomy label contract', 'unsupported taxonomy label version',
+    'opportunity, source and review evidence digests required', 'invalid label basis',
+    'invalid family, phase or stratum', 'direct_response requires phase not_applicable',
+    'areas must be distinct known areas or sole not_applicable', 'risk flags must be distinct known flags',
+    'invalid routing choice or choice basis', 'derived choice does not match the family map',
+    'bounded reviewer identity required', 'unsupported_schema', 'taxonomy_version', 'basis_mismatch',
+    'not_model_reviewed', 'invalid_choice', 'malformed_record'})
+# Reasons an importer reports for lock contention or I/O; they say nothing about the label and never count.
+TRANSIENT_SKIP_REASONS = frozenset({'lock_busy', 'io_error'})
 MAX_OUTPUT = 2 * 1024 * 1024
 MAX_TRANSCRIPT_BYTES = 256 * 1024 * 1024
 MAX_TAXONOMY_BYTES = 128 * 1024
@@ -681,14 +698,25 @@ def load_ledger(state):
                 key = (entry['opportunityId'], entry['packetSha256'], entry['taxonomySha256'])
             except (ValueError, KeyError, TypeError):
                 continue
-            state_for = attempts.setdefault(key, {'terminal': False, 'failures': 0})
+            state_for = attempts.setdefault(key, {'terminal': False, 'failures': 0, 'deterministicSkips': 0})
             if entry.get('terminal'):
                 state_for['terminal'] = True
             elif entry.get('outcome') in FAILURES:
                 # Only spent-and-unusable model attempts count. A row waiting on the import (skipped, import_failed,
                 # not_imported) never uses up an attempt, so it can neither suppress a retry nor be retried away.
                 state_for['failures'] += 1
+            elif entry.get('disposition') == 'skipped' and entry.get('deterministic', True):
+                state_for['deterministicSkips'] += 1
     return attempts
+
+
+def skip_is_transient(reason):
+    return reason in TRANSIENT_SKIP_REASONS
+
+
+def skips_exhausted(ledger, key):
+    entry = ledger.get(key)
+    return bool(entry and not entry['terminal'] and entry['deterministicSkips'] >= MAX_DETERMINISTIC_SKIPS)
 
 
 def already_attempted(ledger, key):
@@ -725,6 +753,9 @@ def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
         packet = build_packet(match) if match else None
         packet_sha = digest(canonical(packet if packet else {'contextStatus': reason, 'opportunityId': row['id']}))
         key = (row['id'], packet_sha, taxonomy_sha)
+        if not config.get('force') and skips_exhausted(ledger, key):
+            skipped['deterministic_skip_exhausted'] += 1
+            continue
         if not config.get('force') and already_attempted(ledger, key):
             skipped['already_attempted'] += 1
             continue
@@ -1453,6 +1484,8 @@ def ledger_entries(cases, results, taxonomy_sha, dispositions, import_failed):
                 entry.update(terminal=found['result'] in IMPORT_TERMINAL, disposition=found['result'])
                 if found.get('reason') and found['result'] not in IMPORT_TERMINAL:
                     entry['importReason'] = found['reason']
+                if found['result'] == 'skipped':
+                    entry['deterministic'] = not skip_is_transient(found.get('reason'))
         entries.append(entry)
     return entries
 
@@ -1515,6 +1548,8 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
             return finish('unavailable', 1, 'selection_failed:%s:%s' % (type(exc).__name__, exc))
         cases = run.cases
         summary.update(selected=len(cases), skipped=skipped)
+        if skipped.get('deterministic_skip_exhausted'):
+            summary['deterministicSkipExhausted'] = skipped['deterministic_skip_exhausted']
         write_json(run.run_dir / 'manifest.json', {
             'schema': RUN_SCHEMA, 'runId': run_id, 'createdAt': summary['startedAt'], 'taxonomySha256': taxonomy_sha,
             'taxonomyDocument': 'docs/workflow-taxonomy.md',
@@ -1655,6 +1690,8 @@ def _import_run(config, state, run_dir):
                  'terminal': found['result'] in IMPORT_TERMINAL, 'disposition': found['result'], 'via': 'import-run'}
         if not entry['terminal'] and found.get('reason'):
             entry['importReason'] = found['reason']
+        if found['result'] == 'skipped':
+            entry['deterministic'] = not skip_is_transient(found.get('reason'))
         entries.append(entry)
     append_ledger(state, run_id, entries)
     skips = _import_skips(dispositions)

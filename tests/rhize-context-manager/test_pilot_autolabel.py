@@ -1449,20 +1449,21 @@ def test_import_pending_rows_never_use_up_attempts_but_model_failures_still_do(t
 
     def skipping(*args, **kwargs):
         result = real(*args, dry_run=True, **{k: v for k, v in kwargs.items() if k != 'dry_run'})
-        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': 'label store busy'} for d in result['dispositions']]}
+        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': 'lock_busy'} for d in result['dispositions']]}
     monkeypatch.setattr(labels, 'import_batch', skipping)
     for attempt in range(auto.MAX_ATTEMPTS + 2):
         summary, code = go(tmp_path, FakeBackend())
-        assert code == 3 and summary['status'] == 'incomplete' and summary['importSkipped'] == {'label store busy': 1}, attempt
-        assert summary['selected'] == 1                                                  # never suppressed
-    assert all(row['terminal'] is False and row['disposition'] == 'skipped' for row in ledger_rows(tmp_path))
+        assert code == 3 and summary['status'] == 'incomplete' and summary['importSkipped'] == {'lock_busy': 1}, attempt
+        assert summary['selected'] == 1                                                  # a transient skip never suppresses
+    assert all(row['terminal'] is False and row['disposition'] == 'skipped' and row['deterministic'] is False
+               for row in ledger_rows(tmp_path))
     ledger = auto.load_ledger(tmp_path / 'state')
-    assert list(ledger.values()) == [{'terminal': False, 'failures': 0}]
+    assert list(ledger.values()) == [{'terminal': False, 'failures': 0, 'deterministicSkips': 0}]
     # A failed import (BlockingIOError) is the same: retryable however often it recurs.
     monkeypatch.setattr(labels, 'import_batch', lambda *a, **k: (_ for _ in ()).throw(BlockingIOError(11, 'busy')))
     for _ in range(auto.MAX_ATTEMPTS + 1):
         assert go(tmp_path, FakeBackend())[0]['reason'] == 'import_failed'
-    assert list(auto.load_ledger(tmp_path / 'state').values()) == [{'terminal': False, 'failures': 0}]
+    assert list(auto.load_ledger(tmp_path / 'state').values()) == [{'terminal': False, 'failures': 0, 'deterministicSkips': 0}]
     monkeypatch.setattr(labels, 'import_batch', real)
     assert go(tmp_path, FakeBackend())[0]['status'] == 'completed'
     # Control: genuine model failures are still counted and stop after MAX_ATTEMPTS, and deadline cut-offs never count.
@@ -1561,3 +1562,43 @@ def test_pruning_never_follows_a_symlinked_runs_directory(tmp_path):
     (state / 'runs').symlink_to(outside)
     assert auto.prune_runs(state, 1, 'current') == 0 and auto.sweep_codex_homes(state, 'current') == 0
     assert all((v / 'keep.txt').read_text() == 'mine' for v in victims)
+
+
+def test_a_deterministic_import_skip_stops_after_two_runs_with_no_further_model_calls(tmp_path, monkeypatch):
+    root, receipts, receipt = make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    real = labels.import_batch
+    reason = {'value': 'label_contradicts_exclusions'}
+
+    def skipping(*args, **kwargs):
+        result = real(*args, dry_run=True, **{k: v for k, v in kwargs.items() if k != 'dry_run'})
+        return {**result, 'dispositions': [{**d, 'result': 'skipped', 'reason': reason['value']} for d in result['dispositions']]}
+    monkeypatch.setattr(labels, 'import_batch', skipping)
+    spent = []
+    for attempt in range(auto.MAX_DETERMINISTIC_SKIPS):
+        backend = FakeBackend()
+        summary, code = go(tmp_path, backend)
+        spent.append(len(backend.calls))
+        assert code == 3 and summary['importSkipped'] == {reason['value']: 1} and summary['selected'] == 1
+    assert spent == [3, 3]                                                   # two annotators and a reviewer each time
+    assert all(row['deterministic'] is True for row in ledger_rows(tmp_path))
+    for _ in range(3):
+        backend = FakeBackend()
+        summary, code = go(tmp_path, backend)
+        assert code == 0 and summary['status'] == 'nothing_to_do' and backend.calls == [] and backend.preflights == []
+        assert summary['skipped'] == {'deterministic_skip_exhausted': 1} and summary['deterministicSkipExhausted'] == 1
+    assert list(auto.load_ledger(tmp_path / 'state').values()) == [{'terminal': False, 'failures': 0, 'deterministicSkips': 2}]
+    # A changed packet is a different attempt, and --force always overrides the ledger.
+    transcript(tmp_path, SESSION, [('user', 'a new earlier turn'), ('user', 'add a report filter')])
+    assert go(tmp_path, FakeBackend())[0]['selected'] == 1
+    assert go(tmp_path, FakeBackend(), force=True)[0]['selected'] == 1
+
+
+def test_unknown_skip_reasons_are_deterministic_and_the_known_ones_are_classified():
+    for known in auto.DETERMINISTIC_SKIP_REASONS:
+        assert auto.skip_is_transient(known) is False
+    assert auto.skip_is_transient('some brand new validation message') is False
+    assert auto.skip_is_transient('lock_busy') is True and auto.skip_is_transient(None) is False
+    for reason in ('immutable label already exists', 'label_contradicts_exclusions'):
+        assert reason in auto.DETERMINISTIC_SKIP_REASONS
+    assert auto.MAX_DETERMINISTIC_SKIPS == 2 and auto.MAX_ATTEMPTS == 3                    # the model-failure cap is unchanged

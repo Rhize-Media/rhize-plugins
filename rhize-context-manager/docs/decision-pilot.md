@@ -376,10 +376,15 @@ never replaces `latest-summary.json`); a `run.lock` that makes an overlapping la
 A packet that was already settled (keyed by opportunity, packet digest and taxonomy digest) is not
 sent again; the ledger row mirrors the import: it is settled only when the label was stored or by
 design never becomes one, while a skipped or failed import, a timeout or malformed output stays
-retryable up to three times. Only spent-and-unusable model attempts (`annotation_failed`,
-`review_failed`) count toward those three; a row waiting on the import (`skipped`, `import_failed`,
-`not_imported`) never does, so an import problem cannot suppress a case and cannot retire it. A call cut
-short by the wall deadline is `not_attempted` and spends no attempt. `--force` ignores the ledger. The ledger is written even when the import fails.
+retryable. Attempts are counted in two separate ways. Spent-and-unusable model attempts
+(`annotation_failed`, `review_failed`) count toward three. Import outcomes are split: transient ones
+(`import_failed` from an I/O error or lock contention, `not_imported`, a skip reason in the transient list
+such as `lock_busy`) never count and retry freely, and a call cut short by the wall deadline is
+`not_attempted` and spends nothing. Deterministic skips (`label_contradicts_exclusions`,
+`immutable label already exists`, validation-shaped reasons; the allowlist is in the code, and any reason not
+known to be transient counts as deterministic) count toward `MAX_DETERMINISTIC_SKIPS` = 2: after two, that
+packet is no longer selected, so it spends no more model calls, and the run reports it as
+`deterministicSkipExhausted` (also `skipped.deterministic_skip_exhausted`). A changed packet or `--force` starts over. `--force` ignores the ledger. The ledger is written even when the import fails.
 `--no-import` changes no label and writes no ledger entry; inspect the run, then
 `pilot_autolabel.py import-run <runDir>` imports it (refusing a directory outside the state
 directory or a changed taxonomy) and ledgers the result. Before importing it validates every record:
