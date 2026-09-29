@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ The cross-origin collision report now also reads skills synced from the user's claude.ai account (`~/.claude/skills/synced/<org>_<user>/*/SKILL.md`, shown by hosts as `anthropic-skills:<name>`). They are used for collision detection only and never reach the resolved map, router indexes or the third-party inventory; resolved outputs are byte-identical with or without them. A `syncedSkills` summary and source note are added. `--synced-skills-root` overrides the folder, and `none` disables the scan. On this host the report went from 0 to 5 collisions (`context-compression`, `context-optimization`, `api-design`, `deep-research`, `rhize-content-engine`).
 - _2026-09-29_ version bump — 0.40.0 → 0.40.1 (patch); marketplace 2.93.1 → 2.93.2.
 - _2026-09-29_ Test-only: `test_context_doctor.py` gives probe workers a realistic 5 s deadline. `test_timeout_is_not_run` keeps an explicit 0.2 s deadline. The old 0.2 s default let interpreter startup under load flip the replayed-identity test about one run in three. `context_doctor.py` is unchanged; 15 consecutive runs pass.
 - _2026-09-29_ version bump — 0.39.0 → 0.40.0 (minor); marketplace 2.91.4 → 2.92.0.

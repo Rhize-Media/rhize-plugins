@@ -354,6 +354,7 @@ class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
         return {
             "skill_id": f"skill:{tp_marketplace}/{tp_plugin}/seo-helper",
             "args": [
+                "--synced-skills-root", str(tmp_path / "no-synced"),
                 "--cooccurrence", str(cooc_path),
                 "--installed-plugins", str(installed_path),
                 "--stack-config", str(stack_path),
@@ -456,6 +457,41 @@ class BuildLocalSkillMapCliInferredTests(unittest.TestCase):
             resolved = json.loads((out_dir / "skill-map.resolved.json").read_text())
             ids = {n["id"] for n in resolved["nodes"]}
             self.assertIn("skill:wp-i-marketplace/wp-i-plugin/context-compression", ids)
+
+    def test_synced_account_skills_collide_but_stay_out_of_the_resolved_map(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            fixture = self._write_fixture(tmp_path)
+            baseline_dir = tmp_path / "baseline"
+            self.assertEqual(_run_build("--out-dir", str(baseline_dir), *fixture["args"]).returncode, 0)
+            synced = tmp_path / "synced"
+            skill = synced / "8b0da063-org_user" / "context-compression"
+            skill.mkdir(parents=True)
+            (skill / "SKILL.md").write_text("---\nname: context-compression\ndescription: account copy\n---\n")
+            (synced / ".bucket-marker").write_text("")
+            args = [a for a in fixture["args"]]
+            i = args.index("--synced-skills-root")
+            args[i + 1] = str(synced)
+            out_dir = tmp_path / "with-synced"
+            result = _run_build("--out-dir", str(out_dir), *args)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            local_doc = json.loads((out_dir / "skill-map.local.json").read_text())
+            by_name = {c["name"]: c for c in local_doc["nameCollisions"]}
+            self.assertEqual(by_name["context-compression"]["skills"], [
+                "skill:claude-ai-synced/8b0da063/context-compression",
+                "skill:rhize-context-manager/context-compression",
+            ])
+            self.assertEqual(local_doc["syncedSkills"], {"skills": 1, "buckets": 1, "skippedEntries": 0})
+            self.assertEqual((out_dir / "skill-map.resolved.json").read_bytes(),
+                             (baseline_dir / "skill-map.resolved.json").read_bytes())
+            self.assertEqual((out_dir / "skill-map.indexes.resolved.json").read_bytes(),
+                             (baseline_dir / "skill-map.indexes.resolved.json").read_bytes())
+
+    def test_missing_synced_root_degrades_to_a_note(self) -> None:
+        module = _load_module(BUILD_LOCAL_SKILL_MAP, "build_local_skill_map_synced")
+        nodes, summary, note = module.collect_synced_account_skills(Path("/nonexistent/synced"))
+        self.assertEqual((nodes, summary["skills"]), ([], 0))
+        self.assertIn("no synced account skills", note)
 
     def test_missing_tags_catalog_degrades_without_failing_the_build(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

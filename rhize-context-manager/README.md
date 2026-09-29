@@ -127,7 +127,10 @@ replaced a prose step the same day):
   skills from more than one origin, such as a rhize skill and an installed third-party skill
   with the same name. A host that resolves by bare name can let one silently shadow the other,
   and the MCP Skills extension (SEP-2640) forbids that for MCP-served skills. This is a report
-  only; decide on a rename or an `extends` declaration through `learning-curation`.
+  only; decide on a rename or an `extends` declaration through `learning-curation`. Skills synced from
+  your claude.ai account (`~/.claude/skills/synced/`, shown as `anthropic-skills:<name>`) are included
+  in this check, and only in this check: they never enter the resolved map or the router. Pass
+  `--synced-skills-root none` to leave them out.
   `/rhize-core:setup` installs the compiled skill map for this machine via `setup_orchestrator.py install-skill-map`, which calls this script
   to build the overlay whenever it's available at the discovered source root (a dev
   checkout; reported as unavailable from an installed marketplace clone); see

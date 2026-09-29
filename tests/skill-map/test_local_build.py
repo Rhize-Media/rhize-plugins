@@ -139,6 +139,7 @@ def test_full_inputs() -> None:
 
         result = run_build(
             "--out-dir", str(out_dir),
+            "--synced-skills-root", "none",
             "--cooccurrence", str(cooc_path),
             "--installed-plugins", str(installed_path),
             "--stack-config", str(stack_path),
@@ -229,6 +230,7 @@ def test_degradation_no_inputs() -> None:
         out_dir = tmp_path / "context-manager"
         result = run_build(
             "--out-dir", str(out_dir),
+            "--synced-skills-root", "none",
             "--cooccurrence", str(tmp_path / "no-cooccurrence.json"),
             "--installed-plugins", str(tmp_path / "no-installed-plugins.json"),
             "--stack-config", str(tmp_path / "no-stack-config.json"),

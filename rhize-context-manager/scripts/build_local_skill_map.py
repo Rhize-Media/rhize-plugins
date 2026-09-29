@@ -857,6 +857,42 @@ def find_name_collisions(skill_nodes: list[dict]) -> list[dict]:
     return collisions
 
 
+def default_synced_skills_root() -> Path:
+    return Path.home() / ".claude" / "skills" / "synced"
+
+
+def collect_synced_account_skills(root: Path | None) -> tuple[list[dict], dict, str]:
+    """Skills synced from the user's claude.ai account
+    (`<root>/<org>_<user>/<name>/SKILL.md`, surfaced by hosts as
+    `anthropic-skills:<name>`). Returned only for collision detection — never
+    merged into the third-party inventory, resolved map or router indexes.
+    Degrades to empty output with a note; never raises."""
+    summary = {"skills": 0, "buckets": 0, "skippedEntries": 0}
+    if root is None or not root.is_dir():
+        return [], summary, f"no synced account skills at {_home_relative(root) if root else 'n/a'}"
+    nodes: list[dict] = []
+    real_root = root.resolve()
+    for bucket in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith(".")):
+        summary["buckets"] += 1
+        label = _id_safe(bucket.name[:8])
+        for skill_md in sorted(bucket.glob("*/SKILL.md")):
+            try:
+                skill_md.resolve().relative_to(real_root)
+                if skill_md.stat().st_size > 262144:
+                    raise ValueError("oversized skill")
+                raw = skill_md.read_bytes()
+                frontmatter, _ = split_frontmatter(raw.decode("utf-8"))
+                name = str(frontmatter.get("name") or skill_md.parent.name)
+                nodes.append({"id": f"skill:claude-ai-synced/{label}/{_id_safe(name)}", "kind": "skill",
+                              "name": _safe_label(name), "path": _home_relative(skill_md),
+                              "description": _truncate(str(frontmatter.get("description", ""))),
+                              "contentHash": hashlib.sha256(raw).hexdigest(), "origin": "third-party"})
+                summary["skills"] += 1
+            except (OSError, UnicodeDecodeError, ValueError):
+                summary["skippedEntries"] += 1
+    return nodes, summary, f"read {summary['skills']} synced account skill(s) from {_home_relative(root)}"
+
+
 def build(
     static_path: Path,
     installed_plugins_path: Path,
@@ -866,6 +902,7 @@ def build(
     local_settings_path: Path | None = None,
     tags_catalog_note: str = "not loaded",
     local_sources_path: Path | None = None,
+    synced_skills_root: Path | None = None,
 ) -> tuple[dict, dict]:
     """Return (local_doc, resolved_doc). `tags_catalog_note` is the source note
     from load_tags_catalog(); main() loads the catalog once and passes both the
@@ -902,8 +939,9 @@ def build(
     third_party_nodes.extend(local_nodes)
     third_party_edges.extend(local_edges)
     generated_at = datetime.now(timezone.utc).isoformat()
+    synced_nodes, synced_summary, synced_note = collect_synced_account_skills(synced_skills_root)
     name_collisions = find_name_collisions(
-        [n for n in static_doc["nodes"] if n["kind"] == "skill"] + third_party_nodes
+        [n for n in static_doc["nodes"] if n["kind"] == "skill"] + third_party_nodes + synced_nodes
     )
 
     local_doc = {
@@ -921,6 +959,7 @@ def build(
             "summary": third_party_summary,
         },
         "nameCollisions": name_collisions,
+        "syncedSkills": synced_summary,
         "sourceNotes": {
             "enabledPlugins": enabled_note,
             "stack": stack_note,
@@ -928,6 +967,7 @@ def build(
             "follows": follows_note,
             "thirdParty": third_party_note,
             "tagsCatalog": tags_catalog_note,
+            "syncedSkills": synced_note,
             "nameCollisions": (
                 f"{len(name_collisions)} bare skill name(s) shared across origins"
                 if name_collisions else "no cross-origin skill-name collisions"
@@ -1055,6 +1095,9 @@ def main() -> int:
     ap.add_argument("--tags-catalog", default=None,
                      help="default: catalog/tags.json — the topic/stack vocabulary used to "
                           "infer third-party router signals (see infer_tags_for_skill())")
+    ap.add_argument("--synced-skills-root", default=None,
+                    help="claude.ai-synced account skills folder for collision detection "
+                         "(default ~/.claude/skills/synced; 'none' disables)")
     ap.add_argument("--local-sources", default=None, help="Private JSON schemaVersion 1 approvedSkillRoots [{id,path}]; no implicit home scan")
     ap.add_argument("--report-inferred", action="store_true",
                      help="print a per-skill inferred-tag table for every third-party skill "
@@ -1095,6 +1138,7 @@ def main() -> int:
         static_path, installed_plugins_path, stack_config_path, cooccurrence_path,
         global_settings_path, local_settings_path, tags_catalog_note,
         Path(args.local_sources) if args.local_sources else None,
+        None if args.synced_skills_root == "none" else Path(args.synced_skills_root) if args.synced_skills_root else default_synced_skills_root(),
     )
 
     if args.report_inferred:
