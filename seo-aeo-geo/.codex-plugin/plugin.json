@@ -1,0 +1,62 @@
+{
+  "name": "seo-aeo-geo",
+  "version": "1.5.4",
+  "description": "Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data \u2014 for SEO practitioners, content teams, marketers, and developers.",
+  "author": {
+    "name": "Rhize Media"
+  },
+  "homepage": "https://rhize.media",
+  "keywords": [
+    "seo",
+    "aeo",
+    "geo",
+    "search-engine-optimization",
+    "answer-engine-optimization",
+    "generative-engine-optimization",
+    "dataforseo",
+    "keyword-research",
+    "backlinks",
+    "serp",
+    "technical-seo",
+    "ai-visibility",
+    "next-js",
+    "sanity-cms",
+    "structured-data",
+    "schema-markup"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "dataforseo": {
+      "command": "./scripts/mcp-secret-launcher.sh",
+      "args": [
+        "DATAFORSEO_USERNAME",
+        "DATAFORSEO_PASSWORD",
+        "--",
+        "npx",
+        "dataforseo-mcp-server@3.1.1"
+      ],
+      "cwd": ".",
+      "env": {
+        "ENABLED_MODULES": "SERP,KEYWORDS_DATA,ONPAGE,DATAFORSEO_LABS,BACKLINKS,AI_OPTIMIZATION,DOMAIN_ANALYTICS,CONTENT_ANALYSIS,BUSINESS_DATA"
+      }
+    }
+  },
+  "interface": {
+    "displayName": "SEO / AEO / GEO",
+    "shortDescription": "Search and AI-answer visibility audits with live data",
+    "longDescription": "Audit and improve how a site ranks in search engines and appears in AI answers, with keyword, SERP, backlink and competitor research through the bundled DataForSEO server and SEO implementation guidance for Next.js and Sanity projects.",
+    "developerName": "Rhize Media",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Run an SEO and AI-visibility audit for this site.",
+      "Research keywords for this topic with live search data."
+    ],
+    "websiteURL": "https://rhize.media",
+    "brandColor": "#0EA5E9"
+  }
+}

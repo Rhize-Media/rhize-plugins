@@ -255,6 +255,8 @@ Audits a Next.js + Sanity codebase against the `nextjs-sanity-seo` checklist —
 
 ## Troubleshooting
 
+**DataForSEO server fails to start in Codex (ENOENT):** you are running a plugin version without `.codex-plugin/plugin.json` (before 1.6.0), or a hand-written `[mcp_servers.dataforseo]` block in `~/.codex/config.toml` is shadowing the bundled entry. Update the plugin, remove that block, and restart Codex. On Codex the credentials must be in the macOS keychain (`claude-code:DATAFORSEO_USERNAME` / `claude-code:DATAFORSEO_PASSWORD`), because Codex doesn't pass exported shell variables to MCP servers.
+
 **DataForSEO server version:** the bundled `.mcp.json` pins `dataforseo-mcp-server@3.1.1`, so every machine runs the same server and an upstream release lands only through a reviewed pin bump. `tests/config-lint/test_mcp_npx_pins.py` rejects an unpinned `npx` package.
 
 **Commands return no data or fail silently:** `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD` aren't set, or are set in a shell session Claude isn't inheriting. Confirm both are exported and re-run — every data skill and command depends on them.

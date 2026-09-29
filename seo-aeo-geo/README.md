@@ -27,6 +27,12 @@ security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_USERNAME" -l
 security add-generic-password -a "$USER" -s "claude-code:DATAFORSEO_PASSWORD" -l "DATAFORSEO_PASSWORD" -U -w
 ```
 
+### Codex
+
+Codex installs the same `dataforseo-mcp-server@3.1.1` through `.codex-plugin/plugin.json`, not through `.mcp.json`. Codex doesn't expand `${CLAUDE_PLUGIN_ROOT}` (or any `${...}` variable), so the Claude entry's launcher path would reach the OS as literal text and fail with ENOENT. The Codex entry therefore uses `"command": "./scripts/mcp-secret-launcher.sh"` with `"cwd": "."` (the installed plugin root) and the same args and env. `tests/config-lint/test_codex_mcp_parity.py` keeps the two manifests in step.
+
+Codex passes only `HOME`, `PATH` and `USER` to MCP servers, so on Codex the credentials must come from the keychain helper (step 1 below). Exported shell variables are not inherited. A hand-written `[mcp_servers.dataforseo]` block in `~/.codex/config.toml` shadows the plugin's entry, so remove it to use the bundled one.
+
 ### Credential Delivery (how the shim finds them)
 
 `.mcp.json` does not put `DATAFORSEO_USERNAME`/`DATAFORSEO_PASSWORD` directly in the server's
