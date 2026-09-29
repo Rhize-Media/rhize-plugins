@@ -313,3 +313,90 @@ def test_credential_line_scans_are_linear_on_one_giant_input(payload):
     started = time.monotonic()
     auto.redact(payload[:auto.MAX_MESSAGE_CHARS])
     assert time.monotonic() - started < TIME_LIMIT, payload[:20]
+
+
+# ---- round 4: pwd, containers, command bounds, headers, npm, natural forms, paths -----------------------
+
+@pytest.mark.parametrize('text', ['pwd=VALUE', 'DB_PWD=VALUE', 'rootpwd=VALUE', 'PWD: VALUE', '"pwd":"VALUE"', 'my pass is VALUE',
+                                  'the pass was VALUE', 'password → VALUE', 'token → VALUE'])
+def test_pwd_names_and_the_pass_and_unicode_arrow_forms(text):
+    assert value_gone(text), text
+
+
+@pytest.mark.parametrize('text', ['pwd', 'cd /tmp && pwd', 'run pwd first', 'pass to the callback', 'compass is north',
+                                  'bypass was closed', 'export PWD_HINT_ONLY', 'echo $PWD'])
+def test_the_bare_pwd_command_and_ordinary_pass_words_stay_clean(text):
+    assert auto.redact(text) == text
+
+
+def test_a_container_still_open_at_the_bound_redacts_to_the_end_of_the_message():
+    for secret_line in (55, 100):
+        rows = ['  "line%d",' % n for n in range(secret_line)] + ['  "v1zzsecret",']
+        out = auto.redact('"password": [\n' + '\n'.join(rows) + '\n  "tail"\n]\nafter: gone-too')
+        assert 'v1zzsecret' not in out and 'after: gone-too' not in out, secret_line
+    # The character bound is counted from where the container started (it used to reset on every line).
+    wide = '"password": [\n' + '\n'.join('  "' + 'x' * 900 + '",' for _ in range(6)) + '\n  "v1zzsecret"\n]\nafter: gone-too'
+    assert 'v1zzsecret' not in auto.redact(wide) and 'after: gone-too' not in auto.redact(wide)
+    closed = auto.redact('"password": [\n  "v1zz"\n]\nafter: kept')
+    assert 'v1zz' not in closed and closed.endswith('after: kept')
+
+
+def test_brackets_inside_strings_do_not_close_a_container_and_the_key_line_may_open_it():
+    for text in ('"password": [\n  "x]",\n  "v1zzsecret"\n]', '"password": {\n  "a": "}", "b": "v1zzsecret"\n}',
+                 "secret: [\n  'x]', 'v1zzsecret'\n]", 'password: [a,\n  v1zzsecret, b\n]', '"token": {"a": 1,\n  "b": "v1zzsecret"}',
+                 'password: [\n  "a\\\\"]", "v1zzsecret"\n]'):
+        out = auto.redact('top: fine\n' + text + '\nafter: kept')
+        assert 'v1zzsecret' not in out and out.endswith('after: kept'), (text, out)
+    assert auto._bracket_depth('["a]", {"b": "}"}', 0) == 1 and auto._bracket_depth('a ] b', 1) == 0
+
+
+def test_command_secret_has_no_quadratic_backtracking():
+    for payload in ('ENV ' + 'password' * 12500, 'ENV ' + 'a' * 60000 + 'token' + 'b' * 60000, ('ENV x' + 'secret' * 30 + ' ') * 500,
+                    'SET ' + 'credentials.' * 8000):
+        started = time.monotonic()
+        auto.redact(payload[:auto.MAX_MESSAGE_CHARS])
+        assert time.monotonic() - started < TIME_LIMIT, payload[:20]
+
+
+@pytest.mark.parametrize('header', ['|', '|2', '>2-', '|+', '| # a comment', '!!binary |', '&anchor |', '!!str &b >-', '>+3 # c'])
+def test_yaml_block_scalar_headers_with_indicators_redact_the_body(header):
+    out = auto.redact('a: 1\npassword: %s\n  first-body-line\n  the-value-v1zz\nnext: kept' % header)
+    assert 'v1zz' not in out and 'first-body-line' not in out and out.startswith('a: 1') and out.endswith('next: kept')
+
+
+@pytest.mark.parametrize('text', [
+    'npm set //registry.npmjs.org/:_authToken VALUE', 'npm config set -g //registry.npmjs.org/:_authToken VALUE',
+    'npm config --global set //registry.npmjs.org/:_authToken VALUE', 'npm --userconfig x config set //r/:_authToken VALUE',
+    'pnpm set //registry.npmjs.org/:_authToken VALUE', 'yarn config set npmAuthToken VALUE', 'npm publish --otp=VALUE',
+    'npm publish --otp VALUE'])
+def test_npm_variants(text):
+    assert 'v1zzsecret' not in auto.redact(text.replace('VALUE', 'v1zzsecret')), text
+    assert auto.redact('npm install left-pad') == 'npm install left-pad'
+    assert auto.redact('npm config set loglevel warn') == 'npm config set loglevel warn'
+
+
+def test_k8s_name_then_value_from_then_value_lines():
+    text = 'env:\n  - name: DB_PASSWORD\n    valueFrom:\n      configMapKeyRef:\n    value: v1zzsecret\n  - name: MODE\n    value: prod'
+    out = auto.redact(text)
+    assert 'v1zzsecret' not in out and 'name: MODE' in out and out.endswith('value: prod')
+    plain = auto.redact('env:\n  - name: DB_PASSWORD\n    value: v1zzsecret\n  - name: MODE\n    value: prod')
+    assert 'v1zzsecret' not in plain and plain.endswith('value: prod')
+
+
+def test_real_paths_and_urls_survive_but_random_base64_with_a_slash_does_not():
+    for keep in ('/Users/jamesdeola/dev-local/RHIZE/.worktrees/laya-autolabel/rhize-context-manager/scripts/pilot_autolabel',
+                 '/Users/jamesdeola/dev-local/RHIZE/rhize-plugins/tests/rhize-context-manager/test_pilot_autolabel_redaction',
+                 'https://github.com/Rhize-Media/rhize-plugins/blob/main/rhize-context-manager/scripts/pilot_autolabel.py',
+                 'src/components/VeryLongComponentName/SubFolder/AnotherFolder/index/deep/deeper/deepest',
+                 'node_modules/@types/node/ts4.8/assert/strict/very-long-package-name-goes-here/index'):
+        assert auto.redact(keep) == keep, keep
+    import random
+    blob = None
+    for seed in range(50):
+        rng = random.Random(seed)
+        candidate = ''.join(rng.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ' + '/' * 8) for _ in range(52))
+        if candidate.count('/') >= 2 and not any(c.isdigit() for c in candidate) and not auto._path_like(candidate):
+            blob = candidate
+            break
+    assert blob and auto.redact('x ' + blob + ' y') == 'x [REDACTED_TOKEN] y'
+    assert auto._path_like('usr/local/lib') and not auto._path_like('aGVs/bG8+V29y')

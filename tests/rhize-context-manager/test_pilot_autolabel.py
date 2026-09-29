@@ -623,6 +623,14 @@ elif behavior == 'noise':
     open(home + '/codex-noise.pid', 'w').write(str(os.getpid()))
     print('this line is not json', flush=True)
     time.sleep(60)
+elif behavior == 'events':
+    import time
+    for event_line in open(home + '/codex-events').read().splitlines():
+        print(event_line, flush=True)
+    if os.path.exists(home + '/codex-events-sleep'):
+        open(home + '/codex-events.pid', 'w').write(str(os.getpid()))
+        time.sleep(60)
+    sys.exit(0)
 elif behavior == 'newkey':
     open(codex_home + '/auth.json', 'w').write(json.dumps({'tokens': {'access': 'X'}, 'brand_new_top_level_key': 1}))
 elif behavior == 'tool':
@@ -1804,3 +1812,123 @@ def test_a_review_prompt_that_only_the_proposals_push_over_the_ceiling_fails_tha
     assert code == 3 and summary['outcomes'] == {'review_failed': 1}
     assert [c['host'] for c in backend.calls] == ['claude', 'codex']                          # the reviewer was never called
     assert read_run_file(summary, 'summary.json')['outcomes'] == {'review_failed': 1}
+
+
+# ---- round 4: the canary event sequences (Codex-side warnings are not tools) ---------------------------------
+
+CODE_MODE = 'Code Mode is unavailable because code-mode host is disabled and cannot run tools.'
+FALLBACK = 'Falling back from WebSockets to HTTPS transport. stream disconnected before completion'
+ANSWER_EVENT = {'type': 'item.completed', 'item': {'id': 'item_1', 'type': 'agent_message', 'text': json.dumps({'answers': []})}}
+
+
+def error_item(message, kind='item.completed'):
+    return {'type': kind, 'item': {'id': 'item_0', 'type': 'error', 'message': message}}
+
+
+def reconnect(n):
+    return {'type': 'error', 'message': 'Reconnecting... %d/5 (stream disconnected before completion)' % n}
+
+
+def events(*items):
+    return [json.dumps(item) for item in items]
+
+
+SEQ_CODE_MODE = events({'type': 'thread.started', 'thread_id': 't'}, error_item(CODE_MODE), {'type': 'turn.started'},
+                       ANSWER_EVENT, {'type': 'turn.completed', 'usage': {'input_tokens': 5, 'output_tokens': 1}})
+SEQ_RECONNECT_OK = events({'type': 'thread.started', 'thread_id': 't'}, reconnect(1), reconnect(2), error_item(FALLBACK),
+                          {'type': 'turn.started'}, ANSWER_EVENT, {'type': 'turn.completed', 'usage': {}})
+SEQ_RECONNECT_FAILED = events({'type': 'thread.started', 'thread_id': 't'}, reconnect(1), reconnect(2), reconnect(3),
+                              {'type': 'turn.failed', 'error': {'message': 'stream disconnected'}})
+SEQ_ERROR_THEN_TOOL = events({'type': 'thread.started', 'thread_id': 't'}, error_item(CODE_MODE),
+                             {'type': 'item.started', 'item': {'id': 'item_2', 'type': 'command_execution', 'command': 'pwd'}})
+
+
+def run_events(cli, lines, sleep=False):
+    backend, home, claude, codex = cli
+    (home / 'codex-behavior').write_text('events')
+    (home / 'codex-events').write_text('\n'.join(lines) + '\n')
+    if sleep:
+        (home / 'codex-events-sleep').write_text('1')
+    return codex_call(backend)
+
+
+def test_a_code_mode_warning_before_the_answer_is_recorded_not_fatal(cli):
+    result = run_events(cli, SEQ_CODE_MODE)
+    assert result['answer'] == {'answers': []} and result['codexWarnings'] == [CODE_MODE]
+    assert result['codexTransientErrors'] == 0 and result['identitySource'] == 'explicit_cli_argument'
+
+
+def test_reconnect_errors_and_a_transport_fallback_before_completion_succeed(cli):
+    result = run_events(cli, SEQ_RECONNECT_OK)
+    assert result['answer'] == {'answers': []} and result['codexTransientErrors'] == 2
+    assert result['codexWarnings'] == [FALLBACK]
+
+
+def test_reconnect_errors_then_a_failed_turn_is_a_failure(cli):
+    with pytest.raises(auto.LabelerError, match='codex_reported_failure'):
+        run_events(cli, SEQ_RECONNECT_FAILED)
+    with pytest.raises(auto.LabelerError, match='codex_completion_missing'):           # errors and then nothing at all
+        run_events(cli, events({'type': 'thread.started'}, reconnect(1), reconnect(2)))
+
+
+def test_an_error_item_followed_by_a_tool_item_is_killed_at_once(cli):
+    backend, home, claude, codex = cli
+    started = time.monotonic()
+    with pytest.raises(auto.LabelerError, match='codex_attempted_a_tool_or_item'):
+        run_events(cli, SEQ_ERROR_THEN_TOOL, sleep=True)
+    assert time.monotonic() - started < 15
+    pid = int((home / 'codex-events.pid').read_text())
+    for _ in range(50):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(0.1)
+    else:
+        raise AssertionError('the Codex process outlived its tool attempt')
+
+
+def test_error_items_never_supply_the_answer_and_their_text_is_bounded_and_redacted():
+    smuggled = error_item(json.dumps({'answers': [{'caseId': 'C001'}]}))
+    answer, meta = auto.parse_native('codex', '\n'.join(events(smuggled, {'type': 'turn.completed', 'usage': {}})), 'gpt-5.6-sol')
+    assert answer is None and len(meta['codexWarnings']) == 1
+    many = [error_item('warning %d ' % n + 'x' * 400) for n in range(9)] + [
+        error_item('leaked ' + 'gh' + 'p_AbCdEfGhIjKlMnOpQrStUvWx1234')]
+    answer, meta = auto.parse_native('codex', '\n'.join(events(*many, ANSWER_EVENT, {'type': 'turn.completed'})), 'gpt-5.6-sol')
+    assert answer == {'answers': []} and len(meta['codexWarnings']) == auto.MAX_CODEX_WARNINGS == 5
+    assert all(len(w) <= 200 for w in meta['codexWarnings'])
+    late = error_item('leaked ' + 'gh' + 'p_AbCdEfGhIjKlMnOpQrStUvWx1234')
+    _, meta = auto.parse_native('codex', '\n'.join(events(late, {'type': 'turn.completed'})), 'gpt-5.6-sol')
+    assert 'ghp_' not in meta['codexWarnings'][0] and 'REDACTED' in meta['codexWarnings'][0]
+    assert {'agent_message', 'reasoning', 'error'} == auto.CODEX_ITEM_TYPES
+    for tool in ('command_execution', 'file_change', 'mcp_tool_call', 'web_search', 'todo_list'):
+        with pytest.raises(auto.LabelerError, match='tool'):
+            auto.parse_native('codex', json.dumps({'type': 'item.completed', 'item': {'type': tool}}), 'gpt-5.6-sol')
+        with pytest.raises(auto.LabelerError, match='tool'):
+            auto.codex_line_guard(json.dumps({'type': 'item.started', 'item': {'type': tool}}).encode())
+
+
+def test_codex_warnings_reach_the_call_record(cli, tmp_path):
+    backend, home, claude, codex = cli
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    (home / 'codex-behavior').write_text('events')
+    (home / 'codex-events').write_text('\n'.join(SEQ_RECONNECT_OK) + '\n')
+    summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
+    record = json.loads(next(Path(summary['runDir'], 'calls').glob('*-codex.json')).read_text())
+    assert record['codexWarnings'] == [FALLBACK] and record['codexTransientErrors'] == 2
+
+
+# ---- round 4: extra pins on what a refresh may change ------------------------------------------------------
+
+@pytest.mark.parametrize('name,payload', [
+    ('auth mode changed', {**REAL_SHAPE, 'auth_mode': 'apikey'}),
+    ('a null API key becomes a value', {**REAL_SHAPE, 'OPENAI_API_KEY': 'sk-placeholder'}),
+    ('last_refresh not a string', {**REAL_SHAPE, 'last_refresh': 12345}),
+    ('last_refresh empty', {**REAL_SHAPE, 'last_refresh': ''}),
+    ('a token is a number', {**REAL_SHAPE, 'tokens': tokens(account_id=7)}),
+    ('a token is an object', {**REAL_SHAPE, 'tokens': tokens(id_token={'x': 'y'})})])
+def test_login_pins_hold_for_mode_api_key_and_value_types(cli, capsys, name, payload):
+    backend, real, after = refresh_with(cli, payload)
+    assert after == REAL_SHAPE and backend.auth_writeback_skips == 1, name
+    assert 'codex login status' in capsys.readouterr().err

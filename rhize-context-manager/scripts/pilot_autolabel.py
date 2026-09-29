@@ -166,10 +166,11 @@ REDACTIONS = (
                 r"(?=[^\s'\"]{0,200}:)[^\s'\"]{1,200})"), '[REDACTED_CREDENTIALS]', 1),
     (re.compile(r"(?i)(\b(?:mysql|mysqldump|mysqladmin|mariadb|mongo|mongosh|redis-cli)\b[^\n]{0,200}?\s-p)" + _STR),
      '[REDACTED_PASSWORD]', 1),
-    (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret)"
+    (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret|otp)"
                 r"(?:=|\s{1,8}))" + _STR), '[REDACTED_SECRET]', 1),
-    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm)\s{1,4}config\s{1,4}set\s{1,4}\S{0,200}(?:token|password|secret|auth|key)\S{0,100}\s{1,4})'
-                r'[^\s]{1,512}'), '[REDACTED_SECRET]', 1),
+    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm)\b(?:\s{1,4}--?[\w-]+(?:[= ]\S{1,100})?){0,4}?\s{1,4}'
+                r'(?:config(?:\s{1,4}--?[\w-]+){0,3}\s{1,4}set|set)\s{1,4}(?:--?[\w-]+\s{1,4}){0,3}'
+                r'\S{0,200}(?:token|password|secret|auth|key)\S{0,100}\s{1,4})[^\s]{1,512}'), '[REDACTED_SECRET]', 1),
     (re.compile(r'(?i)([?&](?:key|sig|signature|token|access_token|api_key|apikey|secret|password|pwd|auth|code|'
                 r'x-amz-signature|x-goog-signature)=)[^\s&#"\'<>]{1,512}'), '[REDACTED_SECRET]', 1),
     (re.compile(r'\b[\w.+-]{1,64}@[\w.-]{1,255}\.[A-Za-z]{2,24}\b'), '[REDACTED_EMAIL]', 0),
@@ -189,7 +190,7 @@ _LEFT = r'(?:(?<![A-Za-z])|(?-i:(?<=[a-z])(?=[A-Z])))'
 CREDENTIAL_WORD = re.compile(
     r'(?i)(?:password|passwd|passphrase|passcode|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
     r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|credentials?|token(?!s)|(?<![A-Za-z_])tokens(?=["\']?[ \t]*[:=])|'
-    r'bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
+    r'pwd(?=["\']?[ \t]*[:=])|bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
     + _LEFT + r'(?:pw|pin|creds?|auth(?:orization)?|cookies?|session)(?![A-Za-z])|'
     r'(?<=[A-Za-z0-9])[ _-]key\b)')
 CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}["']?[ \t]*[:=]''')
@@ -198,16 +199,18 @@ CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[
 NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:["',|>]|$)''', re.M)
 # Command and file shapes: `ENV SECRET v`, netrc `password v` / `machine h login u password v`.
 COMMAND_SECRET = re.compile(
-    r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]*(?:password|passwd|passphrase|secret|token|api[_-]?key|'
-    r'credentials?)[\w.-]*[ \t]+\S')
+    r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]{0,128}(?:password|passwd|passphrase|secret|token|api[_-]?key|'
+    r'credentials?)[\w.-]{0,128}[ \t]+\S')
 NETRC_SECRET = re.compile(r'(?im)^[ \t]*password[ \t]+\S+[ \t]*$|\b(?:machine|login)[ \t]+\S+.{0,300}?\bpassword[ \t]+\S')
 NATURAL_SECRET = re.compile(
     r'(?i)(?:password|passwd|passphrase|passcode|secret|token|api[ _-]?key|apikey|' + _LEFT + r'(?:pwd|pw|pin|creds?))'
-    r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->)\s{0,4})\S')
+    r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->|\u2192)\s{0,4})\S')
+# `pass` is an ordinary word, so only the plain statement counts ("my pass is v", not "pass to the callback").
+NATURAL_PASS = re.compile(r'(?i)' + _LEFT + r'pass\s{1,4}(?:is|was)\s{1,4}\S')
 SEPARATOR_LINE = re.compile(r'^[\s|:+=-]*$')
 STRONG_WORD = re.compile(r'(?i)password|passwd|passphrase|passcode|secret|token|key|credential')
-BLOCK_OPENERS = ('|', '>', '|-', '>-', '|+', '>+')
-VALUE_BELOW = ('', '[', '{', '(') + BLOCK_OPENERS
+BLOCK_HEADER = re.compile(r'^(?:[!&]\S+\s+)*[|>][+\-0-9]*\s*(?:#.*)?$')
+VALUE_BELOW = ('', '[', '{', '(')
 MAX_BLOCK_LINES, MAX_BLOCK_CHARS = 200, 20000
 MAX_CONTAINER_LINES, MAX_CONTAINER_CHARS = 50, 4000
 # Generic fallbacks: a long unbroken key-like run with lower case, upper case and a digit; and, with base64
@@ -349,6 +352,15 @@ def parse_reviews(value, expected):
 # ---------------------------------------------------------------------------------------------
 # Redaction and transcript recovery
 
+PATH_SEGMENT = re.compile(r'(?:(?:[A-Z]?[a-z][a-z0-9]*|[0-9]+|[_-])+|[A-Z][A-Z0-9_-]*)?')
+
+
+def _path_like(run):
+    """A run of `/`-separated identifier-like segments (words, camelCase, snake and kebab case, ALLCAPS): a file
+    path or URL path, not random base64, whose letters are not built from whole words."""
+    return '+' not in run and '=' not in run and all(PATH_SEGMENT.fullmatch(part) for part in run.split('/'))
+
+
 def _looks_like_key(run):
     return any(c.islower() for c in run) and any(c.isupper() for c in run) and any(c.isdigit() for c in run)
 
@@ -372,27 +384,56 @@ class Lines:
         return start, end
 
 
+def _bracket_depth(text, depth):
+    """Bracket depth after `text`, ignoring brackets inside quoted strings (a string never spans lines here, so a
+    stray apostrophe cannot poison the following lines)."""
+    quote, escaped = None, False
+    for char in text:
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == quote:
+                quote = None
+        elif char in '"\'':
+            quote = char
+        elif char in '[{':
+            depth += 1
+        elif char in ']}':
+            depth -= 1
+    return depth
+
+
 def _container_end(lines, position, depth):
-    """End of the bracket or brace value that starts at `position` with `depth` already open; when it does not
-    close within the bound, everything up to the bound (fail closed)."""
-    text, end, taken = lines.text, position, 0
-    while position <= len(text) and taken < MAX_CONTAINER_LINES and position - end < MAX_CONTAINER_CHARS:
-        start, stop = lines.bounds(position)
-        line = text[start:stop]
-        depth += sum(line.count(c) for c in '[{') - sum(line.count(c) for c in ']}')
+    """End of the bracket or brace value that starts at `position` with `depth` already open. A container still
+    open at the line or character bound (counted from where it started) redacts the rest of the message."""
+    text, first, taken = lines.text, position, 0
+    end = position
+    while position <= len(text):
+        if taken >= MAX_CONTAINER_LINES or position - first >= MAX_CONTAINER_CHARS:
+            return len(text)
+        _, stop = lines.bounds(position)
+        depth = _bracket_depth(text[position:stop], depth)
         end, position, taken = stop, stop + 1, taken + 1
         if depth <= 0 or stop >= len(text):
             break
     return end
 
 
+def _value_is_below(rest):
+    """Does the value of a key whose line ends with `rest` continue on the following lines?"""
+    return (rest in VALUE_BELOW or bool(BLOCK_HEADER.match(rest))
+            or (rest[:1] in ('[', '{') and _bracket_depth(rest, 0) > 0))
+
+
 def _value_below_end(lines, key_start, key_end, rest):
     """End of the lines that hold a value written below its key: a block scalar body (fail closed: the rest of the
-    message when it is still open at the cap), a bracketed or braced value, a YAML list, or the next value line
-    (table separator rows and a couple of blank lines are skipped over)."""
+    message when it is still open at the cap), a bracketed or braced value (also one the key line itself opens), a
+    YAML list, or the next value line (table separator rows and a couple of blank lines are skipped over)."""
     text = lines.text
     end, position = key_end, key_end + 1
-    if rest[:1] in ('|', '>'):
+    if BLOCK_HEADER.match(rest):
         indent = len(text[key_start:key_end]) - len(text[key_start:key_end].lstrip(' \t'))
         count = 0
         while position <= len(text):
@@ -407,7 +448,7 @@ def _value_below_end(lines, key_start, key_end, rest):
                 break
         return end
     if rest[:1] in ('[', '{'):
-        return _container_end(lines, position, 1)
+        return _container_end(lines, position, max(_bracket_depth(rest, 0), 1))
     for _ in range(6):
         if position > len(text):
             break
@@ -433,6 +474,24 @@ def _value_below_end(lines, key_start, key_end, rest):
     return end
 
 
+def _k8s_value_end(lines, end):
+    """`- name: DB_PASSWORD`, then up to three key lines (`valueFrom:`), then `value: v`: take the value line too."""
+    text, position = lines.text, end + 1
+    for _ in range(4):
+        if position > len(text):
+            break
+        _, stop = lines.bounds(position)
+        line = text[position:stop].strip()
+        position = stop + 1
+        if not line:
+            continue
+        if line.startswith(('- ', '-\t')):
+            break
+        if line.startswith(('value:', 'value ', '"value"', "'value'")):
+            return stop
+    return end
+
+
 def _credential_spans(text):
     lines = Lines(text)
     spans, covered = [], -1
@@ -443,17 +502,17 @@ def _credential_spans(text):
         tail = CREDENTIAL_TAIL.match(text, match.end())
         if tail:
             rest = text[tail.end():end].strip(' \t\r"\'')
-            spans.append((start, end if rest not in VALUE_BELOW else _value_below_end(lines, start, end, rest)))
+            spans.append((start, _value_below_end(lines, start, end, rest) if _value_is_below(rest) else end))
         elif STRONG_WORD.search(match.group()):
             # The word is the value or a tag (`"name": "DB_PASSWORD"`, `<password>`, a table header): take the line
             # and the value line below it.
             if not NAME_END.match(text, match.end()):
                 continue
-            spans.append((start, _value_below_end(lines, start, end, '')))
+            spans.append((start, max(_value_below_end(lines, start, end, ''), _k8s_value_end(lines, end))))
         else:
             continue
         covered = spans[-1][1]
-    for pattern in (NATURAL_SECRET, COMMAND_SECRET, NETRC_SECRET):
+    for pattern in (NATURAL_SECRET, NATURAL_PASS, COMMAND_SECRET, NETRC_SECRET):
         last = -1
         for match in pattern.finditer(text):
             if match.start() >= last:
@@ -517,7 +576,7 @@ def _view_spans(view):
         run = match.group()
         # With base64 punctuation the entropy alone decides (a base64 secret may have no digit), so ordinary words
         # and paths, which are far less random, stay.
-        if any(c in run for c in '+/=') and len(set(run)) >= 20 and _entropy(run) >= 4.2:
+        if any(c in run for c in '+/=') and len(set(run)) >= 20 and _entropy(run) >= 4.2 and not _path_like(run):
             found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
     return found
 
@@ -946,11 +1005,20 @@ class CodexLogin:
             return False
         if any(value is not None and _empty(new[key]) for key, value in old.items()):
             return False
+        # Pins: the login mode never changes (no API-key fallback), a null API key stays null, and the fields that hold
+        # credentials or timestamps are non-empty strings.
+        if 'auth_mode' in old and new.get('auth_mode') != old['auth_mode']:
+            return False
+        if 'OPENAI_API_KEY' in old and (old['OPENAI_API_KEY'] is None) != (new.get('OPENAI_API_KEY') is None):
+            return False
+        if 'last_refresh' in new and (not isinstance(new['last_refresh'], str) or not new['last_refresh']):
+            return False
         if isinstance(old.get('tokens'), dict):
             tokens = new['tokens']
             if not isinstance(tokens, dict) or not set(old['tokens']) <= set(tokens) \
                     or not set(tokens) - set(old['tokens']) <= AUTH_TOKEN_KEYS \
-                    or any(_empty(tokens[key]) for key in old['tokens']):
+                    or any(_empty(tokens[key]) for key in old['tokens']) \
+                    or any(not isinstance(value, str) or not value for value in tokens.values()):
                 return False
         return True
 
@@ -1065,6 +1133,13 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
                 stream.close()
 
 
+# Item types Codex may emit without having used a tool. `error` is Codex's own warning channel (for example
+# "Code Mode is unavailable because code-mode host is disabled", which our own lockdown causes, or a transport
+# fallback); it can never carry the answer. Anything else is a tool and ends the call.
+CODEX_ITEM_TYPES = frozenset({'agent_message', 'reasoning', 'error'})
+MAX_CODEX_WARNINGS = 5
+
+
 def codex_line_guard(line):
     """Reject the first Codex event that is not plain reasoning or a message, so a tool attempt is killed at once."""
     if not line.strip():
@@ -1077,7 +1152,7 @@ def codex_line_guard(line):
         raise LabelerError('codex_invalid_output')
     if isinstance(value.get('type'), str) and value['type'].startswith('item.'):
         item = value.get('item')
-        if not isinstance(item, dict) or item.get('type') not in ('agent_message', 'reasoning'):
+        if not isinstance(item, dict) or item.get('type') not in CODEX_ITEM_TYPES:
             raise LabelerError('codex_attempted_a_tool_or_item')
 
 
@@ -1101,7 +1176,7 @@ def model_command(host, binary, model, effort, directory, system, schema):
 
 def parse_native(host, output, model):
     """(answer object, metadata). Claude must name the requested model in its own usage report."""
-    usage, observed = None, None
+    usage, observed, extra = None, None, {}
     if host == 'claude':
         value = json.loads(output)
         if value.get('is_error') or value.get('subtype') != 'success':
@@ -1115,25 +1190,34 @@ def parse_native(host, output, model):
         answer = value.get('structured_output') or value.get('result')
         source = 'native_model_usage'
     else:
-        answer, completed = None, False
+        answer, completed, warnings, transient = None, False, [], 0
         for line in output.splitlines():
+            if not line.strip():
+                continue
             value = json.loads(line)
-            if value.get('type') in ('error', 'turn.failed'):
+            kind = value.get('type')
+            if kind == 'turn.failed':
                 raise LabelerError('codex_reported_failure')
-            if isinstance(value.get('type'), str) and value['type'].startswith('item.'):
+            if kind == 'error':
+                transient += 1                      # reconnect notices and the like: only a failed turn matters
+            if isinstance(kind, str) and kind.startswith('item.'):
                 item = value.get('item', {})
-                if item.get('type') not in ('agent_message', 'reasoning'):
+                if item.get('type') not in CODEX_ITEM_TYPES:
                     raise LabelerError('codex_attempted_a_tool_or_item')
-                if value['type'] == 'item.completed' and item.get('type') == 'agent_message':
+                if item.get('type') == 'error' and isinstance(item.get('message'), str) \
+                        and len(warnings) < MAX_CODEX_WARNINGS:
+                    warnings.append(sanitize(item['message'], 200)[0][:200])
+                if kind == 'item.completed' and item.get('type') == 'agent_message':
                     answer = item.get('text')
-            if value.get('type') == 'turn.completed':
+            if kind == 'turn.completed':
                 completed, usage = True, value.get('usage')
         if not completed:
             raise LabelerError('codex_completion_missing')
         observed, source = model, 'explicit_cli_argument'
+        extra = {'codexWarnings': warnings, 'codexTransientErrors': transient}
     if isinstance(answer, str):
         answer = json.loads(answer)
-    return answer, {'observedModel': observed, 'identitySource': source, 'usage': usage}
+    return answer, {'observedModel': observed, 'identitySource': source, 'usage': usage, **extra}
 
 
 class CliBackend:
@@ -1372,7 +1456,8 @@ class Run:
         self.failed_in_a_row = 0
         write_json(self.run_dir / 'calls' / ('%03d-%s-%s.json' % (number, kind, host)),
                    {**record, 'observedModel': result.get('observedModel'), 'identitySource': result.get('identitySource'),
-                    'usage': result.get('usage'), 'elapsedSeconds': round(self.clock() - began, 3),
+                    'usage': result.get('usage'), 'codexWarnings': result.get('codexWarnings'),
+                    'codexTransientErrors': result.get('codexTransientErrors'), 'elapsedSeconds': round(self.clock() - began, 3),
                     'outputSha256': digest(result.get('raw') or canonical(result['answer'])), 'output': result.get('raw')})
         return result
 
