@@ -40,7 +40,7 @@ Next.js/Vite viewer.
 
 ## Build
 
-Requires Node ≥ 18.
+Requires Node ≥ 18. Build from a git checkout of rhize-plugins, not from the version-pinned plugin cache, which is replaced on every plugin update.
 
 ```bash
 cd project-launcher/skills/rhize-visual-plan/obsidian-plugin

@@ -63,6 +63,7 @@ The full pipeline has six phases. Each phase produces something the next phase n
 - Say "wireframe the empty and error states for this screen" — it builds a `<Canvas>` with one artboard per state.
 - Ask it to render what it just built — "show me the plan" — and it'll give you the actual path/URL from `rhize-plan serve`, not a description.
 - This skill is deliberately usable outside project-launcher too — if you have any risky, multi-file, or ambiguous plan (not necessarily a project-launcher PRD) that deserves a real review artifact instead of a chat wall of text, invoke it directly.
+- Set up the `rhize-plan` viewer once from a git checkout of rhize-plugins (`cd project-launcher/skills/rhize-visual-plan/viewer && npm install`). Don't set it up in the plugin cache, which is replaced on every plugin update.
 
 ## Commands Reference
 

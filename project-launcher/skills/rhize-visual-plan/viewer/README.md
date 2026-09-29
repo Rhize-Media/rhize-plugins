@@ -18,10 +18,15 @@ surface-preset authority).
 
 ## Install
 
+Run this from a git checkout of rhize-plugins, not from the version-pinned plugin cache (`~/.claude/plugins/cache/…` or `~/.codex/plugins/cache/…`), which is replaced on every plugin update:
+
 ```bash
-cd viewer
+cd project-launcher/skills/rhize-visual-plan/viewer
 npm install
 ```
+
+`node_modules/` is gitignored, so it never becomes part of the skill. The skill map hashes
+tracked files only, and the MCP Skills extension's per-skill limit is 512 files / 16 MiB.
 
 This pulls Vite, React 18, the MDX toolchain, and `mermaid` (mermaid is large —
 the first install can take a minute).

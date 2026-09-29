@@ -68,6 +68,8 @@ model environment as the probe; a changed or missing local model pin blocks read
 | `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, visualization |
 <!-- SKILL-MAP:END -->
 
+`rhize-visual-plan`'s viewer is installed once from a git checkout of rhize-plugins (`cd project-launcher/skills/rhize-visual-plan/viewer && npm install`). Never install it inside the version-pinned plugin cache, which is replaced on every update.
+
 ## Reference Docs
 
 | File | Purpose |

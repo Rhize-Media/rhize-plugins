@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-29_ version bump — 1.11.0 → 1.11.1 (patch); marketplace 2.92.0 → 2.92.1.
+- _2026-09-29_ `rhize-visual-plan`: the viewer and Obsidian-plugin install steps now say to run `npm install` from a git checkout of rhize-plugins, never inside the version-pinned plugin cache (replaced on every update). `node_modules` is untracked, so the skill map's tracked-file digest and the MCP Skills extension's 512-file / 16 MiB limit only count what the skill ships. The `project-launcher` skill names the obsidian-mcp-server 3.x search tool (`obsidian_search_notes`); the rename itself shipped with obsidian-second-brain 1.7.6.
 - _2026-09-25_ version bump — 1.10.0 → 1.11.0 (minor); marketplace 2.81.2 → 2.85.0 across four decision-layer plugins.
 - Extend the existing one-call GSD planner/executor/verifier supervision with skill/workflow, graph, retention, model/worker, tool-risk and browser QA checks. Add a private 1,000,000-token duplicate-control ledger for later software-task trials.
 

@@ -141,7 +141,7 @@ real density (existing sidebars, toolbar, chrome).
 
 The viewer is packaged in this skill at **`viewer/`** — a project-agnostic local tool (Vite + `@mdx-js` +
 React, no external plan service) that renders ANY `plan.mdx` from anywhere on disk (the vault or any client
-repo). One-time setup: `cd viewer && npm install` (optionally `npm link` for a global `rhize-plan`).
+repo). One-time setup, from a **git checkout** of rhize-plugins: `cd viewer && npm install` (optionally `npm link` for a global `rhize-plan`). Never install inside the version-pinned plugin cache (`~/.claude/plugins/cache/…` or `~/.codex/plugins/cache/…`), which is replaced on every plugin update. `node_modules` stays untracked either way.
 
 - **Live local preview:** `rhize-plan serve <path-to-plan.mdx|dir>` — opens the browser with HMR; edits to
   the plan reload instantly. The daily review driver.
