@@ -324,7 +324,7 @@ ALLCAPS words (after a separator, at the start or as the trailing word: `SKILL-c
 `PanelUI`); a capital glued inside a lower case run that is not a hump (`aGVs`), or a long segment whose words average
 under three letters, is not a path. Random base64 with a `/` still redacts; residual: roughly one random blob in twenty
 thousand happens to parse as words and is left to the other rules. Only the head of a message is ever kept.
-   Every pattern is length-bounded, every scan is linear, and a test runs every module-level regex over adversarial
+   Every quantifier is bounded (two anchored whitespace runs aside), every scan is linear, and a test runs every module-level regex over adversarial
 5,000-character strings against a time limit. It is defense in depth, not a
    guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
