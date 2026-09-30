@@ -8,7 +8,8 @@ description: >-
   executes code with a provenance contract; it does not retrieve past conversations or build vault
   knowledge graphs. Trigger on "is there already a tool for this", "run the registry version",
   "promote this script", "recall a proven artifact", "re-verify an artifact", or "has this been
-  automated before".
+  automated before". Also use for an explicit request to stage an already human-approved
+  Functionize recipe as a documentation-only registry skill.
 metadata:
   rhize:
     topics: [automation, workflow-patterns]
@@ -58,6 +59,8 @@ bash scripts/procedural-memory.sh recall "<task description>"
 bash scripts/procedural-memory.sh run <name> [args...] [--offline]
 bash scripts/procedural-memory.sh promote <path>
 bash scripts/procedural-memory.sh verify <name> | --cli <cli> [--offline]
+bash scripts/procedural-memory.sh recipe-stage <bundle> --ledger <path> [--name <skill-slug>]
+bash scripts/procedural-memory.sh recipe-stage --check <skill-slug> --ledger <path>
 ```
 
 The four slash commands (`/procedural-memory:recall`, `/procedural-memory:run`,
@@ -78,6 +81,34 @@ explicit slash command, and follow the same rules either way.
   remediation command — and let the user decide whether to bypass or fix it.
 - A passing exit code with a failing assertion is still `degraded`, never `ok` — report which
   specific assertion failed, not just pass/fail.
+
+## Stage an approved recipe (explicit request only)
+
+Use `recipe-stage` only after the human explicitly requests staging that recipe. Recipe discovery,
+export, a review approval, and general agreement do not authorize this registry write. This is an
+agent instruction; the launcher cannot authenticate user intent. The convenience alias maps to
+`rhize-skill functionize-recipe-stage` after probing command support; older runtimes refuse with
+exit 78. Existing raw CLI passthrough remains available and does not weaken the runtime gates.
+
+The runtime requires the latest ledger decision to be approve for the bundle's exact digest.
+It stages `SKILL.md`, draft provenance and a review marker without scripts or an execution block.
+It records the stage, refuses conflicts/overwrites, and leaves the artifact unverified. Do not
+hand-edit the registry, invent human review entries, or call this documentation-only output
+verified executable code.
+
+After staging, run `recipe-stage --check <skill-slug> --ledger <path>` to verify the files, stage
+record and current ledger binding. Report failures, including changed bundle/staged bytes or a
+later reject/defer. Promotion requires a separate user request and the ledger-bound command:
+
+```bash
+bash scripts/procedural-memory.sh promote <reported-staged-path> --recipe-ledger <path>
+```
+
+Use the exact staged path reported by the runtime. Promotion rechecks the recipe stage/ledger
+binding and does not establish successful health verification or execution approval. Keep verification, digest-bound
+approval and execution behind their existing gates; a documentation-only recipe has no runnable
+artifact to smoke-test or execute. To inspect or record recipe decisions, use the separate
+[`functionize` skill](../functionize/SKILL.md#human-recipe-decisions-and-review-status).
 
 ## Recall results carry their own honesty signal
 

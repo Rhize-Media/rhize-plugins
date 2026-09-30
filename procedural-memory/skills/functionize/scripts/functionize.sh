@@ -1,5 +1,5 @@
 #!/bin/sh
-# Compile-only Functionize skill boundary. Registry and execution commands are intentionally absent.
+# Inert Functionize proposals and recipe decisions. Registry and execution commands are intentionally absent.
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -7,8 +7,8 @@ PLUGIN_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../../.." && pwd)
 LAUNCHER="$PLUGIN_ROOT/scripts/rhize-skill-launcher.sh"
 
 usage() {
-    echo "usage: functionize.sh <mine|generate|review|recipes> [arguments...]" >&2
-    echo "compile-only modes: mine, generate, review, recipes" >&2
+    echo "usage: functionize.sh <mine|generate|review|recipes|recipe-review|recipe-status> [arguments...]" >&2
+    echo "inert modes: mine, generate, review, recipes, recipe-review, recipe-status" >&2
 }
 
 mode=${1:-}
@@ -25,6 +25,12 @@ case "$mode" in
     recipes)
         # Inert multi-step recipe candidates mined from agent Bash history; export-only, never run.
         command_name="functionize-recipes"
+        ;;
+    recipe-review)
+        command_name="functionize-recipe-review"
+        ;;
+    recipe-status)
+        command_name="functionize-recipe-status"
         ;;
     -h|--help)
         usage

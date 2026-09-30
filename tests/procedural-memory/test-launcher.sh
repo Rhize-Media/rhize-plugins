@@ -140,7 +140,7 @@ assert_contains "Test C2 stub received the real argv" "$WORK/stub-skill-log.txt"
     "invoked: verify artifact-name"
 
 echo
-echo "=== Test C3: Functionize launcher maps only its three compile-only modes ==="
+echo "=== Test C3: Functionize launcher maps inert proposal modes ==="
 rm -f "$WORK/stub-functionize-log.txt"
 set +e
 (cd "$WORK/empty-home" && env -i HOME="$WORK/empty-home" \
@@ -170,7 +170,7 @@ assert_contains "Test C3 review maps to functionize-review" "$WORK/stub-function
 
 echo
 echo "=== Test C4: Functionize launcher refuses registry and execution commands before CLI resolution ==="
-for forbidden in promote approve verify run; do
+for forbidden in recipe-stage stage promote approve verify run; do
     set +e
     env -i HOME="$WORK/empty-home" PATH="/usr/bin:/bin" \
         bash "$FUNCTIONIZE_LAUNCHER" "$forbidden" artifact-name \
@@ -178,8 +178,8 @@ for forbidden in promote approve verify run; do
     code=$?
     set -e
     assert_eq "Test C4 refuses $forbidden" "64" "$code"
-    assert_contains "Test C4 names compile-only boundary for $forbidden" \
-        "$WORK/testC4-$forbidden.out" "compile-only modes: mine, generate, review"
+    assert_contains "Test C4 names inert boundary for $forbidden" \
+        "$WORK/testC4-$forbidden.out" "inert modes: mine, generate, review"
 done
 
 echo
