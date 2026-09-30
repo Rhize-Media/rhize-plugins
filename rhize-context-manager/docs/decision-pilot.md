@@ -310,12 +310,22 @@ Each pass:
    netrc `password v`, `Set X to v`) takes its line and the value line below it, and a value below its key inside
    `[..]`/`{..}` (string-aware, also one the key line itself opens) or a YAML list or block (any header:
    `|2`, `>2-`, `!!binary |`, `&a |`, `| # c`) is redacted to its end, k8s `name:` / `valueFrom:` / `value:` included.
-   `pwd=`, `DB_PWD=`, `my pass is v` and the arrow `→` are covered while the bare `pwd` command is not, and npm/pnpm
-   `set`/`config set` (flags allowed) and `--otp` are covered. Every bound fails closed: a container still open at
+   `pwd=`, `DB_PWD=` and the arrow `→` are covered while the bare `pwd` command is not; `pass is v` counts only with a
+   credential context (`my`/`your`/`our` pass, an admin/root/db/user/login/wifi/account pass) or as a bare statement ending
+   in one token (`pass is v`), so `the first pass is done` and `lint pass was clean` stay; npm/pnpm/yarn/bun
+   `set`/`c set`/`config set` (flags and flag values such as `--location=user`, `-L user`, `--global=true`
+   allowed) and `--otp` are covered. Every bound fails closed: a container still open at
    50 lines or 4K characters (counted from where it started), a YAML block open at the cap, or more than 20,000
    escapes redacts the rest of the message. Base64 runs are judged by entropy, so one with no digit is caught, unless the run is a path or URL path made of
-identifier-like segments (words, camelCase, snake or kebab case) with no `+` or `=`. Only the head of a message is ever kept.
-   Every pattern is length-bounded and every scan is linear. It is defense in depth, not a
+identifier-like segments with no `+` or `=`. That path check is a linear character scanner, not a regex (the first
+regex for it backtracked exponentially: `docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL` took about half a
+second to sanitize and longer names never finished). A segment is lower case and Capitalized words, digits, `_`/`-` and
+ALLCAPS words (after a separator, at the start or as the trailing word: `SKILL-context-hygiene-v1`, `marketA`, `workerV2`,
+`PanelUI`); a capital glued inside a lower case run that is not a hump (`aGVs`), or a long segment whose words average
+under three letters, is not a path. Random base64 with a `/` still redacts; residual: roughly one random blob in twenty
+thousand happens to parse as words and is left to the other rules. Only the head of a message is ever kept.
+   Every pattern is length-bounded, every scan is linear, and a test runs every module-level regex over adversarial
+5,000-character strings against a time limit. It is defense in depth, not a
    guarantee.
 3. **Annotate** with two independent no-tools, schema-bound annotators that see the same packets and
    never each other: Claude (`--claude-model`, default `claude-sonnet-5-5`) and Codex
@@ -369,8 +379,10 @@ is unaffected). Never content. The private copy is removed
 after every call, including failures, and copies left by a killed run are swept at the next start.
 A login kept only in the keychain (no `auth.json`) fails closed with `codex_auth_unavailable`.
 Codex output is checked line by line as it arrives, including a last line with no trailing newline:
-any `item.*` event other than `agent_message`, `reasoning` or `error` (a tool attempt), or a line that is not a JSON
-object, kills the process group and fails the call. `error` items are Codex-side warnings (the canary showed
+any `item.*` event other than `agent_message`, `reasoning` or `error` (a tool attempt), an `error` item with any key beyond
+`id`, `type` and `message` (a `command` or path is a tool attempt in disguise), or a line that is not a JSON
+object, kills the process group and fails the call. A turn that completes without an `agent_message` fails the call as
+`codex_answer_missing` and counts toward the failed-calls-in-a-row cap. `error` items are Codex-side warnings (the canary showed
 "Code Mode is unavailable because code-mode host is disabled", which our own lockdown causes, and transport
 fallbacks): they are recorded, at most five per call, 200 characters each and redacted, as `codexWarnings` in the call
 record and can never supply the answer. Top-level `error` events (reconnect notices) are counted as
@@ -388,8 +400,8 @@ version and SHA-256 are recorded in the summary. Models, per-call timeout, effor
 `--config` JSON file.
 
 **State.** The private state directory (default `<workflow-selection root>/autolabel`, mode 0700)
-holds `runs/<id>/` with `manifest.json`, `packets.json` (redacted excerpts), `calls/` (raw model
-output), `annotations.json`, `import.json` and `summary.json`; `latest-summary.json` (the last
+holds `runs/<id>/` with `manifest.json`, `packets.json` (redacted excerpts), `calls/` (model output,
+sanitized and capped at 20,000 characters; the record's `outputSha256` still covers the raw output), `annotations.json`, `import.json` and `summary.json`; `latest-summary.json` (the last
 daily run only); `latest-inspection.json` (the last `--no-import` or `--prepare-only` run, which
 never replaces `latest-summary.json`); a `run.lock` that makes an overlapping launch exit quietly
 (only a contended lock counts as busy; any other lock error is reported); and the append-only
