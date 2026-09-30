@@ -126,8 +126,10 @@ LEAK = re.compile(
     r'\bai[- ](?:model[- ])?(?:review|label)|review(?:er)?[ _-](?:answer|verdict)|decision[- ]pilot|'
     r'\bpilot (?:result|label|score|arm)|\bnoul\b|typed[- ]decision|derived:family|label[ _-](?:basis|policy|store)')
 
-# Detection runs on a normalized view of the text (see detection_view); every pattern is length-bounded so none
-# can run away on a long run of look-alike characters. Entry: (pattern, marker, prefix group to keep or 0).
+# Detection runs on a normalized view of the text (see detection_view); every quantifier is bounded except the
+# `[ \t]*` in CREDENTIAL_TAIL and NAME_END, which are only ever used anchored (`.match(text, pos)`), so a long run of
+# look-alike characters cannot make any pattern run away; a test times every module-level regex on adversarial input.
+# Entry: (pattern, marker, prefix group to keep or 0).
 def _u(*points):
     return {p: t for p, t in points}
 
@@ -146,20 +148,25 @@ MAX_ESCAPES = 20000
 _STR = r"(?:'[^'\n]{0,200}'|\"[^\"\n]{0,200}\"|[^\s'\"]{1,200})"
 # A package-manager flag with its optional value: `-g`, `--global=true`, `--location=user`, `--location user`, `-L user`.
 _FLAG = r'--?[\w-]+(?:=\S{1,100}|\s{1,4}(?!-)[^\s/@]{1,30}(?=\s))?'
+# Known token prefixes. `\b` does not fire after `_`, so `credentials_AKIA...json` is found by SNAKE_TOKEN below, which
+# keeps only matches with a digit or a capital (an ordinary snake_case name such as `run_npm_install_with_legacy_flags`
+# has neither).
+_TOKEN_PREFIXES = (r'(?:sk-ant-[\w-]{1,512}|sk-[\w-]{20,512}|sntrys_[\w-]{1,512}|gh[pousr]_\w{1,512}|'
+                   r'github_pat_\w{20,512}|xox[a-z]-[\w%+./=-]{6,512}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[\w-]{30,60}|'
+                   r'npm_\w{30,100}|vc[a-z]_\w{20,512}|vercel_\w{16,512}|sb_(?:secret|publishable)_[\w-]{8,512}|'
+                   r'sbp_\w{16,512}|re_\w{20,512}|sk[A-Za-z0-9]{40,300}|shpat_\w{20,512}|glpat-[\w-]{20,512}|'
+                   r'dop_v1_\w{20,512}|whsec_\w{16,512}|hf_[A-Za-z0-9]{20,300}|ntn_[A-Za-z0-9]{20,300}|'
+                   r'(?:pk|sk|rk)_(?:live|test)_\w{1,512})')
+SNAKE_TOKEN = re.compile(r'(?i)(?<=_)' + _TOKEN_PREFIXES + r'(?![A-Za-z0-9])')
 REDACTIONS = (
     (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', re.S), '[REDACTED_PRIVATE_KEY]', 0),
     (re.compile(r'(?i)\bhttps?://hooks\.slack\.com/services/[\w/-]{1,200}|'
                 r'\bhttps?://(?:discord(?:app)?\.com)/api/webhooks/\d{1,30}/[\w-]{1,200}'), '[REDACTED_WEBHOOK]', 0),
     (re.compile(r'(?i)(\bhttps?://[^\s/]{1,100}/(?:[^\s/]{1,60}/){0,4}?(?:webhooks?|hooks?)/)[^\s"\'<>]{8,300}'),
      '[REDACTED_WEBHOOK]', 1),
-    (re.compile(r'(?i)\b(?:sk-ant-[\w-]{1,512}|sk-[\w-]{20,512}|sntrys_[\w-]{1,512}|gh[pousr]_\w{1,512}|'
-                r'github_pat_\w{20,512}|xox[a-z]-[\w%+./=-]{6,512}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[\w-]{30,60}|'
-                r'npm_\w{30,100}|vc[a-z]_\w{20,512}|vercel_\w{16,512}|sb_(?:secret|publishable)_[\w-]{8,512}|'
-                r'sbp_\w{16,512}|re_\w{20,512}|sk[A-Za-z0-9]{40,300}|shpat_\w{20,512}|glpat-[\w-]{20,512}|'
-                r'dop_v1_\w{20,512}|whsec_\w{16,512}|hf_[A-Za-z0-9]{20,300}|ntn_[A-Za-z0-9]{20,300}|'
-                r'(?:pk|sk|rk)_(?:live|test)_\w{1,512})\b'), '[REDACTED_TOKEN]', 0),
-    (re.compile(r'\beyJ[\w-]{8,2048}\.[\w-]{8,2048}\.[\w-]{8,2048}\b'), '[REDACTED_TOKEN]', 0),
-    (re.compile(r'(?<![0-9A-Za-z_])[0-9A-Fa-f]{64,}(?![0-9A-Za-z_])'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'(?i)\b' + _TOKEN_PREFIXES + r'(?![A-Za-z0-9])'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'(?<![A-Za-z0-9])eyJ[\w-]{8,2048}\.[\w-]{8,2048}\.[\w-]{8,2048}\b'), '[REDACTED_TOKEN]', 0),
+    (re.compile(r'(?<![0-9A-Za-z])[0-9A-Fa-f]{64,}(?![0-9A-Za-z])'), '[REDACTED_TOKEN]', 0),
     (re.compile(r'(?i)\b(bearer\s{1,8})[\w.~+/=-]{16,512}'), '[REDACTED_TOKEN]', 1),
     (re.compile(r'\b((?i:basic)\s{1,8})(?=[A-Za-z0-9+/]{0,200}[0-9A-Z+/=])[A-Za-z0-9+/]{8,200}={0,2}'), '[REDACTED_TOKEN]', 1),
     (re.compile(r'(?i)(\b[a-z][a-z0-9+.-]{0,30}://)[^\s/@:]{1,256}:[^\s/]{1,256}@'), '[REDACTED_CREDENTIALS]@', 1),
@@ -191,14 +198,16 @@ REDACTIONS = (
 _LEFT = r'(?:(?<![A-Za-z])|(?-i:(?<=[a-z])(?=[A-Z])))'
 CREDENTIAL_WORD = re.compile(
     r'(?i)(?:password|passwd|passphrase|passcode|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
-    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|credentials?|token(?!s)|(?<![A-Za-z_])tokens(?=["\']?[ \t]*[:=])|'
-    r'pwd(?=["\']?[ \t]*[:=])|bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
+    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|credentials?|token(?!s)|(?<![A-Za-z_])tokens(?=(?:\\{1,3}["\']|["\'])?[ \t]*[:=])|'
+    r'pwd(?=(?:\\{1,3}["\']|["\'])?[ \t]*[:=])|bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
     + _LEFT + r'(?:pw|pin|creds?|auth(?:orization)?|cookies?|session)(?![A-Za-z])|'
     r'(?<=[A-Za-z0-9])[ _-]key\b)')
-CREDENTIAL_TAIL = re.compile(r'''[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}["']?[ \t]*[:=]''')
+# `_Q` is a quote, plain or escaped (`\"` inside a JSON string that is itself in a string, `\\\"` double-escaped).
+_Q = r'''(?:\\{1,3}["']|["'])?'''
+CREDENTIAL_TAIL = re.compile(r'[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}' + _Q + r'[ \t]*[:=]')
 # The word sits where the value would be (a tag, a header, a quoted name, a name/value pair): the line and the next
 # value line carry the secret. Only characters that end a name count, so prose such as "password manager" is spared.
-NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:["',|>]|$)''', re.M)
+NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:\\{0,3}["',|>]|$)''', re.M)
 # Command and file shapes: `ENV SECRET v`, netrc `password v` / `machine h login u password v`.
 COMMAND_SECRET = re.compile(
     r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]{0,128}(?:password|passwd|passphrase|secret|token|api[_-]?key|'
@@ -208,11 +217,14 @@ NATURAL_SECRET = re.compile(
     r'(?i)(?:password|passwd|passphrase|passcode|secret|token|api[ _-]?key|apikey|' + _LEFT + r'(?:pwd|pw|pin|creds?))'
     r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->|\u2192)\s{0,4})\S')
 # `pass` is an ordinary word ("the first pass is done", "lint pass was clean"), so it counts only with a credential
-# context (my/your/our pass, or an admin/root/db/user/login/wifi/account pass) or, with nothing between it and the
-# sentence start or a bare "the"/"a", when one token follows and ends the line or sentence ("pass is hunter2").
-_PASS_CONTEXT = (r'(?:(?:my|your|our|their|his|her)|(?:the\s{1,4})?(?:admin|root|db|database|user|login|wifi|wi-fi|account|ssh|vpn))'
-                 r'\s{1,4}')
-NATURAL_PASS = re.compile(r'(?i)' + _LEFT + _PASS_CONTEXT + r'pass\s{1,4}(?:is|was)\s{1,4}\S')
+# context, a glued name ending (`dbPass`, `db_pass`), one ending token after a bare sentence start ("pass is hunter2"), or
+# a token that is not a dictionary word (a digit, an inner capital or a symbol: "the first pass is hunter2").
+_PASS_CONTEXT = (r'(?:(?:my|your|our|their|his|her|new|old|temp|temporary|current|sudo|mac|laptop|router|gmail|email|master)|'
+                 r'(?:the\s{1,4})?(?:admin|root|db|database|user|login|wifi|wi-fi|account|ssh|vpn))\s{1,4}')
+NATURAL_PASS = re.compile(r'(?i)(?:' + _LEFT + _PASS_CONTEXT + r'pass|(?-i:(?<=[a-z])Pass)|(?<=_)pass)'
+                          r'\s{1,4}(?:is|was)\s{1,4}\S')
+NATURAL_PASS_ODD = re.compile(r'(?i)' + _LEFT + r'pass\s{1,4}(?:is|was)\s{1,4}'
+                              r'(?=\S{0,200}?(?:\d|(?-i:[a-z][A-Z])|[@#$%^&*+=/\\|<>~{}\[\]_]))\S')
 NATURAL_PASS_BARE = re.compile(r'(?im)(?:^[ \t]{0,8}|[.!?:;,]\s{1,4}|\b(?:the|a|this|that)\s{1,4})pass\s{1,4}(?:is|was)\s{1,4}'
                                r'\S{1,200}[ \t]*(?:[.!?,;](?:\s|$)|$)')
 SEPARATOR_LINE = re.compile(r'^[\s|:+=-]*$')
@@ -566,7 +578,7 @@ def _credential_spans(text):
         start, end = lines.bounds(match.start())
         tail = CREDENTIAL_TAIL.match(text, match.end())
         if tail:
-            rest = text[tail.end():end].strip(' \t\r"\'')
+            rest = text[tail.end():end].strip(' \t\r"\'\\')
             spans.append((start, _value_below_end(lines, start, end, rest) if _value_is_below(rest) else end))
         elif STRONG_WORD.search(match.group()):
             # The word is the value or a tag (`"name": "DB_PASSWORD"`, `<password>`, a table header): take the line
@@ -577,7 +589,7 @@ def _credential_spans(text):
         else:
             continue
         covered = spans[-1][1]
-    for pattern in (NATURAL_SECRET, NATURAL_PASS, NATURAL_PASS_BARE, COMMAND_SECRET, NETRC_SECRET):
+    for pattern in (NATURAL_SECRET, NATURAL_PASS, NATURAL_PASS_ODD, NATURAL_PASS_BARE, COMMAND_SECRET, NETRC_SECRET):
         last = -1
         for match in pattern.finditer(text):
             if match.start() >= last:
@@ -633,6 +645,9 @@ def _view_spans(view):
     for pattern, marker, keep in REDACTIONS:
         for match in pattern.finditer(view):
             found.append((match.end(keep) if keep else match.start(), match.end(), marker))
+    for match in SNAKE_TOKEN.finditer(view):
+        if any(c.isdigit() or c.isupper() for c in match.group()):
+            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
     found += _credential_spans(view)
     for match in KEY_RUN.finditer(view):
         if _looks_like_key(match.group()):

@@ -576,3 +576,83 @@ def test_npm_and_bun_config_set_gaps(text):
     for clean in ('npm config set --location=user loglevel warn', 'npm c set loglevel warn', 'bun config set registry https://r.example/',
                   'npm config set -L user cache /tmp/cache', 'bun install left-pad'):
         assert auto.redact(clean) == clean, clean
+
+
+# ---- round 6: glued `pass` names, escaped quotes, prefixes after an underscore ---------------------------------
+
+BENIGN_PASS = ['the first pass is done', 'second pass was clean', 'lint pass is green', 'compile pass was slow',
+               'this pass is slow because of the cache', 'one pass is enough to check it', 'the build pass was slow, then faster',
+               'the first pass is done.\nnext pass was fine, thanks', 'compass is north', 'bypass was closed']
+
+
+@pytest.mark.parametrize('text', ['dbPass is VALUE', 'db_pass is VALUE', 'adminPass is VALUE', 'adminPass was VALUE', 'root_pass was VALUE',
+                                  'new pass is VALUE', 'temp pass is VALUE', 'old pass was VALUE', 'current pass is VALUE',
+                                  'sudo pass is VALUE', 'mac pass is VALUE', 'laptop pass was VALUE', 'router pass is VALUE',
+                                  'gmail pass was VALUE', 'the router pass is VALUE'])
+def test_glued_pass_names_and_more_context_words_redact(text):
+    assert value_gone(text), text
+
+
+@pytest.mark.parametrize('text', ['the first pass is hunter2', 'lint pass was P4ssw0rd', 'the build pass is aB', 'the last pass was x_y',
+                                  'the first pass is 100%', 'a pass is p@ss', 'the first pass is a#b'])
+def test_any_pass_followed_by_a_non_dictionary_token_redacts(text):
+    assert auto.redact(text) == '[REDACTED_CREDENTIAL_LINE]', text
+
+
+@pytest.mark.parametrize('text', BENIGN_PASS)
+def test_the_benign_pass_sentences_stay_clean_after_the_widening(text):
+    assert auto.redact(text) == text
+
+
+@pytest.mark.parametrize('text', [
+    'curl -d "{\\"password\\":\\"VALUE\\"}" https://x.example/login', 'curl --data-raw "{\\"token\\": \\"VALUE\\"}"',
+    'Invoke-RestMethod -Body "{\\"apiKey\\":\\"VALUE\\"}" -Uri https://x.example', 'body: "{\\"secret\\":\\"VALUE\\"}"',
+    'x \\\\"password\\\\":\\\\"VALUE\\\\"', 'x \\\\\\"password\\\\\\": \\\\\\"VALUE\\\\\\"', '{\\"pwd\\":\\"VALUE\\"}', '{\\"tokens\\":\\"VALUE\\"}',
+    '{\\"name\\":\\"DB_PASSWORD\\",\\"value\\":\\"VALUE\\"}', "curl -d '{\"password\":\"VALUE\"}'", '{\\"client secret\\": \\"VALUE\\"}'])
+def test_a_credential_key_next_to_an_escaped_quote_redacts(text):
+    assert value_gone(text), text
+    plain = auto.redact('{"password": "v1zzsecret"}')
+    assert 'v1zzsecret' not in plain                                   # control: the unescaped form always did
+
+
+def test_json_escaped_codex_output_keeps_no_escaped_credential_in_the_stored_record():
+    raw = '{"type":"item.completed","item":{"id":"i","type":"agent_message","text":"{\\"password\\": \\"v1zzsecret\\"}"}}\n' \
+          '{"type":"turn.completed","usage":{}}'
+    assert '\\"password\\": \\"v1zzsecret\\"' in raw
+    stored, _ = auto.sanitize(raw, auto.MAX_STORED_OUTPUT)
+    assert 'v1zzsecret' not in stored and '"turn.completed"' in stored
+
+
+@pytest.mark.parametrize('text', ['a \\"quoted\\" word', '{\\"name\\":\\"alice\\",\\"age\\":3}',
+                                  'say \\"hello\\" to the author'])
+def test_escaped_quotes_around_ordinary_words_stay_clean(text):
+    assert auto.redact(text) == text
+
+
+PREFIXED = {'aws': fake('AKIA', 'ABCDEFGHIJKLMNOP'), 'jwt': fake('eyJ', 'hbGciOiJIUzI1.eyJzdWIiOiIxMjM0.abcdefghijklmnop'),
+            'gitlab': fake('glpat-', 'Ab1' * 8), 'huggingface': fake('hf_', 'aB3' * 8), 'stripe': fake('sk_live_', 'abcdef123456'),
+            'hex64': 'ab12' * 16, 'github': fake('ghp_', 'aB3' * 10), 'npm': fake('npm_', 'aB3' * 12)}
+
+
+@pytest.mark.parametrize('name', sorted(PREFIXED))
+@pytest.mark.parametrize('carrier', ['foo_%s', 'credentials_%s.json', 'x_y_%s_z', 'config_%s.txt'])
+def test_a_known_token_prefix_glued_after_an_underscore_redacts(name, carrier):
+    text = carrier % PREFIXED[name]
+    out = auto.redact(text)
+    assert PREFIXED[name] not in out and PREFIXED[name][4:16] not in out, (name, carrier, out)
+    assert auto.redact(PREFIXED[name]) != PREFIXED[name]                # control: the bare token always redacted
+
+
+@pytest.mark.parametrize('text', ['run_npm_install_with_legacy_peer_deps_flag', 'test_re_compile_pattern_name_long_suffix',
+                                  'my_hf_model_name_for_large_files', 'is_sk_live_thing_here', 'get_ghp_value', 'foo_sntrys_bar',
+                                  'some_AKIA_prefix_name', 'sha256_of_the_file', 'user_id_abcdef', 'build_glpat_helper_function',
+                                  'load_eyJ_header_parser', 'max_tokens_per_request', 'my_ntn_value_holder_thing_here'])
+def test_ordinary_snake_case_names_stay_clean(text):
+    assert auto.redact(text) == text
+
+
+def test_the_unbounded_whitespace_runs_are_only_used_anchored():
+    source = inspect.getsource(auto)
+    assert 'CREDENTIAL_TAIL.match(' in source and 'NAME_END.match(' in source
+    assert 'CREDENTIAL_TAIL.finditer' not in source and 'NAME_END.finditer' not in source
+    assert 'every pattern is length-bounded' not in source
