@@ -144,6 +144,8 @@ HOMOGLYPHS = str.maketrans(_u(
 ESCAPE = re.compile(r'\\(?:u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2}))')
 MAX_ESCAPES = 20000
 _STR = r"(?:'[^'\n]{0,200}'|\"[^\"\n]{0,200}\"|[^\s'\"]{1,200})"
+# A package-manager flag with its optional value: `-g`, `--global=true`, `--location=user`, `--location user`, `-L user`.
+_FLAG = r'--?[\w-]+(?:=\S{1,100}|\s{1,4}(?!-)[^\s/@]{1,30}(?=\s))?'
 REDACTIONS = (
     (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', re.S), '[REDACTED_PRIVATE_KEY]', 0),
     (re.compile(r'(?i)\bhttps?://hooks\.slack\.com/services/[\w/-]{1,200}|'
@@ -168,8 +170,8 @@ REDACTIONS = (
      '[REDACTED_PASSWORD]', 1),
     (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret|otp)"
                 r"(?:=|\s{1,8}))" + _STR), '[REDACTED_SECRET]', 1),
-    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm)\b(?:\s{1,4}--?[\w-]+(?:[= ]\S{1,100})?){0,4}?\s{1,4}'
-                r'(?:config(?:\s{1,4}--?[\w-]+){0,3}\s{1,4}set|set)\s{1,4}(?:--?[\w-]+\s{1,4}){0,3}'
+    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm|bun)\b(?:\s{1,4}--?[\w-]+(?:[= ]\S{1,100})?){0,4}?\s{1,4}'
+                r'(?:(?:config|c)(?:\s{1,4}' + _FLAG + r'){0,3}\s{1,4}set|set)\s{1,4}(?:' + _FLAG + r'\s{1,4}){0,3}'
                 r'\S{0,200}(?:token|password|secret|auth|key)\S{0,100}\s{1,4})[^\s]{1,512}'), '[REDACTED_SECRET]', 1),
     (re.compile(r'(?i)([?&](?:key|sig|signature|token|access_token|api_key|apikey|secret|password|pwd|auth|code|'
                 r'x-amz-signature|x-goog-signature)=)[^\s&#"\'<>]{1,512}'), '[REDACTED_SECRET]', 1),
@@ -201,12 +203,18 @@ NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:["',|>]|$)''', re.M)
 COMMAND_SECRET = re.compile(
     r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]{0,128}(?:password|passwd|passphrase|secret|token|api[_-]?key|'
     r'credentials?)[\w.-]{0,128}[ \t]+\S')
-NETRC_SECRET = re.compile(r'(?im)^[ \t]*password[ \t]+\S+[ \t]*$|\b(?:machine|login)[ \t]+\S+.{0,300}?\bpassword[ \t]+\S')
+NETRC_SECRET = re.compile(r'(?im)^[ \t]*password[ \t]+\S+[ \t]*$|\b(?:machine|login)[ \t]+\S{1,512}.{0,300}?\bpassword[ \t]+\S')
 NATURAL_SECRET = re.compile(
     r'(?i)(?:password|passwd|passphrase|passcode|secret|token|api[ _-]?key|apikey|' + _LEFT + r'(?:pwd|pw|pin|creds?))'
     r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->|\u2192)\s{0,4})\S')
-# `pass` is an ordinary word, so only the plain statement counts ("my pass is v", not "pass to the callback").
-NATURAL_PASS = re.compile(r'(?i)' + _LEFT + r'pass\s{1,4}(?:is|was)\s{1,4}\S')
+# `pass` is an ordinary word ("the first pass is done", "lint pass was clean"), so it counts only with a credential
+# context (my/your/our pass, or an admin/root/db/user/login/wifi/account pass) or, with nothing between it and the
+# sentence start or a bare "the"/"a", when one token follows and ends the line or sentence ("pass is hunter2").
+_PASS_CONTEXT = (r'(?:(?:my|your|our|their|his|her)|(?:the\s{1,4})?(?:admin|root|db|database|user|login|wifi|wi-fi|account|ssh|vpn))'
+                 r'\s{1,4}')
+NATURAL_PASS = re.compile(r'(?i)' + _LEFT + _PASS_CONTEXT + r'pass\s{1,4}(?:is|was)\s{1,4}\S')
+NATURAL_PASS_BARE = re.compile(r'(?im)(?:^[ \t]{0,8}|[.!?:;,]\s{1,4}|\b(?:the|a|this|that)\s{1,4})pass\s{1,4}(?:is|was)\s{1,4}'
+                               r'\S{1,200}[ \t]*(?:[.!?,;](?:\s|$)|$)')
 SEPARATOR_LINE = re.compile(r'^[\s|:+=-]*$')
 STRONG_WORD = re.compile(r'(?i)password|passwd|passphrase|passcode|secret|token|key|credential')
 BLOCK_HEADER = re.compile(r'^(?:[!&]\S+\s+)*[|>][+\-0-9]*\s*(?:#.*)?$')
@@ -352,13 +360,70 @@ def parse_reviews(value, expected):
 # ---------------------------------------------------------------------------------------------
 # Redaction and transcript recovery
 
-PATH_SEGMENT = re.compile(r'(?:(?:[A-Z]?[a-z][a-z0-9]*|[0-9]+|[_-])+|[A-Z][A-Z0-9_-]*)?')
+def _is_lower(char):
+    return 'a' <= char <= 'z'
+
+
+def _is_upper(char):
+    return 'A' <= char <= 'Z'
+
+
+def _is_digit(char):
+    return '0' <= char <= '9'
+
+
+def _segment_like(segment):
+    """Is one path segment made of identifier-like words: lower case words, Capitalized words, digits, `_` and `-`
+    separators and ALLCAPS words? A linear scanner (each character is consumed once), not a regex: the nested
+    alternation this replaces split a lower case run in exponentially many ways.
+
+    An ALLCAPS word (`[A-Z][A-Z0-9]*`) counts at the start of a segment, after a separator, before a separator, or as
+    the trailing word (`marketA`, `workerV2`, `PanelUI`). A capital glued inside a lower case run that is neither
+    (`aGVs`, `xQ3m`) does not, which is what keeps random base64 from reading as a path. A long segment must also be
+    made of real words (three letters on average; digits split words): base64 that happens to parse as humps
+    (`AdMaKqKcyOiWpB`) has words of one or two letters."""
+    i, size, letters, words = 0, len(segment), 0, 0
+    while i < size:
+        char = segment[i]
+        if _is_lower(char):
+            start = i
+            while i < size and _is_lower(segment[i]):
+                i += 1
+            letters, words = letters + i - start, words + 1
+        elif _is_digit(char):
+            while i < size and _is_digit(segment[i]):
+                i += 1
+        elif char in '_-':
+            i += 1
+        elif _is_upper(char):
+            j = i
+            while j < size and _is_upper(segment[j]):
+                j += 1
+            if j < size and _is_lower(segment[j]):
+                if j - i != 1:                                # only a single capital is a hump (`Panel`); `GVs` is not
+                    return False
+                i = j
+                while j < size and _is_lower(segment[j]):
+                    j += 1
+                letters, words, i = letters + j - i + 1, words + 1, j
+                continue
+            while j < size and (_is_upper(segment[j]) or _is_digit(segment[j])):
+                j += 1
+            if j < size and _is_lower(segment[j]):
+                return False
+            if not (i == 0 or segment[i - 1] in '_-' or j == size or segment[j] in '_-'):
+                return False
+            letters += sum(1 for c in segment[i:j] if _is_upper(c))
+            words, i = words + 1, j
+        else:
+            return False
+    return letters < 9 or letters >= 3 * words
 
 
 def _path_like(run):
     """A run of `/`-separated identifier-like segments (words, camelCase, snake and kebab case, ALLCAPS): a file
     path or URL path, not random base64, whose letters are not built from whole words."""
-    return '+' not in run and '=' not in run and all(PATH_SEGMENT.fullmatch(part) for part in run.split('/'))
+    return '+' not in run and '=' not in run and all(_segment_like(part) for part in run.split('/'))
 
 
 def _looks_like_key(run):
@@ -512,7 +577,7 @@ def _credential_spans(text):
         else:
             continue
         covered = spans[-1][1]
-    for pattern in (NATURAL_SECRET, NATURAL_PASS, COMMAND_SECRET, NETRC_SECRET):
+    for pattern in (NATURAL_SECRET, NATURAL_PASS, NATURAL_PASS_BARE, COMMAND_SECRET, NETRC_SECRET):
         last = -1
         for match in pattern.finditer(text):
             if match.start() >= last:
@@ -1137,7 +1202,17 @@ def run_process(command, stdin, directory, timeout, env, guard=None):
 # "Code Mode is unavailable because code-mode host is disabled", which our own lockdown causes, or a transport
 # fallback); it can never carry the answer. Anything else is a tool and ends the call.
 CODEX_ITEM_TYPES = frozenset({'agent_message', 'reasoning', 'error'})
+CODEX_ERROR_ITEM_KEYS = frozenset({'id', 'type', 'message'})
 MAX_CODEX_WARNINGS = 5
+MAX_STORED_OUTPUT = 20000                       # characters of sanitized CLI output kept in a call record
+
+
+def codex_item_allowed(item):
+    """A plain reasoning/message item, or an `error` warning that carries nothing but id, type and message: an error
+    item with any other key (a `command`, a path) is a tool attempt in disguise."""
+    if not isinstance(item, dict) or item.get('type') not in CODEX_ITEM_TYPES:
+        return False
+    return item['type'] != 'error' or set(item) <= CODEX_ERROR_ITEM_KEYS
 
 
 def codex_line_guard(line):
@@ -1151,8 +1226,7 @@ def codex_line_guard(line):
     if not isinstance(value, dict):
         raise LabelerError('codex_invalid_output')
     if isinstance(value.get('type'), str) and value['type'].startswith('item.'):
-        item = value.get('item')
-        if not isinstance(item, dict) or item.get('type') not in CODEX_ITEM_TYPES:
+        if not codex_item_allowed(value.get('item')):
             raise LabelerError('codex_attempted_a_tool_or_item')
 
 
@@ -1202,7 +1276,7 @@ def parse_native(host, output, model):
                 transient += 1                      # reconnect notices and the like: only a failed turn matters
             if isinstance(kind, str) and kind.startswith('item.'):
                 item = value.get('item', {})
-                if item.get('type') not in CODEX_ITEM_TYPES:
+                if not codex_item_allowed(item):
                     raise LabelerError('codex_attempted_a_tool_or_item')
                 if item.get('type') == 'error' and isinstance(item.get('message'), str) \
                         and len(warnings) < MAX_CODEX_WARNINGS:
@@ -1213,6 +1287,8 @@ def parse_native(host, output, model):
                 completed, usage = True, value.get('usage')
         if not completed:
             raise LabelerError('codex_completion_missing')
+        if answer is None:                          # a completed turn that never produced a message is a failed call
+            raise LabelerError('codex_answer_missing')
         observed, source = model, 'explicit_cli_argument'
         extra = {'codexWarnings': warnings, 'codexTransientErrors': transient}
     if isinstance(answer, str):
@@ -1458,7 +1534,8 @@ class Run:
                    {**record, 'observedModel': result.get('observedModel'), 'identitySource': result.get('identitySource'),
                     'usage': result.get('usage'), 'codexWarnings': result.get('codexWarnings'),
                     'codexTransientErrors': result.get('codexTransientErrors'), 'elapsedSeconds': round(self.clock() - began, 3),
-                    'outputSha256': digest(result.get('raw') or canonical(result['answer'])), 'output': result.get('raw')})
+                    'outputSha256': digest(result.get('raw') or canonical(result['answer'])),
+                    'output': sanitize(result['raw'], MAX_STORED_OUTPUT)[0] if result.get('raw') else None})
         return result
 
     def process(self, taxonomy, cases, results):

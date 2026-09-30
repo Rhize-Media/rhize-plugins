@@ -1890,15 +1890,15 @@ def test_an_error_item_followed_by_a_tool_item_is_killed_at_once(cli):
 
 def test_error_items_never_supply_the_answer_and_their_text_is_bounded_and_redacted():
     smuggled = error_item(json.dumps({'answers': [{'caseId': 'C001'}]}))
-    answer, meta = auto.parse_native('codex', '\n'.join(events(smuggled, {'type': 'turn.completed', 'usage': {}})), 'gpt-5.6-sol')
-    assert answer is None and len(meta['codexWarnings']) == 1
+    with pytest.raises(auto.LabelerError, match='codex_answer_missing'):              # the error text is not an answer
+        auto.parse_native('codex', '\n'.join(events(smuggled, {'type': 'turn.completed', 'usage': {}})), 'gpt-5.6-sol')
     many = [error_item('warning %d ' % n + 'x' * 400) for n in range(9)] + [
         error_item('leaked ' + 'gh' + 'p_AbCdEfGhIjKlMnOpQrStUvWx1234')]
     answer, meta = auto.parse_native('codex', '\n'.join(events(*many, ANSWER_EVENT, {'type': 'turn.completed'})), 'gpt-5.6-sol')
     assert answer == {'answers': []} and len(meta['codexWarnings']) == auto.MAX_CODEX_WARNINGS == 5
     assert all(len(w) <= 200 for w in meta['codexWarnings'])
     late = error_item('leaked ' + 'gh' + 'p_AbCdEfGhIjKlMnOpQrStUvWx1234')
-    _, meta = auto.parse_native('codex', '\n'.join(events(late, {'type': 'turn.completed'})), 'gpt-5.6-sol')
+    _, meta = auto.parse_native('codex', '\n'.join(events(late, ANSWER_EVENT, {'type': 'turn.completed'})), 'gpt-5.6-sol')
     assert 'ghp_' not in meta['codexWarnings'][0] and 'REDACTED' in meta['codexWarnings'][0]
     assert {'agent_message', 'reasoning', 'error'} == auto.CODEX_ITEM_TYPES
     for tool in ('command_execution', 'file_change', 'mcp_tool_call', 'web_search', 'todo_list'):
@@ -1932,3 +1932,83 @@ def test_login_pins_hold_for_mode_api_key_and_value_types(cli, capsys, name, pay
     backend, real, after = refresh_with(cli, payload)
     assert after == REAL_SHAPE and backend.auth_writeback_skips == 1, name
     assert 'codex login status' in capsys.readouterr().err
+
+
+# ---- round 5: a completed turn with no message, error items that carry more than a warning, stored output ----
+
+def test_a_completed_codex_turn_without_a_message_is_a_failed_call_and_counts_toward_the_cap(cli, tmp_path):
+    lines = events({'type': 'thread.started', 'thread_id': 't'}, reconnect(1), {'type': 'turn.started'},
+                   {'type': 'turn.completed', 'usage': {'input_tokens': 5, 'output_tokens': 0}})
+    with pytest.raises(auto.LabelerError, match='codex_answer_missing'):
+        auto.parse_native('codex', '\n'.join(lines), 'gpt-5.6-sol')
+    with pytest.raises(auto.LabelerError, match='codex_answer_missing'):              # through the real CLI path as well
+        run_events(cli, lines)
+    with pytest.raises(auto.LabelerError, match='codex_answer_missing'):              # an agent_message with no text
+        auto.parse_native('codex', '\n'.join(events(
+            {'type': 'item.completed', 'item': {'id': 'i', 'type': 'agent_message'}}, {'type': 'turn.completed'})), 'gpt-5.6-sol')
+    # A reasoning-only turn is the same failure; a message plus completion still succeeds (control).
+    with pytest.raises(auto.LabelerError, match='codex_answer_missing'):
+        auto.parse_native('codex', '\n'.join(events(
+            {'type': 'item.completed', 'item': {'id': 'i', 'type': 'reasoning', 'text': 'hm'}}, {'type': 'turn.completed'})),
+            'gpt-5.6-sol')
+    answer, _ = auto.parse_native('codex', '\n'.join(events(ANSWER_EVENT, {'type': 'turn.completed'})), 'gpt-5.6-sol')
+    assert answer == {'answers': []}
+
+    prompts = ['request %d %s' % (n, 'x' * 3400) for n in range(5)]
+    for n, prompt in enumerate(prompts):
+        make(tmp_path, prompt, turn='t%d' % n)
+    transcript(tmp_path, SESSION, [('user', prompt) for prompt in prompts])
+
+    class NoMessage(FakeBackend):
+        def call(self, host, model, system, prompt, schema, timeout):
+            self.calls.append({'host': host})
+            auto.parse_native('codex', '\n'.join(lines), model)             # raises codex_answer_missing
+    backend = NoMessage()
+    summary, code = go(tmp_path, backend, config={'packetBytes': 4096})
+    assert code == 3 and len(backend.calls) == auto.MAX_FAILED_CALLS_IN_A_ROW
+    assert summary['outcomes'] == {'annotation_failed': auto.MAX_FAILED_CALLS_IN_A_ROW, 'not_attempted': 2}
+
+
+@pytest.mark.parametrize('extra', [{'command': 'pwd'}, {'path': '/etc/passwd'}, {'status': 'completed'}, {'text': 'x'}])
+def test_an_error_item_with_keys_beyond_id_type_and_message_is_a_tool_attempt(extra):
+    item = {'id': 'item_0', 'type': 'error', 'message': 'Code Mode is unavailable', **extra}
+    for kind in ('item.started', 'item.completed'):
+        line = json.dumps({'type': kind, 'item': item})
+        with pytest.raises(auto.LabelerError, match='codex_attempted_a_tool_or_item'):
+            auto.codex_line_guard(line.encode())
+        with pytest.raises(auto.LabelerError, match='codex_attempted_a_tool_or_item'):
+            auto.parse_native('codex', line, 'gpt-5.6-sol')
+    plain = json.dumps({'type': 'item.completed', 'item': {'id': 'item_0', 'type': 'error', 'message': 'ok'}})
+    auto.codex_line_guard(plain.encode())                                             # control: the plain warning passes
+    bare = json.dumps({'type': 'item.completed', 'item': {'type': 'error', 'message': 'ok'}})
+    auto.codex_line_guard(bare.encode())
+
+
+def test_call_records_store_sanitized_capped_output_and_hash_the_raw_output(cli, tmp_path):
+    backend, home, claude, codex = cli
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+    leaked = 'leaked ' + 'gh' + 'p_AbCdEfGhIjKlMnOpQrStUvWx1234'
+    lines = events({'type': 'thread.started', 'thread_id': 't'}, error_item(leaked), {'type': 'turn.started'}, ANSWER_EVENT,
+                   {'type': 'turn.completed', 'usage': {}})
+    (home / 'codex-behavior').write_text('events')
+    (home / 'codex-events').write_text('\n'.join(lines) + '\n')
+    summary, _ = auto.execute(config_for(tmp_path), backend=backend, clock=Clock())
+    record = json.loads(next(Path(summary['runDir'], 'calls').glob('*-codex.json')).read_text())
+    assert 'ghp_AbCd' not in json.dumps(record) and 'REDACTED' in record['output']
+    assert '"thread.started"' in record['output']                                     # the rest of the output is kept
+    assert record['outputSha256'] == auto.digest('\n'.join(lines) + '\n')           # the hash still covers the raw output
+
+
+def test_stored_output_is_capped_and_none_when_there_is_none(tmp_path):
+    make(tmp_path, 'add a report filter')
+    transcript(tmp_path, SESSION, [('user', 'add a report filter')])
+
+    class Verbose(FakeBackend):
+        def call(self, *args):
+            result = super().call(*args)
+            return {**result, 'raw': ('word ' * 40000) + json.dumps(result['answer'])}
+    summary, _ = go(tmp_path, Verbose())
+    records = [json.loads(path.read_text()) for path in Path(summary['runDir'], 'calls').glob('*.json')]
+    assert records and all(len(r['output']) <= auto.MAX_STORED_OUTPUT + 100 and 'TRUNCATED' in r['output'] for r in records)
+

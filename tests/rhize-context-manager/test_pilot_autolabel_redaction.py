@@ -400,3 +400,179 @@ def test_real_paths_and_urls_survive_but_random_base64_with_a_slash_does_not():
             break
     assert blob and auto.redact('x ' + blob + ' y') == 'x [REDACTED_TOKEN] y'
     assert auto._path_like('usr/local/lib') and not auto._path_like('aGVs/bG8+V29y')
+
+
+# ---- round 5: the path check is linear, every regex survives adversarial input, natural `pass`, npm ---------
+
+# Segments that made the old nested-alternation regex run for seconds or forever (time doubled per character).
+PATH_HANGERS = ['a' * 60 + 'A', 'observability-' * 8 + 'CAPS',
+                'src/components/accountManagementDashboardSettingsPanelUI/index',
+                'docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL']
+
+
+def elapsed(function, *args):
+    started = time.monotonic()
+    result = function(*args)
+    return result, time.monotonic() - started
+
+
+@pytest.mark.parametrize('text', PATH_HANGERS)
+def test_path_segments_that_hung_the_old_regex_finish_fast(text):
+    for call in (auto._path_like, auto.redact):
+        _, seconds = elapsed(call, text)
+        assert seconds < 0.05, (call.__name__, text[:30], seconds)
+    sanitized, seconds = elapsed(auto.sanitize, text, 500)
+    assert seconds < 0.05 and sanitized[0] == text, (text[:30], seconds)
+
+
+def test_a_200k_line_of_such_segments_is_linear():
+    for text in ('/'.join(PATH_HANGERS)[:1000], 'a' * 60 + 'A', 'observability-' * 8 + 'CAPS'):
+        line = '/'.join([text] * (200000 // (len(text) + 1)))[:200000]
+        _, seconds = elapsed(auto._path_like, line)
+        assert seconds < 1, (text[:30], seconds)
+        _, seconds = elapsed(auto.redact, line)
+        assert seconds < 1, (text[:30], seconds)
+    assert auto._path_like('a' * 100000 + 'A') and auto._path_like('/'.join(['a' * 30 + 'B'] * 6000))
+
+
+def test_the_old_segment_pattern_is_gone_so_no_regex_can_backtrack_there():
+    assert not hasattr(auto, 'PATH_SEGMENT')
+    assert not any(isinstance(value, re.Pattern) and '[A-Z]?[a-z][a-z0-9]*' in value.pattern for value in vars(auto).values())
+
+
+def gate(run):
+    """The entropy gate KEY_RUN_B64 applies before asking whether a run is a path (so the next test is not vacuous)."""
+    return any(c in run for c in '+/=') and len(set(run)) >= 20 and auto._entropy(run) >= 4.2
+
+
+@pytest.mark.parametrize('text', [
+    'docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL',                   # kebab case + ALLCAPS
+    'plugins/rhize-context-manager/skills/SKILL-context-hygiene-v1/references/notes',
+    'src/components/accountManagementDashboardSettingsPanelUI/index',                # camelCase + trailing acronym
+    'packages/marketplace/src/lib/marketA/workerV2/handlers/index',                   # trailing capital, trailing capital + vN
+    'https://github.com/Rhize-Media/rhize-plugins/tree/main/rhize-context-manager/docs/decision-pilot',
+    'services/api/v2/error-handler-v2/retry-policy-v3/index',                         # vN suffix shapes
+    'docs/plans/observability-hardening-RFC/appendix-B/migration-checklist-FINAL',
+    'rhize-context-manager/scripts/context_experiments/providers/typed_relevance_provider'])
+def test_real_looking_paths_and_urls_survive(text):
+    assert auto.redact(text) == text
+    assert '://' in text or auto._path_like(text)
+    assert auto.redact('see ' + text + ' for details') == 'see ' + text + ' for details'
+
+
+def test_the_path_survival_tests_are_not_vacuous(monkeypatch):
+    """Control: these shapes reach the path question (the entropy gate) and are redacted when the path check says no."""
+    reached = [t for t in ('docs/archive/error-lifecycle-management-ARCHITECTURE-PROPOSAL',
+                           'src/components/accountManagementDashboardSettingsPanelUI/index',
+                           'packages/marketplace/src/lib/marketA/workerV2/handlers/index') if gate(t)]
+    assert len(reached) >= 2, reached
+    monkeypatch.setattr(auto, '_path_like', lambda run: False)
+    assert all(auto.redact(t) != t for t in reached)
+
+
+def random_blob(rng, alphabet, with_slash=True):
+    length = rng.randint(40, 120)
+    run = [rng.choice(alphabet) for _ in range(length)]
+    if with_slash:
+        for position in rng.sample(range(1, length - 1), rng.randint(1, 3)):
+            run[position] = '/'
+    return ''.join(run)
+
+
+@pytest.mark.parametrize('alphabet', ['abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                                      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'])
+def test_random_base64_with_a_slash_still_redacts_with_or_without_digits(alphabet):
+    import random
+    rng = random.Random(20260930)
+    blobs = [random_blob(rng, alphabet) for _ in range(600)]
+    leaked = [b for b in blobs if auto.redact('x ' + b + ' y') != 'x [REDACTED_TOKEN] y']
+    assert len(blobs) == 600 and not leaked, leaked[:3]
+    assert not any(auto._path_like(b) for b in blobs[:300])
+
+
+def test_segment_shapes_that_are_not_words_are_not_paths():
+    for bad in ('aGVs/bG8+V29y', 'aGVsbG8gd29y/xQ3mKz', 'AdMaKqKcyOiWpB/WcXy', 'ab/c+d', 'a=b/c', 'xQ3m', 'rqcp9i8w6ldAzRP'):
+        assert not auto._path_like(bad), bad
+    for good in ('usr/local/lib', 'marketA', 'workerV2', 'PanelUI', 'SKILL-context-hygiene-v1', 'README', 'a//b', ''):
+        assert auto._path_like(good), good
+
+
+ADVERSARIAL = {'lowercase then bang': 'a' * 5000 + '!', 'alternating case': 'aA' * 2500, 'dashes then x': '-' * 5000 + 'x',
+               'dash and case': 'a-' * 2500 + 'A', 'backslash u': '\\u' * 2500, 'path/base64 alternation': 'aA/+' * 1250,
+               'slash alternation': 'a/' * 2500, 'spaces': ' ' * 5000 + 'x', 'equals': '=' * 5000, 'digits': '0' * 5000,
+               'dots': 'a.' * 2500, 'emails': 'a@' * 2500, 'machine': 'machine ' + 'a' * 5000, 'password words': 'password ' * 550,
+               'key prefixes': 'sk-' * 1600, 'private key': '-----BEGIN ' + 'A ' * 2500, 'npm flags': 'npm ' + '--a ' * 1250,
+               'newlines': '\n' * 5000, 'open brackets': '(' * 5000, 'pass is': 'pass is ' * 600, 'the pass is': 'the pass is x. ' * 350}
+
+
+def module_patterns():
+    found = {}
+    for name, value in vars(auto).items():
+        if isinstance(value, re.Pattern):
+            found[name] = value
+        elif isinstance(value, dict):
+            found.update({'%s[%s]' % (name, key): item for key, item in value.items() if isinstance(item, re.Pattern)})
+        elif isinstance(value, (tuple, list)):
+            found.update({'%s[%d]' % (name, n): entry[0] for n, entry in enumerate(value)
+                          if isinstance(entry, tuple) and entry and isinstance(entry[0], re.Pattern)})
+    return found
+
+
+def test_every_module_level_regex_survives_adversarial_5k_strings():
+    patterns = module_patterns()
+    assert len(patterns) >= 35 and 'REDACTIONS[0]' in patterns and 'CREDENTIAL_WORD' in patterns, sorted(patterns)
+    slow = []
+    for name, pattern in patterns.items():
+        started = time.monotonic()
+        for label, text in ADVERSARIAL.items():
+            for call in (pattern.search, pattern.fullmatch, pattern.match):
+                call(text)
+            for _ in pattern.finditer(text):
+                pass
+        seconds = time.monotonic() - started
+        if seconds > 2:                                  # every pattern, all strings, all four calls; ~0.3s worst measured
+            slow.append((name, round(seconds, 2)))
+    assert not slow, slow
+
+
+@pytest.mark.parametrize('label', sorted(ADVERSARIAL))
+def test_redact_and_the_path_scanner_survive_adversarial_5k_strings(label):
+    text = ADVERSARIAL[label]
+    _, seconds = elapsed(auto.redact, text)
+    assert seconds < 2, (label, seconds)
+    _, seconds = elapsed(auto._path_like, text)
+    assert seconds < 0.1, (label, seconds)
+
+
+@pytest.mark.parametrize('text', ['the first pass is done', 'second pass was clean', 'lint pass is green', 'compile pass was slow',
+                                  'the first pass is done.\nnext pass was fine, thanks', 'this pass is slow because of the cache',
+                                  'one pass is enough to check it', 'the build pass was slow, then faster'])
+def test_ordinary_uses_of_pass_is_and_pass_was_stay_clean(text):
+    assert auto.redact(text) == text, text
+
+
+@pytest.mark.parametrize('text', ['my pass is VALUE', 'your pass was VALUE', 'our pass is VALUE', 'the admin pass is VALUE',
+                                  'root pass is VALUE', 'db pass was VALUE', 'the user pass is VALUE', 'login pass is VALUE',
+                                  'wifi pass is VALUE', 'account pass was VALUE', 'pass is VALUE', 'the pass was VALUE',
+                                  'Pass is VALUE.', 'ok, pass is VALUE', 'note: pass was VALUE. Then retry'])
+def test_credential_context_and_a_single_ending_token_still_redact_pass(text):
+    assert value_gone(text), text
+    clean = 'the first pass is done'
+    assert auto.redact(clean) == clean                   # control: the same machinery leaves the ordinary sentence alone
+
+
+@pytest.mark.parametrize('text', [
+    'npm config set --location=user //registry.npmjs.org/:_authToken VALUE',
+    'npm config set --location user //registry.npmjs.org/:_authToken VALUE',
+    'npm config set -L user //registry.npmjs.org/:_authToken VALUE',
+    'npm config set --global=true //registry.npmjs.org/:_authToken VALUE',
+    'npm config --location=user set //registry.npmjs.org/:_authToken VALUE',
+    'npm --location user config set //registry.npmjs.org/:_authToken VALUE',
+    'npm --global=true config set //registry.npmjs.org/:_authToken VALUE',
+    'npm c set //registry.npmjs.org/:_authToken VALUE', 'npm c set -g //registry.npmjs.org/:_authToken VALUE',
+    'bun config set //registry.npmjs.org/:_authToken VALUE', 'pnpm c set //registry.npmjs.org/:_authToken VALUE'])
+def test_npm_and_bun_config_set_gaps(text):
+    assert 'v1zzsecret' not in auto.redact(text.replace('VALUE', 'v1zzsecret')), text
+    for clean in ('npm config set --location=user loglevel warn', 'npm c set loglevel warn', 'bun config set registry https://r.example/',
+                  'npm config set -L user cache /tmp/cache', 'bun install left-pad'):
+        assert auto.redact(clean) == clean, clean
