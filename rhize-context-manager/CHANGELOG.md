@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-09-30_ version bump — 0.41.0 → 0.42.0 (minor); marketplace 2.97.0 → 2.98.0.
 - _2026-09-29_ version bump — 0.40.1 → 0.41.0 (minor); marketplace 2.95.0 → 2.96.0.
 - _2026-09-29_ The cross-origin collision report now also reads skills synced from the user's claude.ai account (`~/.claude/skills/synced/<org>_<user>/*/SKILL.md`, shown by hosts as `anthropic-skills:<name>`). They are used for collision detection only and never reach the resolved map, router indexes or the third-party inventory; resolved outputs are byte-identical with or without them. A `syncedSkills` summary and source note are added. `--synced-skills-root` overrides the folder, and `none` disables the scan. On this host the report went from 0 to 5 collisions (`context-compression`, `context-optimization`, `api-design`, `deep-research`, `rhize-content-engine`).
 - Add label supersession to `pilot_labels.py`: with an explicit `--supersede` opt-in, a family-derived AI label may be replaced by an explicitly judged one and any AI label by a human label. The replaced record moves to `pilot/v2/taxonomy-labels-superseded/` with its reason and is never deleted; human labels and directly judged AI labels stay immutable, and the default import behavior is unchanged. `report` counts superseded labels.
