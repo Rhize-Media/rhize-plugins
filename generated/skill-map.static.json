@@ -4311,16 +4311,16 @@
       "treeHash": "6edc0f0f13055f90e77f82ba62368041f465c390565d925a9a5014db603365c3"
     },
     {
-      "contentHash": "b68a7a9e46847a8765c238743b8e96e418ffc0b16dac68d76f241267695e05b0",
-      "contentHashNormalized": "1765f5ab8a37a039d69869adaa4dab25714a87ddac4b3b0e48e0372de5037338",
-      "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices.",
+      "contentHash": "bd763a882ee08d171885c827be3fcada2f9638f07247a93bf42c227c3754fbbf",
+      "contentHashNormalized": "e4508393c63f8fcb51b3bc1dd557a2c6d28d477bf5d4708acf78ec71a2b255e9",
+      "description": "Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, component/function registry reuse, context hygiene, regression prevention, anti-pattern detection at write-time, and skill-refinement meta-patterns. Use when the user asks about \"design patterns\", \"workflow optimization\", \"prevent regression\", \"anti-patterns\", \"dependency mapping\", \"impact map\", \"CodeGraph\", \"component registry\", \"why did this break again\", or wants durable development guardrails. Reference layer that informs context-engineering and error-lifecycle-management; also encodes Boris Cherny's verify-first and worktree practices. For the optional simplicity ladder, defer to ponytail:ponytail after discovery, under the Ponytail integration contract.",
       "fileCount": 8,
       "id": "skill:rhize-devflow/dev-flow-foundations",
       "kind": "skill",
       "name": "dev-flow-foundations",
       "path": "rhize-devflow/skills/dev-flow-foundations/SKILL.md",
-      "totalBytes": 104167,
-      "treeHash": "6cc98047bc3534342c41a07f4cbbf72c0b91694198cbba053eb6bc01375b29cd"
+      "totalBytes": 104603,
+      "treeHash": "af74b87422fcde8f498bf36e116474fa4fe3104916cf38b86d7425593f41cb64"
     },
     {
       "contentHash": "734f8034733f676e5775580509634afa584b7009f5f4d57b3364de4166fceb24",
@@ -4356,16 +4356,16 @@
       "treeHash": "1b35d5598b6d965cba7345b076f9604b3d331656f446d6d03830bfac57fa84b9"
     },
     {
-      "contentHash": "b2b3b29fd036a85ab18048404f454657e1f538f2556a0e5b582e4b900922b25f",
-      "contentHashNormalized": "a58122598ec461f39b57f3448400a816e3a8fbe2b4b48898561d1864df1c8e2b",
-      "description": "Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminating unnecessary work without changing behavior. Use after implementation or before delivery when the user asks to simplify, consolidate, deduplicate, reduce complexity, apply React best practices, remove redundant state/effects, or review recent code for a cleaner solution. A verified no-op is valid; never expand into broad redesign or unrelated cleanup.",
+      "contentHash": "db95cb488399e36d81bf231d32ef0aac20e8401c89c1ad84d95e7de48507b916",
+      "contentHashNormalized": "bd5e070e57240df78690613b476f250a350fddc571258368515bf07dce14cd75",
+      "description": "Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminating unnecessary work without changing behavior. Use after implementation or before delivery when the user asks to simplify, consolidate, deduplicate, reduce complexity, apply React best practices, remove redundant state/effects, or review recent code for a cleaner solution. A verified no-op is valid; never expand into broad redesign or unrelated cleanup. For an optional over-engineering lens, defer to ponytail:ponytail-review under this skill's behavior-preservation gate.",
       "fileCount": 1,
       "id": "skill:rhize-devflow/simplify",
       "kind": "skill",
       "name": "simplify",
       "path": "rhize-devflow/skills/simplify/SKILL.md",
-      "totalBytes": 8457,
-      "treeHash": "9a01ac062cb419d322545ed30e4b85e7a767a1e0f328bc6ec8532533e9e7d475"
+      "totalBytes": 8941,
+      "treeHash": "2ff430378e54f84b8142778350a9d55f2265c4780749f81326b8d2c325ac3287"
     },
     {
       "contentHash": "5929934c3f32999178d6798e6c6f41de81e78536603497340cfc8784859650cf",

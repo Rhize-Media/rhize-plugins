@@ -123,6 +123,12 @@ non-trivial and requires Phase 5's independent reviewer.
 
 ## Phase 4: Route Specialist Reviews
 
+When installed, `ponytail:ponytail-review` supplies an advisory complexity pass over this same
+comparison range. Follow [the integration contract](../docs/ponytail-integration.md): preserve
+accepted scope and defensive behavior, and reject suggestions that weaken required checks.
+A lean diff is not a release verdict and does not replace correctness, security or independent
+review. If Ponytail is absent or off, continue the review below.
+
 Route only the specialist review(s) the matched risk categories call for — no fixed panel
 for a trivial change. Name available specialist agents/skills generically; when this
 plugin's usual specialist isn't installed, note the absence in the output and continue —

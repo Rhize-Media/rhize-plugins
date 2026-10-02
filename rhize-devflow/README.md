@@ -13,6 +13,10 @@ impact-map → implement → simplify → check → review → release
 
 Everything namespaces as `rhize-devflow:<skill>` and `/rhize-devflow:<command>`.
 
+Optional [Ponytail integration](docs/ponytail-integration.md) adds the upstream full-mode
+simplicity ladder during implementation and a complexity lens during simplify/review. Keep
+Ponytail standalone; Dev Flow retains behavior-preservation, validation and release gates.
+
 ## Install
 
 For the complete CodeGraph + semantic impact-map workflow, install both this plugin and
