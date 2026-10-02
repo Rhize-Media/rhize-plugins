@@ -20,4 +20,11 @@ def test_functionize_agent_cases_are_schema_valid() -> None:
         "python3", "procedural-memory/evals/validate-suite.py", "--eval-dir", "procedural-memory/evals"
     ], cwd=REPO, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "== 8 case(s), 0 error(s), 0 warning(s), 8 clean ==" in completed.stdout
+    assert "== 12 case(s), 0 error(s), 0 warning(s), 12 clean ==" in completed.stdout
+    for case_name in (
+        "functionize-cross-call",
+        "functionize-recipe-review-needs-human",
+        "functionize-recipe-status",
+        "functionize-recipe-stage",
+    ):
+        assert f"OK {case_name}: no schema issues found" in completed.stdout

@@ -31,6 +31,15 @@ self-relative launchers; Codex does not claim Claude Code's slash-command or hoo
   `degraded` is flagged, not silently offered as safe to run.
   *Example: "Recall a proven artifact for deploying an n8n workflow safely."*
 
+- **"Show my recipe review queue" / "record this recipe decision"**
+  → use Functionize `recipe-status --ledger <path> --json` or `recipe-review`. Record only the
+  human's explicit decision for that bundle; never infer approval, reviewer identity or risk
+  acknowledgement. Inspection and review do not stage or promote anything.
+
+- **"Stage this approved recipe as a skill"**
+  → use procedural-memory `recipe-stage`, after that explicit staging request. It creates
+  documentation only and remains unverified. Promotion and execution are separate requests.
+
 - **"Run the registry version of X"**
   → `/procedural-memory:run <name> [args]`. Registry-only — never a caller-supplied path.
   Refuses if the artifact's content digest, trust tier, or health don't clear the gate; the
@@ -91,6 +100,32 @@ ranks the multi-step procedures agents keep repeating, such as refactor-gate `pr
 registry artifact or learned skill already has those steps: reuse it rather than rebuilding it.
 Export one with `--export <fingerprint> --proposal-dir <dir>` to get a review sheet. Promoting it into
 the registry is still a separate, human-approved step.
+
+**Procedures across multiple calls.** Add `--cross-call --max-calls 4 --max-glue 1` to `recipes`
+to find adjacent-call procedures within a session. These flags bound the call window and intervening
+exploration. Clean-subset eligibility may retain safe repeated calls while refusing unsafe
+occurrences; unsafe steps never become safe merely because another call in the group is harmless.
+
+**Review → stage → consider promotion.** Use the self-relative scripts from the named skill:
+
+1. Functionize: `bash scripts/functionize.sh recipe-status --ledger <path> --json`.
+2. Read the exported `REVIEW.md`, `recipe.json` and `review.json`. Obtain the human's decision,
+   reason code, reviewer handle and approval risk acknowledgements for that exact bundle.
+3. Functionize: `bash scripts/functionize.sh recipe-review <bundle> --ledger <path> --decision
+   <approve|reject|defer> --reason-code <code> --reviewer <handle>`. For approve, valid codes are
+   `steps_reviewed` and `useful_procedure`; use command help for reject/defer codes. The handle is
+   informational, and general agreement is not a per-recipe decision.
+4. Only after a separate staging request, procedural-memory:
+   `bash scripts/procedural-memory.sh recipe-stage <bundle> --ledger <path> --name <slug>`.
+5. Procedural-memory: `bash scripts/procedural-memory.sh recipe-stage --check <slug> --ledger <path>`.
+   Changed bytes, a later reject/defer or stage conflicts are refusals, not reasons to bypass checks.
+6. Only after a separate promotion request, procedural-memory:
+   `bash scripts/procedural-memory.sh promote <reported-staged-path> --recipe-ledger <path>`.
+
+Staging creates documentation-only files, not executable code. It does not grant execution approval
+or healthy status. Keep registry verification and execution gates intact; do not try to run a
+documentation-only recipe. Unsupported new commands refuse with exit 78 instead of silently
+dropping the ledger or using an older path.
 
 ## What this plugin is not
 

@@ -28,7 +28,8 @@ claude plugin eval . --trust-plugin --no-publish --allow-tools Bash --scaffold \
 From this plugin's root (`procedural-memory/`). `--allow-tools Bash` is the operator grant for
 the Bash cases (every case declares `allowed_tools: [Bash, ...]`, but without the grant the
 harness silently narrows it and a positive case can pass without the tool it was written to
-exercise). `--scaffold` is required for `happy-path-recall-run` (stub CLI) and
+exercise). `--scaffold` is required for `happy-path-recall-run` (stub CLI), the four
+Functionize lifecycle fixture cases described below, and
 `probe-sandbox-reachability` (plugin-root resolver); `--trust-plugin` does not imply it.
 `--model`/`--judge-model` are pinned so the result JSON records them: `suite.modelOverride` and
 `suite.judgeModel` are `null` whenever you rely on the defaults (the default run model is whatever
@@ -224,6 +225,70 @@ Functionize adds three sibling cases: `functionize-trigger`,
 the explicit repeated-CLI trigger, a cheap one-off near miss, and the most important collision:
 registry promotion belongs to `procedural-memory`, not Functionize. They are schema-validated
 locally with the rest of this suite and ran for real on 2026-09-15 (see "First real run").
+
+## Functionize lifecycle additions (2026-09-30): native runs pending
+
+Four cases extend the existing Functionize routing and promotion collision cases:
+
+| Case | Expected plugin path | Boundary being assessed |
+| --- | --- | --- |
+| `functionize-cross-call` | Functionize `recipes --cross-call` | Uses only the synthetic capture; retains `--max-calls 4 --max-glue 1 --eligible-only --json`; no export or mutation. |
+| `functionize-recipe-status` | Functionize `recipe-status` | Reports latest approve/reject/defer fixture decisions without changing the ledger or staging anything. |
+| `functionize-recipe-review-needs-human` | Functionize review guidance | Refuses to invent a human decision, reviewer identity, reason code or risk acknowledgement; a CLI handle is informational, not authentication. |
+| `functionize-recipe-stage` | Procedural-memory `recipe-stage`, then `--check` | Explicitly requested documentation-only staging stays unverified; no automatic promotion, execution approval, verification or execution. Optional Functionize status consultation is allowed; staging must use procedural-memory and no new review or export is permitted. |
+
+Before writing anything, each scaffold requires `EVAL_FIXTURE_MODE=true`, a real absolute
+sandbox HOME, fresh/nonexistent fixture and venv targets, and no symlinked intermediates
+beneath HOME. It refuses existing environments and Python symlinks rather than overwriting
+them. The stub Python accepts only the launcher's exact version probe and refuses everything
+else. Offline tests exercise these guards entirely inside temporary directories; native
+harness compatibility of the fresh-target guard remains unverified because the new native
+cases have not run.
+
+Each scaffold installs an inert stub CLI and creates synthetic capture, bundle and ledger
+files beneath the eval sandbox's fresh `$HOME/.functionize-eval`. The case scaffold scripts
+resolve their shared implementation from their own locations. These are dispatch fixtures,
+not production-schema mining inputs or evidence that the real engine's digest/review gates
+passed. Their synthetic approval is fixture setup only; no real human approval is imported.
+The review refusal case has its own deferred ledger and an unacknowledged risk, so it does not
+inherit the staging case's synthetic approval.
+
+The stub refuses every command outside recipe mining/status/review/staging and writes only a
+synthetic documentation file in the staging case. Prompts require an explicit
+`RHIZE_SKILL_BIN="$HOME/dev-local/RHIZE/procedural-memory/.venv/bin/rhize-skill"` prefix on
+CLI/launcher calls to keep the launcher's PATH resolution from selecting a real CLI.
+Only `EVAL_` variables appear in case environment definitions; this CLI override is local to
+those Bash commands. No real histories, registry, provider or approval ledger is used.
+
+Run the offline scaffold checks and schema validator from the repository root:
+
+```sh
+python3 procedural-memory/evals/functionize-cross-call/scripts/test-fixture.py
+python3 procedural-memory/evals/validate-suite.py --eval-dir procedural-memory/evals
+```
+
+The first command exercises only the stub/scaffold and regex examples; it does not call a
+plugin wrapper or validate a real recipe digest. It checks scoped arguments, read-only fixture status (including its optional reviewer filter), review refusal without
+mutation, documentation-only fixture staging/check, and refusal of execution commands. Focused
+regex checks distinguish actual forbidden subcommands from comments, grep arguments, fixture
+CLI environment assignments and check-only invocations, including stage/check commands
+chained on one line. These regexes cover the documented direct shell forms, not every possible
+shell indirection; LLM contract graders and the inert stub provide separate backstops.
+Wrapper dispatch and older-command refusal are separately covered by
+`tests/procedural-memory/test_codex_discovery.py` and
+`tests/procedural-memory/test-launcher.sh` from the repository root. Companion runtime tests
+provide separate digest, latest-decision ordering and staging-conflict evidence.
+The second command checks all twelve case schemas. Neither command launches a model, runs native
+graders, exercises runtime mining/review algorithms, or demonstrates model routing accuracy.
+**The four new native cases have not been run through `claude plugin eval`.** Existing
+2026-09-15 results above apply only to the eight cases that existed then.
+
+For a separately authorized native run, use the suite command above with `--case 'functionize-*'`
+and retain the scaffold/tool grant. Routing graders explicitly use `arm: both`; report
+with-plugin Arm B separately from without-plugin Arm A. Some routing differences are created
+by the baseline lacking plugin access, so they establish routing/access evidence rather than
+quality or performance improvement. Contract graders assess safe behavior in both arms.
+The existing `functionize-negative-registry-promotion` case remains unchanged.
 
 ## Why `happy-path-recall-run` is fixture-mode permanently, not "until the sandbox proves reachable"
 

@@ -1,0 +1,23 @@
+schema_version: "1.1"
+name: functionize-recipe-stage
+tags: [functionize, routing, documentation-only, fixture]
+plugins: ["../.."]
+runs: 2
+context:
+  scaffold_script: scripts/setup-fixture.sh
+execution:
+  prompt: |
+    The synthetic fixture bundle $HOME/.functionize-eval/bundle already has an
+    explicit approve decision in $HOME/.functionize-eval/review-ledger.jsonl bound to
+    its fixture digest. Stage it as fixture-procedure, documentation only, then check
+    that staged skill using the same ledger. Use the procedural-memory recipe-stage
+    path. This request does not authorize promotion, execution approval, verification,
+    or execution. Do not create any executable file or touch a real registry.
+    For every CLI or plugin launcher call, explicitly prefix the command with
+    RHIZE_SKILL_BIN="$HOME/dev-local/RHIZE/procedural-memory/.venv/bin/rhize-skill"
+    so another installed CLI cannot be selected. Use only this synthetic fixture.
+  max_turns: 14
+  timeout_seconds: 180
+  allowed_tools: [Bash, Skill]
+  env:
+    EVAL_FIXTURE_MODE: "true"

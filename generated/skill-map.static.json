@@ -4027,26 +4027,26 @@
       "treeHash": "93b9e999afa91341a080fc41b8650d6b01a4b3f579242d1faad364085a73f3bf"
     },
     {
-      "contentHash": "521b9e36789d8efcea5a748b632c9c9d4587b559da310c24fe97df97c4c22d36",
-      "description": "Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through the rhize-skill CLI. Use when asked to \"Functionize\" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal, review a Functionize candidate, or find repeated multi-step procedures agents run (recipe candidates). This skill never registers, approves, promotes, verifies, or runs a generated artifact; use procedural-memory only when a later gate is separately authorized.",
+      "contentHash": "715d6e4e67c407228afa37dff805fd7fc17aae9e82262b5d9b94a3450236f984",
+      "description": "Mine repeated CLI usage and multi-call procedures into redacted Functionize candidates, compile inert proposal bundles, inspect the recipe review queue, or record an explicitly supplied human recipe decision through the rhize-skill CLI. Use when asked to \"Functionize\" a CLI, inspect repeated shell-history patterns, generate a safe wrapper proposal, review a Functionize candidate, or find repeated multi-step procedures agents run (recipe candidates), inspect recipe status, or record a human recipe review. This skill never registers, approves for execution, promotes, verifies, stages, or runs a generated artifact; use procedural-memory only when a later gate is separately authorized.",
       "fileCount": 3,
       "id": "skill:procedural-memory/functionize",
       "kind": "skill",
       "name": "functionize",
       "path": "procedural-memory/skills/functionize/SKILL.md",
-      "totalBytes": 7572,
-      "treeHash": "62d8b58fc768c7e7f691605745e9b95698ef51c6279e3484ed442c84caddfbf9"
+      "totalBytes": 10816,
+      "treeHash": "08275eb5a897282ea1fc8a2a2d2982b38f9440549dfc7f46ea62c5d5f044ae7a"
     },
     {
-      "contentHash": "28281a477e16f2bbb74d6d1da04f1c9c2a776b459db8f6171215a668faab1b81",
-      "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\".",
+      "contentHash": "0bffebb5f4e242359345eb48220337716efe7b4d554584aba61d0cf961c530b7",
+      "description": "Execute a proven artifact from the procedural-memory registry instead of recomposing a task. Use when the registry may already contain working code: recall ranks matches with trust, health, and success signals, while run stays registry-only, digest-checked, and trust/health-gated. Also use to promote a newly captured script or re-run an artifact's sandboxed verification. This skill executes code with a provenance contract; it does not retrieve past conversations or build vault knowledge graphs. Trigger on \"is there already a tool for this\", \"run the registry version\", \"promote this script\", \"recall a proven artifact\", \"re-verify an artifact\", or \"has this been automated before\". Also use for an explicit request to stage an already human-approved Functionize recipe as a documentation-only registry skill.",
       "fileCount": 3,
       "id": "skill:procedural-memory/procedural-memory",
       "kind": "skill",
       "name": "procedural-memory",
       "path": "procedural-memory/skills/procedural-memory/SKILL.md",
-      "totalBytes": 7422,
-      "treeHash": "99f34d9dccc9f561689b6dd1fd06130151f679fc66aaaf43dc21210582e73bb1"
+      "totalBytes": 9939,
+      "treeHash": "e20fc9613dde0e9031f0277dbef882de3835c9e3ee3b525842fd73b8f29dfbc9"
     },
     {
       "contentHash": "bc87e522087ad3447bfdff60fe3f6db66fc47fb16ccbed0c4e4b7bc5585ee108",

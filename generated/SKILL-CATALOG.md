@@ -108,7 +108,7 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `functionize` | Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through… | automation, functionize |
+| `functionize` | Mine repeated CLI usage and multi-call procedures into redacted Functionize candidates, compile inert proposal bundles, inspect the recipe… | automation, functionize |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 | `rhize-content-engine` | Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog… | content-authoring, workflow-patterns |
 

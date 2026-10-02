@@ -1,0 +1,21 @@
+schema_version: "1.1"
+name: functionize-recipe-status
+tags: [functionize, routing, read-only, fixture]
+plugins: ["../.."]
+runs: 2
+context:
+  scaffold_script: scripts/setup-fixture.sh
+execution:
+  prompt: |
+    Show the latest Functionize recipe decisions from the synthetic ledger
+    $HOME/.functionize-eval/review-ledger.jsonl as JSON. Tell me which fixture recipes
+    are approved, rejected, or deferred. This is a read-only queue inspection: do not
+    change decisions, stage, promote, approve for execution, or run anything.
+    For every CLI or plugin launcher call, explicitly prefix the command with
+    RHIZE_SKILL_BIN="$HOME/dev-local/RHIZE/procedural-memory/.venv/bin/rhize-skill"
+    so another installed CLI cannot be selected. Use only this synthetic fixture.
+  max_turns: 14
+  timeout_seconds: 180
+  allowed_tools: [Bash, Skill]
+  env:
+    EVAL_FIXTURE_MODE: "true"

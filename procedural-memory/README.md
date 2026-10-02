@@ -80,22 +80,24 @@ rather than guessing — this degrades to "unchecked," never to a false pass.
 The released runtime still reports package version `0.1.0` across older and newer command surfaces,
 so semver alone cannot prove Functionize support. `skills/functionize/scripts/functionize.sh`
 therefore probes the selected command's real `--help` interface before each call and refuses with
-exit `78` if that exact command is unavailable. It exposes only `mine`, `generate`, and `review`;
-registry and execution verbs are intentionally unreachable through that launcher.
+exit `78` if that exact command is unavailable. It exposes `mine`, `generate`, `review`, `recipes`,
+`recipe-review`, and `recipe-status`; registry staging and execution verbs remain unreachable through
+that launcher. The separate procedural-memory launcher adds a `recipe-stage` convenience alias with
+the same command-support probe and preserves its existing raw CLI passthrough.
 
 ## Skills
 
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `functionize` | Mine repeated CLI usage into redacted Functionize candidates, compile inert proposal bundles, or record a digest-bound human review through… | automation, functionize |
+| `functionize` | Mine repeated CLI usage and multi-call procedures into redacted Functionize candidates, compile inert proposal bundles, inspect the recipe… | automation, functionize |
 | `procedural-memory` | Execute a proven artifact from the procedural-memory registry instead of recomposing a task. | automation, workflow-patterns |
 | `rhize-content-engine` | Select and follow the established RHIZE Content Engine for writing, combining, regenerating, or revising resource articles and website/blog… | content-authoring, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
 ### Functionize proposal boundary
 
-Use the `functionize` skill for four compile-only modes:
+Use the `functionize` skill for six proposal and review modes:
 
 - `mine` → `rhize-skill functionize`: redact and aggregate repeated CLI shapes, optionally export
   or auto-compile candidates.
@@ -103,14 +105,34 @@ Use the `functionize` skill for four compile-only modes:
   proposal bundle.
 - `review` → `rhize-skill functionize-review`: validate and append a digest-bound human decision.
 - `recipes` → `rhize-skill functionize-recipes`: rank the multi-step procedures agents repeat
-  inside one Bash call. Each recipe gets a risk class; credential, destructive, privileged,
+  inside one Bash call or adjacent calls with `--cross-call`. Each recipe gets a risk class; credential, destructive, privileged,
   upload, remote, database and publish steps are refused. Export writes a bundle
   (`recipe.json`, `REVIEW.md`, `review.json`) that is secret-scanned before it is written and
   contains no runnable script.
+- `recipe-review` → `rhize-skill functionize-recipe-review`: record the human's explicit
+  approve/reject/defer decision, reason code and reviewer handle for a specific exported bundle.
+  Approval requires all risk acknowledgements; the decision binds the fingerprint and exact digest.
+- `recipe-status` → `rhize-skill functionize-recipe-status`: read the latest decisions in the
+  selected ledger, optionally as JSON. Reviewer handles are informational, not authentication.
 
 Generated proposals are not registry artifacts. Even a proposal reporting `promotable: true` has
 no trust, approval, health, promotion, or execution authority. Those later actions remain behind
 the existing `procedural-memory` skill and require separate intent.
+
+### Approved recipe staging
+
+An explicit request to stage a human-approved recipe uses the **procedural-memory** skill's
+`scripts/procedural-memory.sh recipe-stage <bundle> --ledger <path> [--name <slug>]`. It delegates
+to the reviewed runtime, which requires the latest approval and matching recipe digest and stages
+documentation-only `SKILL.md`, draft provenance and a review marker. It refuses conflicts and does
+not write a runnable script, promote, approve execution or run anything. Follow with
+`recipe-stage --check <slug> --ledger <path>` to verify the stage/ledger binding.
+
+Promotion is a separate request using `scripts/procedural-memory.sh promote <reported-staged-path>
+--recipe-ledger <path>`. A recipe decision never substitutes for registry trust/health or execution
+gates. Neither wrapper authenticates human intent: agents must not invent approvals, reviewer
+identity or risk acknowledgements. Native evaluation cases for this lifecycle use isolated synthetic
+fixtures; static validation and deterministic dispatch tests do not establish model routing accuracy.
 
 ## Commands
 
