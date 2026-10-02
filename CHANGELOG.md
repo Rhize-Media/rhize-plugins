@@ -34,6 +34,8 @@ point-in-time record.
 
 ### Added
 
+- Fix Context Manager credential suffix diagnostic search performance without changing runtime redaction coverage or timing thresholds; ships with Ponytail integration.
+- _2026-10-02_ version bump — **rhize-context-manager** 0.42.0 → 0.42.1 (patch); marketplace 2.98.2 → 2.98.3.
 - _2026-10-02_ version bump — **rhize-devflow** 2.25.6 → 2.25.7 (patch); marketplace 2.98.1 → 2.98.2.
 - Ponytail integration in rhize-devflow: retain upstream standalone plugin and full-mode ladder; use scoped complexity findings under existing behavior-preservation and release gates.
 - _2026-10-02_ version bump — **rhize-devflow** 2.25.5 → 2.25.6 (patch); marketplace 2.98.0 → 2.98.1.

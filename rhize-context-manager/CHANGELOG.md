@@ -24,6 +24,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Fix the published-main adversarial regex timing failure: suffix guards avoid whitespace restarts and overlong-name backtracking while preserving credential match spans and existing timing limits.
+- _2026-10-02_ version bump — 0.42.0 → 0.42.1 (patch); marketplace 2.98.2 → 2.98.3.
 - _2026-09-30_ version bump — 0.41.0 → 0.42.0 (minor); marketplace 2.97.0 → 2.98.0.
 - _2026-09-29_ version bump — 0.40.1 → 0.41.0 (minor); marketplace 2.95.0 → 2.96.0.
 - _2026-09-29_ The cross-origin collision report now also reads skills synced from the user's claude.ai account (`~/.claude/skills/synced/<org>_<user>/*/SKILL.md`, shown by hosts as `anthropic-skills:<name>`). They are used for collision detection only and never reach the resolved map, router indexes or the third-party inventory; resolved outputs are byte-identical with or without them. A `syncedSkills` summary and source note are added. `--synced-skills-root` overrides the folder, and `none` disables the scan. On this host the report went from 0 to 5 collisions (`context-compression`, `context-optimization`, `api-design`, `deep-research`, `rhize-content-engine`).

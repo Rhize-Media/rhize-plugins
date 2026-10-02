@@ -656,3 +656,27 @@ def test_the_unbounded_whitespace_runs_are_only_used_anchored():
     assert 'CREDENTIAL_TAIL.match(' in source and 'NAME_END.match(' in source
     assert 'CREDENTIAL_TAIL.finditer' not in source and 'NAME_END.finditer' not in source
     assert 'every pattern is length-bounded' not in source
+
+
+def test_suffix_search_guards_preserve_runtime_credential_match_spans():
+    # Compare with the pre-fix patterns at the only positions used by the redactor:
+    # immediately after a detected credential word, including long whitespace and length boundaries.
+    originals = (
+        (auto.CREDENTIAL_TAIL, re.compile(r'[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}'
+                                         + auto._Q + r'[ \t]*[:=]')),
+        (auto.NAME_END, re.compile(r'''[\w.-]{0,256}[ \t]*(?:\\{0,3}["',|>]|$)''', re.M)),
+    )
+    suffixes = ('', '=', ':', ' :', '\t' * 5000 + ':', ' ' * 5000 + 'x',
+                'a' * 256 + ':', 'a' * 257 + ':', 'a' * 257,
+                ' ' + 'a' * 256 + ' =', ' manager', '"', "'", ' (description) =')
+    checked = 0
+    for word in ('password', 'secret', 'API_KEY', 'cookie', 'userAuth', 'pin', 'dbpass'):
+        for suffix in suffixes:
+            text = word + suffix
+            for credential in auto.CREDENTIAL_WORD.finditer(text):
+                for current, original in originals:
+                    before = original.match(text, credential.end())
+                    after = current.match(text, credential.end())
+                    assert (before.span() if before else None) == (after.span() if after else None), (word, suffix[:40])
+                    checked += 1
+    assert checked > 100

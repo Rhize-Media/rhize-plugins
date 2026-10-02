@@ -204,10 +204,13 @@ CREDENTIAL_WORD = re.compile(
     r'(?<=[A-Za-z0-9])[ _-]key\b)')
 # `_Q` is a quote, plain or escaped (`\"` inside a JSON string that is itself in a string, `\\\"` double-escaped).
 _Q = r'''(?:\\{1,3}["']|["'])?'''
-CREDENTIAL_TAIL = re.compile(r'[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}' + _Q + r'[ \t]*[:=]')
+# Runtime suffix matches start immediately after a credential word. Reject search restarts within
+# whitespace and overlong first segments before backtracking; anchored runtime match spans stay the same.
+_SUFFIX_START = r'(?<![ \t])(?![\w.-]{257})'
+CREDENTIAL_TAIL = re.compile(_SUFFIX_START + r'[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}' + _Q + r'[ \t]*[:=]')
 # The word sits where the value would be (a tag, a header, a quoted name, a name/value pair): the line and the next
 # value line carry the secret. Only characters that end a name count, so prose such as "password manager" is spared.
-NAME_END = re.compile(r'''[\w.-]{0,256}[ \t]*(?:\\{0,3}["',|>]|$)''', re.M)
+NAME_END = re.compile(_SUFFIX_START + r'''[\w.-]{0,256}[ \t]*(?:\\{0,3}["',|>]|$)''', re.M)
 # Command and file shapes: `ENV SECRET v`, netrc `password v` / `machine h login u password v`.
 COMMAND_SECRET = re.compile(
     r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]{0,128}(?:password|passwd|passphrase|secret|token|api[_-]?key|'
