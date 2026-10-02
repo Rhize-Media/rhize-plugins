@@ -6,6 +6,9 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-02_ version bump — 2.25.6 → 2.25.7 (patch); marketplace 2.98.1 → 2.98.2.
+- Optional upstream Ponytail companion: full-mode implementation ladder and scoped advisory complexity review in simplify/review. Preserve user scope, behavior, required checks and release authority; keep six skills and hooks upstream rather than copying them.
+- _2026-10-02_ version bump — 2.25.5 → 2.25.6 (patch); marketplace 2.98.0 → 2.98.1.
 - _2026-09-29_ version bump — 2.25.4 → 2.25.5 (patch); marketplace 2.93.0 → 2.93.1.
 - _2026-09-29_ Refactor gate: prose under `.claude/analyses/` and `.codex/analyses/` (`.md`, `.markdown`, `.txt`, `.rst`) is exempt from write, command and release gating, like `claudedocs/`. That is the designated location for agent reports and analyses, and writing a report there used to require an impact-map receipt. Code files under those folders stay gated.
 - _2026-09-29_ version bump — 2.25.3 → 2.25.4 (patch); marketplace 2.91.0 → 2.91.1.

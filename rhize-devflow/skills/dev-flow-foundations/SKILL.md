@@ -12,7 +12,8 @@ description: >-
   "prevent regression", "anti-patterns", "dependency mapping", "impact map", "CodeGraph",
   "component registry", "why did this break again", or wants durable development guardrails.
   Reference layer that informs context-engineering and error-lifecycle-management; also encodes
-  Boris Cherny's verify-first and worktree practices.
+  Boris Cherny's verify-first and worktree practices. For the optional simplicity ladder,
+  defer to ponytail:ponytail after discovery, under the Ponytail integration contract.
 metadata:
   rhize:
     topics: [workflow-patterns, project-planning]
@@ -163,6 +164,10 @@ what must not.
 ---
 
 ## Relationship to Other Skills
+
+For implementation simplicity, defer to upstream `ponytail:ponytail` when installed and active.
+Use its full-mode ladder after discovery under [the integration contract](../../docs/ponytail-integration.md).
+Dev Flow retains scope, required checks and release authority; optional plugin absence is not a blocker.
 
 These foundations inform practical implementations:
 

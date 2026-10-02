@@ -2,6 +2,8 @@
 
 One entry per external-skill ingestion decision owned by Rhize Dev Flow.
 
+The optional Ponytail plugin has a separate [companion provenance record](../docs/ponytail-provenance.md); it introduces no forked skill.
+
 ## completed-branch-promotion — 2026-08-30
 - **Source:** https://github.com/obra/superpowers/tree/main/skills/finishing-a-development-branch
 - **Upstream ref:** Superpowers 6.3.0

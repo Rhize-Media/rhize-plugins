@@ -6,7 +6,8 @@ description: >-
   Use after implementation or before delivery when the user asks to simplify, consolidate,
   deduplicate, reduce complexity, apply React best practices, remove redundant state/effects, or
   review recent code for a cleaner solution. A verified no-op is valid; never expand into broad
-  redesign or unrelated cleanup.
+  redesign or unrelated cleanup. For an optional over-engineering lens, defer to
+  ponytail:ponytail-review under this skill's behavior-preservation gate.
 metadata:
   rhize:
     tier: custom
@@ -59,6 +60,11 @@ code and fewer sources of truth, not stylistic churn. A well-supported no-op is 
 
 Run three distinct passes, then deduplicate the candidates. Parallel reviewers are optional only
 when delegation is explicitly authorized and available; the lenses do not require subagents.
+
+When installed, use `ponytail:ponytail-review` as advisory complexity input to these passes.
+Follow [the integration contract](../../docs/ponytail-integration.md), review the same exact diff,
+and apply only candidates that pass Phase 3. A whole-repository `ponytail-audit` requires explicit
+scope. If Ponytail is absent or off, continue the three lenses below.
 
 ### Reuse and consolidation
 

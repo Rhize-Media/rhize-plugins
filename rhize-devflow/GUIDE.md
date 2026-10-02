@@ -80,6 +80,14 @@ release or establish that a regression test protects behavior.
 
 ## Skills Reference
 
+### Optional Ponytail companion
+
+Install `ponytail@ponytail` for both hosts and use its full default mode. Foundations defers the
+implementation simplicity ladder to `ponytail:ponytail`; simplify and review use
+`ponytail:ponytail-review` as advisory complexity input. All six upstream skills remain available.
+See [setup, routing and conflict rules](docs/ponytail-integration.md). Explicit scope, behavior,
+required checks and release policy remain constraints. The companion is optional.
+
 ### dev-flow-foundations
 
 **When it activates:** You mention "design patterns", "workflow optimization", "prevent regression", "anti-patterns", "dependency mapping", "impact map", "CodeGraph", "component registry", "why did this break again", or want to set up durable development guardrails.
