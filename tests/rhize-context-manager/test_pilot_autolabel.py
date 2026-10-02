@@ -625,10 +625,12 @@ elif behavior == 'noise':
     time.sleep(60)
 elif behavior == 'events':
     import time
+    if os.path.exists(home + '/codex-events-sleep'):
+        with open(home + '/codex-events.pid', 'w') as pid_file:
+            pid_file.write(str(os.getpid()))
     for event_line in open(home + '/codex-events').read().splitlines():
         print(event_line, flush=True)
     if os.path.exists(home + '/codex-events-sleep'):
-        open(home + '/codex-events.pid', 'w').write(str(os.getpid()))
         time.sleep(60)
     sys.exit(0)
 elif behavior == 'newkey':
