@@ -19,8 +19,9 @@ alone does not switch cohorts. Set the pilot's `enabled` false to stop new pilot
 Existing pending observations remain available for explicit drain. Do not also set the older
 `RHIZE_LAYA_WORKFLOW_SHADOW` flag; the configured pilot takes precedence.
 
-The existing UserPromptSubmit hook first writes an opportunity. In v2 it instructs the task
-agent to record context before recall, consultation or `decide`. Only eligible sealed context
+The existing UserPromptSubmit hook first writes an opportunity. In v2 it seals a redacted
+request snapshot before instructing the task agent to record enum context before recall,
+consultation or `decide`. Only eligible sealed context
 starts detached scoring. Missing context does not block the authoritative task; it remains a
 visible missing measurement. V1 continues enqueuing its original token-based observation.
 
@@ -75,8 +76,10 @@ request as `changed_intent`, rather than disguising it as an unchanged continuat
 
 Scheduled/prebound work can record `--prebound-family content|general`; it follows its existing
 runbook and is excluded from new routing decisions. Callbacks, observers, summaries, status and
-approval updates also remain operational events. Classification is `agent_asserted`, with
-`nativeOrigin: unknown`: current host payloads do not supply verified event-kind provenance.
+approval updates also remain operational events. Fresh ECC observers are classified only when
+the existing launcher flags, dedicated canonical working directory, native session and transcript
+identity, and exact request hash all agree. Classification remains `agent_asserted`, with
+`nativeOrigin: unknown`; this bounded launcher check is not verified human-origin attestation.
 Prompt tags cannot become trusted host metadata. Unknown context remains unknown.
 
 `context --evidence PRIVATE_JSON` is an alternative to enum flags, not an additional input.
@@ -106,6 +109,52 @@ rationale. Consultation is immutable, operator-reported evidence and must preced
 The file digest proves binding, not that the asserted consultation happened. Existing execution,
 validation and capture commands continue recording their real workflow/run evidence separately.
 Neither consultation nor stage receipts are human correctness labels.
+
+## Source-bound request context and capture errors
+
+Fresh v2 native hooks write immutable `request-snapshots/ID.json` sidecars beside `receipts`.
+Requests are redacted before persistence, limited to the existing request budget, and bound to
+opportunity, prompt, session, selector and source receipt hashes. Directories are private (0700),
+files 0600. First capture must precede enum context, consultation and decision; retries preserve
+that first snapshot. No historical prompt is reconstructed into a new capture. Hashes detect
+binding changes but are not cryptographic origin attestations.
+
+For a short changed request whose meaning depends on an earlier user request, explicitly link it:
+
+```sh
+python3 scripts/workflow_selection.py context --id OPPORTUNITY_ID \
+  --event-kind changed_intent --action implement --domain software \
+  --context-id EARLIER_OPPORTUNITY_ID
+```
+
+Repeat `--context-id` at most four times. Each link requires an earlier sealed request and valid
+context in the same native session; it creates a separate immutable request-context sidecar.
+These links supply labeling context, not continuation inheritance. Assistant plans and routing
+results are never copied into label input. A request such as “proceed” without verifiable material
+user context can still require abstention; adding a link does not prove adequate context.
+
+The labeler independently verifies native transcript identity, request hash, timestamps and
+redacted content before using snapshots. Missing snapshots retain the existing user-only
+transcript fallback and earliest-pilot cutoff. Present but invalid snapshots never silently fall
+back. Private provenance records the source references and context hashes; exposure stays unknown,
+not claimed blind. Symlink, FIFO, oversized and unavailable sources defer with bounded error codes.
+
+Capture errors are fail-open for Arm A and fail-closed for unverified label context. Private
+capture diagnostics distinguish observer-source verification, missing enum context, storage and
+binding failures. Label summaries distinguish missing/ambiguous context from I/O, binding and late
+snapshot faults; actionable faults also appear as warnings. Diagnostics contain codes and hashes,
+not request text. Keep failed and interrupted runs for investigation; retention removes only
+successful completed runs. Snapshot retention is an explicit private operator policy, never an
+implicit public export or automatic retroactive repair.
+
+`report.v2Coverage.collectionFunnel` separates raw events from independent eligible task roots,
+missing context from source-change holds, and Claude/Codex/unknown hosts. Arm A/B variant fields
+and measured-check denominators remain explicit. `pilot_labels.py report.byCollectionSource`
+counts recorded policy-accepted and explicitly judged labels by originating digest. Those counts
+are label coverage, not current-source export readiness. Preserve reviewed old runtime pins to
+report/research their exact historical cohort; do not pool historical/current exports to meet
+the 200-label floor. A local daily operator may alternate frozen historical/current runtimes
+under one existing schedule, lock and deadline while preserving unsuccessful run artifacts.
 
 ## Measure normal checks once
 
@@ -154,8 +203,10 @@ The default storage is `$XDG_DATA_HOME/rhize/workflow-selection/pilot`, or
 `~/.local/share/rhize/workflow-selection/pilot`. `--root` and `--receipts` support isolated
 fixtures and explicit storage. Reports fail explicitly on malformed records or inventories
 over 10,000 files. Historical workflow receipts without the pilot marker are excluded. Missing
-observation files still count against the opportunity denominator. Raw prompts, code, paths,
-customer text and transcripts are not captured. Host/session/task identities are hashes. V2
+observation files still count against the opportunity denominator. Enum-only scoring records
+capture no raw prompts, code, paths, customer text or transcripts. Fresh request snapshots contain
+bounded, redacted user text and private transcript references outside Git and model-scoring input.
+Host/session/task identities are hashes; these attest binding, not human origin. V2
 observations/results/labels/outcomes/measurements live below `pilot/v2`; context and consultation
 sidecars live alongside the workflow `receipts` directory. Old v1 records remain in place.
 

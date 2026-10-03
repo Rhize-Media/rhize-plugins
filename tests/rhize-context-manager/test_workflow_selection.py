@@ -228,3 +228,141 @@ def test_laya_workflow_shadow_keeps_operator_selection_and_redacts_prompt(tmp_pa
     assert 'private-session' not in json.dumps(seen)
     assert receipt['selection'] is None
     assert path.stat().st_mode & 0o777 == 0o600
+
+
+def run_v2_hook(tmp_path, payload, env_extra=None):
+    import os, subprocess
+    cfg = tmp_path / 'config.json'
+    cfg.write_text(json.dumps({'schemaVersion': 1, 'enabled': True,
+                              'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}}))
+    root = tmp_path / 'store/receipts'
+    result = subprocess.run([sys.executable, str(SCRIPTS / 'workflow_selection.py'),
+                             '--root', str(root), 'hook', '--host', 'claude', '--config', str(cfg)],
+                            input=json.dumps(payload), text=True, capture_output=True, timeout=8,
+                            env={**os.environ, **(env_extra or {})})
+    assert result.returncode == 0, result.stderr
+    return root, result
+
+
+def test_fresh_hook_seals_redacted_snapshot_and_replay_never_repairs_it(tmp_path):
+    payload = {'prompt': 'Repair auth tests\npassword: sensitive-fixture-value', 'session_id': 'fixture', 'turn_id': 'one'}
+    root, result = run_v2_hook(tmp_path, payload)
+    assert 'Workflow selection checkpoint' in result.stdout
+    receipt = json.loads(next(root.glob('*.json')).read_text())
+    packet = root.parent / 'request-snapshots' / (receipt['opportunityId'] + '.json')
+    before = packet.read_bytes()
+    assert b'sensitive-fixture-value' not in before
+    assert json.loads(before)['promptHash'] == receipt['promptHash']
+    assert 'sensitive-fixture-value' not in result.stdout + result.stderr
+    packet.unlink()
+    _, replay = run_v2_hook(tmp_path, payload)
+    assert replay.stdout == '' and not packet.exists()
+
+
+def test_snapshot_storage_failure_is_visible_without_suppressing_arm_a(tmp_path):
+    root = tmp_path / 'store'; root.mkdir()
+    (root / 'request-snapshots').symlink_to(tmp_path / 'absent')
+    receipts, result = run_v2_hook(tmp_path, {'prompt': 'Implement private-client change', 'session_id': 'fixture', 'turn_id': 'one'})
+    output = json.loads(result.stdout)
+    assert 'Workflow selection checkpoint' in output['hookSpecificOutput']['additionalContext']
+    assert 'request_capture_unavailable' in output['systemMessage']
+    diagnostic = json.loads(next((root / 'task-context-diagnostics').glob('*.json')).read_text())
+    assert diagnostic['events'][0]['reason'] == 'request_capture_unavailable'
+    assert 'private-client' not in json.dumps(diagnostic)
+    assert list(receipts.glob('*.json'))
+
+
+@pytest.mark.parametrize('capture_failure', [False, True])
+def test_verified_observer_hook_is_operational_without_model_request(tmp_path, capture_failure):
+    import re, uuid
+    home = tmp_path / 'home'; cwd = home / '.local/share/ecc-homunculus'; cwd.mkdir(parents=True)
+    project = home / '.claude/projects' / re.sub(r'[^a-zA-Z0-9]', '-', str(cwd)); project.mkdir(parents=True)
+    session = str(uuid.uuid4()); transcript = project / (session + '.jsonl')
+    prompt = 'Read the observation file'
+    transcript.write_text(json.dumps({'type': 'user', 'sessionId': session, 'cwd': str(cwd),
+                                     'isSidechain': False, 'message': {'content': prompt}}) + '\n')
+    payload = {'prompt': prompt, 'session_id': session, 'turn_id': 'one', 'cwd': str(cwd), 'transcript_path': str(transcript)}
+    if capture_failure:
+        store = tmp_path / 'store'; store.mkdir()
+        (store / 'task-context').write_text('Directory unavailable')
+    root, result = run_v2_hook(tmp_path, payload, {'HOME': str(home), 'ECC_SKIP_OBSERVE': '1', 'ECC_HOOK_PROFILE': 'minimal'})
+    if capture_failure:
+        output = json.loads(result.stdout)
+        assert 'Workflow selection checkpoint' in output['hookSpecificOutput']['additionalContext']
+        assert 'request_capture_unavailable' in output['systemMessage']
+        assert not (root.parent / 'pilot/v2/observations').exists()
+        return
+    assert result.stdout == ''
+    observation = json.loads(next((root.parent / 'pilot/v2/observations').glob('*.json')).read_text())
+    assert observation['disposition'] == {'eligible': False, 'reason': 'operational_event'}
+    assert observation['request'] is None and observation['nativeOrigin'] == 'unknown'
+    assert observation['context']['eventKind'] == 'background_observer'
+    assert not (root.parent / 'pilot/v2/results').exists()
+
+
+def test_decision_without_context_records_gap_and_keeps_selection(tmp_path):
+    import subprocess
+    receipt, _ = opportunity({'prompt': 'Implement safe change', 'session_id': 'one', 'turn_id': 'one'},
+                             'claude', tmp_path / 'receipts',
+                             {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    result = subprocess.run([sys.executable, str(SCRIPTS / 'workflow_selection.py'), '--root', str(tmp_path / 'receipts'),
+                             'decide', '--id', receipt['opportunityId'], '--decision', 'no_match',
+                             '--reason', 'no_suitable_workflow'], capture_output=True, text=True, timeout=8)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)['selection']['decision'] == 'no_match'
+    diagnostic = json.loads(next((tmp_path / 'task-context-diagnostics').glob('*.json')).read_text())
+    assert diagnostic['events'][0]['reason'] == 'context_missing_before_decision'
+
+
+def test_native_v2_replay_rejects_changed_prompt_without_mutating_first_receipt(tmp_path):
+    from workflow_selection import NativeBindingChanged
+    payload = {'prompt': 'Original request', 'session_id': 'session', 'turn_id': 'native-one'}
+    receipt, fresh = opportunity(payload, 'claude', tmp_path / 'receipts',
+                                 {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    path = tmp_path / 'receipts' / (receipt['opportunityId'] + '.json'); original = path.read_bytes()
+    replay, fresh = opportunity(payload, 'claude', path.parent, {})
+    assert not fresh and replay == receipt and path.read_bytes() == original
+    with pytest.raises(NativeBindingChanged, match='native_binding_changed'):
+        opportunity({**payload, 'prompt': 'Different private request'}, 'claude', path.parent, {})
+    assert path.read_bytes() == original
+
+
+def test_legacy_native_replay_behavior_is_unchanged(tmp_path):
+    payload = {'prompt': 'Original legacy request', 'session_id': 'session', 'turn_id': 'native-one'}
+    receipt, _ = opportunity(payload, 'claude', tmp_path / 'receipts',
+                             {'decisionPilot': {'enabled': True, 'mode': 'shadow'}})
+    path = tmp_path / 'receipts' / (receipt['opportunityId'] + '.json'); original = path.read_bytes()
+    replay, fresh = opportunity({**payload, 'prompt': 'Different legacy request'}, 'claude', path.parent, {})
+    assert replay == receipt and not fresh and path.read_bytes() == original
+
+
+def test_native_replay_guard_also_checks_receipt_created_after_exists_check(tmp_path, monkeypatch):
+    from workflow_selection import NativeBindingChanged
+    payload = {'prompt': 'Original request', 'session_id': 'session', 'turn_id': 'native-one'}
+    receipt, _ = opportunity(payload, 'claude', tmp_path / 'receipts',
+                             {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    path = tmp_path / 'receipts' / (receipt['opportunityId'] + '.json'); original = path.read_bytes()
+    actual_exists = Path.exists
+    checked = False
+    def stale_exists(candidate):
+        nonlocal checked
+        if candidate == path and not checked:
+            checked = True
+            return False  # Deterministic interleaving: another hook writes before the locked update.
+        return actual_exists(candidate)
+    monkeypatch.setattr(Path, 'exists', stale_exists)
+    with pytest.raises(NativeBindingChanged, match='native_binding_changed'):
+        opportunity({**payload, 'prompt': 'Different request'}, 'claude', path.parent, {})
+    assert path.read_bytes() == original
+
+
+def test_hook_native_binding_conflict_is_nonblocking_and_preserves_receipt(tmp_path):
+    payload = {'prompt': 'Original request', 'session_id': 'session', 'turn_id': 'native-one'}
+    root, first = run_v2_hook(tmp_path, payload)
+    path = next(root.glob('*.json')); original = path.read_bytes()
+    _, result = run_v2_hook(tmp_path, {**payload, 'prompt': 'Different private request'})
+    assert 'native_binding_changed' in json.loads(result.stdout)['systemMessage']
+    assert 'Different private request' not in result.stdout + result.stderr
+    assert path.read_bytes() == original
+    diagnostic = json.loads(next((root.parent / 'task-context-diagnostics').glob('*.json')).read_text())
+    assert diagnostic['events'][0]['reason'] == 'native_binding_changed'

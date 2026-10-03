@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded workflow opportunity/decision capture shared by Claude and Codex.
 
-No model, registry execution, transcript scan or Stop continuation. Receipts are
+No model, registry execution or Stop continuation. Receipts are
 observations; a suggestion never establishes selection, execution or correctness.
 """
 from __future__ import annotations
@@ -22,6 +22,12 @@ SCHEMA = 'rhize-workflow-selection-v1'
 MAX_INPUT = 65536
 MAX_RECEIPT = 131072
 DEFAULT_ROOT = Path(os.environ.get('XDG_DATA_HOME', str(Path.home() / '.local/share'))) / 'rhize/workflow-selection'
+
+
+class NativeBindingChanged(ValueError):
+    def __init__(self, identity):
+        super().__init__('native_binding_changed')
+        self.identity = identity
 
 
 def digest(value):
@@ -90,8 +96,16 @@ def opportunity(payload, host, root, config):
             return index, False
         index, _ = locked_update(root / 'identities', base, slot)
         identity = index['current']
+    def replay(old):
+        if native_turn and old.get('decisionPilot') == 'shadow-v2' and any(
+                old.get(key) != expected for key, expected in {
+                    'schemaVersion': SCHEMA, 'opportunityId': identity, 'host': host,
+                    'promptHash': digest(prompt), 'sessionHash': digest(session),
+                    'taskHash': digest(task), 'identityMode': 'native-turn'}.items()):
+            raise NativeBindingChanged(identity)
+        return old, False
     if (root / (identity + '.json')).exists():
-        return locked_update(root, identity, lambda old: (old, False))
+        return locked_update(root, identity, replay)
     classification = {'eligible': None, 'workflow': None, 'variant': None, 'reason': 'awaiting_agent_scope_decision'}
     started = time.monotonic()
     result = {'schemaVersion': SCHEMA, 'opportunityId': identity, 'host': host,
@@ -111,7 +125,7 @@ def opportunity(payload, host, root, config):
     result['recommendation'] = 'consult_catalog_before_substantial_work'
     result['capabilityStatus'] = 'lookup_not_requested'
     result['lookupDurationMs'] = round((time.monotonic() - started) * 1000, 3)
-    return locked_update(root, identity, lambda old: (old, False) if old else (result, True))
+    return locked_update(root, identity, lambda old: replay(old) if old else (result, True))
 
 
 def detect_host(payload, env, explicit='unknown'):
@@ -163,6 +177,8 @@ def hook_message(receipt):
             f'Opportunity ID: {identity}. BEFORE catalog recall, consult or decide, capture enum-only context: '
             f'python3 {script} context --id {identity} --event-kind KIND --action ACTION --domain DOMAIN '
             '[--exclude EXCLUSION] [--parent-id PRIOR_OPPORTUNITY_ID] [--prebound-family content|general]. '
+            'When this request refers to earlier task requests, add --context-id EARLIER_OPPORTUNITY_ID (up to four); '
+            'these private request links preserve context without changing routing ancestry. '
             'KIND: new_task, changed_intent, continuation, status, approval, context_update, background_observer, '
             'summarizer, tool_callback, worker_handback, scheduled, unknown. ACTION: create, revise, investigate, '
             'implement, review, validate, research, explain, handoff, unknown. DOMAIN: content, software, operations, '
@@ -359,6 +375,7 @@ def main():
     cp.add_argument('--event-kind', choices=sorted(EVENT_KINDS)); cp.add_argument('--action', choices=sorted(ACTIONS))
     cp.add_argument('--domain', choices=sorted(DOMAINS)); cp.add_argument('--exclude', action='append', choices=sorted(EXCLUSIONS), default=[])
     cp.add_argument('--parent-id'); cp.add_argument('--prebound-family', choices=['content', 'general'])
+    cp.add_argument('--context-id', action='append', default=[], help='Earlier same-session request snapshot (up to four); freezes private context before routing')
     consult = sub.add_parser('consult'); consult.add_argument('--id', required=True)
     consult.add_argument('--family', choices=['content', 'general', 'none'], required=True)
     consult.add_argument('--evidence', type=Path, required=True)
@@ -381,6 +398,34 @@ def main():
             if not isinstance(payload, dict): raise ValueError('invalid hook input')
             host = detect_host(payload, os.environ, args.host)
             receipt, fresh = opportunity(payload, host, args.root, config)
+            operational = False
+            warning = None
+            if receipt and fresh and receipt.get('decisionPilot') == 'shadow-v2':
+                try:
+                    from workflow_context_packet import capture_request_snapshot
+                    snapshot = capture_request_snapshot(args.root, receipt, payload)
+                    verified_observer = snapshot['operationalKind'] == 'background_observer'
+                    if not verified_observer and os.environ.get('ECC_SKIP_OBSERVE') == '1' and os.environ.get('ECC_HOOK_PROFILE') == 'minimal':
+                        from workflow_task_context import diagnostic_context
+                        diagnostic_context(args.root, receipt['opportunityId'], 'observer_source_unverified', digest('observer_source_unverified'))
+                    if verified_observer:
+                        from workflow_task_context import SCHEMA as CONTEXT_SCHEMA, capture_context
+                        from decision_pilot import enqueue_v2
+                        context = {'schemaVersion': CONTEXT_SCHEMA, 'opportunityId': receipt['opportunityId'],
+                                   'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],
+                                   'eventKind': 'background_observer', 'action': 'unknown', 'domain': 'operations',
+                                   'exclusions': [], 'parentOpportunityId': None, 'preboundFamily': None}
+                        capture_context(args.root, receipt['opportunityId'], context,
+                                        seal=lambda c, r: enqueue_v2(c, r, args.root.parent / 'pilot', receipts=args.root))
+                        operational = True
+                except Exception as exc:
+                    # Telemetry must not suppress Arm A; retain only bounded codes and hashes.
+                    warning = 'request_capture_unavailable'
+                    try:
+                        from workflow_task_context import diagnostic_context
+                        diagnostic_context(args.root, receipt['opportunityId'], warning, digest(type(exc).__name__))
+                    except Exception:
+                        warning = 'request_capture_diagnostic_unavailable'
             if receipt and receipt.get('decisionPilot') == 'shadow-v1' and config.get('decisionPilot') == {'enabled': True, 'mode': 'shadow'}:
                 try:
                     from decision_pilot import enqueue
@@ -393,8 +438,11 @@ def main():
                                               os.environ.get('RHIZE_LAYA_BASE_URL', 'http://127.0.0.1:8000'))
                 except (OSError, ValueError):
                     pass  # Model and receipt availability cannot suppress the incumbent checkpoint.
-            message = hook_message(receipt) if receipt and fresh else None
+            message = hook_message(receipt) if receipt and fresh and not operational else None
             output = {'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit', 'additionalContext': message}} if message else None
+            if warning:
+                output = output or {}
+                output['systemMessage'] = 'Rhize private request capture gap: ' + warning + '; continue the task.'
             if args.router_bridge:
                 print(json.dumps({'handled': bool(receipt), 'hookOutput': output}))
             elif output:
@@ -417,13 +465,30 @@ def main():
                          'domain': args.domain or 'unknown', 'exclusions': args.exclude,
                          'parentOpportunityId': args.parent_id, 'preboundFamily': args.prebound_family}
             from decision_pilot import enqueue_v2
+            if args.context_id:
+                from workflow_context_packet import capture_request_context
+                from workflow_task_context import canonical_context, diagnostic_context
+                try:
+                    canonical_context(value, receipt)
+                    capture_request_context(args.root, args.id, args.context_id)
+                except Exception as exc:
+                    diagnostic_context(args.root, args.id, 'request_context_unavailable', digest(type(exc).__name__))
+                    raise ValueError('request_context_unavailable') from exc
             context = capture_context(args.root, args.id, value,
                       seal=lambda c, r: enqueue_v2(c, r, args.root.parent / 'pilot', receipts=args.root))
             print(json.dumps(context))
         elif args.command == 'consult':
             from workflow_task_context import capture_consultation
             print(json.dumps(capture_consultation(args.root, args.id, args.family, args.evidence)))
-        elif args.command == 'decide': print(json.dumps(decide(args.root, args)))
+        elif args.command == 'decide':
+            value = decide(args.root, args)
+            if value.get('decisionPilot') == 'shadow-v2' and value.get('contextCaptureStatus') != 'captured':
+                try:
+                    from workflow_task_context import diagnostic_context
+                    diagnostic_context(args.root, args.id, 'context_missing_before_decision', digest(value['contextCaptureStatus']))
+                except Exception:
+                    print('Rhize context diagnostic unavailable; decision remains recorded.', file=sys.stderr)
+            print(json.dumps(value))
         elif args.command == 'record': print(json.dumps(record(args.root, args)))
         elif args.command == 'finish': print(json.dumps(finish(args.root, args)))
         else:
@@ -432,6 +497,14 @@ def main():
         return 0
     except Exception as exc:
         if args.command == 'hook':
+            if isinstance(exc, NativeBindingChanged):
+                try:
+                    from workflow_task_context import diagnostic_context
+                    diagnostic_context(args.root, exc.identity, 'native_binding_changed', digest(payload['prompt']))
+                except Exception:
+                    pass
+                print(json.dumps({'systemMessage': 'Rhize workflow capture gap: native_binding_changed; continue the task.'}))
+                return 0
             print(json.dumps({'systemMessage': 'Rhize workflow discovery/capture is unavailable; continue the task and record the gap.'}))
             return 0
         print(f'ERROR: {exc}', file=sys.stderr)

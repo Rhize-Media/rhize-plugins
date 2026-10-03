@@ -102,17 +102,22 @@ def drain(root, call=None, receipts=None, cohort=None):
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return {'status': 'busy'}
-        started, processed = time.monotonic(), 0
-        from decision_pilot_v2 import ensure_root
+        started, processed, source_held = time.monotonic(), 0, 0
+        from decision_pilot_v2 import ensure_root, source_digest as v2_source_digest
         ensure_root(root)
         if cohort not in {None, 'v1', 'v2'}:
             raise ValueError('invalid drain cohort')
         observations = [(False, identity, value) for identity, value in inventory(root / 'observations')] if cohort != 'v2' else []
         if cohort != 'v1':
             observations += [(True, identity, value) for identity, value in inventory(root / 'v2/observations')]
+        current_v2_source = v2_source_digest() if cohort != 'v1' else None
         for v2, identity, observation in observations:
             collection = root / 'v2' if v2 else root
             if (collection / 'results' / (identity + '.json')).exists():
+                continue
+            if v2 and observation.get('sourceSha256') != current_v2_source:
+                # Other collection cohorts stay pending; this runtime must not seal their failure.
+                source_held += 1
                 continue
             if processed >= 20 or time.monotonic() - started > 45:
                 break
@@ -137,7 +142,7 @@ def drain(root, call=None, receipts=None, cohort=None):
             save_once(collection / 'results', identity, {**result, 'opportunityId': identity,
                                                   'observedAt': time.time()})
             processed += 1
-        return {'status': 'drained', 'processed': processed}
+        return {'status': 'drained', 'processed': processed, 'sourceHeld': source_held}
 
 
 def incumbent(receipt):

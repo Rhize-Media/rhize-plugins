@@ -341,3 +341,118 @@ def test_measurement_reader_rejects_malformed_or_incoherent_facts(change):
            'observedAt':'2026-09-28T13:00:00+00:00','outputComplete':True,'forwardTruncated':False}
     assert v2.valid_measurement(value)
     assert not v2.valid_measurement({**value,**change})
+
+
+def test_collection_funnel_counts_events_and_distinct_eligible_roots(tmp_path):
+    root, receipts, parent, _ = make(tmp_path, 'task')
+    consult(tmp_path, receipts, parent)
+    make(tmp_path, 'followup', kind='continuation', parent=parent['opportunityId'])
+    make(tmp_path, 'worker', kind='background_observer')
+    make(tmp_path, 'routine', kind='scheduled')
+    make(tmp_path, 'unknown', kind='unknown')
+    make(tmp_path, 'missing', capture=False)
+    _, _, held, data = make(tmp_path, 'conflict')
+    data['domain'] = 'content'
+    with pytest.raises(ValueError):
+        context.capture_context(receipts, held['opportunityId'], data)
+    pilot.drain(root, call, receipts=receipts, cohort='v2')
+    coverage = pilot.report(root, receipts)['v2Coverage']
+    funnel = coverage['collectionFunnel']
+    assert funnel['rawEvents'] == 7 and funnel['contextCapturedEvents'] == 5
+    assert funnel['eligibleDecisionEvents'] == funnel['eligibleTaskRoots'] == 1
+    assert all(funnel[key] == 1 for key in ('operationalExcludedEvents', 'continuationEvents',
+        'preboundExcludedEvents', 'missingContextEvents', 'unknownIntentEvents', 'heldEvents',
+        'baselineTaskRoots', 'shadowScoredTaskRoots', 'comparableRoutingTaskRoots'))
+    assert funnel['outcomeTaskRoots'] == funnel['allBoundContextRootsWithChecks'] == 0
+    assert funnel['byHost']['codex']['rawEvents'] == 7
+    assert funnel['byEventKind']['background_observer']['operationalExcludedEvents'] == 1
+    assert funnel['byEventKind']['missing']['rawEvents'] == 2
+    assert sum(item['rawEvents'] for item in funnel['bySource'].values()) == 7
+    assert sum(item['rawEvents'] for item in funnel['byEventKind'].values()) == 7
+    assert funnel['captureDiagnostics']['task-context-holds']['reasons'] == {'duplicate_context': 1}
+    assert funnel['nativeOriginVerified'] == 0 and funnel['nativeOriginUnknown'] == 7
+    assert funnel['executedVariant'] == 'A_incumbent' and funnel['shadowVariant'] == 'B_local_laya'
+    assert parent['opportunityId'] not in json.dumps(funnel)
+
+
+def test_collection_funnel_keeps_historical_source_separate_from_capture_failure(tmp_path):
+    root, receipts, receipt, _ = make(tmp_path)
+    consult(tmp_path, receipts, receipt)
+    pilot.drain(root, call, receipts=receipts, cohort='v2')
+    observation = root / 'v2/observations' / (receipt['opportunityId'] + '.json')
+    value = json.loads(observation.read_text())
+    value['sourceSha256'] = 'a' * 64
+    observation.write_text(json.dumps(value))
+    funnel = pilot.report(root, receipts)['v2Coverage']['collectionFunnel']
+    assert funnel['contextCapturedEvents'] == 1 and funnel['missingContextEvents'] == 0
+    assert funnel['heldEvents'] == funnel['sourceChangedEvents'] == 1
+    assert funnel['eligibleTaskRoots'] == funnel['comparableRoutingTaskRoots'] == 0
+    assert funnel['bySource']['a' * 64]['sourceStatus'] == 'historical'
+    assert funnel['heldReasons'] == {'source_changed': 1}
+    assert v2.export_cases(root, receipts) == []
+    assert json.loads(observation.read_text()) == value
+
+
+@pytest.mark.parametrize('change', [
+    {'schemaVersion': 'invalid'}, {'sourceBindingSha256': 'a' * 64}, {'events': [{}]}, {'events': []},
+    {'events': 'private error'}, {'additionalConflicts': 'true'}, {'extra': 'private error'}])
+def test_invalid_capture_diagnostics_remain_visible_without_breaking_report(tmp_path, change):
+    root, receipts, receipt, _ = make(tmp_path, capture=False)
+    value = context.diagnostic_context(receipts, receipt['opportunityId'], 'context_input_unavailable', 'a' * 64)
+    path = receipts.parent / 'task-context-diagnostics' / (receipt['opportunityId'] + '.json')
+    path.write_text(json.dumps({**value, **change}))
+    coverage = pilot.report(root, receipts)['v2Coverage']
+    summary = coverage['collectionFunnel']['captureDiagnostics']['task-context-diagnostics']
+    assert summary == {'records': 0, 'events': 0, 'invalidRecords': 1, 'overflowRecords': 0, 'reasons': {}}
+    assert coverage['missing'] == 1 and 'private error' not in json.dumps(coverage)
+
+
+def test_capture_diagnostics_are_bounded_and_do_not_expose_reason_text(tmp_path):
+    root, receipts, receipt, _ = make(tmp_path, capture=False)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'context_input_unavailable', 'a' * 64)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'private provider details', 'b' * 64)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'request_capture_unavailable', 'c' * 64)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'observer_source_unverified', 'd' * 64)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'context_missing_before_decision', 'e' * 64)
+    context.diagnostic_context(receipts, receipt['opportunityId'], 'native_binding_changed', 'f' * 64)
+    path = receipts.parent / 'task-context-diagnostics' / (receipt['opportunityId'] + '.json')
+    value = json.loads(path.read_text())
+    value['additionalConflicts'] = True
+    path.write_text(json.dumps(value))
+    summary = pilot.report(root, receipts)['v2Coverage']['collectionFunnel']['captureDiagnostics']['task-context-diagnostics']
+    assert summary['records'] == summary['overflowRecords'] == 1 and summary['events'] == 6
+    assert summary['reasons'] == {'context_input_unavailable': 1, 'other': 1, 'request_capture_unavailable': 1,
+                                 'observer_source_unverified': 1, 'context_missing_before_decision': 1, 'native_binding_changed': 1}
+    assert 'private provider details' not in json.dumps(summary)
+    path.unlink()
+    path.symlink_to(tmp_path / 'missing-private-file')
+    summary = pilot.report(root, receipts)['v2Coverage']['collectionFunnel']['captureDiagnostics']['task-context-diagnostics']
+    assert summary['invalidRecords'] == 1
+
+
+def test_collection_funnel_empty_denominators_are_counts_not_accuracy(tmp_path):
+    coverage = pilot.report(tmp_path / 'pilot', tmp_path / 'receipts')['v2Coverage']
+    funnel = coverage['collectionFunnel']
+    assert funnel['rawEvents'] == funnel['eligibleTaskRoots'] == funnel['allBoundContextRootsWithChecks'] == 0
+    assert funnel['bySource'] == {}
+    assert coverage['acceptedTasks'] == 0 and coverage['localInputTokens'] is None
+
+
+def test_drain_leaves_other_v2_source_pending_without_sealing_a_failure(tmp_path):
+    root, receipts, old, _ = make(tmp_path, 'old-source')
+    old_path = root / 'v2/observations' / (old['opportunityId'] + '.json')
+    observation = json.loads(old_path.read_text())
+    observation['sourceSha256'] = 'a' * 64
+    old_path.write_text(json.dumps(observation))
+    before = old_path.read_bytes()
+    _, _, current, _ = make(tmp_path, 'current-source')
+    calls = []
+    result = pilot.drain(root, lambda *args: (calls.append(args) or call(*args)), receipts=receipts, cohort='v2')
+    assert result == {'status': 'drained', 'processed': 1, 'sourceHeld': 1}
+    assert len(calls) == 1 and old_path.read_bytes() == before
+    assert not (root / 'v2/results' / (old['opportunityId'] + '.json')).exists()
+    assert (root / 'v2/results' / (current['opportunityId'] + '.json')).exists()
+    assert pilot.drain(root, lambda *args: pytest.fail('duplicate inference'), receipts=receipts, cohort='v2') == {
+        'status': 'drained', 'processed': 0, 'sourceHeld': 1}
+    row = next(r for r in v2.joined(root, receipts) if r['id'] == old['opportunityId'])
+    assert row['bucket'] == 'held' and row['reason'] == 'source_changed' and row['result'] is None

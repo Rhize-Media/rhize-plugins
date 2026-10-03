@@ -378,3 +378,16 @@ authoritative even when capture is unavailable. This records a check, not user a
 unavailable coding-agent token counts. Use the daily packet to inspect distinct cases, and use
 explicit human adjudication only after reviewing the original task. See the [v2 lifecycle and
 evidence contract](docs/decision-pilot.md) before opting in.
+
+Fresh v2 hooks also seal a bounded, redacted original request in a private snapshot before
+consultation. Add up to four `--context-id EARLIER_OPPORTUNITY_ID` flags to the enum `context`
+command when an earlier user request supplies material context; links require verified earlier
+requests in the same session and do not change routing ancestry. Missing material context stays
+deferred. Recognized ECC observers require launcher flags plus canonical session/transcript
+bindings; prompt text or a working directory alone cannot trigger exclusion.
+
+Reports add a collection funnel by host, event kind and immutable source cohort, with bounded
+capture error codes and explicit event/task denominators. Labels report source partitions;
+research still validates the exact collection source. Retain frozen runtimes for historical
+cohorts rather than pooling labels across releases. Capture and review readiness do not establish
+routing accuracy or task benefit.

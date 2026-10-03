@@ -24,9 +24,11 @@ import pilot_autolabel as auto
 import pilot_labels as labels
 import workflow_selection as workflow
 import workflow_task_context as context
+import workflow_context_packet as request_context
 
 DIGEST_FILES = ('decision_pilot_v2.py', 'decision_pilot.py', 'workflow_selection.py', 'workflow_task_context.py',
-                'pilot_routing.py', 'context_experiments/typed_relevance.py')
+                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py',
+                'context_experiments/typed_relevance.py')
 SESSION = '0f1e2d3c-4b5a-4968-8778-a1b2c3d4e5f6'
 OTHER_SESSION = '9a8b7c6d-5e4f-4321-8fed-cba987654321'
 ALLOWED_PACKET_KEYS = {'caseId', 'prompt', 'promptTruncated', 'precedingContext', 'role', 'text', 'truncated'}
@@ -262,6 +264,243 @@ def test_missing_context_records_insufficient_context_without_any_model_call(tmp
     assert labels.load_labels(root) == []
     again, code = go(tmp_path, backend)
     assert code == 0 and again['status'] == 'nothing_to_do' and again['skipped'] == {'already_attempted': 1}
+
+
+def captured_fixture(receipt, text):
+    """Invented API response; the shared sidecar loader has its own binding/immutability tests."""
+    sanitized, truncated = auto.sanitize(text, auto.PROMPT_LIMIT)
+    return {'opportunityId': receipt['opportunityId'], 'sessionHash': receipt['sessionHash'],
+            'promptHash': receipt['promptHash'], 'receiptObservedAt': receipt['observedAt'],
+            'capturedAt': receipt['observedAt'], 'originalRequest': sanitized, 'requestTruncated': truncated,
+            'snapshotSha256': 'c' * 64}
+
+
+def capture_api(monkeypatch, snapshots, links=None):
+    links = links or {}
+    monkeypatch.setattr(auto, 'load_request_context', lambda receipts, identity: {
+        'current': snapshots.get(identity), 'preceding': links.get(identity, []),
+        'contextSha256': 'd' * 64 if links.get(identity) else None})
+
+
+def native_rows(tmp_path, requests):
+    raw_transcript(tmp_path, SESSION, [{**line('user', text, receipt['observedAt'], False), 'sessionId': SESSION}
+                                     for receipt, text in requests])
+
+
+def prepared_cases(tmp_path, root, receipts):
+    config = config_for(tmp_path)
+    return auto.prepare_cases(root, receipts, lambda wanted, bounds: auto.TranscriptIndex(
+        config['transcriptRoots'], wanted, bounds), {}, 'f' * 64, config)[0]
+
+
+def test_explicit_captured_context_recovers_later_short_request_without_widening_history(tmp_path, monkeypatch):
+    initial = 'Implement the backend invoice validation; preserve authorization constraints.'
+    root, receipts, initiating = make(tmp_path, initial, kind='new_task')
+    _, _, approval = make(tmp_path, 'Proceed with implementation', kind='changed_intent')
+    first, current = captured_fixture(initiating, initial), captured_fixture(approval, 'Proceed with implementation')
+    capture_api(monkeypatch, {initiating['opportunityId']: first, approval['opportunityId']: current},
+                {approval['opportunityId']: [first]})
+    native_rows(tmp_path, [(initiating, initial), (approval, 'Proceed with implementation')])
+    cases = prepared_cases(tmp_path, root, receipts)
+    case = next(c for c in cases if c['opportunityId'] == approval['opportunityId'])
+    assert case['contextStatus'] == 'ok'
+    assert [c['text'] for c in case['packet']['precedingContext']] == [initial]
+    assert case['contextProvenance']['exposure'] == 'unknown'
+    assert len(case['contextProvenance']['requests']) == 2
+    # Raw request snapshots and their private provenance never enter Laya scoring inputs.
+    observation = workflow.read_json(root / 'v2/observations' / (approval['opportunityId'] + '.json'))
+    assert initial not in json.dumps(observation) and 'originalRequest' not in json.dumps(observation)
+
+
+def test_captured_changed_intent_does_not_implicitly_mix_an_earlier_task_root(tmp_path, monkeypatch):
+    root, receipts, first = make(tmp_path, 'Create a front end invoice form')
+    _, _, changed = make(tmp_path, 'Investigate the database deadlock', kind='changed_intent', action='investigate')
+    snapshots = {r['opportunityId']: captured_fixture(r, text) for r, text in [
+        (first, 'Create a front end invoice form'), (changed, 'Investigate the database deadlock')]}
+    capture_api(monkeypatch, snapshots)
+    native_rows(tmp_path, [(first, 'Create a front end invoice form'), (changed, 'Investigate the database deadlock')])
+    case = next(c for c in prepared_cases(tmp_path, root, receipts) if c['opportunityId'] == changed['opportunityId'])
+    assert case['contextStatus'] == 'ok' and case['packet']['precedingContext'] == []
+
+
+@pytest.mark.parametrize('failure,status', [(ValueError('request_snapshot_binding_mismatch'), 'context_binding_mismatch'),
+                                         (KeyError('createdAt'), 'context_binding_mismatch'),
+                                         (TypeError('invalid private context timestamp'), 'context_binding_mismatch'),
+                                         (ValueError('request_snapshot_late'), 'context_snapshot_late'),
+                                         (OSError('private path must not appear'), 'context_unavailable')])
+def test_invalid_captured_context_never_falls_back_or_calls_models(tmp_path, monkeypatch, failure, status):
+    root, receipts, receipt = make(tmp_path, 'Implement the approved backend change')
+    transcript(tmp_path, SESSION, [('user', 'Implement the approved backend change')])
+    def unavailable(*args):
+        raise failure
+    monkeypatch.setattr(auto, 'load_request_context', unavailable)
+    backend = FakeBackend(auth_error='must_not_be_asked')
+    summary, code = go(tmp_path, backend)
+    assert code == 0 and summary['outcomes'] == {status: 1}
+    assert summary['contextDiagnostics'] == {status: 1} and summary['warnings'] == [status]
+    assert backend.calls == [] and backend.preflights == []
+    annotation = read_run_file(summary, 'annotations.json')[0]
+    assert annotation['status'] == 'insufficient_context' and annotation['detail'] == status
+    assert 'private path' not in json.dumps(summary) and labels.load_labels(root) == []
+
+
+def test_captured_context_filters_assistant_answers_routing_disclosures_and_private_provenance(tmp_path, monkeypatch):
+    root, receipts, request = make(tmp_path, 'Keep the existing backend authorization')
+    _, _, disclosed = make(tmp_path, 'Arm B chose general for this task')
+    _, _, current = make(tmp_path, 'Proceed', kind='changed_intent')
+    rows = [(request, 'Keep the existing backend authorization'), (disclosed, 'Arm B chose general for this task'),
+            (current, 'Proceed')]
+    snapshots = {r['opportunityId']: captured_fixture(r, text) for r, text in rows}
+    capture_api(monkeypatch, snapshots, {current['opportunityId']: [snapshots[request['opportunityId']],
+                                                                  snapshots[disclosed['opportunityId']]]})
+    native_rows(tmp_path, rows)
+    backend = FakeBackend()
+    summary, _ = go(tmp_path, backend, no_import=True)
+    target = next(c for c in read_run_file(summary, 'manifest.json')['cases']
+                  if c['opportunityId'] == current['opportunityId'])
+    assert target['contextProvenance']['withheldLinkedRequests'] == 1
+    target_number = target['caseId']
+    for call in backend.calls:
+        model_case = next(c for c in cases_in(call['prompt']) if c['caseId'] == target_number)
+        assert [c['text'] for c in model_case['precedingContext']] == ['Keep the existing backend authorization']
+        assert not {'contextProvenance', 'snapshotSha256', 'opportunityId', 'transcriptRef'}.intersection(model_case)
+
+
+def test_snapshot_requires_an_actual_user_turn_and_sanitized_binding(tmp_path, monkeypatch):
+    text = 'Implement the email notification; contact user@example.test'
+    root, receipts, receipt = make(tmp_path, text)
+    snapshot = captured_fixture(receipt, text)
+    capture_api(monkeypatch, {receipt['opportunityId']: snapshot})
+    raw_transcript(tmp_path, SESSION, [line('assistant', text, receipt['observedAt'], False)])
+    assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_missing'
+    native_rows(tmp_path, [(receipt, text)])
+    case = prepared_cases(tmp_path, root, receipts)[0]
+    assert case['contextStatus'] == 'ok' and 'user@example.test' not in json.dumps(case['packet'])
+    snapshot['originalRequest'] += ' tampered'
+    assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_binding_mismatch'
+
+
+def test_snapshot_transcript_matching_rejects_wrong_session_and_future_requests(tmp_path, monkeypatch):
+    text = 'Implement the email notification'
+    root, receipts, receipt = make(tmp_path, text)
+    capture_api(monkeypatch, {receipt['opportunityId']: captured_fixture(receipt, text)})
+    raw_transcript(tmp_path, OTHER_SESSION, [line('user', text, receipt['observedAt'], False)])
+    assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_missing'
+    raw_transcript(tmp_path, SESSION, [line('user', text, stamped(30), False)])
+    assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_binding_mismatch'
+
+
+def native_request(tmp_path, prompt, *, kind='new_task', context_ids=()):
+    receipts, root = tmp_path / 'receipts', tmp_path / 'pilot'
+    payload = {'prompt': prompt, 'session_id': SESSION, 'turn_id': prompt}
+    receipt, _ = workflow.opportunity(payload, 'codex', receipts,
+                                     {'decisionPilot': {'enabled': True, 'mode': 'shadow', 'cohort': 'v2'}})
+    request_context.capture_request_snapshot(receipts, receipt, payload)
+    request_context.capture_request_context(receipts, receipt['opportunityId'], context_ids)
+    value = {'schemaVersion': context.SCHEMA, 'opportunityId': receipt['opportunityId'],
+             'promptHash': receipt['promptHash'], 'sessionHash': receipt['sessionHash'],
+             'eventKind': kind, 'action': 'implement', 'domain': 'software', 'exclusions': [],
+             'parentOpportunityId': None, 'preboundFamily': None}
+    context.capture_context(receipts, receipt['opportunityId'], value,
+                            seal=lambda c, r: pilot.enqueue_v2(c, r, root, spawn=False, receipts=receipts))
+    return root, receipts, receipt
+
+
+def test_native_snapshot_link_integration_and_tampered_sidecar_never_falls_back(tmp_path):
+    original = 'Implement the backend authorization constraints; email user@example.test'
+    root, receipts, initiating = native_request(tmp_path, original)
+    _, _, current = native_request(tmp_path, 'Proceed with this change', kind='changed_intent',
+                                   context_ids=[initiating['opportunityId']])
+    native_rows(tmp_path, [(initiating, original), (current, 'Proceed with this change')])
+    case = next(c for c in prepared_cases(tmp_path, root, receipts) if c['opportunityId'] == current['opportunityId'])
+    assert case['contextStatus'] == 'ok'
+    assert '[REDACTED_EMAIL]' in case['packet']['precedingContext'][0]['text']
+    assert 'user@example.test' not in json.dumps(case)
+    assert case['contextProvenance']['contextSha256'] is not None
+    path = receipts.parent / 'request-snapshots' / (current['opportunityId'] + '.json')
+    stored = json.loads(path.read_text())
+    stored['sessionHash'] = 'e' * 64
+    path.write_text(json.dumps(stored))
+    bad = next(c for c in prepared_cases(tmp_path, root, receipts) if c['opportunityId'] == current['opportunityId'])
+    assert bad['contextStatus'] == 'context_binding_mismatch' and bad['packet'] is None
+
+
+def test_native_snapshot_captured_after_context_is_deferred_with_a_typed_diagnostic(tmp_path):
+    root, receipts, receipt = native_request(tmp_path, 'Implement this exact backend change')
+    native_rows(tmp_path, [(receipt, 'Implement this exact backend change')])
+    path = receipts.parent / 'request-snapshots' / (receipt['opportunityId'] + '.json')
+    stored = json.loads(path.read_text())
+    stored['capturedAt'] = stamped(60)
+    stored['snapshotSha256'] = request_context._sha(stored, 'snapshotSha256')
+    path.write_text(json.dumps(stored))
+    case = prepared_cases(tmp_path, root, receipts)[0]
+    assert case['contextStatus'] == 'context_snapshot_late' and case['packet'] is None
+
+
+def test_missing_observation_timestamp_defers_only_that_snapshot_case(tmp_path):
+    root, receipts, malformed = native_request(tmp_path, 'Implement the malformed-timestamp database change')
+    _, _, valid = native_request(tmp_path, 'Implement the valid-session backend change')
+    native_rows(tmp_path, [(malformed, 'Implement the malformed-timestamp database change'),
+                          (valid, 'Implement the valid-session backend change')])
+    path = root / 'v2/observations' / (malformed['opportunityId'] + '.json')
+    observation = json.loads(path.read_text())
+    del observation['createdAt']
+    path.write_text(json.dumps(observation))
+    backend = FakeBackend()
+    summary, code = go(tmp_path, backend, no_import=True)
+    assert code == 0 and summary['status'] == 'completed'
+    assert summary['outcomes'] == {'context_binding_mismatch': 1, 'labeled': 1}
+    manifest = read_run_file(summary, 'manifest.json')['cases']
+    bad_id = next(c['caseId'] for c in manifest if c['opportunityId'] == malformed['opportunityId'])
+    good_id = next(c['caseId'] for c in manifest if c['opportunityId'] == valid['opportunityId'])
+    assert backend.calls and all({c['caseId'] for c in cases_in(call['prompt'])} == {good_id}
+                                 for call in backend.calls)
+    assert all(bad_id not in {c['caseId'] for c in cases_in(call['prompt'])} for call in backend.calls)
+    assert summary['warnings'] == ['context_binding_mismatch']
+
+
+def test_transcript_scan_refuses_nonregular_sources_and_tracks_unavailability(tmp_path):
+    fifo = tmp_path / 'blocked.jsonl'
+    os.mkfifo(fifo)
+    issues = []
+    started = time.monotonic()
+    assert auto.TranscriptIndex._scan([fifo], {'a' * 64}, issues=issues) == {}
+    assert time.monotonic() - started < 2 and issues == ['transcript_not_regular']
+    regular = tmp_path / 'regular.jsonl'
+    regular.write_text('{}\n')
+    linked = tmp_path / 'link.jsonl'
+    linked.symlink_to(regular)
+    issues = []
+    assert auto.TranscriptIndex._scan([linked], {'a' * 64}, issues=issues) == {}
+    assert issues == ['transcript_unavailable']
+
+
+@pytest.mark.parametrize('codex', [False, True])
+@pytest.mark.parametrize('native_id', [OTHER_SESSION, None])
+def test_new_snapshot_requires_native_session_identity_despite_matching_filename(tmp_path, codex, native_id):
+    text = 'Implement the verified-session database change'
+    root, receipts, receipt = native_request(tmp_path, text)
+    if codex:
+        path = transcript(tmp_path, SESSION, [], codex=True)
+        rows = ([{'type': 'session_meta', 'payload': {'id': native_id}}] if native_id else [])
+        rows.append(line('user', text, receipt['observedAt'], True))
+    else:
+        path = raw_transcript(tmp_path, SESSION, [])
+        rows = [line('user', text, receipt['observedAt'], False)]
+        if native_id:
+            rows[0]['sessionId'] = native_id
+    path.write_text('\n'.join(json.dumps(r) for r in rows) + '\n')
+    case = prepared_cases(tmp_path, root, receipts)[0]
+    assert case['contextStatus'] == 'context_binding_mismatch' and case['packet'] is None
+    if codex:
+        rows.insert(0, {'type': 'session_meta', 'payload': {'id': SESSION}})
+        rows = [r for r in rows if r.get('type') != 'session_meta' or r['payload']['id'] == SESSION]
+    else:
+        rows[0]['sessionId'] = SESSION
+    path.write_text('\n'.join(json.dumps(r) for r in rows) + '\n')
+    valid = prepared_cases(tmp_path, root, receipts)[0]
+    assert valid['contextStatus'] == 'ok'
+    assert valid['contextProvenance']['requests'][0]['transcriptIdentity'] == 'verified'
 
 
 def test_cap_counts_model_ready_cases_and_orders_oldest_first(tmp_path):
@@ -1275,7 +1514,9 @@ def test_old_run_directories_are_pruned_but_never_the_current_or_foreign_ones(tm
     names = ['2026092%dT000000Z-0000000%d' % (n, n) for n in range(1, 6)]
     for name in names:
         (runs / name).mkdir()
-        (runs / name / 'summary.json').write_text('{}')
+        (runs / name / 'summary.json').write_text(json.dumps({'schema': auto.SUMMARY_SCHEMA, 'runId': name,
+                                                            'status': 'completed', 'exitCode': 0}))
+        (runs / name / 'manifest.json').write_text(json.dumps({'schema': auto.RUN_SCHEMA, 'runId': name, 'cases': []}))
     (runs / 'notes').mkdir()
     link = runs / '20260901T000000Z-abcdef01'
     link.symlink_to(runs / names[-1])
@@ -1290,6 +1531,39 @@ def test_old_run_directories_are_pruned_but_never_the_current_or_foreign_ones(tm
     assert [p.name for p in runs.iterdir() if RUN_ID_LIKE.fullmatch(p.name) and p.is_dir() and not p.is_symlink()] == [summary['runId']]
     with pytest.raises(auto.LabelerError):
         auto.merge_config(auto.DEFAULTS, {'retainRuns': 0})
+
+
+def test_pruning_preserves_every_failed_interrupted_and_unverifiable_run(tmp_path):
+    runs = tmp_path / 'runs'
+    runs.mkdir()
+    statuses = ['failed', 'unavailable', 'terminated', 'incomplete', 'interrupted', 'started',
+                'missing_summary', 'malformed_summary', 'missing_manifest', 'malformed_manifest', 'wrong_run_id',
+                'completed_with_warning', 'fifo_summary']
+    names = []
+    for number, status in enumerate(statuses, 1):
+        name = '202609%02dT000000Z-%08x' % (number, number)
+        names.append(name)
+        path = runs / name
+        path.mkdir()
+        summary = {'schema': auto.SUMMARY_SCHEMA, 'runId': name, 'status': status, 'exitCode': 1}
+        manifest = {'schema': auto.RUN_SCHEMA, 'runId': name, 'cases': []}
+        if status in {'missing_manifest', 'malformed_manifest', 'wrong_run_id', 'completed_with_warning'}:
+            summary.update(status='completed', exitCode=0)
+        if status == 'wrong_run_id':
+            manifest['runId'] = 'different'
+        if status == 'completed_with_warning':
+            summary['warnings'] = ['context_unavailable']
+        if status != 'missing_summary':
+            (path / 'summary.json').write_text('broken {' if status == 'malformed_summary' else json.dumps(summary))
+        if status != 'missing_manifest':
+            (path / 'manifest.json').write_text('broken {' if status == 'malformed_manifest' else json.dumps(manifest))
+        if status == 'fifo_summary':
+            (path / 'summary.json').unlink()
+            os.mkfifo(path / 'summary.json')
+    started = time.monotonic()
+    assert auto.prune_runs(tmp_path, 1, names[-1]) == 0
+    assert time.monotonic() - started < 2
+    assert sorted(p.name for p in runs.iterdir()) == sorted(names)
 
 
 RUN_ID_LIKE = __import__('re').compile(r'\d{8}T\d{6}Z-[0-9a-f]{8}')
@@ -2013,4 +2287,3 @@ def test_stored_output_is_capped_and_none_when_there_is_none(tmp_path):
     summary, _ = go(tmp_path, Verbose())
     records = [json.loads(path.read_text()) for path in Path(summary['runDir'], 'calls').glob('*.json')]
     assert records and all(len(r['output']) <= auto.MAX_STORED_OUTPUT + 100 and 'TRUNCATED' in r['output'] for r in records)
-
