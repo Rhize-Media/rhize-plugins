@@ -459,8 +459,9 @@ def snapshot_match(snapshot, index):
         stamp = _timestamp(match.get('timestamp'))
         if stamp is None or abs(stamp - observed) > TIMESTAMP_TOLERANCE_SECONDS:
             continue
-        if stamp > captured:
-            continue
+        # Native hosts can publish this already-captured user turn after the hook runs. The exact
+        # prompt/session binding and receipt-proximity window identify it; snapshot sealing still
+        # requires capture before the decision, independently of transcript publication time.
         text, truncated = sanitize(match['text'], PROMPT_LIMIT)
         if text != snapshot['originalRequest'] or truncated != snapshot['requestTruncated']:
             continue

@@ -134,7 +134,7 @@ results are never copied into label input. A request such as “proceed” witho
 user context can still require abstention; adding a link does not prove adequate context.
 
 The labeler independently verifies native transcript identity, request hash, timestamps and
-redacted content before using snapshots. Missing snapshots retain the existing user-only
+redacted content before using snapshots. Native hosts may publish the matching user turn after the pre-decision hook snapshot. Publication lag is allowed only within the existing 60-second window around the hook observation; exact native session, raw request hash and redacted content must still match. Snapshot creation must still precede context and decision artifacts. Missing snapshots retain the existing user-only
 transcript fallback and earliest-pilot cutoff. Present but invalid snapshots never silently fall
 back. Private provenance records the source references and context hashes; exposure stays unknown,
 not claimed blind. Symlink, FIFO, oversized and unavailable sources defer with bounded error codes.
