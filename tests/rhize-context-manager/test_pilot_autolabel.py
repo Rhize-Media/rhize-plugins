@@ -380,13 +380,13 @@ def test_snapshot_requires_an_actual_user_turn_and_sanitized_binding(tmp_path, m
     assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_binding_mismatch'
 
 
-def test_snapshot_transcript_matching_rejects_wrong_session_and_future_requests(tmp_path, monkeypatch):
+def test_snapshot_transcript_matching_rejects_wrong_session_and_outside_window_requests(tmp_path, monkeypatch):
     text = 'Implement the email notification'
     root, receipts, receipt = make(tmp_path, text)
     capture_api(monkeypatch, {receipt['opportunityId']: captured_fixture(receipt, text)})
     raw_transcript(tmp_path, OTHER_SESSION, [line('user', text, receipt['observedAt'], False)])
     assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_missing'
-    raw_transcript(tmp_path, SESSION, [line('user', text, stamped(30), False)])
+    raw_transcript(tmp_path, SESSION, [{**line('user', text, stamped(120), False), 'sessionId': SESSION}])
     assert prepared_cases(tmp_path, root, receipts)[0]['contextStatus'] == 'context_binding_mismatch'
 
 
@@ -404,6 +404,30 @@ def native_request(tmp_path, prompt, *, kind='new_task', context_ids=()):
     context.capture_context(receipts, receipt['opportunityId'], value,
                             seal=lambda c, r: pilot.enqueue_v2(c, r, root, spawn=False, receipts=receipts))
     return root, receipts, receipt
+
+
+@pytest.mark.parametrize('publication_lag,status', [(15.512, 'ok'), (60, 'ok'),
+                                                   (60.001, 'context_binding_mismatch')])
+def test_codex_snapshot_accepts_bounded_post_hook_transcript_publication(tmp_path, publication_lag, status):
+    from datetime import datetime, timedelta
+    text = 'Implement the backend notification; contact user@example.test'
+    root, receipts, receipt = native_request(tmp_path, text)
+    snapshot = request_context.load_request_snapshot(receipts, receipt['opportunityId'])
+    published = (datetime.fromisoformat(receipt['observedAt']) + timedelta(seconds=publication_lag)).isoformat()
+    assert auto._timestamp(published) > auto._timestamp(snapshot['capturedAt'])
+    path = transcript(tmp_path, SESSION, [], codex=True)
+    rows = [{'type': 'session_meta', 'payload': {'id': SESSION}}, line('user', text, published, True)]
+    path.write_text('\n'.join(json.dumps(row) for row in rows) + '\n')
+    case = prepared_cases(tmp_path, root, receipts)[0]
+    assert case['contextStatus'] == status
+    if status == 'ok':
+        assert '[REDACTED_EMAIL]' in case['packet']['prompt']
+        assert case['packet']['precedingContext'] == []
+        assert case['contextProvenance']['requests'][0]['transcriptIdentity'] == 'verified'
+    else:
+        assert case['packet'] is None
+    # Publication lag never changes the sealed pre-decision snapshot or its bindings.
+    assert request_context.load_request_snapshot(receipts, receipt['opportunityId']) == snapshot
 
 
 def test_native_snapshot_link_integration_and_tampered_sidecar_never_falls_back(tmp_path):
