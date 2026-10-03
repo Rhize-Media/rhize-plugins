@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-02_ version bump — **rhize-context-manager** 0.42.1 → 0.43.0 (minor); marketplace 2.99.0 → 2.100.0.
 - Test-only: close the fake Codex PID file before emitting a tool event so immediate fail-closed termination cannot race the process-cleanup assertion (CI run 37049439805). Runtime and timing checks are unchanged.
 - _2026-10-02_ version bump — **procedural-memory** 0.8.0 → 0.9.0 (minor); marketplace 2.98.3 → 2.99.0.
 - Fix Context Manager credential suffix diagnostic search performance without changing runtime redaction coverage or timing thresholds; ships with Ponytail integration.

@@ -466,7 +466,7 @@ def test_the_path_survival_tests_are_not_vacuous(monkeypatch):
                            'src/components/accountManagementDashboardSettingsPanelUI/index',
                            'packages/marketplace/src/lib/marketA/workerV2/handlers/index') if gate(t)]
     assert len(reached) >= 2, reached
-    monkeypatch.setattr(auto, '_path_like', lambda run: False)
+    monkeypatch.setitem(auto.redact.__globals__, '_path_like', lambda run: False)
     assert all(auto.redact(t) != t for t in reached)
 
 
@@ -652,7 +652,7 @@ def test_ordinary_snake_case_names_stay_clean(text):
 
 
 def test_the_unbounded_whitespace_runs_are_only_used_anchored():
-    source = inspect.getsource(auto)
+    source = inspect.getsource(sys.modules[auto.redact.__module__])
     assert 'CREDENTIAL_TAIL.match(' in source and 'NAME_END.match(' in source
     assert 'CREDENTIAL_TAIL.finditer' not in source and 'NAME_END.finditer' not in source
     assert 'every pattern is length-bounded' not in source

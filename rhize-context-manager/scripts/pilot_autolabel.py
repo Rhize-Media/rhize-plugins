@@ -25,12 +25,10 @@ written and imported), 4 terminated by a signal (annotations.json is written; ru
 from __future__ import annotations
 
 import argparse
-import bisect
 import errno
 import fcntl
 import hashlib
 import json
-import math
 import os
 import re
 import selectors
@@ -41,7 +39,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import unicodedata
 import uuid
 from collections import Counter, deque
 from datetime import datetime, timezone
@@ -51,6 +48,19 @@ import pilot_labels as labels
 from decision_pilot_v2 import canonical, joined
 from pilot_routing import CHOICES
 from workflow_selection import DEFAULT_ROOT, digest
+from workflow_context_packet import load_request_context
+from workflow_task_context import read_evidence
+# Preserve the labeler's existing redaction API while capture imports only the deterministic helper.
+from pilot_redaction import (
+    MAX_MESSAGE_CHARS, ZERO_WIDTH, PROMPT_LIMIT, _u, HOMOGLYPHS, ESCAPE, MAX_ESCAPES, _STR, _FLAG,
+    _TOKEN_PREFIXES, SNAKE_TOKEN, REDACTIONS, _LEFT, CREDENTIAL_WORD, _Q, _SUFFIX_START, CREDENTIAL_TAIL,
+    NAME_END, COMMAND_SECRET, NETRC_SECRET, NATURAL_SECRET, _PASS_CONTEXT, NATURAL_PASS, NATURAL_PASS_ODD,
+    NATURAL_PASS_BARE, SEPARATOR_LINE, STRONG_WORD, BLOCK_HEADER, VALUE_BELOW, MAX_BLOCK_LINES,
+    MAX_BLOCK_CHARS, MAX_CONTAINER_LINES, MAX_CONTAINER_CHARS, KEY_RUN, KEY_RUN_B64, _is_lower, _is_upper,
+    _is_digit, _segment_like, _path_like, _looks_like_key, _entropy, Lines, _bracket_depth, _container_end,
+    _value_is_below, _value_below_end, _k8s_value_end, _credential_spans, _normalized, detection_view,
+    _view_spans, redact, _cut, sanitize,
+)
 
 RUN_SCHEMA = 'rhize-pilot-autolabel-run-v1'
 SUMMARY_SCHEMA = 'rhize-pilot-autolabel-summary-v1'
@@ -81,9 +91,7 @@ MAX_OUTPUT = 2 * 1024 * 1024
 MAX_TRANSCRIPT_BYTES = 256 * 1024 * 1024
 MAX_TAXONOMY_BYTES = 128 * 1024
 MAX_PROMPT_BYTES = 256 * 1024          # one case plus the fixed framing must fit; a larger case fails on its own
-MAX_MESSAGE_CHARS = 200_000            # only ~6.5K is ever used; a larger message is cut (at a token edge) first
-ZERO_WIDTH = frozenset('\u200b\u200c\u200d\ufeff\u2060')
-PROMPT_LIMIT, TURN_LIMIT, PRIOR_TURNS = 6500, 3800, 4
+TURN_LIMIT, PRIOR_TURNS = 3800, 4
 TIMESTAMP_TOLERANCE_SECONDS = 60
 
 STATUSES = ('labeled', 'excluded_operational', 'insufficient_context', 'needs_split')
@@ -92,8 +100,10 @@ ANSWER_KEYS = frozenset(CORE + ('caseId', 'areas', 'riskFlags', 'rationale'))
 REVIEW_KEYS = frozenset({'caseId', 'verdict', 'reason', 'final'})
 FINAL_KEYS = frozenset(CORE + ('areas', 'riskFlags'))
 VERDICTS = ('accept', 'revise', 'unresolved')
+CONTEXT_FAILURES = frozenset({'context_missing', 'context_ambiguous', 'context_unavailable',
+                              'context_binding_mismatch', 'context_snapshot_late'})
 TERMINAL = frozenset({'labeled', 'excluded_operational', 'needs_split', 'insufficient_context',
-                      'context_missing', 'context_ambiguous', 'unresolved'})
+                      'unresolved'}) | CONTEXT_FAILURES
 # Outcomes that spent model calls but produced nothing usable; they retry, up to MAX_ATTEMPTS.
 FAILURES = frozenset({'annotation_failed', 'review_failed'})
 # Nothing was spent on these cases, so nothing is remembered about them either.
@@ -125,121 +135,6 @@ LEAK = re.compile(
     r'\bscores?\b|recommend(?:s|ed|ation)?\b.{0,60}\b(?:content|general|none)\b|choice[ _-]basis|'
     r'\bai[- ](?:model[- ])?(?:review|label)|review(?:er)?[ _-](?:answer|verdict)|decision[- ]pilot|'
     r'\bpilot (?:result|label|score|arm)|\bnoul\b|typed[- ]decision|derived:family|label[ _-](?:basis|policy|store)')
-
-# Detection runs on a normalized view of the text (see detection_view); every quantifier is bounded except the
-# `[ \t]*` in CREDENTIAL_TAIL and NAME_END, which are only ever used anchored (`.match(text, pos)`), so a long run of
-# look-alike characters cannot make any pattern run away; a test times every module-level regex on adversarial input.
-# Entry: (pattern, marker, prefix group to keep or 0).
-def _u(*points):
-    return {p: t for p, t in points}
-
-
-HOMOGLYPHS = str.maketrans(_u(
-    (0x0430, 'a'), (0x0435, 'e'), (0x043E, 'o'), (0x0440, 'p'), (0x0441, 'c'), (0x0445, 'x'), (0x0443, 'y'),
-    (0x0456, 'i'), (0x0458, 'j'), (0x0455, 's'), (0x0501, 'd'), (0x04BB, 'h'), (0x051B, 'q'), (0x0475, 'v'),
-    (0x0410, 'A'), (0x0412, 'B'), (0x0415, 'E'), (0x041A, 'K'), (0x041C, 'M'), (0x041D, 'H'), (0x041E, 'O'),
-    (0x0420, 'P'), (0x0421, 'C'), (0x0422, 'T'), (0x0425, 'X'), (0x0405, 'S'), (0x0406, 'I'), (0x0408, 'J'),
-    (0x03BF, 'o'), (0x03B1, 'a'), (0x03BD, 'v'), (0x03C1, 'p'), (0x03C4, 't'), (0x03B9, 'i'), (0x03BA, 'k'),
-    (0x03C5, 'u'), (0x0391, 'A'), (0x0392, 'B'), (0x0395, 'E'), (0x0396, 'Z'), (0x0397, 'H'), (0x0399, 'I'),
-    (0x039A, 'K'), (0x039C, 'M'), (0x039D, 'N'), (0x039F, 'O'), (0x03A1, 'P'), (0x03A4, 'T'), (0x03A5, 'Y'),
-    (0x03A7, 'X'), (0x0131, 'i')))
-ESCAPE = re.compile(r'\\(?:u([0-9a-fA-F]{4})|x([0-9a-fA-F]{2}))')
-MAX_ESCAPES = 20000
-_STR = r"(?:'[^'\n]{0,200}'|\"[^\"\n]{0,200}\"|[^\s'\"]{1,200})"
-# A package-manager flag with its optional value: `-g`, `--global=true`, `--location=user`, `--location user`, `-L user`.
-_FLAG = r'--?[\w-]+(?:=\S{1,100}|\s{1,4}(?!-)[^\s/@]{1,30}(?=\s))?'
-# Known token prefixes. `\b` does not fire after `_`, so `credentials_AKIA...json` is found by SNAKE_TOKEN below, which
-# keeps only matches with a digit or a capital (an ordinary snake_case name such as `run_npm_install_with_legacy_flags`
-# has neither).
-_TOKEN_PREFIXES = (r'(?:sk-ant-[\w-]{1,512}|sk-[\w-]{20,512}|sntrys_[\w-]{1,512}|gh[pousr]_\w{1,512}|'
-                   r'github_pat_\w{20,512}|xox[a-z]-[\w%+./=-]{6,512}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|AIza[\w-]{30,60}|'
-                   r'npm_\w{30,100}|vc[a-z]_\w{20,512}|vercel_\w{16,512}|sb_(?:secret|publishable)_[\w-]{8,512}|'
-                   r'sbp_\w{16,512}|re_\w{20,512}|sk[A-Za-z0-9]{40,300}|shpat_\w{20,512}|glpat-[\w-]{20,512}|'
-                   r'dop_v1_\w{20,512}|whsec_\w{16,512}|hf_[A-Za-z0-9]{20,300}|ntn_[A-Za-z0-9]{20,300}|'
-                   r'(?:pk|sk|rk)_(?:live|test)_\w{1,512})')
-SNAKE_TOKEN = re.compile(r'(?i)(?<=_)' + _TOKEN_PREFIXES + r'(?![A-Za-z0-9])')
-REDACTIONS = (
-    (re.compile(r'-----BEGIN [A-Z ]*PRIVATE KEY-----.*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)', re.S), '[REDACTED_PRIVATE_KEY]', 0),
-    (re.compile(r'(?i)\bhttps?://hooks\.slack\.com/services/[\w/-]{1,200}|'
-                r'\bhttps?://(?:discord(?:app)?\.com)/api/webhooks/\d{1,30}/[\w-]{1,200}'), '[REDACTED_WEBHOOK]', 0),
-    (re.compile(r'(?i)(\bhttps?://[^\s/]{1,100}/(?:[^\s/]{1,60}/){0,4}?(?:webhooks?|hooks?)/)[^\s"\'<>]{8,300}'),
-     '[REDACTED_WEBHOOK]', 1),
-    (re.compile(r'(?i)\b' + _TOKEN_PREFIXES + r'(?![A-Za-z0-9])'), '[REDACTED_TOKEN]', 0),
-    (re.compile(r'(?<![A-Za-z0-9])eyJ[\w-]{8,2048}\.[\w-]{8,2048}\.[\w-]{8,2048}\b'), '[REDACTED_TOKEN]', 0),
-    (re.compile(r'(?<![0-9A-Za-z])[0-9A-Fa-f]{64,}(?![0-9A-Za-z])'), '[REDACTED_TOKEN]', 0),
-    (re.compile(r'(?i)\b(bearer\s{1,8})[\w.~+/=-]{16,512}'), '[REDACTED_TOKEN]', 1),
-    (re.compile(r'\b((?i:basic)\s{1,8})(?=[A-Za-z0-9+/]{0,200}[0-9A-Z+/=])[A-Za-z0-9+/]{8,200}={0,2}'), '[REDACTED_TOKEN]', 1),
-    (re.compile(r'(?i)(\b[a-z][a-z0-9+.-]{0,30}://)[^\s/@:]{1,256}:[^\s/]{1,256}@'), '[REDACTED_CREDENTIALS]@', 1),
-    (re.compile(r'(?i)(\bsshpass\s{1,8}-p\s{0,8})' + _STR), '[REDACTED_PASSWORD]', 1),
-    (re.compile(r"(?<!\S)(--?u(?:ser)?(?:\s{1,4}|=))(?:'[^'\n]{0,200}:[^'\n]{0,200}'|\"[^\"\n]{0,200}:[^\"\n]{0,200}\"|"
-                r"(?=[^\s'\"]{0,200}:)[^\s'\"]{1,200})"), '[REDACTED_CREDENTIALS]', 1),
-    (re.compile(r"(?i)(\b(?:mysql|mysqldump|mysqladmin|mariadb|mongo|mongosh|redis-cli)\b[^\n]{0,200}?\s-p)" + _STR),
-     '[REDACTED_PASSWORD]', 1),
-    (re.compile(r"(?i)(--?(?:password|passwd|pass|pwd|token|api-?key|apikey|secret|auth-?token|access-?token|client-?secret|otp)"
-                r"(?:=|\s{1,8}))" + _STR), '[REDACTED_SECRET]', 1),
-    (re.compile(r'(?i)(\b(?:npm|yarn|pnpm|bun)\b(?:\s{1,4}--?[\w-]+(?:[= ]\S{1,100})?){0,4}?\s{1,4}'
-                r'(?:(?:config|c)(?:\s{1,4}' + _FLAG + r'){0,3}\s{1,4}set|set)\s{1,4}(?:' + _FLAG + r'\s{1,4}){0,3}'
-                r'\S{0,200}(?:token|password|secret|auth|key)\S{0,100}\s{1,4})[^\s]{1,512}'), '[REDACTED_SECRET]', 1),
-    (re.compile(r'(?i)([?&](?:key|sig|signature|token|access_token|api_key|apikey|secret|password|pwd|auth|code|'
-                r'x-amz-signature|x-goog-signature)=)[^\s&#"\'<>]{1,512}'), '[REDACTED_SECRET]', 1),
-    (re.compile(r'\b[\w.+-]{1,64}@[\w.-]{1,255}\.[A-Za-z]{2,24}\b'), '[REDACTED_EMAIL]', 0),
-    (re.compile(r'(?<![\w.+-])(?:\+\d{1,3}[ .-]?)?(?:\(\d{3}\)[ .-]?|\d{3}[ .-])\d{3}[ .-]\d{4}(?![\w-])'), '[REDACTED_PHONE]', 0),
-    (re.compile(r'(?<![\w+])\+\d{8,15}(?!\d)'), '[REDACTED_PHONE]', 0),
-    (re.compile(r'(?<!\d)(?:\d[ -]?){13,19}(?!\d)'), '[REDACTED_LONG_NUMBER]', 0),
-    (re.compile(r'\b00[1-9A-Za-z][A-Za-z0-9]{12}(?:[A-Za-z0-9]{3})?\b'), '[REDACTED_CRM_ID]', 0),
-)
-# Key-name-anywhere rule: a credential word in a key name (`"password": "x"`, `SUPABASE_SERVICE_ROLE_KEY=x`,
-# `api key: x`, `Authorization: Basic x`) redacts its whole line, and the lines that carry its value when that
-# sits below (JSON, YAML, YAML block scalars). It is a bounded scan, not one big pattern.
-# Long words match anywhere in a name (PGPASSWORD, dbPassword, GITHUBTOKEN, _authToken). Short, ordinary-looking words
-# need a left edge: not glued to a preceding letter, or a camelCase boundary (userAuth, dbPin). `pass` also matches
-# inside a name (dbpass) except after the few English words that end in it. Trailing guards keep author:, authors:,
-# max_tokens= and passing clean.
-_LEFT = r'(?:(?<![A-Za-z])|(?-i:(?<=[a-z])(?=[A-Z])))'
-CREDENTIAL_WORD = re.compile(
-    r'(?i)(?:password|passwd|passphrase|passcode|secret|api[ _-]?key|apikey|access[ _-]?key|private[ _-]?key|'
-    r'(?:signing|encryption|anon|service[ _-]?role)[ _-]?key|credentials?|token(?!s)|(?<![A-Za-z_])tokens(?=(?:\\{1,3}["\']|["\'])?[ \t]*[:=])|'
-    r'pwd(?=(?:\\{1,3}["\']|["\'])?[ \t]*[:=])|bearer|webhook|(?<!by)(?<!com)(?<!tres)(?<!sur)(?<!over)(?<!under)pass(?![A-Za-z])|'
-    + _LEFT + r'(?:pw|pin|creds?|auth(?:orization)?|cookies?|session)(?![A-Za-z])|'
-    r'(?<=[A-Za-z0-9])[ _-]key\b)')
-# `_Q` is a quote, plain or escaped (`\"` inside a JSON string that is itself in a string, `\\\"` double-escaped).
-_Q = r'''(?:\\{1,3}["']|["'])?'''
-# Runtime suffix matches start immediately after a credential word. Reject search restarts within
-# whitespace and overlong first segments before backtracking; anchored runtime match spans stay the same.
-_SUFFIX_START = r'(?<![ \t])(?![\w.-]{257})'
-CREDENTIAL_TAIL = re.compile(_SUFFIX_START + r'[\w.-]{0,256}(?:[ \t]{1,3}(?:\([^)\n]{0,40}\)|[\w.-]{1,256})){0,3}' + _Q + r'[ \t]*[:=]')
-# The word sits where the value would be (a tag, a header, a quoted name, a name/value pair): the line and the next
-# value line carry the secret. Only characters that end a name count, so prose such as "password manager" is spared.
-NAME_END = re.compile(_SUFFIX_START + r'''[\w.-]{0,256}[ \t]*(?:\\{0,3}["',|>]|$)''', re.M)
-# Command and file shapes: `ENV SECRET v`, netrc `password v` / `machine h login u password v`.
-COMMAND_SECRET = re.compile(
-    r'(?im)^[ \t]*(?:ENV|ARG|SET|EXPORT|SETENV|DEFINE)[ \t]+[\w.-]{0,128}(?:password|passwd|passphrase|secret|token|api[_-]?key|'
-    r'credentials?)[\w.-]{0,128}[ \t]+\S')
-NETRC_SECRET = re.compile(r'(?im)^[ \t]*password[ \t]+\S+[ \t]*$|\b(?:machine|login)[ \t]+\S{1,512}.{0,300}?\bpassword[ \t]+\S')
-NATURAL_SECRET = re.compile(
-    r'(?i)(?:password|passwd|passphrase|passcode|secret|token|api[ _-]?key|apikey|' + _LEFT + r'(?:pwd|pw|pin|creds?))'
-    r'(?:\s{0,3}\([^)\n]{0,40}\))?(?:\s{1,4}(?:is|was|to|should be|will be)\s{1,4}|\s{0,4}(?:=>|->|\u2192)\s{0,4})\S')
-# `pass` is an ordinary word ("the first pass is done", "lint pass was clean"), so it counts only with a credential
-# context, a glued name ending (`dbPass`, `db_pass`), one ending token after a bare sentence start ("pass is hunter2"), or
-# a token that is not a dictionary word (a digit, an inner capital or a symbol: "the first pass is hunter2").
-_PASS_CONTEXT = (r'(?:(?:my|your|our|their|his|her|new|old|temp|temporary|current|sudo|mac|laptop|router|gmail|email|master)|'
-                 r'(?:the\s{1,4})?(?:admin|root|db|database|user|login|wifi|wi-fi|account|ssh|vpn))\s{1,4}')
-NATURAL_PASS = re.compile(r'(?i)(?:' + _LEFT + _PASS_CONTEXT + r'pass|(?-i:(?<=[a-z])Pass)|(?<=_)pass)'
-                          r'\s{1,4}(?:is|was)\s{1,4}\S')
-NATURAL_PASS_ODD = re.compile(r'(?i)' + _LEFT + r'pass\s{1,4}(?:is|was)\s{1,4}'
-                              r'(?=\S{0,200}?(?:\d|(?-i:[a-z][A-Z])|[@#$%^&*+=/\\|<>~{}\[\]_]))\S')
-NATURAL_PASS_BARE = re.compile(r'(?im)(?:^[ \t]{0,8}|[.!?:;,]\s{1,4}|\b(?:the|a|this|that)\s{1,4})pass\s{1,4}(?:is|was)\s{1,4}'
-                               r'\S{1,200}[ \t]*(?:[.!?,;](?:\s|$)|$)')
-SEPARATOR_LINE = re.compile(r'^[\s|:+=-]*$')
-STRONG_WORD = re.compile(r'(?i)password|passwd|passphrase|passcode|secret|token|key|credential')
-BLOCK_HEADER = re.compile(r'^(?:[!&]\S+\s+)*[|>][+\-0-9]*\s*(?:#.*)?$')
-VALUE_BELOW = ('', '[', '{', '(')
-MAX_BLOCK_LINES, MAX_BLOCK_CHARS = 200, 20000
-MAX_CONTAINER_LINES, MAX_CONTAINER_CHARS = 50, 4000
-# Generic fallbacks: a long unbroken key-like run with lower case, upper case and a digit; and, with base64
-# punctuation, a longer run that also looks random.
-KEY_RUN = re.compile(r'(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{32,}')
-KEY_RUN_B64 = re.compile(r'(?<![A-Za-z0-9_+/=-])[A-Za-z0-9_+/=-]{40,}')
 
 SYSTEM = (
     'You label workflow-routing cases for a private pilot. Follow the supplied taxonomy exactly. Case '
@@ -375,348 +270,6 @@ def parse_reviews(value, expected):
 # ---------------------------------------------------------------------------------------------
 # Redaction and transcript recovery
 
-def _is_lower(char):
-    return 'a' <= char <= 'z'
-
-
-def _is_upper(char):
-    return 'A' <= char <= 'Z'
-
-
-def _is_digit(char):
-    return '0' <= char <= '9'
-
-
-def _segment_like(segment):
-    """Is one path segment made of identifier-like words: lower case words, Capitalized words, digits, `_` and `-`
-    separators and ALLCAPS words? A linear scanner (each character is consumed once), not a regex: the nested
-    alternation this replaces split a lower case run in exponentially many ways.
-
-    An ALLCAPS word (`[A-Z][A-Z0-9]*`) counts at the start of a segment, after a separator, before a separator, or as
-    the trailing word (`marketA`, `workerV2`, `PanelUI`). A capital glued inside a lower case run that is neither
-    (`aGVs`, `xQ3m`) does not, which is what keeps random base64 from reading as a path. A long segment must also be
-    made of real words (three letters on average; digits split words): base64 that happens to parse as humps
-    (`AdMaKqKcyOiWpB`) has words of one or two letters."""
-    i, size, letters, words = 0, len(segment), 0, 0
-    while i < size:
-        char = segment[i]
-        if _is_lower(char):
-            start = i
-            while i < size and _is_lower(segment[i]):
-                i += 1
-            letters, words = letters + i - start, words + 1
-        elif _is_digit(char):
-            while i < size and _is_digit(segment[i]):
-                i += 1
-        elif char in '_-':
-            i += 1
-        elif _is_upper(char):
-            j = i
-            while j < size and _is_upper(segment[j]):
-                j += 1
-            if j < size and _is_lower(segment[j]):
-                if j - i != 1:                                # only a single capital is a hump (`Panel`); `GVs` is not
-                    return False
-                i = j
-                while j < size and _is_lower(segment[j]):
-                    j += 1
-                letters, words, i = letters + j - i + 1, words + 1, j
-                continue
-            while j < size and (_is_upper(segment[j]) or _is_digit(segment[j])):
-                j += 1
-            if j < size and _is_lower(segment[j]):
-                return False
-            if not (i == 0 or segment[i - 1] in '_-' or j == size or segment[j] in '_-'):
-                return False
-            letters += sum(1 for c in segment[i:j] if _is_upper(c))
-            words, i = words + 1, j
-        else:
-            return False
-    return letters < 9 or letters >= 3 * words
-
-
-def _path_like(run):
-    """A run of `/`-separated identifier-like segments (words, camelCase, snake and kebab case, ALLCAPS): a file
-    path or URL path, not random base64, whose letters are not built from whole words."""
-    return '+' not in run and '=' not in run and all(_segment_like(part) for part in run.split('/'))
-
-
-def _looks_like_key(run):
-    return any(c.islower() for c in run) and any(c.isupper() for c in run) and any(c.isdigit() for c in run)
-
-
-def _entropy(run):
-    counts = Counter(run)
-    return -sum(n / len(run) * math.log2(n / len(run)) for n in counts.values())
-
-
-class Lines:
-    """Line boundaries computed once per text, so a match never rescans its line (linear on one giant line)."""
-
-    def __init__(self, text):
-        self.text = text
-        self.breaks = [i for i, c in enumerate(text) if c == '\n']
-
-    def bounds(self, position):
-        index = bisect.bisect_left(self.breaks, position)
-        start = self.breaks[index - 1] + 1 if index else 0
-        end = self.breaks[index] if index < len(self.breaks) else len(self.text)
-        return start, end
-
-
-def _bracket_depth(text, depth):
-    """Bracket depth after `text`, ignoring brackets inside quoted strings (a string never spans lines here, so a
-    stray apostrophe cannot poison the following lines)."""
-    quote, escaped = None, False
-    for char in text:
-        if quote:
-            if escaped:
-                escaped = False
-            elif char == '\\':
-                escaped = True
-            elif char == quote:
-                quote = None
-        elif char in '"\'':
-            quote = char
-        elif char in '[{':
-            depth += 1
-        elif char in ']}':
-            depth -= 1
-    return depth
-
-
-def _container_end(lines, position, depth):
-    """End of the bracket or brace value that starts at `position` with `depth` already open. A container still
-    open at the line or character bound (counted from where it started) redacts the rest of the message."""
-    text, first, taken = lines.text, position, 0
-    end = position
-    while position <= len(text):
-        if taken >= MAX_CONTAINER_LINES or position - first >= MAX_CONTAINER_CHARS:
-            return len(text)
-        _, stop = lines.bounds(position)
-        depth = _bracket_depth(text[position:stop], depth)
-        end, position, taken = stop, stop + 1, taken + 1
-        if depth <= 0 or stop >= len(text):
-            break
-    return end
-
-
-def _value_is_below(rest):
-    """Does the value of a key whose line ends with `rest` continue on the following lines?"""
-    return (rest in VALUE_BELOW or bool(BLOCK_HEADER.match(rest))
-            or (rest[:1] in ('[', '{') and _bracket_depth(rest, 0) > 0))
-
-
-def _value_below_end(lines, key_start, key_end, rest):
-    """End of the lines that hold a value written below its key: a block scalar body (fail closed: the rest of the
-    message when it is still open at the cap), a bracketed or braced value (also one the key line itself opens), a
-    YAML list, or the next value line (table separator rows and a couple of blank lines are skipped over)."""
-    text = lines.text
-    end, position = key_end, key_end + 1
-    if BLOCK_HEADER.match(rest):
-        indent = len(text[key_start:key_end]) - len(text[key_start:key_end].lstrip(' \t'))
-        count = 0
-        while position <= len(text):
-            if count >= MAX_BLOCK_LINES or position - key_end >= MAX_BLOCK_CHARS:
-                return len(text)
-            _, stop = lines.bounds(position)
-            line = text[position:stop]
-            if line.strip() and len(line) - len(line.lstrip(' \t')) <= indent:
-                break
-            end, position, count = stop, stop + 1, count + 1
-            if stop >= len(text):
-                break
-        return end
-    if rest[:1] in ('[', '{'):
-        return _container_end(lines, position, max(_bracket_depth(rest, 0), 1))
-    for _ in range(6):
-        if position > len(text):
-            break
-        start, stop = lines.bounds(position)
-        line = text[start:stop]
-        end, position = stop, stop + 1
-        if not line.strip() or SEPARATOR_LINE.match(line):
-            continue
-        opener = line.lstrip()[:1]
-        if opener in ('[', '{'):
-            return _container_end(lines, start, 0)
-        if opener == '-':
-            indent = len(line) - len(line.lstrip(' \t'))
-            while position <= len(text):                       # a YAML block list: every following item
-                _, stop = lines.bounds(position)
-                item = text[position:stop]
-                if item.strip() and (not item.lstrip().startswith('-') or len(item) - len(item.lstrip(' \t')) < indent):
-                    break
-                end, position = stop, stop + 1
-                if stop >= len(text):
-                    break
-        break
-    return end
-
-
-def _k8s_value_end(lines, end):
-    """`- name: DB_PASSWORD`, then up to three key lines (`valueFrom:`), then `value: v`: take the value line too."""
-    text, position = lines.text, end + 1
-    for _ in range(4):
-        if position > len(text):
-            break
-        _, stop = lines.bounds(position)
-        line = text[position:stop].strip()
-        position = stop + 1
-        if not line:
-            continue
-        if line.startswith(('- ', '-\t')):
-            break
-        if line.startswith(('value:', 'value ', '"value"', "'value'")):
-            return stop
-    return end
-
-
-def _credential_spans(text):
-    lines = Lines(text)
-    spans, covered = [], -1
-    for match in CREDENTIAL_WORD.finditer(text):
-        if match.start() < covered:
-            continue
-        start, end = lines.bounds(match.start())
-        tail = CREDENTIAL_TAIL.match(text, match.end())
-        if tail:
-            rest = text[tail.end():end].strip(' \t\r"\'\\')
-            spans.append((start, _value_below_end(lines, start, end, rest) if _value_is_below(rest) else end))
-        elif STRONG_WORD.search(match.group()):
-            # The word is the value or a tag (`"name": "DB_PASSWORD"`, `<password>`, a table header): take the line
-            # and the value line below it.
-            if not NAME_END.match(text, match.end()):
-                continue
-            spans.append((start, max(_value_below_end(lines, start, end, ''), _k8s_value_end(lines, end))))
-        else:
-            continue
-        covered = spans[-1][1]
-    for pattern in (NATURAL_SECRET, NATURAL_PASS, NATURAL_PASS_ODD, NATURAL_PASS_BARE, COMMAND_SECRET, NETRC_SECRET):
-        last = -1
-        for match in pattern.finditer(text):
-            if match.start() >= last:
-                span = lines.bounds(match.start())
-                spans.append(span)
-                last = span[1]
-    return [(a, b, '[REDACTED_CREDENTIAL_LINE]') for a, b in spans]
-
-
-def _normalized(char):
-    if char in ZERO_WIDTH:
-        return ''
-    if char in '  \x85':
-        return '\n'
-    if char != '\n' and char.isspace():
-        return ' '
-    if char.isascii():
-        return char
-    folded = unicodedata.normalize('NFKC', char)
-    return ''.join(c for c in folded if unicodedata.category(c) not in ('Cf', 'Mn', 'Me')).translate(HOMOGLYPHS)
-
-
-def detection_view(text):
-    """(view, starts, ends, cutoff): a normalized copy used only for matching (NFKC, zero-width and format characters
-    dropped, Unicode whitespace as a space, look-alike Cyrillic/Greek letters as Latin, \\uXXXX and \\xNN escapes
-    decoded). view[j] came from text[starts[j]:ends[j]], so a match redacts the ORIGINAL span. Plain ASCII without
-    escapes is its own view (starts and ends are None). Past MAX_ESCAPES the rest of the text cannot be normalized,
-    so decoding stops there and `cutoff` is the original offset from which everything must be treated as redacted."""
-    if text.isascii() and '\\u' not in text and '\\x' not in text:
-        return text, None, None, None
-    view, starts, ends = [], [], []
-    position, escapes, cutoff = 0, 0, None
-    while position < len(text):
-        char, stop = text[position], position + 1
-        if char == '\\':
-            found = ESCAPE.match(text, position)
-            if found:
-                if escapes >= MAX_ESCAPES:
-                    cutoff = position
-                    break
-                escapes += 1
-                char, stop = chr(int(found.group(1) or found.group(2), 16)), found.end()
-        for piece in _normalized(char):
-            view.append(piece)
-            starts.append(position)
-            ends.append(stop)
-        position = stop
-    return ''.join(view), starts, ends, cutoff
-
-
-def _view_spans(view):
-    found = []
-    for pattern, marker, keep in REDACTIONS:
-        for match in pattern.finditer(view):
-            found.append((match.end(keep) if keep else match.start(), match.end(), marker))
-    for match in SNAKE_TOKEN.finditer(view):
-        if any(c.isdigit() or c.isupper() for c in match.group()):
-            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
-    found += _credential_spans(view)
-    for match in KEY_RUN.finditer(view):
-        if _looks_like_key(match.group()):
-            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
-    for match in KEY_RUN_B64.finditer(view):
-        run = match.group()
-        # With base64 punctuation the entropy alone decides (a base64 secret may have no digit), so ordinary words
-        # and paths, which are far less random, stay.
-        if any(c in run for c in '+/=') and len(set(run)) >= 20 and _entropy(run) >= 4.2 and not _path_like(run):
-            found.append((match.start(), match.end(), '[REDACTED_TOKEN]'))
-    return found
-
-
-def redact(text):
-    """Replace secrets and personal identifiers with markers. Matching sees the normalized view; the
-    replacement always lands on the original span, so an obfuscated secret cannot survive next to its marker."""
-    view, starts, ends, cutoff = detection_view(text)
-    spans = [(a, b, marker) for a, b, marker in _view_spans(view) if b > a]
-    if starts is not None:
-        spans = [(starts[a], ends[b - 1], marker) for a, b, marker in spans]
-    if cutoff is not None:
-        spans.append((cutoff, len(text), '[REDACTED_UNDECODABLE_REMAINDER]'))
-    if not spans:
-        return text
-    spans.sort(key=lambda span: (span[0], -span[1]))
-    merged = []
-    for start, end, marker in spans:
-        if merged and start < merged[-1][1]:
-            last = merged[-1]
-            biggest = marker if end - start > last[3] else last[2]
-            merged[-1] = [last[0], max(last[1], end), biggest, max(last[3], end - start)]
-        else:
-            merged.append([start, end, marker, end - start])
-    parts, position = [], 0
-    for start, end, marker, _ in merged:
-        parts += [text[position:start], marker]
-        position = end
-    return ''.join(parts) + text[position:]
-
-
-def _cut(text, limit):
-    """The first `limit` characters, with a token cut in half at the edge dropped."""
-    if len(text) <= limit:
-        return text
-    kept = text[:limit]
-    if text[limit].isspace():
-        return kept
-    edge = len(kept)                                 # walk back over the half token (linear, unlike `\S+$`)
-    while edge > 0 and not kept[edge - 1].isspace():
-        edge -= 1
-    return kept[:edge]
-
-
-def sanitize(text, limit):
-    """Redact the WHOLE message first, then bound it, so a secret cut by the bound is never half-exposed.
-
-    Only an absurdly large message is cut before redaction, and that cut also lands on a token edge. Only the
-    head of a message is ever kept: a tail cut could split a key from its value.
-    """
-    text = _cut(text, MAX_MESSAGE_CHARS)
-    text = redact(text)
-    if len(text) <= limit:
-        return text, False
-    return _cut(text, limit) + '\n[TRUNCATED: more source context exists]', True
-
-
 def _clean(text):
     """Lone surrogates from a JSON transcript would break every later `.encode()`; make them '?'."""
     return text.encode('utf-8', 'replace').decode('utf-8')
@@ -768,13 +321,16 @@ class TranscriptIndex:
         self.boundaries = boundaries or {}
         self.paths = None
         self.scanned = {}
+        self.issues = {}
+        self.index_issues = []
 
     def _index(self):
         found = {}
         for base in self.roots:
             if not base.is_dir() or base.is_symlink():
                 continue
-            for folder, _, files in os.walk(base, followlinks=False):
+            for folder, _, files in os.walk(base, followlinks=False,
+                                           onerror=lambda exc: self.index_issues.append('transcript_index_unavailable')):
                 for name in files:
                     path = Path(folder) / name
                     match = self.UUID.search(path.stem) if name.endswith('.jsonl') else None
@@ -787,29 +343,50 @@ class TranscriptIndex:
             self.paths = self._index()
         if session_hash not in self.scanned:
             hashes = self.wanted.get(session_hash, set())
+            self.issues[session_hash] = []
             self.scanned[session_hash] = self._scan(self.paths.get(session_hash, []), hashes,
-                                                    self.boundaries.get(session_hash))
+                                                    self.boundaries.get(session_hash), self.issues[session_hash])
         return self.scanned[session_hash].get(prompt_hash, [])
 
     @staticmethod
-    def _scan(paths, hashes, boundary=None):
+    def _scan(paths, hashes, boundary=None, issues=None):
         found = {}
         for path in sorted(paths):
             try:
-                if path.stat().st_size > MAX_TRANSCRIPT_BYTES:
+                fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
+                handle = os.fdopen(fd, encoding='utf-8', errors='replace')
+                info = os.fstat(handle.fileno())
+                if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_TRANSCRIPT_BYTES:
+                    handle.close()
+                    if issues is not None:
+                        issues.append('transcript_oversized' if info.st_size > MAX_TRANSCRIPT_BYTES
+                                      else 'transcript_not_regular')
                     continue
-                handle = path.open(encoding='utf-8', errors='replace')
             except OSError:
+                if issues is not None:
+                    issues.append('transcript_unavailable')
                 continue
             prior = deque(maxlen=8)
+            native_sessions, file_matches, identity_invalid = set(), [], False
             with handle:
-                for line in handle:
+                for line_number, line in enumerate(handle, 1):
                     try:
                         record = json.loads(line)
                     except ValueError:
                         continue
                     if not isinstance(record, dict):
                         continue
+                    native_id = record.get('sessionId')
+                    if record.get('type') == 'session_meta':
+                        payload = record.get('payload')
+                        native_id = payload.get('id') if isinstance(payload, dict) else None
+                        if native_id is None:
+                            identity_invalid = True
+                    if native_id is not None:
+                        if isinstance(native_id, str):
+                            native_sessions.add(digest(native_id))
+                        else:
+                            identity_invalid = True
                     role, text = transcript_message(record)
                     # Only what the user typed is context: assistant prose restates pilot results and labels.
                     if role != 'user' or not text:
@@ -822,11 +399,19 @@ class TranscriptIndex:
                         earlier = [t for t in prior if limit is not None and t['stamp'] < limit]
                         found.setdefault(digest(text), []).append(
                             {'text': text, 'prior': earlier[-PRIOR_TURNS:], 'timestamp': record.get('timestamp')})
+                        found[digest(text)][-1]['transcriptRef'] = {'path': str(path), 'line': line_number}
+                        file_matches.append(found[digest(text)][-1])
                     if boundary is None or stamp is None or stamp >= boundary:
                         continue
                     if any(marker in text for marker in BOILERPLATE) or LEAK.search(text):
                         continue
                     prior.append({'role': 'user', 'text': text, 'stamp': stamp})
+            named = TranscriptIndex.UUID.search(path.stem)
+            expected = digest(named.group(1)) if named else None
+            status = ('mismatch' if identity_invalid or (native_sessions and native_sessions != {expected}) else
+                      'verified' if native_sessions else 'unknown')
+            for match in file_matches:
+                match['nativeIdentityStatus'] = status
         return found
 
 
@@ -852,6 +437,69 @@ def build_packet(match):
         text, truncated = sanitize(turn['text'], TURN_LIMIT)
         prior.append({'role': turn['role'], 'text': text, 'truncated': truncated})
     return {'prompt': prompt, 'promptTruncated': cut, 'precedingContext': prior}
+
+
+def snapshot_match(snapshot, index):
+    """Verify a captured request against a user turn in the authorized local transcript roots.
+
+    Snapshot hashes attest bindings, not human origin or blindness. Never widen transcript history here.
+    """
+    matches = index.matches(snapshot['sessionHash'], snapshot['promptHash'])
+    if not matches:
+        issues = (getattr(index, 'issues', {}).get(snapshot['sessionHash'], [])
+                  + getattr(index, 'index_issues', []))
+        return None, 'context_unavailable' if issues else 'context_missing'
+    captured, observed = _timestamp(snapshot.get('capturedAt')), _timestamp(snapshot.get('receiptObservedAt'))
+    if captured is None or observed is None:
+        return None, 'context_binding_mismatch'
+    verified = []
+    for match in matches:
+        if match.get('nativeIdentityStatus') != 'verified':
+            continue
+        stamp = _timestamp(match.get('timestamp'))
+        if stamp is None or abs(stamp - observed) > TIMESTAMP_TOLERANCE_SECONDS:
+            continue
+        if stamp > captured:
+            continue
+        text, truncated = sanitize(match['text'], PROMPT_LIMIT)
+        if text != snapshot['originalRequest'] or truncated != snapshot['requestTruncated']:
+            continue
+        verified.append((abs(stamp - observed), stamp, match))
+    if not verified:
+        return None, 'context_binding_mismatch'
+    nearest = min(item[0] for item in verified)
+    tied = [item for item in verified if item[0] == nearest]
+    if len({item[1] for item in tied}) != 1:
+        return None, 'context_ambiguous'
+    return tied[0][2], None
+
+
+def captured_packet(context, index):
+    """Source-bound, explicitly linked user requests only; assistant plans never become input."""
+    current = context['current']
+    provenance = {'method': 'native_request_snapshot', 'exposure': 'unknown',
+                  'contextSha256': context['contextSha256'], 'requests': [], 'withheldLinkedRequests': 0}
+    current_match, reason = snapshot_match(current, index)
+    if reason:
+        return None, reason, provenance
+    prior = []
+    for snapshot in [*context['preceding'], current]:
+        match, reason = snapshot_match(snapshot, index)
+        if reason:
+            return None, reason, provenance
+        provenance['requests'].append({'opportunityId': snapshot['opportunityId'],
+                                       'snapshotSha256': snapshot['snapshotSha256'],
+                                       'transcriptIdentity': match.get('nativeIdentityStatus', 'unknown'),
+                                       'transcriptRef': match['transcriptRef']})
+        if snapshot is current:
+            continue
+        text = match['text']
+        if any(marker in text for marker in BOILERPLATE) or LEAK.search(text):
+            provenance['withheldLinkedRequests'] += 1
+            continue
+        prior.append({'role': 'user', 'text': text})
+    packet = build_packet({'text': current_match['text'], 'prior': prior})
+    return packet, 'ok', provenance
 
 
 # ---------------------------------------------------------------------------------------------
@@ -943,8 +591,21 @@ def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
     rows = candidates(root, receipts, every_row)
     boundaries = session_boundaries(every_row)
     wanted = {}
+    contexts = {}
     for row in rows:
         wanted.setdefault(row['receipt']['sessionHash'], set()).add(row['receipt']['promptHash'])
+        try:
+            contexts[row['id']] = load_request_context(receipts, row['id'])
+        except OSError:
+            contexts[row['id']] = 'context_unavailable'
+        except (ValueError, KeyError, TypeError) as exc:
+            contexts[row['id']] = ('context_snapshot_late' if str(exc) in ('request_snapshot_late',
+                                    'request_snapshot_post_decision', 'request_context_late')
+                                   else 'context_binding_mismatch')
+        stored = contexts[row['id']]
+        if isinstance(stored, dict) and stored['current'] is not None:
+            for snapshot in [stored['current'], *stored['preceding']]:
+                wanted.setdefault(snapshot['sessionHash'], set()).add(snapshot['promptHash'])
     index = index_factory(wanted, boundaries)
     cases, skipped, ready = [], Counter(), 0
     for row in rows:
@@ -952,9 +613,17 @@ def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
             skipped['beyond_cap'] += 1
             continue
         receipt = row['receipt']
-        match, reason = choose_match(index.matches(receipt['sessionHash'], receipt['promptHash']),
-                                     receipt.get('observedAt'))
-        packet = build_packet(match) if match else None
+        context = contexts[row['id']]
+        if isinstance(context, str):
+            packet, reason, provenance = None, context, {'method': 'native_request_snapshot', 'exposure': 'unknown'}
+        elif context['current'] is not None:
+            packet, reason, provenance = captured_packet(context, index)
+        else:
+            match, reason = choose_match(index.matches(receipt['sessionHash'], receipt['promptHash']),
+                                         receipt.get('observedAt'))
+            packet = build_packet(match) if match else None
+            reason = 'ok' if match else reason
+            provenance = {'method': 'legacy_transcript_session_boundary', 'exposure': 'unknown'}
         packet_sha = digest(canonical(packet if packet else {'contextStatus': reason, 'opportunityId': row['id']}))
         key = (row['id'], packet_sha, taxonomy_sha)
         if not config.get('force') and skips_exhausted(ledger, key):
@@ -964,8 +633,9 @@ def prepare_cases(root, receipts, index_factory, ledger, taxonomy_sha, config):
             skipped['already_attempted'] += 1
             continue
         cases.append({'opportunityId': row['id'], 'sourceSha256': row['observation']['sourceSha256'],
-                      'contextStatus': 'ok' if match else reason, 'packet': packet, 'packetSha256': packet_sha})
-        ready += 1 if match else 0
+                      'contextStatus': reason, 'packet': packet, 'packetSha256': packet_sha,
+                      'contextProvenance': provenance})
+        ready += 1 if packet else 0
     for number, case in enumerate(cases, 1):
         case['caseId'] = 'C%03d' % number
     return cases, dict(skipped)
@@ -1674,7 +1344,7 @@ def compile_records(cases, results, taxonomy_sha, run_id):
         if outcome not in TERMINAL:
             continue
         empty = {'family': None, 'phase': None, 'areas': [], 'stratum': None, 'riskFlags': [], 'choice': None}
-        if outcome in ('context_missing', 'context_ambiguous'):
+        if outcome in CONTEXT_FAILURES:
             status, fields = 'insufficient_context', empty
         elif outcome == 'unresolved':
             status, fields = 'checker_disagreement', empty
@@ -1724,14 +1394,34 @@ def merge_config(defaults, overrides):
 
 
 def prune_runs(state, keep, current):
-    """Delete all but the newest `keep` run directories (never the current one, never a symlink or foreign dir)."""
+    """Prune completed, verified runs only; failed/interrupted/unreadable evidence is never discarded."""
     runs = Path(state) / 'runs'
     if runs.is_symlink() or not runs.is_dir():
         return 0
-    names = sorted(entry.name for entry in runs.iterdir()
-                   if RUN_ID.fullmatch(entry.name) and entry.is_dir() and not entry.is_symlink()
-                   and entry.stat().st_uid == os.geteuid())
-    doomed = [name for name in names[:max(len(names) - keep, 0)] if name != current]
+    eligible, existing = [], []
+    for entry in runs.iterdir():
+        if (not RUN_ID.fullmatch(entry.name) or not entry.is_dir() or entry.is_symlink()
+                or entry.stat().st_uid != os.geteuid()):
+            continue
+        existing.append(entry.name)
+        summary, manifest = entry / 'summary.json', entry / 'manifest.json'
+        try:
+            if summary.is_symlink() or manifest.is_symlink():
+                continue
+            status = json.loads(read_evidence(summary, MAX_OUTPUT))
+            content = json.loads(read_evidence(manifest, MAX_OUTPUT))
+            if (isinstance(status, dict) and status.get('schema') == SUMMARY_SCHEMA and
+                    status.get('runId') == entry.name and status.get('status') == 'completed' and
+                    status.get('exitCode') == 0 and not status.get('warnings') and
+                    isinstance(content, dict) and content.get('schema') == RUN_SCHEMA and
+                    content.get('runId') == entry.name and isinstance(content.get('cases'), list)):
+                eligible.append(entry.name)
+        except (OSError, ValueError):
+            continue
+    # Keep the newest run window regardless of disposition, including the currently-starting run.
+    retained = set(sorted(existing)[-keep:]) | {current}
+    names = sorted(eligible)
+    doomed = [name for name in names if name not in retained]
     for name in doomed:
         shutil.rmtree(runs / name, ignore_errors=True)
     return len(doomed)
@@ -1816,7 +1506,7 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
         if getattr(run.backend, 'auth_writeback_skips', 0):
             summary['codexAuthWritebackSkipped'] = run.backend.auth_writeback_skips
         if getattr(run.backend, 'warnings', None):
-            summary['warnings'] = sorted(set(run.backend.warnings))     # never changes the exit code
+            summary['warnings'] = sorted(set(summary.get('warnings', [])) | set(run.backend.warnings))
         write_json(run.run_dir / 'summary.json', summary)
         # An inspection run must never replace what the daily status shows.
         write_json(state / (LATEST_INSPECTION if inspection else LATEST), summary, exclusive=False)
@@ -1848,13 +1538,20 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
             return finish('unavailable', 1, 'selection_failed:%s:%s' % (type(exc).__name__, exc))
         cases = run.cases
         summary.update(selected=len(cases), skipped=skipped)
+        summary['contextSources'] = dict(sorted(Counter(c['contextProvenance']['method'] for c in cases).items()))
+        summary['contextDiagnostics'] = dict(sorted(Counter(c['contextStatus'] for c in cases
+                                                           if c['contextStatus'] != 'ok').items()))
+        faults = CONTEXT_FAILURES - {'context_missing', 'context_ambiguous'}
+        if faults.intersection(summary['contextDiagnostics']):
+            summary['warnings'] = sorted(faults.intersection(summary['contextDiagnostics']))
         if skipped.get('deterministic_skip_exhausted'):
             summary['deterministicSkipExhausted'] = skipped['deterministic_skip_exhausted']
         write_json(run.run_dir / 'manifest.json', {
             'schema': RUN_SCHEMA, 'runId': run_id, 'createdAt': summary['startedAt'], 'taxonomySha256': taxonomy_sha,
             'taxonomyDocument': 'docs/workflow-taxonomy.md',
             'config': {k: str(v) if isinstance(v, Path) else v for k, v in config.items() if k != 'transcriptRoots'},
-            'cases': [{k: c[k] for k in ('caseId', 'opportunityId', 'sourceSha256', 'contextStatus', 'packetSha256')}
+            'cases': [{k: c[k] for k in ('caseId', 'opportunityId', 'sourceSha256', 'contextStatus', 'packetSha256',
+                                       'contextProvenance')}
                       for c in cases]})
         write_json(run.run_dir / 'packets.json', [{'caseId': c['caseId'], **c['packet']} for c in cases if c['packet']])
         if not cases:

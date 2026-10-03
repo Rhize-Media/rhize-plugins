@@ -318,3 +318,21 @@
   evidence remain the publishing coordinator's acceptance gates.
 
 2026-09-27 CI review correction: stateful tag/OIDC publishers explicitly use queue:max with cancellation off. This preserves up to100 pending runs; default concurrency retains only one pending run. Pure CI cancellation stays enabled. No release/tag was triggered to test publication.
+
+
+## Workflow context coverage — October 2, 2026
+
+- Fresh v2 request snapshots are redacted before persistence and immutable before consultation.
+  Explicit earlier same-session user-request links enrich label context without changing ancestry.
+- Background observer classification requires positive launcher flags and exact native source
+  bindings. A native user role, quoted prompt or working directory alone is insufficient.
+- Private request provenance never becomes enum-only Laya scoring input. Snapshot faults defer
+  labeling and record bounded diagnostics while the incumbent task continues.
+- Collection source changes remain strict cohort boundaries. Label reports partition recorded
+  coverage by source; reviewed historical runtimes preserve prior research without pooling.
+- Capture readiness and synthetic fixtures do not establish context yield, routing accuracy or
+  task benefit. Final release/activation evidence is retained in the private implementation plan.
+- Final Context Manager/config integration: 951 passed, three existing skips. Release contract:
+  494 passed. Full repository checks initially hit 14 sandbox-only cache/socket/process/Git
+  access denials; all 14 passed unchanged with required access. Manifest/config/map/setup and
+  impact-map reconciliation passed. Independent cold review passed; Fable conditions verified.

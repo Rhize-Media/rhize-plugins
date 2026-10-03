@@ -14,7 +14,8 @@ import workflow_selection as workflow
 import workflow_task_context as context
 
 DIGEST_FILES = ('decision_pilot_v2.py', 'decision_pilot.py', 'workflow_selection.py', 'workflow_task_context.py',
-                'pilot_routing.py', 'context_experiments/typed_relevance.py')
+                'workflow_context_packet.py', 'pilot_redaction.py', 'pilot_routing.py',
+                'context_experiments/typed_relevance.py')
 
 
 def make(tmp_path, turn='task', *, kind='new_task', action='implement', domain='software', exclusions=None):
@@ -414,3 +415,16 @@ def test_reconcile_commits_only_when_the_whole_replacement_matches(tmp_path):
         assert json.loads(archive.read_text())['supersededState'] == 'pending' and labels.superseded_count(root) == 0
     archive.write_text(json.dumps({**committed, 'supersededState': 'pending'}))      # the control: an exact match commits
     assert labels.reconcile_superseded(root) == 1 and labels.superseded_count(root) == 1
+
+
+def test_label_coverage_preserves_source_partition_without_exporting_stale_labels(tmp_path, monkeypatch):
+    root, receipts, receipt = make(tmp_path)
+    labels.set_policy(root, True, 'fixture policy', 'fixture-reviewer')
+    labels.record_label(root, receipts, value(root, receipt), 'd' * 64)
+    original_source = source(root, receipt)
+    report = labels.report(root)
+    assert report['byCollectionSource'] == {original_source: {'labels': 1, 'accepted': 1, 'explicitAccepted': 1}}
+    monkeypatch.setattr(v2, 'source_digest', lambda: 'f' * 64)
+    assert labels.report(root)['byCollectionSource'] == report['byCollectionSource']
+    assert labels.export_cases(root, receipts, [labels.AI]) == []
+    assert labels.load_labels(root)[0]['sourceSha256'] == original_source

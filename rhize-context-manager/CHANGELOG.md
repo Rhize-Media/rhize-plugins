@@ -24,6 +24,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-02_ version bump — 0.42.1 → 0.43.0 (minor); marketplace 2.99.0 → 2.100.0.
 - Fix the published-main adversarial regex timing failure: suffix guards avoid whitespace restarts and overlong-name backtracking while preserving credential match spans and existing timing limits.
 - _2026-10-02_ version bump — 0.42.0 → 0.42.1 (patch); marketplace 2.98.2 → 2.98.3.
 - _2026-09-30_ version bump — 0.41.0 → 0.42.0 (minor); marketplace 2.97.0 → 2.98.0.

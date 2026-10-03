@@ -59,7 +59,8 @@ def context_digest(context):
 def source_digest():
     scripts = Path(__file__).parent
     paths = [Path(__file__), scripts / 'decision_pilot.py', scripts / 'workflow_selection.py',
-             scripts / 'workflow_task_context.py', scripts / 'pilot_routing.py',
+             scripts / 'workflow_task_context.py', scripts / 'workflow_context_packet.py',
+             scripts / 'pilot_redaction.py', scripts / 'pilot_routing.py',
              scripts / 'context_experiments/typed_relevance.py']
     return digest(b''.join(p.read_bytes() for p in paths))
 
@@ -397,6 +398,109 @@ def measurement_summary(root, rows):
             'acceptanceEstablished': False, 'taskUsageEstablished': False}
 
 
+def context_diagnostics(receipts, rows):
+    """Count source-bound capture failures without exposing payloads or error text."""
+    from workflow_task_context import read_evidence, source_binding
+    result = {}
+    allowed = HELD_REASONS | {'context_input_unavailable', 'invalid_context_input',
+                             'request_capture_unavailable', 'request_context_unavailable',
+                             'observer_source_unverified', 'context_missing_before_decision', 'native_binding_changed',
+                             'OSError', 'ValueError', 'KeyError', 'TypeError'}
+    for directory, schema in (('task-context-diagnostics', 'rhize-workflow-context-diagnostic-v2'),
+                              ('task-context-holds', 'rhize-workflow-context-hold-v2')):
+        summary = {'records': 0, 'events': 0, 'invalidRecords': 0, 'overflowRecords': 0, 'reasons': {}}
+        for row in rows:
+            path = receipts.parent / directory / (row['id'] + '.json')
+            if not path.exists() and not path.is_symlink():
+                continue
+            try:
+                value = json.loads(read_evidence(path, 131072))
+                if (not isinstance(value, dict) or value.get('schemaVersion') != schema
+                        or value.get('opportunityId') != row['id']
+                        or value.get('sourceBindingSha256') != source_binding(row['receipt'])
+                        or not isinstance(value.get('events'), list) or not 1 <= len(value['events']) <= 64
+                        or set(value) - {'schemaVersion', 'opportunityId', 'sourceBindingSha256', 'events', 'additionalConflicts'}
+                        or ('additionalConflicts' in value and type(value['additionalConflicts']) is not bool)):
+                    raise ValueError('invalid_diagnostic')
+                for event in value['events']:
+                    if (not isinstance(event, dict) or set(event) != {'reason', 'attemptSha256', 'recordedAt'}
+                            or not isinstance(event['reason'], str)
+                            or not isinstance(event['attemptSha256'], str)
+                            or not re.fullmatch('[0-9a-f]{64}', event['attemptSha256'])
+                            or not isinstance(event['recordedAt'], str)
+                            or datetime.fromisoformat(event['recordedAt']).tzinfo is None):
+                        raise ValueError('invalid_diagnostic')
+            except (OSError, ValueError, KeyError, TypeError, RecursionError):
+                summary['invalidRecords'] += 1
+                continue
+            summary['records'] += 1
+            summary['overflowRecords'] += value.get('additionalConflicts') is True
+            summary['events'] += len(value['events'])
+            for event in value['events']:
+                reason = event['reason'] if event['reason'] in allowed else 'other'
+                summary['reasons'][reason] = summary['reasons'].get(reason, 0) + 1
+        result[directory] = summary
+    return result
+
+
+def collection_funnel(receipts, rows, measurements):
+    """Raw receipts are events; only eligible roots are routing-decision tasks."""
+    from workflow_task_context import EVENT_KINDS
+    current = source_digest()
+    def source_for(row):
+        value = (row['observation'] or {}).get('sourceSha256')
+        if value is None:
+            return 'missing'
+        return value if isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) else 'invalid'
+
+    def counts(members):
+        eligible = [r for r in members if r['bucket'] == 'eligible']
+        return {'rawEvents': len(members),
+                'contextCapturedEvents': sum(r['context'] is not None for r in members),
+                'eligibleDecisionEvents': len(eligible),
+                'eligibleTaskRoots': len({r['context']['taskRootId'] for r in eligible}),
+                'operationalExcludedEvents': sum(r['bucket'] == 'excluded' and r['reason'] == 'operational_event' for r in members),
+                'continuationEvents': sum(r['bucket'] == 'excluded' and r['reason'] == 'continuation_of_existing_task' for r in members),
+                'preboundExcludedEvents': sum(r['bucket'] == 'excluded' and r['reason'] == 'prebound_routine' for r in members),
+                'missingContextEvents': sum(r['bucket'] == 'missing' for r in members),
+                'unknownIntentEvents': sum(r['bucket'] == 'unknown' for r in members),
+                'heldEvents': sum(r['bucket'] == 'held' for r in members),
+                'sourceChangedEvents': sum(r['reason'] in {'source_changed', 'parent_source_changed'} for r in members),
+                'baselineTaskRoots': len({r['context']['taskRootId'] for r in eligible if r['armA'] is not None}),
+                'shadowScoredTaskRoots': len({r['context']['taskRootId'] for r in eligible if r['armB'] is not None}),
+                'comparableRoutingTaskRoots': len({r['context']['taskRootId'] for r in eligible if r['armA'] is not None and r['armB'] is not None}),
+                'outcomeTaskRoots': len({r['context']['taskRootId'] for r in eligible if r['outcome'] is not None})}
+
+    hosts = {host: [] for host in ('claude', 'codex', 'unknown')}
+    events = {kind: [] for kind in sorted(EVENT_KINDS)}
+    events['missing'] = []
+    sources = {}
+    hold_reasons = {}
+    for row in rows:
+        host = row['receipt'].get('host')
+        hosts[host if host in hosts else 'unknown'].append(row)
+        kind = (row['context'] or {}).get('eventKind')
+        events[kind if kind in EVENT_KINDS else 'missing'].append(row)
+        sources.setdefault(source_for(row), []).append(row)
+        if row['bucket'] == 'held':
+            reason = row['reason'] if row['reason'] in HELD_REASONS else 'other'
+            hold_reasons[reason] = hold_reasons.get(reason, 0) + 1
+    return {'schema': 'rhize-workflow-collection-funnel-v1', **counts(rows),
+            'eventDenominator': 'rawEvents', 'taskDenominator': 'eligibleTaskRoots',
+            'contextCaptureDefinition': 'validated context binding; a later source hold is separate',
+            'byHost': {key: counts(values) for key, values in hosts.items()},
+            'byEventKind': {key: counts(values) for key, values in events.items()},
+            'bySource': {key: {'sourceStatus': 'current' if key == current else key if key in {'missing', 'invalid'} else 'historical',
+                              **counts(values)} for key, values in sorted(sources.items())},
+            'heldReasons': hold_reasons, 'captureDiagnostics': context_diagnostics(receipts, rows),
+            'allBoundContextRootsWithChecks': measurements['taskRootsWithChecks'],
+            'measurementTaskDenominator': 'bound eligible and excluded context roots',
+            'measurementReportField': 'measurements', 'nativeOriginVerified': 0, 'nativeOriginUnknown': len(rows),
+            'executedVariant': 'A_incumbent', 'shadowVariant': 'B_local_laya',
+            'labelReadinessReport': 'separate taxonomy policy report',
+            'claimScope': 'current-source eligible decision roots; historical sources remain held; routing comparisons are not causal outcome comparisons'}
+
+
 def report(root, receipts, rows=None):
     rows = joined(root, receipts) if rows is None else rows
     eligible = [r for r in rows if r['bucket'] == 'eligible']
@@ -413,6 +517,7 @@ def report(root, receipts, rows=None):
         if (row['result'] or {}).get('status') == 'unavailable':
             reason = row['result'].get('reasonCode', 'unknown')
             unavailable[reason] = unavailable.get(reason, 0) + 1
+    measurements = measurement_summary(root, rows)
     return {'schema': SCHEMA, 'mode': 'shadow', 'rawEvents': len(rows),
             **{bucket: sum(r['bucket'] == bucket for r in rows) for bucket in ('eligible', 'excluded', 'held', 'unknown', 'missing')},
             'reasons': reasons, 'nativeOriginVerified': 0, 'nativeOriginUnknown': len(rows),
@@ -444,7 +549,7 @@ def report(root, receipts, rows=None):
             'reviewEvidenceRecorded': sum(o.get('reviewPassed') is not None for o in outcomes),
             'outcomeBasis': 'operator_reported',
             'completeAgentUsage': sum(all(type((o.get('usage') or {}).get(k)) is int for k in ('input_tokens','output_tokens')) for o in outcomes),
-            'measurements': measurement_summary(root, rows),
+            'measurements': measurements, 'collectionFunnel': collection_funnel(receipts, rows, measurements),
             'claimScope': 'separate eligible routing coverage; no causal task benefit or native origin accuracy'}
 
 

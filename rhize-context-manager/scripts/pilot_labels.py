@@ -497,6 +497,12 @@ def report(root):
             'byChoiceBasis': count('choiceBasis', accepted), 'researchUsable': len(scored),
             'researchChoiceBases': list(RESEARCH_CHOICE_BASES), 'coverage': taxonomy_coverage(rows),
             'researchFloor': 200,
+            'byCollectionSource': {
+                source: {'labels': sum(l['sourceSha256'] == source for l in labels),
+                         'accepted': sum(l['sourceSha256'] == source for l in accepted),
+                         'explicitAccepted': sum(l['sourceSha256'] == source for l in scored)}
+                for source in sorted({l['sourceSha256'] for l in labels})},
+            'sourceScope': 'recorded label coverage; export separately validates the current collection source',
             'claimScope': 'label coverage only; ai_model_reviewed labels are model judgments, not human ground truth'}
 
 
