@@ -173,6 +173,109 @@ def test_context_only_release_and_reconciliation_exemptions(tmp_path: Path, path
     assert reconciled.returncode == 0, reconciled.stderr
 
 
+@pytest.mark.parametrize("entrypoint", ["hook-write", "hook-command"])
+@pytest.mark.parametrize("operation", ["Add", "Update"])
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        ("Projects/Client/Planning/Telemetry — review.md", 0),
+        ("Daily Notes/Follow-up.markdown", 0),
+        ("Projects/Client/script.py", 2),
+        ("Projects/Client/component.mdx", 2),
+        (".obsidian/plugins/example/main.js", 2),
+        (".obsidian/plugins/example/instructions.md", 2),
+        (".agents/skills/example/instructions.md", 2),
+        ("Projects/Client/SKILL.md", 2),
+    ],
+)
+def test_obsidian_documents_are_exempt_without_exempting_runtime_files(
+    tmp_path: Path, entrypoint: str, operation: str, path: str, expected: int
+) -> None:
+    workspace = tmp_path / "Obsidian Vault"
+    (workspace / ".obsidian").mkdir(parents=True)
+    target = workspace / path
+    if operation == "Update":
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("old\n")
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    tool_input = {"file_path": str(target)} if entrypoint == "hook-write" else {
+        "input": f"*** Begin Patch\n*** {operation} File: {target}\n+new\n*** End Patch"
+    }
+    result = run_gate(state_dir, entrypoint, payload={"cwd": str(workspace), "tool_input": tool_input})
+    assert result.returncode == expected, result.stderr
+    status = run_gate(state_dir, "status", "--workspace", str(workspace), "--json")
+    assert json.loads(status.stdout)["phase"] == "pending"
+
+
+@pytest.mark.parametrize("boundary", ["subfolder", "nested-vault", "git-dir", "git-file", "plugin", "symlink"])
+def test_obsidian_detection_respects_workspace_and_repository_boundaries(
+    tmp_path: Path, boundary: str
+) -> None:
+    workspace = tmp_path / "workspace"
+    (workspace / ".obsidian").mkdir(parents=True)
+    folder = workspace / "Projects" / "Client"
+    folder.mkdir(parents=True)
+    target = folder / "content.md"
+    expected = 0
+    if boundary == "subfolder":
+        workspace = folder
+    elif boundary == "nested-vault":
+        workspace = tmp_path
+    elif boundary == "git-dir":
+        (folder / ".git").mkdir()
+        expected = 2
+    elif boundary == "git-file":
+        (folder / ".git").write_text("gitdir: elsewhere\n")
+        expected = 2
+    elif boundary == "plugin":
+        (folder / ".claude-plugin").mkdir()
+        expected = 2
+    elif boundary == "symlink":
+        (folder / ".git").mkdir()
+        target.write_text("runtime instructions\n")
+        link = workspace / "Linked note.md"
+        link.symlink_to(target)
+        target = link
+        expected = 2
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    result = run_gate(state_dir, "hook-write", payload={"cwd": str(workspace), "tool_input": {"file_path": str(target)}})
+    assert result.returncode == expected, result.stderr
+
+
+def test_obsidian_note_patch_cannot_hide_source(tmp_path: Path) -> None:
+    workspace = tmp_path / "vault"
+    (workspace / ".obsidian").mkdir(parents=True)
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    patch = "*** Begin Patch\n*** Add File: Projects/note.md\n+note\n*** Add File: Projects/script.py\n+print(1)\n*** End Patch"
+    result = run_gate(state_dir, "hook-command", payload={"cwd": str(workspace), "tool_input": {"input": patch}})
+    assert result.returncode == 2, result.stderr
+
+
+def test_obsidian_only_release_and_reconciliation(tmp_path: Path) -> None:
+    workspace = tmp_path / "vault"
+    init_repo(workspace)
+    (workspace / ".obsidian").mkdir()
+    state_dir = tmp_path / "state"
+    run_gate(state_dir, "hook-prompt", payload=prompt_payload(workspace, "Refactor the application code"))
+    plan = workspace / ".claude/plans/refactor.md"
+    write_plan(plan, ("src/example.ts",))
+    prepared = run_gate(state_dir, "prepare", "--workspace", str(workspace), "--plan", str(plan), "--query", "Refactor the application example safely")
+    assert prepared.returncode == 0, prepared.stderr
+    note = workspace / "Projects/new note.md"
+    note.parent.mkdir()
+    note.write_text("A new document.\n")
+    payload = {"cwd": str(workspace), "tool_input": {"command": RELEASE_FIXTURE}}
+    assert run_gate(state_dir, "hook-command", payload=payload).returncode == 0
+    (workspace / "src/example.ts").write_text("export const value = 2\n")
+    assert run_gate(state_dir, "hook-command", payload=payload).returncode == 2
+    reconciled = run_gate(state_dir, "reconcile", "--workspace", str(workspace))
+    assert reconciled.returncode == 0, reconciled.stderr
+    assert json.loads(reconciled.stdout)["reconciliation"]["unmapped_files"] == []
+
+
 def prompt_payload(workspace: Path, prompt: str) -> dict:
     return {"prompt": prompt, "cwd": str(workspace), "hook_event_name": "UserPromptSubmit"}
 

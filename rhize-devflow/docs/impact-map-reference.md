@@ -192,6 +192,12 @@ deployment-specific evidence.
 
 ## Phase 5: Reconcile After Implementation
 
+Ordinary `.md`/`.markdown` notes under a detected `.obsidian/` vault are documentation for
+write, reconciliation and release classification. Detection resolves symlinks and stops at
+embedded Git/plugin roots and hidden runtime directories; it does not exempt `SKILL.md`,
+MDX or executable files. A mixed note/source change still requires mapped source evidence.
+Existing named-context and configuration exemptions remain unchanged.
+
 For every repository root, repeat the same discovery branch used before implementation.
 
 For roots with a healthy existing CodeGraph index:

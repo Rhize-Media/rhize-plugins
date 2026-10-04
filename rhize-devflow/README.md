@@ -364,27 +364,22 @@ appears in the receipt's `changed_files` for the record. A material prompt about
 change can still print the evidence-gate banner (`hook-prompt` is unchanged) — a prompt
 can't know file scope ahead of time — but no config-only write or commit is actually blocked.
 
-### Generated-docs exemption
+### Document exemption
 
-Prose an agent writes *about* work is not the work. `claudedocs/` is the established
-convention for Claude-authored analysis notes, and a scheduled routine that records findings
-there hit the gate on every run with nothing to map — no symbol, caller, test, or semantic
-delta to describe. A path counts as "docs" (`is_docs_path()`) when both hold:
+Prose extensions (`.md`, `.markdown`, `.txt`, `.rst`) are exempt in `docs/`, `.planning/`,
+`claudedocs/`, `.claude/analyses/` and `.codex/analyses/`, along with named context files
+such as `README.md`, `GUIDE.md`, `AGENTS.md` and `STATE.md`. Executable files and MDX remain
+gated even inside those documentation folders.
 
-1. It is under a recognized docs tree — currently only `claudedocs/`.
-2. **Its extension is prose** (`.md`, `.mdx`, `.markdown`, `.txt`, `.rst`).
+Ordinary `.md` and `.markdown` notes are also exempt anywhere under a directory containing
+an `.obsidian/` folder, including new notes and subfolder workspaces. This detection uses
+the actual filesystem, not a hardcoded vault name. The added vault exemption stops at hidden
+runtime directories, embedded Git repositories (including worktrees), and plugin package roots;
+`SKILL.md` is not a vault note. Existing context/config rules remain unchanged.
 
-The extension rule mirrors the code-extension precedence above, and for the same reason:
-without it the exemption is a trivial bypass — park the code under `claudedocs/`, edit it
-ungated, then move it. `claudedocs/scripts/fix.py` stays gated. The tree list is deliberately
-narrow: a generic `docs/` is *not* exempt, because hand-maintained docs directories routinely
-hold generated code, fixtures, and executable examples.
-
-Like the config exemption, this reaches all three places: `hook-write` never blocks a
-docs-only write, `hook-command` counts docs among the exempt dirty paths, and `reconcile`
-never lets a docs path force `OUT_OF_SYNC`. Note the contrast with planning paths
-(`.claude/plans/`, `CLAUDE.md`, …), which are exempt in the first two but still count toward
-`reconcile`'s unmapped set.
+The shared classification applies to writes, reconciliation and pending/prepared release checks.
+A patch mixing an Obsidian note with code still requires source evidence. A material prompt may
+still activate the gate, but a note-only edit does not advance it into implementation.
 
 Four heavier specialist guards still ship bundled under `hooks/` and remain **deliberately
 opt-in** through `setup/manifest.json`:

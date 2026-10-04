@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-10-04: The Dev Flow 2.25.7 write gate reproduced a false source classification for new Obsidian `Projects/.../*.md` notes. The candidate detects ordinary Markdown beneath an actual `.obsidian/` directory and shares that decision across write, reconciliation and release checks. Embedded Git/plugin roots, hidden runtime paths, SKILL.md, executable files, MDX and mixed patches retain source checks. Source validation and installed-host activation are separate; this change does not edit the installed cache.
+
 - 2026-10-02: Context coverage 0.43.0 / marketplace 2.100.0 is merged into main/dev (d3f6a703), hosted CI 2,522 passed, five existing skips, 18 subtests. Both native hosts create private pre-decision snapshots and enum context. The Codex activation probe exposed a 15.5-second delay between its hook and transcript publication; exact session/request match was excluded by the pre-capture timestamp condition. The 0.43.1 patch allows publication within the existing 60-second observation tolerance while keeping exact bindings and pre-decision seal checks. Collection source remains e8c40f12; historical 18 accepted AI labels (13 explicit) remain in their frozen source, with actual source-bound export counts reported separately. Patch labeler checks: 135 passed, one existing skip; scoped Context Manager/config suite: 951 passed, three Node-shim HOME failures and three existing skips. The three failures passed unchanged with the configured actual Node binary alongside the labeler module (139 targeted checks passed). Independent cold and native Fable reviews found no blocker. Both private native snapshot bindings validate against real transcripts under the patch. Publication remains pending.
 
 - 2026-10-02: Functionize PR46 CI run37049439805 passed 2,465 tests but failed the existing fake-Codex termination test on an empty PID file. The fixture emitted a forbidden tool event before persisting its PID, allowing correct immediate process termination to interrupt the write. Persist and close the PID before event emission; keep real labeler code, the kill assertion and its timing bound unchanged. The labeler module passes 113 tests with one existing skip; 20 repeated immediate-tool-kill checks pass. Independent and Fable fix reviews have no blocker. Hosted CI rerun is pending.
@@ -135,6 +137,8 @@
 
 ## Lessons learned
 
+- Vault prose cannot be recognized from software-repository folder prefixes alone. Use a filesystem vault marker with project/runtime boundaries, and exercise the same classification in write, reconciliation and release paths.
+
 - Native eval scaffolds must require explicit fixture mode and refuse pre-existing or symlinked write targets before any write. Grade staging separately from checks, and bound regex lookaheads to the current command so valid chained operations are not penalized.
 - Use this repository's Python environment for plugin tests; the companion runtime virtualenv lacks PyYAML and makes unrelated skill-map parsing checks fail. Distinguish a wrapper's documented authorization policy from runtime technical enforcement, and preserve raw passthrough when it was already part of the contract.
 - A new skill must update both the generated inventory and central evaluation catalogs/coverage.
@@ -160,6 +164,8 @@
   not change.
 
 ## Last session
+
+- 2026-10-04 Obsidian-note gate fix: reproduced the source-gate rejection for both native writes and Codex Add File patches. All 138 focused gate tests and the full 533-test Dev Flow release suite pass; config tests pass 91 with two existing skips. Manifest validation, doctor, map/setup freshness and config lint pass. Cold self-review found no blocking scope or boundary issue; no independent agent ran because this side conversation forbids delegation. The 2.25.8 candidate leaves the active 2.25.7 installation untouched to avoid disrupting the main thread. Passive workflow measurement could not write its protected receipt; that does not alter test results.
 
 - 2026-09-30 Functionize lifecycle candidate: wrappers, public documentation, discovery metadata, synthetic native cases and generated source inventory are prepared on `codex/functionize-plugin-completion`. Independent review found no blocking implementation findings. Full source validation: 2,453 passed, five existing skips and 18 subtests; seven unchanged Node checks passed after bypassing the version-manager shim with the installed binary (no host trust changes). The 492-test release contract passes before commit; commit-bound verification follows the candidate commit. Fable findings on scaffold target safety and grader false positives are addressed; final targeted verification follows. Publication and installed-host activation are not complete. Arm A remains authoritative; Laya Arm B remains shadow-only.
 - 2026-09-24 Devflow Harbor v2 source candidates: T1 and T2 were built as separate commits in an

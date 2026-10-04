@@ -814,7 +814,7 @@ def reconcile(workspace: Path) -> int:
         path
         for path in changed
         if not is_config_path(path)
-        and not is_docs_path(path)
+        and not is_docs_path(path, workspace)
         and path.lower() not in plan_text
         and Path(path).name.lower() not in plan_text
     ]
@@ -901,7 +901,27 @@ def is_planning_path(path: str) -> bool:
     return normalized in PLANNING_FILES or any(normalized.startswith(prefix) for prefix in PLANNING_PATHS)
 
 
-def is_docs_path(path: str) -> bool:
+def is_obsidian_note(path: str, workspace: Path) -> bool:
+    candidate = canonical(workspace / path)
+    if candidate.suffix.lower() not in {".md", ".markdown"} or candidate.name == "SKILL.md":
+        return False
+    if candidate.name.startswith("."):
+        return False
+    for parent in candidate.parents:
+        # Runtime directories and embedded projects must not inherit a vault's
+        # prose exemption. Check package markers even for untracked plugins.
+        if parent.name.startswith(".") or any(
+            (parent / marker).exists() for marker in (".claude-plugin", ".codex-plugin")
+        ):
+            return False
+        if (parent / ".obsidian").is_dir():
+            return True
+        if (parent / ".git").exists():
+            return False
+    return False
+
+
+def is_docs_path(path: str, workspace: Path | None = None) -> bool:
     normalized = path.replace("\\", "/")
     posix = PurePosixPath(normalized)
     # Check extension first: executable code (including MDX) remains gated even
@@ -909,6 +929,7 @@ def is_docs_path(path: str) -> bool:
     return posix.suffix.lower() in DOCS_EXTENSIONS and (
         posix.name in DOCS_FILES
         or any(normalized.startswith(prefix) for prefix in DOCS_PATHS)
+        or (workspace is not None and is_obsidian_note(normalized, workspace))
     )
 
 
@@ -1050,7 +1071,7 @@ def enforce_write_payload(
         if (relative := normalized_relative_path(path, workspace)) is not None
         and not is_planning_path(relative)
         and not is_config_path(relative)
-        and not is_docs_path(relative)
+        and not is_docs_path(relative, workspace)
     ]
     if not relevant or not state or state.get("phase") == "dismissed":
         return 0
@@ -1240,7 +1261,7 @@ def release_targets_only_exempt_changes(hint: Path) -> bool | None:
         # positive for this gate — allow it.
         return True
     return all(
-        is_config_path(path) or is_planning_path(path) or is_docs_path(path) for path in dirty
+        is_config_path(path) or is_planning_path(path) or is_docs_path(path, repo) for path in dirty
     )
 
 

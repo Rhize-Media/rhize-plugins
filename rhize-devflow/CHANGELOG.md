@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- Obsidian document gate repair: ordinary Markdown notes beneath a real .obsidian vault marker are exempt across write, reconciliation and release checks. Preserve executable, MDX, embedded repository/plugin, hidden runtime and mixed-patch boundaries; add native-write and Codex-patch regression coverage.
+- _2026-10-04_ version bump — 2.25.7 → 2.25.8 (patch); marketplace 2.100.1 → 2.100.2.
 - _2026-10-02_ version bump — 2.25.6 → 2.25.7 (patch); marketplace 2.98.1 → 2.98.2.
 - Optional upstream Ponytail companion: full-mode implementation ladder and scoped advisory complexity review in simplify/review. Preserve user scope, behavior, required checks and release authority; keep six skills and hooks upstream rather than copying them.
 - _2026-10-02_ version bump — 2.25.5 → 2.25.6 (patch); marketplace 2.98.0 → 2.98.1.

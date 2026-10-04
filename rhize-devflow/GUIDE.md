@@ -101,6 +101,7 @@ indexed map of a codebase's symbols and call paths, in place of grep; see
 - After implementation, the same command reconciles the completed graph and diff against the map — cleanly (`IN_SYNC`), with noted deviations worth a second look (`IN_SYNC_WITH_EXCEPTIONS`), or blocked until the map and the diff actually agree (`OUT_OF_SYNC`). A stale pre-change map is not completion evidence.
 - Once reconciliation succeeds, the session closes that check out automatically — there's nothing for you to do. Editing more source afterward still invalidates it, and a genuinely new task always gets its own fresh check rather than reusing an old map.
 - Ask "why does this keep breaking every time we touch it?" — it applies the regression-prevention protocol: root cause before fix, test before deploy.
+- Ordinary Markdown notes in an Obsidian vault can be created or edited without an impact map, including notes in `Projects/` or other custom folders. Code, MDX, embedded repositories and plugin runtime files retain their existing checks; mixing code into a note patch still requires evidence.
 - This is the reference layer behind the executable command, not a command surface itself — `/rhize-devflow:impact-map` (this plugin) implements the Dependency Graph foundation directly; `error-lifecycle-management` implements the Regression Prevention foundation as its triage workflow.
 
 ### simplify
