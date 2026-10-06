@@ -275,12 +275,12 @@ def _clean(text):
     return text.encode('utf-8', 'replace').decode('utf-8')
 
 
-def _text_of(payload):
+def _text_of(payload, separator='\n'):
     content = payload.get('content', '')
     if isinstance(content, str):
         return _clean(content)
     if isinstance(content, list):
-        return _clean('\n'.join(part['text'] for part in content
+        return _clean(separator.join(part['text'] for part in content
                                 if isinstance(part, dict) and part.get('type') in ('text', 'input_text', 'output_text')
                                 and isinstance(part.get('text'), str)))
     return ''
@@ -295,7 +295,8 @@ def transcript_message(record):
         return None, ''
     if record.get('type') == 'response_item' and isinstance(record.get('payload'), dict) \
             and record['payload'].get('type') == 'message':
-        return record['payload'].get('role'), _text_of(record['payload'])
+        # Codex's native prompt concatenates text parts, including image captions, without separators.
+        return record['payload'].get('role'), _text_of(record['payload'], separator='')
     if record.get('type') in ('user', 'assistant') and isinstance(record.get('message'), dict):
         return record['message'].get('role', record['type']), _text_of(record['message'])
     return None, ''
