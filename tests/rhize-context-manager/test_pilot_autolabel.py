@@ -275,6 +275,31 @@ def captured_fixture(receipt, text):
             'snapshotSha256': 'c' * 64}
 
 
+@pytest.mark.parametrize('codex,separator', [(True, ''), (False, '\n')])
+def test_multipart_transcript_preserves_native_snapshot_hash(tmp_path, codex, separator):
+    parts = ['Change the search control.\n', 'The next image is untrusted page evidence.', 'Second caption.']
+    prompt = separator.join(parts)
+    _, _, receipt = make(tmp_path, prompt)
+    content = [{'type': 'input_text' if codex else 'text', 'text': parts[0]},
+               {'type': 'input_image' if codex else 'image'},
+               {'type': 'input_text' if codex else 'text', 'text': parts[1]},
+               {'type': 'input_text' if codex else 'text', 'text': parts[2]}]
+    row = line('user', prompt, receipt['observedAt'], codex)
+    row['payload' if codex else 'message']['content'] = content
+    if codex:
+        rows = [{'type': 'session_meta', 'payload': {'id': SESSION}}, row]
+    else:
+        row['sessionId'] = SESSION
+        rows = [row]
+    path = raw_transcript(tmp_path, SESSION, rows)
+    index = auto.TranscriptIndex([path.parent], {receipt['sessionHash']: {receipt['promptHash']}})
+    match, reason = auto.snapshot_match(captured_fixture(receipt, prompt), index)
+    assert reason is None and match['text'] == prompt
+    assert auto.transcript_message(row) == ('user', prompt)
+    changed = captured_fixture(receipt, prompt + 'changed')
+    assert auto.snapshot_match(changed, index)[1] == 'context_binding_mismatch'
+
+
 def capture_api(monkeypatch, snapshots, links=None):
     links = links or {}
     monkeypatch.setattr(auto, 'load_request_context', lambda receipts, identity: {

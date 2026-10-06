@@ -394,7 +394,7 @@ requests in the same session and do not change routing ancestry. Missing materia
 deferred. Recognized ECC observers require launcher flags plus canonical session/transcript
 bindings; prompt text or a working directory alone cannot trigger exclusion. Native transcript publication may follow the
 hook; the labeler allows this only within the existing 60-second observation window, with exact
-session and request bindings still required.
+session and request bindings still required. Codex multipart text (including screenshot captions) is concatenated exactly as the native hook captures it; Claude text blocks retain newline separation. Image bytes never enter label packets.
 
 Reports add a collection funnel by host, event kind and immutable source cohort, with bounded
 capture error codes and explicit event/task denominators. Labels report source partitions;
