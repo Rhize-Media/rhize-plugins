@@ -514,7 +514,7 @@ function openInspector(n) {
 //   link     — spring strength along visible edges
 //   distance — spring rest length (structure "contains" springs run ~65% of it)
 //   spacing  — collision padding so nodes never sit on top of each other
-const FORCE_DEFAULTS = { center: 0.15, repel: 12, link: 1, distance: 150, spacing: 10 };
+const FORCE_DEFAULTS = { center: 0.12, repel: 18, link: 1, distance: 170, spacing: 12 };
 const FORCE_SPEC = [
   { key: "center",   label: "Center force",  min: 0,  max: 1,   step: 0.01, tip: "How strongly everything is pulled toward the middle. Lower lets clusters drift apart." },
   { key: "repel",    label: "Repel force",   min: 0,  max: 40,  step: 0.5,  tip: "How hard nodes push each other away. Raise it to spread dense plugins out." },
