@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 1.6.0 → 1.6.1 (patch); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ Skill-map metadata: nextjs-sanity-seo flagged as overlapping rhize-devflow sanity-development; cms-development topic retired in favor of the existing content tags.
 - _2026-09-29_ version bump — 1.5.4 → 1.6.0 (minor); marketplace 2.94.1 → 2.95.0.
 - _2026-09-29_ Add `.codex-plugin/plugin.json` with an inline `dataforseo` MCP entry (`./scripts/mcp-secret-launcher.sh`, `cwd: "."`, same pinned args and env as `.mcp.json`). Codex was already installing this plugin from the shared catalog and loading `.mcp.json`, but it doesn't expand `${CLAUDE_PLUGIN_ROOT}`, so the server failed with ENOENT. The Codex manifest's description matches the Claude manifest, and `test_codex_mcp_parity.py` now covers this plugin. Verified by installing into an isolated `CODEX_HOME`: `codex mcp list` resolves the launcher from the plugin root.
 - _2026-09-29_ version bump — 1.5.3 → 1.5.4 (patch); marketplace 2.91.1 → 2.91.2.

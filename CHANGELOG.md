@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-10_ version bump — **obsidian-second-brain** 1.7.7 → 1.8.0 (minor); **project-launcher** 1.12.0 → 1.13.0 (minor); **rhize-context-manager** 0.43.3 → 0.44.0 (minor); **rhize-devflow** 2.25.8 → 2.26.0 (minor); **rhize-ops** 0.29.0 → 0.30.0 (minor); **rhize-outreach** 0.2.0 → 0.3.0 (minor); **seo-aeo-geo** 1.6.0 → 1.6.1 (patch); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ version bump — **rhize-context-manager** 0.43.2 → 0.43.3 (patch); marketplace 2.100.3 → 2.100.4.
 - _2026-10-06_ version bump — **rhize-context-manager** 0.43.1 → 0.43.2 (patch); marketplace 2.100.2 → 2.100.3.
 - _2026-10-04_ version bump — **rhize-devflow** 2.25.7 → 2.25.8 (patch); marketplace 2.100.1 → 2.100.2.

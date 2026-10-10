@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 2.25.8 → 2.26.0 (minor); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ Skill-map relations: browser-qa and mutation-check supersede the deprecated per-step commands; impact-map → check → review declared as a workflow; data-mutation-consistency carries the postgresql stack and sanity-development the consolidated content-authoring topic.
 - Obsidian document gate repair: ordinary Markdown notes beneath a real .obsidian vault marker are exempt across write, reconciliation and release checks. Preserve executable, MDX, embedded repository/plugin, hidden runtime and mixed-patch boundaries; add native-write and Codex-patch regression coverage.
 - _2026-10-04_ version bump — 2.25.7 → 2.25.8 (patch); marketplace 2.100.1 → 2.100.2.
 - _2026-10-02_ version bump — 2.25.6 → 2.25.7 (patch); marketplace 2.98.1 → 2.98.2.

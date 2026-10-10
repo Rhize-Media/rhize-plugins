@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 1.12.0 → 1.13.0 (minor); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ rhize-visual-plan's BuilderIO fork is now recorded in skills/SOURCES.md (fork-of + content-hash drift check); project-launcher depends on rhize-visual-plan; rhize-visual-plan augments project-planning.
 - _2026-09-29_ version bump — 1.11.1 → 1.12.0 (minor); marketplace 2.93.2 → 2.94.0.
 - _2026-09-29_ `rhize-visual-plan`: `viewer/bin/launch.mjs` runs the viewer from any install, including the version-pinned plugin cache, without writing `node_modules` into the skill.
   - It uses Node builtins only. It copies an explicit list of shipped files to a private, content-addressed cache (`~/.cache/rhize-plan-viewer/<hash>/`, or `RHIZE_PLAN_VIEWER_HOME`) and runs `npm ci` there against the newly committed `viewer/package-lock.json`, refusing unpinned installs.

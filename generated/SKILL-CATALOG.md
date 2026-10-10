@@ -17,7 +17,7 @@ _No skills._
 | `backlink-intelligence` | Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks. | backlink-analysis, seo, seo-audit |
 | `content-seo` | Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better. | content-optimization, seo, seo-audit |
 | `keyword-intelligence` | Researches, clusters, and scores keywords to find what to target for SEO or content strategy. | content-optimization, keyword-research, seo |
-| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | cms-development, content-optimization, nextjs, sanity, seo, seo-audit |
+| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | content-optimization, nextjs, sanity, seo, seo-audit |
 | `seo-site-audit` | Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes. | observability, seo, seo-audit |
 | `serp-intelligence` | Tracks search rankings and analyzes search results pages to show where you rank and what's around you. | rank-tracking, seo, seo-audit |
 
@@ -25,9 +25,9 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian, web-clipping |
+| `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian |
 | `json-canvas` | Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps. | knowledge-management, obsidian, visualization |
-| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, security, workflow-patterns |
+| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, workflow-patterns |
 | `obsidian-bases` | Creates and edits Obsidian Base files for database-like views, filters, and dashboards. | content-authoring, knowledge-management, obsidian |
 | `obsidian-cli` | Automates Obsidian vault operations from the terminal using the official command-line tool. | automation, content-authoring, obsidian |
 | `obsidian-markdown` | Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter. | content-authoring, knowledge-management, obsidian |
@@ -49,10 +49,10 @@ _No skills._
 | --- | --- | --- |
 | `chrome-devtools-mcp` | DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the act… | automation, nextjs, observability, testing |
 | `completed-branch-promotion` | Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. | testing, vercel, workflow-patterns |
-| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, supabase, vercel, workflow-patterns |
+| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, postgresql, sanity, sentry, vercel, workflow-patterns |
 | `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
-| `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
+| `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 | `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |
@@ -64,18 +64,18 @@ _No skills._
 | `context-compression` | This skill should be used when long-running agent sessions need context compression, structured summarization, compaction, token-per-task o… | context-compression, context-engineering |
 | `context-degradation` | This skill should be used for diagnosing and mitigating context degradation: lost-in-middle failures, context poisoning, context clash, con… | context-degradation, context-engineering |
 | `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
-| `context-fundamentals` | This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a co… | context-engineering, context-optimization |
-| `context-optimization` | This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioni… | context-engineering, context-optimization |
+| `context-fundamentals` | This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a co… | context-engineering |
+| `context-optimization` | This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioni… | context-engineering |
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
 | `filesystem-context` | This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, c… | context-engineering, memory-systems |
-| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, provenance, security |
+| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, provenance |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
 | `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
-| `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
+| `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, memory-systems |
 | `memory-context` | Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, c… | context-engineering, memory-systems, provenance |
 | `memory-systems` | This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal val… | knowledge-graph, memory-systems |
-| `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | learning-curation, workflow-patterns |
+| `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | memory-systems, workflow-patterns |
 | `tool-design` | This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, desi… | context-engineering, tool-design |
 
 ## rhize-ops
@@ -117,7 +117,7 @@ _No skills._
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `reconcile-outreach-delivery` | Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured send… | data-consistency, outreach |
-| `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach, prospecting |
+| `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach |
 | `review-outreach-email` | Open, revise and accept the personalized outreach email bound to the accepted website and audit package. | content-authoring, outreach, review |
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review, seo-audit, visualization |
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |

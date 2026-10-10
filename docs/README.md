@@ -15,37 +15,37 @@ Version 1.0.6. The setup hub — finds the Rhize plugins you have installed, run
 
 ### seo-aeo-geo
 
-Version 1.6.0. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
+Version 1.6.1. Audits and improves how a website ranks in search engines and shows up in AI answers like ChatGPT and Google AI Overviews, using live search data — for SEO practitioners, content teams, marketers, and developers.
 
 [README](../seo-aeo-geo/README.md) · [GUIDE](../seo-aeo-geo/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#seo-aeo-geo)
 
 ### obsidian-second-brain
 
-Version 1.7.7. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
+Version 1.8.0. Teaches Claude to read, write, organize, and search notes in your Obsidian vault — for anyone who keeps their notes, research, and knowledge base in Obsidian.
 
 [README](../obsidian-second-brain/README.md) · [GUIDE](../obsidian-second-brain/GUIDE.md) · [10 skills](../generated/SKILL-CATALOG.md#obsidian-second-brain)
 
 ### project-launcher
 
-Version 1.12.0. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
+Version 1.13.0. Walks a new project from a rough idea through research, requirements, a written plan, and a ready-to-build project folder — for anyone starting a new software or automation project.
 
 [README](../project-launcher/README.md) · [GUIDE](../project-launcher/GUIDE.md) · [2 skills](../generated/SKILL-CATALOG.md#project-launcher)
 
 ### rhize-devflow
 
-Version 2.25.8. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
+Version 2.26.0. Rhize Media's software delivery workflow — plan a change, build it, test it, and get it independently reviewed before shipping — for developers building production Next.js, Sanity, and Vercel applications.
 
 [README](../rhize-devflow/README.md) · [GUIDE](../rhize-devflow/GUIDE.md) · [9 skills](../generated/SKILL-CATALOG.md#rhize-devflow)
 
 ### rhize-context-manager
 
-Version 0.43.3. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
+Version 0.44.0. Keeps Claude's memory and working context organized across long sessions so information isn't lost or repeated — for anyone running long or complex Claude sessions.
 
 [README](../rhize-context-manager/README.md) · [GUIDE](../rhize-context-manager/GUIDE.md) · [16 skills](../generated/SKILL-CATALOG.md#rhize-context-manager)
 
 ### rhize-ops
 
-Version 0.29.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
+Version 0.30.0. Rhize Media's internal operations toolkit — hands off work to teammates with full context, tracks which skills are actually earning their keep, and helps run multiple Claude agents safely at once.
 
 [README](../rhize-ops/README.md) · [GUIDE](../rhize-ops/GUIDE.md) · [4 skills](../generated/SKILL-CATALOG.md#rhize-ops)
 
@@ -69,7 +69,7 @@ Version 0.9.0. Lets Claude find and reuse previously verified scripts and automa
 
 ### rhize-outreach
 
-Version 0.2.0. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
+Version 0.3.0. Find local businesses with concrete website and search opportunities, then prepare an evidence-backed website concept, audit, and email draft with human review gates.
 
 [README](../rhize-outreach/README.md) · [GUIDE](../rhize-outreach/GUIDE.md) · [7 skills](../generated/SKILL-CATALOG.md#rhize-outreach)
 <!-- SKILL-MAP:END -->

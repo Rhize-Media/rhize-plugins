@@ -26,6 +26,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 0.43.3 → 0.44.0 (minor); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ remediation-suggester names the condition ("Tests failed", "Merge conflict", "Type check failed") and the remediator kind from index labels; skill tags follow the consolidated vocabulary; memory-context supersedes graphiti-memory and context-engineering extends dev-flow-foundations in the skill map.
 - _2026-10-10_ version bump — 0.43.2 → 0.43.3 (patch); marketplace 2.100.3 → 2.100.4.
 - _2026-10-06_ Fix Codex multipart browser-comment context recovery: preserve native text concatenation around image captions so prompt hashes validate. Claude newline separation and exact session/time/redaction/snapshot seals remain unchanged; image bytes stay outside label packets and collection source identity is unchanged.
 - _2026-10-06_ version bump — 0.43.1 → 0.43.2 (patch); marketplace 2.100.1 → 2.100.2.

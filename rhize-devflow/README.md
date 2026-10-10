@@ -177,10 +177,10 @@ mutation-analyze · mutation-fix
 | --- | --- | --- |
 | `chrome-devtools-mcp` | DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the act… | automation, nextjs, observability, testing |
 | `completed-branch-promotion` | Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. | testing, vercel, workflow-patterns |
-| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, supabase, vercel, workflow-patterns |
+| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, postgresql, sanity, sentry, vercel, workflow-patterns |
 | `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
-| `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
+| `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | content-authoring, nextjs, sanity, sentry |
 | `sentry-instrumentation` | Rhize conventions for instrumenting Next.js/TypeScript code with Sentry — exception capture (captureException), custom performance spans (s… | nextjs, observability, sentry, workflow-patterns |
 | `simplify` | Safely simplify recent or explicitly scoped code changes by consolidating duplicated policy, removing accidental complexity, and eliminatin… | nextjs, testing, workflow-patterns |
 | `test-evidence` | Classify changed regression tests as behavior, artifact, or structural contracts and produce or validate fail-closed, state-bound evidence… | evidence, review, testing |

@@ -379,6 +379,12 @@
       "type": "remediates"
     },
     {
+      "from": "external:ecc-git-workflow",
+      "source": "relations-catalog",
+      "to": "tag:condition/merge-conflict",
+      "type": "remediates"
+    },
+    {
       "from": "external:ecc-go-build-resolver",
       "source": "relations-catalog",
       "to": "tag:condition/build-failure",
@@ -419,6 +425,12 @@
       "source": "relations-catalog",
       "to": "tag:topic/content-authoring",
       "type": "augments"
+    },
+    {
+      "from": "external:superpowers-systematic-debugging",
+      "source": "relations-catalog",
+      "to": "tag:condition/test-failure",
+      "type": "remediates"
     },
     {
       "from": "hook:rhize-context-manager/context-window-monitor",
@@ -1531,12 +1543,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:obsidian-second-brain/defuddle",
-      "source": "frontmatter",
-      "to": "tag:topic/web-clipping",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:obsidian-second-brain/json-canvas",
       "source": "frontmatter",
       "to": "skill:obsidian-second-brain/obsidian-markdown",
@@ -1569,12 +1575,6 @@
     {
       "from": "skill:obsidian-second-brain/knowledge-compiler",
       "source": "frontmatter",
-      "to": "tag:stack/python",
-      "type": "stack-tag"
-    },
-    {
-      "from": "skill:obsidian-second-brain/knowledge-compiler",
-      "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
     },
@@ -1582,12 +1582,6 @@
       "from": "skill:obsidian-second-brain/knowledge-compiler",
       "source": "frontmatter",
       "to": "tag:topic/provenance",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:obsidian-second-brain/knowledge-compiler",
-      "source": "frontmatter",
-      "to": "tag:topic/security",
       "type": "topic-tag"
     },
     {
@@ -1843,6 +1837,17 @@
       "type": "topic-tag"
     },
     {
+      "driftCheck": {
+        "method": "content-hash",
+        "upstreamPath": "visual-plan",
+        "upstreamRepo": "BuilderIO/skills"
+      },
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "sources-md",
+      "to": "external:BuilderIO/skills/visual-plan",
+      "type": "fork-of"
+    },
+    {
       "from": "skill:project-launcher/rhize-visual-plan",
       "source": "frontmatter",
       "to": "tag:stack/nextjs",
@@ -1978,12 +1983,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:rhize-context-manager/context-fundamentals",
-      "source": "frontmatter",
-      "to": "tag:topic/context-optimization",
-      "type": "topic-tag"
-    },
-    {
       "driftCheck": {
         "method": "content-hash",
         "upstreamPath": "context-optimization",
@@ -2004,12 +2003,6 @@
       "from": "skill:rhize-context-manager/context-optimization",
       "source": "frontmatter",
       "to": "tag:topic/context-engineering",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-context-manager/context-optimization",
-      "source": "frontmatter",
-      "to": "tag:topic/context-optimization",
       "type": "topic-tag"
     },
     {
@@ -2096,12 +2089,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:rhize-context-manager/graph-memory",
-      "source": "frontmatter",
-      "to": "tag:topic/security",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:rhize-context-manager/graphify",
       "source": "frontmatter",
       "to": "tag:stack/obsidian",
@@ -2152,7 +2139,7 @@
     {
       "from": "skill:rhize-context-manager/learning-curation",
       "source": "frontmatter",
-      "to": "tag:topic/learning-curation",
+      "to": "tag:topic/memory-systems",
       "type": "topic-tag"
     },
     {
@@ -2211,7 +2198,7 @@
     {
       "from": "skill:rhize-context-manager/refinement-pipeline",
       "source": "frontmatter",
-      "to": "tag:topic/learning-curation",
+      "to": "tag:topic/memory-systems",
       "type": "topic-tag"
     },
     {
@@ -2348,6 +2335,12 @@
     {
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
+      "to": "tag:stack/postgresql",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
       "to": "tag:stack/sanity",
       "type": "stack-tag"
     },
@@ -2355,12 +2348,6 @@
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "tag:stack/sentry",
-      "type": "stack-tag"
-    },
-    {
-      "from": "skill:rhize-devflow/data-mutation-consistency",
-      "source": "frontmatter",
-      "to": "tag:stack/supabase",
       "type": "stack-tag"
     },
     {
@@ -2481,12 +2468,6 @@
       "source": "frontmatter",
       "to": "tag:stack/sentry",
       "type": "stack-tag"
-    },
-    {
-      "from": "skill:rhize-devflow/sanity-development",
-      "source": "frontmatter",
-      "to": "tag:topic/cms-development",
-      "type": "topic-tag"
     },
     {
       "from": "skill:rhize-devflow/sanity-development",
@@ -2752,12 +2733,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:rhize-outreach/review-outreach-businesses",
-      "source": "frontmatter",
-      "to": "tag:topic/prospecting",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:rhize-outreach/review-outreach-email",
       "source": "relations-catalog",
       "to": "external:rhize-outreach-runtime",
@@ -2870,12 +2845,6 @@
       "source": "relations-catalog",
       "to": "external:rhize-outreach-runtime",
       "type": "depends-on"
-    },
-    {
-      "from": "skill:rhize-outreach/rhize-outreach-setup",
-      "source": "relations-catalog",
-      "to": "skill:rhize-outreach/rhize-outreach-run",
-      "type": "precedes"
     },
     {
       "from": "skill:rhize-outreach/rhize-outreach-setup",
@@ -3128,12 +3097,6 @@
       "source": "frontmatter",
       "to": "tag:stack/seo",
       "type": "stack-tag"
-    },
-    {
-      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
-      "source": "frontmatter",
-      "to": "tag:topic/cms-development",
-      "type": "topic-tag"
     },
     {
       "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
@@ -3751,6 +3714,13 @@
       "path": "seo-aeo-geo/commands/technical-audit.md"
     },
     {
+      "baselineHash": "0ea94674b21ea75caa1e64a9944d04fb3d5488ce1e25cc2315d616b685bbaa68",
+      "id": "external:BuilderIO/skills/visual-plan",
+      "kind": "external",
+      "name": "rhize-visual-plan",
+      "url": "https://raw.githubusercontent.com/BuilderIO/skills/main/skills/visual-plan/SKILL.md"
+    },
+    {
       "description": "Command-line web-content extractor (`defuddle parse <url> --md`) that the obsidian-second-brain defuddle skill documents and drives.",
       "id": "external:defuddle-cli",
       "kind": "external",
@@ -3791,6 +3761,12 @@
       "id": "external:ecc-django-build-resolver",
       "kind": "external",
       "name": "ecc:django-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code git workflow skill whose own description ends \"Use when ... deciding merge versus rebase, or resolving conflicts\"; its Conflict Resolution section walks through identifying and resolving `CONFLICT (content)` / `Automatic merge failed` output. Surfaced for merge, rebase and cherry-pick conflicts.",
+      "id": "external:ecc-git-workflow",
+      "kind": "external",
+      "name": "ecc:git-workflow (skill)"
     },
     {
       "description": "everything-claude-code agent; fixes Go build/vet failures.",
@@ -3954,6 +3930,12 @@
       "id": "external:superpowers-finishing-development-branch",
       "kind": "external",
       "name": "superpowers:finishing-a-development-branch (skill)"
+    },
+    {
+      "description": "Superpowers root-cause debugging skill. Its own description: \"Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes\"; its When to Use list opens with \"Test failures\". Surfaced for failing test runs.",
+      "id": "external:superpowers-systematic-debugging",
+      "kind": "external",
+      "name": "superpowers:systematic-debugging (skill)"
     },
     {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/vault-read-hint.py\"",
@@ -4495,7 +4477,7 @@
       "path": "seo-aeo-geo"
     },
     {
-      "contentHash": "246c538b7ab30038c003d08b88eba0c5c0d56349503cf8ce0b914c86557c832c",
+      "contentHash": "b017abad8dab78dacdcb6e17a6b2a0f22f8280c0b9b44c463a6be4d22b4e19c8",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. Extract clean, readable markdown from web pages using the Defuddle CLI tool, stripping navigation, ads, and clutter. Use this skill when someone wants to save web content to their Obsidian vault, clip articles, extract clean text from URLs, convert web pages to markdown, or reduce token usage when processing web content. Also triggers on \"web clipper\", \"save article\", \"extract webpage\", \"clean HTML\", or \"convert URL to markdown\". Prefer Defuddle over raw WebFetch for standard web pages, articles, docs, and blog posts.",
       "fileCount": 1,
       "id": "skill:obsidian-second-brain/defuddle",
@@ -4503,8 +4485,8 @@
       "name": "defuddle",
       "path": "obsidian-second-brain/skills/defuddle/SKILL.md",
       "summary": "Pulls clean, readable text from a web page for saving into your Obsidian vault.",
-      "totalBytes": 5575,
-      "treeHash": "81651d33d5f05dc33b9e15c6e4f1ed96e729b9fcb3b23a02f0835f0df18e41c2"
+      "totalBytes": 5561,
+      "treeHash": "723da3ef4ad4c582ad9f75edbfc2f9c8f8de96b824eff952098f47a86ce5d0d2"
     },
     {
       "contentHash": "063be869f23b102e00149ffabc17d7fb57b95f0b02c69405e492dc837cbfee7b",
@@ -4519,15 +4501,15 @@
       "treeHash": "9b5687b96809fbe6a241cd6c01e56bd3d0e7fcd355ffaa01b31a0bbdf7e53f88"
     },
     {
-      "contentHash": "9282181e6a3d4a88f2a24295564cc6f35ee987dd2dd5b5923973d0398c0b370f",
+      "contentHash": "3b3d3c6094510f481438b775aacb5221f41dcff57037a824c0033c9af54fd2b5",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "fileCount": 2,
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
       "name": "knowledge-compiler",
       "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
-      "totalBytes": 4381,
-      "treeHash": "3d512dabae84b62d8f968fca4d3bd59530ae6a3d386c76eff16ad617f1914120"
+      "totalBytes": 4363,
+      "treeHash": "2ba0323a9659b55f97ac9c602c0a5920ccbde887e7131328eef8a08d69d94bf2"
     },
     {
       "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
@@ -4660,6 +4642,7 @@
     },
     {
       "contentHash": "04561788b1da2250432bdd1535c893623b20bd1877ebbe15416c39d64a9963b8",
+      "contentHashNormalized": "012fa475b79f8c382a0551db0f144c3bfc6531bdd7717d12a93ff72117e6a467",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
       "fileCount": 39,
       "id": "skill:project-launcher/rhize-visual-plan",
@@ -4706,7 +4689,7 @@
       "treeHash": "d8259bb492c67cf521eb60630631fdc01fd84b9e0f59c228a6d25228af8be36c"
     },
     {
-      "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
+      "contentHash": "ee0d5f58074973948722613d755bcbb3eb632f53c064c0c083195be13499d70a",
       "contentHashNormalized": "03b56e1c40edc6314b1f204498c3ba40163a32e63bdbceaeba93513ccddcaba6",
       "description": "This skill should be used to explain or reason about the foundational concepts of context engineering: what context is, the anatomy of a context window, how attention mechanics work, the U-shaped attention curve, why context quality matters more than quantity, and the mental models needed to interpret every other context-engineering decision. Use this for conceptual explanation, onboarding, and background reading. Route operational work to the specialized skills: debugging attention failures goes to context-degradation, token-efficiency work goes to context-optimization, conversation summarization goes to context-compression, and project-shape decisions go to project-development.",
       "fileCount": 3,
@@ -4714,11 +4697,11 @@
       "kind": "skill",
       "name": "context-fundamentals",
       "path": "rhize-context-manager/skills/context-fundamentals/SKILL.md",
-      "totalBytes": 43423,
-      "treeHash": "e80a5ca05d8e27052d6717e8c56ea4fb7188572bd95afbe099e03a456dbe6bcb"
+      "totalBytes": 43401,
+      "treeHash": "fbe0a758653683cbf32cda3edec952fad4f2f5387e1b47f754628a9c94281f82"
     },
     {
-      "contentHash": "5282cc8e680b06fe075b72bae0c6922e6748b55cb710b6030633b7c80d9fdd08",
+      "contentHash": "5ce4bb51a9b6ad7d80013831917be6b11f776f38d38d5ce10ca3148a2360be1e",
       "contentHashNormalized": "7ff1ad288cdb6c0d668c757d23b1c4b315cf3a094a4fcaa91d17e98ab55d02b2",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "fileCount": 3,
@@ -4726,8 +4709,8 @@
       "kind": "skill",
       "name": "context-optimization",
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md",
-      "totalBytes": 45254,
-      "treeHash": "0a7e234041c7e1f73a3ecd24101f835bdc91945806d3759d3f55a28bda9f2811"
+      "totalBytes": 45232,
+      "treeHash": "f5d736027d1f5686d69b8dcc63250e7bee358e040f25385c5bbc900d6f635c01"
     },
     {
       "contentHash": "79693bc599fe0f1026d6a080c6712ef871b8425ed92febc7032c3402b80e990a",
@@ -4764,15 +4747,15 @@
       "treeHash": "bf5136f15fbe225b72f34352e3c518363d3aafc16b3c8eb53549880ec19e1b6c"
     },
     {
-      "contentHash": "3a113ec648e2e998d6c398b8fd1169c9d5a47d4a08e4b4584659af276980bb23",
+      "contentHash": "13abb21672ff884f13cb33db40c80e685387855a3571367ef282c4abb88acae1",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "fileCount": 3,
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
       "name": "graph-memory",
       "path": "rhize-context-manager/skills/graph-memory/SKILL.md",
-      "totalBytes": 13626,
-      "treeHash": "f808e85ba68fa42f930e216a84f18be7efea8b3d4f44709121d731cdc593773d"
+      "totalBytes": 13616,
+      "treeHash": "f4261732b0f7ed9a39bf6dc79893d4dda3def7a6c21475c82af59d2d31dcc2c1"
     },
     {
       "contentHash": "aef43aaff1af71c7263d7077d340fa61c00b9c72a3de46557fc0d0aeb2192c15",
@@ -4797,15 +4780,15 @@
       "treeHash": "4eff0e32eaf29b9619a78fb7518793af4bd459a9e0135c9f8bfac335f8a05372"
     },
     {
-      "contentHash": "be8884372f0d2a0d920cc796f250efdab840d1059de7e4d424135dc70d1b26c7",
+      "contentHash": "781bfb54ef807b9eec56049a34f9ab4d5039f06e94ddc9979999145e0907f1b0",
       "description": "This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it so it actually fires: always-loaded config, a reference skill, a hook, or nowhere. Covers drop tests, redundancy and contradiction resolution, the retrieval-cue placement test, and rule phrasing that survives contact with a future session. Route memory *architecture* (vector stores, knowledge graphs, temporal validity) to memory-systems, context-consumption audits to context-budget, and session handoff summaries to context-compression.",
       "fileCount": 1,
       "id": "skill:rhize-context-manager/learning-curation",
       "kind": "skill",
       "name": "learning-curation",
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md",
-      "totalBytes": 11221,
-      "treeHash": "f595a3de777984c9ca8112d4223a72eb347a8d9e2da030e6e23a2cc03d9a60cd"
+      "totalBytes": 11218,
+      "treeHash": "227b46b726afc9f7cb5d56f170b4b0304e9a6642bbca4ff57dc4c16d890ab636"
     },
     {
       "contentHash": "a9fdd690b596fd9fcb14b2ed06d777fa450a2f45b4c4bba3bb46c70068237b1b",
@@ -4831,15 +4814,15 @@
       "treeHash": "aee5af85ccd099e731a1afee64f7c0b9df43b0102eda0575bd0b5e943f25d5a0"
     },
     {
-      "contentHash": "b3ff7b97ec69c85a82a4fb07365fedfc052ede86ac31a6091d2ed3430613d608",
+      "contentHash": "b00686d498bba5925019e95a05f050bcfec9d82f1afdd5bd62c5d0249e12fc64",
       "description": "Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged queue, then skill-forge evolve (SkillOpt-Sleep + safety re-gate) refines target skills with auto-promote for gate-passing SKILL.md edits. Use when the user says \"harvest learnings\", \"refine skills\", \"drain the refinement queue\", asks where headroom learn output should go, or when a scheduled refinement pass needs its rules.",
       "fileCount": 1,
       "id": "skill:rhize-context-manager/refinement-pipeline",
       "kind": "skill",
       "name": "refinement-pipeline",
       "path": "rhize-context-manager/skills/refinement-pipeline/SKILL.md",
-      "totalBytes": 5817,
-      "treeHash": "3b1457e61038c1b73dd160fd2e3a593d22d281bc9edfe28c701e950360ea243e"
+      "totalBytes": 5814,
+      "treeHash": "8b0e00d188ce91235fefd5fc53cf00c9f49e4f6893c7dbeb183eb4288fdb1c80"
     },
     {
       "contentHash": "566e61415fc9521d5bd1703c96fd6b3aa7d5e03bb6b6b6208749e60bb888a3f5",
@@ -4887,15 +4870,15 @@
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
-      "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",
+      "contentHash": "8ce3f64f8f38de0276a6a406fad9da313dab1603a64db43fb6cc1c851a4ca557",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "fileCount": 25,
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md",
-      "totalBytes": 223482,
-      "treeHash": "0f0eac14c08a83f33b945908580583e3095b54a671be1c2de57305a1eec55ce6"
+      "totalBytes": 223484,
+      "treeHash": "be01d3c71880b669316e87cfb0a825297a45793bdae74be2898fe9e939c3ce94"
     },
     {
       "contentHash": "bd763a882ee08d171885c827be3fcada2f9638f07247a93bf42c227c3754fbbf",
@@ -4921,15 +4904,15 @@
       "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
     },
     {
-      "contentHash": "875ff69e56b8a58cb7fbb1e890aa7bbcbed3054e8e5e278f292dc2a2ed7bbeb9",
+      "contentHash": "9b49a5afee1b16b55293d0dbede7c38b6c5b30b0e5123d126f95120ae0d2890b",
       "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
       "fileCount": 14,
       "id": "skill:rhize-devflow/sanity-development",
       "kind": "skill",
       "name": "sanity-development",
       "path": "rhize-devflow/skills/sanity-development/SKILL.md",
-      "totalBytes": 108452,
-      "treeHash": "d973e5a57b322f9f28169a83ef2be743c11e74e28479f29364148cd96ba68057"
+      "totalBytes": 108435,
+      "treeHash": "1f45270c52eb738976146615dcfb5e5976502c8dca6894a388ffce7b091258de"
     },
     {
       "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",
@@ -5021,15 +5004,15 @@
       "treeHash": "4dc6eac55f2c0de6078c5ae9ab6ffdcf6e30aca4d16d6d6d6b47e46f324c403d"
     },
     {
-      "contentHash": "706801c8271b8e57da2c8a3e1b5b5e6f590aad8d430519cdf3029c1d1b44f3dc",
+      "contentHash": "fb31562be30dc326401efccfcc6b3b0033ed99a70cd6b4bf3b5db952d184f650",
       "description": "Review researched candidate businesses or add a manually found business before selecting one for deliverables.",
       "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-businesses",
       "kind": "skill",
       "name": "review-outreach-businesses",
       "path": "rhize-outreach/skills/review-outreach-businesses/SKILL.md",
-      "totalBytes": 799,
-      "treeHash": "55102933fd437447794b0b688539289ab79557ce6d1ffa5c1fcf9d9fde98f940"
+      "totalBytes": 786,
+      "treeHash": "a09bb1e8bf06a61aa87b3e911ce1a29ee5958986e3392b55aecff9fe5c9dea76"
     },
     {
       "contentHash": "95b2a51635510183b4d3e51f5d86a397ca86fa2c4f007fe8ed95c276d43f9c0f",
@@ -5076,15 +5059,15 @@
       "treeHash": "4270d8613d44ad2c6bbe0ab8c3128ec548f1ff40ffd553c4b5bfa3372481ac70"
     },
     {
-      "contentHash": "6370a7b515f5221b431bb3c32a0ddeff706f50c53ed9a96bab484edb21a01c11",
+      "contentHash": "e236b574ca972267c4a26776b01034fed5891817aac6e6a3705e6e688cfd2cd5",
       "description": "Set up or resume the local Rhize Outreach selected-business workflow. Use when installing the plugin, configuring local storage, or repairing an incomplete setup.",
       "fileCount": 2,
       "id": "skill:rhize-outreach/rhize-outreach-setup",
       "kind": "skill",
       "name": "rhize-outreach-setup",
       "path": "rhize-outreach/skills/rhize-outreach-setup/SKILL.md",
-      "totalBytes": 1489,
-      "treeHash": "db64a3b096ffe24318416901bfa591a62950efd880c686b861f72e0136bef11e"
+      "totalBytes": 1610,
+      "treeHash": "1f02935c314c65db3a7b4ee7902856a8bc32cedf735b5596a335864ca21449b4"
     },
     {
       "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
@@ -5201,7 +5184,7 @@
       "treeHash": "f67f9cb0c3171223888e467944f0e4d2b439747220882256fc910d96edc25abe"
     },
     {
-      "contentHash": "46802cf15f90b84338355769d613894abf1d5a51d1232d0c6e7a4496cb44eb1d",
+      "contentHash": "2d6262cc6246fc821a5d7d3757abd7131fe176f34b5f900b0b241a72287d0a79",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. SEO implementation patterns for Next.js and Sanity CMS codebases. Triggers on: \"Next.js SEO\", \"Sanity SEO\", \"Next.js metadata\", \"generateMetadata\", \"Sanity schema for SEO\", \"structured data in Next.js\", \"JSON-LD in Next.js\", \"sitemap.ts\", \"robots.ts\", \"next/image SEO\", \"Sanity GROQ for SEO\", \"Open Graph in Next.js\", \"hreflang in Next.js\", \"canonical URLs in Next.js\", \"SEO component\", \"Sanity SEO fields\", \"portable text SEO\", \"image alt text from Sanity\", \"dynamic metadata from CMS\", \"CMS-driven SEO\", \"headless CMS SEO\", \"Next.js sitemap generation\", \"Sanity redirect management\", \"SEO audit of Next.js codebase\", \"fix SEO in my Next.js app\", or any request involving implementing or fixing SEO in a Next.js + Sanity project. Also triggers on \"audit my codebase for SEO issues\", \"SEO code review\", or \"implement SEO best practices in code\". Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.",
       "fileCount": 1,
       "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
@@ -5209,8 +5192,8 @@
       "name": "nextjs-sanity-seo",
       "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
       "summary": "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data.",
-      "totalBytes": 10125,
-      "treeHash": "25d5a3dcb9a8b88cb2bbecd6c30b6b89f4b6c1b32ac4eea836992d4123c586d0"
+      "totalBytes": 10108,
+      "treeHash": "44c6a1597f69abdd3f2c2849e4a3f9661ec07a6a95299b426a7413f8ba19870b"
     },
     {
       "contentHash": "0b751c6950396cd5eaa1c4383a99fba3e04ac8ff84581d9f10e81c28631451ac",
@@ -5239,6 +5222,16 @@
     {
       "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",
       "id": "tag:condition/build-failure",
+      "kind": "tag"
+    },
+    {
+      "description": "A git merge/rebase/cherry-pick hit a conflict",
+      "id": "tag:condition/merge-conflict",
+      "kind": "tag"
+    },
+    {
+      "description": "A test run reported one or more failing tests",
+      "id": "tag:condition/test-failure",
       "kind": "tag"
     },
     {
@@ -5271,16 +5264,10 @@
       "name": "obsidian"
     },
     {
-      "description": "PostgreSQL databases and transaction workflows",
+      "description": "PostgreSQL databases, self-hosted or Supabase-hosted: transactions, auth, storage, and row-level security",
       "id": "tag:stack/postgresql",
       "kind": "tag",
       "name": "postgresql"
-    },
-    {
-      "description": "Python runtimes and tooling",
-      "id": "tag:stack/python",
-      "kind": "tag",
-      "name": "python"
     },
     {
       "description": "Sanity Studio/CMS",
@@ -5299,12 +5286,6 @@
       "id": "tag:stack/seo",
       "kind": "tag",
       "name": "seo"
-    },
-    {
-      "description": "Supabase database, authentication, storage, and row-level security",
-      "id": "tag:stack/supabase",
-      "kind": "tag",
-      "name": "supabase"
     },
     {
       "description": "Browser/E2E testing tooling",
@@ -5337,13 +5318,7 @@
       "name": "backlink-analysis"
     },
     {
-      "description": "CMS schema and content-modeling development",
-      "id": "tag:topic/cms-development",
-      "kind": "tag",
-      "name": "cms-development"
-    },
-    {
-      "description": "Writing/formatting notes, docs, and templates",
+      "description": "Writing, formatting, and modeling content: notes, docs, templates, CMS schemas, and clean text extracted from web pages",
       "id": "tag:topic/content-authoring",
       "kind": "tag",
       "name": "content-authoring"
@@ -5367,16 +5342,10 @@
       "name": "context-degradation"
     },
     {
-      "description": "Session/context lifecycle management",
+      "description": "Session/context lifecycle management and context/token efficiency",
       "id": "tag:topic/context-engineering",
       "kind": "tag",
       "name": "context-engineering"
-    },
-    {
-      "description": "Improving context/token efficiency",
-      "id": "tag:topic/context-optimization",
-      "kind": "tag",
-      "name": "context-optimization"
     },
     {
       "description": "Keeping cached/mutated data in sync",
@@ -5409,13 +5378,7 @@
       "name": "knowledge-management"
     },
     {
-      "description": "Deciding what session learnings become durable rules",
-      "id": "tag:topic/learning-curation",
-      "kind": "tag",
-      "name": "learning-curation"
-    },
-    {
-      "description": "Persistent cross-session agent memory",
+      "description": "Persistent cross-session agent memory, including curating session learnings into durable rules",
       "id": "tag:topic/memory-systems",
       "kind": "tag",
       "name": "memory-systems"
@@ -5427,7 +5390,7 @@
       "name": "observability"
     },
     {
-      "description": "Prospect research, personalized outreach preparation, and human-reviewed delivery",
+      "description": "Prospecting and qualifying businesses from sourced evidence, personalized outreach preparation, and human-reviewed delivery",
       "id": "tag:topic/outreach",
       "kind": "tag",
       "name": "outreach"
@@ -5439,13 +5402,7 @@
       "name": "project-planning"
     },
     {
-      "description": "Finding and qualifying potential customers from sourced business evidence",
-      "id": "tag:topic/prospecting",
-      "kind": "tag",
-      "name": "prospecting"
-    },
-    {
-      "description": "Source lineage, evidence binding, and invalidation metadata",
+      "description": "Source lineage, evidence binding, invalidation metadata, and the trust/access boundaries around derived knowledge",
       "id": "tag:topic/provenance",
       "kind": "tag",
       "name": "provenance"
@@ -5469,12 +5426,6 @@
       "name": "search"
     },
     {
-      "description": "Security boundaries, access control, and threat-resistant workflows",
-      "id": "tag:topic/security",
-      "kind": "tag",
-      "name": "security"
-    },
-    {
       "description": "Site health and technical SEO auditing",
       "id": "tag:topic/seo-audit",
       "kind": "tag",
@@ -5491,12 +5442,6 @@
       "id": "tag:topic/visualization",
       "kind": "tag",
       "name": "visualization"
-    },
-    {
-      "description": "Extracting clean readable content from web pages",
-      "id": "tag:topic/web-clipping",
-      "kind": "tag",
-      "name": "web-clipping"
     },
     {
       "description": "Dev-flow guardrails and process patterns",

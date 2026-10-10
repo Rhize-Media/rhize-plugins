@@ -8,7 +8,7 @@ Internal Claude/Codex plugin for a local, review-gated prospecting and deliverab
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `reconcile-outreach-delivery` | Explain the current email delivery boundary for Rhize Outreach and identify when a reviewed draft is ready for a separately configured send… | data-consistency, outreach |
-| `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach, prospecting |
+| `review-outreach-businesses` | Review researched candidate businesses or add a manually found business before selecting one for deliverables. | outreach |
 | `review-outreach-email` | Open, revise and accept the personalized outreach email bound to the accepted website and audit package. | content-authoring, outreach, review |
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review, seo-audit, visualization |
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |

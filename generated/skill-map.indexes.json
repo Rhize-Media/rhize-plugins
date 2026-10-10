@@ -104,13 +104,11 @@
     "postgresql": [
       {
         "deeper": [],
-        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
-      }
-    ],
-    "python": [
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
+      },
       {
         "deeper": [],
-        "skillId": "skill:obsidian-second-brain/knowledge-compiler"
+        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
       }
     ],
     "sanity": [
@@ -175,12 +173,6 @@
         "skillId": "skill:seo-aeo-geo/serp-intelligence"
       }
     ],
-    "supabase": [
-      {
-        "deeper": [],
-        "skillId": "skill:rhize-devflow/data-mutation-consistency"
-      }
-    ],
     "testing": [
       {
         "deeper": [],
@@ -224,6 +216,18 @@
   },
   "remediation": {
     "build-failure": {
+      "labels": {
+        "external:ecc-build-error-resolver": "ecc:build-error-resolver (agent)",
+        "external:ecc-cpp-build-resolver": "ecc:cpp-build-resolver (agent)",
+        "external:ecc-dart-build-resolver": "ecc:dart-build-resolver (agent)",
+        "external:ecc-django-build-resolver": "ecc:django-build-resolver (agent)",
+        "external:ecc-go-build-resolver": "ecc:go-build-resolver (agent)",
+        "external:ecc-java-build-resolver": "ecc:java-build-resolver (agent)",
+        "external:ecc-kotlin-build-resolver": "ecc:kotlin-build-resolver (agent)",
+        "external:ecc-react-build-resolver": "ecc:react-build-resolver (agent)",
+        "external:ecc-rust-build-resolver": "ecc:rust-build-resolver (agent)",
+        "external:ecc-swift-build-resolver": "ecc:swift-build-resolver (agent)"
+      },
       "patterns": [
         "(?i)\\bbuild failed\\b",
         "(?i)\\bfailed to compile\\b",
@@ -254,15 +258,23 @@
       "skills": []
     },
     "merge-conflict": {
+      "labels": {
+        "external:ecc-git-workflow": "ecc:git-workflow (skill)"
+      },
       "patterns": [
         "(?i)\\bCONFLICT \\(.*\\):",
         "(?i)\\bautomatic merge failed\\b",
         "^<<<<<<< ",
         "(?i)\\bfix conflicts and then commit\\b"
       ],
-      "skills": []
+      "skills": [
+        "external:ecc-git-workflow"
+      ]
     },
     "test-failure": {
+      "labels": {
+        "external:superpowers-systematic-debugging": "superpowers:systematic-debugging (skill)"
+      },
       "patterns": [
         "(?i)\\b\\d+ (failing|failed)\\b",
         "(?i)^\\s*FAIL\\b",
@@ -270,9 +282,14 @@
         "(?i)\\btests? failed\\b",
         "(?i)\\bexpect\\(received\\)\\b"
       ],
-      "skills": []
+      "skills": [
+        "external:superpowers-systematic-debugging"
+      ]
     },
     "type-error": {
+      "labels": {
+        "external:ecc-build-error-resolver": "ecc:build-error-resolver (agent)"
+      },
       "patterns": [
         "\\berror TS\\d+\\b",
         "(?i)\\btype error\\b",
@@ -346,11 +363,6 @@
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "web-clipping",
-          "weight": 2
         }
       ],
       "skill:obsidian-second-brain/json-canvas": [
@@ -394,16 +406,6 @@
         {
           "kind": "tag",
           "label": "provenance",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "python",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "security",
           "weight": 2
         },
         {
@@ -742,11 +744,6 @@
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "context-optimization",
-          "weight": 2
         }
       ],
       "skill:rhize-context-manager/context-optimization": [
@@ -758,11 +755,6 @@
         {
           "kind": "tag",
           "label": "context-engineering",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "context-optimization",
           "weight": 2
         }
       ],
@@ -847,11 +839,6 @@
           "kind": "tag",
           "label": "provenance",
           "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "security",
-          "weight": 2
         }
       ],
       "skill:rhize-context-manager/graphify": [
@@ -911,7 +898,7 @@
         },
         {
           "kind": "tag",
-          "label": "learning-curation",
+          "label": "memory-systems",
           "weight": 2
         }
       ],
@@ -962,7 +949,7 @@
         },
         {
           "kind": "tag",
-          "label": "learning-curation",
+          "label": "memory-systems",
           "weight": 2
         },
         {
@@ -1077,17 +1064,17 @@
         },
         {
           "kind": "tag",
+          "label": "postgresql",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
           "label": "sanity",
           "weight": 2
         },
         {
           "kind": "tag",
           "label": "sentry",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "supabase",
           "weight": 2
         },
         {
@@ -1155,11 +1142,6 @@
           "kind": "name",
           "label": "sanity-development",
           "weight": 1
-        },
-        {
-          "kind": "tag",
-          "label": "cms-development",
-          "weight": 2
         },
         {
           "kind": "tag",
@@ -1377,11 +1359,6 @@
         {
           "kind": "tag",
           "label": "outreach",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "prospecting",
           "weight": 2
         }
       ],
@@ -1693,11 +1670,6 @@
         },
         {
           "kind": "tag",
-          "label": "cms-development",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
           "label": "content-optimization",
           "weight": 2
         },
@@ -1874,12 +1846,6 @@
       "follows": [],
       "precedes": [
         "skill:rhize-outreach/review-outreach-businesses"
-      ]
-    },
-    "skill:rhize-outreach/rhize-outreach-setup": {
-      "follows": [],
-      "precedes": [
-        "skill:rhize-outreach/rhize-outreach-run"
       ]
     }
   }

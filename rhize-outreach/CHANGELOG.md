@@ -2,6 +2,8 @@
 
 ### Added
 
+- _2026-10-10_ version bump — 0.2.0 → 0.3.0 (minor); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ /rhize-outreach:setup stops when launched by /rhize-core:setup (--from-rhize-setup), matching rhize-tasks; the outreach pipeline (doctor → run → businesses → package → email → reconcile) is declared for next-step suggestions; setup carries the postgresql stack.
 - _2026-09-24_ version bump — 0.1.0 → 0.2.0 (minor); marketplace 2.80.0 → 2.81.0.
 
 - Upgrade the local prospect workflow to a resumable selected-business agent graph with explicit package and email review holds.

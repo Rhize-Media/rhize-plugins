@@ -11,6 +11,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 0.29.0 → 0.30.0 (minor); marketplace 2.100.4 → 2.101.0.
+- _2026-10-10_ Skill-map relations: cross-model-handoff depends on rhize-bridge; parallel-agent-optimization tags evidence; delegate-setup precedes delegate-to-teammate.
 - _2026-09-29_ version bump — 0.28.1 → 0.29.0 (minor); marketplace 2.96.0 → 2.97.0.
 - _2026-09-29_ delegate-to-teammate Step 2 now also checks Slack audio: clips and huddle recordings, using their auto-generated transcript or huddle-notes canvas, alongside Fireflies.
   - The AskUserQuestion asks about "a Fireflies meeting OR a Slack audio clip/huddle".
