@@ -359,7 +359,9 @@ labels](docs/decision-pilot.md#versioned-taxonomy-labels).
 (Claude and Codex, subscription CLIs only, no API-key fallback) classify eligible v2 decisions from
 redacted local transcript context, a Claude reviewer settles the agreed cases, and the result is
 imported with supersession, which replaces family-derived AI choices with explicitly judged ones and
-archives the old record (never a human label). Transcript context is redacted whole and limited to
+archives the old record (never a human label). The streaming reader admits regular transcripts up
+to 512 MiB; larger files stay unavailable, and exact prompt/session bindings remain mandatory.
+Transcript context is redacted whole and limited to
 user-typed turns, Codex runs in a private `CODEX_HOME` with only its login, and `import-run` imports
 a saved run. Credential suffix patterns retain anchored runtime matches and reject whitespace
 restarts and overlong first segments before backtracking during diagnostic searches. The adversarial

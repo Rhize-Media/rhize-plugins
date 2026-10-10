@@ -328,7 +328,10 @@ Each pass:
    `~/.codex/archived_sessions`, or `--transcript-root`). A transcript matches only when the SHA-256
    of its session UUID equals the receipt's `sessionHash` and the SHA-256 of a user message equals
    its `promptHash`. A packet holds the redacted request (6,500 characters at most) and at most
-   four preceding turns. Only turns the user typed are context: assistant prose (where agents
+   four preceding turns. Regular transcript files up to 512 MiB are streamed once per session;
+   larger files remain `context_unavailable` with a `transcript_oversized` diagnostic. This
+   bounded increase accommodates long native sessions without relaxing exact source bindings.
+   Only turns the user typed are context: assistant prose (where agents
    restate pilot results), sub-agent (`isSidechain`) and compact-summary records, and injected
    boilerplate anywhere in a turn are skipped, and a user turn that talks about the pilot's own
    arms, scores, consultations or labels is dropped whole. That word filter is only a second layer.

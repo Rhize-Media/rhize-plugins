@@ -2,6 +2,8 @@
 
 ## Verified facts
 
+- 2026-10-10: Laya's daily AI labeler retained a `context_unavailable` warning because a native Codex session transcript had grown to 348 MiB, above its 256 MiB regular-file admission limit. The shared reader candidate raises only that finite ceiling to 512 MiB, retaining streaming and all exact source-binding checks. A boundary regression reproduces the old rejection at 348 MiB and preserves refusal above 512 MiB. Missing enum context and image-caption hash mismatches remain visible; never repair historical capture or normalize mismatched requests to clear a label gate. Source verification and activation of the reviewed private pin remain separate from model labeling or host reload.
+
 - 2026-10-04: The Dev Flow 2.25.7 write gate reproduced a false source classification for new Obsidian `Projects/.../*.md` notes. The candidate detects ordinary Markdown beneath an actual `.obsidian/` directory and shares that decision across write, reconciliation and release checks. Embedded Git/plugin roots, hidden runtime paths, SKILL.md, executable files, MDX and mixed patches retain source checks. Source validation and installed-host activation are separate; this change does not edit the installed cache.
 
 - 2026-10-02: Context coverage 0.43.0 / marketplace 2.100.0 is merged into main/dev (d3f6a703), hosted CI 2,522 passed, five existing skips, 18 subtests. Both native hosts create private pre-decision snapshots and enum context. The Codex activation probe exposed a 15.5-second delay between its hook and transcript publication; exact session/request match was excluded by the pre-capture timestamp condition. The 0.43.1 patch allows publication within the existing 60-second observation tolerance while keeping exact bindings and pre-decision seal checks. Collection source remains e8c40f12; historical 18 accepted AI labels (13 explicit) remain in their frozen source, with actual source-bound export counts reported separately. Patch labeler checks: 135 passed, one existing skip; scoped Context Manager/config suite: 951 passed, three Node-shim HOME failures and three existing skips. The three failures passed unchanged with the configured actual Node binary alongside the labeler module (139 targeted checks passed). Independent cold and native Fable reviews found no blocker. Both private native snapshot bindings validate against real transcripts under the patch. Publication remains pending.
@@ -126,6 +128,8 @@
 
 ## Open failures
 
+- 2026-10-10: The Dev Flow test-evidence release gate cannot support Python regression evidence in this repository: `test_evidence.py run` exits 2 with `package.json does not exist`; its current runner also has no trusted execution adapter. Actual pytest results and read-only exact transcript recovery remain separate evidence. The transcript-limit patch stays a local candidate; do not manufacture a package manifest, hand-edit a supported packet, or change the pinned runtime to bypass the gate.
+
 - The historical 0.31.0 file absence is not reproducible from current cache state. A source packaging
   omission and wrong compatibility variable are not supported by current evidence; a transiently
   incomplete or removed task-pinned cache root remains possible, but Codex's historical update
@@ -164,6 +168,8 @@
   not change.
 
 ## Last session
+
+- 2026-10-10: Diagnosed the daily labeler warning as a 348 MiB regular transcript excluded by the 256 MiB ceiling. The minimal 512 MiB candidate preserves all binding checks, passes 139 reader tests (one existing skip), and verifies the original immutable request in 1.608 seconds without labeling/importing it. Independent review found no code blocker but requires supported test-evidence; the current runner is unavailable for this repository. Missing enum captures and image/referent mismatches remain deferred. No model labeler, holdout, promotion, historical runtime change or native-cache reload occurred. Publication and current-runtime pin remain held.
 
 - 2026-10-06: Codex native multipart prompt text concatenates captions without separators; the AI-label transcript reader inserted newlines and rejected exact immutable snapshot hashes. Context Manager 0.43.2 / marketplace 2.100.3 preserves native concatenation for Codex and Claude newline separation. Synthetic native regressions fail before the repair and pass after (137 passed, one existing skip); the wider source-binding/configuration suite passes 992 with two existing skips. The 534-test release contract, seven impact-map contracts and generated map/setup/config checks pass against published Dev Flow 2.25.8. Independent native Claude Fable 5.1 review found no blocker; cold coordinator review verified the only transcript consumer discards assistant turns, no alternate Codex reader exists here, and private actual snapshots supply host parity evidence beyond the synthetic fixture. Native capture/hook source, collection digest, host trust and Arm A authority are unchanged; the reader and importer stay outside the collection digest. Labels are AI-reviewed silver data, not human acceptance or task-benefit evidence. Publication and final operator repin are pending.
 

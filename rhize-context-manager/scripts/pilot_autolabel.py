@@ -88,7 +88,8 @@ MAX_ATTEMPTS = 3
 # errors are not skips: they raise, and the run records them as an `import_failed` row that never counts.
 MAX_DETERMINISTIC_SKIPS = 2
 MAX_OUTPUT = 2 * 1024 * 1024
-MAX_TRANSCRIPT_BYTES = 256 * 1024 * 1024
+# shortcut: 512 MiB file ceiling; use an indexed reader if longer sessions exceed it.
+MAX_TRANSCRIPT_BYTES = 512 * 1024 * 1024
 MAX_TAXONOMY_BYTES = 128 * 1024
 MAX_PROMPT_BYTES = 256 * 1024          # one case plus the fixed framing must fit; a larger case fails on its own
 TURN_LIMIT, PRIOR_TURNS = 3800, 4
