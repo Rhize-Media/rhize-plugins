@@ -56,4 +56,36 @@ check('map-scan route() applies the same floor', () => {
   };
   assert.strictEqual(rc.route(doc, rc.tokenize('sanity on vercel'), 'sanity on vercel'), null);
 });
+
+// Codex review (2026-10-10): a partial name must not count as task evidence,
+// or two stack tags plus a partial name would bypass the stack floor.
+check('stack tags plus a partial name do not qualify', () => {
+  const idx = { signals: { 'skill:p/nextjs-sanity-seo': [
+    { kind: 'name', weight: 1, label: 'nextjs-sanity-seo' },
+    { kind: 'tag', facet: 'stack', weight: 2, label: 'nextjs' },
+    { kind: 'tag', facet: 'stack', weight: 2, label: 'sanity' },
+    { kind: 'tag', facet: 'topic', weight: 2, label: 'content-optimization' },
+  ] }, extendsBases: {} };
+  const p = 'our nextjs app pulls content from sanity and the build is slow';
+  assert.strictEqual(rc.routeFromIndex(idx, rc.tokenize(p), p), null);
+});
+// Codex review (2026-10-10): the map-scan fallback must see router phrases.
+check('route() fallback emits phrase signals like the index', () => {
+  const doc = {
+    nodes: [
+      { id: 'skill:p/clipper', kind: 'skill', name: 'clipper', routerPhrases: ['web clipping'] },
+      { id: 'tag:stack/obsidian', kind: 'tag', name: 'obsidian' },
+    ],
+    edges: [{ from: 'skill:p/clipper', to: 'tag:stack/obsidian', type: 'stack-tag' }],
+  };
+  const p = 'web clipping into my obsidian vault';
+  const viaMap = rc.route(doc, rc.tokenize(p), p);
+  const idx = { signals: { 'skill:p/clipper': [
+    { kind: 'name', weight: 1, label: 'clipper' },
+    { kind: 'phrase', weight: 2, label: 'web clipping' },
+    { kind: 'tag', facet: 'stack', weight: 2, label: 'obsidian' },
+  ] }, extendsBases: {} };
+  const viaIndex = rc.routeFromIndex(idx, rc.tokenize(p), p);
+  assert.ok(viaMap && viaIndex && viaMap.skillId === viaIndex.skillId && viaMap.score === viaIndex.score);
+});
 console.log(`${passed} passed`);

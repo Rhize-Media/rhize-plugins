@@ -109,8 +109,8 @@
     "false_trigger": 0,
     "n": 20,
     "other_cross_plugin": 0,
-    "other_same_plugin": 1,
-    "silent": 19
+    "other_same_plugin": 0,
+    "silent": 20
    },
    "eval_positives": {
     "hit": 1,
@@ -120,9 +120,9 @@
    },
    "long_negative_fires": 1,
    "probes": {
-    "hit": 3,
+    "hit": 2,
     "n": 4,
-    "silent": 0,
+    "silent": 1,
     "wrong": 1
    }
   },
@@ -1552,11 +1552,11 @@
   {
    "group": "eval",
    "id": "rhize-devflow/trigger-test-evidence-neg-data-mutation",
-   "outcome": "other_same_plugin",
+   "outcome": "silent",
    "prompt": "Our Sanity mutation leaves stale cache data after a write.",
    "should_trigger": false,
    "target": "skill:rhize-devflow/test-evidence",
-   "top": "skill:rhize-devflow/data-mutation-consistency"
+   "top": null
   },
   {
    "group": "eval",
@@ -1948,11 +1948,11 @@
   {
    "group": "probe",
    "id": "probe-retired-16",
-   "outcome": "hit",
+   "outcome": "silent",
    "prompt": "supabase data not updating after mutation",
    "should_trigger": true,
    "target": "skill:rhize-devflow/data-mutation-consistency",
-   "top": "skill:rhize-devflow/data-mutation-consistency"
+   "top": null
   },
   {
    "group": "probe",
@@ -2691,8 +2691,8 @@
    "false_trigger": 0,
    "n": 110,
    "other_cross_plugin": 0,
-   "other_same_plugin": 1,
-   "silent": 109
+   "other_same_plugin": 0,
+   "silent": 110
   },
   "eval_positives": {
    "hit": 13,
@@ -2708,9 +2708,9 @@
    "silent": 77
   },
   "probes": {
-   "hit": 10,
+   "hit": 9,
    "n": 17,
-   "silent": 4,
+   "silent": 5,
    "wrong": 3
   }
  }

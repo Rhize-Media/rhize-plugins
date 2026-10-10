@@ -519,7 +519,10 @@ _WORD_SPLIT_RE = re.compile(r"[^a-z0-9]+")
 
 
 def _normalize_word(word: str) -> str:
-    """Plural folding, byte-for-byte mirror of hooks/lib/route-core.js's
+    """Contract: only ever applied to [a-z0-9]+ tokens from _WORD_SPLIT_RE, so
+    Python len() and JS UTF-16 length agree (astral characters would not).
+
+    Plural folding, byte-for-byte mirror of hooks/lib/route-core.js's
     normalizeWord(): `-ies` -> `-y` when len > 4, else a trailing `-s` that
     isn't `-ss` is dropped when len > 3. Nothing else (no `-ing`/`-ed`), so
     `testing` never folds into `test`. Known harmless collisions (news -> new,

@@ -13,9 +13,9 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
   per phrase (`{"kind": "phrase", "weight": 2, "label": "<phrase>"}`), read from the skill node's
   `routerPhrases`. See [`docs/skill-map.md`](../skill-map.md)'s "Per-skill router phrases" for the
   validation rules. `routeFromIndex()` needs no special handling, because it matches every
-  signal by its label's words regardless of `kind`. The map-scanning fallback `route()` builds
-  signals from tag edges and names only, so it does not see phrases; that path runs only when no
-  indexes file exists. The new kind is additive and the static indexes keep `schemaVersion`
+  signal by its label's words regardless of `kind`. The map-scanning fallback `route()` emits the same
+  weight-2 `phrase` signals from each skill node's `routerPhrases` (Codex review 2026-10-10), so
+  both paths score phrase-dependent prompts identically. The new kind is additive and the static indexes keep `schemaVersion`
   `"1.1.0"`, as with the earlier additive remediation `labels` field: consumers that ignore
   `kind` see one more weight-2 signal, and nothing that reads the index rejects an unknown kind.
   `skill-router.js` reads this file first (`routeFromIndex()`) and only falls back to walking
@@ -42,15 +42,17 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
     missing exactly one name word gets one `{kind: "name-partial", weight: 0.5, label: "<name>
     (partial)"}` signal. **Guard:** if any skill's full name matched the prompt, every partial
     signal is suppressed for that prompt, so a sibling's near-miss can never beat (or qualify
-    against) the skill the prompt actually named.
+    against) the skill the prompt actually named. A narrower guard (only siblings sharing ≥ 2 name
+    words) was measured and rejected: it added a long-prompt misfire with no recall gain.
   - *Qualification.* At least 2 matched signals, at least one with weight ≥ 1 — a partial or
-    inferred signal adds score but never satisfies the floor on its own — and at least one that is
-    not a stack tag. Declared tag signals carry `facet: "stack" | "topic"` in the index
+    inferred signal adds score but never satisfies the floor on its own — and at least one piece of
+    *task evidence*: a full name, a phrase, or a non-stack declared tag. Partial names and inferred
+    tags never count as task evidence, so they cannot carry a stack-only match past the floor. Declared tag signals carry `facet: "stack" | "topic"` in the index
     (`build_router_index()`); two technology words such as `sanity` + `vercel` appear in almost
     every client-site question, so a match made only of stack tags is not evidence of the task
     (measured: it removed 2 of 5 over-firing long prompts and the only cross-plugin eval route; see
-    `evals/skill-map-routing/`). Signals without a facet (older indexes, names, phrases, inferred
-    tags) count as non-stack. Score is the sum.
+    `evals/skill-map-routing/`). Tag signals without a facet (older indexes) count as non-stack.
+    Score is the sum.
   - *Pick.* A qualifying extender scoring ≥ its base drops the base; then highest score wins,
     ties on skill id; at most one suggestion. `agent-brief-router.js` uses the same scoring, so
     its candidate series moves with any change here.

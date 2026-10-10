@@ -98,7 +98,10 @@ function shadowShortlist(index, promptTokens, incumbent) {
   if (!selected.length) return null;
   const id = (skillId) => 's' + crypto.createHash('sha256').update(skillId).digest('hex').slice(0, 16);
   const hint = (label) => String(label).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.flatMap((signal) => rawWordsOf(signal.label))))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
+  // Task hints come only from signals that actually matched in full: a
+  // name-partial label names a word the prompt lacks and carries the literal
+  // "(partial)" annotation, neither of which is a task hint.
+  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.filter((signal) => signal.kind !== 'name-partial').flatMap((signal) => rawWordsOf(signal.label))))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
   return {
     schema: 'rhize-typed-candidates-v1', capability: 'skill_workflow',
     sourceSha256: crypto.createHash('sha256').update(JSON.stringify(index)).digest('hex'),

@@ -119,6 +119,9 @@ function readIndexes() {
 // the unfolded words would not also have created against the same spelling.
 // Mirrored byte-for-byte by build_local_skill_map.py's _normalize_word();
 // tests/skill-map/fixtures/stem-parity.json pins both implementations.
+// Contract: called only on tokens from rawWordsOf(), which are [a-z0-9]+, so
+// JS UTF-16 length and Python len() agree; arbitrary Unicode input is out of
+// scope (Codex review 2026-10-10 noted astral characters would diverge).
 function normalizeWord(word) {
   const w = String(word);
   if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
@@ -239,9 +242,11 @@ function matchSignals(signals, promptTokens) {
   const matched = [];
   let nameMatched = false;
   let partial = null;
+  let nameWords = null;
   for (const sig of signals || []) {
     const words = wordsOf(sig.label);
     if (words.length === 0) continue;
+    if (sig.kind === 'name') nameWords = words;
     let missing = 0;
     for (const w of words) if (!promptTokens.has(w)) missing += 1;
     if (missing === 0) {
@@ -256,7 +261,7 @@ function matchSignals(signals, promptTokens) {
       partial = { kind: 'name-partial', weight: PARTIAL_NAME_WEIGHT, label: `${String(sig.label)} (partial)` };
     }
   }
-  return { matched, nameMatched, partial: nameMatched ? null : partial };
+  return { matched, nameMatched, nameWords, partial: nameMatched ? null : partial };
 }
 
 // Qualification floor shared by every caller: >= 2 matched signals, at least
@@ -269,10 +274,18 @@ function matchSignals(signals, promptTokens) {
 // a match made only of stack tags is not evidence of the task. Signals without
 // a facet (name, phrase, topic tags from older indexes, inferred tags) count as
 // non-stack, so older indexes behave exactly as before.
+// "Task evidence" is a full name, a phrase, or a non-stack declared tag. A
+// partial name or an inferred tag never counts: a partial built from two
+// stack-like name words (e.g. nextjs-sanity-seo on a prompt naming only Next.js
+// and Sanity) would otherwise smuggle a stack-only match past the floor.
+function isTaskEvidence(s) {
+  return s.kind !== 'name-partial' && s.kind !== 'tag-inferred' && s.facet !== 'stack';
+}
+
 function qualifies(matched) {
   return matched.length >= 2 &&
     matched.some((s) => s.weight >= 1) &&
-    matched.some((s) => s.facet !== 'stack');
+    matched.some(isTaskEvidence);
 }
 
 // Scores every skill in `entries` (an iterable of [skillId, signals]) against
@@ -287,9 +300,15 @@ function scoreCandidates(entries, promptTokens) {
     if (result.nameMatched) anyFullName = true;
     perSkill.push([skillId, result]);
   }
+  // Partial-name guard: once any skill's full name matched, every partial is
+  // suppressed for this prompt. A narrower "siblings sharing >= 2 name words"
+  // scope was measured (Codex review, 2026-10-10) and rejected: it let
+  // review-outreach-email fire on an unrelated long code-review prompt
+  // (evals/skill-map-routing long-negative fires 3 -> 4) with no recall gain.
+  const suppressed = (_skillId, result) => !result.partial || anyFullName;
   const scored = new Map();
   for (const [skillId, result] of perSkill) {
-    const matched = !anyFullName && result.partial ? [...result.matched, result.partial] : result.matched;
+    const matched = !suppressed(skillId, result) ? [...result.matched, result.partial] : result.matched;
     if (!qualifies(matched)) continue;
     scored.set(skillId, { score: matched.reduce((sum, s) => sum + s.weight, 0), signals: matched });
   }
@@ -395,6 +414,9 @@ function route(doc, promptTokens, prompt) {
     for (const edge of tagEdgesByFrom.get(skill.id) || []) {
       if (!tagNames.has(edge.to)) continue;
       signals.push({ kind: 'tag', facet: edge.type === 'stack-tag' ? 'stack' : 'topic', weight: 2, label: String(tagNames.get(edge.to)) });
+    }
+    for (const phrase of Array.isArray(skill.routerPhrases) ? skill.routerPhrases : []) {
+      signals.push({ kind: 'phrase', weight: 2, label: String(phrase) });
     }
     signals.push({ kind: 'name', weight: 1, label: String(skill.name) });
     return [skill.id, signals];

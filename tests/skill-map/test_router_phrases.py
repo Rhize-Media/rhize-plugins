@@ -133,3 +133,20 @@ def test_repo_sources_compile_to_declared_phrases():
         phrases = [s["label"] for s in signals if s["kind"] == "phrase"]
         assert phrases == EXPECTED.get(skill_id, []), skill_id
         assert all(s["weight"] == 2 for s in signals if s["kind"] == "phrase")
+
+
+# Codex review (2026-10-10): validation must compare phrases the way the router
+# matches them — unordered, plural-folded word sets — not as literal text.
+def test_phrase_matching_own_slug_after_plural_folding_is_rejected():
+    with pytest.raises(build.BuildError, match="repeats the skill's own tag slug"):
+        build.parse_router_phrases({"phrases": ["SEO audits"]}, {"seo-audit"}, "x/SKILL.md")
+
+
+def test_reordered_phrase_is_a_duplicate():
+    with pytest.raises(build.BuildError, match="duplicate router phrase"):
+        build.parse_router_phrases({"phrases": ["web clipping", "clipping web"]}, set(), "x/SKILL.md")
+
+
+def test_plural_variant_phrase_is_a_duplicate():
+    with pytest.raises(build.BuildError, match="duplicate router phrase"):
+        build.parse_router_phrases({"phrases": ["web clipping", "web clippings"]}, set(), "x/SKILL.md")

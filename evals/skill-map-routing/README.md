@@ -115,7 +115,7 @@ from the named checkout and the frozen third-party snapshot.
 |---|---|---|---|---|
 | `0fd4619`, before the Oct 10 tag work (`baseline-pre-cleanup-0fd4619.json`) | 9 / 6 / 57 | 0 / 1 | 11 / 2 | 4 |
 | `1ace47d`, after the tag cleanup (`baseline-main-1ace47d.json`) | 9 / 7 / 56 | 0 / 1 | 4 / 3 | 4 |
-| routing-optimization branch (`baseline.json`) | 13 / 5 / 54 | 0 / 0 | 10 / 3 | 3 |
+| routing-optimization branch after the Codex review fixes (`baseline.json`) | 13 / 5 / 54 | 0 / 0 | 9 / 3 | 3 |
 
 **Changes in the branch:**
 - Removed `seo-audit` from the five non-audit SEO skills.
@@ -136,5 +136,12 @@ from the named checkout and the frozen third-party snapshot.
 - "clip this web page…": the word is "clip", not "web clipping".
 - "seo for our nextjs sanity cms development site": the label is arguable.
 - "stale data in nextjs after supabase write": stack-only, by design.
+
+**Codex review fixes (via rhize-bridge, 2026-10-10):**
+- Partial names and inferred tags no longer count as task evidence. That closed a stack-floor bypass; probe "supabase data not updating after mutation" went silent as a result.
+- `route()` now sees router phrases.
+- Shadow task hints exclude partial labels.
+- Phrase validation compares plural-folded word sets.
+- A sibling-scoped partial guard was measured and rejected: long-negative fires went 3 → 4.
 
 Differences of ±3 are within noise on this sample.

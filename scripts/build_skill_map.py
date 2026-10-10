@@ -376,6 +376,23 @@ MAX_ROUTER_PHRASES = 3
 _PHRASE_WORD_SPLIT_RE = re.compile(r"[^a-z0-9]+")
 
 
+def _fold_match_word(word: str) -> str:
+    """route-core.js normalizeWord() (plural folding) for [a-z0-9]+ tokens, so
+    phrase validation compares phrases the way the router will match them."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
+
+
+def _match_key(text: str) -> frozenset[str]:
+    """The set of folded words a router signal label needs in the prompt.
+    Matching is unordered word membership, so two labels with the same key
+    are the same evidence ("SEO audits" == tag seo-audit == "audit seo")."""
+    return frozenset(_fold_match_word(w) for w in _PHRASE_WORD_SPLIT_RE.split(text.lower()) if w)
+
+
 def parse_router_phrases(router_meta, own_slugs: set[str], rel_path: str) -> list[str]:
     """Validate a skill's optional `metadata.rhize.router.phrases` list and
     return it normalized and sorted.
@@ -410,6 +427,8 @@ def parse_router_phrases(router_meta, own_slugs: set[str], rel_path: str) -> lis
             f"at most {MAX_ROUTER_PHRASES} are allowed"
         )
     seen: set[str] = set()
+    seen_keys: dict[frozenset, str] = {}
+    slug_keys = {_match_key(slug): slug for slug in own_slugs}
     for phrase in raw:
         if not isinstance(phrase, str):
             raise BuildError(f"{rel_path}: router phrase {phrase!r} must be a string")
@@ -419,14 +438,16 @@ def parse_router_phrases(router_meta, own_slugs: set[str], rel_path: str) -> lis
                 f"{rel_path}: router phrase {phrase!r} must have at least 2 words"
             )
         normalized = " ".join(words)
-        if normalized in seen:
+        key = _match_key(normalized)
+        if normalized in seen or key in seen_keys:
             raise BuildError(f"{rel_path}: duplicate router phrase {phrase!r}")
-        if "-".join(words) in own_slugs:
+        if key in slug_keys:
             raise BuildError(
                 f"{rel_path}: router phrase {phrase!r} repeats the skill's own tag slug "
-                f"{'-'.join(words)!r}; the tag already supplies that signal"
+                f"{slug_keys[key]!r} (same words once plurals fold); the tag already supplies that signal"
             )
         seen.add(normalized)
+        seen_keys[key] = normalized
     return sorted(seen)
 
 
