@@ -1,0 +1,41 @@
+{
+ "note": "Gates for score.py --check. `value: \"baseline\"` means the same metric in the baseline results.json. The coordinator is expected to tighten these.",
+ "gates": [
+  {
+   "id": "eval_false_trigger",
+   "metric": "summary.eval_negatives.false_trigger",
+   "op": "==",
+   "value": 0
+  },
+  {
+   "id": "eval_other_cross_plugin",
+   "metric": "summary.eval_negatives.other_cross_plugin",
+   "op": "<=",
+   "value": "baseline"
+  },
+  {
+   "id": "long_negative_fire_rate",
+   "metric": "summary.long_negatives.fire_rate",
+   "op": "<=",
+   "value": "baseline"
+  },
+  {
+   "id": "probe_wrong",
+   "metric": "summary.probes.wrong",
+   "op": "<=",
+   "value": 2
+  },
+  {
+   "id": "eval_wrong",
+   "metric": "summary.eval_positives.wrong",
+   "op": "<=",
+   "value": "baseline"
+  },
+  {
+   "id": "eval_hit",
+   "metric": "summary.eval_positives.hit",
+   "op": ">=",
+   "value": "baseline"
+  }
+ ]
+}

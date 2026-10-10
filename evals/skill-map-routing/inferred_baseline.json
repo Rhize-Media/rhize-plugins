@@ -1,0 +1,820 @@
+{
+ "skill:claude-plugins-official/agentforce-adlc/agentforce-generate": [],
+ "skill:claude-plugins-official/agentforce-adlc/agentforce-observe": [],
+ "skill:claude-plugins-official/agentforce-adlc/agentforce-test": [],
+ "skill:claude-plugins-official/expo/eas-app-stores": [],
+ "skill:claude-plugins-official/expo/eas-hosting": [],
+ "skill:claude-plugins-official/expo/eas-observe": [],
+ "skill:claude-plugins-official/expo/eas-simulator": [],
+ "skill:claude-plugins-official/expo/eas-update-insights": [],
+ "skill:claude-plugins-official/expo/eas-workflows": [],
+ "skill:claude-plugins-official/expo/expo-app-clip": [],
+ "skill:claude-plugins-official/expo/expo-brownfield": [],
+ "skill:claude-plugins-official/expo/expo-data-fetching": [],
+ "skill:claude-plugins-official/expo/expo-dev-client": [
+  "testing"
+ ],
+ "skill:claude-plugins-official/expo/expo-dom": [],
+ "skill:claude-plugins-official/expo/expo-examples": [],
+ "skill:claude-plugins-official/expo/expo-module": [],
+ "skill:claude-plugins-official/expo/expo-native-ui": [],
+ "skill:claude-plugins-official/expo/expo-project-structure": [],
+ "skill:claude-plugins-official/expo/expo-router": [],
+ "skill:claude-plugins-official/expo/expo-skill-feedback": [],
+ "skill:claude-plugins-official/expo/expo-tailwind-setup": [],
+ "skill:claude-plugins-official/expo/expo-ui": [],
+ "skill:claude-plugins-official/expo/expo-upgrade": [],
+ "skill:claude-plugins-official/expo/expo-web-to-native": [],
+ "skill:claude-plugins-official/hookify/writing-rules": [],
+ "skill:claude-plugins-official/posthog/analyzing-expensive-users": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/analyzing-experiment-session-replays": [],
+ "skill:claude-plugins-official/posthog/assessing-heatmaps": [],
+ "skill:claude-plugins-official/posthog/auditing-endpoints": [],
+ "skill:claude-plugins-official/posthog/auditing-experiments-flags": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/auditing-warehouse-source-health": [],
+ "skill:claude-plugins-official/posthog/auditing-warehouse-view-health": [],
+ "skill:claude-plugins-official/posthog/authoring-error-tracking-alerts": [],
+ "skill:claude-plugins-official/posthog/authoring-log-alerts": [],
+ "skill:claude-plugins-official/posthog/authoring-scouts": [],
+ "skill:claude-plugins-official/posthog/building-a-dashboard": [],
+ "skill:claude-plugins-official/posthog/building-workflows": [],
+ "skill:claude-plugins-official/posthog/checking-deploy-timing": [],
+ "skill:claude-plugins-official/posthog/choosing-trend-or-slope-view": [],
+ "skill:claude-plugins-official/posthog/cleaning-up-stale-feature-flags": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/configuring-experiment-analytics": [],
+ "skill:claude-plugins-official/posthog/configuring-experiment-rollout": [],
+ "skill:claude-plugins-official/posthog/consuming-endpoints-from-client-code": [],
+ "skill:claude-plugins-official/posthog/copying-endpoints-across-projects": [],
+ "skill:claude-plugins-official/posthog/copying-flags-across-projects": [],
+ "skill:claude-plugins-official/posthog/creating-ai-subscription": [],
+ "skill:claude-plugins-official/posthog/creating-an-endpoint": [],
+ "skill:claude-plugins-official/posthog/creating-experiments": [],
+ "skill:claude-plugins-official/posthog/creating-online-evaluations": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/creating-replay-vision-scanners": [],
+ "skill:claude-plugins-official/posthog/debugging-local-replay": [],
+ "skill:claude-plugins-official/posthog/debugging-signals-pipeline": [],
+ "skill:claude-plugins-official/posthog/debugging-surveys": [],
+ "skill:claude-plugins-official/posthog/designing-email-templates": [],
+ "skill:claude-plugins-official/posthog/diagnosing-ci-and-merge-bottlenecks": [],
+ "skill:claude-plugins-official/posthog/diagnosing-endpoint-performance": [],
+ "skill:claude-plugins-official/posthog/diagnosing-experiment-results": [],
+ "skill:claude-plugins-official/posthog/diagnosing-failed-warehouse-syncs": [],
+ "skill:claude-plugins-official/posthog/diagnosing-missing-recordings": [],
+ "skill:claude-plugins-official/posthog/diagnosing-sdk-health": [],
+ "skill:claude-plugins-official/posthog/diagnosing-stacktrace-symbolication": [],
+ "skill:claude-plugins-official/posthog/downloading-batch-export-files": [],
+ "skill:claude-plugins-official/posthog/exploring-ai-failures": [],
+ "skill:claude-plugins-official/posthog/exploring-apm-traces": [],
+ "skill:claude-plugins-official/posthog/exploring-autocapture-events": [],
+ "skill:claude-plugins-official/posthog/exploring-endpoint-execution-logs": [],
+ "skill:claude-plugins-official/posthog/exploring-live-traffic": [],
+ "skill:claude-plugins-official/posthog/exploring-llm-clusters": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/exploring-llm-costs": [],
+ "skill:claude-plugins-official/posthog/exploring-llm-evaluations": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/exploring-llm-traces": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/exploring-mcp-intent-clusters": [],
+ "skill:claude-plugins-official/posthog/exploring-mcp-sessions": [],
+ "skill:claude-plugins-official/posthog/exploring-mcp-tool-quality": [],
+ "skill:claude-plugins-official/posthog/exploring-mcp-tool-usage": [],
+ "skill:claude-plugins-official/posthog/exploring-replay-vision-observations": [],
+ "skill:claude-plugins-official/posthog/exploring-scouts": [],
+ "skill:claude-plugins-official/posthog/feature-usage-feed": [],
+ "skill:claude-plugins-official/posthog/filtering-bot-traffic": [],
+ "skill:claude-plugins-official/posthog/finding-deleted-feature-flags": [],
+ "skill:claude-plugins-official/posthog/finding-experiments": [],
+ "skill:claude-plugins-official/posthog/finding-replay-for-issue": [],
+ "skill:claude-plugins-official/posthog/finding-sessions-to-watch": [],
+ "skill:claude-plugins-official/posthog/formatting-insight-axes": [],
+ "skill:claude-plugins-official/posthog/grouping-noisy-errors": [],
+ "skill:claude-plugins-official/posthog/improving-mcp-tools": [],
+ "skill:claude-plugins-official/posthog/inbox-exploration": [],
+ "skill:claude-plugins-official/posthog/instrument-error-tracking": [],
+ "skill:claude-plugins-official/posthog/instrument-feature-flags": [],
+ "skill:claude-plugins-official/posthog/instrument-integration": [],
+ "skill:claude-plugins-official/posthog/instrument-llm-analytics": [],
+ "skill:claude-plugins-official/posthog/instrument-logs": [],
+ "skill:claude-plugins-official/posthog/instrument-product-analytics": [],
+ "skill:claude-plugins-official/posthog/investigate-metric": [],
+ "skill:claude-plugins-official/posthog/investigating-ci-failures": [],
+ "skill:claude-plugins-official/posthog/investigating-error-issue": [],
+ "skill:claude-plugins-official/posthog/investigating-logs": [],
+ "skill:claude-plugins-official/posthog/investigating-metric-anomalies": [
+  "evidence"
+ ],
+ "skill:claude-plugins-official/posthog/investigating-replay": [],
+ "skill:claude-plugins-official/posthog/managing-endpoint-versions": [],
+ "skill:claude-plugins-official/posthog/managing-experiment-lifecycle": [],
+ "skill:claude-plugins-official/posthog/managing-path-cleaning-rules": [],
+ "skill:claude-plugins-official/posthog/managing-reminders": [],
+ "skill:claude-plugins-official/posthog/managing-subscriptions": [],
+ "skill:claude-plugins-official/posthog/planning-voice-agent-user-interviews": [],
+ "skill:claude-plugins-official/posthog/querying-posthog-data": [
+  "search"
+ ],
+ "skill:claude-plugins-official/posthog/resolving-ingestion-warnings": [],
+ "skill:claude-plugins-official/posthog/review-hog-authoring": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/review-hog-blind-spots-general": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/review-hog-perspective-contracts-security": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/review-hog-perspective-logic-correctness": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/review-hog-perspective-performance-reliability": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/review-hog-validation-criteria": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/setting-up-a-custom-rest-source": [],
+ "skill:claude-plugins-official/posthog/setting-up-a-data-warehouse-source": [],
+ "skill:claude-plugins-official/posthog/setting-up-data-catalog": [],
+ "skill:claude-plugins-official/posthog/setting-up-support-slack-locally": [],
+ "skill:claude-plugins-official/posthog/signals": [
+  "search"
+ ],
+ "skill:claude-plugins-official/posthog/signals-scout-ai-observability": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/signals-scout-anomaly-detection": [],
+ "skill:claude-plugins-official/posthog/signals-scout-apm": [],
+ "skill:claude-plugins-official/posthog/signals-scout-conversations": [],
+ "skill:claude-plugins-official/posthog/signals-scout-csp-violations": [],
+ "skill:claude-plugins-official/posthog/signals-scout-customer-analytics": [],
+ "skill:claude-plugins-official/posthog/signals-scout-data-pipelines": [],
+ "skill:claude-plugins-official/posthog/signals-scout-data-warehouse": [],
+ "skill:claude-plugins-official/posthog/signals-scout-error-tracking": [],
+ "skill:claude-plugins-official/posthog/signals-scout-experiments": [],
+ "skill:claude-plugins-official/posthog/signals-scout-feature-flags": [],
+ "skill:claude-plugins-official/posthog/signals-scout-general": [],
+ "skill:claude-plugins-official/posthog/signals-scout-health-checks": [],
+ "skill:claude-plugins-official/posthog/signals-scout-inbox-validation": [],
+ "skill:claude-plugins-official/posthog/signals-scout-ingestion-warnings": [],
+ "skill:claude-plugins-official/posthog/signals-scout-insight-alerts": [],
+ "skill:claude-plugins-official/posthog/signals-scout-logs": [],
+ "skill:claude-plugins-official/posthog/signals-scout-mcp-tool-calls": [],
+ "skill:claude-plugins-official/posthog/signals-scout-observability-gaps": [
+  "observability"
+ ],
+ "skill:claude-plugins-official/posthog/signals-scout-product-analytics": [],
+ "skill:claude-plugins-official/posthog/signals-scout-replay-vision": [],
+ "skill:claude-plugins-official/posthog/signals-scout-revenue-analytics": [],
+ "skill:claude-plugins-official/posthog/signals-scout-session-replay": [],
+ "skill:claude-plugins-official/posthog/signals-scout-skills-store": [],
+ "skill:claude-plugins-official/posthog/signals-scout-surveys": [],
+ "skill:claude-plugins-official/posthog/signals-scout-tasks": [],
+ "skill:claude-plugins-official/posthog/signals-scout-web-analytics": [],
+ "skill:claude-plugins-official/posthog/signals-scout-web-vitals": [],
+ "skill:claude-plugins-official/posthog/skills-store": [],
+ "skill:claude-plugins-official/posthog/suggesting-data-imports": [],
+ "skill:claude-plugins-official/posthog/suppressing-noisy-errors": [],
+ "skill:claude-plugins-official/posthog/testing-mcp-tools-locally": [
+  "testing"
+ ],
+ "skill:claude-plugins-official/posthog/triaging-error-issues": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/triaging-visual-review-runs": [
+  "review"
+ ],
+ "skill:claude-plugins-official/posthog/tuning-incremental-sync-config": [],
+ "skill:claude-plugins-official/posthog/turning-engineering-analytics-into-insights": [],
+ "skill:claude-plugins-official/posthog/working-with-skills": [],
+ "skill:claude-plugins-official/semgrep/install-mfw": [],
+ "skill:claude-plugins-official/superpowers/brainstorming": [],
+ "skill:claude-plugins-official/superpowers/dispatching-parallel-agents": [],
+ "skill:claude-plugins-official/superpowers/executing-plans": [
+  "review"
+ ],
+ "skill:claude-plugins-official/superpowers/finishing-a-development-branch": [],
+ "skill:claude-plugins-official/superpowers/receiving-code-review": [
+  "review"
+ ],
+ "skill:claude-plugins-official/superpowers/requesting-code-review": [
+  "review"
+ ],
+ "skill:claude-plugins-official/superpowers/subagent-driven-development": [],
+ "skill:claude-plugins-official/superpowers/systematic-debugging": [],
+ "skill:claude-plugins-official/superpowers/test-driven-development": [],
+ "skill:claude-plugins-official/superpowers/using-git-worktrees": [],
+ "skill:claude-plugins-official/superpowers/using-superpowers": [],
+ "skill:claude-plugins-official/superpowers/verification-before-completion": [],
+ "skill:claude-plugins-official/superpowers/writing-plans": [],
+ "skill:claude-plugins-official/superpowers/writing-skills": [],
+ "skill:claude-plugins-official/vercel/ai-gateway": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/ai-sdk": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/auth": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/bootstrap": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/cdn-caching": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/chat-sdk": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/deployments-cicd": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/env-vars": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/eve": [],
+ "skill:claude-plugins-official/vercel/knowledge-update": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/marketplace": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/microfrontends": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/next-cache-components": [],
+ "skill:claude-plugins-official/vercel/next-forge": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/next-upgrade": [],
+ "skill:claude-plugins-official/vercel/nextjs": [
+  "nextjs"
+ ],
+ "skill:claude-plugins-official/vercel/react-best-practices": [],
+ "skill:claude-plugins-official/vercel/routing-middleware": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/runtime-cache": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/shadcn": [],
+ "skill:claude-plugins-official/vercel/turbopack": [],
+ "skill:claude-plugins-official/vercel/vercel-agent": [
+  "review",
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-cli": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-connect": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-firewall": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-functions": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-sandbox": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/vercel-storage": [
+  "vercel"
+ ],
+ "skill:claude-plugins-official/vercel/verification": [],
+ "skill:claude-plugins-official/vercel/workflow": [
+  "vercel"
+ ],
+ "skill:everything-claude-code/ecc/accessibility": [],
+ "skill:everything-claude-code/ecc/agent-architecture-audit": [],
+ "skill:everything-claude-code/ecc/agent-eval": [],
+ "skill:everything-claude-code/ecc/agent-harness-construction": [
+  "tool-design"
+ ],
+ "skill:everything-claude-code/ecc/agent-introspection-debugging": [],
+ "skill:everything-claude-code/ecc/agent-payment-x402": [],
+ "skill:everything-claude-code/ecc/agent-self-evaluation": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/agent-sort": [
+  "evidence",
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/agentic-engineering": [],
+ "skill:everything-claude-code/ecc/agentic-os": [
+  "automation",
+  "memory-systems"
+ ],
+ "skill:everything-claude-code/ecc/ai-first-engineering": [],
+ "skill:everything-claude-code/ecc/ai-regression-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/android-clean-architecture": [],
+ "skill:everything-claude-code/ecc/angular-developer": [],
+ "skill:everything-claude-code/ecc/api-connector-builder": [],
+ "skill:everything-claude-code/ecc/api-design": [],
+ "skill:everything-claude-code/ecc/architecture-decision-records": [],
+ "skill:everything-claude-code/ecc/article-writing": [],
+ "skill:everything-claude-code/ecc/automation-audit-ops": [
+  "automation",
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/autonomous-agent-harness": [],
+ "skill:everything-claude-code/ecc/autonomous-loops": [],
+ "skill:everything-claude-code/ecc/backend-patterns": [],
+ "skill:everything-claude-code/ecc/benchmark": [],
+ "skill:everything-claude-code/ecc/benchmark-methodology": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/benchmark-optimization-loop": [],
+ "skill:everything-claude-code/ecc/blender-motion-state-inspection": [],
+ "skill:everything-claude-code/ecc/blueprint": [
+  "context-engineering"
+ ],
+ "skill:everything-claude-code/ecc/brand-discovery": [],
+ "skill:everything-claude-code/ecc/brand-voice": [
+  "outreach"
+ ],
+ "skill:everything-claude-code/ecc/browser-qa": [
+  "automation",
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/bun-runtime": [
+  "vercel"
+ ],
+ "skill:everything-claude-code/ecc/canary-watch": [],
+ "skill:everything-claude-code/ecc/carrier-relationship-management": [],
+ "skill:everything-claude-code/ecc/cisco-ios-patterns": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/ck": [],
+ "skill:everything-claude-code/ecc/claude-devfleet": [],
+ "skill:everything-claude-code/ecc/click-path-audit": [],
+ "skill:everything-claude-code/ecc/clickhouse-io": [],
+ "skill:everything-claude-code/ecc/code-tour": [],
+ "skill:everything-claude-code/ecc/codebase-onboarding": [],
+ "skill:everything-claude-code/ecc/codehealth-mcp": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/coding-standards": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/competitive-platform-analysis": [],
+ "skill:everything-claude-code/ecc/competitive-report-structure": [],
+ "skill:everything-claude-code/ecc/compose-multiplatform-patterns": [],
+ "skill:everything-claude-code/ecc/config-gc": [],
+ "skill:everything-claude-code/ecc/configure-ecc": [],
+ "skill:everything-claude-code/ecc/connections-optimizer": [
+  "outreach",
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/content-engine": [],
+ "skill:everything-claude-code/ecc/content-hash-cache-pattern": [],
+ "skill:everything-claude-code/ecc/context-budget": [],
+ "skill:everything-claude-code/ecc/continuous-agent-loop": [],
+ "skill:everything-claude-code/ecc/continuous-learning": [],
+ "skill:everything-claude-code/ecc/continuous-learning-v2": [],
+ "skill:everything-claude-code/ecc/contract-first": [],
+ "skill:everything-claude-code/ecc/cost-aware-llm-pipeline": [],
+ "skill:everything-claude-code/ecc/cost-tracking": [],
+ "skill:everything-claude-code/ecc/council": [],
+ "skill:everything-claude-code/ecc/cpp-coding-standards": [],
+ "skill:everything-claude-code/ecc/cpp-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/crosspost": [],
+ "skill:everything-claude-code/ecc/csharp-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/customer-billing-ops": [],
+ "skill:everything-claude-code/ecc/customs-trade-compliance": [],
+ "skill:everything-claude-code/ecc/dart-flutter-patterns": [],
+ "skill:everything-claude-code/ecc/dashboard-builder": [],
+ "skill:everything-claude-code/ecc/data-scraper-agent": [],
+ "skill:everything-claude-code/ecc/data-throughput-accelerator": [],
+ "skill:everything-claude-code/ecc/database-migrations": [
+  "postgresql"
+ ],
+ "skill:everything-claude-code/ecc/deep-research": [],
+ "skill:everything-claude-code/ecc/defi-amm-security": [],
+ "skill:everything-claude-code/ecc/delivery-gate": [],
+ "skill:everything-claude-code/ecc/deployment-patterns": [],
+ "skill:everything-claude-code/ecc/design-system": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/django-celery": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/django-patterns": [],
+ "skill:everything-claude-code/ecc/django-security": [],
+ "skill:everything-claude-code/ecc/django-tdd": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/django-verification": [],
+ "skill:everything-claude-code/ecc/dmux-workflows": [],
+ "skill:everything-claude-code/ecc/docker-patterns": [],
+ "skill:everything-claude-code/ecc/documentation-lookup": [],
+ "skill:everything-claude-code/ecc/dotnet-patterns": [],
+ "skill:everything-claude-code/ecc/dynamic-workflow-mode": [],
+ "skill:everything-claude-code/ecc/e2e-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/ecc-guide": [],
+ "skill:everything-claude-code/ecc/ecc-recipes": [],
+ "skill:everything-claude-code/ecc/ecc-tools-cost-audit": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/email-ops": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/energy-procurement": [],
+ "skill:everything-claude-code/ecc/enterprise-agent-ops": [
+  "observability"
+ ],
+ "skill:everything-claude-code/ecc/error-handling": [],
+ "skill:everything-claude-code/ecc/eval-harness": [],
+ "skill:everything-claude-code/ecc/evm-token-decimals": [],
+ "skill:everything-claude-code/ecc/exa-search": [
+  "search"
+ ],
+ "skill:everything-claude-code/ecc/fal-ai-media": [],
+ "skill:everything-claude-code/ecc/fastapi-patterns": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/finance-billing-ops": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/flox-environments": [],
+ "skill:everything-claude-code/ecc/flutter-dart-code-review": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/foundation-models-on-device": [],
+ "skill:everything-claude-code/ecc/frontend-a11y": [],
+ "skill:everything-claude-code/ecc/frontend-design-direction": [],
+ "skill:everything-claude-code/ecc/frontend-patterns": [],
+ "skill:everything-claude-code/ecc/frontend-slides": [],
+ "skill:everything-claude-code/ecc/fsharp-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/gan-style-harness": [],
+ "skill:everything-claude-code/ecc/gateguard": [],
+ "skill:everything-claude-code/ecc/generating-python-installer": [],
+ "skill:everything-claude-code/ecc/git-workflow": [
+  "workflow-patterns"
+ ],
+ "skill:everything-claude-code/ecc/github-ops": [
+  "automation"
+ ],
+ "skill:everything-claude-code/ecc/golang-patterns": [],
+ "skill:everything-claude-code/ecc/golang-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/google-workspace-ops": [],
+ "skill:everything-claude-code/ecc/growth-log": [],
+ "skill:everything-claude-code/ecc/healthcare-cdss-patterns": [],
+ "skill:everything-claude-code/ecc/healthcare-emr-patterns": [],
+ "skill:everything-claude-code/ecc/healthcare-eval-harness": [],
+ "skill:everything-claude-code/ecc/healthcare-phi-compliance": [],
+ "skill:everything-claude-code/ecc/hermes-imports": [],
+ "skill:everything-claude-code/ecc/hexagonal-architecture": [],
+ "skill:everything-claude-code/ecc/hipaa-compliance": [],
+ "skill:everything-claude-code/ecc/homelab-network-readiness": [],
+ "skill:everything-claude-code/ecc/homelab-network-setup": [],
+ "skill:everything-claude-code/ecc/homelab-pihole-dns": [],
+ "skill:everything-claude-code/ecc/homelab-vlan-segmentation": [],
+ "skill:everything-claude-code/ecc/homelab-wireguard-vpn": [],
+ "skill:everything-claude-code/ecc/hookify-rules": [],
+ "skill:everything-claude-code/ecc/inherit-legacy-style": [],
+ "skill:everything-claude-code/ecc/intent-driven-development": [],
+ "skill:everything-claude-code/ecc/inventory-demand-planning": [],
+ "skill:everything-claude-code/ecc/investor-materials": [],
+ "skill:everything-claude-code/ecc/investor-outreach": [
+  "outreach"
+ ],
+ "skill:everything-claude-code/ecc/ios-icon-gen": [],
+ "skill:everything-claude-code/ecc/iterative-retrieval": [],
+ "skill:everything-claude-code/ecc/ito-basket-compare": [],
+ "skill:everything-claude-code/ecc/ito-compute": [],
+ "skill:everything-claude-code/ecc/ito-data-atlas-agent": [],
+ "skill:everything-claude-code/ecc/ito-inference": [],
+ "skill:everything-claude-code/ecc/ito-market-intelligence": [],
+ "skill:everything-claude-code/ecc/ito-trade-planner": [],
+ "skill:everything-claude-code/ecc/ito-training": [],
+ "skill:everything-claude-code/ecc/java-coding-standards": [],
+ "skill:everything-claude-code/ecc/jira-integration": [],
+ "skill:everything-claude-code/ecc/jpa-patterns": [],
+ "skill:everything-claude-code/ecc/knowledge-ops": [
+  "knowledge-management"
+ ],
+ "skill:everything-claude-code/ecc/kotlin-coroutines-flows": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/kotlin-exposed-patterns": [],
+ "skill:everything-claude-code/ecc/kotlin-ktor-patterns": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/kotlin-patterns": [],
+ "skill:everything-claude-code/ecc/kotlin-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/kubernetes-patterns": [],
+ "skill:everything-claude-code/ecc/laravel-patterns": [],
+ "skill:everything-claude-code/ecc/laravel-plugin-discovery": [],
+ "skill:everything-claude-code/ecc/laravel-security": [],
+ "skill:everything-claude-code/ecc/laravel-tdd": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/laravel-verification": [],
+ "skill:everything-claude-code/ecc/latency-critical-systems": [],
+ "skill:everything-claude-code/ecc/lead-intelligence": [
+  "outreach"
+ ],
+ "skill:everything-claude-code/ecc/liquid-glass-design": [],
+ "skill:everything-claude-code/ecc/llm-trading-agent-security": [],
+ "skill:everything-claude-code/ecc/logistics-exception-management": [],
+ "skill:everything-claude-code/ecc/loop-design-check": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/mailtrap-email-integration": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/make-interfaces-feel-better": [],
+ "skill:everything-claude-code/ecc/manim-video": [],
+ "skill:everything-claude-code/ecc/market-research": [],
+ "skill:everything-claude-code/ecc/marketing-campaign": [],
+ "skill:everything-claude-code/ecc/mcp-server-patterns": [],
+ "skill:everything-claude-code/ecc/messages-ops": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/ml-adoption-playbook": [],
+ "skill:everything-claude-code/ecc/mle-workflow": [],
+ "skill:everything-claude-code/ecc/motion-advanced": [],
+ "skill:everything-claude-code/ecc/motion-foundations": [],
+ "skill:everything-claude-code/ecc/motion-patterns": [],
+ "skill:everything-claude-code/ecc/motion-ui": [],
+ "skill:everything-claude-code/ecc/mysql-patterns": [],
+ "skill:everything-claude-code/ecc/nanoclaw-repl": [],
+ "skill:everything-claude-code/ecc/nestjs-patterns": [],
+ "skill:everything-claude-code/ecc/netmiko-ssh-automation": [
+  "automation"
+ ],
+ "skill:everything-claude-code/ecc/network-bgp-diagnostics": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/network-config-validation": [],
+ "skill:everything-claude-code/ecc/network-interface-health": [],
+ "skill:everything-claude-code/ecc/nextjs-turbopack": [
+  "nextjs"
+ ],
+ "skill:everything-claude-code/ecc/nodejs-keccak256": [],
+ "skill:everything-claude-code/ecc/nutrient-document-processing": [],
+ "skill:everything-claude-code/ecc/nuxt4-patterns": [],
+ "skill:everything-claude-code/ecc/openclaw-persona-forge": [],
+ "skill:everything-claude-code/ecc/opensource-pipeline": [],
+ "skill:everything-claude-code/ecc/orch-add-feature": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/orch-build-mvp": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/orch-change-feature": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/orch-fix-defect": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/orch-pipeline": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/orch-refine-code": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/parallel-execution-optimizer": [],
+ "skill:everything-claude-code/ecc/perl-patterns": [],
+ "skill:everything-claude-code/ecc/perl-security": [],
+ "skill:everything-claude-code/ecc/perl-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/plan-canvas": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/plan-orchestrate": [],
+ "skill:everything-claude-code/ecc/plankton-code-quality": [],
+ "skill:everything-claude-code/ecc/postgres-patterns": [
+  "postgresql"
+ ],
+ "skill:everything-claude-code/ecc/prediction-market-oracle-research": [],
+ "skill:everything-claude-code/ecc/prediction-market-risk-review": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/prisma-patterns": [],
+ "skill:everything-claude-code/ecc/product-capability": [],
+ "skill:everything-claude-code/ecc/product-lens": [],
+ "skill:everything-claude-code/ecc/production-audit": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/production-scheduling": [],
+ "skill:everything-claude-code/ecc/project-flow-ops": [],
+ "skill:everything-claude-code/ecc/prompt-optimizer": [],
+ "skill:everything-claude-code/ecc/python-patterns": [],
+ "skill:everything-claude-code/ecc/python-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/pytorch-patterns": [],
+ "skill:everything-claude-code/ecc/quality-nonconformance": [],
+ "skill:everything-claude-code/ecc/quarkus-patterns": [],
+ "skill:everything-claude-code/ecc/quarkus-security": [],
+ "skill:everything-claude-code/ecc/quarkus-tdd": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/quarkus-verification": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/ralphinho-rfc-pipeline": [],
+ "skill:everything-claude-code/ecc/react-native-patterns": [],
+ "skill:everything-claude-code/ecc/react-patterns": [],
+ "skill:everything-claude-code/ecc/react-performance": [
+  "vercel"
+ ],
+ "skill:everything-claude-code/ecc/react-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/recsys-pipeline-architect": [],
+ "skill:everything-claude-code/ecc/recursive-decision-ledger": [
+  "search"
+ ],
+ "skill:everything-claude-code/ecc/redis-patterns": [],
+ "skill:everything-claude-code/ecc/regex-vs-llm-structured-text": [],
+ "skill:everything-claude-code/ecc/remotion-video-creation": [],
+ "skill:everything-claude-code/ecc/repo-scan": [],
+ "skill:everything-claude-code/ecc/research-ops": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/returns-reverse-logistics": [],
+ "skill:everything-claude-code/ecc/rules-distill": [],
+ "skill:everything-claude-code/ecc/rust-patterns": [],
+ "skill:everything-claude-code/ecc/rust-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/safety-guard": [],
+ "skill:everything-claude-code/ecc/santa-method": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/scientific-db-pubmed-database": [
+  "search"
+ ],
+ "skill:everything-claude-code/ecc/scientific-db-uspto-database": [],
+ "skill:everything-claude-code/ecc/scientific-pkg-gget": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/scientific-thinking-literature-review": [
+  "evidence",
+  "review",
+  "search"
+ ],
+ "skill:everything-claude-code/ecc/scientific-thinking-scholar-evaluation": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/search-first": [
+  "search",
+  "workflow-patterns"
+ ],
+ "skill:everything-claude-code/ecc/security-bounty-hunter": [],
+ "skill:everything-claude-code/ecc/security-review": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/security-scan": [],
+ "skill:everything-claude-code/ecc/seo": [
+  "content-optimization",
+  "search",
+  "seo-audit"
+ ],
+ "skill:everything-claude-code/ecc/skill-comply": [],
+ "skill:everything-claude-code/ecc/skill-scout": [
+  "search"
+ ],
+ "skill:everything-claude-code/ecc/skill-stocktake": [],
+ "skill:everything-claude-code/ecc/social-graph-ranker": [],
+ "skill:everything-claude-code/ecc/social-publisher": [],
+ "skill:everything-claude-code/ecc/springboot-patterns": [],
+ "skill:everything-claude-code/ecc/springboot-security": [],
+ "skill:everything-claude-code/ecc/springboot-tdd": [],
+ "skill:everything-claude-code/ecc/springboot-verification": [
+  "review"
+ ],
+ "skill:everything-claude-code/ecc/strategic-compact": [],
+ "skill:everything-claude-code/ecc/swift-actor-persistence": [],
+ "skill:everything-claude-code/ecc/swift-concurrency-6-2": [],
+ "skill:everything-claude-code/ecc/swift-protocol-di-testing": [
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/swiftui-patterns": [],
+ "skill:everything-claude-code/ecc/taste": [],
+ "skill:everything-claude-code/ecc/tdd-workflow": [],
+ "skill:everything-claude-code/ecc/team-agent-orchestration": [],
+ "skill:everything-claude-code/ecc/team-builder": [],
+ "skill:everything-claude-code/ecc/terminal-opener": [],
+ "skill:everything-claude-code/ecc/terminal-ops": [
+  "evidence"
+ ],
+ "skill:everything-claude-code/ecc/tinystruct-patterns": [],
+ "skill:everything-claude-code/ecc/token-budget-advisor": [],
+ "skill:everything-claude-code/ecc/ui-demo": [],
+ "skill:everything-claude-code/ecc/ui-to-vue": [],
+ "skill:everything-claude-code/ecc/uncloud": [],
+ "skill:everything-claude-code/ecc/unified-memory": [],
+ "skill:everything-claude-code/ecc/unified-notifications-ops": [],
+ "skill:everything-claude-code/ecc/verification-loop": [],
+ "skill:everything-claude-code/ecc/video-editing": [],
+ "skill:everything-claude-code/ecc/videodb": [],
+ "skill:everything-claude-code/ecc/visa-doc-translate": [],
+ "skill:everything-claude-code/ecc/vite-patterns": [],
+ "skill:everything-claude-code/ecc/vue-patterns": [],
+ "skill:everything-claude-code/ecc/windows-desktop-e2e": [
+  "automation",
+  "testing"
+ ],
+ "skill:everything-claude-code/ecc/workspace-surface-audit": [],
+ "skill:everything-claude-code/ecc/x-api": [
+  "search"
+ ],
+ "skill:sanity-agent-toolkit/sanity/content-experimentation-best-practices": [
+  "testing"
+ ],
+ "skill:sanity-agent-toolkit/sanity/content-modeling-best-practices": [
+  "sanity"
+ ],
+ "skill:sanity-agent-toolkit/sanity/portable-text-conversion": [
+  "sanity"
+ ],
+ "skill:sanity-agent-toolkit/sanity/portable-text-serialization": [],
+ "skill:sanity-agent-toolkit/sanity/sanity-best-practices": [
+  "sanity"
+ ],
+ "skill:sanity-agent-toolkit/sanity/seo-aeo-best-practices": [
+  "search",
+  "seo"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-create-alert": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-debug-issue": [
+  "search",
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-fix-stack-traces": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-get-started": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-instrument": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-otel-exporter-setup": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-setup-releases": [
+  "sentry"
+ ],
+ "skill:sentry-plugin-marketplace/sentry/sentry-snapshots-cocoa": [
+  "sentry",
+  "testing"
+ ],
+ "skill:thedotmack/claude-mem/babysit": [
+  "review"
+ ],
+ "skill:thedotmack/claude-mem/cloud-sync": [],
+ "skill:thedotmack/claude-mem/design-is": [],
+ "skill:thedotmack/claude-mem/do": [],
+ "skill:thedotmack/claude-mem/how-it-works": [],
+ "skill:thedotmack/claude-mem/knowledge-agent": [],
+ "skill:thedotmack/claude-mem/learn-codebase": [],
+ "skill:thedotmack/claude-mem/make-plan": [],
+ "skill:thedotmack/claude-mem/mem-search": [
+  "search"
+ ],
+ "skill:thedotmack/claude-mem/mode-creator": [],
+ "skill:thedotmack/claude-mem/oh-my-issues": [],
+ "skill:thedotmack/claude-mem/pathfinder": [],
+ "skill:thedotmack/claude-mem/smart-explore": [
+  "search"
+ ],
+ "skill:thedotmack/claude-mem/standup": [],
+ "skill:thedotmack/claude-mem/timeline-report": [],
+ "skill:thedotmack/claude-mem/version-bump": [],
+ "skill:thedotmack/claude-mem/weekly-digests": [],
+ "skill:thedotmack/claude-mem/what-the": [],
+ "skill:thedotmack/claude-mem/wowerpoint": []
+}
