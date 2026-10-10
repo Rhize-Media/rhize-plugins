@@ -40,8 +40,14 @@
 //
 // EXTERNAL IDS: a remediator id of the form `external:<slug>` names a
 // third-party capability that isn't a proper skill-map skill node (e.g. an
-// ecc build-resolver *agent*). Phrase those as an agent suggestion
-// ("ecc:react-build-resolver agent") rather than a skill invocation.
+// ecc build-resolver *agent*, or a superpowers *skill*). The id alone can't
+// say which, so the condition entry's `labels` map (the catalog node name,
+// e.g. "superpowers:systematic-debugging (skill)") supplies the kind; an
+// index without `labels` (built before that field existed) falls back to the
+// agent phrasing ("ecc:react-build-resolver agent").
+//
+// MESSAGE: the lead-in names the matched condition ("Tests failed", "Merge
+// conflict", ...), not always "Build failed".
 //
 // BUDGET: <150ms warm. No network, no child processes.
 
@@ -49,7 +55,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { formatSkillRef } = require(path.join(__dirname, 'lib', 'route-core.js'));
+const { formatSkillRef, safeLabel } = require(path.join(__dirname, 'lib', 'route-core.js'));
 
 // Suggestion logging (append-only, local-machine JSONL; see
 // scripts/suggestion_log_report.py for the reader). NEVER logs raw prompt
@@ -110,14 +116,34 @@ function readIndexes() {
   return null;
 }
 
-// Returns a human-facing name for a remediator id: strips the `external:`
-// prefix and phrases it as an agent suggestion; a real skill id
-// (`skill:<plugin>/<name>`) is phrased as `<plugin>:<name>`.
-function describeRemediator(id) {
+// Returns a human-facing name for a remediator id. An `external:` id uses its
+// catalog label when one ends in "(agent)", "(skill)" or "(command)" —
+// "superpowers:systematic-debugging (skill)" -> "superpowers:systematic-debugging
+// skill" — and otherwise strips the prefix and phrases it as an agent
+// suggestion; a real skill id (`skill:<plugin>/<name>`) is phrased as
+// `<plugin>:<name>`.
+const LABEL_KIND_RE = /^(.*\S)\s+\((agent|skill|command)\)$/;
+
+// Message lead-in per condition slug (catalog/tags.json's closed condition
+// vocabulary); an unknown slug gets the neutral "Command failed".
+const CONDITION_LEAD_INS = Object.freeze({
+  'build-failure': 'Build failed',
+  'type-error': 'Type check failed',
+  'test-failure': 'Tests failed',
+  'lint-failure': 'Lint check failed',
+  'merge-conflict': 'Merge conflict',
+});
+
+function describeRemediator(id, labels) {
   if (typeof id !== 'string') return null;
   if (id.startsWith('external:')) {
+    const raw = labels && typeof labels === 'object' ? labels[id] : undefined;
+    const labelled = typeof raw === 'string' ? LABEL_KIND_RE.exec(safeLabel(raw).trim()) : null;
+    if (labelled) {
+      return { label: `${labelled[1]} ${labelled[2]}`, kind: labelled[2] };
+    }
     const slug = id.slice('external:'.length);
-    return { label: `${slug.replace(/^ecc-/, 'ecc:')} agent`, kind: 'agent' };
+    return { label: `${safeLabel(slug.replace(/^ecc-/, 'ecc:'))} agent`, kind: 'agent' };
   }
   const ref = formatSkillRef(id);
   if (ref) return { label: `${ref} skill`, kind: 'skill' };
@@ -156,7 +182,7 @@ function matchCondition(remediationIndex, text) {
         continue; // malformed/unsupported pattern in the index — skip, never throw
       }
       if (re.test(text)) {
-        return { conditionSlug: slug, remediatorId: skills[0] };
+        return { conditionSlug: slug, remediatorId: skills[0], labels: entry.labels };
       }
     }
   }
@@ -205,10 +231,11 @@ function computeMessage() {
   const match = matchCondition(indexes.remediation, text);
   if (!match) return null;
 
-  const described = describeRemediator(match.remediatorId);
+  const described = describeRemediator(match.remediatorId, match.labels);
   if (!described) return null;
 
-  const message = `Build failed — the ${described.label} remediates ${match.conditionSlug}`;
+  const leadIn = CONDITION_LEAD_INS[match.conditionSlug] || 'Command failed';
+  const message = `${leadIn} — the ${described.label} remediates ${safeLabel(match.conditionSlug)}`;
   return { message, sessionId, suggested: match.remediatorId, contextHash: contextHash(text) };
 }
 

@@ -199,7 +199,8 @@ the right one, and health-checks the whole thing.
   `hooks/next-step-suggester.js`, both auto-wired — not opt-in) are the runtime layer that
   acts on the skill map's relationship data. After a failing `Bash` command, the first hook
   matches the output against the skill map's `remediates`/`condition` data and suggests a
-  fix (e.g. "the ecc:build-error-resolver agent remediates build-failure"). After any
+  fix (e.g. "Build failed — the ecc:build-error-resolver agent remediates build-failure", or
+  "Tests failed — the superpowers:systematic-debugging skill remediates test-failure"). After any
   `Skill` invocation, the second hook suggests the usual next step from that skill's
   `precedes` (or, absent one, a mined `follows`) edge — e.g. after `write-prd`, "the usual
   next step is grill-prd". Both need `scripts/build_skill_map.py --install` to have run at

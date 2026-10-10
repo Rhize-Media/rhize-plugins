@@ -212,6 +212,78 @@ check('[logging] log write failure does not affect hook output or exit code', ()
   });
 });
 
+// --- condition lead-in and external-kind labels ---
+
+function labelledIndexes() {
+  return JSON.stringify({
+    schemaVersion: '1.1.0',
+    router: { signals: {}, extendsBases: {} },
+    disclosure: {},
+    remediation: {
+      'merge-conflict': {
+        patterns: ['(?i)\\bautomatic merge failed\\b'],
+        skills: ['external:ecc-git-workflow'],
+        labels: { 'external:ecc-git-workflow': 'ecc:git-workflow (skill)' },
+      },
+      'test-failure': {
+        patterns: ['(?i)\\btests? failed\\b'],
+        skills: ['external:superpowers-systematic-debugging'],
+        labels: {
+          'external:superpowers-systematic-debugging': 'superpowers:systematic-debugging (skill)',
+        },
+      },
+      'type-error': {
+        patterns: ['\\berror TS\\d+\\b'],
+        skills: ['external:ecc-build-error-resolver'],
+        labels: { 'external:ecc-build-error-resolver': 'ecc:build-error-resolver (agent)' },
+      },
+    },
+    succession: {},
+  });
+}
+
+function contextOf(result) {
+  assert.strictEqual(result.status, 0, `exit code: ${result.status}, stderr: ${result.stderr}`);
+  const line = result.stdout.trim().split('\n').filter(Boolean)[0];
+  assert.ok(line, 'expected a suggestion line');
+  return JSON.parse(line).hookSpecificOutput.additionalContext;
+}
+
+// (g) A labelled external skill is phrased as a skill, under the matched
+// condition's own lead-in rather than "Build failed".
+check('labelled external skill uses skill phrasing and test-failure lead-in', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, labelledIndexes());
+    const ctx = contextOf(runHook(tmpHome, { stdout: '3 tests failed\n' }));
+    assert.strictEqual(
+      ctx,
+      'Tests failed — the superpowers:systematic-debugging skill remediates test-failure'
+    );
+  });
+});
+
+check('merge-conflict lead-in names the conflict', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, labelledIndexes());
+    const ctx = contextOf(
+      runHook(tmpHome, { stdout: 'Automatic merge failed; fix conflicts and then commit the result.\n' })
+    );
+    assert.strictEqual(ctx, 'Merge conflict — the ecc:git-workflow skill remediates merge-conflict');
+  });
+});
+
+// (h) A label ending "(agent)" keeps the agent phrasing.
+check('labelled external agent keeps agent phrasing', () => {
+  withTempHome((tmpHome) => {
+    writeIndexes(tmpHome, labelledIndexes());
+    const ctx = contextOf(runHook(tmpHome, { stderr: 'src/a.ts(1,1): error TS2304: nope\n' }));
+    assert.strictEqual(
+      ctx,
+      'Type check failed — the ecc:build-error-resolver agent remediates type-error'
+    );
+  });
+});
+
 if (failures > 0) {
   console.error(`\n${failures} test(s) failed.`);
   process.exit(1);

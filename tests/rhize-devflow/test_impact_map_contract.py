@@ -86,14 +86,16 @@ def test_dev_flow_is_the_only_impact_map_command_owner() -> None:
     ]
     assert ownership_edges == [expected_edge]
 
-    replaces_edge = {
+    # `supersedes`, not `replaces`: the deprecated Context Manager adapter still
+    # ships for its compatibility window (docs/skill-map.md edge table).
+    supersedes_edge = {
         "from": "command:rhize-devflow/impact-map",
         "to": "command:rhize-context-manager/impact-map",
-        "type": "replaces",
+        "type": "supersedes",
         "source": "relations-catalog",
     }
-    assert replaces_edge in source_edges
-    assert replaces_edge in graph["edges"]
+    assert supersedes_edge in source_edges
+    assert supersedes_edge in graph["edges"]
 
 
 def test_command_is_compact_and_uses_codegraph_before_text_search() -> None:

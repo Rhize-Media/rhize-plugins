@@ -313,6 +313,30 @@ agents aren't inventoried by `rhize-context-manager/scripts/build_local_skill_ma
 pattern `fork-of` already uses for upstream marketplaces, rather than adding a new node kind for
 a case outside this round's scope.
 
+**Coverage per condition (re-verified 2026-10-10 against upstream source text).** A remediator is
+added only when its *own* description says it handles that failure:
+
+| Condition | Remediator | Evidence |
+|---|---|---|
+| `build-failure` | the ecc `*-build-resolver` agents | each agent's description ("Use when ... builds fail") |
+| `type-error` | `ecc:build-error-resolver` (agent) | "Use PROACTIVELY when build fails or type errors occur" |
+| `test-failure` | `superpowers:systematic-debugging` (skill) | "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes" |
+| `merge-conflict` | `ecc:git-workflow` (skill) | "Use when ... deciding merge versus rebase, or resolving conflicts", plus a Conflict Resolution section |
+| `lint-failure` | none | see below |
+
+`lint-failure` is deliberately empty. The nearest candidates don't fit: ecc's `quality-gate` command
+is a single-file formatter check whose own text says "Lint and type checks are not part of this
+gate"; `plankton-code-quality` is for *setting up* write-time hooks, not fixing a failed run; and
+`go-build-resolver` fixes only Go linter warnings, while the condition's patterns target
+ESLint/Prettier/Ruff output. No Rhize skill fixes lint violations either. The suggester takes the
+alphabetically first remediator with no stack filter, so a language-specific fixer would be offered
+for every lint failure. Add one when a general lint/format fixer exists.
+
+Because an `external:` id can't say whether it names an agent or a skill, the compiler copies each
+external remediator's catalog `name` (e.g. `superpowers:systematic-debugging (skill)`) into the
+condition's `labels` map in the remediation index, and `remediation-suggester.js` phrases the
+suggestion from that trailing `(agent)`/`(skill)`/`(command)`.
+
 ## `depends-on` and `mcp-server` nodes
 
 `depends-on` also models a skill's dependency on an **MCP server**, via node kind `mcp-server`
