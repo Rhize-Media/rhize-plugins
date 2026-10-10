@@ -26,6 +26,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 0.45.0 → 0.45.1 (patch); marketplace 2.102.0 → 2.102.1.
 - _2026-10-10_ version bump — 0.44.1 → 0.45.0 (minor); marketplace 2.101.1 → 2.102.0.
 - _2026-10-10_ Router: plural folding (shared JS/Python normalizer with a parity fixture), one shared matcher for routeFromIndex/route()/shadow shortlist, a guarded partial-name signal, and stack-only matches no longer qualify. context-optimization and learning-curation declare router phrases; graph-memory regains `security`. Measured in evals/skill-map-routing (eval hits 9 → 13, wrong 7 → 5, long-prompt misfires 4 → 3, 0 third-party inference losses).
 - _2026-10-10_ Router (Codex review via rhize-bridge): partial names and inferred tags never count as task evidence for the stack floor; the map-scan fallback emits router-phrase signals; shadow task hints skip partial labels.
