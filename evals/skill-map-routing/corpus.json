@@ -1,0 +1,1911 @@
+{
+ "counts": {
+  "eval:neg": 110,
+  "eval:pos": 72,
+  "probe:pos": 17
+ },
+ "rows": [
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-shell-script",
+   "prompt": "write a shell script that finds all orphan notes in my Obsidian vault and moves them to an Archive folder using the obsidian CLI",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-cli"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-cron-daily",
+   "prompt": "set up a cron job that creates today's daily note and appends my clipboard contents to it every morning at 8am using the obsidian command line tool",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-cli"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-neg-python-cli",
+   "prompt": "write a Python CLI tool that manages my todo list using plain text files in a folder, with commands for add, remove, and list",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-cli"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-neg-bash-files",
+   "prompt": "create a bash script that renames all .txt files in a directory to .md files and adds a timestamp header to each one",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-cli"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-callouts",
+   "prompt": "how do I create a nested callout with a block reference inside it in Obsidian? I want a warning callout that contains a tip callout with a link to another note",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-frontmatter",
+   "prompt": "add YAML frontmatter properties to my research note in Obsidian with tags, aliases, a cssclasses field, and a custom date-read property",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-neg-pdf",
+   "prompt": "convert this markdown document to a PDF with custom styles, a table of contents, and page numbers using pandoc",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-neg-yaml-docker",
+   "prompt": "write a YAML config file for my Docker Compose setup with three services: postgres, redis, and a Node.js API server",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-project-tracker",
+   "prompt": "create a .base file in my Obsidian vault that shows all project notes filtered by status:active, sorted by due-date, with columns for priority, assignee, and a formula calculating days until deadline",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-bases"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-reading-list",
+   "prompt": "I want to build an Obsidian Base that acts as a reading list tracker — it should pull all notes with type:literature, show their rating and author properties, and let me filter by status",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-bases"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-neg-sqlite",
+   "prompt": "set up a SQLite database to track my reading list with tables for books, authors, and reading progress, plus a query that shows unfinished books sorted by date added",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-bases"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-neg-postgres",
+   "prompt": "create a PostgreSQL query that aggregates project metrics by team, calculates average completion time, and pivots the results into a summary table",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/obsidian-bases"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-architecture",
+   "prompt": "create an Obsidian canvas file that maps out our microservices architecture with 6 service nodes, labeled connections showing API calls between them, and color-coded groups for frontend vs backend",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/json-canvas"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-mindmap",
+   "prompt": "build a mind map .canvas file in Obsidian for my content strategy — I want a central node for 'Blog Topics' with branches for SEO, tutorials, case studies, and each branch should link to existing notes in my vault",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/json-canvas"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-neg-mermaid",
+   "prompt": "generate a Mermaid diagram showing our database schema with all the entity relationships, cardinality labels, and primary/foreign key indicators",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/json-canvas"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-neg-react-tree",
+   "prompt": "create a React component that renders an interactive tree visualization of our file system, with collapsible nodes and drag-and-drop reordering",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/json-canvas"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-save-article",
+   "prompt": "save this article to my Obsidian vault as a clean markdown note: https://example.com/blog/great-article-on-productivity — strip the ads and navigation and just keep the main content",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-clip-daily",
+   "prompt": "clip this web page and add the extracted content to today's daily note in Obsidian as clean markdown, with the page title as a heading",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-neg-scrape-prices",
+   "prompt": "scrape all product prices from this e-commerce site and save them to a CSV, I need the product name, price, and availability for each item",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-neg-puppeteer",
+   "prompt": "use puppeteer to take full-page screenshots of these 10 URLs and save them as PNGs with timestamps in the filename",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-zettelkasten",
+   "prompt": "help me organize my 500-note Obsidian vault using Zettelkasten methodology — I have mostly research notes and literature summaries but they're all just dumped in one folder with no links between them",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/second-brain"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-para-vs-zettel",
+   "prompt": "should I use PARA or Zettelkasten for my Obsidian vault? I have a mix of project docs, meeting notes, and research papers, and I want to start connecting ideas across them with MOCs",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/second-brain"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-neg-react-folders",
+   "prompt": "help me organize my React project folder structure by feature instead of by file type — I have components, hooks, and utils all mixed together and want a cleaner architecture",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/second-brain"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-neg-state-mgmt",
+   "prompt": "help me decide between Redux and Zustand for state management in my Next.js app — I need global auth state, a shopping cart, and theme preferences",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/second-brain"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-meeting",
+   "prompt": "create a meeting notes template for my Obsidian vault with frontmatter properties for attendees, date, project, and status, plus sections for decisions and action items",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-templates"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-weekly-review",
+   "prompt": "what properties should a weekly review note have in my Obsidian vault? I want to track what I accomplished, what got stalled, and set priorities for next week",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-templates"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-neg-jinja",
+   "prompt": "set up a Jinja2 email template with dynamic variables for recipient name, order number, and delivery date that renders to HTML",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-templates"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-neg-github-issue",
+   "prompt": "create a GitHub issue template for bug reports with sections for steps to reproduce, expected behavior, actual behavior, and environment details",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-templates"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-messy",
+   "prompt": "my Obsidian vault is a mess — I have 200 orphan notes, tags like #meeting and #meetings and #mtg all meaning the same thing, and no MOCs despite having 300+ notes. help me clean this up",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-alignment"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-health-check",
+   "prompt": "how healthy is my vault organization? can you check if I'm following second brain best practices and tell me what to fix first?",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-alignment"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-neg-codebase-audit",
+   "prompt": "audit my TypeScript codebase for unused imports, dead code, and circular dependencies — I want a report of everything that should be cleaned up",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-alignment"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-neg-test-coverage",
+   "prompt": "review my project's code quality and test coverage — run the linter, check for type errors, and tell me which modules have less than 80% test coverage",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/vault-alignment"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-semantic",
+   "prompt": "set up local semantic search for my Obsidian vault so I can find related notes by meaning",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/qmd-search"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-neg-obsidian-text",
+   "prompt": "use the Obsidian command line to find notes whose filenames contain quarterly-plan",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/qmd-search"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-neg-codebase",
+   "prompt": "add a hosted vector database to my application for product recommendations",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/qmd-search"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-provenance",
+   "prompt": "compile these captured sources into a cited wiki page with claim provenance and an exact preview diff",
+   "should_trigger": true,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/knowledge-compiler"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-neg-note-edit",
+   "prompt": "rewrite this ordinary Obsidian note for clarity and fix its headings",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/knowledge-compiler"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-neg-summary",
+   "prompt": "summarize this pasted article in five bullets without creating or updating a vault page",
+   "should_trigger": false,
+   "source": "evals/obsidian/trigger_evals.json",
+   "target": "skill:obsidian-second-brain/knowledge-compiler"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-prd",
+   "prompt": "help me launch a project for a new customer-support automation and create a PRD before any code",
+   "should_trigger": true,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/project-launcher"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-neg-visualize-approved",
+   "prompt": "turn this already-approved implementation plan into plan.mdx with a file map and wireframe",
+   "should_trigger": false,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/project-launcher"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-neg-existing-fix",
+   "prompt": "fix the failing login test in this existing repository and keep the change scoped",
+   "should_trigger": false,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/project-launcher"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-mdx",
+   "prompt": "make this implementation plan a reviewable visual plan in plan.mdx with architecture and UI diagrams",
+   "should_trigger": true,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/rhize-visual-plan"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-neg-new-prd",
+   "prompt": "start a new automation project, research the domain, interview me, and write the requirements",
+   "should_trigger": false,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/rhize-visual-plan"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-neg-generic-diagram",
+   "prompt": "generate a Mermaid entity relationship diagram from this database schema",
+   "should_trigger": false,
+   "source": "evals/project-launcher/trigger_evals.json",
+   "target": "skill:project-launcher/rhize-visual-plan"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-context-files",
+   "prompt": "onboard this consulting client into Cowork and create the project context files from their strategy document",
+   "should_trigger": true,
+   "source": "evals/rhize-cowork/trigger_evals.json",
+   "target": "skill:rhize-cowork/project-kickoff"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-neg-software-prd",
+   "prompt": "start a new software app, interview me for requirements, write a PRD, and scaffold it for autonomous development",
+   "should_trigger": false,
+   "source": "evals/rhize-cowork/trigger_evals.json",
+   "target": "skill:rhize-cowork/project-kickoff"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-neg-explain-file",
+   "prompt": "explain what a CLAUDE.md file does in a repository, but do not create or change anything",
+   "should_trigger": false,
+   "source": "evals/rhize-cowork/trigger_evals.json",
+   "target": "skill:rhize-cowork/project-kickoff"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-casual",
+   "prompt": "hey can you run an SEO audit on rhize.media? mainly interested in page speed and broken links",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-formal",
+   "prompt": "Please run a comprehensive technical SEO audit on https://example.com including Core Web Vitals, meta tags, heading structure, and structured data validation",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-vague",
+   "prompt": "what's wrong with my SEO? the url is acme.com and we just launched last month",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-scraper",
+   "prompt": "write me a python script that scrapes google search results for 'best coffee shops in Austin' and saves them to csv",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-analytics",
+   "prompt": "help me set up Google Analytics 4 tracking on my Next.js app, I need pageview and click events",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-gsc",
+   "prompt": "check my Google Search Console data and tell me which pages are losing impressions this month compared to last month",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-research-casual",
+   "prompt": "I need keyword research for our SaaS project management tool, focused on team collaboration and task tracking",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/keyword-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-research-volume",
+   "prompt": "can you pull search volume and difficulty data for these keywords: 'crm software', 'best crm for small business', 'salesforce alternative'",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/keyword-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-neg-content",
+   "prompt": "write a 1500 word blog post about sustainable fashion trends for 2026 targeting millennials",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/keyword-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-neg-ppc",
+   "prompt": "help me find the best negative keywords for my Google Ads campaign selling running shoes, I want to exclude irrelevant clicks",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/keyword-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-audit",
+   "prompt": "check the backlink profile for rhize.media, I want to know who's linking to us and if there are any toxic links we should disavow",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/backlink-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-competitor",
+   "prompt": "find out where our competitors ahrefs.com and semrush.com are getting their backlinks from, I want link gap analysis",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/backlink-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-neg-internal",
+   "prompt": "audit the internal linking structure on our blog at /blog/ and suggest better cross-linking between related posts",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/backlink-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-neg-alttext",
+   "prompt": "help me write alt text for all the images on our /about page, we have around 12 team member photos that need descriptive alt attributes",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/backlink-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-check",
+   "prompt": "check where we rank for 'headless cms comparison' and 'sanity vs contentful' on google, and show me what SERP features are showing up",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/serp-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-neg-ads",
+   "prompt": "help me set up Google Ads campaigns for our product launch, I need keyword targeting and ad copy suggestions",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/serp-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-neg-site-audit",
+   "prompt": "crawl my website for broken links, duplicate titles, and missing canonical tags",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/serp-intelligence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-optimize",
+   "prompt": "optimize this blog post for SEO, it's about 'react server components explained' and targets mid-level devs. check the structured data and E-E-A-T signals too",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/content-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-neg-copywriting",
+   "prompt": "rewrite our landing page copy to be more persuasive, focus on emotional triggers and clear CTAs for our fitness app",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/content-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-neg-keyword-discovery",
+   "prompt": "find commercial-intent keyword clusters and search volumes for a payroll software content plan",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/content-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-ai",
+   "prompt": "how is our AI search visibility? check if ChatGPT and Perplexity mention us when people ask about headless CMS options",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-optimize",
+   "prompt": "show us how to get cited by AI when assistants answer questions about web development agencies",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-neg-chatbot",
+   "prompt": "build me a customer support chatbot using the Claude API that can answer questions about our product catalog",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-neg-serp-rank",
+   "prompt": "track our weekly Google positions for ten keywords and alert us when a result drops out of the top ten",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-seo",
+   "prompt": "review my Next.js + Sanity site for SEO best practices, check the metadata generation, sitemap, robots.txt, and structured data in the app router",
+   "should_trigger": true,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-neg-deploy",
+   "prompt": "deploy my Next.js app to Vercel and set up the sanity webhook for on-demand revalidation",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-neg-studio-schema",
+   "prompt": "add a product document schema and preview configuration to my Sanity Studio",
+   "should_trigger": false,
+   "source": "evals/seo-aeo-geo/trigger_evals.json",
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-positive",
+   "prompt": "Use structured summarization and context compression to create durable handoff summaries for this long-running session.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-compression"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-negative-degradation",
+   "prompt": "Diagnose why a verified fact keeps getting lost in the middle of a long prompt.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-compression"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-negative-optimization",
+   "prompt": "Reduce token cost by masking old tool outputs while keeping them retrievable.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-compression"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-positive",
+   "prompt": "Diagnose context degradation caused by lost-in-middle behavior and possible context poisoning.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-degradation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-negative-fundamentals",
+   "prompt": "Explain how attention works in a language model to a new engineer.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-degradation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-negative-optimization",
+   "prompt": "Create a token budget for retrieved documents and tool output.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-degradation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-positive",
+   "prompt": "Please restore session state, then save context because context is getting heavy.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-engineering"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-negative-fundamentals",
+   "prompt": "Teach me the conceptual parts of a model's context window.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-engineering"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-negative-stack",
+   "prompt": "Help me choose between CodeGraph, Obsidian, and the memory assembler for this repository.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-engineering"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-positive",
+   "prompt": "Explain the anatomy of a context window, the U-shaped attention curve, and why context quality matters more than quantity.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-fundamentals"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-negative-degradation",
+   "prompt": "A false retrieved claim is now contaminating every answer; diagnose and recover the session.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-fundamentals"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-negative-compression",
+   "prompt": "Summarize this long conversation into a durable implementation handoff.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-fundamentals"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-positive",
+   "prompt": "Apply context budgeting, observation masking, and token-cost reduction without lowering answer quality.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-negative-degradation",
+   "prompt": "Determine whether irrelevant retrieved documents caused this recent accuracy collapse.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-negative-compression",
+   "prompt": "Write a structured end-of-session summary that preserves decisions, risks, and next steps.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-optimization"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-positive",
+   "prompt": "Build a bounded code context preview, then preserve exact source verification for critical contracts.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-pack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-negative-trivial",
+   "prompt": "Open the one configuration file I named and tell me its version string.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-pack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-negative-dynamic",
+   "prompt": "Trace this runtime plugin registry whose edges are created from network data.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-pack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-positive",
+   "prompt": "Which memory tool should this repo use? Context is duplicated and session start is slow.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-stack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-negative-memory-architecture",
+   "prompt": "Design temporal validity for a persistent semantic memory service.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-stack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-negative-session",
+   "prompt": "Resume yesterday's implementation session and list the pending files.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/context-stack"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-positive",
+   "prompt": "Use durable scratchpads and tool-output offloading, then produce cross-agent handoff files.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/filesystem-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-negative-compression",
+   "prompt": "Compress this conversation into an anchored summary without creating files.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/filesystem-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-negative-memory",
+   "prompt": "Choose a vector store for cross-session entity tracking and temporal facts.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/filesystem-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-positive",
+   "prompt": "Validate graph ingestion, inspect possible duplicate identities, and prepare a Neo4j canary.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graph-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-negative-graphify-query",
+   "prompt": "Query the existing graphify output to explain which files call this function.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graph-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-negative-graphiti",
+   "prompt": "Compare Graphiti's temporal fact model with another memory framework.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graph-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-positive",
+   "prompt": "Treat this architecture question as a graphify query over file relationships in the persistent knowledge graph.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-negative-governance",
+   "prompt": "Review identity resolution and tenancy before a governed Neo4j import.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-negative-graphiti",
+   "prompt": "Review the old decision not to adopt Graphiti and summarize its temporal concepts.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-positive",
+   "prompt": "Use the historical design reference to review the prior Graphiti decision and its temporal-memory ideas.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphiti-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-negative-install",
+   "prompt": "Install Graphiti and connect it to our production database.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphiti-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-negative-route",
+   "prompt": "Make Graphiti the default memory provider for all agent sessions.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/graphiti-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-positive",
+   "prompt": "Decide whether this session learning deserves persistent storage using the retrieval-cue placement test.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/learning-curation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-negative-architecture",
+   "prompt": "Design a knowledge graph with entity tracking and temporal validity.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/learning-curation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-negative-handoff",
+   "prompt": "Produce a handoff summary of the files, decisions, and next steps from this session.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/learning-curation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-positive",
+   "prompt": "Assemble a private bounded preview across authorized Rhize memory sources and approved memory lanes.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-negative-curation",
+   "prompt": "Decide whether this new correction should become a durable always-loaded rule.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-negative-code-pack",
+   "prompt": "Build a dependency-aware code pack for this one implementation task.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-context"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-positive",
+   "prompt": "Design persistent semantic memory for cross-session knowledge retention and choose a memory benchmark selection method.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-systems"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-negative-filesystem",
+   "prompt": "Write a temporary scratchpad that another agent can read, then delete it after handoff.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-systems"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-negative-compression",
+   "prompt": "Summarize this long session while preserving file paths and unresolved risks.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/memory-systems"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-positive",
+   "prompt": "Harvest learnings, drain the refinement queue, and refine skills through the gated pipeline.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/refinement-pipeline"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-negative-curation",
+   "prompt": "Should this single correction be saved as a rule, hook, reference note, or nowhere?",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/refinement-pipeline"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-negative-refactor",
+   "prompt": "Refactor this TypeScript function to remove duplicated branches.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/refinement-pipeline"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-positive",
+   "prompt": "Improve these tool descriptions and tool schemas, including actionable errors for an MCP server design.",
+   "should_trigger": true,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-negative-project",
+   "prompt": "Choose the overall project pipeline, model mix, and delivery architecture.",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-negative-subagents",
+   "prompt": "Should we split this job between several subagents or keep one agent?",
+   "should_trigger": false,
+   "source": "evals/rhize-context-manager/routing_cases.json",
+   "target": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-pos",
+   "prompt": "I keep hitting the same anti-patterns every sprint on this large codebase -- can you help with dependency mapping and workflow optimization before I touch it?",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/dev-flow-foundations"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-neg-generic-design-pattern",
+   "prompt": "What's a good design pattern for a singleton in Java?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/dev-flow-foundations"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-neg-big-o",
+   "prompt": "Can you explain what Big-O notation means?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/dev-flow-foundations"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-pos",
+   "prompt": "Please simplify and consolidate the React code from this task, remove redundant state, and preserve behavior.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-neg-explain-react-state",
+   "prompt": "Explain what React state is to a beginner.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-neg-simplify-fraction",
+   "prompt": "Reduce the fraction 12/18 to lowest terms.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-push-main",
+   "prompt": "The feature is complete and all fixes are committed. Push to main.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-push-dev-main",
+   "prompt": "Everything is finished. Please push to dev and main.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-explicit-override",
+   "prompt": "Push to main, but skip dev for this repository-approved hotfix.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-manual-authorized",
+   "prompt": "This is a manual-push repository and I explicitly authorize it: push to dev and main.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-neg-branch-backup",
+   "prompt": "Push my unfinished feature branch to origin as a backup, but do not open or merge a PR.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-neg-explain-git",
+   "prompt": "Explain the difference between git push and git merge.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/completed-branch-promotion"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-pos",
+   "prompt": "Our dashboard shows stale data after a Server Action mutation and I had to hard-refresh to see the update -- can you check the cache and revalidate logic?",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-neg-db-migration",
+   "prompt": "Can you write a database migration to add a new column to the users table?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-neg-sql-joins",
+   "prompt": "What's the difference between INNER JOIN and LEFT JOIN in SQL?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-pos",
+   "prompt": "Production is throwing a stack trace after the last deployment, looks like a memory leak -- can you correlate this failed deployment with the incident?",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/error-lifecycle-management"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-neg-generic-error-work",
+   "prompt": "How do I use try/except in Python to catch a ValueError in my script?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/error-lifecycle-management"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-neg-code-review",
+   "prompt": "Can you review this function for readability?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/error-lifecycle-management"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-pos",
+   "prompt": "I want to add Sentry and capture exception details for this API route, plus set up structured logging.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sentry-instrumentation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-neg-jest-unit-test",
+   "prompt": "How do I write a unit test for this function using Jest?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sentry-instrumentation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-neg-console-log",
+   "prompt": "What's the best way to log to the console in Node.js?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sentry-instrumentation"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-pos",
+   "prompt": "I'm writing a defineType schema in Sanity Studio and need a GROQ query using defineQuery -- also want to use Portable Text for the body field.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-neg-generic-sanity-word",
+   "prompt": "Can you sanity check that my math homework answer of 42 is correct?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-neg-postgres-schema",
+   "prompt": "How do I set up a PostgreSQL database schema for a blog?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-pos",
+   "prompt": "I need to connect to a running Chrome instance using the Chrome DevTools MCP tool -- what are the DevTools-protocol parameters for network requests?",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/chrome-devtools-mcp"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-neg-generic-browser-work",
+   "prompt": "How do I add a click event listener to a button in vanilla JavaScript?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/chrome-devtools-mcp"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-neg-css-flexbox",
+   "prompt": "What's the CSS flexbox property for centering a div?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/chrome-devtools-mcp"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-pos",
+   "prompt": "Run a safe simplification pass over this diff for reuse, correctness, and efficiency; a verified no-op is fine.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-neg-product-copy",
+   "prompt": "Rewrite this product copy so a fifth grader can understand it.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-neg-performance-theory",
+   "prompt": "What is algorithmic efficiency in computer science?",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/simplify"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-pos-regression",
+   "prompt": "These changed regression tests passed, but does the test actually protect behavior? Run safely isolated mutation evidence.",
+   "should_trigger": true,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/test-evidence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-neg-data-mutation",
+   "prompt": "Our Sanity mutation leaves stale cache data after a write.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/test-evidence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-neg-genetics",
+   "prompt": "Explain how mutation testing works in genetics research.",
+   "should_trigger": false,
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "skill:rhize-devflow/test-evidence"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/procedural-positive",
+   "prompt": "Is there already a proven working artifact for this deployment task? Check the registry first.",
+   "should_trigger": true,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/procedural-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/procedural-memory-search-negative@procedural-memory",
+   "prompt": "What did we discuss last week about Skill Forge? Search past conversations.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/procedural-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/procedural-generic-negative@procedural-memory",
+   "prompt": "Write a one-line bash command that reverses a string.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/procedural-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/functionize-positive",
+   "prompt": "I keep running the same gh CLI sequence. Functionize it into an inert redacted proposal, but do not register or run it.",
+   "should_trigger": true,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/functionize"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/functionize-one-off-negative@functionize",
+   "prompt": "Write a one-off wrapper around this curl command; there is no repeated CLI pattern to mine.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/functionize"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/functionize-promotion-collision",
+   "prompt": "Promote this captured script into the procedural registry; do not Functionize it.",
+   "should_trigger": true,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/procedural-memory"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/content-explicit-positive",
+   "prompt": "Use the RHIZE Content Engine to regenerate our resource article as a local draft.",
+   "should_trigger": true,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/rhize-content-engine"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/content-ecc-negative@rhize-content-engine",
+   "prompt": "Use ECC content-engine to adapt this post for social channels.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/rhize-content-engine"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "procedural-memory/content-explanation-negative@rhize-content-engine",
+   "prompt": "Explain what a content engine is in one sentence.",
+   "should_trigger": false,
+   "source": "evals/procedural-memory/skill-evals.json",
+   "target": "skill:procedural-memory/rhize-content-engine"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/preferences-positive",
+   "prompt": "Change my working hours and planning buffer preferences, preserving everything else.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/manage-task-preferences"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/plan-positive",
+   "prompt": "Build my morning plan and tell me what I should work on next.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/plan-my-day"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-positive",
+   "prompt": "Resolve the duplicate suspicion and carryover mismatch in Rhize Tasks.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-positive",
+   "prompt": "Review the urgent unassigned Jira task opportunities that fit Tom's competencies.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/review-task-opportunities"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/doctor-positive",
+   "prompt": "The Rhize Tasks dashboard is unavailable and routines are failing; diagnose it read-only.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-doctor"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/setup-positive",
+   "prompt": "Resume the incomplete Rhize Tasks setup wizard and reconnect a source.",
+   "should_trigger": true,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-setup"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/preferences-readme-near-miss@manage-task-preferences",
+   "prompt": "Update the office-hours copy in README; leave my task-planning settings unchanged.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/manage-task-preferences"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/preferences-calendar-near-miss@manage-task-preferences",
+   "prompt": "Review calendar availability for a meeting without changing scheduler defaults.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/manage-task-preferences"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/plan-travel-near-miss@plan-my-day",
+   "prompt": "Plan a Saturday day-trip itinerary and restaurant stops.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/plan-my-day"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/plan-ci-near-miss@plan-my-day",
+   "prompt": "Tell the CI worker which build step to run next.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/plan-my-day"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-csv-near-miss@reconcile-rhize-tasks",
+   "prompt": "Deduplicate repeated rows in this CSV export; it is not Rhize Tasks data.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-git-near-miss@reconcile-rhize-tasks",
+   "prompt": "Recover the deleted Git branch history after a bad rebase.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-hiring-near-miss@review-task-opportunities",
+   "prompt": "Review hiring opportunities for contractors whose experience matches the role.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/review-task-opportunities"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-assigned-jira-near-miss@review-task-opportunities",
+   "prompt": "Triage urgent assigned Jira bugs already owned by Maya.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/review-task-opportunities"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/doctor-marketing-dashboard-near-miss@rhize-tasks-doctor",
+   "prompt": "Diagnose why the marketing dashboard cannot load; Rhize Tasks is healthy.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-doctor"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/doctor-cron-near-miss@rhize-tasks-doctor",
+   "prompt": "Check cron timing for the deployment scheduler outside Rhize Tasks.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-doctor"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/setup-training-near-miss@rhize-tasks-setup",
+   "prompt": "Draft a Rhize Tasks setup training document without installing the product.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-setup"
+  },
+  {
+   "authored": "eval",
+   "group": "eval",
+   "id": "rhize-tasks/setup-diagram-near-miss@rhize-tasks-setup",
+   "prompt": "Reconnect an arrow to its source box in this architecture diagram.",
+   "should_trigger": false,
+   "source": "evals/rhize-tasks/skill-evals.json",
+   "target": "skill:rhize-tasks/rhize-tasks-setup"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-01",
+   "prompt": "web clipping this article into my obsidian vault",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-02",
+   "prompt": "clip this web page to markdown for obsidian",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-03",
+   "prompt": "do web clipping of the docs page",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:obsidian-second-brain/defuddle"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-04",
+   "prompt": "cms development work on our sanity studio schema",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-05",
+   "prompt": "help with cms development: add a sanity content type",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-06",
+   "prompt": "seo for our nextjs sanity cms development site",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-07",
+   "prompt": "review prospecting results and pick businesses for outreach",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-outreach/review-outreach-businesses"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-08",
+   "prompt": "prospecting: which businesses should we contact",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-outreach/review-outreach-businesses"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-09",
+   "prompt": "context optimization for this long session to cut tokens",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-context-manager/context-optimization"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-10",
+   "prompt": "apply context optimization and observation masking",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-context-manager/context-optimization"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-11",
+   "prompt": "security review of graph memory provenance boundaries",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-context-manager/graph-memory"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-12",
+   "prompt": "compile knowledge from these sources with security boundaries",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:obsidian-second-brain/knowledge-compiler"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-13",
+   "prompt": "python script to compile knowledge into the obsidian vault",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:obsidian-second-brain/knowledge-compiler"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-14",
+   "prompt": "learning curation: should this correction become a rule",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-context-manager/learning-curation"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-15",
+   "prompt": "do learning curation on today's session learnings",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-context-manager/learning-curation"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-16",
+   "prompt": "supabase data not updating after mutation",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "authored": "author-written",
+   "group": "probe",
+   "id": "probe-retired-17",
+   "prompt": "stale data in nextjs after supabase write",
+   "should_trigger": true,
+   "source": "probes.json",
+   "target": "skill:rhize-devflow/data-mutation-consistency"
+  }
+ ],
+ "skipped": [
+  {
+   "id": "trigger-impact-map-pos",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:impact-map"
+  },
+  {
+   "id": "trigger-impact-map-neg-summarize-function",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:impact-map"
+  },
+  {
+   "id": "trigger-impact-map-neg-write-readme",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:impact-map"
+  },
+  {
+   "id": "trigger-check-pos",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:check"
+  },
+  {
+   "id": "trigger-check-neg-write-new-test",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:check"
+  },
+  {
+   "id": "trigger-check-neg-testing-theory",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:check"
+  },
+  {
+   "id": "trigger-review-pos",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-review-pos-before-merge",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-review-pos-safe-to-ship",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-review-pos-production-code-review",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-review-neg-resume-feedback",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-review-neg-what-is-code-review",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:review"
+  },
+  {
+   "id": "trigger-mutation-check-pos",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:mutation-check"
+  },
+  {
+   "id": "trigger-mutation-check-neg-graphql-resolver",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:mutation-check"
+  },
+  {
+   "id": "trigger-mutation-check-neg-genetics",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:mutation-check"
+  },
+  {
+   "id": "trigger-browser-qa-pos",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:browser-qa"
+  },
+  {
+   "id": "trigger-browser-qa-neg-responsive-css",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:browser-qa"
+  },
+  {
+   "id": "trigger-browser-qa-neg-rendering-engines",
+   "reason": "unresolved-or-ambiguous",
+   "source": "evals/rhize-devflow/trigger_cases.json",
+   "target": "command:browser-qa"
+  }
+ ],
+ "version": 1
+}

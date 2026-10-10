@@ -384,6 +384,15 @@ with `python3 evals/skill-map/run.py`, which runs `eval_routing.py`, `eval_discl
 `eval_remediation.py` in sequence. Writes one timestamped result file into `evals/results/`
 (gitignored) in the same schema shape as `run_evals.py`'s output.
 
+### skill-map-routing
+
+Offline, model-free harness that measures where prompts route through the real
+`routeFromIndex` for any checkout: eval positives and negatives, retired-vocabulary probes,
+and 80 long negatives (fire rate), with baseline gates and a route-change diff. Run with
+`python3 evals/skill-map-routing/run.py [--checkout PATH]`. See
+`evals/skill-map-routing/README.md` for the measurement limits (notably that eval prompts
+share SKILL.md vocabulary, so only tag, name and stem changes are fairly measured).
+
 ### tests
 
 `evals/tests/` contains deterministic evidence adapter checks for native arm counts,

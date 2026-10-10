@@ -1,0 +1,107 @@
+{
+ "note": "Author-written probes that use vocabulary retired by the Oct 2026 tag consolidation (web clipping, cms development, prospecting, context optimization, learning curation, supabase wording). They are NOT derived from SKILL.md text or eval files. Each should still route to its target skill.",
+ "probes": [
+  {
+   "id": "probe-retired-01",
+   "prompt": "web clipping this article into my obsidian vault",
+   "target": "skill:obsidian-second-brain/defuddle",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-02",
+   "prompt": "clip this web page to markdown for obsidian",
+   "target": "skill:obsidian-second-brain/defuddle",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-03",
+   "prompt": "do web clipping of the docs page",
+   "target": "skill:obsidian-second-brain/defuddle",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-04",
+   "prompt": "cms development work on our sanity studio schema",
+   "target": "skill:rhize-devflow/sanity-development",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-05",
+   "prompt": "help with cms development: add a sanity content type",
+   "target": "skill:rhize-devflow/sanity-development",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-06",
+   "prompt": "seo for our nextjs sanity cms development site",
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-07",
+   "prompt": "review prospecting results and pick businesses for outreach",
+   "target": "skill:rhize-outreach/review-outreach-businesses",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-08",
+   "prompt": "prospecting: which businesses should we contact",
+   "target": "skill:rhize-outreach/review-outreach-businesses",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-09",
+   "prompt": "context optimization for this long session to cut tokens",
+   "target": "skill:rhize-context-manager/context-optimization",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-10",
+   "prompt": "apply context optimization and observation masking",
+   "target": "skill:rhize-context-manager/context-optimization",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-11",
+   "prompt": "security review of graph memory provenance boundaries",
+   "target": "skill:rhize-context-manager/graph-memory",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-12",
+   "prompt": "compile knowledge from these sources with security boundaries",
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-13",
+   "prompt": "python script to compile knowledge into the obsidian vault",
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-14",
+   "prompt": "learning curation: should this correction become a rule",
+   "target": "skill:rhize-context-manager/learning-curation",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-15",
+   "prompt": "do learning curation on today's session learnings",
+   "target": "skill:rhize-context-manager/learning-curation",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-16",
+   "prompt": "supabase data not updating after mutation",
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "should_trigger": true
+  },
+  {
+   "id": "probe-retired-17",
+   "prompt": "stale data in nextjs after supabase write",
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "should_trigger": true
+  }
+ ]
+}

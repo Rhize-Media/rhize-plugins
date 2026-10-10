@@ -1,0 +1,414 @@
+{
+ "note": "Long, realistic prompts written from the user's point of view WITHOUT consulting any SKILL.md description, tag list or router index, so they do not echo router vocabulary. Expected outcome: no suggestion, unless a row has `acceptable` skill ids. Metric: fire rate = routed and not acceptable.",
+ "rows": [
+  {
+   "id": "ln-001",
+   "prompt": "getting this on the Vercel build for the Glenwood site, passes locally with pnpm build but fails on deploy. no idea what changed since yesterday\n\nError: Failed to collect page data for /communities/[slug]\n    at /vercel/path0/apps/web/node_modules/next/dist/build/utils.js:1268:15\n    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {\n  type: 'Error'\n}\n> Build error occurred\nTypeError: Cannot read properties of undefined (reading 'asset')\n    at urlFor (/vercel/path0/apps/web/lib/sanity.image.ts:9:22)\n    at CommunityHero (/vercel/path0/apps/web/components/CommunityHero.tsx:31:18)\n\nI think a community doc in the dataset has no heroImage but I'm not sure how to confirm. what should I look at first",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-002",
+   "prompt": "jest is failing on CI but not on my machine, only the one test:\n\n FAIL  src/lib/__tests__/leadRouting.test.ts\n  ● routeLead › assigns after-hours leads to the overnight queue\n\n    expect(received).toEqual(expected)\n\n    Expected: \"overnight\"\n    Received: \"main\"\n\n      41 |     const lead = makeLead({ createdAt: '2026-03-14T02:15:00-05:00' });\n      42 |     const result = routeLead(lead, rules);\n    > 43 |     expect(result.queue).toEqual('overnight');\n\nCI runs in UTC and I'm on Eastern. I'm guessing it's the getHours() call in routeLead but I don't want to just slap a timezone on it. what's the clean way to handle this",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-003",
+   "prompt": "Supabase edge function is throwing 500s intermittently, here's what the logs show:\n\n2026-10-02T14:22:09.113Z ERROR Uncaught (in promise) error: duplicate key value violates unique constraint \"contacts_ghl_contact_id_key\"\n    at Connection.handleError (https://deno.land/x/postgres@v0.17.0/connection/connection.ts:1074:19)\n    at async upsertContact (file:///src/index.ts:58:5)\n\nThe function gets called by a GoHighLevel webhook whenever a contact is updated. GHL sometimes fires two webhooks within a second for the same contact. I'm using insert and catching nothing right now. Do I switch to on conflict do update or is there a smarter way to dedupe at the webhook layer?",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-004",
+   "prompt": "Python script that pulls DataForSEO keyword volumes just started dying overnight. Nothing in my code changed.\n\nTraceback (most recent call last):\n  File \"/Users/jim/dev/kw/pull_volumes.py\", line 84, in <module>\n    main()\n  File \"/Users/jim/dev/kw/pull_volumes.py\", line 71, in main\n    rows = parse_tasks(resp.json())\n  File \"/Users/jim/dev/kw/pull_volumes.py\", line 33, in parse_tasks\n    for item in task[\"result\"][0][\"items\"]:\nTypeError: 'NoneType' object is not subscriptable\n\nStatus code on the response is 200 but task status_code inside is 40501 I think. Should I be retrying on that or is that a permanent failure for that keyword batch?",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-005",
+   "prompt": "Next.js hydration error showing up on only one page of the SJ Glass site and only in production:\n\nWarning: Text content did not match. Server: \"Open until 5:00 PM\" Client: \"Open until 5:00 pm\"\nError: Hydration failed because the initial UI does not match what was rendered on the server.\n    at throwOnHydrationMismatch (react-dom.development.js:12507)\n    at BranchHours (webpack-internal:///./components/BranchHours.tsx:22:7)\n\nThe hours text is built from a Sanity field and run through toLocaleTimeString. Server is Vercel (en-US) and my browser is en-US too, so why would the casing differ?",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-006",
+   "prompt": "vitest keeps timing out on the Twilio webhook handler tests since I added signature validation. output below, 3 failing out of 41\n\n ❯ app/api/twilio/sms/route.test.ts (6)\n   × rejects a request with a bad signature\n   × accepts a valid signature and enqueues a reply\n   × returns 200 quickly for STOP keywords\n     Error: Test timed out in 5000ms.\n     If this is a long running test, pass a timeout value as the last argument or configure it globally with \"testTimeout\".\n\nI mock the twilio client but I think validateRequest is hitting the real network somewhere? It shouldn't, it's just an HMAC. Where would I even look",
+   "kind": "test-failure"
+  },
+  {
+   "id": "ln-007",
+   "prompt": "pnpm install is blowing up in the monorepo after I bumped sanity to v4:\n\n ERR_PNPM_PEER_DEP_ISSUES  Unmet peer dependencies\napps/studio\n├─┬ sanity 4.2.0\n│ └── ✕ unmet peer react@^19.1: found 18.3.1\napps/web\n└─┬ next-sanity 10.0.3\n  └── ✕ unmet peer next@^15.1: found 14.2.5\n\nI know I need to upgrade next and react but I'm nervous about doing both at once on the Glenwood project since it's live. Is there a sane order to do this in?",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-008",
+   "prompt": "can you help me reply to this. Andrew at SJ Glass sent it this morning:\n\n\"Hey Jim, saw the call numbers for Egg Harbor went down about 30 percent last month even though the rankings report you sent says we moved up. What's going on? Chelsea says the phones have been quiet too. I need something I can show Matt before Thursday's meeting.\"\n\nI looked and the Egg Harbor location had a Google Business Profile suspension for about nine days in September, reinstated on the 19th. I didn't tell him at the time because we got it fixed quickly and I didn't want to freak him out. Want to be honest but not make it sound like we dropped the ball. Keep it short, he doesn't read long emails.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-009",
+   "prompt": "Draft a status update to Carla at Glenwood Homes. Things done this week: launched the new Hendersonville community page, fixed the floor plan filter that was returning duplicates, got the Facebook pixel firing on the lead form. Not done: the virtual tour embeds because Hannah still hasn't sent the Matterport links, and the inventory feed is waiting on their MLS vendor. Carla is a very busy owner and likes short bullet points with a clear ask at the end. The ask is: get Hannah to send the Matterport links by Friday so we can hit the Oct 20 date.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-010",
+   "prompt": "Diana from Nashville Cleaning Services emailed asking why the site isn't on page one yet when we launched two weeks ago. Need a polite response that resets expectations without sounding defensive. Key points: new domain, Google needs weeks to index and test, we've already submitted the sitemap, and the Google Business Profile is the faster win for 'commercial cleaning Nashville'. I want to propose a 30-day check-in. Her husband Erik is cc'd and he tends to be more skeptical so keep the tone confident and plain.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-011",
+   "prompt": "Write a firm but friendly note to a client who is 45 days late on an invoice for $4,200. It's the second reminder. They've been a good client otherwise and I don't want to burn the relationship, but I do need to pause work on their site changes until it's paid. Last time I emailed they said their bookkeeper was out. Mention the invoice number INV-2026-0147 and offer to take card payment by phone if easier.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-012",
+   "prompt": "Ray Conrad texted me a long list of changes for the Vamp Bites site and I need to turn it into a clean reply with what we'll do now vs later. His list: change hero photo to the new bass shot, add 'Made in Jersey' badge, add a wholesale inquiry page, add a Shopify store, make the logo bigger, add a video of him fishing, put his Instagram feed at the bottom. The Shopify store is a separate project and a separate quote. Everything else is small and can go out this week except the wholesale page, which needs a form and some copy from him.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-013",
+   "prompt": "I need to tell a prospect no. He runs a roofing company, wants a 12 page site and SEO for $1,500 total, and wants it live in 10 days. That's not a fit for how we work and I don't want to just ghost him. Can you write a kind decline that points him to a template platform and leaves the door open if his budget changes? Two short paragraphs max.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-014",
+   "prompt": "Notes from the call with Tom this morning, turn them into a clean action list with owners:\n\n- tom says GHL workflow for missed calls is sending the text twice, thinks it's two triggers (call status + voicemail) both firing\n- need to ask Siggy about the Elev8 tracking number approval, been waiting 6 days\n- Glenwood: Hannah wants lot status on the site to update daily, currently manual. tom thinks we can get a CSV from their builder software, I said I'd check what format\n- tom wants to move his hours to 20/wk in November, ok with it if retainer reporting stays on schedule\n- me: send VBA the post-launch invoice, fix the registration page bug where the second child's birthdate resets\n- decide by Friday whether to take on the mortgage advisor build or pass, scope seems squishy",
+   "kind": "meeting-notes"
+  },
+  {
+   "id": "ln-015",
+   "prompt": "Here's my rough notes from the discovery call with the paving company owner, can you organize into: what they said their problems are, what I think the real problems are, and questions for the next call?\n\n\"Estimators spend all day on takeoffs\", jobs get quoted from memory of past jobs, no one knows margin until after the job is done, he said 'we leave money on the table' like four times. Foreman texts photos to the owner's personal phone. Has QuickBooks but his wife does the entry on Fridays. Wants 'AI' but couldn't say for what. Revenue around 6M, 14 trucks. Seasonal, slow Dec through Feb. Burned by a developer in 2023 who built an app that nobody used.",
+   "kind": "meeting-notes"
+  },
+  {
+   "id": "ln-016",
+   "prompt": "Wrote this up after the VBA board meeting, need it shorter and in a form I can paste into an email to the board:\n\nThey approved the fall season fee changes, $10 increase for travel teams, no change for rec. Discussed the double-booking of Gym B on Saturdays, the schedule tool lets coaches book overlapping slots and the board wants a hard block. Treasurer wants a report of unpaid registrations by team every Monday. Two coaches complained the app is slow on game days, probably because everybody hits the schedule page at once. Board president asked about a text-reminder feature for parents, I said it's possible but costs per message so we need to decide who pays.",
+   "kind": "meeting-notes"
+  },
+  {
+   "id": "ln-017",
+   "prompt": "ok brain dump, I'm trying to figure out my next 6 weeks. Retainers are covering rent and then some but I keep getting pulled into support stuff instead of building anything new. I want to launch a productized offer by end of November but I can't decide between a fixed-price local SEO setup for contractors or a booked-jobs dashboard for field service shops. Tom thinks the dashboard because he can sell it on a call. I think the SEO thing because I can deliver it mostly on autopilot. Cash flow is fine until January. I also want to get back to lifting 4 days a week, which means mornings are protected. What would you cut?",
+   "kind": "brain-dump"
+  },
+  {
+   "id": "ln-018",
+   "prompt": "thinking out loud about pricing. Current retainer clients pay between 1,500 and 4,000 a month and the ones paying least ask for the most. I'm thinking of moving to three tiers and grandfathering everyone for 90 days. Risk is that SJ Glass is my anchor client and I don't want to rock that boat. Maybe I leave them alone and only apply new pricing to new clients and anyone who asks for scope expansion. Is that fair to the others or does it create a mess where nobody knows what they're on? Also should I put prices on the website, everyone says don't but I'm tired of calls with people who can't afford us.",
+   "kind": "brain-dump"
+  },
+  {
+   "id": "ln-019",
+   "prompt": "I need to decide whether to hire a junior dev or keep leaning on contractors. Pros of hiring: consistency, can train on our stack, cheaper per hour over a year. Cons: payroll, benefits, I'd be managing someone full time and I'm already stretched. Contractors are flexible but the quality varies and I spend a lot of time re-explaining things. Budget is maybe 55k all-in. I live in Atlantic County so local talent pool is thin, remote is an option. Walk me through how you'd think about this, not just a pros and cons list.",
+   "kind": "brain-dump"
+  },
+  {
+   "id": "ln-020",
+   "prompt": "Trying to plan Q1. Ideas: (1) raise prices, (2) build a client portal so people stop emailing me for reports, (3) get two case studies written, (4) do more outbound to home builders since Glenwood went well, (5) take a real week off in February. I have maybe 25 hours a week of non-client time. Can you help me rank these by effort vs payoff and tell me what to do in what order? I tend to overbuild so be honest.",
+   "kind": "brain-dump"
+  },
+  {
+   "id": "ln-021",
+   "prompt": "review this route handler before I merge, it receives form submissions from the contact form and writes them to Supabase and GHL\n\nexport async function POST(req: Request) {\n  const body = await req.json();\n  const { name, email, phone, message } = body;\n  if (!email) return new Response('missing email', { status: 400 });\n\n  const { error } = await supabase.from('leads').insert({ name, email, phone, message });\n  if (error) console.log(error);\n\n  await fetch('https://services.leadconnectorhq.com/contacts/', {\n    method: 'POST',\n    headers: { Authorization: `Bearer ${process.env.GHL_TOKEN}`, 'Content-Type': 'application/json', Version: '2021-07-28' },\n    body: JSON.stringify({ firstName: name, email, phone, locationId: process.env.GHL_LOCATION }),\n  });\n\n  return Response.json({ ok: true });\n}\n\nI know there's no validation. what else is wrong with it",
+   "kind": "code-review"
+  },
+  {
+   "id": "ln-022",
+   "prompt": "Can you look at this React component and tell me why it re-renders constantly? It's the filter bar on the Glenwood floor plans page.\n\nexport function FilterBar({ plans, onChange }) {\n  const [beds, setBeds] = useState([]);\n  const [baths, setBaths] = useState([]);\n  const filters = { beds, baths };\n\n  useEffect(() => {\n    onChange(plans.filter(p => (!beds.length || beds.includes(p.beds)) && (!baths.length || baths.includes(p.baths))));\n  }, [filters, plans, onChange]);\n\n  return (\n    <div>\n      <Chips values={[1,2,3,4,5]} selected={beds} onToggle={v => setBeds(toggle(beds, v))} />\n      <Chips values={[1,2,3]} selected={baths} onToggle={v => setBaths(toggle(baths, v))} />\n    </div>\n  );\n}",
+   "kind": "code-review"
+  },
+  {
+   "id": "ln-023",
+   "prompt": "Is this Sanity GROQ query going to be slow once we have a few hundred homes? It's for the community listing page\n\n*[_type == \"community\" && defined(slug.current)] | order(name asc) {\n  name,\n  \"slug\": slug.current,\n  \"homes\": *[_type == \"home\" && references(^._id) && status != \"sold\"] | order(price asc) {\n    _id, title, price, beds, baths, sqft,\n    \"plan\": floorPlan->{name, \"img\": image.asset->url},\n    \"lot\": lot->{number, premium}\n  },\n  \"minPrice\": math::min(*[_type == \"home\" && references(^._id)].price)\n}\n\nRight now it takes about 900ms on the preview deployment. I'd like to get under 300.",
+   "kind": "code-review",
+   "acceptable": [
+    "skill:rhize-devflow/sanity-development"
+   ]
+  },
+  {
+   "id": "ln-024",
+   "prompt": "Quick sanity check on this Python function that sizes an options position. I want to risk 1% of account on max loss. Does the math look right?\n\ndef contracts_for_risk(account_value, risk_pct, credit, width):\n    max_loss_per_contract = (width - credit) * 100\n    risk_dollars = account_value * risk_pct\n    return int(risk_dollars // max_loss_per_contract)\n\nThis is for credit spreads. Example: 25000 account, 0.01, 0.85 credit on a 5 wide put spread. I get 1 contract but it feels low.",
+   "kind": "code-review"
+  },
+  {
+   "id": "ln-025",
+   "prompt": "Review this middleware, I'm worried it's going to break the login redirect for the VBA coach portal\n\nimport { NextResponse } from 'next/server';\nimport { createServerClient } from '@supabase/ssr';\n\nexport async function middleware(req) {\n  const res = NextResponse.next();\n  const supabase = createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {\n    cookies: { get: (n) => req.cookies.get(n)?.value }\n  });\n  const { data: { session } } = await supabase.auth.getSession();\n  if (!session && req.nextUrl.pathname.startsWith('/coach')) {\n    return NextResponse.redirect(new URL('/login', req.url));\n  }\n  return res;\n}\nexport const config = { matcher: ['/coach/:path*'] };\n\nUsers are saying they get logged out every hour.",
+   "kind": "code-review"
+  },
+  {
+   "id": "ln-026",
+   "prompt": "I have a Supabase table `registrations` (id, team_id, player_id, season, amount_due, amount_paid, created_at) and a `teams` table (id, name, division). I want a query that shows each team with how many players are fully paid vs partially paid vs unpaid for the 2026 fall season, sorted by the teams with the most unpaid first. Postgres. I always get the case/filter syntax confused.",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-027",
+   "prompt": "how do I write a Postgres query to find duplicate contacts in my leads table? duplicates by lowercase email OR by phone with non-digits stripped. I want to keep the oldest row and list the ids of the ones to delete. table is leads(id uuid, email text, phone text, created_at timestamptz). please don't give me the delete yet, just the select so I can eyeball it",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-028",
+   "prompt": "My Supabase RLS policy on `orders` isn't letting coaches see their own team's rows. The policy is:\n\ncreate policy \"coach reads own team\" on orders for select using (team_id in (select team_id from coach_teams where coach_id = auth.uid()));\n\ncoach_teams has the right row for my test user, I checked. But the query returns zero rows from the client and works fine from the SQL editor. RLS is enabled on orders. What am I missing?",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-029",
+   "prompt": "Need a migration to add a `status` enum to the leads table with values new, contacted, quoted, won, lost, default new, and backfill existing rows: anything with a non-null quote_sent_at should be quoted, anything with closed_at and won=true should be won, closed_at and won=false lost, otherwise new. Write it so I can run it safely on production without locking the table for long. About 40k rows.",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-030",
+   "prompt": "What's the best way to get a rolling 30 day count of new leads per source in Postgres? I have leads(created_at, source). I want one row per day per source even on days with zero leads so the chart doesn't have gaps.",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-031",
+   "prompt": "Write 5 headline options and a short intro paragraph for the homepage of a commercial cleaning company in Nashville. Audience is office managers and property managers who've been burned by cleaners that don't show up. Differentiators: background-checked crews, same team every visit, a text-message check-in when the crew arrives and leaves, 24 hour makegood guarantee. Tone: confident, not corporate, no clichés like 'spotless' or 'sparkling'.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-032",
+   "prompt": "I need a Facebook ad for Glenwood Homes targeting first-time buyers in the Hendersonville area. The offer is $8,000 toward closing costs on any quick move-in home through the end of October. Give me 3 primary text variations (short, medium, longer), 3 headlines, and a description line. Compliance reminder: we can't say anything about 'guaranteed approval' or imply financing terms without disclosures.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-033",
+   "prompt": "Write the 'About' section for the new Vamp Bites site. Ray started making soft plastic bass bait in his garage in Vineland about six years ago after getting frustrated with baits that tore up after one fish. He sells at a couple of local tackle shops and tournaments. Voice should sound like a guy who fishes, not a brand agency. 150 words. A little humor is fine.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-034",
+   "prompt": "Give me a 5-email nurture sequence for people who requested a quote for a shower door replacement but haven't booked. Company is South Jersey Glass & Door. Emails should go out day 1, 3, 6, 10, 15. Include subject lines. Don't be pushy, mention free measurement, 2 year workmanship warranty, and that we do the install ourselves rather than subcontracting. No fake urgency.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-035",
+   "prompt": "Can you rewrite this LinkedIn post so it sounds less like me trying to sound smart? Draft: \"Excited to share that after 6 months of leveraging cutting-edge AI workflows, we have helped our home builder client achieve a 3x improvement in lead response velocity, unlocking significant pipeline value.\" What actually happened: we set up a text auto-reply that answers new web leads in under a minute and a follow-up sequence, and Glenwood's sales lead says she talks to way more people now.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-036",
+   "prompt": "write a google ads responsive search ad for a glass company that does shower enclosures, I need 15 headlines under 30 characters and 4 descriptions under 90 characters. location Atlantic County NJ. include phone call extension text ideas too",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-037",
+   "prompt": "I run a weekly put credit spread on SPX, usually 10 delta short with a 25 wide wing. Over the last 40 trades I've won 36 but the 4 losers wiped out most of the profit. I'm thinking of adding a rule to close at 2x credit received instead of letting them go to max loss. Does a stop like that usually help or hurt on defined risk spreads? I can pull the trade log into pandas if there's a particular stat I should compute.",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-038",
+   "prompt": "Here's my script that pulls the option chain from Tradier and filters to 30-45 DTE with delta between .15 and .25. It runs but returns an empty dataframe on weekends. I assume that's because greeks are null when the market's closed. Do I cache the last good chain or just skip the run when the market's closed?\n\nchain = tradier.get_chain(symbol, expiration)\ndf = pd.DataFrame(chain)\ndf = df[(df.dte >= 30) & (df.dte <= 45)]\ndf = df[(df.greeks.apply(lambda g: g['delta']).abs().between(.15, .25))]",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-039",
+   "prompt": "explain how IV rank differs from IV percentile and which one I should use for deciding whether to sell premium on SPY. I've been using IV rank over 52 weeks but last April it said 100 for a week because of one big spike and it made everything else look cheap",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-040",
+   "prompt": "Help me write a position journal template for my options trades. I want to log: date opened, underlying, strategy, strikes, credit, max loss, IV rank at entry, thesis in one line, planned exit rules, what actually happened, and one lesson. Make it something I can keep in a Google Sheet and also easy to analyze later. Also suggest 3 columns I'm probably not tracking that I should be.",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-041",
+   "prompt": "I got assigned on a short put in my IRA yesterday, 200 shares of a stock at 48 that's now trading at 44. I don't want to hold it. Can I just sell the shares and sell a new put, or is there a wash sale problem since it's an IRA? Also what does assignment do to my buying power. Be specific.",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-042",
+   "prompt": "Backtest question. I have 5 years of daily SPY bars and I want to test a simple rule: buy at the close when RSI(2) < 10 and price is above the 200 day MA, sell at the close when RSI(2) > 70. In backtesting.py my results are way better than anything I've seen published, like 90 percent win rate. What are the usual mistakes that inflate results, I probably made one of them.",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-043",
+   "prompt": "Program design for a client: 41 year old woman, desk job, two kids, wants to lose about 20 lbs and not hurt her back again. Has a gym membership, can train 3 days a week for 45 minutes. History of a herniated disc at L5 four years ago, cleared by her PT. Give me a 4 week block with progressions. She's never squatted heavy so keep loaded squats conservative. Include warm-up and what to swap if her back flares.",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-044",
+   "prompt": "One of my online clients stalled on bench at 185 for six weeks. 5x5 linear progression, 3 days a week, eats around maintenance. He's 34, 6'1 and 190 lbs. Do I deload, switch to a different rep scheme, or just tell him to eat more? Give me how you'd diagnose it before changing anything.",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-045",
+   "prompt": "What are good macros for a 175 lb guy trying to lean out slowly while keeping lifting performance? He trains 4 days a week, moderately active job. Want a deficit around 300-400 calories. And give me a sample day of eating that doesn't need a meal prep Sunday because he hates that.",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-046",
+   "prompt": "I'm building out the Gains Keeper idea, basically a lifting log where the app never makes you type numbers twice. What data should a set record, and what's the minimum for a v1? I'm thinking exercise, weight, reps, RPE, rest timer, notes. What would trainers actually want that normal apps skip?",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-047",
+   "prompt": "My shoulder has been clicky and a little achy on overhead press for about three weeks, no sharp pain. I'm 38 and have been pressing 3x a week. Should I stop pressing entirely or modify? What would you swap in for a few weeks, and what are red flags that mean I should go see someone.",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-048",
+   "prompt": "Help me set up a clean invoice template for retainer clients in QuickBooks. Line items I need: monthly retainer, ad spend pass-through (no markup), one-off hours billed at 150/hr, and a software line for tools I resell. Net 15 terms, 1.5% monthly late fee. Also I want a short note on the bottom that thanks them and says reports are in the shared Drive folder. What custom fields should I add?",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-049",
+   "prompt": "I need to figure out what I owe for estimated taxes this quarter. Revenue this quarter was around 41k, expenses about 12k (software, contractor payments to Tom, ads I paid for and haven't been reimbursed for yet). I'm an LLC taxed as a sole proprietor in New Jersey. Walk me through how to estimate it and what I need to pull from the books. I know you're not my accountant.",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-050",
+   "prompt": "Draft a one-page contractor agreement for a freelance designer who'll do landing page mockups for some of my clients. Hourly rate $65, I pay within 15 days of invoice, they keep portfolio rights but I own the final work, mutual 30 day termination. Flag anything I might be missing that bites later. NJ based.",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-051",
+   "prompt": "Tom's contractor hours for September were 74 but I budgeted 60. Client work billable to retainers accounts for about 52 of those. What are some ways to handle the overage? I don't want to eat it but also the clients weren't told about extra hours. Suggestions for how to bring it up next month without making the retainers feel like a bait and switch.",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-052",
+   "prompt": "Set up a monthly checklist for me to close the books. I use QuickBooks Online, have two business credit cards and one checking account, pay Tom via ACH, and clients pay by ACH or card through Stripe. I tend to skip reconciling for months and then regret it.",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-053",
+   "prompt": "In GoHighLevel I want a workflow that when a new lead comes in from the website form it texts them within a minute, creates an opportunity in the pipeline at stage 'New', and assigns it round-robin between the two sales reps, but only during business hours. After hours it should text a different message and assign to nobody. How do I structure the conditions so I don't end up with two workflows firing at once?",
+   "kind": "integration"
+  },
+  {
+   "id": "ln-054",
+   "prompt": "Twilio A2P 10DLC registration for a new client got rejected with error 30896 for the campaign. Use case was 'Mixed' and the sample messages were appointment reminders and promo texts. The opt-in described on the form says 'customers sign up at the counter'. What do reviewers want to see for opt-in proof, and should I split this into two campaigns? Client is a small HVAC company.",
+   "kind": "integration"
+  },
+  {
+   "id": "ln-055",
+   "prompt": "I'm trying to get call tracking numbers into GA4 so the phone calls show up as conversions per branch. Each of the 5 locations has its own tracking number (dynamic swap on the site from the call tracker) and the tracker can send a webhook for each call. Is it cleaner to send the measurement protocol event from the webhook handler or push the call into GHL and have GHL send it? We care about source attribution mostly.",
+   "kind": "integration"
+  },
+  {
+   "id": "ln-056",
+   "prompt": "Zapier-style question but I want to avoid Zapier: when a Stripe checkout completes I want to create a row in Supabase, create/update the contact in GoHighLevel with a tag, and send a Slack message to #sales. Should this be one Vercel function that does all three or three separate listeners? What happens if the GHL call fails after the Supabase write succeeds?",
+   "kind": "integration"
+  },
+  {
+   "id": "ln-057",
+   "prompt": "What's the right way to do on-demand revalidation in Next.js app router when a Sanity document is published? I have a webhook set up that hits /api/revalidate with the doc type and slug, but I'm not sure whether to use revalidateTag or revalidatePath, and how to tag my fetches so a community page updates when one of its homes changes.",
+   "kind": "dev-howto"
+  },
+  {
+   "id": "ln-058",
+   "prompt": "I want to add a preview mode for editors in Sanity so Carla's team can see unpublished changes on the live site layout before publishing. Next.js 15 app router. I've seen draft mode and presentation tool both mentioned and I'm not sure which one I need. Give me the minimal setup.",
+   "kind": "dev-howto",
+   "acceptable": [
+    "skill:rhize-devflow/sanity-development"
+   ]
+  },
+  {
+   "id": "ln-059",
+   "prompt": "How do I set up a staging environment on Vercel for a client site that uses a separate Supabase project for staging, a separate Sanity dataset, and doesn't send real texts through Twilio? I keep accidentally using production env vars in preview deployments.",
+   "kind": "dev-howto"
+  },
+  {
+   "id": "ln-060",
+   "prompt": "Trying to decide between server actions and API routes for form submissions in a Next.js site that I'll hand off to a client's in-house dev later. Handoff matters. Which is easier for a developer who doesn't know Next.js well to understand and change? Be opinionated.",
+   "kind": "dev-howto"
+  },
+  {
+   "id": "ln-061",
+   "prompt": "Why is my Next.js Image component serving huge JPEGs for the hero on mobile? I set sizes=\"100vw\" and priority. Lighthouse says 'properly size images' and the LCP is 4.1s on 4G. The images come from Sanity's CDN with a width param, but I think next/image is double-optimizing them through Vercel.",
+   "kind": "dev-howto"
+  },
+  {
+   "id": "ln-062",
+   "prompt": "What's a good way to model service area pages in Sanity for a company with five branches that all serve overlapping towns? I want each town page to show the nearest branch and its hours but not duplicate content between towns. Schema suggestions please, not the whole studio.",
+   "kind": "dev-howto",
+   "acceptable": [
+    "skill:rhize-devflow/sanity-development"
+   ]
+  },
+  {
+   "id": "ln-063",
+   "prompt": "what's a good name for an internal tool that shows which clients have unanswered emails older than 24 hours. something short. I keep calling it the 'inbox shame board' but I can't put that on a client-facing screen",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-064",
+   "prompt": "Settle a debate with Tom: is it 'Wi-Fi' or 'WiFi' in client-facing copy? He says it doesn't matter, I think consistency matters more. Also for 'email' vs 'e-mail', 'login' vs 'log in' (noun vs verb). Give me a quick style cheat sheet for stuff like that.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-065",
+   "prompt": "I have 20 minutes before my next call. Give me a good way to think about whether to raise my day rate for ad hoc dev work from 150 to 175. I haven't raised it in two years and nobody has ever pushed back.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-066",
+   "prompt": "Random one: best way to keep a sourdough starter alive when I'm traveling for a week? Fridge or counter, how much to feed before I go, and how do I revive it when I get back",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-067",
+   "prompt": "Can you explain what a webhook is in a way I can say to a client who runs a glass shop? They asked how the website talks to their CRM and I want a sentence or two with an analogy that isn't about restaurants.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-068",
+   "prompt": "Give me 10 interview questions for a junior developer who'd work mostly on Next.js client sites. I don't want trivia. I want to find out if they can debug, communicate with non-technical clients, and learn quickly.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-069",
+   "prompt": "I'm doing a talk for a local chamber of commerce about 'AI for small business' in 20 minutes. Audience is owners of landscaping, restaurants, dental offices. Help me outline it with 3 takeaways they can act on Monday morning, and one demo that won't break.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-070",
+   "prompt": "We're doing a company retreat (it's me, Tom and two contractors) in Wildwood in November. Suggest a one-day agenda with 3 working blocks and some downtime, budget under 600 total. Topics: pricing, service lineup, and how we hand off work between us.",
+   "kind": "casual"
+  },
+  {
+   "id": "ln-071",
+   "prompt": "Reply to Matt Mufalli. He wrote: \"We're getting quotes from two other SEO companies, one says they can get us on page one in 60 days for 800 a month. Why should we stay with you at the current rate?\" Context: we took South Jersey Glass from average position 48 to 10 and doubled their organic traffic, they have five locations, and the current retainer includes call tracking, reporting and the field software support, not just SEO. I'd like to respond calmly without trashing the competitors and mention what he'd lose by switching. Max 150 words.",
+   "kind": "client-email"
+  },
+  {
+   "id": "ln-072",
+   "prompt": "Turn this voice memo transcript into a short summary and a to-do list: \"okay so after the call with Nick the main thing is the field app needs a way for techs to mark a job as needing a second visit without creating a whole new job in Salesforce, right now they're making duplicates. Nick said Chelsea's team is manually merging them on Fridays which is insane. Also the technician photo upload is failing on older Androids, he's going to send me two phone models. Need to scope a fix for the duplicates before the Oct 24 meeting, probably a status on the existing record plus a follow-up task. Don't forget the Salesforce sandbox refresh is on the 17th so don't test anything that day.\"",
+   "kind": "meeting-notes"
+  },
+  {
+   "id": "ln-073",
+   "prompt": "my head is full. things in flight: Glenwood Matterport embeds, FeneFAB redirects before the migration cutover, VBA invoice, Vamp Bites hero image, mortgage advisor proposal, the Elev8 number, a dentist who emailed about a website. I have 2 hours before the school pickup. what order do I do these in, and which of these can I hand to Tom with a two line instruction? be blunt",
+   "kind": "brain-dump"
+  },
+  {
+   "id": "ln-074",
+   "prompt": "my local dev server keeps crashing after a few minutes with this and I have to restart it:\n\n<--- Last few GCs --->\n[48211:0x138008000]   412774 ms: Mark-Compact 4018.2 (4129.4) -> 4015.9 (4129.4) MB, 1923.4 / 0.0 ms  (average mu = 0.073, current mu = 0.061) allocation failure; scavenge might not succeed\nFATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory\n\nNext.js 15 with turbopack, about 300 Sanity-driven pages, the sitemap generator is running at dev time. M2 Mac with 16GB. Is it the sitemap or something else? how would I find out",
+   "kind": "stack-trace"
+  },
+  {
+   "id": "ln-075",
+   "prompt": "I need a one-off query for a client report: from our call tracking table calls(id, branch, started_at, duration_sec, source, answered boolean) give me per-branch, per-week counts of total calls, answered calls, calls over 60 seconds (we call those 'qualified'), and the answer rate, for the last 12 weeks. The weeks should start Monday. Postgres, and I want it to run fast on about 200k rows.",
+   "kind": "sql"
+  },
+  {
+   "id": "ln-076",
+   "prompt": "Rewrite this Google Business Profile description for a glass company, it needs to be under 750 characters and I don't want it to read like keyword stuffing: \"Best glass company South Jersey shower doors windows mirrors glass repair emergency glass Egg Harbor Hammonton Vineland Atlantic City best prices free estimates call now.\" Real facts: family-owned since 1987, five branches, residential and commercial, same-day emergency board-up, free in-home estimates.",
+   "kind": "marketing-copy"
+  },
+  {
+   "id": "ln-077",
+   "prompt": "Write a Python function that takes my trade log CSV (columns: open_date, close_date, symbol, strategy, credit, debit_to_close, contracts) and gives me monthly P&L, win rate by strategy, average days in trade, and max drawdown on the cumulative P&L curve. I'll plot it myself with matplotlib. Keep it pandas, no fancy dependencies.",
+   "kind": "trading"
+  },
+  {
+   "id": "ln-078",
+   "prompt": "Build me a simple tracking sheet for coaching clients: weekly check-in form questions (sleep, stress, hunger, energy, training adherence, steps, weight) plus a way to see trends over time. I'm using Google Sheets and a Google Form. What formulas should I use for a 7 day rolling average of weight, and how do I flag a client who has missed two check-ins?",
+   "kind": "fitness"
+  },
+  {
+   "id": "ln-079",
+   "prompt": "We had a billing mix-up: a client was charged twice on Stripe for the same month, once by the card on file and once because I manually sent a payment link. $2,500 each. How do I refund one, what do I tell the client, and what do I do to make sure the books show it correctly in QuickBooks? Client is Elev8.",
+   "kind": "ops"
+  },
+  {
+   "id": "ln-080",
+   "prompt": "what do people mean when they say 'jobs to be done' and is it actually useful for a service business or just consultant talk? give me a straight answer and one example of using it that would change a decision",
+   "kind": "casual"
+  }
+ ]
+}

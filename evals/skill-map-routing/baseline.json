@@ -1,0 +1,2718 @@
+{
+ "fires": [
+  {
+   "id": "ln-001",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "id": "ln-005",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "id": "ln-059",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "id": "ln-061",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  }
+ ],
+ "per_plugin": {
+  "obsidian-second-brain": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 20,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 20
+   },
+   "eval_positives": {
+    "hit": 2,
+    "n": 18,
+    "silent": 12,
+    "wrong": 4
+   },
+   "probes": {
+    "hit": 0,
+    "n": 5,
+    "silent": 4,
+    "wrong": 1
+   }
+  },
+  "procedural-memory": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 5,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 5
+   },
+   "eval_positives": {
+    "hit": 1,
+    "n": 4,
+    "silent": 2,
+    "wrong": 1
+   }
+  },
+  "project-launcher": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 4,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 4
+   },
+   "eval_positives": {
+    "hit": 0,
+    "n": 2,
+    "silent": 2,
+    "wrong": 0
+   }
+  },
+  "rhize-context-manager": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 32,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 32
+   },
+   "eval_positives": {
+    "hit": 4,
+    "n": 16,
+    "silent": 12,
+    "wrong": 0
+   },
+   "probes": {
+    "hit": 1,
+    "n": 5,
+    "silent": 4,
+    "wrong": 0
+   }
+  },
+  "rhize-cowork": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 2,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 2
+   },
+   "eval_positives": {
+    "hit": 0,
+    "n": 1,
+    "silent": 1,
+    "wrong": 0
+   }
+  },
+  "rhize-devflow": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 20,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 20
+   },
+   "eval_positives": {
+    "hit": 1,
+    "n": 13,
+    "silent": 12,
+    "wrong": 0
+   },
+   "long_negative_fires": 4,
+   "probes": {
+    "hit": 2,
+    "n": 4,
+    "silent": 1,
+    "wrong": 1
+   }
+  },
+  "rhize-outreach": {
+   "probes": {
+    "hit": 0,
+    "n": 2,
+    "silent": 1,
+    "wrong": 1
+   }
+  },
+  "rhize-tasks": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 12,
+    "other_cross_plugin": 0,
+    "other_same_plugin": 0,
+    "silent": 12
+   },
+   "eval_positives": {
+    "hit": 0,
+    "n": 6,
+    "silent": 6,
+    "wrong": 0
+   }
+  },
+  "seo-aeo-geo": {
+   "eval_negatives": {
+    "false_trigger": 0,
+    "n": 15,
+    "other_cross_plugin": 1,
+    "other_same_plugin": 0,
+    "silent": 14
+   },
+   "eval_positives": {
+    "hit": 1,
+    "n": 12,
+    "silent": 9,
+    "wrong": 2
+   },
+   "probes": {
+    "hit": 1,
+    "n": 1,
+    "silent": 0,
+    "wrong": 0
+   }
+  }
+ },
+ "rows": [
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-shell-script",
+   "outcome": "hit",
+   "prompt": "write a shell script that finds all orphan notes in my Obsidian vault and moves them to an",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-cli",
+   "top": "skill:obsidian-second-brain/obsidian-cli"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-cron-daily",
+   "outcome": "silent",
+   "prompt": "set up a cron job that creates today's daily note and appends my clipboard contents to it ",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-cli",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-neg-python-cli",
+   "outcome": "silent",
+   "prompt": "write a Python CLI tool that manages my todo list using plain text files in a folder, with",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-cli",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-cli-neg-bash-files",
+   "outcome": "silent",
+   "prompt": "create a bash script that renames all .txt files in a directory to .md files and adds a ti",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-cli",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-callouts",
+   "outcome": "silent",
+   "prompt": "how do I create a nested callout with a block reference inside it in Obsidian? I want a wa",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-markdown",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-frontmatter",
+   "outcome": "silent",
+   "prompt": "add YAML frontmatter properties to my research note in Obsidian with tags, aliases, a cssc",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-markdown",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-neg-pdf",
+   "outcome": "silent",
+   "prompt": "convert this markdown document to a PDF with custom styles, a table of contents, and page ",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-markdown",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-markdown-neg-yaml-docker",
+   "outcome": "silent",
+   "prompt": "write a YAML config file for my Docker Compose setup with three services: postgres, redis,",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-markdown",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-project-tracker",
+   "outcome": "silent",
+   "prompt": "create a .base file in my Obsidian vault that shows all project notes filtered by status:a",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-bases",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-reading-list",
+   "outcome": "silent",
+   "prompt": "I want to build an Obsidian Base that acts as a reading list tracker \u2014 it should pull all ",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/obsidian-bases",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-neg-sqlite",
+   "outcome": "silent",
+   "prompt": "set up a SQLite database to track my reading list with tables for books, authors, and read",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-bases",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-obsidian-bases-neg-postgres",
+   "outcome": "silent",
+   "prompt": "create a PostgreSQL query that aggregates project metrics by team, calculates average comp",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/obsidian-bases",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-architecture",
+   "outcome": "silent",
+   "prompt": "create an Obsidian canvas file that maps out our microservices architecture with 6 service",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/json-canvas",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-mindmap",
+   "outcome": "wrong",
+   "prompt": "build a mind map .canvas file in Obsidian for my content strategy \u2014 I want a central node ",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/json-canvas",
+   "top": "skill:seo-aeo-geo/content-seo"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-neg-mermaid",
+   "outcome": "silent",
+   "prompt": "generate a Mermaid diagram showing our database schema with all the entity relationships, ",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/json-canvas",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-json-canvas-neg-react-tree",
+   "outcome": "silent",
+   "prompt": "create a React component that renders an interactive tree visualization of our file system",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/json-canvas",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-save-article",
+   "outcome": "wrong",
+   "prompt": "save this article to my Obsidian vault as a clean markdown note: https://example.com/blog/",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-clip-daily",
+   "outcome": "wrong",
+   "prompt": "clip this web page and add the extracted content to today's daily note in Obsidian as clea",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-neg-scrape-prices",
+   "outcome": "silent",
+   "prompt": "scrape all product prices from this e-commerce site and save them to a CSV, I need the pro",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-defuddle-neg-puppeteer",
+   "outcome": "silent",
+   "prompt": "use puppeteer to take full-page screenshots of these 10 URLs and save them as PNGs with ti",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-zettelkasten",
+   "outcome": "silent",
+   "prompt": "help me organize my 500-note Obsidian vault using Zettelkasten methodology \u2014 I have mostly",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/second-brain",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-para-vs-zettel",
+   "outcome": "silent",
+   "prompt": "should I use PARA or Zettelkasten for my Obsidian vault? I have a mix of project docs, mee",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/second-brain",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-neg-react-folders",
+   "outcome": "silent",
+   "prompt": "help me organize my React project folder structure by feature instead of by file type \u2014 I ",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/second-brain",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-second-brain-neg-state-mgmt",
+   "outcome": "silent",
+   "prompt": "help me decide between Redux and Zustand for state management in my Next.js app \u2014 I need g",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/second-brain",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-meeting",
+   "outcome": "silent",
+   "prompt": "create a meeting notes template for my Obsidian vault with frontmatter properties for atte",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/vault-templates",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-weekly-review",
+   "outcome": "wrong",
+   "prompt": "what properties should a weekly review note have in my Obsidian vault? I want to track wha",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/vault-templates",
+   "top": "skill:project-launcher/rhize-visual-plan"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-neg-jinja",
+   "outcome": "silent",
+   "prompt": "set up a Jinja2 email template with dynamic variables for recipient name, order number, an",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/vault-templates",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-templates-neg-github-issue",
+   "outcome": "silent",
+   "prompt": "create a GitHub issue template for bug reports with sections for steps to reproduce, expec",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/vault-templates",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-messy",
+   "outcome": "silent",
+   "prompt": "my Obsidian vault is a mess \u2014 I have 200 orphan notes, tags like #meeting and #meetings an",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/vault-alignment",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-health-check",
+   "outcome": "silent",
+   "prompt": "how healthy is my vault organization? can you check if I'm following second brain best pra",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/vault-alignment",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-neg-codebase-audit",
+   "outcome": "silent",
+   "prompt": "audit my TypeScript codebase for unused imports, dead code, and circular dependencies \u2014 I ",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/vault-alignment",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-vault-alignment-neg-test-coverage",
+   "outcome": "silent",
+   "prompt": "review my project's code quality and test coverage \u2014 run the linter, check for type errors",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/vault-alignment",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-semantic",
+   "outcome": "hit",
+   "prompt": "set up local semantic search for my Obsidian vault so I can find related notes by meaning",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/qmd-search",
+   "top": "skill:obsidian-second-brain/qmd-search"
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-neg-obsidian-text",
+   "outcome": "silent",
+   "prompt": "use the Obsidian command line to find notes whose filenames contain quarterly-plan",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/qmd-search",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-qmd-search-neg-codebase",
+   "outcome": "silent",
+   "prompt": "add a hosted vector database to my application for product recommendations",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/qmd-search",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-provenance",
+   "outcome": "silent",
+   "prompt": "compile these captured sources into a cited wiki page with claim provenance and an exact p",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-neg-note-edit",
+   "outcome": "silent",
+   "prompt": "rewrite this ordinary Obsidian note for clarity and fix its headings",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "obsidian/trigger-knowledge-compiler-neg-summary",
+   "outcome": "silent",
+   "prompt": "summarize this pasted article in five bullets without creating or updating a vault page",
+   "should_trigger": false,
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-prd",
+   "outcome": "silent",
+   "prompt": "help me launch a project for a new customer-support automation and create a PRD before any",
+   "should_trigger": true,
+   "target": "skill:project-launcher/project-launcher",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-neg-visualize-approved",
+   "outcome": "silent",
+   "prompt": "turn this already-approved implementation plan into plan.mdx with a file map and wireframe",
+   "should_trigger": false,
+   "target": "skill:project-launcher/project-launcher",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-project-launcher-neg-existing-fix",
+   "outcome": "silent",
+   "prompt": "fix the failing login test in this existing repository and keep the change scoped",
+   "should_trigger": false,
+   "target": "skill:project-launcher/project-launcher",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-mdx",
+   "outcome": "silent",
+   "prompt": "make this implementation plan a reviewable visual plan in plan.mdx with architecture and U",
+   "should_trigger": true,
+   "target": "skill:project-launcher/rhize-visual-plan",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-neg-new-prd",
+   "outcome": "silent",
+   "prompt": "start a new automation project, research the domain, interview me, and write the requireme",
+   "should_trigger": false,
+   "target": "skill:project-launcher/rhize-visual-plan",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "project-launcher/trigger-rhize-visual-plan-neg-generic-diagram",
+   "outcome": "silent",
+   "prompt": "generate a Mermaid entity relationship diagram from this database schema",
+   "should_trigger": false,
+   "target": "skill:project-launcher/rhize-visual-plan",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-context-files",
+   "outcome": "silent",
+   "prompt": "onboard this consulting client into Cowork and create the project context files from their",
+   "should_trigger": true,
+   "target": "skill:rhize-cowork/project-kickoff",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-neg-software-prd",
+   "outcome": "silent",
+   "prompt": "start a new software app, interview me for requirements, write a PRD, and scaffold it for ",
+   "should_trigger": false,
+   "target": "skill:rhize-cowork/project-kickoff",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-cowork/trigger-project-kickoff-neg-explain-file",
+   "outcome": "silent",
+   "prompt": "explain what a CLAUDE.md file does in a repository, but do not create or change anything",
+   "should_trigger": false,
+   "target": "skill:rhize-cowork/project-kickoff",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-casual",
+   "outcome": "wrong",
+   "prompt": "hey can you run an SEO audit on rhize.media? mainly interested in page speed and broken li",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-formal",
+   "outcome": "wrong",
+   "prompt": "Please run a comprehensive technical SEO audit on https://example.com including Core Web V",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-vague",
+   "outcome": "silent",
+   "prompt": "what's wrong with my SEO? the url is acme.com and we just launched last month",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-scraper",
+   "outcome": "silent",
+   "prompt": "write me a python script that scrapes google search results for 'best coffee shops in Aust",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-analytics",
+   "outcome": "silent",
+   "prompt": "help me set up Google Analytics 4 tracking on my Next.js app, I need pageview and click ev",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-seo-audit-neg-gsc",
+   "outcome": "silent",
+   "prompt": "check my Google Search Console data and tell me which pages are losing impressions this mo",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/seo-site-audit",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-research-casual",
+   "outcome": "silent",
+   "prompt": "I need keyword research for our SaaS project management tool, focused on team collaboratio",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/keyword-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-research-volume",
+   "outcome": "silent",
+   "prompt": "can you pull search volume and difficulty data for these keywords: 'crm software', 'best c",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/keyword-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-neg-content",
+   "outcome": "silent",
+   "prompt": "write a 1500 word blog post about sustainable fashion trends for 2026 targeting millennial",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/keyword-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-keyword-neg-ppc",
+   "outcome": "silent",
+   "prompt": "help me find the best negative keywords for my Google Ads campaign selling running shoes, ",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/keyword-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-audit",
+   "outcome": "silent",
+   "prompt": "check the backlink profile for rhize.media, I want to know who's linking to us and if ther",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/backlink-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-competitor",
+   "outcome": "silent",
+   "prompt": "find out where our competitors ahrefs.com and semrush.com are getting their backlinks from",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/backlink-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-neg-internal",
+   "outcome": "silent",
+   "prompt": "audit the internal linking structure on our blog at /blog/ and suggest better cross-linkin",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/backlink-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-backlink-neg-alttext",
+   "outcome": "silent",
+   "prompt": "help me write alt text for all the images on our /about page, we have around 12 team membe",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/backlink-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-check",
+   "outcome": "silent",
+   "prompt": "check where we rank for 'headless cms comparison' and 'sanity vs contentful' on google, an",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/serp-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-neg-ads",
+   "outcome": "silent",
+   "prompt": "help me set up Google Ads campaigns for our product launch, I need keyword targeting and a",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/serp-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-serp-neg-site-audit",
+   "outcome": "silent",
+   "prompt": "crawl my website for broken links, duplicate titles, and missing canonical tags",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/serp-intelligence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-optimize",
+   "outcome": "silent",
+   "prompt": "optimize this blog post for SEO, it's about 'react server components explained' and target",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/content-seo",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-neg-copywriting",
+   "outcome": "silent",
+   "prompt": "rewrite our landing page copy to be more persuasive, focus on emotional triggers and clear",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/content-seo",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-content-seo-neg-keyword-discovery",
+   "outcome": "silent",
+   "prompt": "find commercial-intent keyword clusters and search volumes for a payroll software content ",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/content-seo",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-ai",
+   "outcome": "silent",
+   "prompt": "how is our AI search visibility? check if ChatGPT and Perplexity mention us when people as",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-optimize",
+   "outcome": "silent",
+   "prompt": "show us how to get cited by AI when assistants answer questions about web development agen",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-neg-chatbot",
+   "outcome": "silent",
+   "prompt": "build me a customer support chatbot using the Claude API that can answer questions about o",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-aeo-geo-neg-serp-rank",
+   "outcome": "silent",
+   "prompt": "track our weekly Google positions for ten keywords and alert us when a result drops out of",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-seo",
+   "outcome": "hit",
+   "prompt": "review my Next.js + Sanity site for SEO best practices, check the metadata generation, sit",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
+   "top": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-neg-deploy",
+   "outcome": "other_cross_plugin",
+   "prompt": "deploy my Next.js app to Vercel and set up the sanity webhook for on-demand revalidation",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "group": "eval",
+   "id": "seo-aeo-geo/trigger-nextjs-sanity-neg-studio-schema",
+   "outcome": "silent",
+   "prompt": "add a product document schema and preview configuration to my Sanity Studio",
+   "should_trigger": false,
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-positive",
+   "outcome": "hit",
+   "prompt": "Use structured summarization and context compression to create durable handoff summaries f",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-compression",
+   "top": "skill:rhize-context-manager/context-compression"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-negative-degradation",
+   "outcome": "silent",
+   "prompt": "Diagnose why a verified fact keeps getting lost in the middle of a long prompt.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-compression",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-compression-negative-optimization",
+   "outcome": "silent",
+   "prompt": "Reduce token cost by masking old tool outputs while keeping them retrievable.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-compression",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-positive",
+   "outcome": "hit",
+   "prompt": "Diagnose context degradation caused by lost-in-middle behavior and possible context poison",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-degradation",
+   "top": "skill:rhize-context-manager/context-degradation"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-negative-fundamentals",
+   "outcome": "silent",
+   "prompt": "Explain how attention works in a language model to a new engineer.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-degradation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-degradation-negative-optimization",
+   "outcome": "silent",
+   "prompt": "Create a token budget for retrieved documents and tool output.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-degradation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-positive",
+   "outcome": "silent",
+   "prompt": "Please restore session state, then save context because context is getting heavy.",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-engineering",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-negative-fundamentals",
+   "outcome": "silent",
+   "prompt": "Teach me the conceptual parts of a model's context window.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-engineering",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-engineering-negative-stack",
+   "outcome": "silent",
+   "prompt": "Help me choose between CodeGraph, Obsidian, and the memory assembler for this repository.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-engineering",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-positive",
+   "outcome": "silent",
+   "prompt": "Explain the anatomy of a context window, the U-shaped attention curve, and why context qua",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-fundamentals",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-negative-degradation",
+   "outcome": "silent",
+   "prompt": "A false retrieved claim is now contaminating every answer; diagnose and recover the sessio",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-fundamentals",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-fundamentals-negative-compression",
+   "outcome": "silent",
+   "prompt": "Summarize this long conversation into a durable implementation handoff.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-fundamentals",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-positive",
+   "outcome": "silent",
+   "prompt": "Apply context budgeting, observation masking, and token-cost reduction without lowering an",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-negative-degradation",
+   "outcome": "silent",
+   "prompt": "Determine whether irrelevant retrieved documents caused this recent accuracy collapse.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-optimization-negative-compression",
+   "outcome": "silent",
+   "prompt": "Write a structured end-of-session summary that preserves decisions, risks, and next steps.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-optimization",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-positive",
+   "outcome": "silent",
+   "prompt": "Build a bounded code context preview, then preserve exact source verification for critical",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-pack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-negative-trivial",
+   "outcome": "silent",
+   "prompt": "Open the one configuration file I named and tell me its version string.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-pack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-pack-negative-dynamic",
+   "outcome": "silent",
+   "prompt": "Trace this runtime plugin registry whose edges are created from network data.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-pack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-positive",
+   "outcome": "silent",
+   "prompt": "Which memory tool should this repo use? Context is duplicated and session start is slow.",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-stack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-negative-memory-architecture",
+   "outcome": "silent",
+   "prompt": "Design temporal validity for a persistent semantic memory service.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-stack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/context-stack-negative-session",
+   "outcome": "silent",
+   "prompt": "Resume yesterday's implementation session and list the pending files.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/context-stack",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-positive",
+   "outcome": "silent",
+   "prompt": "Use durable scratchpads and tool-output offloading, then produce cross-agent handoff files",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/filesystem-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-negative-compression",
+   "outcome": "silent",
+   "prompt": "Compress this conversation into an anchored summary without creating files.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/filesystem-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/filesystem-context-negative-memory",
+   "outcome": "silent",
+   "prompt": "Choose a vector store for cross-session entity tracking and temporal facts.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/filesystem-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-positive",
+   "outcome": "silent",
+   "prompt": "Validate graph ingestion, inspect possible duplicate identities, and prepare a Neo4j canar",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/graph-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-negative-graphify-query",
+   "outcome": "silent",
+   "prompt": "Query the existing graphify output to explain which files call this function.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graph-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graph-memory-negative-graphiti",
+   "outcome": "silent",
+   "prompt": "Compare Graphiti's temporal fact model with another memory framework.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graph-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-positive",
+   "outcome": "hit",
+   "prompt": "Treat this architecture question as a graphify query over file relationships in the persis",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/graphify",
+   "top": "skill:rhize-context-manager/graphify"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-negative-governance",
+   "outcome": "silent",
+   "prompt": "Review identity resolution and tenancy before a governed Neo4j import.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graphify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphify-negative-graphiti",
+   "outcome": "silent",
+   "prompt": "Review the old decision not to adopt Graphiti and summarize its temporal concepts.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graphify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-positive",
+   "outcome": "silent",
+   "prompt": "Use the historical design reference to review the prior Graphiti decision and its temporal",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/graphiti-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-negative-install",
+   "outcome": "silent",
+   "prompt": "Install Graphiti and connect it to our production database.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graphiti-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/graphiti-memory-negative-route",
+   "outcome": "silent",
+   "prompt": "Make Graphiti the default memory provider for all agent sessions.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/graphiti-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-positive",
+   "outcome": "silent",
+   "prompt": "Decide whether this session learning deserves persistent storage using the retrieval-cue p",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/learning-curation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-negative-architecture",
+   "outcome": "silent",
+   "prompt": "Design a knowledge graph with entity tracking and temporal validity.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/learning-curation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/learning-curation-negative-handoff",
+   "outcome": "silent",
+   "prompt": "Produce a handoff summary of the files, decisions, and next steps from this session.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/learning-curation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-positive",
+   "outcome": "silent",
+   "prompt": "Assemble a private bounded preview across authorized Rhize memory sources and approved mem",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/memory-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-negative-curation",
+   "outcome": "silent",
+   "prompt": "Decide whether this new correction should become a durable always-loaded rule.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/memory-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-context-negative-code-pack",
+   "outcome": "silent",
+   "prompt": "Build a dependency-aware code pack for this one implementation task.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/memory-context",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-positive",
+   "outcome": "silent",
+   "prompt": "Design persistent semantic memory for cross-session knowledge retention and choose a memor",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/memory-systems",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-negative-filesystem",
+   "outcome": "silent",
+   "prompt": "Write a temporary scratchpad that another agent can read, then delete it after handoff.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/memory-systems",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/memory-systems-negative-compression",
+   "outcome": "silent",
+   "prompt": "Summarize this long session while preserving file paths and unresolved risks.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/memory-systems",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-positive",
+   "outcome": "silent",
+   "prompt": "Harvest learnings, drain the refinement queue, and refine skills through the gated pipelin",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/refinement-pipeline",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-negative-curation",
+   "outcome": "silent",
+   "prompt": "Should this single correction be saved as a rule, hook, reference note, or nowhere?",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/refinement-pipeline",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/refinement-pipeline-negative-refactor",
+   "outcome": "silent",
+   "prompt": "Refactor this TypeScript function to remove duplicated branches.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/refinement-pipeline",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-positive",
+   "outcome": "hit",
+   "prompt": "Improve these tool descriptions and tool schemas, including actionable errors for an MCP s",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/tool-design",
+   "top": "skill:rhize-context-manager/tool-design"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-negative-project",
+   "outcome": "silent",
+   "prompt": "Choose the overall project pipeline, model mix, and delivery architecture.",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/tool-design",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-context-manager/tool-design-negative-subagents",
+   "outcome": "silent",
+   "prompt": "Should we split this job between several subagents or keep one agent?",
+   "should_trigger": false,
+   "target": "skill:rhize-context-manager/tool-design",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-pos",
+   "outcome": "silent",
+   "prompt": "I keep hitting the same anti-patterns every sprint on this large codebase -- can you help ",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/dev-flow-foundations",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-neg-generic-design-pattern",
+   "outcome": "silent",
+   "prompt": "What's a good design pattern for a singleton in Java?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/dev-flow-foundations",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-dev-flow-foundations-neg-big-o",
+   "outcome": "silent",
+   "prompt": "Can you explain what Big-O notation means?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/dev-flow-foundations",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-pos",
+   "outcome": "silent",
+   "prompt": "Please simplify and consolidate the React code from this task, remove redundant state, and",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-neg-explain-react-state",
+   "outcome": "silent",
+   "prompt": "Explain what React state is to a beginner.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-skill-neg-simplify-fraction",
+   "outcome": "silent",
+   "prompt": "Reduce the fraction 12/18 to lowest terms.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-push-main",
+   "outcome": "silent",
+   "prompt": "The feature is complete and all fixes are committed. Push to main.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-push-dev-main",
+   "outcome": "silent",
+   "prompt": "Everything is finished. Please push to dev and main.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-explicit-override",
+   "outcome": "silent",
+   "prompt": "Push to main, but skip dev for this repository-approved hotfix.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-pos-manual-authorized",
+   "outcome": "silent",
+   "prompt": "This is a manual-push repository and I explicitly authorize it: push to dev and main.",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-neg-branch-backup",
+   "outcome": "silent",
+   "prompt": "Push my unfinished feature branch to origin as a backup, but do not open or merge a PR.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-completed-branch-promotion-neg-explain-git",
+   "outcome": "silent",
+   "prompt": "Explain the difference between git push and git merge.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/completed-branch-promotion",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-pos",
+   "outcome": "silent",
+   "prompt": "Our dashboard shows stale data after a Server Action mutation and I had to hard-refresh to",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-neg-db-migration",
+   "outcome": "silent",
+   "prompt": "Can you write a database migration to add a new column to the users table?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-data-mutation-consistency-neg-sql-joins",
+   "outcome": "silent",
+   "prompt": "What's the difference between INNER JOIN and LEFT JOIN in SQL?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-pos",
+   "outcome": "silent",
+   "prompt": "Production is throwing a stack trace after the last deployment, looks like a memory leak -",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/error-lifecycle-management",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-neg-generic-error-work",
+   "outcome": "silent",
+   "prompt": "How do I use try/except in Python to catch a ValueError in my script?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/error-lifecycle-management",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-error-lifecycle-management-neg-code-review",
+   "outcome": "silent",
+   "prompt": "Can you review this function for readability?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/error-lifecycle-management",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-pos",
+   "outcome": "silent",
+   "prompt": "I want to add Sentry and capture exception details for this API route, plus set up structu",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/sentry-instrumentation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-neg-jest-unit-test",
+   "outcome": "silent",
+   "prompt": "How do I write a unit test for this function using Jest?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/sentry-instrumentation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sentry-instrumentation-neg-console-log",
+   "outcome": "silent",
+   "prompt": "What's the best way to log to the console in Node.js?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/sentry-instrumentation",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-pos",
+   "outcome": "silent",
+   "prompt": "I'm writing a defineType schema in Sanity Studio and need a GROQ query using defineQuery -",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/sanity-development",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-neg-generic-sanity-word",
+   "outcome": "silent",
+   "prompt": "Can you sanity check that my math homework answer of 42 is correct?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/sanity-development",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-sanity-development-neg-postgres-schema",
+   "outcome": "silent",
+   "prompt": "How do I set up a PostgreSQL database schema for a blog?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/sanity-development",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-pos",
+   "outcome": "silent",
+   "prompt": "I need to connect to a running Chrome instance using the Chrome DevTools MCP tool -- what ",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/chrome-devtools-mcp",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-neg-generic-browser-work",
+   "outcome": "silent",
+   "prompt": "How do I add a click event listener to a button in vanilla JavaScript?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/chrome-devtools-mcp",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-chrome-devtools-mcp-neg-css-flexbox",
+   "outcome": "silent",
+   "prompt": "What's the CSS flexbox property for centering a div?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/chrome-devtools-mcp",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-pos",
+   "outcome": "silent",
+   "prompt": "Run a safe simplification pass over this diff for reuse, correctness, and efficiency; a ve",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-neg-product-copy",
+   "outcome": "silent",
+   "prompt": "Rewrite this product copy so a fifth grader can understand it.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-simplify-command-neg-performance-theory",
+   "outcome": "silent",
+   "prompt": "What is algorithmic efficiency in computer science?",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/simplify",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-pos-regression",
+   "outcome": "hit",
+   "prompt": "These changed regression tests passed, but does the test actually protect behavior? Run sa",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/test-evidence",
+   "top": "skill:rhize-devflow/test-evidence"
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-neg-data-mutation",
+   "outcome": "silent",
+   "prompt": "Our Sanity mutation leaves stale cache data after a write.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/test-evidence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-devflow/trigger-test-evidence-neg-genetics",
+   "outcome": "silent",
+   "prompt": "Explain how mutation testing works in genetics research.",
+   "should_trigger": false,
+   "target": "skill:rhize-devflow/test-evidence",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/procedural-positive",
+   "outcome": "silent",
+   "prompt": "Is there already a proven working artifact for this deployment task? Check the registry fi",
+   "should_trigger": true,
+   "target": "skill:procedural-memory/procedural-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/procedural-memory-search-negative@procedural-memory",
+   "outcome": "silent",
+   "prompt": "What did we discuss last week about Skill Forge? Search past conversations.",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/procedural-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/procedural-generic-negative@procedural-memory",
+   "outcome": "silent",
+   "prompt": "Write a one-line bash command that reverses a string.",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/procedural-memory",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/functionize-positive",
+   "outcome": "hit",
+   "prompt": "I keep running the same gh CLI sequence. Functionize it into an inert redacted proposal, b",
+   "should_trigger": true,
+   "target": "skill:procedural-memory/functionize",
+   "top": "skill:procedural-memory/functionize"
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/functionize-one-off-negative@functionize",
+   "outcome": "silent",
+   "prompt": "Write a one-off wrapper around this curl command; there is no repeated CLI pattern to mine",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/functionize",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/functionize-promotion-collision",
+   "outcome": "wrong",
+   "prompt": "Promote this captured script into the procedural registry; do not Functionize it.",
+   "should_trigger": true,
+   "target": "skill:procedural-memory/procedural-memory",
+   "top": "skill:procedural-memory/functionize"
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/content-explicit-positive",
+   "outcome": "silent",
+   "prompt": "Use the RHIZE Content Engine to regenerate our resource article as a local draft.",
+   "should_trigger": true,
+   "target": "skill:procedural-memory/rhize-content-engine",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/content-ecc-negative@rhize-content-engine",
+   "outcome": "silent",
+   "prompt": "Use ECC content-engine to adapt this post for social channels.",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/rhize-content-engine",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "procedural-memory/content-explanation-negative@rhize-content-engine",
+   "outcome": "silent",
+   "prompt": "Explain what a content engine is in one sentence.",
+   "should_trigger": false,
+   "target": "skill:procedural-memory/rhize-content-engine",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/preferences-positive",
+   "outcome": "silent",
+   "prompt": "Change my working hours and planning buffer preferences, preserving everything else.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/manage-task-preferences",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/plan-positive",
+   "outcome": "silent",
+   "prompt": "Build my morning plan and tell me what I should work on next.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/plan-my-day",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-positive",
+   "outcome": "silent",
+   "prompt": "Resolve the duplicate suspicion and carryover mismatch in Rhize Tasks.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-positive",
+   "outcome": "silent",
+   "prompt": "Review the urgent unassigned Jira task opportunities that fit Tom's competencies.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/review-task-opportunities",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/doctor-positive",
+   "outcome": "silent",
+   "prompt": "The Rhize Tasks dashboard is unavailable and routines are failing; diagnose it read-only.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/rhize-tasks-doctor",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/setup-positive",
+   "outcome": "silent",
+   "prompt": "Resume the incomplete Rhize Tasks setup wizard and reconnect a source.",
+   "should_trigger": true,
+   "target": "skill:rhize-tasks/rhize-tasks-setup",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/preferences-readme-near-miss@manage-task-preferences",
+   "outcome": "silent",
+   "prompt": "Update the office-hours copy in README; leave my task-planning settings unchanged.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/manage-task-preferences",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/preferences-calendar-near-miss@manage-task-preferences",
+   "outcome": "silent",
+   "prompt": "Review calendar availability for a meeting without changing scheduler defaults.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/manage-task-preferences",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/plan-travel-near-miss@plan-my-day",
+   "outcome": "silent",
+   "prompt": "Plan a Saturday day-trip itinerary and restaurant stops.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/plan-my-day",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/plan-ci-near-miss@plan-my-day",
+   "outcome": "silent",
+   "prompt": "Tell the CI worker which build step to run next.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/plan-my-day",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-csv-near-miss@reconcile-rhize-tasks",
+   "outcome": "silent",
+   "prompt": "Deduplicate repeated rows in this CSV export; it is not Rhize Tasks data.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/reconcile-git-near-miss@reconcile-rhize-tasks",
+   "outcome": "silent",
+   "prompt": "Recover the deleted Git branch history after a bad rebase.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/reconcile-rhize-tasks",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-hiring-near-miss@review-task-opportunities",
+   "outcome": "silent",
+   "prompt": "Review hiring opportunities for contractors whose experience matches the role.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/review-task-opportunities",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/opportunities-assigned-jira-near-miss@review-task-opportunities",
+   "outcome": "silent",
+   "prompt": "Triage urgent assigned Jira bugs already owned by Maya.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/review-task-opportunities",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/doctor-marketing-dashboard-near-miss@rhize-tasks-doctor",
+   "outcome": "silent",
+   "prompt": "Diagnose why the marketing dashboard cannot load; Rhize Tasks is healthy.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/rhize-tasks-doctor",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/doctor-cron-near-miss@rhize-tasks-doctor",
+   "outcome": "silent",
+   "prompt": "Check cron timing for the deployment scheduler outside Rhize Tasks.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/rhize-tasks-doctor",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/setup-training-near-miss@rhize-tasks-setup",
+   "outcome": "silent",
+   "prompt": "Draft a Rhize Tasks setup training document without installing the product.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/rhize-tasks-setup",
+   "top": null
+  },
+  {
+   "group": "eval",
+   "id": "rhize-tasks/setup-diagram-near-miss@rhize-tasks-setup",
+   "outcome": "silent",
+   "prompt": "Reconnect an arrow to its source box in this architecture diagram.",
+   "should_trigger": false,
+   "target": "skill:rhize-tasks/rhize-tasks-setup",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-01",
+   "outcome": "silent",
+   "prompt": "web clipping this article into my obsidian vault",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-02",
+   "outcome": "wrong",
+   "prompt": "clip this web page to markdown for obsidian",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": "skill:obsidian-second-brain/obsidian-markdown"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-03",
+   "outcome": "silent",
+   "prompt": "do web clipping of the docs page",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/defuddle",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-04",
+   "outcome": "hit",
+   "prompt": "cms development work on our sanity studio schema",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/sanity-development",
+   "top": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-05",
+   "outcome": "hit",
+   "prompt": "help with cms development: add a sanity content type",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/sanity-development",
+   "top": "skill:rhize-devflow/sanity-development"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-06",
+   "outcome": "hit",
+   "prompt": "seo for our nextjs sanity cms development site",
+   "should_trigger": true,
+   "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
+   "top": "skill:seo-aeo-geo/nextjs-sanity-seo"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-07",
+   "outcome": "wrong",
+   "prompt": "review prospecting results and pick businesses for outreach",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-businesses",
+   "top": "skill:rhize-outreach/review-outreach-email"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-08",
+   "outcome": "silent",
+   "prompt": "prospecting: which businesses should we contact",
+   "should_trigger": true,
+   "target": "skill:rhize-outreach/review-outreach-businesses",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-09",
+   "outcome": "silent",
+   "prompt": "context optimization for this long session to cut tokens",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-optimization",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-10",
+   "outcome": "silent",
+   "prompt": "apply context optimization and observation masking",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/context-optimization",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-11",
+   "outcome": "hit",
+   "prompt": "security review of graph memory provenance boundaries",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/graph-memory",
+   "top": "skill:rhize-context-manager/graph-memory"
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-12",
+   "outcome": "silent",
+   "prompt": "compile knowledge from these sources with security boundaries",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-13",
+   "outcome": "silent",
+   "prompt": "python script to compile knowledge into the obsidian vault",
+   "should_trigger": true,
+   "target": "skill:obsidian-second-brain/knowledge-compiler",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-14",
+   "outcome": "silent",
+   "prompt": "learning curation: should this correction become a rule",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/learning-curation",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-15",
+   "outcome": "silent",
+   "prompt": "do learning curation on today's session learnings",
+   "should_trigger": true,
+   "target": "skill:rhize-context-manager/learning-curation",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-16",
+   "outcome": "silent",
+   "prompt": "supabase data not updating after mutation",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "top": null
+  },
+  {
+   "group": "probe",
+   "id": "probe-retired-17",
+   "outcome": "wrong",
+   "prompt": "stale data in nextjs after supabase write",
+   "should_trigger": true,
+   "target": "skill:rhize-devflow/data-mutation-consistency",
+   "top": "skill:claude-plugins-official/vercel/nextjs"
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-001",
+   "outcome": "fire",
+   "prompt": "getting this on the Vercel build for the Glenwood site, passes locally with pnpm build but",
+   "should_trigger": false,
+   "target": null,
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-002",
+   "outcome": "silent",
+   "prompt": "jest is failing on CI but not on my machine, only the one test: FAIL src/lib/__tests__/lea",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-003",
+   "outcome": "silent",
+   "prompt": "Supabase edge function is throwing 500s intermittently, here's what the logs show: 2026-10",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-004",
+   "outcome": "silent",
+   "prompt": "Python script that pulls DataForSEO keyword volumes just started dying overnight. Nothing ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-005",
+   "outcome": "fire",
+   "prompt": "Next.js hydration error showing up on only one page of the SJ Glass site and only in produ",
+   "should_trigger": false,
+   "target": null,
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-006",
+   "outcome": "silent",
+   "prompt": "vitest keeps timing out on the Twilio webhook handler tests since I added signature valida",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-007",
+   "outcome": "silent",
+   "prompt": "pnpm install is blowing up in the monorepo after I bumped sanity to v4: ERR_PNPM_PEER_DEP_",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-008",
+   "outcome": "silent",
+   "prompt": "can you help me reply to this. Andrew at SJ Glass sent it this morning: \"Hey Jim, saw the ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-009",
+   "outcome": "silent",
+   "prompt": "Draft a status update to Carla at Glenwood Homes. Things done this week: launched the new ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-010",
+   "outcome": "silent",
+   "prompt": "Diana from Nashville Cleaning Services emailed asking why the site isn't on page one yet w",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-011",
+   "outcome": "silent",
+   "prompt": "Write a firm but friendly note to a client who is 45 days late on an invoice for $4,200. I",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-012",
+   "outcome": "silent",
+   "prompt": "Ray Conrad texted me a long list of changes for the Vamp Bites site and I need to turn it ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-013",
+   "outcome": "silent",
+   "prompt": "I need to tell a prospect no. He runs a roofing company, wants a 12 page site and SEO for ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-014",
+   "outcome": "silent",
+   "prompt": "Notes from the call with Tom this morning, turn them into a clean action list with owners:",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-015",
+   "outcome": "silent",
+   "prompt": "Here's my rough notes from the discovery call with the paving company owner, can you organ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-016",
+   "outcome": "silent",
+   "prompt": "Wrote this up after the VBA board meeting, need it shorter and in a form I can paste into ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-017",
+   "outcome": "silent",
+   "prompt": "ok brain dump, I'm trying to figure out my next 6 weeks. Retainers are covering rent and t",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-018",
+   "outcome": "silent",
+   "prompt": "thinking out loud about pricing. Current retainer clients pay between 1,500 and 4,000 a mo",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-019",
+   "outcome": "silent",
+   "prompt": "I need to decide whether to hire a junior dev or keep leaning on contractors. Pros of hiri",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-020",
+   "outcome": "silent",
+   "prompt": "Trying to plan Q1. Ideas: (1) raise prices, (2) build a client portal so people stop email",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-021",
+   "outcome": "silent",
+   "prompt": "review this route handler before I merge, it receives form submissions from the contact fo",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-022",
+   "outcome": "silent",
+   "prompt": "Can you look at this React component and tell me why it re-renders constantly? It's the fi",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-023",
+   "outcome": "silent",
+   "prompt": "Is this Sanity GROQ query going to be slow once we have a few hundred homes? It's for the ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-024",
+   "outcome": "silent",
+   "prompt": "Quick sanity check on this Python function that sizes an options position. I want to risk ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-025",
+   "outcome": "silent",
+   "prompt": "Review this middleware, I'm worried it's going to break the login redirect for the VBA coa",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-026",
+   "outcome": "silent",
+   "prompt": "I have a Supabase table `registrations` (id, team_id, player_id, season, amount_due, amoun",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-027",
+   "outcome": "silent",
+   "prompt": "how do I write a Postgres query to find duplicate contacts in my leads table? duplicates b",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-028",
+   "outcome": "silent",
+   "prompt": "My Supabase RLS policy on `orders` isn't letting coaches see their own team's rows. The po",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-029",
+   "outcome": "silent",
+   "prompt": "Need a migration to add a `status` enum to the leads table with values new, contacted, quo",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-030",
+   "outcome": "silent",
+   "prompt": "What's the best way to get a rolling 30 day count of new leads per source in Postgres? I h",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-031",
+   "outcome": "silent",
+   "prompt": "Write 5 headline options and a short intro paragraph for the homepage of a commercial clea",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-032",
+   "outcome": "silent",
+   "prompt": "I need a Facebook ad for Glenwood Homes targeting first-time buyers in the Hendersonville ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-033",
+   "outcome": "silent",
+   "prompt": "Write the 'About' section for the new Vamp Bites site. Ray started making soft plastic bas",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-034",
+   "outcome": "silent",
+   "prompt": "Give me a 5-email nurture sequence for people who requested a quote for a shower door repl",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-035",
+   "outcome": "silent",
+   "prompt": "Can you rewrite this LinkedIn post so it sounds less like me trying to sound smart? Draft:",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-036",
+   "outcome": "silent",
+   "prompt": "write a google ads responsive search ad for a glass company that does shower enclosures, I",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-037",
+   "outcome": "silent",
+   "prompt": "I run a weekly put credit spread on SPX, usually 10 delta short with a 25 wide wing. Over ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-038",
+   "outcome": "silent",
+   "prompt": "Here's my script that pulls the option chain from Tradier and filters to 30-45 DTE with de",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-039",
+   "outcome": "silent",
+   "prompt": "explain how IV rank differs from IV percentile and which one I should use for deciding whe",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-040",
+   "outcome": "silent",
+   "prompt": "Help me write a position journal template for my options trades. I want to log: date opene",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-041",
+   "outcome": "silent",
+   "prompt": "I got assigned on a short put in my IRA yesterday, 200 shares of a stock at 48 that's now ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-042",
+   "outcome": "silent",
+   "prompt": "Backtest question. I have 5 years of daily SPY bars and I want to test a simple rule: buy ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-043",
+   "outcome": "silent",
+   "prompt": "Program design for a client: 41 year old woman, desk job, two kids, wants to lose about 20",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-044",
+   "outcome": "silent",
+   "prompt": "One of my online clients stalled on bench at 185 for six weeks. 5x5 linear progression, 3 ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-045",
+   "outcome": "silent",
+   "prompt": "What are good macros for a 175 lb guy trying to lean out slowly while keeping lifting perf",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-046",
+   "outcome": "silent",
+   "prompt": "I'm building out the Gains Keeper idea, basically a lifting log where the app never makes ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-047",
+   "outcome": "silent",
+   "prompt": "My shoulder has been clicky and a little achy on overhead press for about three weeks, no ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-048",
+   "outcome": "silent",
+   "prompt": "Help me set up a clean invoice template for retainer clients in QuickBooks. Line items I n",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-049",
+   "outcome": "silent",
+   "prompt": "I need to figure out what I owe for estimated taxes this quarter. Revenue this quarter was",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-050",
+   "outcome": "silent",
+   "prompt": "Draft a one-page contractor agreement for a freelance designer who'll do landing page mock",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-051",
+   "outcome": "silent",
+   "prompt": "Tom's contractor hours for September were 74 but I budgeted 60. Client work billable to re",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-052",
+   "outcome": "silent",
+   "prompt": "Set up a monthly checklist for me to close the books. I use QuickBooks Online, have two bu",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-053",
+   "outcome": "silent",
+   "prompt": "In GoHighLevel I want a workflow that when a new lead comes in from the website form it te",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-054",
+   "outcome": "silent",
+   "prompt": "Twilio A2P 10DLC registration for a new client got rejected with error 30896 for the campa",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-055",
+   "outcome": "silent",
+   "prompt": "I'm trying to get call tracking numbers into GA4 so the phone calls show up as conversions",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-056",
+   "outcome": "silent",
+   "prompt": "Zapier-style question but I want to avoid Zapier: when a Stripe checkout completes I want ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-057",
+   "outcome": "silent",
+   "prompt": "What's the right way to do on-demand revalidation in Next.js app router when a Sanity docu",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-058",
+   "outcome": "silent",
+   "prompt": "I want to add a preview mode for editors in Sanity so Carla's team can see unpublished cha",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-059",
+   "outcome": "fire",
+   "prompt": "How do I set up a staging environment on Vercel for a client site that uses a separate Sup",
+   "should_trigger": false,
+   "target": null,
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-060",
+   "outcome": "silent",
+   "prompt": "Trying to decide between server actions and API routes for form submissions in a Next.js s",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-061",
+   "outcome": "fire",
+   "prompt": "Why is my Next.js Image component serving huge JPEGs for the hero on mobile? I set sizes=\"",
+   "should_trigger": false,
+   "target": null,
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-062",
+   "outcome": "silent",
+   "prompt": "What's a good way to model service area pages in Sanity for a company with five branches t",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-063",
+   "outcome": "silent",
+   "prompt": "what's a good name for an internal tool that shows which clients have unanswered emails ol",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-064",
+   "outcome": "silent",
+   "prompt": "Settle a debate with Tom: is it 'Wi-Fi' or 'WiFi' in client-facing copy? He says it doesn'",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-065",
+   "outcome": "silent",
+   "prompt": "I have 20 minutes before my next call. Give me a good way to think about whether to raise ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-066",
+   "outcome": "silent",
+   "prompt": "Random one: best way to keep a sourdough starter alive when I'm traveling for a week? Frid",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-067",
+   "outcome": "silent",
+   "prompt": "Can you explain what a webhook is in a way I can say to a client who runs a glass shop? Th",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-068",
+   "outcome": "silent",
+   "prompt": "Give me 10 interview questions for a junior developer who'd work mostly on Next.js client ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-069",
+   "outcome": "silent",
+   "prompt": "I'm doing a talk for a local chamber of commerce about 'AI for small business' in 20 minut",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-070",
+   "outcome": "silent",
+   "prompt": "We're doing a company retreat (it's me, Tom and two contractors) in Wildwood in November. ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-071",
+   "outcome": "silent",
+   "prompt": "Reply to Matt Mufalli. He wrote: \"We're getting quotes from two other SEO companies, one s",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-072",
+   "outcome": "silent",
+   "prompt": "Turn this voice memo transcript into a short summary and a to-do list: \"okay so after the ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-073",
+   "outcome": "silent",
+   "prompt": "my head is full. things in flight: Glenwood Matterport embeds, FeneFAB redirects before th",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-074",
+   "outcome": "silent",
+   "prompt": "my local dev server keeps crashing after a few minutes with this and I have to restart it:",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-075",
+   "outcome": "silent",
+   "prompt": "I need a one-off query for a client report: from our call tracking table calls(id, branch,",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-076",
+   "outcome": "silent",
+   "prompt": "Rewrite this Google Business Profile description for a glass company, it needs to be under",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-077",
+   "outcome": "silent",
+   "prompt": "Write a Python function that takes my trade log CSV (columns: open_date, close_date, symbo",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-078",
+   "outcome": "silent",
+   "prompt": "Build me a simple tracking sheet for coaching clients: weekly check-in form questions (sle",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-079",
+   "outcome": "silent",
+   "prompt": "We had a billing mix-up: a client was charged twice on Stripe for the same month, once by ",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  },
+  {
+   "group": "long_negative",
+   "id": "ln-080",
+   "outcome": "silent",
+   "prompt": "what do people mean when they say 'jobs to be done' and is it actually useful for a servic",
+   "should_trigger": false,
+   "target": null,
+   "top": null
+  }
+ ],
+ "rows_sha": "d690fb0e04edfd90",
+ "schema": 1,
+ "summary": {
+  "eval_negatives": {
+   "false_trigger": 0,
+   "n": 110,
+   "other_cross_plugin": 1,
+   "other_same_plugin": 0,
+   "silent": 109
+  },
+  "eval_positives": {
+   "hit": 9,
+   "n": 72,
+   "silent": 56,
+   "wrong": 7
+  },
+  "long_negatives": {
+   "acceptable": 0,
+   "fire_rate": 0.05,
+   "fires": 4,
+   "n": 80,
+   "silent": 76
+  },
+  "probes": {
+   "hit": 4,
+   "n": 17,
+   "silent": 10,
+   "wrong": 3
+  }
+ }
+}
