@@ -60,7 +60,11 @@ Inputs and what they produce
       every plugin's skills have been loaded. An unresolved target is a
       BuildError naming the file and the target; chains deeper than 2 hops
       or containing a cycle are also BuildErrors (see
-      `resolve_extends_edges()` / `check_extends_chains()`).
+      `resolve_extends_edges()` / `check_extends_chains()`). An optional
+      `metadata.rhize.router.phrases` list (at most 3 multi-word strings,
+      validated by `parse_router_phrases()`) is carried onto the skill node
+      as `routerPhrases`; `build_router_index()` turns each into a weight-2
+      `phrase` signal for that skill alone.
 
 3. Each plugin's `commands/*.md`
    -> one `command` node per file (description from frontmatter if present).
@@ -368,6 +372,64 @@ def load_condition_patterns() -> dict[str, list[str]]:
     return patterns
 
 
+MAX_ROUTER_PHRASES = 3
+_PHRASE_WORD_SPLIT_RE = re.compile(r"[^a-z0-9]+")
+
+
+def parse_router_phrases(router_meta, own_slugs: set[str], rel_path: str) -> list[str]:
+    """Validate a skill's optional `metadata.rhize.router.phrases` list and
+    return it normalized and sorted.
+
+    A phrase is split into words exactly the way route-core.js's wordsOf()
+    splits a signal label (lowercase, runs of non-[a-z0-9] are separators),
+    then rejoined with single spaces, so the emitted label means the same
+    thing to the router that the author wrote. Rules, each a BuildError:
+    `router` must be a mapping whose only key is `phrases`; `phrases` must be
+    a list of at most MAX_ROUTER_PHRASES strings; each phrase must have 2 or
+    more words (a one-word phrase would duplicate what a tag or the name
+    signal already does); no two phrases may normalize to the same text; and
+    no phrase may equal one of the skill's own topic/stack slugs (that word
+    pair already has a weight-2 tag signal)."""
+    if router_meta is None:
+        return []
+    if not isinstance(router_meta, dict):
+        raise BuildError(f"{rel_path}: metadata.rhize.router must be a mapping")
+    unknown = sorted(set(router_meta) - {"phrases"})
+    if unknown:
+        raise BuildError(
+            f"{rel_path}: metadata.rhize.router has unknown key(s) {unknown}; only 'phrases' is allowed"
+        )
+    raw = router_meta.get("phrases")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise BuildError(f"{rel_path}: metadata.rhize.router.phrases must be a list")
+    if len(raw) > MAX_ROUTER_PHRASES:
+        raise BuildError(
+            f"{rel_path}: metadata.rhize.router.phrases has {len(raw)} entries; "
+            f"at most {MAX_ROUTER_PHRASES} are allowed"
+        )
+    seen: set[str] = set()
+    for phrase in raw:
+        if not isinstance(phrase, str):
+            raise BuildError(f"{rel_path}: router phrase {phrase!r} must be a string")
+        words = [w for w in _PHRASE_WORD_SPLIT_RE.split(phrase.lower()) if w]
+        if len(words) < 2:
+            raise BuildError(
+                f"{rel_path}: router phrase {phrase!r} must have at least 2 words"
+            )
+        normalized = " ".join(words)
+        if normalized in seen:
+            raise BuildError(f"{rel_path}: duplicate router phrase {phrase!r}")
+        if "-".join(words) in own_slugs:
+            raise BuildError(
+                f"{rel_path}: router phrase {phrase!r} repeats the skill's own tag slug "
+                f"{'-'.join(words)!r}; the tag already supplies that signal"
+            )
+        seen.add(normalized)
+    return sorted(seen)
+
+
 def load_skills(
     graph: Graph,
     plugin_name: str,
@@ -415,10 +477,14 @@ def load_skills(
         summary = rhize_meta.get("summary")
         if summary:
             skill_node["summary"] = str(summary).strip()
-        graph.add_node(skill_node)
-        graph.add_edge(contains_edge(plugin_name, node_id))
         topics = rhize_meta.get("topics") or []
         stacks = rhize_meta.get("stacks") or []
+        own_slugs = {slugify(str(t)) for t in [*topics, *stacks]}
+        phrases = parse_router_phrases(rhize_meta.get("router"), own_slugs, rel_path)
+        if phrases:
+            skill_node["routerPhrases"] = phrases
+        graph.add_node(skill_node)
+        graph.add_edge(contains_edge(plugin_name, node_id))
         for topic in topics:
             slug = slugify(str(topic))
             gloss = tags["topic"].get(slug)
@@ -904,8 +970,9 @@ def build() -> dict:
 # session-disclosure.js as of schema 1.1) so a future refactor of those hooks
 # to read this file instead of walking edges directly is a pure data swap.
 #
-#   router:      per-skill tag/name signal lists (skill-router.js's
-#                tagEdgesByFrom + name-word signal) plus the extends
+#   router:      per-skill tag/name/phrase signal lists (skill-router.js's
+#                tagEdgesByFrom + name-word signal, plus any validated
+#                metadata.rhize.router.phrases) plus the extends
 #                base/extender adjacency it uses for its tie-break. The hook
 #                still owns the token-matching/scoring loop; this only saves
 #                it from re-deriving signals from doc.edges every call.
@@ -951,6 +1018,11 @@ def build_router_index(document: dict) -> dict:
         signals.setdefault(skill_id, []).append(
             {"kind": "name", "weight": 1, "label": skill["name"]}
         )
+        # Per-skill router phrases (metadata.rhize.router.phrases, validated
+        # in parse_router_phrases()): weight 2 like a declared tag, but they
+        # belong to this one skill only and never create a tag node or edge.
+        for phrase in skill.get("routerPhrases") or []:
+            signals[skill_id].append({"kind": "phrase", "weight": 2, "label": phrase})
         signals[skill_id].sort(key=lambda s: (s["kind"], s["label"]))
 
     for bases in extends_bases.values():

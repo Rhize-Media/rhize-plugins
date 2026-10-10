@@ -6,6 +6,8 @@ metadata:
     topics: [context-engineering]
     stacks: []
     extends: [context-fundamentals]
+    router:
+      phrases: ["context optimization"]
 
 ---
 

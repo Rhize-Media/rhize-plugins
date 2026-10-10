@@ -17,7 +17,7 @@ description: >
 metadata:
   rhize:
     summary: "Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks."
-    topics: [backlink-analysis, seo-audit]
+    topics: [backlink-analysis]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]
 

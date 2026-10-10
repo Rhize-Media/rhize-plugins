@@ -17,6 +17,8 @@ metadata:
     summary: "Pulls clean, readable text from a web page for saving into your Obsidian vault."
     topics: [content-authoring]
     stacks: [obsidian]
+    router:
+      phrases: ["web clipping"]
 
 ---
 

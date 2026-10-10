@@ -6,9 +6,18 @@ Deep reference for the "Query layer" section summarized in
 **Tier 1 — materialized indexes** (`generated/skill-map.indexes.json`) cover the hot paths hooks
 need at runtime, precomputed so no hook has to walk `doc.edges` itself:
 
-- `router` — per-skill tag/name signal lists (mirrors `skill-router.js`'s own precomputation:
+- `router` — per-skill tag/name/phrase signal lists (mirrors `skill-router.js`'s own precomputation:
   each topic-tag/stack-tag edge as a weight-2 "tag" signal, each skill's own name as a weight-1
   "name" signal) plus the `extends` base/extender adjacency the router uses for its tie-break.
+  A skill that declares `metadata.rhize.router.phrases` also gets one weight-2 `phrase` signal
+  per phrase (`{"kind": "phrase", "weight": 2, "label": "<phrase>"}`), read from the skill node's
+  `routerPhrases`. See [`docs/skill-map.md`](../skill-map.md)'s "Per-skill router phrases" for the
+  validation rules. `routeFromIndex()` needs no special handling, because it matches every
+  signal by its label's words regardless of `kind`. The map-scanning fallback `route()` builds
+  signals from tag edges and names only, so it does not see phrases; that path runs only when no
+  indexes file exists. The new kind is additive and the static indexes keep `schemaVersion`
+  `"1.1.0"`, as with the earlier additive remediation `labels` field: consumers that ignore
+  `kind` see one more weight-2 signal, and nothing that reads the index rejects an unknown kind.
   `skill-router.js` reads this file first (`routeFromIndex()`) and only falls back to walking
   `doc.edges` directly (`route()`) when no indexes file is present/parseable — an older install
   that hasn't rebuilt its indexes file yet still works, just without the precomputation.

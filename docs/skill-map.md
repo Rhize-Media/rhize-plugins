@@ -134,22 +134,69 @@ block drawn from a closed vocabulary (see "Tagging conventions" above for the ex
 `{slug, kind: "topic"|"stack"|"condition", gloss}` entries (`condition` entries additionally
 carry `patterns`, see below); `scripts/build_skill_map.py` validates every frontmatter slug
 against it (a BuildError on any slug not present) and sets each tag node's `description` from its
-gloss. Extend it only when no existing slug fits a new skill, and keep it small (target ≤25
-topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this substrate replaces. It
-currently holds 25 topics, 10 stacks and 5 conditions, and every topic and stack has at least one
-carrier skill.
+gloss. Extend it only when no existing slug fits a new skill. Size targets of ≤25 topics and ≤10
+stacks are soft goals that keep the tag space from reproducing the flat list this substrate
+replaces; they are not hard caps. The vocabulary currently holds 26 topics, 12 stacks and 5
+conditions, and every topic and stack has at least one carrier skill. It sits over the targets by
+three slugs, the topic `security` and the stacks `python` and `supabase`, which are kept because
+third-party router inference relies on those words (see below).
 
 Before adding a slug, or when a slug ends up with a single carrier, check whether a surviving
-slug's gloss covers it. Fold it there and widen the gloss rather than growing the list. Check the
-router before retiring a slug, because it matches tag slugs word by word against the prompt. A slug
-that repeats its carrier's name, such as `context-compression`, `tool-design` or the
+slug's gloss covers it. Fold it there and widen the gloss rather than growing the list.
+
+**Retirement rule.** Retire a slug only if it is a near-duplicate of a surviving slug AND not a
+word that third-party inference relies on. The router matches tag slugs word by word against the
+prompt, and `rhize-context-manager/scripts/build_local_skill_map.py` infers half-weight router
+signals for installed third-party skills by matching the same slug words against their name and
+description (see [Edge Semantics — Deep Reference](./skill-map/edge-semantics.md)'s "Inferred
+router signals for third-party skills" section). A retired slug therefore silences two things: the
+declared carrier's routes and every third-party skill that inferred it. Before retiring, run
+`python3 rhize-context-manager/scripts/build_local_skill_map.py --report-inferred` with and without
+the change (`--tags-catalog` points it at an alternate copy of `catalog/tags.json`) and compare the
+two outputs. Any third-party skill that loses a tag is a reason to keep the slug.
+
+The 2026-10 consolidation retired `web-clipping`, `cms-development`, `prospecting`,
+`context-optimization`, `learning-curation`, `security` and the stacks `python` and `supabase`. It
+removed 32 inferred signals from 31 third-party skills installed on the maintainer's machine: 24
+from `security`, 6 from `python` and 2 from `supabase`. For example, "run a security scan on this
+repo" stopped routing to `ecc:security-scan`. Those three were restored on their original carriers with their original
+glosses, and the `provenance` and `postgresql` glosses went back to their pre-consolidation wording.
+The other five stay retired, folded into `content-authoring`, `outreach`, `context-engineering` and
+`memory-systems`.
+
+A slug that repeats its carrier's name, such as `context-compression`, `tool-design` or the
 `functionize` stack, gives that skill a second signal for the same words. That second signal is
-what lets a prompt naming the skill qualify for a suggestion, so retiring the slug silences those
-routes. The 2026-10 pass retired `web-clipping` (into `content-authoring`), `cms-development`
-(into `content-authoring`), `prospecting` (into `outreach`), `context-optimization` (into
-`context-engineering`), `security` (into `provenance`), `learning-curation` (into
-`memory-systems`), and the stacks `python` (dropped; its one carrier keeps `obsidian`) and
-`supabase` (into `postgresql`).
+what lets a prompt naming the skill qualify for a suggestion. Where such a slug has been retired,
+the carrier gets the words back as a per-skill router phrase instead of a vocabulary entry.
+
+**Per-skill router phrases.** A skill may declare up to 3 phrases in its frontmatter:
+
+```yaml
+metadata:
+  rhize:
+    topics: [context-engineering]
+    router:
+      phrases: ["context optimization"]
+```
+
+`scripts/build_skill_map.py` validates the list and raises a BuildError if any rule fails:
+
+- `router` is a mapping whose only key is `phrases`, and `phrases` is a list.
+- The list has at most 3 entries.
+- Each phrase is a string of 2 or more words. Words are split the way the router splits a label:
+  lowercase, with any run of characters other than `a-z0-9` as a separator.
+- No two phrases normalize to the same words.
+- No phrase equals one of the skill's own topic or stack slugs once its words are joined with `-`.
+
+The compiler stores the normalized phrases on the skill node as `routerPhrases`. The router index
+gives each one a `{"kind": "phrase", "weight": 2, "label": <phrase>}` signal for that skill only.
+A phrase creates no tag node and no edge, so it never affects disclosure, the viewer or the tag
+counts above. route-core matches it like any other signal: every word of the label must be in the
+prompt. Use a phrase only for wording that the skill's SKILL.md supports, and prefer a closed-
+vocabulary slug whenever more than one skill would carry it. The current phrases restore the
+wording of retired name-echo slugs: `defuddle` ("web clipping"), `sanity-development` ("cms
+development"), `review-outreach-businesses` ("candidate businesses", replacing `prospecting`),
+`context-optimization` ("context optimization") and `learning-curation` ("learning curation").
 
 The condition vocabulary is closed at exactly 5 entries (`build-failure`, `type-error`,
 `test-failure`, `lint-failure`, `merge-conflict`) — see [Edge Semantics — Deep

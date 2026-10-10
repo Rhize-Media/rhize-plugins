@@ -15,7 +15,7 @@ description: >-
 metadata:
   rhize:
     topics: [data-consistency, workflow-patterns]
-    stacks: [nextjs, sanity, sentry, vercel, postgresql]
+    stacks: [nextjs, sanity, sentry, vercel, supabase]
     dependsOn: ["mcp:sentry"]
     extends: [dev-flow-foundations]
 

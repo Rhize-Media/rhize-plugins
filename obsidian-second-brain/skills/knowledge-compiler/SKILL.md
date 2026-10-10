@@ -10,8 +10,8 @@ metadata:
     tier: custom
     domain: obsidian
     maturity: experimental
-    topics: [knowledge-management, provenance, workflow-patterns]
-    stacks: [obsidian]
+    topics: [knowledge-management, provenance, workflow-patterns, security]
+    stacks: [obsidian, python]
 ---
 
 # Knowledge Compiler
