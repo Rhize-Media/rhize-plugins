@@ -26,6 +26,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ Router matching: plural folding (`-ies` → `-y`, trailing non-`ss` `-s`) on prompt tokens and signal labels, mirrored in third-party tag inference; a half-weight `name-partial` signal for a 3+-word skill name missing one word, suppressed whenever any skill's full name matched; `routeFromIndex()`, `route()` and the shadow shortlist now share one matcher. Moves `agent-brief-router`'s candidate series.
 - _2026-10-10_ version bump — 0.44.0 → 0.44.1 (patch); marketplace 2.101.0 → 2.101.1.
 - _2026-10-10_ build_local_skill_map.py links catalog `external:` nodes that declare `thirdPartyPlugin` to the installed third-party plugin that ships them (`contains`), so ECC agents, superpowers skills and similar references no longer float as islands in the resolved map and viewer.
 - _2026-10-10_ version bump — 0.43.3 → 0.44.0 (minor); marketplace 2.100.4 → 2.101.0.

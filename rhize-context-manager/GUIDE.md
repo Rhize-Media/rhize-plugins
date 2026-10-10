@@ -179,7 +179,10 @@ the right one, and health-checks the whole thing.
   Claude entries when updating; duplicate calls are state-safe but waste local provider work.
 - `skill-router` (`hooks/skill-router.js`, also opt-in via `setup/manifest.json`) ranks the
   prompt against the compiled skill-map's topic/stack tags, so a newly tagged skill routes
-  without a hook edit. It needs `scripts/build_skill_map.py
+  without a hook edit. Matching folds plurals on both sides ("Obsidian Base" meets
+  `obsidian-bases`), and a 3+-word skill name missing one word adds a half-weight partial
+  signal unless some skill's full name matched — see `docs/skill-map/query-layer.md`'s
+  "Router matching rule". It needs `scripts/build_skill_map.py
   --install` to have run at least once (installs the artifact to
   `~/.claude/context-manager/`); with no artifact present it fails silently and suggests
   nothing. Installed (third-party, non-rhize) skills get no real tag edges, but can still

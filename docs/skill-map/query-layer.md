@@ -12,6 +12,33 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
   `skill-router.js` reads this file first (`routeFromIndex()`) and only falls back to walking
   `doc.edges` directly (`route()`) when no indexes file is present/parseable — an older install
   that hasn't rebuilt its indexes file yet still works, just without the precomputation.
+
+  **Router matching rule** (`hooks/lib/route-core.js`; `routeFromIndex()`, `route()` and
+  `skill-router.js`'s shadow shortlist all score through the one shared matcher,
+  `scoreCandidates()` over per-skill `matchSignals()`, then `pickBest()`):
+  - *Words.* A label and the prompt are both split by `wordsOf()`: lowercase, split on
+    non-alphanumerics, then plural-folded by `normalizeWord()` — `-ies` → `-y` when the word is
+    longer than 4 characters, otherwise a trailing `-s` that isn't `-ss` is dropped when the word
+    is longer than 3. Nothing else (no `-ing`/`-ed`, so `testing` never becomes `test`). So
+    "Obsidian Base" meets `obsidian-bases` and "meeting notes" meets a `note` label. Folding
+    applies to both sides identically, so its collisions (`news`→`new`, `nextjs`→`nextj`,
+    `status`→`statu`, `analysis`→`analysi`, `canvas`→`canva`, `series`→`sery`) are harmless; `-es`
+    plurals of `-ss` words (`businesses`→`businesse`) stay distinct from the singular.
+    `tests/skill-map/fixtures/stem-parity.json` pins the outputs for JS and Python.
+    Display text never passes through the folding — suggestions print the original label.
+  - *Match.* A signal matches when every word of its label is in the prompt's token set.
+  - *Weights.* `name` 1, declared `tag` 2, `phrase` 2 (where the index carries phrase signals),
+    third-party `tag-inferred` 0.5, and `name-partial` 0.5 (below).
+  - *Partial name.* A skill whose name has 3+ words, whose full name did not match, and which is
+    missing exactly one name word gets one `{kind: "name-partial", weight: 0.5, label: "<name>
+    (partial)"}` signal. **Guard:** if any skill's full name matched the prompt, every partial
+    signal is suppressed for that prompt, so a sibling's near-miss can never beat (or qualify
+    against) the skill the prompt actually named.
+  - *Qualification.* At least 2 matched signals, at least one with weight ≥ 1 — a partial or
+    inferred signal adds score but never satisfies the floor on its own. Score is the sum.
+  - *Pick.* A qualifying extender scoring ≥ its base drops the base; then highest score wins,
+    ties on skill id; at most one suggestion. `agent-brief-router.js` uses the same scoring, so
+    its candidate series moves with any change here.
 - `disclosure` — per single stack slug, the base+extenders-folded skill list
   `session-disclosure.js`'s `relevantSkills()` would compute for a `detectedStacks` set containing
   only that one stack. `session-disclosure.js` reads this file first (`relevantSkillsFromIndex()`),

@@ -129,6 +129,66 @@ class InferTagsForSkillTests(unittest.TestCase):
             self.assertIn("degraded", note)
 
 
+class StemParityTests(unittest.TestCase):
+    """_normalize_word()/_words_of() mirror route-core.js's normalizeWord()/
+    wordsOf() (plural folding), pinned by the shared
+    tests/skill-map/fixtures/stem-parity.json; tests/skill-map/
+    test_router_matching.js asserts the node side against the same file."""
+
+    STEM_FIXTURE = REPO_ROOT / "tests" / "skill-map" / "fixtures" / "stem-parity.json"
+
+    def setUp(self) -> None:
+        self.module = _load_module(BUILD_LOCAL_SKILL_MAP, "test_inferred__stem_parity")
+        self.fixture = json.loads(self.STEM_FIXTURE.read_text())
+
+    def test_python_reproduces_every_fixture_entry(self) -> None:
+        for word, expected in self.fixture["normalizeWord"].items():
+            self.assertEqual(self.module._normalize_word(word), expected, word)
+        for text, expected in self.fixture["wordsOf"].items():
+            self.assertEqual(list(self.module._words_of(text)), expected, text)
+        for word, expected in self.fixture["knownCollisions"]["pairs"].items():
+            self.assertEqual(self.module._normalize_word(word), expected, word)
+        self.assertEqual(self.module._normalize_word("testing"), "testing")
+
+    def test_python_and_node_agree_directly(self) -> None:
+        words = list(self.fixture["normalizeWord"])
+        texts = list(self.fixture["wordsOf"])
+        script = (
+            "const c = require(process.argv[1]);"
+            "const d = JSON.parse(require('fs').readFileSync(0, 'utf8'));"
+            "const w = {}; for (const x of d.w) w[x] = c.normalizeWord(x);"
+            "const t = {}; for (const x of d.t) t[x] = c.wordsOf(x);"
+            "process.stdout.write(JSON.stringify({w, t}));"
+        )
+        result = subprocess.run(
+            ["node", "-e", script, str(ROUTE_CORE)],
+            input=json.dumps({"w": words, "t": texts}),
+            capture_output=True, text=True, timeout=20, check=True,
+        )
+        node = json.loads(result.stdout)
+        for word in words:
+            self.assertEqual(node["w"][word], self.module._normalize_word(word), word)
+        for text in texts:
+            self.assertEqual(node["t"][text], list(self.module._words_of(text)), text)
+
+    def test_inference_folds_plurals_like_the_runtime_matcher(self) -> None:
+        # A singular description word now meets a plural slug word (and vice
+        # versa), exactly as a runtime prompt would meet the same label.
+        catalog = [
+            {"kind": "topic", "slug": "workflow-patterns"},
+            {"kind": "topic", "slug": "memory-systems"},
+            {"kind": "stack", "slug": "sanity"},
+        ]
+        self.assertEqual(
+            self.module.infer_tags_for_skill("helper", "A workflow pattern for a memory system", catalog),
+            ["memory-systems", "workflow-patterns"],
+        )
+        self.assertEqual(
+            self.module.infer_tags_for_skill("helper", "Edits Sanity documents", catalog),
+            ["sanity"],
+        )
+
+
 # ---------------------------------------------------------------------------
 # 2. build_resolved_indexes() — router.signals injection
 # ---------------------------------------------------------------------------

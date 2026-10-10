@@ -518,14 +518,30 @@ def _home_relative(path: Path) -> str:
 _WORD_SPLIT_RE = re.compile(r"[^a-z0-9]+")
 
 
+def _normalize_word(word: str) -> str:
+    """Plural folding, byte-for-byte mirror of hooks/lib/route-core.js's
+    normalizeWord(): `-ies` -> `-y` when len > 4, else a trailing `-s` that
+    isn't `-ss` is dropped when len > 3. Nothing else (no `-ing`/`-ed`), so
+    `testing` never folds into `test`. Known harmless collisions (news -> new,
+    nextjs -> nextj, status -> statu, analysis -> analysi, canvas -> canva)
+    apply on both sides. tests/skill-map/fixtures/stem-parity.json pins both
+    implementations to the same outputs."""
+    if len(word) > 4 and word.endswith("ies"):
+        return word[:-3] + "y"
+    if len(word) > 3 and word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
+
+
 @functools.lru_cache(maxsize=None)
 def _words_of(text: str) -> tuple[str, ...]:
     """Tokenize the same way hooks/lib/route-core.js's wordsOf()/tokenize()
     do: lowercase, split on runs of non-alphanumeric characters, drop
-    empties. Kept in lockstep with that JS function so a slug/label match
-    here means the same thing a router match at runtime would find. Cached:
-    every catalog slug is re-tokenized once per third-party skill otherwise."""
-    return tuple(w for w in _WORD_SPLIT_RE.split((text or "").lower()) if w)
+    empties, plural-fold each word (_normalize_word()). Kept in lockstep with
+    that JS function so a slug/label match here means the same thing a router
+    match at runtime would find. Cached: every catalog slug is re-tokenized
+    once per third-party skill otherwise."""
+    return tuple(_normalize_word(w) for w in _WORD_SPLIT_RE.split((text or "").lower()) if w)
 
 
 def infer_tags_for_skill(
@@ -535,7 +551,8 @@ def infer_tags_for_skill(
     name + description. A catalog entry matches when every word of its
     slug (hyphen-separated) appears among the tokenized name+description,
     mirroring route-core.js's routeFromIndex() "every word of the label is
-    in the prompt tokens" rule. `condition` entries are never inferred —
+    in the prompt tokens" rule, plural folding included (both sides go
+    through _words_of()). `condition` entries are never inferred —
     they describe a runtime failure state a skill remediates, not a
     skill's subject matter, and this feeds only the router's topic/stack
     signal set.
@@ -1016,7 +1033,10 @@ def build(
 # static indexes' (scripts/build_skill_map.py's SCHEMA_VERSION, currently
 # "1.1.0") because this file adds resolved-only, additive features that
 # never touch generated/skill-map.indexes.json itself. Bumped to "1.2.0" for
-# the tag-inferred router signal kind (see infer_tags_for_skill()).
+# the tag-inferred router signal kind (see infer_tags_for_skill()). Plural
+# folding in _words_of() (2026-10) changes which slugs a skill infers, not the
+# document's shape or signal kinds, and `name-partial` signals are computed at
+# match time and never written here — so neither bumped the version.
 RESOLVED_INDEXES_SCHEMA_VERSION = "1.2.0"
 
 

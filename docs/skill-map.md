@@ -141,7 +141,9 @@ carrier skill.
 
 Before adding a slug, or when a slug ends up with a single carrier, check whether a surviving
 slug's gloss covers it. Fold it there and widen the gloss rather than growing the list. Check the
-router before retiring a slug, because it matches tag slugs word by word against the prompt. A slug
+router before retiring a slug, because it matches tag slugs word by word against the prompt
+(plural-folded on both sides — see [Query Layer](./skill-map/query-layer.md)'s "Router matching
+rule"). A slug
 that repeats its carrier's name, such as `context-compression`, `tool-design` or the
 `functionize` stack, gives that skill a second signal for the same words. That second signal is
 what lets a prompt naming the skill qualify for a suggestion, so retiring the slug silences those

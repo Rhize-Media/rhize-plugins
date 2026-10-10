@@ -6,8 +6,10 @@
 // scoring without duplicating the ranking logic.
 //
 // Everything here is a primitive: reading the index/map files, tokenizing
-// prompts, and the two scoring algorithms (index-backed and map-scan
-// fallback), plus the shared qualification floor (>= 2 matched signals, at
+// prompts (with plural folding, see normalizeWord()), the shared matcher
+// (matchSignals()/scoreCandidates()/pickBest()) that both entry points —
+// index-backed routeFromIndex() and the map-scan fallback route() — score
+// through, plus the shared qualification floor (>= 2 matched signals, at
 // least one full-weight). Policy — score thresholds, the one-suggestion cap,
 // and message/output shaping — stays per-hook, since briefs need different
 // calibration than prompts. See
@@ -105,11 +107,39 @@ function readIndexes() {
   return null;
 }
 
-function wordsOf(value) {
+// Plural folding applied to every matched word, on BOTH sides of a match:
+// prompt tokens (tokenize()) and signal labels (wordsOf() inside
+// matchSignals()), so "obsidian bases" meets the `obsidian-bases` name and
+// "meeting notes" meets a `note`-bearing label. Deliberately tiny: `-ies` ->
+// `-y` (len > 4) and a trailing `-s` that isn't `-ss` (len > 3) — nothing
+// else. No `-ing`/`-ed` folding: that would merge `testing` into `test` and
+// change which skill a prompt names. Known harmless collisions (news -> new,
+// nextjs -> nextj, status -> statu, analysis -> analysi, canvas -> canva)
+// apply identically to labels and prompts, so they never create a match that
+// the unfolded words would not also have created against the same spelling.
+// Mirrored byte-for-byte by build_local_skill_map.py's _normalize_word();
+// tests/skill-map/fixtures/stem-parity.json pins both implementations.
+function normalizeWord(word) {
+  const w = String(word);
+  if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+
+// Lowercase, split on runs of non-alphanumerics, drop empties — no folding.
+// Used only where the original spelling matters (shadow-mode task hints);
+// matching always goes through wordsOf().
+function rawWordsOf(value) {
   return String(value || '')
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter(Boolean);
+}
+
+// The match-time word split: rawWordsOf() + normalizeWord(). Display text
+// never passes through here — labels are printed from signal.label as-is.
+function wordsOf(value) {
+  return rawWordsOf(value).map(normalizeWord);
 }
 
 function tokenize(prompt) {
@@ -145,8 +175,10 @@ function formatSkillRef(skillId) {
 // tag-inferred signal (see build_local_skill_map.py's infer_tags_for_skill())
 // so a suggestion's "matches ..." text distinguishes a half-weight guessed
 // tag from a declared name/tag match. Signals from the map-scanning fallback
-// path (route(), not routeFromIndex()) never carry a `kind` field and so
-// never get the suffix — see docs/skill-map.md's documented divergence.
+// path (route(), not routeFromIndex()) carry only `tag`/`name`/`name-partial`
+// kinds (no inference there) and so never get the suffix — see
+// docs/skill-map/edge-semantics.md's documented divergence. A `name-partial`
+// signal's label already ends in " (partial)" (see matchSignals()).
 // Display boundary for index-sourced text: the resolved index is written by
 // build_local_skill_map.py from third-party plugin file names, so strip
 // C0/C1 control, zero-width, and bidi-override characters again here rather
@@ -178,38 +210,90 @@ function explicitRequest(skillIds, prompt) {
   return { skillId: matches[0], score: 3, signals: [{ weight: 3, label: 'explicit skill request' }] };
 }
 
-// Index-backed equivalent of route() below: identical scoring/tie-break
-// rules, sourced from the router index's precomputed per-skill signal lists
-// (build_skill_map.py's build_router_index()) instead of walking
-// doc.nodes/doc.edges. See route()'s docstring for the shared semantics.
-function routeFromIndex(routerIndex, promptTokens, prompt) {
-  const signalsBySkill = routerIndex.signals || {};
-  const explicit = explicitRequest(Object.keys(signalsBySkill), prompt);
-  if (explicit !== undefined) return explicit;
-  const extendsBases = routerIndex.extendsBases || {};
+// ---------------------------------------------------------------------------
+// Shared matcher. routeFromIndex(), route() and skill-router.js's
+// shadowShortlist() all score through scoreCandidates() so the three can't
+// drift apart.
+//
+// MATCH RULE: a signal matches when every word of its label (wordsOf(): lowercased, split on
+// non-alphanumerics, plural-folded) is in the prompt token set (tokenize(), same folding).
+//
+// PARTIAL NAME (P1): when a skill's name has 3+ words, its full name did NOT
+// match, and exactly one of its name words is missing from the prompt, the
+// skill gets one extra matched signal {kind: "name-partial", weight: 0.5,
+// label: "<name> (partial)"}. Sub-unit weight, so it never satisfies the
+// full-weight floor on its own. GUARD: if ANY skill's full name matched for
+// this prompt, every partial-name signal is suppressed for this prompt — a
+// sibling's near-miss must never outrank (or qualify against) a skill the
+// user actually named. Name signals are identified by kind "name"; a
+// signal list without one (none in shipped data) simply gets no partial.
+// ---------------------------------------------------------------------------
 
-  const scored = new Map(); // skillId -> { score, signals }
+const PARTIAL_NAME_WEIGHT = 0.5;
+const PARTIAL_NAME_MIN_WORDS = 3;
 
-  for (const [skillId, signals] of Object.entries(signalsBySkill)) {
-    const matched = [];
-    for (const sig of signals) {
-      const words = wordsOf(sig.label);
-      if (words.length > 0 && words.every((w) => promptTokens.has(w))) {
-        matched.push(sig);
-      }
+// Per-skill pass: which signals fully match, whether the skill's own name
+// fully matched, and the partial-name signal it would get (null when not
+// eligible). Pure; the cross-skill guard is applied by scoreCandidates().
+function matchSignals(signals, promptTokens) {
+  const matched = [];
+  let nameMatched = false;
+  let partial = null;
+  for (const sig of signals || []) {
+    const words = wordsOf(sig.label);
+    if (words.length === 0) continue;
+    let missing = 0;
+    for (const w of words) if (!promptTokens.has(w)) missing += 1;
+    if (missing === 0) {
+      matched.push(sig);
+      if (sig.kind === 'name') nameMatched = true;
+    } else if (
+      sig.kind === 'name' &&
+      partial === null &&
+      words.length >= PARTIAL_NAME_MIN_WORDS &&
+      missing === 1
+    ) {
+      partial = { kind: 'name-partial', weight: PARTIAL_NAME_WEIGHT, label: `${String(sig.label)} (partial)` };
     }
-    if (matched.length < 2) continue; // single weak match must not emit
-    // Floor: at least one full-weight (declared) signal among the matches. Inferred signals
-    // are sub-unit weight, so an inferred-only match never qualifies; the weight math
-    // (max 1 + 3*0.5 = 2.5 < name + declared tag = 3) is what keeps them from outranking.
-    if (!matched.some((s) => s.weight >= 1)) continue;
-    const score = matched.reduce((sum, s) => sum + s.weight, 0);
-    scored.set(skillId, { score, signals: matched });
   }
+  return { matched, nameMatched, partial: nameMatched ? null : partial };
+}
 
-  // Same extends tie-break as route(): a qualifying extender scoring >= its
-  // base drops the base from consideration.
-  for (const [extenderId, bases] of Object.entries(extendsBases)) {
+// Qualification floor shared by every caller: >= 2 matched signals, at least
+// one full-weight (weight >= 1: a name, a declared tag, or a phrase). Inferred
+// and partial-name signals are sub-unit, so they can add score and count
+// toward the 2-signal minimum but never qualify a skill on their own.
+function qualifies(matched) {
+  return matched.length >= 2 && matched.some((s) => s.weight >= 1);
+}
+
+// Scores every skill in `entries` (an iterable of [skillId, signals]) against
+// the prompt tokens. Returns Map skillId -> { score, signals } holding only
+// qualifying skills; signals keep their input order, a partial-name signal
+// (if any) last.
+function scoreCandidates(entries, promptTokens) {
+  const perSkill = [];
+  let anyFullName = false;
+  for (const [skillId, signals] of entries) {
+    const result = matchSignals(signals, promptTokens);
+    if (result.nameMatched) anyFullName = true;
+    perSkill.push([skillId, result]);
+  }
+  const scored = new Map();
+  for (const [skillId, result] of perSkill) {
+    const matched = !anyFullName && result.partial ? [...result.matched, result.partial] : result.matched;
+    if (!qualifies(matched)) continue;
+    scored.set(skillId, { score: matched.reduce((sum, s) => sum + s.weight, 0), signals: matched });
+  }
+  return scored;
+}
+
+// EXTENDS TIE-BREAK + final pick, shared by routeFromIndex() and route().
+// `extendsEntries` is an iterable of [extenderId, iterable of baseIds]. A
+// qualifying extender scoring >= its base drops the base (the extender is
+// more specific); then the highest score wins, ties broken on skill id.
+function pickBest(scored, extendsEntries) {
+  for (const [extenderId, bases] of extendsEntries) {
     const extenderResult = scored.get(extenderId);
     if (!extenderResult) continue;
     for (const baseId of bases) {
@@ -231,16 +315,33 @@ function routeFromIndex(routerIndex, promptTokens, prompt) {
       best = { skillId, score: result.score, signals: result.signals };
     }
   }
-
   return best;
 }
 
-// Returns the single best-matching skill, or null if none qualifies.
+// Index-backed equivalent of route() below: identical scoring/tie-break
+// rules, sourced from the router index's precomputed per-skill signal lists
+// (build_skill_map.py's build_router_index()) instead of walking
+// doc.nodes/doc.edges. Floor reminder: inferred signals are sub-unit weight,
+// so an inferred-only match never qualifies; the weight math (max 1 + 3*0.5 =
+// 2.5 < name + declared tag = 3) is what keeps them from outranking.
+function routeFromIndex(routerIndex, promptTokens, prompt) {
+  const signalsBySkill = routerIndex.signals || {};
+  const explicit = explicitRequest(Object.keys(signalsBySkill), prompt);
+  if (explicit !== undefined) return explicit;
+  const scored = scoreCandidates(Object.entries(signalsBySkill), promptTokens);
+  return pickBest(scored, Object.entries(routerIndex.extendsBases || {}));
+}
+
+// Map-scan fallback: returns the single best-matching skill, or null if none
+// qualifies.
 //
-// Single pass over doc.nodes to collect skill nodes and pre-tokenize every
-// tag node's name once, plus edges bucketed by their `from` id, so the ranking
-// loop below only ever touches each skill's own topic-tag/stack-tag edges
-// instead of rescanning doc.edges per skill (was O(skills * edges)).
+// Single pass over doc.nodes to collect skill and tag nodes, plus edges
+// bucketed by their `from` id, so each skill's signal list is built from only
+// its own topic-tag/stack-tag edges (not a rescan of doc.edges per skill).
+// The list mirrors build_router_index()'s shape — {kind: "tag", weight: 2}
+// per tag edge, then {kind: "name", weight: 1} — and is scored by the same
+// scoreCandidates()/pickBest() as routeFromIndex(), so partial-name signals
+// and the guard behave identically on both paths.
 //
 // EXTENDS TIE-BREAK: when both a base skill and one of its extenders
 // (an `extends` edge from extender -> base) qualify (2+ signals), and the
@@ -252,12 +353,12 @@ function route(doc, promptTokens, prompt) {
   const explicit = explicitRequest(doc.nodes.filter((n) => n.kind === 'skill').map((n) => n.id), prompt);
   if (explicit !== undefined) return explicit;
   const skills = [];
-  const tagsById = new Map(); // tagId -> { name, words }
+  const tagNames = new Map(); // tagId -> name
   for (const node of doc.nodes) {
     if (node.kind === 'skill') {
       skills.push(node);
     } else if (node.kind === 'tag') {
-      tagsById.set(node.id, { name: node.name, words: wordsOf(node.name) });
+      tagNames.set(node.id, node.name);
     }
   }
 
@@ -281,57 +382,17 @@ function route(doc, promptTokens, prompt) {
     }
   }
 
-  const scored = new Map(); // skillId -> { score, signals }
-
-  for (const skill of skills) {
+  const entries = skills.map((skill) => {
     const signals = [];
-
     for (const edge of tagEdgesByFrom.get(skill.id) || []) {
-      const tag = tagsById.get(edge.to);
-      if (!tag) continue;
-      if (tag.words.length > 0 && tag.words.every((w) => promptTokens.has(w))) {
-        signals.push({ weight: 2, label: String(tag.name) });
-      }
+      if (!tagNames.has(edge.to)) continue;
+      signals.push({ kind: 'tag', weight: 2, label: String(tagNames.get(edge.to)) });
     }
+    signals.push({ kind: 'name', weight: 1, label: String(skill.name) });
+    return [skill.id, signals];
+  });
 
-    const nameWords = wordsOf(skill.name);
-    if (nameWords.length > 0 && nameWords.every((w) => promptTokens.has(w))) {
-      signals.push({ weight: 1, label: String(skill.name) });
-    }
-
-    if (signals.length < 2) continue; // single weak match must not emit
-
-    const score = signals.reduce((sum, s) => sum + s.weight, 0);
-    scored.set(skill.id, { score, signals });
-  }
-
-  // Drop a base from consideration whenever a qualifying extender of it
-  // scores at least as well — the extender is more specific and should win
-  // the tie instead of falling back to alphabetical skill-id order.
-  for (const [extenderId, bases] of extendsBasesByFrom) {
-    const extenderResult = scored.get(extenderId);
-    if (!extenderResult) continue;
-    for (const baseId of bases) {
-      const baseResult = scored.get(baseId);
-      if (!baseResult) continue;
-      if (extenderResult.score >= baseResult.score) {
-        scored.delete(baseId);
-      }
-    }
-  }
-
-  let best = null; // { skillId, score, signals }
-  for (const [skillId, result] of scored) {
-    if (
-      !best ||
-      result.score > best.score ||
-      (result.score === best.score && skillId < best.skillId)
-    ) {
-      best = { skillId, score: result.score, signals: result.signals };
-    }
-  }
-
-  return best;
+  return pickBest(scoreCandidates(entries, promptTokens), extendsBasesByFrom);
 }
 
 module.exports = {
@@ -339,6 +400,11 @@ module.exports = {
   readMap,
   tokenize,
   wordsOf,
+  rawWordsOf,
+  normalizeWord,
+  matchSignals,
+  scoreCandidates,
+  pickBest,
   splitSkillId,
   formatSkillRef,
   formatSignalLabel,

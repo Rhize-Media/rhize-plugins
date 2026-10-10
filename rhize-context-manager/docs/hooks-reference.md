@@ -82,7 +82,8 @@ list. `skill-router` replaced the keyword-grep `skill-suggester.sh` on 2026-08-0
 `.claude/plans/skill-map-graph-substrate.md`): it reads
 `~/.claude/context-manager/skill-map.resolved.json` (falling back to `skill-map.static.json`
 — installed via `scripts/build_skill_map.py --install`), requires 2+ distinct matching
-signals (topic/stack tag or skill-name word match) to fire at all, and fails silently — exit
+signals (topic/stack tag or skill-name word match, plurals folded; a 3+-word skill name missing
+one word adds a half-weight partial signal) to fire at all, and fails silently — exit
 0, no output — if the map is missing or corrupt. `agent-brief-router` (2026-08-26) is a
 **measurement instrument, not a router** — a PreToolUse hook fires only after the brief is
 already written, so it cannot fix the dispatch it observes; it exists to measure, session over
