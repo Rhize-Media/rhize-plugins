@@ -185,7 +185,12 @@ real edge.
 **topic/stack** entry (never `condition` — a condition describes a runtime failure state, not a
 skill's subject matter) against a third-party skill's tokenized name+description: a slug matches
 when every hyphen-separated word of it is present among the tokens — the identical "every word of
-the label is in the prompt tokens" rule `route-core.js`'s `routeFromIndex()` applies at match time. Up to 3
+the label is in the prompt tokens" rule `route-core.js`'s `routeFromIndex()` applies at match time.
+Tokenization mirrors the runtime stemmer too: `_words_of()` plural-folds every word with
+`_normalize_word()`, a byte-for-byte port of `route-core.js`'s `normalizeWord()` (`-ies` → `-y`,
+trailing non-`ss` `-s` dropped; see [Query Layer](./query-layer.md)'s "Router matching rule"), so a
+description saying "workflow pattern" infers `workflow-patterns` exactly when a prompt saying the
+same would match that label. `tests/skill-map/fixtures/stem-parity.json` pins both languages. Up to 3
 matches are kept per skill, preferring multi-word slugs (more specific) over single-word ones,
 then alphabetical; the returned list is itself sorted alphabetically, so output is deterministic
 regardless of catalog order. A missing or malformed `catalog/tags.json` degrades to zero inferred
@@ -215,7 +220,9 @@ and agent-brief-router.js both prefer) requires >=2 matched signals for implicit
 same as always — and now ALSO requires at least one full-weight matched signal (`weight >= 1`,
 i.e. a `name` or a declared `tag`). A third-party skill matching only 2 of its half-weight
 inferred tags therefore never qualifies on its own; it needs its `name` signal (or, hypothetically,
-a declared tag) to match too. This is a floor, not a ranking rule — the weight math is what keeps
+a declared tag) to match too. The runtime-only `name-partial` signal (weight 0.5, see Query
+Layer's "Router matching rule") is sub-unit as well, so a third-party partial name plus inferred
+tags still cannot qualify. This is a floor, not a ranking rule — the weight math is what keeps
 an inferred-backed match from outranking a declared one: a third-party skill's best possible score is `1 (name) + 3 × 0.5 (inferred) = 2.5`, while any
 declared match needs only a `name` + one `tag` to reach `1 + 2 = 3`.
 
@@ -237,7 +244,9 @@ the suffix never appears there (its own third-party score ceiling of 2.5 sits be
 
 **Documented divergence: no fallback-path inference.** The map-scanning fallback (`route()`, used
 only when no `skill-map.indexes.{resolved,}.json` exists at all) walks `doc.nodes`/`doc.edges`
-directly and has no inferred-signal equivalent — implicit third-party routing remains unavailable there. This is deliberate: teaching the fallback path the same inference
+directly to build its `tag`/`name` signal lists — it scores them through the same shared matcher
+as `routeFromIndex()` (plural folding, partial names and their guard included) — but has no
+inferred-signal equivalent — implicit third-party routing remains unavailable there. This is deliberate: teaching the fallback path the same inference
 would mean re-deriving it from the local overlay's third-party inventory + tags catalog at hook
 runtime (a per-invocation cost the precomputed-index design exists to avoid), for a code path only
 ever exercised by an install that hasn't rebuilt its indexes file yet.

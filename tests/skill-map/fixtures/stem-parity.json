@@ -1,0 +1,98 @@
+{
+  "description": "Plural-folding parity fixture shared by route-core.js normalizeWord()/wordsOf() and build_local_skill_map.py _normalize_word()/_words_of(). Values are the recorded output of the functions; tests/skill-map/test_router_matching.js (node) and tests/rhize-context-manager/test_build_local_skill_map_inferred.py (pytest) assert both languages reproduce every entry. Rule: -ies -> -y when len > 4; else drop a trailing -s that is not -ss when len > 3; nothing else (no -ing).",
+  "knownCollisions": {
+    "note": "Harmless: folding applies identically to signal labels and prompt tokens, so a collision only ever matches a label against a prompt containing the same surface spelling (or its plural).",
+    "pairs": {
+      "news": "new",
+      "nextjs": "nextj",
+      "status": "statu",
+      "analysis": "analysi",
+      "canvas": "canva",
+      "series": "sery",
+      "https": "http"
+    }
+  },
+  "knownNonFolds": {
+    "note": "-es plurals of -ss/-sh/-x words keep the e, so the singular and plural stay distinct (same as before folding existed).",
+    "pairs": {
+      "business": "business",
+      "businesses": "businesse"
+    }
+  },
+  "normalizeWord": {
+    "base": "base",
+    "bases": "base",
+    "note": "note",
+    "notes": "note",
+    "template": "template",
+    "templates": "template",
+    "skills": "skill",
+    "tasks": "task",
+    "tests": "test",
+    "testing": "testing",
+    "foundations": "foundation",
+    "glass": "glass",
+    "class": "class",
+    "boss": "boss",
+    "ss": "ss",
+    "is": "is",
+    "us": "us",
+    "yes": "yes",
+    "gas": "gas",
+    "bus": "bus",
+    "s": "s",
+    "a": "a",
+    "99s": "99s",
+    "": "",
+    "dies": "die",
+    "flies": "fly",
+    "toys": "toy",
+    "policies": "policy",
+    "opportunities": "opportunity",
+    "ies": "ies",
+    "series": "sery",
+    "news": "new",
+    "https": "http",
+    "nextjs": "nextj",
+    "status": "statu",
+    "analysis": "analysi",
+    "canvas": "canva",
+    "business": "business",
+    "businesses": "businesse"
+  },
+  "wordsOf": {
+    "notes's": [
+      "note",
+      "s"
+    ],
+    "Obsidian Bases": [
+      "obsidian",
+      "base"
+    ],
+    "meeting-notes template": [
+      "meeting",
+      "note",
+      "template"
+    ],
+    "Data Mutation Consistency": [
+      "data",
+      "mutation",
+      "consistency"
+    ],
+    "next.js": [
+      "next",
+      "js"
+    ],
+    "HTTPS://Example.com/policies": [
+      "http",
+      "example",
+      "com",
+      "policy"
+    ],
+    "v2 APIs": [
+      "v2",
+      "api"
+    ],
+    "  ": []
+  }
+}

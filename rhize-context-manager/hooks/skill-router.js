@@ -38,15 +38,20 @@
 //   2. skill-map.static.json   (installed by `build_skill_map.py --install`)
 // Neither present or parseable -> exit 0, no output.
 //
-// RANKING: tokenize the prompt into lowercase alnum words. For every `skill`
-// node, a topic-tag/stack-tag edge is a "tag signal" (weight 2) if every word
-// of the tag's name is present among the prompt's tokens; the skill's own
-// name is a "name signal" (weight 1) under the same all-words-present rule.
+// RANKING: tokenize the prompt into lowercase alnum words, plural-folded
+// (route-core's normalizeWord(): `-ies` -> `-y`, trailing non-`ss` `-s`
+// dropped; labels fold the same way). For every `skill` node, a
+// topic-tag/stack-tag edge is a "tag signal" (weight 2) if every word of the
+// tag's name is present among the prompt's tokens; the skill's own name is a
+// "name signal" (weight 1) under the same all-words-present rule. A 3+-word
+// name missing exactly one word adds a "name-partial" signal (weight 0.5),
+// suppressed for the whole prompt whenever any skill's full name matched.
 // Tag signals outweigh name signals, per the plan's "tag match > name match"
 // rule. At least 2 DISTINCT signals must match for a skill to be considered
-// at all — a single weak match must never emit (see plan's "Router noise"
-// risk). Among qualifying skills, the highest total weight wins; ties break
-// on skill id (deterministic, no randomness).
+// at all, at least one of weight >= 1 — a single weak match must never emit
+// (see plan's "Router noise" risk). Among qualifying skills, the highest
+// total weight wins; ties break on skill id (deterministic, no randomness).
+// All of this lives in route-core's shared matcher (scoreCandidates()).
 //
 // BUDGET: <150ms warm without workflow opt-in; opt-in bridge deadline 4.5s.
 // No network; the optional metadata selector is a bounded child. The map is read
@@ -66,6 +71,8 @@ const {
   readIndexes,
   readMap,
   tokenize,
+  rawWordsOf,
+  scoreCandidates,
   formatSkillRef,
   formatSignalLabel,
   routeFromIndex,
@@ -76,14 +83,11 @@ const {
 
 function shadowShortlist(index, promptTokens, incumbent) {
   if (!index || !incumbent || incumbent.signals.some((signal) => signal.label === 'explicit skill request')) return null;
+  // Same matcher/floor/partial-name guard as routeFromIndex() (route-core's
+  // scoreCandidates()), so the shadow shortlist can't drift from the live route.
   const scored = [];
-  for (const [skillId, signals] of Object.entries(index.signals || {})) {
-    const matched = signals.filter((signal) => {
-      const words = [...tokenize(signal.label)];
-      return words.length > 0 && words.every((word) => promptTokens.has(word));
-    });
-    if (matched.length < 2 || !matched.some((signal) => signal.weight >= 1)) continue;
-    scored.push({ skillId, score: matched.reduce((sum, signal) => sum + signal.weight, 0), signals: matched });
+  for (const [skillId, result] of scoreCandidates(Object.entries(index.signals || {}), promptTokens)) {
+    scored.push({ skillId, score: result.score, signals: result.signals });
   }
   scored.sort((a, b) => b.score - a.score || a.skillId.localeCompare(b.skillId));
   const selected = scored.slice(0, 5);
@@ -94,7 +98,7 @@ function shadowShortlist(index, promptTokens, incumbent) {
   if (!selected.length) return null;
   const id = (skillId) => 's' + crypto.createHash('sha256').update(skillId).digest('hex').slice(0, 16);
   const hint = (label) => String(label).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.flatMap((signal) => [...tokenize(signal.label)])))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
+  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.flatMap((signal) => rawWordsOf(signal.label))))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
   return {
     schema: 'rhize-typed-candidates-v1', capability: 'skill_workflow',
     sourceSha256: crypto.createHash('sha256').update(JSON.stringify(index)).digest('hex'),

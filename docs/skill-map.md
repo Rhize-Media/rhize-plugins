@@ -146,7 +146,8 @@ slug's gloss covers it. Fold it there and widen the gloss rather than growing th
 
 **Retirement rule.** Retire a slug only if it is a near-duplicate of a surviving slug AND not a
 word that third-party inference relies on. The router matches tag slugs word by word against the
-prompt, and `rhize-context-manager/scripts/build_local_skill_map.py` infers half-weight router
+prompt (plural-folded on both sides — see [Query Layer](./skill-map/query-layer.md)'s "Router
+matching rule"), and `rhize-context-manager/scripts/build_local_skill_map.py` infers half-weight router
 signals for installed third-party skills by matching the same slug words against their name and
 description (see [Edge Semantics — Deep Reference](./skill-map/edge-semantics.md)'s "Inferred
 router signals for third-party skills" section). A retired slug therefore silences two things: the

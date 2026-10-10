@@ -195,7 +195,10 @@ acceptance/ignore rates are measurable. Installed third-party skills carry no to
 edges, but the resolved router index gives each of them a name signal plus up to three
 half-weight *inferred* tag signals (written by `scripts/build_local_skill_map.py`, never into the
 static artifact); an inferred-backed match can never outrank a declared one, and the map-scan
-fallback path has no inferred signals at all — see `docs/skill-map/edge-semantics.md`. Beyond the auto-wired six, nine more hooks are declared
+fallback path has no inferred signals at all — see `docs/skill-map/edge-semantics.md`. Router
+matching folds plurals (`-ies`/`-s`) on prompt and label alike and adds a half-weight partial
+signal for a 3+-word skill name missing one word (suppressed whenever any full name matched);
+see `docs/skill-map/query-layer.md`'s "Router matching rule". Beyond the auto-wired six, nine more hooks are declared
 in `setup/manifest.json` for opt-in per-repo use and Claude-plugin migration bookkeeping —
 `/rhize-core:setup` wires them for you if that plugin is installed, otherwise see the
 snippet in [rhize-core/README.md § Setup manifest schema](../rhize-core/README.md#setup-manifest-schema).
