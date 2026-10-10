@@ -1,10 +1,40 @@
 {
   "edges": [
     {
+      "from": "command:obsidian-second-brain/vault-compile",
+      "source": "relations-catalog",
+      "to": "skill:obsidian-second-brain/knowledge-compiler",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:procedural-memory/promote",
+      "source": "relations-catalog",
+      "to": "command:procedural-memory/verify",
+      "type": "precedes"
+    },
+    {
       "from": "command:project-launcher/grill-prd",
       "source": "relations-catalog",
       "to": "command:project-launcher/scaffold-gsd",
       "type": "precedes"
+    },
+    {
+      "from": "command:project-launcher/launch-project",
+      "source": "relations-catalog",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:project-launcher/scaffold-gsd",
+      "source": "relations-catalog",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:project-launcher/visual-plan",
+      "source": "relations-catalog",
+      "to": "skill:project-launcher/rhize-visual-plan",
+      "type": "depends-on"
     },
     {
       "from": "command:project-launcher/write-prd",
@@ -13,21 +43,309 @@
       "type": "precedes"
     },
     {
+      "from": "command:rhize-context-manager/context-pack",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/context-pack",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/context-setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/context-engineering",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/context-setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/context-stack",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-decision",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-memory",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-memory-review",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-context-manager/learn-harvest",
+      "source": "relations-catalog",
+      "to": "command:rhize-context-manager/skill-refine",
+      "type": "precedes"
+    },
+    {
+      "from": "command:rhize-context-manager/memory-context",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/memory-context",
+      "type": "depends-on"
+    },
+    {
       "from": "command:rhize-context-manager/skill-refine",
       "source": "relations-catalog",
       "to": "external:skill-forge",
       "type": "depends-on"
     },
     {
+      "from": "command:rhize-devflow/browser-qa",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/browser-debug",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/browser-help",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/browser-perf",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/browser-test",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/check",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/review",
+      "type": "precedes"
+    },
+    {
+      "from": "command:rhize-devflow/devflow-setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/error-lifecycle-management",
+      "type": "precedes"
+    },
+    {
       "from": "command:rhize-devflow/impact-map",
       "source": "relations-catalog",
       "to": "command:rhize-context-manager/impact-map",
-      "type": "replaces"
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/check",
+      "type": "precedes"
     },
     {
       "from": "command:rhize-devflow/impact-map",
       "source": "relations-catalog",
       "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/mutation-analyze",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "source": "relations-catalog",
+      "to": "command:rhize-devflow/mutation-fix",
+      "type": "supersedes"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/data-mutation-consistency",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-devflow/simplify",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/simplify",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-devflow/test-evidence",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/test-evidence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-ops/delegate-setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-ops/delegate-to-teammate",
+      "type": "precedes"
+    },
+    {
+      "from": "command:rhize-ops/parallel-optimize",
+      "source": "relations-catalog",
+      "to": "skill:rhize-ops/parallel-agent-optimization",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/businesses",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-businesses",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/campaign",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/doctor",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-doctor",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/email",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-email",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/package",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/reconcile",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/run",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-outreach/setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-setup",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/doctor",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/rhize-tasks-doctor",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/preferences",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/manage-task-preferences",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/reconcile",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/review-opportunities",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/review-task-opportunities",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/rhize-tasks-setup",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:rhize-tasks/today",
+      "source": "relations-catalog",
+      "to": "skill:rhize-tasks/plan-my-day",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/ai-visibility",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/backlink-audit",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/backlink-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/code-seo-review",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/backlink-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/keyword-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/content-optimize",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/content-seo",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/keyword-research",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/keyword-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/rank-track",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/seo-audit",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/seo-site-audit",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/serp-check",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on"
+    },
+    {
+      "from": "command:seo-aeo-geo/technical-audit",
+      "source": "relations-catalog",
+      "to": "skill:seo-aeo-geo/seo-site-audit",
       "type": "depends-on"
     },
     {
@@ -1196,6 +1514,12 @@
     },
     {
       "from": "skill:obsidian-second-brain/defuddle",
+      "source": "relations-catalog",
+      "to": "external:defuddle-cli",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:obsidian-second-brain/defuddle",
       "source": "frontmatter",
       "to": "tag:stack/obsidian",
       "type": "stack-tag"
@@ -1263,6 +1587,12 @@
     {
       "from": "skill:obsidian-second-brain/knowledge-compiler",
       "source": "frontmatter",
+      "to": "tag:topic/security",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
       "to": "tag:topic/workflow-patterns",
       "type": "topic-tag"
     },
@@ -1289,6 +1619,12 @@
       "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-cli",
+      "source": "relations-catalog",
+      "to": "external:obsidian-app-cli",
+      "type": "depends-on"
     },
     {
       "from": "skill:obsidian-second-brain/obsidian-cli",
@@ -1371,6 +1707,12 @@
     {
       "from": "skill:obsidian-second-brain/vault-alignment",
       "source": "frontmatter",
+      "to": "skill:obsidian-second-brain/second-brain",
+      "type": "extends"
+    },
+    {
+      "from": "skill:obsidian-second-brain/vault-alignment",
+      "source": "frontmatter",
       "to": "tag:stack/obsidian",
       "type": "stack-tag"
     },
@@ -1442,6 +1784,12 @@
     },
     {
       "from": "skill:procedural-memory/rhize-content-engine",
+      "source": "relations-catalog",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:procedural-memory/rhize-content-engine",
       "source": "frontmatter",
       "to": "tag:topic/content-authoring",
       "type": "topic-tag"
@@ -1462,6 +1810,12 @@
       "from": "skill:project-launcher/project-launcher",
       "source": "frontmatter",
       "to": "mcp:obsidian-mcp-server",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:project-launcher/project-launcher",
+      "source": "frontmatter",
+      "to": "skill:project-launcher/rhize-visual-plan",
       "type": "depends-on"
     },
     {
@@ -1504,6 +1858,18 @@
       "from": "skill:project-launcher/rhize-visual-plan",
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
+      "type": "augments"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:topic/project-planning",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:project-launcher/rhize-visual-plan",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
       "type": "topic-tag"
     },
     {
@@ -1569,6 +1935,12 @@
       "source": "frontmatter",
       "to": "tag:topic/context-engineering",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/context-engineering",
+      "source": "frontmatter",
+      "to": "skill:rhize-devflow/dev-flow-foundations",
+      "type": "extends"
     },
     {
       "from": "skill:rhize-context-manager/context-engineering",
@@ -1720,6 +2092,12 @@
     {
       "from": "skill:rhize-context-manager/graph-memory",
       "source": "frontmatter",
+      "to": "tag:topic/provenance",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
       "to": "tag:topic/security",
       "type": "topic-tag"
     },
@@ -1749,6 +2127,12 @@
     },
     {
       "from": "skill:rhize-context-manager/graphiti-memory",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/memory-systems",
+      "type": "overlaps-with"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
       "source": "frontmatter",
       "to": "tag:topic/knowledge-graph",
       "type": "topic-tag"
@@ -1773,6 +2157,12 @@
     },
     {
       "from": "skill:rhize-context-manager/memory-context",
+      "source": "relations-catalog",
+      "to": "skill:rhize-context-manager/graphiti-memory",
+      "type": "supersedes"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-context",
       "source": "frontmatter",
       "to": "tag:topic/context-engineering",
       "type": "topic-tag"
@@ -1781,6 +2171,12 @@
       "from": "skill:rhize-context-manager/memory-context",
       "source": "frontmatter",
       "to": "tag:topic/memory-systems",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-context",
+      "source": "frontmatter",
+      "to": "tag:topic/provenance",
       "type": "topic-tag"
     },
     {
@@ -1959,6 +2355,12 @@
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/supabase",
       "type": "stack-tag"
     },
     {
@@ -2190,6 +2592,12 @@
     {
       "from": "skill:rhize-ops/cross-model-handoff",
       "source": "frontmatter",
+      "to": "mcp:rhize-bridge",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-ops/cross-model-handoff",
+      "source": "frontmatter",
       "to": "tag:stack/testing",
       "type": "stack-tag"
     },
@@ -2197,6 +2605,12 @@
       "from": "skill:rhize-ops/cross-model-handoff",
       "source": "frontmatter",
       "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/cross-model-handoff",
+      "source": "frontmatter",
+      "to": "tag:topic/review",
       "type": "topic-tag"
     },
     {
@@ -2249,6 +2663,18 @@
     },
     {
       "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "relations-catalog",
+      "to": "external:ecc-parallel-execution-optimizer",
+      "type": "replaces"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "relations-catalog",
+      "to": "external:superpowers-dispatching-parallel-agents",
+      "type": "replaces"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
       "source": "frontmatter",
       "to": "tag:stack/testing",
       "type": "stack-tag"
@@ -2257,6 +2683,12 @@
       "from": "skill:rhize-ops/parallel-agent-optimization",
       "source": "frontmatter",
       "to": "tag:topic/automation",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "source": "frontmatter",
+      "to": "tag:topic/evidence",
       "type": "topic-tag"
     },
     {
@@ -2303,6 +2735,18 @@
     },
     {
       "from": "skill:rhize-outreach/review-outreach-businesses",
+      "source": "relations-catalog",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "precedes"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
       "source": "frontmatter",
       "to": "tag:topic/outreach",
       "type": "topic-tag"
@@ -2312,6 +2756,18 @@
       "source": "frontmatter",
       "to": "tag:topic/prospecting",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "source": "relations-catalog",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "type": "precedes"
     },
     {
       "from": "skill:rhize-outreach/review-outreach-email",
@@ -2330,6 +2786,18 @@
       "source": "frontmatter",
       "to": "tag:topic/review",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "relations-catalog",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-email",
+      "type": "precedes"
     },
     {
       "from": "skill:rhize-outreach/review-outreach-package",
@@ -2357,6 +2825,12 @@
     },
     {
       "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "precedes"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -2369,6 +2843,18 @@
     },
     {
       "from": "skill:rhize-outreach/rhize-outreach-run",
+      "source": "relations-catalog",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-run",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/review-outreach-businesses",
+      "type": "precedes"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-run",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -2381,6 +2867,24 @@
     },
     {
       "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "relations-catalog",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "relations-catalog",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "precedes"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "source": "frontmatter",
+      "to": "tag:stack/postgresql",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -2393,6 +2897,12 @@
     },
     {
       "from": "skill:rhize-tasks/manage-task-preferences",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-tasks/manage-task-preferences",
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
       "type": "topic-tag"
@@ -2405,6 +2915,12 @@
     },
     {
       "from": "skill:rhize-tasks/plan-my-day",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -2414,6 +2930,12 @@
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
     },
     {
       "from": "skill:rhize-tasks/reconcile-rhize-tasks",
@@ -2429,6 +2951,12 @@
     },
     {
       "from": "skill:rhize-tasks/review-task-opportunities",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
       "source": "frontmatter",
       "to": "tag:topic/project-planning",
       "type": "topic-tag"
@@ -2441,6 +2969,12 @@
     },
     {
       "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
       "source": "frontmatter",
       "to": "tag:topic/automation",
       "type": "topic-tag"
@@ -2450,6 +2984,12 @@
       "source": "frontmatter",
       "to": "tag:topic/observability",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "source": "relations-catalog",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on"
     },
     {
       "from": "skill:rhize-tasks/rhize-tasks-setup",
@@ -2564,6 +3104,12 @@
       "source": "frontmatter",
       "to": "tag:topic/keyword-research",
       "type": "topic-tag"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "source": "relations-catalog",
+      "to": "skill:rhize-devflow/sanity-development",
+      "type": "overlaps-with"
     },
     {
       "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
@@ -3205,6 +3751,12 @@
       "path": "seo-aeo-geo/commands/technical-audit.md"
     },
     {
+      "description": "Command-line web-content extractor (`defuddle parse <url> --md`) that the obsidian-second-brain defuddle skill documents and drives.",
+      "id": "external:defuddle-cli",
+      "kind": "external",
+      "name": "Defuddle CLI (npm: defuddle)"
+    },
+    {
       "id": "external:docs.anthropic.com/en/docs/claude-code/cli-usage",
       "kind": "external",
       "name": "simplify",
@@ -3257,6 +3809,12 @@
       "id": "external:ecc-kotlin-build-resolver",
       "kind": "external",
       "name": "ecc:kotlin-build-resolver (agent)"
+    },
+    {
+      "description": "everything-claude-code parallel-execution skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only).",
+      "id": "external:ecc-parallel-execution-optimizer",
+      "kind": "external",
+      "name": "ecc:parallel-execution-optimizer (skill)"
     },
     {
       "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
@@ -3344,10 +3902,28 @@
       "url": "https://raw.githubusercontent.com/muratcankoylan/Agent-Skills-for-Context-Engineering/main/skills/tool-design/SKILL.md"
     },
     {
+      "description": "The `obsidian` command-line interface built into the Obsidian app (Settings > General > Command line interface); requires the app running. The obsidian-second-brain obsidian-cli skill documents and drives it.",
+      "id": "external:obsidian-app-cli",
+      "kind": "external",
+      "name": "Obsidian official CLI (v1.12.4+)"
+    },
+    {
+      "description": "Local-first operator UI and resumable selected-business workflow fetched at an immutable commit (rhize-outreach/setup/manifest.json's 'rhize-outreach runtime' dependency). Setup installs it; run, package, business and email review operate inside its UI and agent graph.",
+      "id": "external:rhize-outreach-runtime",
+      "kind": "external",
+      "name": "rhize-outreach runtime (Rhize-Media/rhize-outreach)"
+    },
+    {
       "description": "Canonical Rhize-Media/procedural-memory runtime. The procedural-memory skill uses its registry-gated recall/run/promote/verify commands, while Functionize uses only its mining, inert proposal-generation, and review commands.",
       "id": "external:rhize-skill-cli",
       "kind": "external",
       "name": "rhize-skill CLI"
+    },
+    {
+      "description": "Separate local-first planning service, installer, CLI, and Swift EventKit helper pinned by rhize-tasks/setup/manifest.json's 'rhize-tasks runtime' dependency. The rhize-tasks plugin ships no runtime code; every rhize-tasks skill drives this installed CLI/service/dashboard as its single planning authority.",
+      "id": "external:rhize-tasks-runtime",
+      "kind": "external",
+      "name": "rhize-tasks runtime (Rhize-Media/rhize-tasks)"
     },
     {
       "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
@@ -3366,6 +3942,12 @@
       "id": "external:skill-forge",
       "kind": "external",
       "name": "@rhize/skill-forge"
+    },
+    {
+      "description": "Superpowers parallel-dispatch skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only).",
+      "id": "external:superpowers-dispatching-parallel-agents",
+      "kind": "external",
+      "name": "superpowers:dispatching-parallel-agents (skill)"
     },
     {
       "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence.",
@@ -3816,6 +4398,11 @@
       "name": "qmd"
     },
     {
+      "id": "mcp:rhize-bridge",
+      "kind": "mcp-server",
+      "name": "rhize-bridge"
+    },
+    {
       "id": "mcp:sentry",
       "kind": "mcp-server",
       "name": "sentry"
@@ -3932,15 +4519,15 @@
       "treeHash": "9b5687b96809fbe6a241cd6c01e56bd3d0e7fcd355ffaa01b31a0bbdf7e53f88"
     },
     {
-      "contentHash": "a458001a197fcf8b8d136f3843533f6f66f994cdd9ddc5b07e39d832e5043406",
+      "contentHash": "9282181e6a3d4a88f2a24295564cc6f35ee987dd2dd5b5923973d0398c0b370f",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "fileCount": 2,
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
       "name": "knowledge-compiler",
       "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
-      "totalBytes": 4371,
-      "treeHash": "f902ac576368f91224d9bbd8ab3dfcec42ba3a51eee25e6b6c05fc83e8ac8bfe"
+      "totalBytes": 4381,
+      "treeHash": "3d512dabae84b62d8f968fca4d3bd59530ae6a3d386c76eff16ad617f1914120"
     },
     {
       "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
@@ -4003,7 +4590,7 @@
       "treeHash": "ea254557c249ce9cf4cd83a10b1f902123663e3d436d7f4c9c5adb2d53ea97c6"
     },
     {
-      "contentHash": "126c6badd5c389880d3b3d68d0bb2db029d893f0e7523c4df24310338fdc3c87",
+      "contentHash": "b41619d0cc2abc6b4210ebf2e96d51d3f1539566fa8398dc04baedddc6a7408b",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any vault health, audit, or organization improvement request. Vault health assessment and ongoing alignment with second-brain best practices. Use this skill when someone asks about improving their vault organization, wants to know if their vault follows best practices, asks \"how healthy is my vault\", mentions vault drift or inconsistency, wants to audit their knowledge system, or asks about maintaining their second brain over time. Also triggers on \"vault health\", \"organization check\", \"vault audit\", \"clean up my vault\", \"improve my vault\", \"vault maintenance\", \"align my vault\", \"reorganize my vault\", or \"my vault is messy\". Use this proactively when you notice vault organization issues during other vault operations.",
       "fileCount": 1,
       "id": "skill:obsidian-second-brain/vault-alignment",
@@ -4011,8 +4598,8 @@
       "name": "vault-alignment",
       "path": "obsidian-second-brain/skills/vault-alignment/SKILL.md",
       "summary": "Checks your Obsidian vault's health and organization against best practices.",
-      "totalBytes": 14429,
-      "treeHash": "41c5964ad7eaba06082b165a54fe07a0759d515a6d20c32f36c7ce9fe294759a"
+      "totalBytes": 14457,
+      "treeHash": "9794752454b0dc9d31ad9dcb45c5096b39bc5f4b0df8c0edecba4d7d7b18e204"
     },
     {
       "contentHash": "215545ffbbd59b5d172847c86292c1531c5d74bb5db4a08fa5d19302467e06cc",
@@ -4060,7 +4647,7 @@
       "treeHash": "adc23b3650424c5d8623dff9872df9ce4e6212cee534b742ae16299116d923e9"
     },
     {
-      "contentHash": "b644c1b732e7b69e275de9a858e1b525da5f71033342b26d9a34e84bd26b42da",
+      "contentHash": "e1e7b34d8548a23f77aa160d96b029ae14fdaa00b5d3b9d85fc571926499b100",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to start a new project, create a PRD, plan a new automation, scaffold a project for GSD v2, or prepare for autonomous development. End-to-end project launcher that takes an idea from research through PRD creation, critical gap analysis, project scaffolding, and GSD v2 handoff. Triggers on: \"start a new project\", \"create a PRD\", \"plan an automation\", \"scaffold for GSD\", \"prepare for autonomous development\", \"launch a project\", \"set up a new n8n workflow project\", \"I want to build...\", \"let's plan...\", \"new project idea\", \"prepare handoff for GSD\", \"research and plan\", \"write requirements for\", \"scaffold and hand off\", \"gsd handoff\", \"project kickoff\", or any request involving turning a project idea into a structured plan ready for autonomous execution. Also triggers when users mention wanting to research a topic before building, gather requirements, interview about a project, analyze a PRD for gaps, or prepare a CLAUDE.md and .planning directory for a new codebase. Do NOT handle project planning with general tools — this skill has a proven 6-phase methodology with integrated MCP server orchestration and GSD v2 framework knowledge.",
       "fileCount": 16,
       "id": "skill:project-launcher/project-launcher",
@@ -4068,11 +4655,11 @@
       "name": "project-launcher",
       "path": "project-launcher/skills/project-launcher/SKILL.md",
       "summary": "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder.",
-      "totalBytes": 74103,
-      "treeHash": "0de70d0e54696350eafdf144a64597b33c5a1cd21fea46dda516ebb487f3bd65"
+      "totalBytes": 74124,
+      "treeHash": "2b8013c1e47753ca6a0dc426d70150744cbb7fb663469f0209c69603e14426b9"
     },
     {
-      "contentHash": "5c062b2e5e6cf0fa5debfeaffefb72c4d30ea5b8532677f5183a82d206c98699",
+      "contentHash": "04561788b1da2250432bdd1535c893623b20bd1877ebbe15416c39d64a9963b8",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
       "fileCount": 39,
       "id": "skill:project-launcher/rhize-visual-plan",
@@ -4080,8 +4667,8 @@
       "name": "rhize-visual-plan",
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
       "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps.",
-      "totalBytes": 607443,
-      "treeHash": "7347895979e3813bc43dbe58221cac927681c0b0384e8592bfb886a546f9a9b5"
+      "totalBytes": 607484,
+      "treeHash": "899214a68c6ea1175d82232bd9303c62fcfdabcaf660ae72a4f5e5912fd3ebb2"
     },
     {
       "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",
@@ -4108,15 +4695,15 @@
       "treeHash": "b1554af04cfff8de7ba8451a1e9883fdb7bf4bf9b77933584091ed2ef5472cb3"
     },
     {
-      "contentHash": "8c0d339d2edebb80187d274ee5bf53755898db78764e65caa26f46bead5b2098",
+      "contentHash": "eb7b21e220d0a688e5b35d66d8693d5898458b8a4c8a23bb862a1b46397d6f77",
       "description": "Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and restore context, extract durable memories, and keep long sessions lean. Use whenever the user says \"start\", \"begin\", \"where were we\", \"restore session\", \"new session\", \"save context\", \"remember this\", \"context is getting heavy\", \"I'm confused/lost\", or \"done/finished/commit\" — and proactively when a session exceeds ~25 messages and needs hygiene, or before implementing a feature when impact-mapping and the component registry should be checked first. Based on Google's Context Engineering guide, enhanced with practical automation hooks and slash commands.",
       "fileCount": 16,
       "id": "skill:rhize-context-manager/context-engineering",
       "kind": "skill",
       "name": "context-engineering",
       "path": "rhize-context-manager/skills/context-engineering/SKILL.md",
-      "totalBytes": 158506,
-      "treeHash": "7e002309bbd888666864ba1d35a3545f0725aa457cf62f2211936b2f6ddc0480"
+      "totalBytes": 158556,
+      "treeHash": "d8259bb492c67cf521eb60630631fdc01fd84b9e0f59c228a6d25228af8be36c"
     },
     {
       "contentHash": "d073bdfe39689408d1b29e7779a7a4b4b1c9972cff3a0242b86eb41f7f4cca81",
@@ -4177,15 +4764,15 @@
       "treeHash": "bf5136f15fbe225b72f34352e3c518363d3aafc16b3c8eb53549880ec19e1b6c"
     },
     {
-      "contentHash": "f79270e788aa6bc59b7f1b35ae4d91469ccfa0d3bfb68978061e9f308e218f0d",
+      "contentHash": "3a113ec648e2e998d6c398b8fd1169c9d5a47d4a08e4b4584659af276980bb23",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "fileCount": 3,
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
       "name": "graph-memory",
       "path": "rhize-context-manager/skills/graph-memory/SKILL.md",
-      "totalBytes": 13614,
-      "treeHash": "bb17e747cafe00ba2d826403afdb1a986b6cf23c748a00e5f367b41c81ae7bba"
+      "totalBytes": 13626,
+      "treeHash": "f808e85ba68fa42f930e216a84f18be7efea8b3d4f44709121d731cdc593773d"
     },
     {
       "contentHash": "aef43aaff1af71c7263d7077d340fa61c00b9c72a3de46557fc0d0aeb2192c15",
@@ -4221,15 +4808,15 @@
       "treeHash": "f595a3de777984c9ca8112d4223a72eb347a8d9e2da030e6e23a2cc03d9a60cd"
     },
     {
-      "contentHash": "05195968bf183d8c56e098e70c479f682d704755a7b5166a1c14a012371e5ba0",
+      "contentHash": "a9fdd690b596fd9fcb14b2ed06d777fa450a2f45b4c4bba3bb46c70068237b1b",
       "description": "Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, conflicts, scope, freshness, and provenance. Use when a task needs context from multiple approved memory lanes, or paired memory measurements. This skill never scrapes transcripts, parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.",
       "fileCount": 5,
       "id": "skill:rhize-context-manager/memory-context",
       "kind": "skill",
       "name": "memory-context",
       "path": "rhize-context-manager/skills/memory-context/SKILL.md",
-      "totalBytes": 22017,
-      "treeHash": "cce3db22e8daef6e472a00c0f3bd5390ad2fcc927ddc95d366ded03d33425b6c"
+      "totalBytes": 22029,
+      "treeHash": "3faaa1c776f9ff15f48a65c735616a9bb50a16dccb5eaec41fe5b8c9c8f0fd0f"
     },
     {
       "contentHash": "c53c30d4ee22f521b279b4adec806f465a57b79c9574b291efe796fae37f557c",
@@ -4300,15 +4887,15 @@
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
-      "contentHash": "a35de9fe6e547ceaa959ae21ec40c6ca421c12aea230f12e30e6535bcab6474d",
+      "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "fileCount": 25,
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md",
-      "totalBytes": 223472,
-      "treeHash": "6edc0f0f13055f90e77f82ba62368041f465c390565d925a9a5014db603365c3"
+      "totalBytes": 223482,
+      "treeHash": "0f0eac14c08a83f33b945908580583e3095b54a671be1c2de57305a1eec55ce6"
     },
     {
       "contentHash": "bd763a882ee08d171885c827be3fcada2f9638f07247a93bf42c227c3754fbbf",
@@ -4379,15 +4966,15 @@
       "treeHash": "07dc1a4fd0e99e1419fa4f7a989445d4483404936a6aeb16ca246f2e104f815e"
     },
     {
-      "contentHash": "2496b9a7300348031417e74eb94f66cc0391e1396fd84da0491aa54c227eba09",
+      "contentHash": "f4a3f1ee01a5c43510a24260dd5d937422447ef24aac1da31270e151837442bf",
       "description": "Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.",
       "fileCount": 2,
       "id": "skill:rhize-ops/cross-model-handoff",
       "kind": "skill",
       "name": "cross-model-handoff",
       "path": "rhize-ops/skills/cross-model-handoff/SKILL.md",
-      "totalBytes": 5776,
-      "treeHash": "41cf92a6d21c4c1d92e32e0d84501e670ac4e2519db8f2f329d10492012dbe3b"
+      "totalBytes": 5820,
+      "treeHash": "37b2d4f88c43c6e249af7bc02795aef4f3d0a6738345605e75ea0faa12232d3e"
     },
     {
       "contentHash": "901ffcb39f5c5706bf9c808c2cdfc0b2d31575b9e9b9a042d08c7d83e18bfb74",
@@ -4401,15 +4988,15 @@
       "treeHash": "8b3b60ea7521455cc34cf9c62a85ab6cd28ca018be7f5bfd4c5030d3245f5faa"
     },
     {
-      "contentHash": "1225e0c07d5fa0f5df8e1e8ae7735735faa4addc098d628e9f0bfacd589a10b6",
+      "contentHash": "fd2fc2e446735c41f02b83a3b4e38b45a93434f716a30f36a3a579d2ff7b6867",
       "description": "Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.",
       "fileCount": 12,
       "id": "skill:rhize-ops/parallel-agent-optimization",
       "kind": "skill",
       "name": "parallel-agent-optimization",
       "path": "rhize-ops/skills/parallel-agent-optimization/SKILL.md",
-      "totalBytes": 113473,
-      "treeHash": "9b942184d6627b8bc5e602edf063a6d737451e866d28e6a63df832e3c2a1bdeb"
+      "totalBytes": 113483,
+      "treeHash": "319ffedb2bdede84afbfa6ce15f71e4d9ebe8fe16b0eda63fc63e669a4a5abc1"
     },
     {
       "contentHash": "c524caf2ba19775c60a49f51feeff7d2860aa913bdd4d9a1fef36638feefb1cb",
@@ -4489,15 +5076,15 @@
       "treeHash": "4270d8613d44ad2c6bbe0ab8c3128ec548f1ff40ffd553c4b5bfa3372481ac70"
     },
     {
-      "contentHash": "d5fa5fcf4de4a1b3d9d61a7fa3a90b4782b8153fd4b3348f8c3d33be3558c3c3",
+      "contentHash": "6370a7b515f5221b431bb3c32a0ddeff706f50c53ed9a96bab484edb21a01c11",
       "description": "Set up or resume the local Rhize Outreach selected-business workflow. Use when installing the plugin, configuring local storage, or repairing an incomplete setup.",
       "fileCount": 2,
       "id": "skill:rhize-outreach/rhize-outreach-setup",
       "kind": "skill",
       "name": "rhize-outreach-setup",
       "path": "rhize-outreach/skills/rhize-outreach-setup/SKILL.md",
-      "totalBytes": 1479,
-      "treeHash": "b3b3bc60db06a7cde62b80f84d6adf1049ee7769f3f0e51b609a1a8a8a515e93"
+      "totalBytes": 1489,
+      "treeHash": "db64a3b096ffe24318416901bfa591a62950efd880c686b861f72e0136bef11e"
     },
     {
       "contentHash": "40542a22aee26eaf78c996ab8d9bd0733d3051263269416a5ceca107a14829b1",
@@ -4684,6 +5271,12 @@
       "name": "obsidian"
     },
     {
+      "description": "PostgreSQL databases and transaction workflows",
+      "id": "tag:stack/postgresql",
+      "kind": "tag",
+      "name": "postgresql"
+    },
+    {
       "description": "Python runtimes and tooling",
       "id": "tag:stack/python",
       "kind": "tag",
@@ -4706,6 +5299,12 @@
       "id": "tag:stack/seo",
       "kind": "tag",
       "name": "seo"
+    },
+    {
+      "description": "Supabase database, authentication, storage, and row-level security",
+      "id": "tag:stack/supabase",
+      "kind": "tag",
+      "name": "supabase"
     },
     {
       "description": "Browser/E2E testing tooling",

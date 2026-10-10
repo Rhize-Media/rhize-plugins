@@ -13,7 +13,7 @@ Internal Claude/Codex plugin for a local, review-gated prospecting and deliverab
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review, seo-audit, visualization |
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |
 | `rhize-outreach-run` | Start the local Rhize Outreach operator and resume the selected-business agent graph. | automation, workflow-patterns |
-| `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, workflow-patterns |
+| `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, postgresql, workflow-patterns |
 <!-- SKILL-MAP:END -->
 
 ## Setup

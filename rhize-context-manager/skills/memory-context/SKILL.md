@@ -7,7 +7,7 @@ description: >-
   parses procedural prose, executes recalled procedures, writes memory back, or injects automatically.
 metadata:
   rhize:
-    topics: [context-engineering, memory-systems]
+    topics: [context-engineering, memory-systems, provenance]
     stacks: []
 ---
 

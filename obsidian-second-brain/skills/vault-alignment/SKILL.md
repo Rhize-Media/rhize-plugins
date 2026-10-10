@@ -19,6 +19,7 @@ metadata:
     summary: "Checks your Obsidian vault's health and organization against best practices."
     topics: [knowledge-management, observability]
     stacks: [obsidian]
+    extends: [second-brain]
 
 ---
 

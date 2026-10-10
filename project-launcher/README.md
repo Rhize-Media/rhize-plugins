@@ -65,7 +65,7 @@ model environment as the probe; a changed or missing local model pin blocks read
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `project-launcher` | Takes a project idea through research, requirements, a PRD, and a scaffolded project folder. | automation, obsidian, project-planning, workflow-patterns |
-| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, visualization |
+| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, review, visualization |
 <!-- SKILL-MAP:END -->
 
 `rhize-visual-plan`'s viewer runs from any install through `node <skill-dir>/viewer/bin/launch.mjs serve|build <plan>`. The first run installs its pinned dependencies (`npm ci`) into `~/.cache/rhize-plan-viewer/<content-hash>/`, never into the plugin directory.

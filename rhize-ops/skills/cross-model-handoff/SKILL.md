@@ -7,8 +7,9 @@ provenance: rhize-agent-bridge
 description: Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Claude Code and Codex. Use when the user asks Claude to consult Codex, Codex to consult Claude, or explicitly authorizes a cross-model review or task. Keep implementation, integration and approval with the coordinating host.
 metadata:
   rhize:
-    topics: [automation, workflow-patterns]
+    topics: [automation, workflow-patterns, review]
     stacks: [testing]
+    dependsOn: ["mcp:rhize-bridge"]
 ---
 
 # Cross-model handoff

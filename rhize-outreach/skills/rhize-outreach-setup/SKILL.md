@@ -4,7 +4,7 @@ description: Set up or resume the local Rhize Outreach selected-business workflo
 metadata:
   rhize:
     topics: [automation, workflow-patterns]
-    stacks: []
+    stacks: [postgresql]
 ---
 
 # Rhize Outreach Setup

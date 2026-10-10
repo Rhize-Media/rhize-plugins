@@ -34,7 +34,7 @@ The core of this plugin. These skills and commands turn your vault into an activ
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian, web-clipping |
-| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, workflow-patterns |
+| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, security, workflow-patterns |
 | `qmd-search` | Sets up and troubleshoots local semantic search over your Obsidian vault using qmd. | knowledge-management, obsidian, search |
 | `second-brain` | Applies knowledge-management methods like Zettelkasten and PARA to organize your vault. | knowledge-management, obsidian, workflow-patterns |
 | `vault-alignment` | Checks your Obsidian vault's health and organization against best practices. | knowledge-management, observability, obsidian |

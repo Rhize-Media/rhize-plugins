@@ -17,6 +17,7 @@ metadata:
   rhize:
     topics: [context-engineering, workflow-patterns, project-planning]
     stacks: []
+    extends: [rhize-devflow/dev-flow-foundations]
 
 ---
 
