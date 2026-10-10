@@ -69,3 +69,24 @@ The full pytest suite passes, apart from `test_stale_temp_dirs_are_swept_and_unw
 6. **Compatibility.** Machines with older installed indexes have no `facet` field and no phrase signals. Confirm they degrade safely, and that `agent-brief-router`'s metric shift is acceptable.
 
 Return findings as suggestions with file and line references. The coordinator will verify each one against the code and the harness before changing anything.
+
+## Review outcome (2026-10-10)
+
+All three rounds went through the `rhize-bridge` `request_review` tool to Codex (`gpt-6.1-sol`, high effort), from the maintainer's Mac. The coordinator checked every finding against the code and the harness before changing anything.
+
+### Round 1 — job `ccd97785-86ad-44bc-aaee-877aa4a62167`
+Result: `needs_context`; 2 major and 4 minor findings, all fixed in `7f84656`:
+- **Stack-floor bypass (major):** a partial name counted as task evidence.
+- **Fallback phrases (major):** the `route()` fallback ignored router phrases.
+- **Shadow hints:** they included partial-name labels.
+- **Phrase validation:** it compared literal text instead of plural-folded word sets.
+- **Unicode:** the ASCII-token contract was undocumented.
+- **Guard scope:** measured but not adopted, because the narrower guard added a long-prompt misfire.
+
+### Round 2 — job `ffeaf4a4-1a0c-436c-9231-972a9819bd7d`
+- Result: router fixes confirmed, verdict **hold**, with 1 major and 4 minor harness defects plus 1 nit.
+- The defects were multi-target scoring, negative-probe handling, optional corpus identity, a missing probe-recall gate, and inferred-diff counting.
+- All were fixed in `22e03bd`, with regression tests.
+
+### Round 3 — job `aa90eb04-cc13-4d67-92d3-5252c6aeb6ca`
+- Result: all round-2 findings resolved, no new defects, verdict **merge**.
