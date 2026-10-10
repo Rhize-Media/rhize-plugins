@@ -464,12 +464,6 @@
       "source": "relations-catalog"
     },
     {
-      "from": "skill:rhize-outreach/rhize-outreach-setup",
-      "to": "skill:rhize-outreach/rhize-outreach-run",
-      "type": "precedes",
-      "source": "relations-catalog"
-    },
-    {
       "from": "skill:rhize-outreach/rhize-outreach-doctor",
       "to": "skill:rhize-outreach/rhize-outreach-run",
       "type": "precedes",
