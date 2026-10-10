@@ -36,6 +36,12 @@
    "metric": "summary.eval_positives.hit",
    "op": ">=",
    "value": 13
+  },
+  {
+   "id": "probe_hit",
+   "metric": "summary.probes.hit",
+   "op": ">=",
+   "value": 9
   }
  ]
 }

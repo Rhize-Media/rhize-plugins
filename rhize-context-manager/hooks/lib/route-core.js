@@ -264,20 +264,21 @@ function matchSignals(signals, promptTokens) {
   return { matched, nameMatched, nameWords, partial: nameMatched ? null : partial };
 }
 
-// Qualification floor shared by every caller: >= 2 matched signals, at least
-// one full-weight (weight >= 1: a name, a declared tag, or a phrase). Inferred
-// and partial-name signals are sub-unit, so they can add score and count
-// toward the 2-signal minimum but never qualify a skill on their own.
-// Floor: >= 2 matched signals, at least one full-weight, and at least one that
-// is not a stack tag. Stack tags (facet "stack") name the technology a prompt
-// touches — "sanity" + "vercel" appear in almost any client-site question — so
-// a match made only of stack tags is not evidence of the task. Signals without
-// a facet (name, phrase, topic tags from older indexes, inferred tags) count as
-// non-stack, so older indexes behave exactly as before.
-// "Task evidence" is a full name, a phrase, or a non-stack declared tag. A
-// partial name or an inferred tag never counts: a partial built from two
-// stack-like name words (e.g. nextjs-sanity-seo on a prompt naming only Next.js
-// and Sanity) would otherwise smuggle a stack-only match past the floor.
+// Qualification floor shared by every caller:
+//   - at least 2 matched signals;
+//   - at least one full-weight signal (weight >= 1: a name, declared tag or
+//     phrase); inferred and partial-name signals are sub-unit, so they add score
+//     and count toward the 2-signal minimum but never qualify a skill alone;
+//   - at least one piece of task evidence (isTaskEvidence below).
+// Stack tags (facet "stack") name the technology a prompt touches - "sanity" +
+// "vercel" appear in almost any client-site question - so a match made only of
+// stack tags is not evidence of the task. A partial name or an inferred tag
+// never counts either: a partial built from stack-like name words (e.g.
+// nextjs-sanity-seo on a prompt naming only Next.js and Sanity) would otherwise
+// smuggle a stack-only match past the floor.
+// Compatibility: tag signals from indexes built before `facet` existed count as
+// task evidence (the previous stack behavior) until the index is rebuilt; the
+// partial/inferred exclusions apply to every index.
 function isTaskEvidence(s) {
   return s.kind !== 'name-partial' && s.kind !== 'tag-inferred' && s.facet !== 'stack';
 }

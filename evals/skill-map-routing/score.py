@@ -64,7 +64,7 @@ def classify(row: dict, top: str | None) -> str:
             return "silent"
         return "acceptable" if top in row.get("acceptable", []) else "fire"
     if row["should_trigger"]:
-        return "silent" if top is None else ("hit" if top == row["target"] else "wrong")
+        return "silent" if top is None else ("hit" if top in (row.get("targets") or [row["target"]]) else "wrong")
     if top is None:
         return "silent"
     if top == row["target"]:
@@ -201,6 +201,11 @@ def compare_inferred(a_path: Path, b_path: Path) -> int:
             continue
         if sa is None or sb is None:
             lines.append(f"  {'+' if sa is None else '-'} {short(sid)}: {sorted(sb if sa is None else sa)}")
+            # A skill present on one side only still gains/loses its slugs.
+            if sa is None:
+                gained += len(sb or [])
+            else:
+                lost += len(sa or [])
             continue
         changed += 1
         add, rem = sorted(set(sb) - set(sa)), sorted(set(sa) - set(sb))
@@ -232,6 +237,10 @@ def check(base: dict, cur: dict, thresholds: dict, strict_rows: bool) -> int:
         msg = f"row set differs from baseline (baseline {base.get('rows_sha')}, current {cur.get('rows_sha')}); baseline-relative gates may mislead - regenerate the baseline"
         print(("FAIL  " if strict_rows else "WARN  ") + msg, file=sys.stderr)
         failed += 1 if strict_rows else 0
+    for bucket_name in ("eval_positives", "eval_negatives", "probes", "long_negatives"):
+        if not dig(cur, f"summary.{bucket_name}.n"):
+            print(f"FAIL  empty bucket: summary.{bucket_name} has no rows", file=sys.stderr)
+            failed += 1
     for g in thresholds["gates"]:
         got = dig(cur, g["metric"])
         limit = dig(base, g["metric"]) if g["value"] == "baseline" else g["value"]
@@ -256,7 +265,10 @@ def main(argv=None) -> int:
     ap.add_argument("--compare-inferred", nargs=2, metavar=("A", "B"))
     ap.add_argument("--check", metavar="BASELINE")
     ap.add_argument("--thresholds")
-    ap.add_argument("--strict-rows", action="store_true", help="--check: fail (not warn) when the row set differs from the baseline's")
+    # Corpus identity is part of the gate (Codex review 2026-10-10): a reduced
+    # corpus must not pass absolute gates. --allow-row-drift downgrades to a warning.
+    ap.add_argument("--strict-rows", action="store_true", default=True, help=argparse.SUPPRESS)
+    ap.add_argument("--allow-row-drift", action="store_true", help="--check: warn (not fail) when the row set differs from the baseline's")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args(argv)
 
@@ -281,7 +293,7 @@ def main(argv=None) -> int:
         if not args.thresholds or res is None:
             ap.error("--check needs --thresholds and either --results (existing) or --rows/--routes")
         print()
-        return check(json.loads(Path(args.check).read_text()), res, json.loads(Path(args.thresholds).read_text()), args.strict_rows)
+        return check(json.loads(Path(args.check).read_text()), res, json.loads(Path(args.thresholds).read_text()), args.strict_rows and not args.allow_row_drift)
     return 0
 
 

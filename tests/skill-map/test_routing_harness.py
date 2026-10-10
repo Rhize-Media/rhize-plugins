@@ -97,3 +97,60 @@ def test_check_fails_when_a_gate_is_violated(harness_run, tmp_path):
         capture_output=True, text=True, timeout=60,
     )
     assert proc.returncode == 1 and "FAIL  eval_false_trigger" in proc.stdout
+
+
+# --- Codex review round 2 (2026-10-10) -------------------------------------
+import importlib.util as _ilu
+
+
+def _score_module():
+    spec = _ilu.spec_from_file_location("routing_score", HARNESS / "score.py")
+    mod = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_committed_gates_pass_against_committed_baseline(harness_run):
+    """The real thresholds (absolute values, strict corpus identity) gate this checkout."""
+    proc = run("--out", harness_run, "--check", HARNESS / "baseline.json")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_multi_target_expected_counts_any_listed_skill_as_a_hit():
+    score = _score_module()
+    row = {"group": "eval", "should_trigger": True, "target": "skill:p/a", "targets": ["skill:p/a", "skill:p/b"]}
+    assert score.classify(row, "skill:p/b") == "hit"
+    assert score.classify(row, "skill:p/c") == "wrong"
+
+
+def test_row_drift_fails_check_by_default(harness_run, tmp_path):
+    res = json.loads((harness_run / "results.json").read_text())
+    res["rows_sha"] = "0" * 64
+    drift = tmp_path / "drift.json"
+    drift.write_text(json.dumps(res))
+    base = [sys.executable, str(HARNESS / "score.py"), "--check", str(HARNESS / "baseline.json"),
+            "--thresholds", str(HARNESS / "thresholds.json"), "--results", str(drift)]
+    assert subprocess.run(base, capture_output=True, text=True, timeout=60).returncode == 1
+    assert subprocess.run(base + ["--allow-row-drift"], capture_output=True, text=True, timeout=60).returncode == 0
+
+
+def test_empty_bucket_fails_check(harness_run, tmp_path):
+    res = json.loads((harness_run / "results.json").read_text())
+    res["summary"]["long_negatives"] = {"n": 0, "fires": 0, "fire_rate": 0, "acceptable": 0, "silent": 0}
+    empty = tmp_path / "empty.json"
+    empty.write_text(json.dumps(res))
+    proc = subprocess.run(
+        [sys.executable, str(HARNESS / "score.py"), "--check", str(HARNESS / "baseline.json"),
+         "--thresholds", str(HARNESS / "thresholds.json"), "--results", str(empty), "--allow-row-drift"],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert proc.returncode == 1 and "empty bucket" in proc.stderr
+
+
+def test_compare_inferred_counts_slugs_of_skills_present_on_one_side(tmp_path, capsys):
+    score = _score_module()
+    a, b = tmp_path / "a.json", tmp_path / "b.json"
+    a.write_text(json.dumps({"skill:m/p/x": ["security", "python"], "skill:m/p/y": ["review"]}))
+    b.write_text(json.dumps({"skill:m/p/y": ["review"]}))
+    score.compare_inferred(a, b)
+    assert "lost 2" in capsys.readouterr().out

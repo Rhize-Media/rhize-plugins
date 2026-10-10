@@ -53,7 +53,8 @@ def main(argv=None) -> int:
     ap.add_argument("--compare-to", metavar="RESULTS", help="also print the route-change list against this results.json")
     ap.add_argument("--check", metavar="BASELINE", help="gate this run against a baseline results.json")
     ap.add_argument("--thresholds", default=str(HERE / "thresholds.json"))
-    ap.add_argument("--strict-rows", action="store_true")
+    ap.add_argument("--strict-rows", action="store_true", help="(default; kept for compatibility)")
+    ap.add_argument("--allow-row-drift", action="store_true", help="--check: warn instead of failing when the row set differs from the baseline")
     args = ap.parse_args(argv)
 
     co = Path(args.checkout).resolve()
@@ -90,8 +91,8 @@ def main(argv=None) -> int:
     if args.check:
         print()
         cmd = [py, str(HERE / "score.py"), "--check", args.check, "--thresholds", args.thresholds, "--results", str(out / "results.json")]
-        if args.strict_rows:
-            cmd.append("--strict-rows")
+        if args.allow_row_drift:
+            cmd.append("--allow-row-drift")
         return subprocess.run(cmd).returncode
     return 0
 

@@ -144,4 +144,11 @@ from the named checkout and the frozen third-party snapshot.
 - Phrase validation compares plural-folded word sets.
 - A sibling-scoped partial guard was measured and rejected: long-negative fires went 3 → 4.
 
+**Codex review round 2 (harness):**
+- A multi-skill `expected` list is one row whose `targets` are acceptable alternatives: a route to any of them is a hit.
+- Probes must be positive; a negative probe stops corpus building.
+- `--check` now fails on any row-set change unless `--allow-row-drift` is passed, and it fails on an empty bucket.
+- A `probe_hit >= 9` gate protects probe recall.
+- `--compare-inferred` counts the slugs of skills that appear on one side only.
+
 Differences of ±3 are within noise on this sample.

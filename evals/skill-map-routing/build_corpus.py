@@ -44,8 +44,8 @@ def make_resolver(ids, by_name):
     return resolve
 
 
-def row(rid, group, source, prompt, target, should, authored):
-    return {
+def row(rid, group, source, prompt, target, should, authored, targets=None):
+    r = {
         "id": rid,
         "group": group,
         "source": source,
@@ -54,6 +54,10 @@ def row(rid, group, source, prompt, target, should, authored):
         "should_trigger": bool(should),
         "authored": authored,
     }
+    if targets and len(targets) > 1:
+        # Alternatives: a route to ANY listed skill is a hit (Codex review 2026-10-10).
+        r["targets"] = sorted(targets)
+    return r
 
 
 def collect(repo: Path, resolve):
@@ -91,13 +95,17 @@ def collect(repo: Path, resolve):
         for cid, case in cases.items():
             exp = case.get("expected") or []
             if exp:
+                # A multi-skill `expected` list is a set of acceptable alternatives:
+                # one row, scored as a hit when the route lands on any of them.
+                sids = []
                 for name in exp:
                     sid = resolve(name)
                     if not sid:
                         skipped.append({"source": rel, "id": cid, "target": name, "reason": "unresolved-or-ambiguous"})
                         continue
-                    rid = f"{stem}/{cid}" + (f"@{name}" if len(exp) > 1 else "")
-                    rows.append(row(rid, "eval", rel, case["prompt"], sid, True, "eval"))
+                    sids.append(sid)
+                if sids:
+                    rows.append(row(f"{stem}/{cid}", "eval", rel, case["prompt"], sids[0], True, "eval", targets=sids))
             else:
                 if cid not in negs:
                     skipped.append({"source": rel, "id": cid, "target": None, "reason": "no-target"})
@@ -114,7 +122,9 @@ def collect(repo: Path, resolve):
         if not sid:
             skipped.append({"source": "probes.json", "id": pr["id"], "target": pr["target"], "reason": "unresolved-or-ambiguous"})
             continue
-        rows.append(row(pr["id"], "probe", "probes.json", pr["prompt"], sid, pr.get("should_trigger", True), "author-written"))
+        if pr.get("should_trigger", True) is not True:
+            raise SystemExit(f"build_corpus.py: probe {pr['id']} is negative; probes are positive-only (scored as hit/wrong/silent)")
+        rows.append(row(pr["id"], "probe", "probes.json", pr["prompt"], sid, True, "author-written"))
 
     # Drop exact duplicates (same prompt, target, label); ids must stay unique.
     seen, out, used = set(), [], set()
