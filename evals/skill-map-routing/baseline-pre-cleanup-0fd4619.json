@@ -1,22 +1,23 @@
 {
  "fires": [
   {
-   "id": "ln-005",
-   "top": "skill:rhize-devflow/sanity-development"
+   "id": "ln-001",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
-   "id": "ln-056",
-   "top": "skill:claude-plugins-official/vercel/vercel-functions"
+   "id": "ln-005",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "id": "ln-059",
-   "top": "skill:claude-plugins-official/vercel/env-vars"
+   "top": "skill:rhize-devflow/data-mutation-consistency"
+  },
+  {
+   "id": "ln-061",
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   }
  ],
  "per_plugin": {
-  "3p:vercel": {
-   "long_negative_fires": 2
-  },
   "obsidian-second-brain": {
    "eval_negatives": {
     "false_trigger": 0,
@@ -26,15 +27,15 @@
     "silent": 20
    },
    "eval_positives": {
-    "hit": 5,
+    "hit": 2,
     "n": 18,
-    "silent": 10,
+    "silent": 13,
     "wrong": 3
    },
    "probes": {
-    "hit": 1,
+    "hit": 2,
     "n": 5,
-    "silent": 3,
+    "silent": 2,
     "wrong": 1
    }
   },
@@ -109,8 +110,8 @@
     "false_trigger": 0,
     "n": 20,
     "other_cross_plugin": 0,
-    "other_same_plugin": 1,
-    "silent": 19
+    "other_same_plugin": 0,
+    "silent": 20
    },
    "eval_positives": {
     "hit": 1,
@@ -118,11 +119,11 @@
     "silent": 12,
     "wrong": 0
    },
-   "long_negative_fires": 1,
+   "long_negative_fires": 4,
    "probes": {
-    "hit": 3,
+    "hit": 2,
     "n": 4,
-    "silent": 0,
+    "silent": 1,
     "wrong": 1
    }
   },
@@ -153,21 +154,21 @@
    "eval_negatives": {
     "false_trigger": 0,
     "n": 15,
-    "other_cross_plugin": 0,
+    "other_cross_plugin": 1,
     "other_same_plugin": 0,
-    "silent": 15
+    "silent": 14
    },
    "eval_positives": {
-    "hit": 2,
+    "hit": 1,
     "n": 12,
     "silent": 9,
-    "wrong": 1
+    "wrong": 2
    },
    "probes": {
-    "hit": 0,
+    "hit": 1,
     "n": 1,
     "silent": 0,
-    "wrong": 1
+    "wrong": 0
    }
   }
  },
@@ -247,20 +248,20 @@
   {
    "group": "eval",
    "id": "obsidian/trigger-obsidian-bases-project-tracker",
-   "outcome": "hit",
+   "outcome": "silent",
    "prompt": "create a .base file in my Obsidian vault that shows all project notes filtered by status:a",
    "should_trigger": true,
    "target": "skill:obsidian-second-brain/obsidian-bases",
-   "top": "skill:obsidian-second-brain/obsidian-bases"
+   "top": null
   },
   {
    "group": "eval",
    "id": "obsidian/trigger-obsidian-bases-reading-list",
-   "outcome": "hit",
+   "outcome": "silent",
    "prompt": "I want to build an Obsidian Base that acts as a reading list tracker \u2014 it should pull all ",
    "should_trigger": true,
    "target": "skill:obsidian-second-brain/obsidian-bases",
-   "top": "skill:obsidian-second-brain/obsidian-bases"
+   "top": null
   },
   {
    "group": "eval",
@@ -391,11 +392,11 @@
   {
    "group": "eval",
    "id": "obsidian/trigger-vault-templates-meeting",
-   "outcome": "hit",
+   "outcome": "silent",
    "prompt": "create a meeting notes template for my Obsidian vault with frontmatter properties for atte",
    "should_trigger": true,
    "target": "skill:obsidian-second-brain/vault-templates",
-   "top": "skill:obsidian-second-brain/vault-templates"
+   "top": null
   },
   {
    "group": "eval",
@@ -598,20 +599,20 @@
   {
    "group": "eval",
    "id": "seo-aeo-geo/trigger-seo-audit-casual",
-   "outcome": "hit",
+   "outcome": "wrong",
    "prompt": "hey can you run an SEO audit on rhize.media? mainly interested in page speed and broken li",
    "should_trigger": true,
    "target": "skill:seo-aeo-geo/seo-site-audit",
-   "top": "skill:seo-aeo-geo/seo-site-audit"
+   "top": "skill:seo-aeo-geo/aeo-geo-optimization"
   },
   {
    "group": "eval",
    "id": "seo-aeo-geo/trigger-seo-audit-formal",
-   "outcome": "hit",
+   "outcome": "wrong",
    "prompt": "Please run a comprehensive technical SEO audit on https://example.com including Core Web V",
    "should_trigger": true,
    "target": "skill:seo-aeo-geo/seo-site-audit",
-   "top": "skill:seo-aeo-geo/seo-site-audit"
+   "top": "skill:seo-aeo-geo/aeo-geo-optimization"
   },
   {
    "group": "eval",
@@ -814,20 +815,20 @@
   {
    "group": "eval",
    "id": "seo-aeo-geo/trigger-nextjs-sanity-seo",
-   "outcome": "wrong",
+   "outcome": "hit",
    "prompt": "review my Next.js + Sanity site for SEO best practices, check the metadata generation, sit",
    "should_trigger": true,
    "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
-   "top": "skill:sanity-agent-toolkit/sanity/sanity-best-practices"
+   "top": "skill:seo-aeo-geo/nextjs-sanity-seo"
   },
   {
    "group": "eval",
    "id": "seo-aeo-geo/trigger-nextjs-sanity-neg-deploy",
-   "outcome": "silent",
+   "outcome": "other_cross_plugin",
    "prompt": "deploy my Next.js app to Vercel and set up the sanity webhook for on-demand revalidation",
    "should_trigger": false,
    "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
-   "top": null
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "group": "eval",
@@ -1552,11 +1553,11 @@
   {
    "group": "eval",
    "id": "rhize-devflow/trigger-test-evidence-neg-data-mutation",
-   "outcome": "other_same_plugin",
+   "outcome": "silent",
    "prompt": "Our Sanity mutation leaves stale cache data after a write.",
    "should_trigger": false,
    "target": "skill:rhize-devflow/test-evidence",
-   "top": "skill:rhize-devflow/data-mutation-consistency"
+   "top": null
   },
   {
    "group": "eval",
@@ -1858,11 +1859,11 @@
   {
    "group": "probe",
    "id": "probe-retired-06",
-   "outcome": "wrong",
+   "outcome": "hit",
    "prompt": "seo for our nextjs sanity cms development site",
    "should_trigger": true,
    "target": "skill:seo-aeo-geo/nextjs-sanity-seo",
-   "top": "skill:rhize-devflow/sanity-development"
+   "top": "skill:seo-aeo-geo/nextjs-sanity-seo"
   },
   {
    "group": "probe",
@@ -1921,11 +1922,11 @@
   {
    "group": "probe",
    "id": "probe-retired-13",
-   "outcome": "silent",
+   "outcome": "hit",
    "prompt": "python script to compile knowledge into the obsidian vault",
    "should_trigger": true,
    "target": "skill:obsidian-second-brain/knowledge-compiler",
-   "top": null
+   "top": "skill:obsidian-second-brain/knowledge-compiler"
   },
   {
    "group": "probe",
@@ -1948,11 +1949,11 @@
   {
    "group": "probe",
    "id": "probe-retired-16",
-   "outcome": "hit",
+   "outcome": "silent",
    "prompt": "supabase data not updating after mutation",
    "should_trigger": true,
    "target": "skill:rhize-devflow/data-mutation-consistency",
-   "top": "skill:rhize-devflow/data-mutation-consistency"
+   "top": null
   },
   {
    "group": "probe",
@@ -1966,11 +1967,11 @@
   {
    "group": "long_negative",
    "id": "ln-001",
-   "outcome": "silent",
+   "outcome": "fire",
    "prompt": "getting this on the Vercel build for the Glenwood site, passes locally with pnpm build but",
    "should_trigger": false,
    "target": null,
-   "top": null
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "group": "long_negative",
@@ -2006,7 +2007,7 @@
    "prompt": "Next.js hydration error showing up on only one page of the SJ Glass site and only in produ",
    "should_trigger": false,
    "target": null,
-   "top": "skill:rhize-devflow/sanity-development"
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "group": "long_negative",
@@ -2461,11 +2462,11 @@
   {
    "group": "long_negative",
    "id": "ln-056",
-   "outcome": "fire",
+   "outcome": "silent",
    "prompt": "Zapier-style question but I want to avoid Zapier: when a Stripe checkout completes I want ",
    "should_trigger": false,
    "target": null,
-   "top": "skill:claude-plugins-official/vercel/vercel-functions"
+   "top": null
   },
   {
    "group": "long_negative",
@@ -2492,7 +2493,7 @@
    "prompt": "How do I set up a staging environment on Vercel for a client site that uses a separate Sup",
    "should_trigger": false,
    "target": null,
-   "top": "skill:claude-plugins-official/vercel/env-vars"
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "group": "long_negative",
@@ -2506,11 +2507,11 @@
   {
    "group": "long_negative",
    "id": "ln-061",
-   "outcome": "silent",
+   "outcome": "fire",
    "prompt": "Why is my Next.js Image component serving huge JPEGs for the hero on mobile? I set sizes=\"",
    "should_trigger": false,
    "target": null,
-   "top": null
+   "top": "skill:rhize-devflow/data-mutation-consistency"
   },
   {
    "group": "long_negative",
@@ -2690,28 +2691,28 @@
   "eval_negatives": {
    "false_trigger": 0,
    "n": 110,
-   "other_cross_plugin": 0,
-   "other_same_plugin": 1,
+   "other_cross_plugin": 1,
+   "other_same_plugin": 0,
    "silent": 109
   },
   "eval_positives": {
-   "hit": 13,
+   "hit": 9,
    "n": 72,
-   "silent": 54,
-   "wrong": 5
+   "silent": 57,
+   "wrong": 6
   },
   "long_negatives": {
    "acceptable": 0,
-   "fire_rate": 0.0375,
-   "fires": 3,
+   "fire_rate": 0.05,
+   "fires": 4,
    "n": 80,
-   "silent": 77
+   "silent": 76
   },
   "probes": {
-   "hit": 10,
+   "hit": 11,
    "n": 17,
    "silent": 4,
-   "wrong": 3
+   "wrong": 2
   }
  }
 }

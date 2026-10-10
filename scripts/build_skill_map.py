@@ -1008,8 +1008,16 @@ def build_router_index(document: dict) -> dict:
             tag = tags.get(edge["to"])
             if not tag:
                 continue
+            # `facet` lets route-core refuse a match made only of stack tags: two
+            # technology words (e.g. "sanity" + "vercel") say what a prompt is built
+            # on, not what it asks for.
             signals.setdefault(edge["from"], []).append(
-                {"kind": "tag", "weight": 2, "label": str(tag.get("name") or tag["id"])}
+                {
+                    "kind": "tag",
+                    "facet": "stack" if edge["type"] == "stack-tag" else "topic",
+                    "weight": 2,
+                    "label": str(tag.get("name") or tag["id"]),
+                }
             )
         elif edge["type"] == "extends" and edge["from"] in skills and edge["to"] in skills:
             extends_bases.setdefault(edge["from"], []).append(edge["to"])

@@ -136,10 +136,10 @@ carry `patterns`, see below); `scripts/build_skill_map.py` validates every front
 against it (a BuildError on any slug not present) and sets each tag node's `description` from its
 gloss. Extend it only when no existing slug fits a new skill. Size targets of ≤25 topics and ≤10
 stacks are soft goals that keep the tag space from reproducing the flat list this substrate
-replaces; they are not hard caps. The vocabulary currently holds 26 topics, 12 stacks and 5
+replaces; they are not hard caps. The vocabulary currently holds 27 topics, 12 stacks and 5
 conditions, and every topic and stack has at least one carrier skill. It sits over the targets by
-three slugs, the topic `security` and the stacks `python` and `supabase`, which are kept because
-third-party router inference relies on those words (see below).
+four slugs, the topics `security` and `prospecting` and the stacks `python` and `supabase`, which are
+kept because third-party router inference relies on those words (see below).
 
 Before adding a slug, or when a slug ends up with a single carrier, check whether a surviving
 slug's gloss covers it. Fold it there and widen the gloss rather than growing the list.
@@ -162,8 +162,11 @@ removed 32 inferred signals from 31 third-party skills installed on the maintain
 from `security`, 6 from `python` and 2 from `supabase`. For example, "run a security scan on this
 repo" stopped routing to `ecc:security-scan`. Those three were restored on their original carriers with their original
 glosses, and the `provenance` and `postgresql` glosses went back to their pre-consolidation wording.
-The other five stay retired, folded into `content-authoring`, `outreach`, `context-engineering` and
-`memory-systems`.
+`prospecting` was restored too: it is a word third-party inference relies on (e.g. a
+`vibe-prospecting` skill), and without it `review-outreach-businesses` lost routes to its sibling
+`review-outreach-email`; the `outreach` gloss went back to its original wording.
+The other four stay retired, folded into `content-authoring`, `context-engineering` and
+`memory-systems`; the per-skill router phrases below keep their carriers reachable.
 
 A slug that repeats its carrier's name, such as `context-compression`, `tool-design` or the
 `functionize` stack, gives that skill a second signal for the same words. That second signal is

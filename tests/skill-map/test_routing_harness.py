@@ -45,7 +45,7 @@ def test_results_shape(harness_run):
     ln = s["long_negatives"]
     assert ln["n"] >= 60 and ln["fires"] + ln["acceptable"] + ln["silent"] == ln["n"]
     assert 0 <= ln["fire_rate"] <= 1
-    assert res["per_plugin"] and all("rhize" in p or "-" in p for p in res["per_plugin"])
+    assert res["per_plugin"] and all("rhize" in p or "-" in p or p.startswith("3p:") for p in res["per_plugin"])
     assert len(res["rows"]) == sum(v["n"] for v in s.values())
 
 

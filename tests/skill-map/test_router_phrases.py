@@ -98,7 +98,7 @@ def test_router_index_emits_phrase_signals_for_declaring_skill_only():
         {"kind": "name", "weight": 1, "label": "with-phrase"},
         {"kind": "phrase", "weight": 2, "label": "article extraction"},
         {"kind": "phrase", "weight": 2, "label": "web clipping"},
-        {"kind": "tag", "weight": 2, "label": "content-authoring"},
+        {"kind": "tag", "facet": "topic", "weight": 2, "label": "content-authoring"},
     ]
     assert all(s["kind"] != "phrase" for s in signals["skill:p/plain"])
 

@@ -82,13 +82,13 @@ SERP, Keywords Data, OnPage, DataForSEO Labs, Backlinks, AI Optimization, Domain
 <!-- SKILL-MAP:BEGIN -->
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `aeo-geo-optimization` | Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content. | ai-visibility, seo, seo-audit |
-| `backlink-intelligence` | Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks. | backlink-analysis, seo, seo-audit |
-| `content-seo` | Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better. | content-optimization, seo, seo-audit |
+| `aeo-geo-optimization` | Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content. | ai-visibility, seo |
+| `backlink-intelligence` | Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks. | backlink-analysis, seo |
+| `content-seo` | Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better. | content-optimization, seo |
 | `keyword-intelligence` | Researches, clusters, and scores keywords to find what to target for SEO or content strategy. | content-optimization, keyword-research, seo |
-| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | content-optimization, nextjs, sanity, seo, seo-audit |
+| `nextjs-sanity-seo` | Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data. | content-optimization, nextjs, sanity, seo |
 | `seo-site-audit` | Crawls a website and reports SEO health issues — technical problems, page speed, and on-page fixes. | observability, seo, seo-audit |
-| `serp-intelligence` | Tracks search rankings and analyzes search results pages to show where you rank and what's around you. | rank-tracking, seo, seo-audit |
+| `serp-intelligence` | Tracks search rankings and analyzes search results pages to show where you rank and what's around you. | rank-tracking, seo |
 <!-- SKILL-MAP:END -->
 
 ## What's Included

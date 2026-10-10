@@ -58,7 +58,7 @@ back to `rg`.
 | `context-engineering` | Systematic context, session, and memory management for Claude Code development sessions: start/resume/close a working session, preserve and… | context-engineering, project-planning, workflow-patterns |
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
-| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, provenance |
+| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, provenance, security |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
 | `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
 | `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, memory-systems |

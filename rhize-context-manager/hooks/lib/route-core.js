@@ -263,8 +263,16 @@ function matchSignals(signals, promptTokens) {
 // one full-weight (weight >= 1: a name, a declared tag, or a phrase). Inferred
 // and partial-name signals are sub-unit, so they can add score and count
 // toward the 2-signal minimum but never qualify a skill on their own.
+// Floor: >= 2 matched signals, at least one full-weight, and at least one that
+// is not a stack tag. Stack tags (facet "stack") name the technology a prompt
+// touches — "sanity" + "vercel" appear in almost any client-site question — so
+// a match made only of stack tags is not evidence of the task. Signals without
+// a facet (name, phrase, topic tags from older indexes, inferred tags) count as
+// non-stack, so older indexes behave exactly as before.
 function qualifies(matched) {
-  return matched.length >= 2 && matched.some((s) => s.weight >= 1);
+  return matched.length >= 2 &&
+    matched.some((s) => s.weight >= 1) &&
+    matched.some((s) => s.facet !== 'stack');
 }
 
 // Scores every skill in `entries` (an iterable of [skillId, signals]) against
@@ -386,7 +394,7 @@ function route(doc, promptTokens, prompt) {
     const signals = [];
     for (const edge of tagEdgesByFrom.get(skill.id) || []) {
       if (!tagNames.has(edge.to)) continue;
-      signals.push({ kind: 'tag', weight: 2, label: String(tagNames.get(edge.to)) });
+      signals.push({ kind: 'tag', facet: edge.type === 'stack-tag' ? 'stack' : 'topic', weight: 2, label: String(tagNames.get(edge.to)) });
     }
     signals.push({ kind: 'name', weight: 1, label: String(skill.name) });
     return [skill.id, signals];

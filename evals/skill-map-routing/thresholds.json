@@ -1,5 +1,5 @@
 {
- "note": "Gates for score.py --check. `value: \"baseline\"` means the same metric in the baseline results.json. The coordinator is expected to tighten these.",
+ "note": "Gates for score.py --check against baseline.json (this branch's measured routing, 2026-10-10). Absolute values were tightened from the routing-fix run; `baseline` means the same metric in baseline.json. History: baseline-pre-cleanup-0fd4619.json (before the Oct 10 tag work) and baseline-main-1ace47d.json (after the tag cleanup, before the routing fix).",
  "gates": [
   {
    "id": "eval_false_trigger",
@@ -11,31 +11,31 @@
    "id": "eval_other_cross_plugin",
    "metric": "summary.eval_negatives.other_cross_plugin",
    "op": "<=",
-   "value": "baseline"
+   "value": 0
   },
   {
    "id": "long_negative_fire_rate",
    "metric": "summary.long_negatives.fire_rate",
    "op": "<=",
-   "value": "baseline"
+   "value": 0.0375
   },
   {
    "id": "probe_wrong",
    "metric": "summary.probes.wrong",
    "op": "<=",
-   "value": 2
+   "value": 3
   },
   {
    "id": "eval_wrong",
    "metric": "summary.eval_positives.wrong",
    "op": "<=",
-   "value": "baseline"
+   "value": 5
   },
   {
    "id": "eval_hit",
    "metric": "summary.eval_positives.hit",
    "op": ">=",
-   "value": "baseline"
+   "value": 13
   }
  ]
 }

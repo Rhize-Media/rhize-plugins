@@ -1,9 +1,7 @@
 {
  "skill:claude-plugins-official/agentforce-adlc/agentforce-generate": [],
  "skill:claude-plugins-official/agentforce-adlc/agentforce-observe": [],
- "skill:claude-plugins-official/agentforce-adlc/agentforce-test": [
-  "security"
- ],
+ "skill:claude-plugins-official/agentforce-adlc/agentforce-test": [],
  "skill:claude-plugins-official/expo/eas-app-stores": [],
  "skill:claude-plugins-official/expo/eas-hosting": [],
  "skill:claude-plugins-official/expo/eas-observe": [],
@@ -17,9 +15,7 @@
   "testing"
  ],
  "skill:claude-plugins-official/expo/expo-dom": [],
- "skill:claude-plugins-official/expo/expo-examples": [
-  "supabase"
- ],
+ "skill:claude-plugins-official/expo/expo-examples": [],
  "skill:claude-plugins-official/expo/expo-module": [],
  "skill:claude-plugins-official/expo/expo-native-ui": [],
  "skill:claude-plugins-official/expo/expo-project-structure": [],
@@ -137,8 +133,7 @@
   "review"
  ],
  "skill:claude-plugins-official/posthog/review-hog-perspective-contracts-security": [
-  "review",
-  "security"
+  "review"
  ],
  "skill:claude-plugins-official/posthog/review-hog-perspective-logic-correctness": [
   "review"
@@ -147,8 +142,7 @@
   "review"
  ],
  "skill:claude-plugins-official/posthog/review-hog-validation-criteria": [
-  "review",
-  "security"
+  "review"
  ],
  "skill:claude-plugins-official/posthog/setting-up-a-custom-rest-source": [],
  "skill:claude-plugins-official/posthog/setting-up-a-data-warehouse-source": [],
@@ -163,9 +157,7 @@
  "skill:claude-plugins-official/posthog/signals-scout-anomaly-detection": [],
  "skill:claude-plugins-official/posthog/signals-scout-apm": [],
  "skill:claude-plugins-official/posthog/signals-scout-conversations": [],
- "skill:claude-plugins-official/posthog/signals-scout-csp-violations": [
-  "security"
- ],
+ "skill:claude-plugins-official/posthog/signals-scout-csp-violations": [],
  "skill:claude-plugins-official/posthog/signals-scout-customer-analytics": [],
  "skill:claude-plugins-official/posthog/signals-scout-data-pipelines": [],
  "skill:claude-plugins-official/posthog/signals-scout-data-warehouse": [],
@@ -326,8 +318,7 @@
  ],
  "skill:everything-claude-code/ecc/ai-first-engineering": [],
  "skill:everything-claude-code/ecc/ai-regression-testing": [
-  "testing",
-  "workflow-patterns"
+  "testing"
  ],
  "skill:everything-claude-code/ecc/android-clean-architecture": [],
  "skill:everything-claude-code/ecc/angular-developer": [],
@@ -339,9 +330,7 @@
   "automation",
   "evidence"
  ],
- "skill:everything-claude-code/ecc/autonomous-agent-harness": [
-  "memory-systems"
- ],
+ "skill:everything-claude-code/ecc/autonomous-agent-harness": [],
  "skill:everything-claude-code/ecc/autonomous-loops": [],
  "skill:everything-claude-code/ecc/backend-patterns": [],
  "skill:everything-claude-code/ecc/benchmark": [],
@@ -418,36 +407,23 @@
   "postgresql"
  ],
  "skill:everything-claude-code/ecc/deep-research": [],
- "skill:everything-claude-code/ecc/defi-amm-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/defi-amm-security": [],
  "skill:everything-claude-code/ecc/delivery-gate": [],
- "skill:everything-claude-code/ecc/deployment-patterns": [
-  "workflow-patterns"
- ],
+ "skill:everything-claude-code/ecc/deployment-patterns": [],
  "skill:everything-claude-code/ecc/design-system": [
   "review"
  ],
  "skill:everything-claude-code/ecc/django-celery": [
-  "testing",
-  "workflow-patterns"
+  "testing"
  ],
  "skill:everything-claude-code/ecc/django-patterns": [],
- "skill:everything-claude-code/ecc/django-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/django-security": [],
  "skill:everything-claude-code/ecc/django-tdd": [
   "testing"
  ],
- "skill:everything-claude-code/ecc/django-verification": [
-  "security"
- ],
- "skill:everything-claude-code/ecc/dmux-workflows": [
-  "workflow-patterns"
- ],
- "skill:everything-claude-code/ecc/docker-patterns": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/django-verification": [],
+ "skill:everything-claude-code/ecc/dmux-workflows": [],
+ "skill:everything-claude-code/ecc/docker-patterns": [],
  "skill:everything-claude-code/ecc/documentation-lookup": [],
  "skill:everything-claude-code/ecc/dotnet-patterns": [],
  "skill:everything-claude-code/ecc/dynamic-workflow-mode": [],
@@ -464,12 +440,9 @@
  ],
  "skill:everything-claude-code/ecc/energy-procurement": [],
  "skill:everything-claude-code/ecc/enterprise-agent-ops": [
-  "observability",
-  "security"
+  "observability"
  ],
- "skill:everything-claude-code/ecc/error-handling": [
-  "python"
- ],
+ "skill:everything-claude-code/ecc/error-handling": [],
  "skill:everything-claude-code/ecc/eval-harness": [],
  "skill:everything-claude-code/ecc/evm-token-decimals": [],
  "skill:everything-claude-code/ecc/exa-search": [
@@ -488,9 +461,7 @@
  ],
  "skill:everything-claude-code/ecc/foundation-models-on-device": [],
  "skill:everything-claude-code/ecc/frontend-a11y": [],
- "skill:everything-claude-code/ecc/frontend-design-direction": [
-  "tool-design"
- ],
+ "skill:everything-claude-code/ecc/frontend-design-direction": [],
  "skill:everything-claude-code/ecc/frontend-patterns": [],
  "skill:everything-claude-code/ecc/frontend-slides": [],
  "skill:everything-claude-code/ecc/fsharp-testing": [
@@ -498,15 +469,12 @@
  ],
  "skill:everything-claude-code/ecc/gan-style-harness": [],
  "skill:everything-claude-code/ecc/gateguard": [],
- "skill:everything-claude-code/ecc/generating-python-installer": [
-  "python"
- ],
+ "skill:everything-claude-code/ecc/generating-python-installer": [],
  "skill:everything-claude-code/ecc/git-workflow": [
   "workflow-patterns"
  ],
  "skill:everything-claude-code/ecc/github-ops": [
-  "automation",
-  "security"
+  "automation"
  ],
  "skill:everything-claude-code/ecc/golang-patterns": [],
  "skill:everything-claude-code/ecc/golang-testing": [
@@ -515,16 +483,12 @@
  "skill:everything-claude-code/ecc/google-workspace-ops": [],
  "skill:everything-claude-code/ecc/growth-log": [],
  "skill:everything-claude-code/ecc/healthcare-cdss-patterns": [],
- "skill:everything-claude-code/ecc/healthcare-emr-patterns": [
-  "workflow-patterns"
- ],
+ "skill:everything-claude-code/ecc/healthcare-emr-patterns": [],
  "skill:everything-claude-code/ecc/healthcare-eval-harness": [],
  "skill:everything-claude-code/ecc/healthcare-phi-compliance": [],
  "skill:everything-claude-code/ecc/hermes-imports": [],
  "skill:everything-claude-code/ecc/hexagonal-architecture": [],
- "skill:everything-claude-code/ecc/hipaa-compliance": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/hipaa-compliance": [],
  "skill:everything-claude-code/ecc/homelab-network-readiness": [],
  "skill:everything-claude-code/ecc/homelab-network-setup": [],
  "skill:everything-claude-code/ecc/homelab-pihole-dns": [],
@@ -567,23 +531,17 @@
  "skill:everything-claude-code/ecc/kubernetes-patterns": [],
  "skill:everything-claude-code/ecc/laravel-patterns": [],
  "skill:everything-claude-code/ecc/laravel-plugin-discovery": [],
- "skill:everything-claude-code/ecc/laravel-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/laravel-security": [],
  "skill:everything-claude-code/ecc/laravel-tdd": [
   "testing"
  ],
- "skill:everything-claude-code/ecc/laravel-verification": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/laravel-verification": [],
  "skill:everything-claude-code/ecc/latency-critical-systems": [],
  "skill:everything-claude-code/ecc/lead-intelligence": [
   "outreach"
  ],
  "skill:everything-claude-code/ecc/liquid-glass-design": [],
- "skill:everything-claude-code/ecc/llm-trading-agent-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/llm-trading-agent-security": [],
  "skill:everything-claude-code/ecc/logistics-exception-management": [],
  "skill:everything-claude-code/ecc/loop-design-check": [
   "review"
@@ -609,15 +567,12 @@
  "skill:everything-claude-code/ecc/nanoclaw-repl": [],
  "skill:everything-claude-code/ecc/nestjs-patterns": [],
  "skill:everything-claude-code/ecc/netmiko-ssh-automation": [
-  "automation",
-  "python"
+  "automation"
  ],
  "skill:everything-claude-code/ecc/network-bgp-diagnostics": [
   "evidence"
  ],
- "skill:everything-claude-code/ecc/network-config-validation": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/network-config-validation": [],
  "skill:everything-claude-code/ecc/network-interface-health": [],
  "skill:everything-claude-code/ecc/nextjs-turbopack": [
   "nextjs"
@@ -647,9 +602,7 @@
  ],
  "skill:everything-claude-code/ecc/parallel-execution-optimizer": [],
  "skill:everything-claude-code/ecc/perl-patterns": [],
- "skill:everything-claude-code/ecc/perl-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/perl-security": [],
  "skill:everything-claude-code/ecc/perl-testing": [
   "testing"
  ],
@@ -659,9 +612,7 @@
  "skill:everything-claude-code/ecc/plan-orchestrate": [],
  "skill:everything-claude-code/ecc/plankton-code-quality": [],
  "skill:everything-claude-code/ecc/postgres-patterns": [
-  "postgresql",
-  "security",
-  "supabase"
+  "postgresql"
  ],
  "skill:everything-claude-code/ecc/prediction-market-oracle-research": [],
  "skill:everything-claude-code/ecc/prediction-market-risk-review": [
@@ -671,31 +622,24 @@
  "skill:everything-claude-code/ecc/product-capability": [],
  "skill:everything-claude-code/ecc/product-lens": [],
  "skill:everything-claude-code/ecc/production-audit": [
-  "evidence",
-  "review"
+  "evidence"
  ],
  "skill:everything-claude-code/ecc/production-scheduling": [],
  "skill:everything-claude-code/ecc/project-flow-ops": [],
  "skill:everything-claude-code/ecc/prompt-optimizer": [],
- "skill:everything-claude-code/ecc/python-patterns": [
-  "python"
- ],
+ "skill:everything-claude-code/ecc/python-patterns": [],
  "skill:everything-claude-code/ecc/python-testing": [
-  "python",
   "testing"
  ],
  "skill:everything-claude-code/ecc/pytorch-patterns": [],
  "skill:everything-claude-code/ecc/quality-nonconformance": [],
  "skill:everything-claude-code/ecc/quarkus-patterns": [],
- "skill:everything-claude-code/ecc/quarkus-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/quarkus-security": [],
  "skill:everything-claude-code/ecc/quarkus-tdd": [
   "testing"
  ],
  "skill:everything-claude-code/ecc/quarkus-verification": [
-  "review",
-  "security"
+  "review"
  ],
  "skill:everything-claude-code/ecc/ralphinho-rfc-pipeline": [],
  "skill:everything-claude-code/ecc/react-native-patterns": [],
@@ -732,8 +676,7 @@
  ],
  "skill:everything-claude-code/ecc/scientific-db-uspto-database": [],
  "skill:everything-claude-code/ecc/scientific-pkg-gget": [
-  "evidence",
-  "python"
+  "evidence"
  ],
  "skill:everything-claude-code/ecc/scientific-thinking-literature-review": [
   "evidence",
@@ -741,23 +684,17 @@
   "search"
  ],
  "skill:everything-claude-code/ecc/scientific-thinking-scholar-evaluation": [
-  "evidence",
-  "review"
+  "evidence"
  ],
  "skill:everything-claude-code/ecc/search-first": [
   "search",
   "workflow-patterns"
  ],
- "skill:everything-claude-code/ecc/security-bounty-hunter": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/security-bounty-hunter": [],
  "skill:everything-claude-code/ecc/security-review": [
-  "review",
-  "security"
+  "review"
  ],
- "skill:everything-claude-code/ecc/security-scan": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/security-scan": [],
  "skill:everything-claude-code/ecc/seo": [
   "content-optimization",
   "search",
@@ -771,13 +708,10 @@
  "skill:everything-claude-code/ecc/social-graph-ranker": [],
  "skill:everything-claude-code/ecc/social-publisher": [],
  "skill:everything-claude-code/ecc/springboot-patterns": [],
- "skill:everything-claude-code/ecc/springboot-security": [
-  "security"
- ],
+ "skill:everything-claude-code/ecc/springboot-security": [],
  "skill:everything-claude-code/ecc/springboot-tdd": [],
  "skill:everything-claude-code/ecc/springboot-verification": [
-  "review",
-  "security"
+  "review"
  ],
  "skill:everything-claude-code/ecc/strategic-compact": [],
  "skill:everything-claude-code/ecc/swift-actor-persistence": [],
@@ -833,7 +767,6 @@
   "seo"
  ],
  "skill:sentry-plugin-marketplace/sentry/sentry-create-alert": [
-  "automation",
   "sentry"
  ],
  "skill:sentry-plugin-marketplace/sentry/sentry-debug-issue": [

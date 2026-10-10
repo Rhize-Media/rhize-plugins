@@ -105,3 +105,36 @@ so regenerate the baseline whenever eval files, probes or long negatives change.
 6. **Not modelled:** the hook's workflow-selection bridge, the typed shadow decision, the
    map-scanning fallback (`route()`), and per-session suppression. Only `routeFromIndex`
    (including its explicit "use X" handling and extends tie-break) is exercised.
+
+## Results history (2026-10-10)
+
+Each row is measured on the same rows (`rows_sha` unchanged), with route-core and indexes taken
+from the named checkout and the frozen third-party snapshot.
+
+| Checkout | eval hit / wrong / silent (72) | eval negatives false / cross-plugin (110) | probes hit / wrong (17) | long-negative fires (80) |
+|---|---|---|---|---|
+| `0fd4619`, before the Oct 10 tag work (`baseline-pre-cleanup-0fd4619.json`) | 9 / 6 / 57 | 0 / 1 | 11 / 2 | 4 |
+| `1ace47d`, after the tag cleanup (`baseline-main-1ace47d.json`) | 9 / 7 / 56 | 0 / 1 | 4 / 3 | 4 |
+| routing-optimization branch (`baseline.json`) | 13 / 5 / 54 | 0 / 0 | 10 / 3 | 3 |
+
+**Changes in the branch:**
+- Removed `seo-audit` from the five non-audit SEO skills.
+- Dropped `review` from rhize-visual-plan.
+- Restored `security`, `prospecting`, `python` and `supabase`.
+- Added per-skill router phrases.
+- Plural folding.
+- Guarded partial-name signal.
+- Stack-only matches no longer qualify.
+
+**Third-party inference:**
+- Against `0fd4619`: 0 inferred slugs lost and 10 gained, all from plural folding (`score.py --compare-inferred`).
+- The tag cleanup alone had removed 32 inferred signals from 31 skills.
+
+**Rejected after measurement:** joining dotted names ("Next.js" → `nextjs`). Precision fell: long-negative fires went from 3 to 9 and cross-plugin eval routes from 0 to 3. Recall did not rise.
+
+**Remaining probe misses:**
+- "clip this web page…": the word is "clip", not "web clipping".
+- "seo for our nextjs sanity cms development site": the label is arguable.
+- "stale data in nextjs after supabase write": stack-only, by design.
+
+Differences of ±3 are within noise on this sample.

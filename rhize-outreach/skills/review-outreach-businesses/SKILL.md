@@ -3,7 +3,7 @@ name: review-outreach-businesses
 description: Review researched candidate businesses or add a manually found business before selecting one for deliverables.
 metadata:
   rhize:
-    topics: [outreach]
+    topics: [outreach, prospecting]
     stacks: []
     router:
       phrases: ["candidate businesses"]

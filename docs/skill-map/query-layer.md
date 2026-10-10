@@ -44,7 +44,13 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
     signal is suppressed for that prompt, so a sibling's near-miss can never beat (or qualify
     against) the skill the prompt actually named.
   - *Qualification.* At least 2 matched signals, at least one with weight ≥ 1 — a partial or
-    inferred signal adds score but never satisfies the floor on its own. Score is the sum.
+    inferred signal adds score but never satisfies the floor on its own — and at least one that is
+    not a stack tag. Declared tag signals carry `facet: "stack" | "topic"` in the index
+    (`build_router_index()`); two technology words such as `sanity` + `vercel` appear in almost
+    every client-site question, so a match made only of stack tags is not evidence of the task
+    (measured: it removed 2 of 5 over-firing long prompts and the only cross-plugin eval route; see
+    `evals/skill-map-routing/`). Signals without a facet (older indexes, names, phrases, inferred
+    tags) count as non-stack. Score is the sum.
   - *Pick.* A qualifying extender scoring ≥ its base drops the base; then highest score wins,
     ties on skill id; at most one suggestion. `agent-brief-router.js` uses the same scoring, so
     its candidate series moves with any change here.

@@ -104,11 +104,13 @@
     "postgresql": [
       {
         "deeper": [],
-        "skillId": "skill:rhize-devflow/data-mutation-consistency"
-      },
+        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
+      }
+    ],
+    "python": [
       {
         "deeper": [],
-        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
+        "skillId": "skill:obsidian-second-brain/knowledge-compiler"
       }
     ],
     "sanity": [
@@ -171,6 +173,12 @@
       {
         "deeper": [],
         "skillId": "skill:seo-aeo-geo/serp-intelligence"
+      }
+    ],
+    "supabase": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
       }
     ],
     "testing": [
@@ -355,11 +363,18 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "web clipping",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -372,16 +387,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "visualization",
           "weight": 2
@@ -394,21 +412,37 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "provenance",
           "weight": 2
         },
         {
+          "facet": "stack",
+          "kind": "tag",
+          "label": "python",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "security",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -421,16 +455,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -443,16 +480,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -465,16 +505,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -487,16 +530,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "search",
           "weight": 2
@@ -509,16 +555,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -531,16 +580,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -553,16 +605,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
@@ -575,11 +630,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "functionize",
           "weight": 2
@@ -592,11 +649,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -609,11 +668,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -626,21 +687,25 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -653,26 +718,25 @@
           "weight": 1
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
-          "kind": "tag",
-          "label": "review",
-          "weight": 2
-        },
-        {
+          "facet": "topic",
           "kind": "tag",
           "label": "visualization",
           "weight": 2
@@ -685,11 +749,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-compression",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
@@ -702,11 +768,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-degradation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
@@ -719,16 +787,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -741,6 +812,7 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
@@ -753,6 +825,12 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "context optimization",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
@@ -765,11 +843,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "search",
           "weight": 2
@@ -782,16 +862,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -804,11 +887,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
@@ -821,23 +906,33 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-graph",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "neo4j",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "provenance",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "security",
           "weight": 2
         }
       ],
@@ -848,21 +943,25 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-graph",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "search",
           "weight": 2
@@ -875,11 +974,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-graph",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
@@ -892,11 +993,18 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "learning curation",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
@@ -909,16 +1017,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "provenance",
           "weight": 2
@@ -931,11 +1042,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-graph",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
@@ -948,11 +1061,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "memory-systems",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -965,11 +1080,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "context-engineering",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "tool-design",
           "weight": 2
@@ -982,16 +1099,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "knowledge-management",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
@@ -1004,21 +1124,25 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
@@ -1031,16 +1155,19 @@
           "weight": 1
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "vercel",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1053,36 +1180,43 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "data-consistency",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
-          "kind": "tag",
-          "label": "postgresql",
-          "weight": 2
-        },
-        {
+          "facet": "stack",
           "kind": "tag",
           "label": "sanity",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sentry",
           "weight": 2
         },
         {
+          "facet": "stack",
+          "kind": "tag",
+          "label": "supabase",
+          "weight": 2
+        },
+        {
+          "facet": "stack",
           "kind": "tag",
           "label": "vercel",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1095,11 +1229,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1112,26 +1248,31 @@
           "weight": 1
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sentry",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "vercel",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1144,21 +1285,30 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "cms development",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sanity",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sentry",
           "weight": 2
@@ -1171,21 +1321,25 @@
           "weight": 1
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sentry",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1198,16 +1352,19 @@
           "weight": 1
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1220,16 +1377,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "evidence",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "review",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
@@ -1242,21 +1402,25 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "review",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1269,16 +1433,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "obsidian",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1291,26 +1458,31 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "evidence",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "testing",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1323,11 +1495,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "visualization",
           "weight": 2
@@ -1340,11 +1514,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "data-consistency",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "outreach",
           "weight": 2
@@ -1357,8 +1533,20 @@
           "weight": 1
         },
         {
+          "kind": "phrase",
+          "label": "candidate businesses",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
           "kind": "tag",
           "label": "outreach",
+          "weight": 2
+        },
+        {
+          "facet": "topic",
+          "kind": "tag",
+          "label": "prospecting",
           "weight": 2
         }
       ],
@@ -1369,16 +1557,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-authoring",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "outreach",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "review",
           "weight": 2
@@ -1391,23 +1582,15 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "outreach",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "review",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "visualization",
           "weight": 2
         }
       ],
@@ -1418,11 +1601,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
@@ -1435,11 +1620,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1452,16 +1639,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "postgresql",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1474,11 +1664,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1491,11 +1683,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
@@ -1508,11 +1702,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "data-consistency",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1525,11 +1721,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "search",
           "weight": 2
@@ -1542,11 +1740,13 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
@@ -1559,16 +1759,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "automation",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "project-planning",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "workflow-patterns",
           "weight": 2
@@ -1581,18 +1784,15 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "ai-visibility",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
           "weight": 2
         }
       ],
@@ -1603,18 +1803,15 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "backlink-analysis",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
           "weight": 2
         }
       ],
@@ -1625,18 +1822,15 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-optimization",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
           "weight": 2
         }
       ],
@@ -1647,16 +1841,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-optimization",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "keyword-research",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
           "weight": 2
@@ -1669,28 +1866,27 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "content-optimization",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "nextjs",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "sanity",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
           "weight": 2
         }
       ],
@@ -1701,16 +1897,19 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "observability",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
           "weight": 2
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "seo-audit",
           "weight": 2
@@ -1723,18 +1922,15 @@
           "weight": 1
         },
         {
+          "facet": "topic",
           "kind": "tag",
           "label": "rank-tracking",
           "weight": 2
         },
         {
+          "facet": "stack",
           "kind": "tag",
           "label": "seo",
-          "weight": 2
-        },
-        {
-          "kind": "tag",
-          "label": "seo-audit",
           "weight": 2
         }
       ]

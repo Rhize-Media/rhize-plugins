@@ -1575,6 +1575,12 @@
     {
       "from": "skill:obsidian-second-brain/knowledge-compiler",
       "source": "frontmatter",
+      "to": "tag:stack/python",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
       "to": "tag:topic/knowledge-management",
       "type": "topic-tag"
     },
@@ -1582,6 +1588,12 @@
       "from": "skill:obsidian-second-brain/knowledge-compiler",
       "source": "frontmatter",
       "to": "tag:topic/provenance",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:obsidian-second-brain/knowledge-compiler",
+      "source": "frontmatter",
+      "to": "tag:topic/security",
       "type": "topic-tag"
     },
     {
@@ -1874,12 +1886,6 @@
     {
       "from": "skill:project-launcher/rhize-visual-plan",
       "source": "frontmatter",
-      "to": "tag:topic/review",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:project-launcher/rhize-visual-plan",
-      "source": "frontmatter",
       "to": "tag:topic/visualization",
       "type": "topic-tag"
     },
@@ -2086,6 +2092,12 @@
       "from": "skill:rhize-context-manager/graph-memory",
       "source": "frontmatter",
       "to": "tag:topic/provenance",
+      "type": "topic-tag"
+    },
+    {
+      "from": "skill:rhize-context-manager/graph-memory",
+      "source": "frontmatter",
+      "to": "tag:topic/security",
       "type": "topic-tag"
     },
     {
@@ -2335,12 +2347,6 @@
     {
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
-      "to": "tag:stack/postgresql",
-      "type": "stack-tag"
-    },
-    {
-      "from": "skill:rhize-devflow/data-mutation-consistency",
-      "source": "frontmatter",
       "to": "tag:stack/sanity",
       "type": "stack-tag"
     },
@@ -2348,6 +2354,12 @@
       "from": "skill:rhize-devflow/data-mutation-consistency",
       "source": "frontmatter",
       "to": "tag:stack/sentry",
+      "type": "stack-tag"
+    },
+    {
+      "from": "skill:rhize-devflow/data-mutation-consistency",
+      "source": "frontmatter",
+      "to": "tag:stack/supabase",
       "type": "stack-tag"
     },
     {
@@ -2733,6 +2745,12 @@
       "type": "topic-tag"
     },
     {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "source": "frontmatter",
+      "to": "tag:topic/prospecting",
+      "type": "topic-tag"
+    },
+    {
       "from": "skill:rhize-outreach/review-outreach-email",
       "source": "relations-catalog",
       "to": "external:rhize-outreach-runtime",
@@ -2784,18 +2802,6 @@
       "from": "skill:rhize-outreach/review-outreach-package",
       "source": "frontmatter",
       "to": "tag:topic/review",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-outreach/review-outreach-package",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:rhize-outreach/review-outreach-package",
-      "source": "frontmatter",
-      "to": "tag:topic/visualization",
       "type": "topic-tag"
     },
     {
@@ -2997,12 +3003,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:seo-aeo-geo/aeo-geo-optimization",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:seo-aeo-geo/backlink-intelligence",
       "source": "frontmatter",
       "to": "mcp:dataforseo",
@@ -3021,12 +3021,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:seo-aeo-geo/backlink-intelligence",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:seo-aeo-geo/content-seo",
       "source": "frontmatter",
       "to": "tag:stack/seo",
@@ -3042,12 +3036,6 @@
       "from": "skill:seo-aeo-geo/content-seo",
       "source": "frontmatter",
       "to": "tag:topic/content-optimization",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:seo-aeo-geo/content-seo",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
       "type": "topic-tag"
     },
     {
@@ -3105,12 +3093,6 @@
       "type": "topic-tag"
     },
     {
-      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
-      "type": "topic-tag"
-    },
-    {
       "from": "skill:seo-aeo-geo/seo-site-audit",
       "source": "frontmatter",
       "to": "mcp:dataforseo",
@@ -3150,12 +3132,6 @@
       "from": "skill:seo-aeo-geo/serp-intelligence",
       "source": "frontmatter",
       "to": "tag:topic/rank-tracking",
-      "type": "topic-tag"
-    },
-    {
-      "from": "skill:seo-aeo-geo/serp-intelligence",
-      "source": "frontmatter",
-      "to": "tag:topic/seo-audit",
       "type": "topic-tag"
     }
   ],
@@ -4497,16 +4473,19 @@
       "path": "seo-aeo-geo"
     },
     {
-      "contentHash": "b017abad8dab78dacdcb6e17a6b2a0f22f8280c0b9b44c463a6be4d22b4e19c8",
+      "contentHash": "4de7d28be53ffa5cd27374ae1507fa919919d5368aa92e22121e4cf7fec8b092",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any web clipping or article extraction request. Extract clean, readable markdown from web pages using the Defuddle CLI tool, stripping navigation, ads, and clutter. Use this skill when someone wants to save web content to their Obsidian vault, clip articles, extract clean text from URLs, convert web pages to markdown, or reduce token usage when processing web content. Also triggers on \"web clipper\", \"save article\", \"extract webpage\", \"clean HTML\", or \"convert URL to markdown\". Prefer Defuddle over raw WebFetch for standard web pages, articles, docs, and blog posts.",
       "fileCount": 1,
       "id": "skill:obsidian-second-brain/defuddle",
       "kind": "skill",
       "name": "defuddle",
       "path": "obsidian-second-brain/skills/defuddle/SKILL.md",
+      "routerPhrases": [
+        "web clipping"
+      ],
       "summary": "Pulls clean, readable text from a web page for saving into your Obsidian vault.",
-      "totalBytes": 5561,
-      "treeHash": "723da3ef4ad4c582ad9f75edbfc2f9c8f8de96b824eff952098f47a86ce5d0d2"
+      "totalBytes": 5605,
+      "treeHash": "2ab0234728c4f34991b88cee18eedd1d77dd7115442d34aa913659ebbdaf95b0"
     },
     {
       "contentHash": "063be869f23b102e00149ffabc17d7fb57b95f0b02c69405e492dc837cbfee7b",
@@ -4521,15 +4500,15 @@
       "treeHash": "9b5687b96809fbe6a241cd6c01e56bd3d0e7fcd355ffaa01b31a0bbdf7e53f88"
     },
     {
-      "contentHash": "3b3d3c6094510f481438b775aacb5221f41dcff57037a824c0033c9af54fd2b5",
+      "contentHash": "9282181e6a3d4a88f2a24295564cc6f35ee987dd2dd5b5923973d0398c0b370f",
       "description": "Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. Use for source synthesis, compiled wiki pages, claim provenance, stale compiled knowledge, contradictions, rebuilds, or source privacy purges. Do not use for ordinary note editing, unconstrained summarization, or automatic/scheduled vault mutation.",
       "fileCount": 2,
       "id": "skill:obsidian-second-brain/knowledge-compiler",
       "kind": "skill",
       "name": "knowledge-compiler",
       "path": "obsidian-second-brain/skills/knowledge-compiler/SKILL.md",
-      "totalBytes": 4363,
-      "treeHash": "2ba0323a9659b55f97ac9c602c0a5920ccbde887e7131328eef8a08d69d94bf2"
+      "totalBytes": 4381,
+      "treeHash": "3d512dabae84b62d8f968fca4d3bd59530ae6a3d386c76eff16ad617f1914120"
     },
     {
       "contentHash": "5c6c805032c18a8df42dff7686910a76ed3d09981efb525b1937b63cacadd8d7",
@@ -4661,7 +4640,7 @@
       "treeHash": "2b8013c1e47753ca6a0dc426d70150744cbb7fb663469f0209c69603e14426b9"
     },
     {
-      "contentHash": "04561788b1da2250432bdd1535c893623b20bd1877ebbe15416c39d64a9963b8",
+      "contentHash": "3e6f92771cf781b0e05511fce37cfbe2633a0cce488cb2155985de395a935e38",
       "contentHashNormalized": "012fa475b79f8c382a0551db0f144c3bfc6531bdd7717d12a93ff72117e6a467",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any request to turn an implementation plan into a rich, reviewable `.mdx` visual plan — architecture diagrams, file maps, wireframes, data models, API contracts, annotated code/diffs, and open questions — authored as a portable `plan.mdx` rendered by our own local viewer (the `rhize-plan` CLI: live preview + a self-contained HTML export) and degrading to readable Markdown (with Mermaid + a `.canvas` export) in Obsidian. Triggers on: \"visual plan\", \"make this plan reviewable\", \"turn this plan into mdx\", \"plan.mdx\", \"wireframe this\", \"rich plan document\", \"review surface for this plan\", \"canvas plan\", \"planning doc with diagrams\", \"plan as an approval gate\", or whenever a multi-file, ambiguous, risky, data-heavy, or UI-heavy change needs a human sign-off before code. Rhize-OWNED format — no external plan service, hosted Plan UI, or `@agent-native` dependency. For the upstream PRD → GSD autonomous pipeline use `project-launcher`; this skill is the rich review surface for ANY plan, and writes the artifact into the Obsidian vault as the second-brain source of truth.",
       "fileCount": 39,
@@ -4670,8 +4649,8 @@
       "name": "rhize-visual-plan",
       "path": "project-launcher/skills/rhize-visual-plan/SKILL.md",
       "summary": "Turns an implementation plan into a reviewable visual document with diagrams and file maps.",
-      "totalBytes": 607484,
-      "treeHash": "899214a68c6ea1175d82232bd9303c62fcfdabcaf660ae72a4f5e5912fd3ebb2"
+      "totalBytes": 607476,
+      "treeHash": "93f473d1747a5140d430b537651dfd3d05bf8665c81dddae8780fe6cc10f3600"
     },
     {
       "contentHash": "c3cc449ec77371c880eef9d6ca7cf5a078524b9ab032fb65dc8b02bfadc7ffe5",
@@ -4721,7 +4700,7 @@
       "treeHash": "fbe0a758653683cbf32cda3edec952fad4f2f5387e1b47f754628a9c94281f82"
     },
     {
-      "contentHash": "5ce4bb51a9b6ad7d80013831917be6b11f776f38d38d5ce10ca3148a2360be1e",
+      "contentHash": "9fa9eb979c88f489dfdda0233fbc0ba306a7fd19f3b8a70ba290c518fdc43270",
       "contentHashNormalized": "7ff1ad288cdb6c0d668c757d23b1c4b315cf3a094a4fcaa91d17e98ab55d02b2",
       "description": "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality.",
       "fileCount": 3,
@@ -4729,8 +4708,11 @@
       "kind": "skill",
       "name": "context-optimization",
       "path": "rhize-context-manager/skills/context-optimization/SKILL.md",
-      "totalBytes": 45232,
-      "treeHash": "f5d736027d1f5686d69b8dcc63250e7bee358e040f25385c5bbc900d6f635c01"
+      "routerPhrases": [
+        "context optimization"
+      ],
+      "totalBytes": 45284,
+      "treeHash": "0b52fb06b761235a9eecf5ccd5c419f24b5c8074abcd0bfe4d67ca8492fe5bfe"
     },
     {
       "contentHash": "79693bc599fe0f1026d6a080c6712ef871b8425ed92febc7032c3402b80e990a",
@@ -4767,15 +4749,15 @@
       "treeHash": "bf5136f15fbe225b72f34352e3c518363d3aafc16b3c8eb53549880ec19e1b6c"
     },
     {
-      "contentHash": "13abb21672ff884f13cb33db40c80e685387855a3571367ef282c4abb88acae1",
+      "contentHash": "3a113ec648e2e998d6c398b8fd1169c9d5a47d4a08e4b4584659af276980bb23",
       "description": "Govern Graphify graph.json artifacts for a Rhize Neo4j projection. Use when asked to validate or preview graph ingestion, compile the Rhize ontology, inspect source-bound claims, review possible duplicate identities, reverse an identity decision, measure graph hygiene, preview or reconstruct a consequential decision, test graph tenancy or rollback, or prepare a Neo4j canary. Never use Graphify's direct Neo4j export/push for Rhize governed data.",
       "fileCount": 3,
       "id": "skill:rhize-context-manager/graph-memory",
       "kind": "skill",
       "name": "graph-memory",
       "path": "rhize-context-manager/skills/graph-memory/SKILL.md",
-      "totalBytes": 13616,
-      "treeHash": "f4261732b0f7ed9a39bf6dc79893d4dda3def7a6c21475c82af59d2d31dcc2c1"
+      "totalBytes": 13626,
+      "treeHash": "f808e85ba68fa42f930e216a84f18be7efea8b3d4f44709121d731cdc593773d"
     },
     {
       "contentHash": "aef43aaff1af71c7263d7077d340fa61c00b9c72a3de46557fc0d0aeb2192c15",
@@ -4800,15 +4782,18 @@
       "treeHash": "4eff0e32eaf29b9619a78fb7518793af4bd459a9e0135c9f8bfac335f8a05372"
     },
     {
-      "contentHash": "781bfb54ef807b9eec56049a34f9ab4d5039f06e94ddc9979999145e0907f1b0",
+      "contentHash": "d08da7daff83987fe2a41a390a3de2f95f50c75da192ab2f4bc2acbbe75c7a43",
       "description": "This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it so it actually fires: always-loaded config, a reference skill, a hook, or nowhere. Covers drop tests, redundancy and contradiction resolution, the retrieval-cue placement test, and rule phrasing that survives contact with a future session. Route memory *architecture* (vector stores, knowledge graphs, temporal validity) to memory-systems, context-consumption audits to context-budget, and session handoff summaries to context-compression.",
       "fileCount": 1,
       "id": "skill:rhize-context-manager/learning-curation",
       "kind": "skill",
       "name": "learning-curation",
       "path": "rhize-context-manager/skills/learning-curation/SKILL.md",
-      "totalBytes": 11218,
-      "treeHash": "227b46b726afc9f7cb5d56f170b4b0304e9a6642bbca4ff57dc4c16d890ab636"
+      "routerPhrases": [
+        "learning curation"
+      ],
+      "totalBytes": 11267,
+      "treeHash": "68560e63d06f74c07494f9ab3bc01bef88439ac7f365a060ce3207822e225228"
     },
     {
       "contentHash": "a9fdd690b596fd9fcb14b2ed06d777fa450a2f45b4c4bba3bb46c70068237b1b",
@@ -4890,15 +4875,15 @@
       "treeHash": "9e674d0cbe185944e20c23e316e1f82f8200bb1ce06f8fed2608459786b9e960"
     },
     {
-      "contentHash": "8ce3f64f8f38de0276a6a406fad9da313dab1603a64db43fb6cc1c851a4ca557",
+      "contentHash": "06e735f04458cc2dd5aa0ccc5e8d45e2140add57c9f3b465919b4e461c91eba6",
       "description": "Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys, and revalidation stay aligned and data never goes stale. Use when the user reports \"stale data\", \"not updating\", \"cache\", \"revalidate\", \"mutation\", \"optimistic update\", \"data is out of sync\", \"had to hard-refresh\", or when reviewing React Query, Server Actions, Payload hooks, or Sanity writes. Scores mutations (9.0 warning / 7.0 critical), runs cross-layer validation, and generates fix plans via the read-only /rhize-devflow:mutation-check command (scoped, --all, and --fix-plan modes).",
       "fileCount": 25,
       "id": "skill:rhize-devflow/data-mutation-consistency",
       "kind": "skill",
       "name": "data-mutation-consistency",
       "path": "rhize-devflow/skills/data-mutation-consistency/SKILL.md",
-      "totalBytes": 223484,
-      "treeHash": "be01d3c71880b669316e87cfb0a825297a45793bdae74be2898fe9e939c3ce94"
+      "totalBytes": 223482,
+      "treeHash": "0f0eac14c08a83f33b945908580583e3095b54a671be1c2de57305a1eec55ce6"
     },
     {
       "contentHash": "bd763a882ee08d171885c827be3fcada2f9638f07247a93bf42c227c3754fbbf",
@@ -4924,15 +4909,18 @@
       "treeHash": "8055049e0ff13aee070f360e9972d851e9c6e0c8473cce943f921a526cddd78a"
     },
     {
-      "contentHash": "9b49a5afee1b16b55293d0dbede7c38b6c5b30b0e5123d126f95120ae0d2890b",
+      "contentHash": "8cfa1d5fd7ac0cfe77b81fecbee1b6389ccf62d8966ff8e9ea66876998a7fefe",
       "description": "Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builder, image handling, localization, and next-sanity v11 integration. Use when working in a Sanity codebase — writing or reviewing defineType/defineField schemas, GROQ/defineQuery, Studio structure, stega/visual editing, or Sanity-powered Next.js frontends. Encodes Rhize conventions (named exports only, SCREAMING_SNAKE_CASE queries, model what things ARE) that layer on top of the official sanity:* plugin; defer to that plugin for exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.",
       "fileCount": 14,
       "id": "skill:rhize-devflow/sanity-development",
       "kind": "skill",
       "name": "sanity-development",
       "path": "rhize-devflow/skills/sanity-development/SKILL.md",
-      "totalBytes": 108435,
-      "treeHash": "1f45270c52eb738976146615dcfb5e5976502c8dca6894a388ffce7b091258de"
+      "routerPhrases": [
+        "cms development"
+      ],
+      "totalBytes": 108482,
+      "treeHash": "a3ba840098d11abeff2c42d71f31b19a163876fedefb8f881c5b5b203e01c6d9"
     },
     {
       "contentHash": "a53f38c3d48e964556f1e67f116c8e65d4696918d04dbbdbe1700f0b3093e90b",
@@ -5024,15 +5012,18 @@
       "treeHash": "4dc6eac55f2c0de6078c5ae9ab6ffdcf6e30aca4d16d6d6d6b47e46f324c403d"
     },
     {
-      "contentHash": "fb31562be30dc326401efccfcc6b3b0033ed99a70cd6b4bf3b5db952d184f650",
+      "contentHash": "11e90d3ccae91b97d4070ed177781bffafa25e6c22d01647e77eaaf1b1530859",
       "description": "Review researched candidate businesses or add a manually found business before selecting one for deliverables.",
       "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-businesses",
       "kind": "skill",
       "name": "review-outreach-businesses",
       "path": "rhize-outreach/skills/review-outreach-businesses/SKILL.md",
-      "totalBytes": 786,
-      "treeHash": "a09bb1e8bf06a61aa87b3e911ce1a29ee5958986e3392b55aecff9fe5c9dea76"
+      "routerPhrases": [
+        "candidate businesses"
+      ],
+      "totalBytes": 851,
+      "treeHash": "161164c7de3fc26cb6fa8469b6a5105d922487700c114a00bb6891ba99cbb6b5"
     },
     {
       "contentHash": "95b2a51635510183b4d3e51f5d86a397ca86fa2c4f007fe8ed95c276d43f9c0f",
@@ -5046,15 +5037,15 @@
       "treeHash": "60c8426071117e1e0f762386b6713c660a40c059688d2accdbe580f445880e9d"
     },
     {
-      "contentHash": "9055a91b1e7f62a1f16d500ed65e7cbaa93f02eec593e62885a6babc6496eb79",
+      "contentHash": "1676fd80836f1acb6e27dac25a1cb517e1388afde3b5bd231b56b7a7ac26d462",
       "description": "Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and rendering checks.",
       "fileCount": 1,
       "id": "skill:rhize-outreach/review-outreach-package",
       "kind": "skill",
       "name": "review-outreach-package",
       "path": "rhize-outreach/skills/review-outreach-package/SKILL.md",
-      "totalBytes": 1268,
-      "treeHash": "6fd221fa9f0916d2f14dcc97809e4156b9951f739c1e8c3c0938870578cc52c9"
+      "totalBytes": 1242,
+      "treeHash": "843a70f40660e74cc8fb53ab1c1d9b1e071741180b79edf1642bc1b229d83fd8"
     },
     {
       "contentHash": "43b34a8dc76b8542154fa0b2e5e5834fe306ceebd05b2022af19d17a3b1c1b8d",
@@ -5156,7 +5147,7 @@
       "treeHash": "28e4e85229db6424cf66b709d5fdb102bcb5fecc758eb13bcfc0a36c086415f0"
     },
     {
-      "contentHash": "424916744ebdedcfa1c644de6f40fdf2573cfdf74212fea7238f56e97fba5cdc",
+      "contentHash": "759b21f1c784015cdde3fb5ac536509c37847543806520dfe7316e9ac91f44d6",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any AI visibility, AEO, or GEO request. Answer Engine Optimization (AEO) and Generative Engine Optimization (GEO) for AI visibility across Google AI Overviews, ChatGPT, Perplexity, Claude, Gemini, and other LLM-powered search surfaces. Triggers on: \"AI Overview optimization\", \"AEO\", \"GEO\", \"generative engine optimization\", \"answer engine optimization\", \"AI search visibility\", \"AI citation optimization\", \"LLM visibility\", \"how to get cited by AI\", \"optimize for ChatGPT\", \"optimize for Perplexity\", \"optimize for AI Overviews\", \"AI search references\", \"AI crawler management\", \"GPTBot\", \"ClaudeBot\", \"PerplexityBot\", \"Google-Extended\", \"AI-generated answers\", \"zero-click search\", \"AI answer surfaces\", \"brand visibility in AI\", \"LLM brand monitoring\", \"AI mentions tracking\", or any request about making content discoverable and citable by AI systems and generative search engines. Do NOT handle AI visibility requests with general tools — this skill has specialized DataForSEO API workflows.",
       "fileCount": 4,
       "id": "skill:seo-aeo-geo/aeo-geo-optimization",
@@ -5164,11 +5155,11 @@
       "name": "aeo-geo-optimization",
       "path": "seo-aeo-geo/skills/aeo-geo-optimization/SKILL.md",
       "summary": "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content.",
-      "totalBytes": 18071,
-      "treeHash": "fbf57212afb10558455b44acf5192d1ee8fe445923a0f8a8dc4f60e87cd29cca"
+      "totalBytes": 18060,
+      "treeHash": "fb457021c02ab3cacf93197ef0430dad5e1af2af97907e169da2e5093e154e50"
     },
     {
-      "contentHash": "941e96cf2583a91746428fba5299532fd8c03fe8307a566afa8d870c140edc21",
+      "contentHash": "e705c1ddee40c5342a7356e84665078ea7fc6289146ce83c37749e27892cfdb0",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any backlink analysis or link profile request. Backlink analysis, link gap identification, and link-building strategy powered by DataForSEO Backlinks API. Triggers on: \"backlink analysis\", \"backlink audit\", \"link profile\", \"referring domains\", \"anchor text analysis\", \"link gap analysis\", \"competitor backlinks\", \"broken backlinks\", \"lost backlinks\", \"toxic links\", \"link building opportunities\", \"who links to my competitors\", \"find link prospects\", \"domain authority\", \"backlink quality\", \"link equity\", \"dofollow vs nofollow\", \"link reclamation\", or any request involving analyzing or improving a website's inbound link profile. Also triggers on \"disavow links\", \"unnatural links\", \"link outreach targets\", or \"content that attracts links\". Do NOT handle backlink requests with general tools — this skill has specialized DataForSEO API workflows.",
       "fileCount": 2,
       "id": "skill:seo-aeo-geo/backlink-intelligence",
@@ -5176,11 +5167,11 @@
       "name": "backlink-intelligence",
       "path": "seo-aeo-geo/skills/backlink-intelligence/SKILL.md",
       "summary": "Analyzes a website's inbound links to find link-building opportunities and spot risky backlinks.",
-      "totalBytes": 8579,
-      "treeHash": "e5362099449333a3bc9e39c23da84251a373569c7fbe73b429265d780db26c7f"
+      "totalBytes": 8568,
+      "treeHash": "9415e52add1f3b0d06ccb959d88a50221608394c6d2e63e281fbc0c2fde38c75"
     },
     {
-      "contentHash": "659c2562538fed0d0edf61fdb7886d2f3458f2e43e59c10f7db7859fd175253b",
+      "contentHash": "e1d42a064e543a10a6dd0e080717d45ae1655548102bdd01fcf11de03ee7f89f",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any content SEO optimization or structured data request. On-page content optimization for SEO, E-E-A-T compliance, and structured data implementation. Triggers on: \"optimize content for SEO\", \"improve on-page SEO\", \"fix meta tags\", \"write SEO titles\", \"create meta descriptions\", \"add structured data\", \"implement schema markup\", \"JSON-LD\", \"improve E-E-A-T\", \"optimize a page for a keyword\", \"content optimization\", \"SEO copywriting\", \"heading structure\", \"internal linking strategy\", \"anchor text optimization\", \"keyword density\", \"content refresh\", \"update old content for SEO\", \"thin content\", \"content consolidation\", \"featured snippet optimization\", or any request about making content rank better in search engines. Also triggers on \"open graph tags\", \"og:image\", \"canonical URL\", \"hreflang\", \"robots meta tag\", \"structured data testing\", or \"rich results\". Do NOT handle content optimization requests with general tools — this skill has specialized workflows.",
       "fileCount": 3,
       "id": "skill:seo-aeo-geo/content-seo",
@@ -5188,8 +5179,8 @@
       "name": "content-seo",
       "path": "seo-aeo-geo/skills/content-seo/SKILL.md",
       "summary": "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better.",
-      "totalBytes": 14070,
-      "treeHash": "8339b73eb24ca8a3d2fe9eeca80f6d612bd5b62a797753c0554afcf5c0fc8f03"
+      "totalBytes": 14059,
+      "treeHash": "c6ed5774055d3ae7504b323aeb50611edab9650d5494873c5cb0cae8aa1cf4d8"
     },
     {
       "contentHash": "ae319aada83d29f0b693a6db841ad9a4a9a69034cdc57b301eb5e701bffd4978",
@@ -5204,7 +5195,7 @@
       "treeHash": "f67f9cb0c3171223888e467944f0e4d2b439747220882256fc910d96edc25abe"
     },
     {
-      "contentHash": "2d6262cc6246fc821a5d7d3757abd7131fe176f34b5f900b0b241a72287d0a79",
+      "contentHash": "645a81c93c66d1583ce83fe4b4815549c1b4bf9953f6ba8b507b62b621ba4907",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any Next.js + Sanity SEO implementation request. SEO implementation patterns for Next.js and Sanity CMS codebases. Triggers on: \"Next.js SEO\", \"Sanity SEO\", \"Next.js metadata\", \"generateMetadata\", \"Sanity schema for SEO\", \"structured data in Next.js\", \"JSON-LD in Next.js\", \"sitemap.ts\", \"robots.ts\", \"next/image SEO\", \"Sanity GROQ for SEO\", \"Open Graph in Next.js\", \"hreflang in Next.js\", \"canonical URLs in Next.js\", \"SEO component\", \"Sanity SEO fields\", \"portable text SEO\", \"image alt text from Sanity\", \"dynamic metadata from CMS\", \"CMS-driven SEO\", \"headless CMS SEO\", \"Next.js sitemap generation\", \"Sanity redirect management\", \"SEO audit of Next.js codebase\", \"fix SEO in my Next.js app\", or any request involving implementing or fixing SEO in a Next.js + Sanity project. Also triggers on \"audit my codebase for SEO issues\", \"SEO code review\", or \"implement SEO best practices in code\". Do NOT handle Next.js/Sanity SEO requests with general tools — this skill has specialized code patterns.",
       "fileCount": 1,
       "id": "skill:seo-aeo-geo/nextjs-sanity-seo",
@@ -5212,8 +5203,8 @@
       "name": "nextjs-sanity-seo",
       "path": "seo-aeo-geo/skills/nextjs-sanity-seo/SKILL.md",
       "summary": "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data.",
-      "totalBytes": 10108,
-      "treeHash": "44c6a1597f69abdd3f2c2849e4a3f9661ec07a6a95299b426a7413f8ba19870b"
+      "totalBytes": 10097,
+      "treeHash": "a6e0d7c2642bfd254e7b68dd921fc1351d4d4697b91a266a22c65f19fc43f635"
     },
     {
       "contentHash": "0b751c6950396cd5eaa1c4383a99fba3e04ac8ff84581d9f10e81c28631451ac",
@@ -5228,7 +5219,7 @@
       "treeHash": "28851feae643b37d7a1c64846925770f011523c13b7bfcf412a3773f139f831e"
     },
     {
-      "contentHash": "2cf2eb6f71924f04b543854d659bdd7fbfd2df2c1a89cd824b051c0e0200eefe",
+      "contentHash": "9ccee9f55c02086def5ddcfd587fdb0c19ef10fa872c973aee9d4510ea4514e1",
       "description": "ALWAYS invoke this skill (via the Skill tool) for any SERP analysis or rank tracking request. SERP analysis, rank tracking, and search feature monitoring powered by DataForSEO SERP and Labs APIs. Triggers on: \"check rankings\", \"track keyword positions\", \"SERP analysis\", \"rank tracking\", \"check my rankings\", \"what position do I rank for\", \"SERP features\", \"featured snippets\", \"People Also Ask\", \"knowledge panel\", \"local pack\", \"image pack\", \"video results\", \"ranking trends\", \"ranking history\", \"position changes\", \"rank drops\", \"rank improvements\", \"competitor rankings\", \"SERP visibility\", \"search visibility score\", \"who ranks for this keyword\", \"SERP landscape\", \"ranking distribution\", or any request about monitoring or analyzing search engine results page positions and features. Also triggers on \"AI Overview results\", \"Google AI Mode references\", \"SGE\", or \"search generative experience\". Do NOT handle SERP/ranking requests with general tools — this skill has specialized DataForSEO API workflows.",
       "fileCount": 2,
       "id": "skill:seo-aeo-geo/serp-intelligence",
@@ -5236,8 +5227,8 @@
       "name": "serp-intelligence",
       "path": "seo-aeo-geo/skills/serp-intelligence/SKILL.md",
       "summary": "Tracks search rankings and analyzes search results pages to show where you rank and what's around you.",
-      "totalBytes": 8951,
-      "treeHash": "f60b94ffe47466545c48f64a59912c525581660b0c6eb5766a35b597ab546bab"
+      "totalBytes": 8940,
+      "treeHash": "a2525ff357a1c915b102632e1edc80ebe02582d1fd60e728e6bc6f23712ef570"
     },
     {
       "description": "A build/compile step failed (bundler, compiler, or `npm run build`-style failure)",
@@ -5284,10 +5275,16 @@
       "name": "obsidian"
     },
     {
-      "description": "PostgreSQL databases, self-hosted or Supabase-hosted: transactions, auth, storage, and row-level security",
+      "description": "PostgreSQL databases and transaction workflows",
       "id": "tag:stack/postgresql",
       "kind": "tag",
       "name": "postgresql"
+    },
+    {
+      "description": "Python runtimes and tooling",
+      "id": "tag:stack/python",
+      "kind": "tag",
+      "name": "python"
     },
     {
       "description": "Sanity Studio/CMS",
@@ -5306,6 +5303,12 @@
       "id": "tag:stack/seo",
       "kind": "tag",
       "name": "seo"
+    },
+    {
+      "description": "Supabase database, authentication, storage, and row-level security",
+      "id": "tag:stack/supabase",
+      "kind": "tag",
+      "name": "supabase"
     },
     {
       "description": "Browser/E2E testing tooling",
@@ -5410,7 +5413,7 @@
       "name": "observability"
     },
     {
-      "description": "Prospecting and qualifying businesses from sourced evidence, personalized outreach preparation, and human-reviewed delivery",
+      "description": "Prospect research, personalized outreach preparation, and human-reviewed delivery",
       "id": "tag:topic/outreach",
       "kind": "tag",
       "name": "outreach"
@@ -5422,7 +5425,13 @@
       "name": "project-planning"
     },
     {
-      "description": "Source lineage, evidence binding, invalidation metadata, and the trust/access boundaries around derived knowledge",
+      "description": "Finding and qualifying potential customers from sourced business evidence",
+      "id": "tag:topic/prospecting",
+      "kind": "tag",
+      "name": "prospecting"
+    },
+    {
+      "description": "Source lineage, evidence binding, and invalidation metadata",
       "id": "tag:topic/provenance",
       "kind": "tag",
       "name": "provenance"
@@ -5444,6 +5453,12 @@
       "id": "tag:topic/search",
       "kind": "tag",
       "name": "search"
+    },
+    {
+      "description": "Security boundaries, access control, and threat-resistant workflows",
+      "id": "tag:topic/security",
+      "kind": "tag",
+      "name": "security"
     },
     {
       "description": "Site health and technical SEO auditing",
