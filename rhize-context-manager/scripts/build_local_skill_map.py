@@ -561,6 +561,33 @@ def infer_tags_for_skill(
     return sorted(slug for _, slug in candidates[:3])
 
 
+def build_owner_edges(static_nodes: list[dict], third_party_nodes: list[dict]) -> list[dict]:
+    """`contains` edges from an installed third-party plugin node to every static
+    `external:` node that names it in `thirdPartyPlugin` (declared in
+    catalog/skill-relations.json as `<marketplace>/<plugin>`).
+
+    The relations catalog references individual third-party agents and skills
+    (e.g. ECC's build resolvers) as `external:` nodes so the committed static
+    map never depends on what is installed. Without this link those nodes form
+    islands beside the overlay's own inventory of the same plugin. Nothing is
+    emitted when the owning plugin isn't installed and enabled here, so the
+    edge always points at a real overlay node. Output is sorted for
+    deterministic resolved maps."""
+    plugin_ids = {
+        n["id"] for n in third_party_nodes
+        if n.get("kind") == "plugin" and isinstance(n.get("id"), str)
+    }
+    edges = []
+    for node in static_nodes:
+        owner = node.get("thirdPartyPlugin")
+        if node.get("kind") != "external" or not isinstance(owner, str) or not owner:
+            continue
+        plugin_id = f"plugin:{owner}"
+        if plugin_id in plugin_ids:
+            edges.append({"from": plugin_id, "to": node["id"], "type": "contains", "source": "marketplace"})
+    return sorted(edges, key=lambda e: (e["from"], e["to"]))
+
+
 def _inferred_by_skill(
     third_party_nodes: list[dict], tags_catalog: list[dict]
 ) -> list[tuple[str, str, list[str]]]:
@@ -938,6 +965,7 @@ def build(
     local_nodes, local_edges, local_summary = collect_local_skills(local_sources_path)
     third_party_nodes.extend(local_nodes)
     third_party_edges.extend(local_edges)
+    third_party_edges.extend(build_owner_edges(static_doc["nodes"], third_party_nodes))
     generated_at = datetime.now(timezone.utc).isoformat()
     synced_nodes, synced_summary, synced_note = collect_synced_account_skills(synced_skills_root)
     name_collisions = find_name_collisions(

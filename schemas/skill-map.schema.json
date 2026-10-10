@@ -88,6 +88,11 @@
           "type": "string",
           "description": "Where this node originates from. Optional — a node without this property is implicitly \"rhize\". Third-party nodes are populated only in the machine-local overlay (skill-map.local.json / skill-map.resolved.json), never in the committed static artifact.",
           "enum": ["rhize", "third-party"]
+        },
+        "thirdPartyPlugin": {
+          "type": "string",
+          "description": "external nodes only: the installed third-party plugin that ships this node, as `<marketplace>/<plugin>` (matching the overlay's `plugin:<marketplace>/<plugin>` id). build_local_skill_map.py links the two with a `contains` edge when that plugin is installed, so referenced third-party agents and skills never float apart from their plugin. Declared in catalog/skill-relations.json.",
+          "pattern": "^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
         }
       },
       "allOf": [

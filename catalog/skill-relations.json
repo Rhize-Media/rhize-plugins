@@ -5,7 +5,8 @@
       "id": "external:ecc-suggest-compact",
       "kind": "external",
       "name": "ecc pre:edit-write:suggest-compact hook",
-      "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker."
+      "description": "everything-claude-code's compact-suggestion hook, superseded in this repo by rhize-context-manager's context-window-monitor.js for sessions using a verified-model window table instead of sniffing the model id for a '[1m]' marker.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:skill-forge",
@@ -23,67 +24,78 @@
       "id": "external:humanizer-humanizer",
       "kind": "external",
       "name": "humanizer (humanizer plugin)",
-      "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally."
+      "description": "Third-party plugin whose SKILL.md sits at the plugin root (not under skills/*/SKILL.md), so it isn't inventoried as a skill node by build_local_skill_map.py's third-party scan; rewrites AI-sounding text to read more naturally.",
+      "thirdPartyPlugin": "humanizer/humanizer"
     },
     {
       "id": "external:ecc-react-build-resolver",
       "kind": "external",
       "name": "ecc:react-build-resolver (agent)",
-      "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures."
+      "description": "everything-claude-code agent (not a skill — agents.json/agents/*.md aren't skill-map node kinds); fixes React/Vite/Next/webpack build failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-go-build-resolver",
       "kind": "external",
       "name": "ecc:go-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Go build/vet failures."
+      "description": "everything-claude-code agent; fixes Go build/vet failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-rust-build-resolver",
       "kind": "external",
       "name": "ecc:rust-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes cargo build/borrow-checker failures."
+      "description": "everything-claude-code agent; fixes cargo build/borrow-checker failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-kotlin-build-resolver",
       "kind": "external",
       "name": "ecc:kotlin-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Kotlin/Gradle build failures."
+      "description": "everything-claude-code agent; fixes Kotlin/Gradle build failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-java-build-resolver",
       "kind": "external",
       "name": "ecc:java-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Java/Maven/Gradle build failures."
+      "description": "everything-claude-code agent; fixes Java/Maven/Gradle build failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-swift-build-resolver",
       "kind": "external",
       "name": "ecc:swift-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Swift/Xcode build failures."
+      "description": "everything-claude-code agent; fixes Swift/Xcode build failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-dart-build-resolver",
       "kind": "external",
       "name": "ecc:dart-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Dart/Flutter build/analysis failures."
+      "description": "everything-claude-code agent; fixes Dart/Flutter build/analysis failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-django-build-resolver",
       "kind": "external",
       "name": "ecc:django-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes Django/Python build and migration failures."
+      "description": "everything-claude-code agent; fixes Django/Python build and migration failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-cpp-build-resolver",
       "kind": "external",
       "name": "ecc:cpp-build-resolver (agent)",
-      "description": "everything-claude-code agent; fixes C++/CMake build and linker failures."
+      "description": "everything-claude-code agent; fixes C++/CMake build and linker failures.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:ecc-build-error-resolver",
       "kind": "external",
       "name": "ecc:build-error-resolver (agent)",
-      "description": "everything-claude-code general build/TypeScript error resolution agent."
+      "description": "everything-claude-code general build/TypeScript error resolution agent.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "tag:condition/build-failure",
@@ -109,37 +121,43 @@
       "id": "external:superpowers-systematic-debugging",
       "kind": "external",
       "name": "superpowers:systematic-debugging (skill)",
-      "description": "Superpowers root-cause debugging skill. Its own description: \"Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes\"; its When to Use list opens with \"Test failures\". Surfaced for failing test runs."
+      "description": "Superpowers root-cause debugging skill. Its own description: \"Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes\"; its When to Use list opens with \"Test failures\". Surfaced for failing test runs.",
+      "thirdPartyPlugin": "claude-plugins-official/superpowers"
     },
     {
       "id": "external:ecc-git-workflow",
       "kind": "external",
       "name": "ecc:git-workflow (skill)",
-      "description": "everything-claude-code git workflow skill whose own description ends \"Use when ... deciding merge versus rebase, or resolving conflicts\"; its Conflict Resolution section walks through identifying and resolving `CONFLICT (content)` / `Automatic merge failed` output. Surfaced for merge, rebase and cherry-pick conflicts."
+      "description": "everything-claude-code git workflow skill whose own description ends \"Use when ... deciding merge versus rebase, or resolving conflicts\"; its Conflict Resolution section walks through identifying and resolving `CONFLICT (content)` / `Automatic merge failed` output. Surfaced for merge, rebase and cherry-pick conflicts.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:sentry-plugin",
       "kind": "external",
       "name": "sentry (sentry-plugin-marketplace)",
-      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it."
+      "description": "Official Sentry plugin (sentry-instrument, sentry-workflow, sentry-debug-issue, sentry-feature-setup, sentry-get-started skills) providing general-purpose SDK setup and API reference. rhize-devflow's sentry-instrumentation skill covers only Rhize house conventions (captureException/startSpan/logger.fmt patterns, sensitive-data handling) on top of it.",
+      "thirdPartyPlugin": "sentry-plugin-marketplace/sentry"
     },
     {
       "id": "external:sanity-plugin",
       "kind": "external",
       "name": "sanity (sanity-agent-toolkit)",
-      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it."
+      "description": "Official Sanity plugin (sanity-best-practices, content-modeling-best-practices, portable-text-serialization, seo-aeo-best-practices skills, plus deploy-schema/typegen commands) providing general Sanity API documentation. rhize-devflow's sanity-development skill covers only Rhize house conventions (named exports, SCREAMING_SNAKE_CASE queries, model-what-things-ARE) on top of it.",
+      "thirdPartyPlugin": "sanity-agent-toolkit/sanity"
     },
     {
       "id": "external:ecc-browser-qa",
       "kind": "external",
       "name": "ecc:browser-qa (skill)",
-      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls."
+      "description": "everything-claude-code's browser QA skill — the active browser specialist chrome-devtools-mcp defers general DevTools-protocol API documentation to. rhize-devflow's chrome-devtools-mcp skill supplies only the tool-name/parameter mechanics its own browser-qa command calls.",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:superpowers-finishing-development-branch",
       "kind": "external",
       "name": "superpowers:finishing-a-development-branch (skill)",
-      "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence."
+      "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence.",
+      "thirdPartyPlugin": "claude-plugins-official/superpowers"
     },
     {
       "id": "external:rhize-tasks-runtime",
@@ -169,13 +187,15 @@
       "id": "external:ecc-parallel-execution-optimizer",
       "kind": "external",
       "name": "ecc:parallel-execution-optimizer (skill)",
-      "description": "everything-claude-code parallel-execution skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only)."
+      "description": "everything-claude-code parallel-execution skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only).",
+      "thirdPartyPlugin": "everything-claude-code/ecc"
     },
     {
       "id": "external:superpowers-dispatching-parallel-agents",
       "kind": "external",
       "name": "superpowers:dispatching-parallel-agents (skill)",
-      "description": "Superpowers parallel-dispatch skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only)."
+      "description": "Superpowers parallel-dispatch skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only).",
+      "thirdPartyPlugin": "claude-plugins-official/superpowers"
     }
   ],
   "edges": [

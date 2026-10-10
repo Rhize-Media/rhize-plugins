@@ -26,6 +26,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 0.44.0 → 0.44.1 (patch); marketplace 2.101.0 → 2.101.1.
+- _2026-10-10_ build_local_skill_map.py links catalog `external:` nodes that declare `thirdPartyPlugin` to the installed third-party plugin that ships them (`contains`), so ECC agents, superpowers skills and similar references no longer float as islands in the resolved map and viewer.
 - _2026-10-10_ version bump — 0.43.3 → 0.44.0 (minor); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ remediation-suggester names the condition ("Tests failed", "Merge conflict", "Type check failed") and the remediator kind from index labels; skill tags follow the consolidated vocabulary; memory-context supersedes graphiti-memory and context-engineering extends dev-flow-foundations in the skill map.
 - _2026-10-10_ version bump — 0.43.2 → 0.43.3 (patch); marketplace 2.100.3 → 2.100.4.

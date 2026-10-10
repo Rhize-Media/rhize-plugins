@@ -135,6 +135,13 @@ already a static node under its own convention.
   rhize skill, minus `topic-tag`/`stack-tag` edges: third-party skills don't carry
   `metadata.rhize.*` frontmatter, so there's nothing to tag).
 - One `command` node per `commands/*.md` (cheap to include alongside the skill scan).
+- **Owner links for catalog externals (2026-10-10):** a static `external:` node that declares
+  `thirdPartyPlugin: "<marketplace>/<plugin>"` in `catalog/skill-relations.json` (ECC's build
+  resolvers, superpowers skills, humanizer, the sanity/sentry plugins) gets a `contains` edge from
+  `plugin:<marketplace>/<plugin>` when that plugin is installed and enabled
+  (`build_owner_edges()`). Without it those references render as islands beside the overlay's own
+  inventory of the same plugin. Nothing is emitted for an owner that isn't installed, so the edge
+  always points at a real overlay node; the viewer draws a proxy hub in that case instead.
 - `contains` edges from the plugin to each child node, attributed `source: "marketplace"` — the
   schema's `provenanceSource` enum has no third-party-specific value, and extending the schema is
   out of scope for this inventory; `marketplace` is the closest semantic match (the relationship
