@@ -15,7 +15,7 @@ description: >
 metadata:
   rhize:
     summary: "Pulls clean, readable text from a web page for saving into your Obsidian vault."
-    topics: [web-clipping, content-authoring]
+    topics: [content-authoring]
     stacks: [obsidian]
 
 ---

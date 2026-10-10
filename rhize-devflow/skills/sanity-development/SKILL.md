@@ -14,7 +14,7 @@ description: >-
   exhaustive API reference, use this for Rhize house style and the Payload-vs-Sanity split.
 metadata:
   rhize:
-    topics: [cms-development, content-authoring]
+    topics: [content-authoring]
     stacks: [sanity, nextjs, sentry]
 
 ---
