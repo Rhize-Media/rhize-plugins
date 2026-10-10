@@ -3,7 +3,7 @@ name: context-optimization
 description: "This skill should be used for improving context efficiency: context budgeting, observation masking, prefix or KV-cache strategy, partitioning, token-cost reduction, retrieval scoping, and extending effective context capacity without lowering answer quality."
 metadata:
   rhize:
-    topics: [context-optimization, context-engineering]
+    topics: [context-engineering]
     stacks: []
     extends: [context-fundamentals]
 

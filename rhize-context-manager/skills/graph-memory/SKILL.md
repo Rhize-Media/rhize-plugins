@@ -12,7 +12,7 @@ metadata:
     domain: context-engineering
     maturity: experimental
     version: 1.0.0
-    topics: [knowledge-graph, memory-systems, security, provenance]
+    topics: [knowledge-graph, memory-systems, provenance]
     stacks: [neo4j]
     extends: [graphify]
 ---

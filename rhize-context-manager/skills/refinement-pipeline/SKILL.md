@@ -9,7 +9,7 @@ description: >-
   learn output should go, or when a scheduled refinement pass needs its rules.
 metadata:
   rhize:
-    topics: [learning-curation, workflow-patterns]
+    topics: [memory-systems, workflow-patterns]
     stacks: []
 
 ---

@@ -135,8 +135,23 @@ block drawn from a closed vocabulary (see "Tagging conventions" above for the ex
 carry `patterns`, see below); `scripts/build_skill_map.py` validates every frontmatter slug
 against it (a BuildError on any slug not present) and sets each tag node's `description` from its
 gloss. Extend it only when no existing slug fits a new skill, and keep it small (target ≤25
-topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this substrate replaces. The
-condition vocabulary is closed at exactly 5 entries (`build-failure`, `type-error`,
+topics, ≤10 stacks) so the tag space doesn't reproduce the flat list this substrate replaces. It
+currently holds 25 topics, 10 stacks and 5 conditions, and every topic and stack has at least one
+carrier skill.
+
+Before adding a slug, or when a slug ends up with a single carrier, check whether a surviving
+slug's gloss covers it. Fold it there and widen the gloss rather than growing the list. Check the
+router before retiring a slug, because it matches tag slugs word by word against the prompt. A slug
+that repeats its carrier's name, such as `context-compression`, `tool-design` or the
+`functionize` stack, gives that skill a second signal for the same words. That second signal is
+what lets a prompt naming the skill qualify for a suggestion, so retiring the slug silences those
+routes. The 2026-10 pass retired `web-clipping` (into `content-authoring`), `cms-development`
+(into `content-authoring`), `prospecting` (into `outreach`), `context-optimization` (into
+`context-engineering`), `security` (into `provenance`), `learning-curation` (into
+`memory-systems`), and the stacks `python` (dropped; its one carrier keeps `obsidian`) and
+`supabase` (into `postgresql`).
+
+The condition vocabulary is closed at exactly 5 entries (`build-failure`, `type-error`,
 `test-failure`, `lint-failure`, `merge-conflict`) — see [Edge Semantics — Deep
 Reference](./skill-map/edge-semantics.md)'s "`remediates` and condition tags" section.
 
