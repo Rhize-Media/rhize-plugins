@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 1.6.1 → 1.7.0 (minor); marketplace 2.101.1 → 2.102.0.
+- _2026-10-10_ Router: `seo-audit` now marks only seo-site-audit, so "SEO audit" prompts stop tying across six skills and resolving to aeo-geo-optimization.
 - _2026-10-10_ version bump — 1.6.0 → 1.6.1 (patch); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ Skill-map metadata: nextjs-sanity-seo flagged as overlapping rhize-devflow sanity-development; cms-development topic retired in favor of the existing content tags.
 - _2026-09-29_ version bump — 1.5.4 → 1.6.0 (minor); marketplace 2.94.1 → 2.95.0.

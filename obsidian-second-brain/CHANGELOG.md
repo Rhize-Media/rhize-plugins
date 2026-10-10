@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 1.8.0 → 1.9.0 (minor); marketplace 2.101.1 → 2.102.0.
+- _2026-10-10_ Router: defuddle declares the router phrase "web clipping"; knowledge-compiler regains the `security` topic and `python` stack (third-party inference words restored).
 - _2026-10-10_ version bump — 1.7.7 → 1.8.0 (minor); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ Skill-map metadata: vault-alignment extends second-brain; defuddle and obsidian-cli declare their CLI dependencies; knowledge-compiler and defuddle tags follow the consolidated vocabulary (web-clipping → content-authoring, python stack retired).
 - _2026-09-29_ version bump — 1.7.6 → 1.7.7 (patch); marketplace 2.94.0 → 2.94.1.

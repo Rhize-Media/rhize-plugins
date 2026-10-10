@@ -6,6 +6,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 1.13.0 → 1.14.0 (minor); marketplace 2.101.1 → 2.102.0.
+- _2026-10-10_ Router: rhize-visual-plan drops the generic `review` topic, which sent "weekly review"/"literature review" prompts to it.
 - _2026-10-10_ version bump — 1.12.0 → 1.13.0 (minor); marketplace 2.100.4 → 2.101.0.
 - _2026-10-10_ rhize-visual-plan's BuilderIO fork is now recorded in skills/SOURCES.md (fork-of + content-hash drift check); project-launcher depends on rhize-visual-plan; rhize-visual-plan augments project-planning.
 - _2026-09-29_ version bump — 1.11.1 → 1.12.0 (minor); marketplace 2.93.2 → 2.94.0.
