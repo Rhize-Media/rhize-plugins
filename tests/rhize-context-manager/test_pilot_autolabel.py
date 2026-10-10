@@ -508,6 +508,22 @@ def test_missing_observation_timestamp_defers_only_that_snapshot_case(tmp_path):
     assert summary['warnings'] == ['context_binding_mismatch']
 
 
+@pytest.mark.parametrize('size_mib, accepted', [(348, True), (513, False)])
+def test_transcript_scan_admits_long_sessions_with_a_finite_ceiling(tmp_path, monkeypatch, size_mib, accepted):
+    from types import SimpleNamespace
+    text = 'Implement the verified-session database change'
+    path = transcript(tmp_path, SESSION, [('user', text)], codex=True)
+    original = auto.os.fstat
+    def reported_size(fd):
+        info = original(fd)
+        return SimpleNamespace(st_mode=info.st_mode, st_size=size_mib * 1024 * 1024)
+    monkeypatch.setattr(auto.os, 'fstat', reported_size)
+    issues = []
+    matches = auto.TranscriptIndex._scan([path], {auto.digest(text)}, issues=issues)
+    assert bool(matches) is accepted
+    assert issues == ([] if accepted else ['transcript_oversized'])
+
+
 def test_transcript_scan_refuses_nonregular_sources_and_tracks_unavailability(tmp_path):
     fifo = tmp_path / 'blocked.jsonl'
     os.mkfifo(fifo)

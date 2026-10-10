@@ -1,5 +1,7 @@
 # Changelog — rhize-context-manager
 
+- Raise the bounded streaming transcript admission ceiling to 512 MiB: long native sessions previously lost verifiable request context above 256 MiB. Larger/nonregular sources still fail closed; exact prompt/session/time/redaction checks, label policy, collection source identity and shadow-only authority remain unchanged.
+
 ## 0.30.0 — 2026-09-06
 
 - Add silent native Claude/Codex opportunity, tool and stop measurement hooks with explicit workspace scope, duplicate suppression, private receipts and bounded paired answer workers.
@@ -24,6 +26,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-10_ version bump — 0.43.2 → 0.43.3 (patch); marketplace 2.100.3 → 2.100.4.
 - _2026-10-06_ Fix Codex multipart browser-comment context recovery: preserve native text concatenation around image captions so prompt hashes validate. Claude newline separation and exact session/time/redaction/snapshot seals remain unchanged; image bytes stay outside label packets and collection source identity is unchanged.
 - _2026-10-06_ version bump — 0.43.1 → 0.43.2 (patch); marketplace 2.100.1 → 2.100.2.
 - _2026-10-02_ version bump — 0.43.0 → 0.43.1 (patch); marketplace 2.100.0 → 2.100.1.
