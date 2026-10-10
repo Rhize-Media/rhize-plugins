@@ -22,7 +22,7 @@ metadata:
     summary: "Takes a project idea through research, requirements, a PRD, and a scaffolded project folder."
     topics: [project-planning, workflow-patterns, automation]
     stacks: [obsidian]
-    dependsOn: ["mcp:obsidian-mcp-server"]
+    dependsOn: ["mcp:obsidian-mcp-server", "rhize-visual-plan"]
 
 ---
 

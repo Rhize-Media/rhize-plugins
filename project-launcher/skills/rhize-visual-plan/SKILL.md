@@ -18,8 +18,9 @@ description: >
 metadata:
   rhize:
     summary: "Turns an implementation plan into a reviewable visual document with diagrams and file maps."
-    topics: [visualization, project-planning]
+    topics: [visualization, project-planning, review]
     stacks: [obsidian, nextjs]
+    augments: [project-planning]
 
 ---
 

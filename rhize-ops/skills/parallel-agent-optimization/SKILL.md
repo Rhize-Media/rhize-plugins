@@ -8,7 +8,7 @@ description: |
   Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—including subagents, agent dispatch, concurrent agents, or delegation to multiple agents. Invoke before spawning or dispatching any agent. Use `assess` for discussion or planning without execution or receipts. For real work, apply Rhize's self-contained routing strategy when two or more genuinely independent, bounded lanes justify the coordination cost; otherwise choose sequential or gated execution. Comparisons evaluate baseline versus Rhize routing only in isolated replayable fixtures.
 metadata:
   rhize:
-    topics: [automation, observability, workflow-patterns]
+    topics: [automation, observability, workflow-patterns, evidence]
     stacks: [testing]
 ---
 

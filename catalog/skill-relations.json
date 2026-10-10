@@ -118,6 +118,42 @@
       "kind": "external",
       "name": "superpowers:finishing-a-development-branch (skill)",
       "description": "Maintained Superpowers branch-finishing resource supplying environment detection, detached-worktree handling, rejected-push safeguards, and cleanup mechanics. rhize-devflow's completed-branch-promotion adds the Rhize-specific authorized dev/main PR and deployment sequence."
+    },
+    {
+      "id": "external:rhize-tasks-runtime",
+      "kind": "external",
+      "name": "rhize-tasks runtime (Rhize-Media/rhize-tasks)",
+      "description": "Separate local-first planning service, installer, CLI, and Swift EventKit helper pinned by rhize-tasks/setup/manifest.json's 'rhize-tasks runtime' dependency. The rhize-tasks plugin ships no runtime code; every rhize-tasks skill drives this installed CLI/service/dashboard as its single planning authority."
+    },
+    {
+      "id": "external:rhize-outreach-runtime",
+      "kind": "external",
+      "name": "rhize-outreach runtime (Rhize-Media/rhize-outreach)",
+      "description": "Local-first operator UI and resumable selected-business workflow fetched at an immutable commit (rhize-outreach/setup/manifest.json's 'rhize-outreach runtime' dependency). Setup installs it; run, package, business and email review operate inside its UI and agent graph."
+    },
+    {
+      "id": "external:defuddle-cli",
+      "kind": "external",
+      "name": "Defuddle CLI (npm: defuddle)",
+      "description": "Command-line web-content extractor (`defuddle parse <url> --md`) that the obsidian-second-brain defuddle skill documents and drives."
+    },
+    {
+      "id": "external:obsidian-app-cli",
+      "kind": "external",
+      "name": "Obsidian official CLI (v1.12.4+)",
+      "description": "The `obsidian` command-line interface built into the Obsidian app (Settings > General > Command line interface); requires the app running. The obsidian-second-brain obsidian-cli skill documents and drives it."
+    },
+    {
+      "id": "external:ecc-parallel-execution-optimizer",
+      "kind": "external",
+      "name": "ecc:parallel-execution-optimizer (skill)",
+      "description": "everything-claude-code parallel-execution skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only)."
+    },
+    {
+      "id": "external:superpowers-dispatching-parallel-agents",
+      "kind": "external",
+      "name": "superpowers:dispatching-parallel-agents (skill)",
+      "description": "Superpowers parallel-dispatch skill, consolidated (human-authorized 2026-08-30) into rhize-ops:parallel-agent-optimization, whose runtime never loads it. Attribution lives in rhize-ops/skills/SOURCES.md (provenance-only)."
     }
   ],
   "edges": [
@@ -166,7 +202,7 @@
     {
       "from": "command:rhize-devflow/impact-map",
       "to": "command:rhize-context-manager/impact-map",
-      "type": "replaces",
+      "type": "supersedes",
       "source": "relations-catalog"
     },
     {
@@ -274,6 +310,474 @@
     {
       "from": "skill:rhize-devflow/completed-branch-promotion",
       "to": "external:superpowers-finishing-development-branch",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:procedural-memory/rhize-content-engine",
+      "to": "external:rhize-skill-cli",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/manage-task-preferences",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/plan-my-day",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/review-task-opportunities",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-doctor",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-tasks/rhize-tasks-setup",
+      "to": "external:rhize-tasks-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-run",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "to": "external:rhize-outreach-runtime",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:obsidian-second-brain/defuddle",
+      "to": "external:defuddle-cli",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:obsidian-second-brain/obsidian-cli",
+      "to": "external:obsidian-app-cli",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "to": "external:ecc-parallel-execution-optimizer",
+      "type": "replaces",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-ops/parallel-agent-optimization",
+      "to": "external:superpowers-dispatching-parallel-agents",
+      "type": "replaces",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-context-manager/memory-context",
+      "to": "skill:rhize-context-manager/graphiti-memory",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "to": "command:rhize-devflow/browser-debug",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "to": "command:rhize-devflow/browser-help",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "to": "command:rhize-devflow/browser-perf",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/browser-qa",
+      "to": "command:rhize-devflow/browser-test",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "to": "command:rhize-devflow/mutation-analyze",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "to": "command:rhize-devflow/mutation-fix",
+      "type": "supersedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "to": "skill:rhize-devflow/sanity-development",
+      "type": "overlaps-with",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-context-manager/graphiti-memory",
+      "to": "skill:rhize-context-manager/memory-systems",
+      "type": "overlaps-with",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-setup",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-doctor",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/rhize-outreach-run",
+      "to": "skill:rhize-outreach/review-outreach-businesses",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-businesses",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-package",
+      "to": "skill:rhize-outreach/review-outreach-email",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "skill:rhize-outreach/review-outreach-email",
+      "to": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/impact-map",
+      "to": "command:rhize-devflow/check",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/check",
+      "to": "command:rhize-devflow/review",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/learn-harvest",
+      "to": "command:rhize-context-manager/skill-refine",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:procedural-memory/promote",
+      "to": "command:procedural-memory/verify",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-ops/delegate-setup",
+      "to": "skill:rhize-ops/delegate-to-teammate",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/devflow-setup",
+      "to": "skill:rhize-devflow/error-lifecycle-management",
+      "type": "precedes",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:obsidian-second-brain/vault-compile",
+      "to": "skill:obsidian-second-brain/knowledge-compiler",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/launch-project",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/scaffold-gsd",
+      "to": "skill:project-launcher/project-launcher",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:project-launcher/visual-plan",
+      "to": "skill:project-launcher/rhize-visual-plan",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/context-pack",
+      "to": "skill:rhize-context-manager/context-pack",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/memory-context",
+      "to": "skill:rhize-context-manager/memory-context",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-memory",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-decision",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/graph-memory-review",
+      "to": "skill:rhize-context-manager/graph-memory",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/context-setup",
+      "to": "skill:rhize-context-manager/context-stack",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-context-manager/context-setup",
+      "to": "skill:rhize-context-manager/context-engineering",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/simplify",
+      "to": "skill:rhize-devflow/simplify",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/test-evidence",
+      "to": "skill:rhize-devflow/test-evidence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-devflow/mutation-check",
+      "to": "skill:rhize-devflow/data-mutation-consistency",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-ops/parallel-optimize",
+      "to": "skill:rhize-ops/parallel-agent-optimization",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/businesses",
+      "to": "skill:rhize-outreach/review-outreach-businesses",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/campaign",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/doctor",
+      "to": "skill:rhize-outreach/rhize-outreach-doctor",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/email",
+      "to": "skill:rhize-outreach/review-outreach-email",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/package",
+      "to": "skill:rhize-outreach/review-outreach-package",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/reconcile",
+      "to": "skill:rhize-outreach/reconcile-outreach-delivery",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/run",
+      "to": "skill:rhize-outreach/rhize-outreach-run",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-outreach/setup",
+      "to": "skill:rhize-outreach/rhize-outreach-setup",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/doctor",
+      "to": "skill:rhize-tasks/rhize-tasks-doctor",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/preferences",
+      "to": "skill:rhize-tasks/manage-task-preferences",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/reconcile",
+      "to": "skill:rhize-tasks/reconcile-rhize-tasks",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/review-opportunities",
+      "to": "skill:rhize-tasks/review-task-opportunities",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/setup",
+      "to": "skill:rhize-tasks/rhize-tasks-setup",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:rhize-tasks/today",
+      "to": "skill:rhize-tasks/plan-my-day",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/ai-visibility",
+      "to": "skill:seo-aeo-geo/aeo-geo-optimization",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/backlink-audit",
+      "to": "skill:seo-aeo-geo/backlink-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/code-seo-review",
+      "to": "skill:seo-aeo-geo/nextjs-sanity-seo",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "to": "skill:seo-aeo-geo/keyword-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "to": "skill:seo-aeo-geo/backlink-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/competitor-analysis",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/content-optimize",
+      "to": "skill:seo-aeo-geo/content-seo",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/keyword-research",
+      "to": "skill:seo-aeo-geo/keyword-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/rank-track",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/seo-audit",
+      "to": "skill:seo-aeo-geo/seo-site-audit",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/serp-check",
+      "to": "skill:seo-aeo-geo/serp-intelligence",
+      "type": "depends-on",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "command:seo-aeo-geo/technical-audit",
+      "to": "skill:seo-aeo-geo/seo-site-audit",
       "type": "depends-on",
       "source": "relations-catalog"
     }

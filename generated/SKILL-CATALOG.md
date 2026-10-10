@@ -27,7 +27,7 @@ _No skills._
 | --- | --- | --- |
 | `defuddle` | Pulls clean, readable text from a web page for saving into your Obsidian vault. | content-authoring, obsidian, web-clipping |
 | `json-canvas` | Creates visual Obsidian canvas boards with connected notes, diagrams, and mind maps. | knowledge-management, obsidian, visualization |
-| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, workflow-patterns |
+| `knowledge-compiler` | Compile captured Obsidian sources into cited, invalidatable knowledge-page previews and apply an exact reviewed diff. | knowledge-management, obsidian, provenance, python, security, workflow-patterns |
 | `obsidian-bases` | Creates and edits Obsidian Base files for database-like views, filters, and dashboards. | content-authoring, knowledge-management, obsidian |
 | `obsidian-cli` | Automates Obsidian vault operations from the terminal using the official command-line tool. | automation, content-authoring, obsidian |
 | `obsidian-markdown` | Writes and formats Obsidian-flavored Markdown — wikilinks, embeds, callouts, and frontmatter. | content-authoring, knowledge-management, obsidian |
@@ -41,7 +41,7 @@ _No skills._
 | Skill | Description | Topics |
 | --- | --- | --- |
 | `project-launcher` | Takes a project idea through research, requirements, a PRD, and a scaffolded project folder. | automation, obsidian, project-planning, workflow-patterns |
-| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, visualization |
+| `rhize-visual-plan` | Turns an implementation plan into a reviewable visual document with diagrams and file maps. | nextjs, obsidian, project-planning, review, visualization |
 
 ## rhize-devflow
 
@@ -49,7 +49,7 @@ _No skills._
 | --- | --- | --- |
 | `chrome-devtools-mcp` | DevTools-protocol mechanics reference for the `chrome-devtools` MCP server, used by `/rhize-devflow:browser-qa` when that server is the act… | automation, nextjs, observability, testing |
 | `completed-branch-promotion` | Promote a completed feature or task branch through Rhize's repository-governed protected-branch workflow. | testing, vercel, workflow-patterns |
-| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, vercel, workflow-patterns |
+| `data-mutation-consistency` | Enforce consistent data-mutation patterns across Next.js apps on Vercel with Supabase, Sanity, and Payload CMS — so cache tags, query keys,… | data-consistency, nextjs, sanity, sentry, supabase, vercel, workflow-patterns |
 | `dev-flow-foundations` | Foundational workflow patterns for large-codebase development — CodeGraph-first structural discovery paired with semantic impact mapping, c… | project-planning, workflow-patterns |
 | `error-lifecycle-management` | End-to-end production error lifecycle for Next.js/TypeScript on Vercel — triage, root-cause analysis, deployment correlation, and fix verif… | nextjs, observability, sentry, vercel, workflow-patterns |
 | `sanity-development` | Rhize-opinionated best practices for Sanity Studio config, schema design, GROQ queries, TypeGen, Portable Text, visual editing, page builde… | cms-development, content-authoring, nextjs, sanity, sentry |
@@ -69,11 +69,11 @@ _No skills._
 | `context-pack` | Build or verify a private, deterministic source-bound code context preview for a specific implementation, diagnosis, impact-analysis, or re… | context-engineering, search |
 | `context-stack` | Routing and coexistence brain for the Rhize context stack. | context-engineering, obsidian, workflow-patterns |
 | `filesystem-context` | This skill should be used when agent work needs file-backed context: durable scratchpads, tool-output offloading, just-in-time discovery, c… | context-engineering, memory-systems |
-| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, security |
+| `graph-memory` | Govern Graphify graph.json artifacts for a Rhize Neo4j projection. | knowledge-graph, memory-systems, neo4j, provenance, security |
 | `graphify` | Use for any question about a codebase, its architecture, file relationships, or project content — especially when graphify-out/ exists, whe… | knowledge-graph, memory-systems, obsidian, search |
 | `graphiti-memory` | Historical design reference for Graphiti concepts. | knowledge-graph, memory-systems |
 | `learning-curation` | This skill should be used when deciding whether a session learning, correction, or rule deserves persistent storage — and where to put it s… | context-engineering, learning-curation |
-| `memory-context` | Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, c… | context-engineering, memory-systems |
+| `memory-context` | Assemble, verify, or explicitly purge a private bounded preview across authorized Rhize memory sources while preserving source authority, c… | context-engineering, memory-systems, provenance |
 | `memory-systems` | This skill should be used for persistent semantic memory in agent systems: cross-session knowledge retention, entity tracking, temporal val… | knowledge-graph, memory-systems |
 | `refinement-pipeline` | Operate and reason about the gated skill-refinement pipeline: headroom learn + claude-mem + skill-monitor signals flow into a human-triaged… | learning-curation, workflow-patterns |
 | `tool-design` | This skill should be used for the tool-interface layer of an agent system specifically: writing tool descriptions agents can route on, desi… | context-engineering, tool-design |
@@ -82,9 +82,9 @@ _No skills._
 
 | Skill | Description | Topics |
 | --- | --- | --- |
-| `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, testing, workflow-patterns |
+| `cross-model-handoff` | Request an independent review or bounded file task from the other provider through the shared Rhize bridge, in either direction between Cla… | automation, review, testing, workflow-patterns |
 | `delegate-to-teammate` | Delegate tasks to a configured teammate by gathering session context, formatting clear instructions, creating a Jira issue, publishing the… | automation, obsidian, workflow-patterns |
-| `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, observability, testing, workflow-patterns |
+| `parallel-agent-optimization` | Required whenever parallel or multi-agent work is mentioned, discussed, proposed, planned, reviewed, benchmarked, optimized, or employed—in… | automation, evidence, observability, testing, workflow-patterns |
 | `skill-dashboard` | Render the live skill-monitor audit dashboard. | observability, visualization |
 
 ## rhize-tasks
@@ -122,5 +122,5 @@ _No skills._
 | `review-outreach-package` | Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and render… | outreach, review, seo-audit, visualization |
 | `rhize-outreach-doctor` | Diagnose local Rhize Outreach setup, runtime pin, private data directories, Codex CLI sign-in, and operator UI health without changing stat… | automation, observability |
 | `rhize-outreach-run` | Start the local Rhize Outreach operator and resume the selected-business agent graph. | automation, workflow-patterns |
-| `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, workflow-patterns |
+| `rhize-outreach-setup` | Set up or resume the local Rhize Outreach selected-business workflow. | automation, postgresql, workflow-patterns |
 <!-- SKILL-MAP:END -->

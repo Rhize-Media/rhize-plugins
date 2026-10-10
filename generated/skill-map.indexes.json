@@ -71,12 +71,10 @@
         "skillId": "skill:obsidian-second-brain/qmd-search"
       },
       {
-        "deeper": [],
+        "deeper": [
+          "skill:obsidian-second-brain/vault-alignment"
+        ],
         "skillId": "skill:obsidian-second-brain/second-brain"
-      },
-      {
-        "deeper": [],
-        "skillId": "skill:obsidian-second-brain/vault-alignment"
       },
       {
         "deeper": [],
@@ -101,6 +99,12 @@
       {
         "deeper": [],
         "skillId": "skill:rhize-ops/delegate-to-teammate"
+      }
+    ],
+    "postgresql": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-outreach/rhize-outreach-setup"
       }
     ],
     "python": [
@@ -169,6 +173,12 @@
       {
         "deeper": [],
         "skillId": "skill:seo-aeo-geo/serp-intelligence"
+      }
+    ],
+    "supabase": [
+      {
+        "deeper": [],
+        "skillId": "skill:rhize-devflow/data-mutation-consistency"
       }
     ],
     "testing": [
@@ -283,11 +293,17 @@
       "skill:obsidian-second-brain/obsidian-bases": [
         "skill:obsidian-second-brain/obsidian-markdown"
       ],
+      "skill:obsidian-second-brain/vault-alignment": [
+        "skill:obsidian-second-brain/second-brain"
+      ],
       "skill:rhize-context-manager/context-compression": [
         "skill:rhize-context-manager/context-fundamentals"
       ],
       "skill:rhize-context-manager/context-degradation": [
         "skill:rhize-context-manager/context-fundamentals"
+      ],
+      "skill:rhize-context-manager/context-engineering": [
+        "skill:rhize-devflow/dev-flow-foundations"
       ],
       "skill:rhize-context-manager/context-optimization": [
         "skill:rhize-context-manager/context-fundamentals"
@@ -383,6 +399,11 @@
         {
           "kind": "tag",
           "label": "python",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "security",
           "weight": 2
         },
         {
@@ -646,6 +667,11 @@
         },
         {
           "kind": "tag",
+          "label": "review",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
           "label": "visualization",
           "weight": 2
         }
@@ -819,6 +845,11 @@
         },
         {
           "kind": "tag",
+          "label": "provenance",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
           "label": "security",
           "weight": 2
         }
@@ -898,6 +929,11 @@
         {
           "kind": "tag",
           "label": "memory-systems",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "provenance",
           "weight": 2
         }
       ],
@@ -1047,6 +1083,11 @@
         {
           "kind": "tag",
           "label": "sentry",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "supabase",
           "weight": 2
         },
         {
@@ -1225,6 +1266,11 @@
         },
         {
           "kind": "tag",
+          "label": "review",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
           "label": "testing",
           "weight": 2
         },
@@ -1265,6 +1311,11 @@
         {
           "kind": "tag",
           "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "evidence",
           "weight": 2
         },
         {
@@ -1426,6 +1477,11 @@
         {
           "kind": "tag",
           "label": "automation",
+          "weight": 2
+        },
+        {
+          "kind": "tag",
+          "label": "postgresql",
           "weight": 2
         },
         {
@@ -1714,6 +1770,16 @@
   },
   "schemaVersion": "1.1.0",
   "succession": {
+    "command:procedural-memory/promote": {
+      "follows": [],
+      "precedes": [
+        "command:procedural-memory/verify"
+      ]
+    },
+    "command:procedural-memory/verify": {
+      "follows": [],
+      "precedes": []
+    },
     "command:project-launcher/grill-prd": {
       "follows": [],
       "precedes": [
@@ -1728,6 +1794,92 @@
       "follows": [],
       "precedes": [
         "command:project-launcher/grill-prd"
+      ]
+    },
+    "command:rhize-context-manager/learn-harvest": {
+      "follows": [],
+      "precedes": [
+        "command:rhize-context-manager/skill-refine"
+      ]
+    },
+    "command:rhize-context-manager/skill-refine": {
+      "follows": [],
+      "precedes": []
+    },
+    "command:rhize-devflow/check": {
+      "follows": [],
+      "precedes": [
+        "command:rhize-devflow/review"
+      ]
+    },
+    "command:rhize-devflow/devflow-setup": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-devflow/error-lifecycle-management"
+      ]
+    },
+    "command:rhize-devflow/impact-map": {
+      "follows": [],
+      "precedes": [
+        "command:rhize-devflow/check"
+      ]
+    },
+    "command:rhize-devflow/review": {
+      "follows": [],
+      "precedes": []
+    },
+    "command:rhize-ops/delegate-setup": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-ops/delegate-to-teammate"
+      ]
+    },
+    "skill:rhize-devflow/error-lifecycle-management": {
+      "follows": [],
+      "precedes": []
+    },
+    "skill:rhize-ops/delegate-to-teammate": {
+      "follows": [],
+      "precedes": []
+    },
+    "skill:rhize-outreach/reconcile-outreach-delivery": {
+      "follows": [],
+      "precedes": []
+    },
+    "skill:rhize-outreach/review-outreach-businesses": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/review-outreach-package"
+      ]
+    },
+    "skill:rhize-outreach/review-outreach-email": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/reconcile-outreach-delivery"
+      ]
+    },
+    "skill:rhize-outreach/review-outreach-package": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/review-outreach-email"
+      ]
+    },
+    "skill:rhize-outreach/rhize-outreach-doctor": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/rhize-outreach-run"
+      ]
+    },
+    "skill:rhize-outreach/rhize-outreach-run": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/review-outreach-businesses"
+      ]
+    },
+    "skill:rhize-outreach/rhize-outreach-setup": {
+      "follows": [],
+      "precedes": [
+        "skill:rhize-outreach/rhize-outreach-run"
       ]
     }
   }
