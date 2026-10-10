@@ -5,6 +5,8 @@ metadata:
   rhize:
     topics: [outreach]
     stacks: []
+    router:
+      phrases: ["candidate businesses"]
 ---
 
 # Review Outreach Businesses

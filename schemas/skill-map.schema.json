@@ -84,6 +84,13 @@
           "description": "sha256 hex digest of the upstream file as of the last human review (ingestion or re-baseline via scripts/baseline_upstreams.py), copied from SOURCES.md's '- **Upstream baseline:**' bullet. Present only on `external` nodes that have been baselined — the reviewed-state anchor for the three-way drift verdict (see docs/skill-map.md).",
           "pattern": "^[a-f0-9]{64}$"
         },
+        "routerPhrases": {
+          "type": "array",
+          "description": "skill nodes only: validated, normalized copies of the skill's optional `metadata.rhize.router.phrases` frontmatter list (each a lowercase phrase of 2 or more words, at most 3, sorted, none equal to one of the skill's own tag slugs). build_skill_map.py's build_router_index() emits each as a weight-2 `phrase` router signal for this skill only. Omitted when the frontmatter sets none.",
+          "items": { "type": "string", "pattern": "^[a-z0-9]+( [a-z0-9]+)+$" },
+          "maxItems": 3,
+          "uniqueItems": true
+        },
         "origin": {
           "type": "string",
           "description": "Where this node originates from. Optional — a node without this property is implicitly \"rhize\". Third-party nodes are populated only in the machine-local overlay (skill-map.local.json / skill-map.resolved.json), never in the committed static artifact.",

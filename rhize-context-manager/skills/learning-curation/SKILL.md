@@ -5,6 +5,8 @@ metadata:
   rhize:
     topics: [memory-systems, context-engineering]
     stacks: []
+    router:
+      phrases: ["learning curation"]
 
 ---
 

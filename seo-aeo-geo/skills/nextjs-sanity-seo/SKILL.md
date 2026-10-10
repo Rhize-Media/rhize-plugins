@@ -18,7 +18,7 @@ description: >
 metadata:
   rhize:
     summary: "Implements SEO fixes directly in a Next.js and Sanity CMS codebase — metadata, sitemaps, structured data."
-    topics: [content-optimization, seo-audit]
+    topics: [content-optimization]
     stacks: [nextjs, sanity, seo]
 
 ---

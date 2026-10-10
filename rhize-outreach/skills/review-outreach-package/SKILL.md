@@ -3,7 +3,7 @@ name: review-outreach-package
 description: Run and review the selected prospect's 2–3-page website concept and public audit, including skill-backed design, conversion, SEO and rendering checks.
 metadata:
   rhize:
-    topics: [outreach, review, seo-audit, visualization]
+    topics: [outreach, review]
     stacks: []
 ---
 

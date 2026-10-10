@@ -18,7 +18,7 @@ description: >
 metadata:
   rhize:
     summary: "Tracks search rankings and analyzes search results pages to show where you rank and what's around you."
-    topics: [rank-tracking, seo-audit]
+    topics: [rank-tracking]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]
 

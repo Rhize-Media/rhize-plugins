@@ -18,7 +18,7 @@ description: >
 metadata:
   rhize:
     summary: "Checks and improves whether AI systems like ChatGPT and Google AI Overviews cite and reference your content."
-    topics: [ai-visibility, seo-audit]
+    topics: [ai-visibility]
     stacks: [seo]
     dependsOn: ["mcp:dataforseo"]
 

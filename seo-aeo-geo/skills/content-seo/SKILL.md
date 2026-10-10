@@ -18,7 +18,7 @@ description: >
 metadata:
   rhize:
     summary: "Optimizes a page's on-page SEO — meta tags, headings, structured data, and E-E-A-T signals — to help it rank better."
-    topics: [content-optimization, seo-audit]
+    topics: [content-optimization]
     stacks: [seo]
     augments: [content-authoring]
 

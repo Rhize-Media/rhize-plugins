@@ -16,6 +16,8 @@ metadata:
   rhize:
     topics: [content-authoring]
     stacks: [sanity, nextjs, sentry]
+    router:
+      phrases: ["cms development"]
 
 ---
 
