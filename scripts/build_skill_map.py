@@ -914,7 +914,7 @@ def build() -> dict:
 #                a detectedStacks set containing only that one stack. A
 #                caller with multiple detected stacks unions the per-stack
 #                lists and re-sorts by matched-stack count, same as today.
-#   remediation: condition slug -> {patterns, skills} — skills declared via
+#   remediation: condition slug -> {patterns, skills, labels?} — skills declared via
 #                `remediates` edges, sorted by skill id (no declared ranking
 #                signal exists yet; alphabetical is the deterministic
 #                default until a promotion/ranking mechanism lands).
@@ -1010,6 +1010,15 @@ def build_remediation_index(document: dict, condition_patterns: dict[str, list[s
     # capability that isn't inventoried as a proper skill node (e.g. an ecc
     # build-resolver agent — see catalog/skill-relations.json). The
     # remediation surface cares about "what to suggest", not the node kind.
+    #
+    # Each entry may also carry `labels`: {external remediator id -> its
+    # catalog `name`} (e.g. "superpowers:systematic-debugging (skill)"). An
+    # `external:` id says nothing about whether the capability is an agent or
+    # a skill, so remediation-suggester.js reads the trailing "(agent)" /
+    # "(skill)" / "(command)" from this label to phrase its suggestion, and
+    # falls back to its older agent phrasing when `labels` is absent (an index
+    # built before this field existed). Additive and omitted when empty.
+    names = {n["id"]: n.get("name") for n in document["nodes"]}
     remediation: dict[str, dict] = {
         slug: {"patterns": list(patterns), "skills": []}
         for slug, patterns in condition_patterns.items()
@@ -1025,6 +1034,13 @@ def build_remediation_index(document: dict, condition_patterns: dict[str, list[s
         remediation[slug]["skills"].append(edge["from"])
     for entry in remediation.values():
         entry["skills"] = sorted(set(entry["skills"]))
+        labels = {
+            sid: names[sid]
+            for sid in entry["skills"]
+            if sid.startswith("external:") and names.get(sid)
+        }
+        if labels:
+            entry["labels"] = labels
     return remediation
 
 

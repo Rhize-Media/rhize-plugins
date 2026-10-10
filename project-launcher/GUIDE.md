@@ -65,6 +65,8 @@ The full pipeline has six phases. Each phase produces something the next phase n
 - This skill is deliberately usable outside project-launcher too — if you have any risky, multi-file, or ambiguous plan (not necessarily a project-launcher PRD) that deserves a real review artifact instead of a chat wall of text, invoke it directly.
 - Preview or export a plan with `node <skill-dir>/viewer/bin/launch.mjs serve <plan.mdx>` (or `build <plan.mdx> -o plan.html`). The first run takes about 30 seconds while it installs the viewer's pinned dependencies into `~/.cache/rhize-plan-viewer/`. After that it starts in about a second, and nothing is written into the plugin.
 
+**Provenance:** forked from BuilderIO's MIT `visual-plan` skill. The plugin's `skills/SOURCES.md` records the upstream URL, pinned commit and baseline hash, so the skill map carries a `fork-of` edge and upstream changes show up in drift checks.
+
 ## Commands Reference
 
 ### /launch-project

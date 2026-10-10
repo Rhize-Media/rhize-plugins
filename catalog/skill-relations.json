@@ -96,6 +96,28 @@
       "description": "A static type check failed (tsc, mypy, or equivalent)"
     },
     {
+      "id": "tag:condition/test-failure",
+      "kind": "tag",
+      "description": "A test run reported one or more failing tests"
+    },
+    {
+      "id": "tag:condition/merge-conflict",
+      "kind": "tag",
+      "description": "A git merge/rebase/cherry-pick hit a conflict"
+    },
+    {
+      "id": "external:superpowers-systematic-debugging",
+      "kind": "external",
+      "name": "superpowers:systematic-debugging (skill)",
+      "description": "Superpowers root-cause debugging skill. Its own description: \"Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes\"; its When to Use list opens with \"Test failures\". Surfaced for failing test runs."
+    },
+    {
+      "id": "external:ecc-git-workflow",
+      "kind": "external",
+      "name": "ecc:git-workflow (skill)",
+      "description": "everything-claude-code git workflow skill whose own description ends \"Use when ... deciding merge versus rebase, or resolving conflicts\"; its Conflict Resolution section walks through identifying and resolving `CONFLICT (content)` / `Automatic merge failed` output. Surfaced for merge, rebase and cherry-pick conflicts."
+    },
+    {
       "id": "external:sentry-plugin",
       "kind": "external",
       "name": "sentry (sentry-plugin-marketplace)",
@@ -274,6 +296,18 @@
     {
       "from": "external:ecc-build-error-resolver",
       "to": "tag:condition/type-error",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:superpowers-systematic-debugging",
+      "to": "tag:condition/test-failure",
+      "type": "remediates",
+      "source": "relations-catalog"
+    },
+    {
+      "from": "external:ecc-git-workflow",
+      "to": "tag:condition/merge-conflict",
       "type": "remediates",
       "source": "relations-catalog"
     },

@@ -21,7 +21,7 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
   that each match a *different* detected stack won't fold on the index path the way the fallback's
   union-based fold would. Rare (needs two stack markers plus a cross-stack extends edge) and not
   exercised by any shipped fixture; accepted rather than redesigning the index format for it.
-- `remediation` — condition slug → `{patterns, skills}`. `skills` is sorted by node id
+- `remediation` — condition slug → `{patterns, skills, labels?}`. `skills` is sorted by node id
   (alphabetical) — no ranking/promotion signal exists yet, so this is the deterministic default
   until one lands (see the design doc's "pairs-with... revisit later as an audit promotion
   target" non-goal for the analogous case). Consumed by `remediation-suggester.js` (PostToolUse,
@@ -29,8 +29,11 @@ need at runtime, precomputed so no hook has to walk `doc.edges` itself:
   (compiled via a Python-`re`-to-JS-`RegExp` shim that strips a leading `(?i)` inline flag into
   the JS `i` flag — the catalog's patterns are authored as Python regexes) and the first-listed
   remediator for the first matching condition is suggested. An `external:` id (a third-party
-  capability with no proper skill-map node, e.g. an `ecc` build-resolver *agent*) is phrased as an
-  agent suggestion rather than a skill invocation.
+  capability with no proper skill-map node, e.g. an `ecc` build-resolver *agent*) carries its
+  catalog `name` in the optional `labels` map (`{id: name}`, omitted when empty); the hook reads the
+  trailing `(agent)`/`(skill)`/`(command)` from that label to phrase the suggestion, and falls back
+  to agent phrasing when no label exists. The message lead-in names the matched condition
+  (`Tests failed`, `Merge conflict`, ...).
 - `succession` — node id → `{precedes, follows}` from declared `precedes` edges. `follows` is
   always `[]` in the static indexes — mined `follows` edges are local-overlay only — and gets
   filled in by `rhize-context-manager/scripts/build_local_skill_map.py` at

@@ -70,6 +70,8 @@ model environment as the probe; a changed or missing local model pin blocks read
 
 `rhize-visual-plan`'s viewer runs from any install through `node <skill-dir>/viewer/bin/launch.mjs serve|build <plan>`. The first run installs its pinned dependencies (`npm ci`) into `~/.cache/rhize-plan-viewer/<content-hash>/`, never into the plugin directory.
 
+`rhize-visual-plan` is a fork of BuilderIO's MIT `visual-plan` skill. [`skills/SOURCES.md`](skills/SOURCES.md) is the provenance ledger the skill map and drift checks read; the skill's own `SOURCES.md` keeps the detailed attribution.
+
 ## Reference Docs
 
 | File | Purpose |
