@@ -66,6 +66,14 @@ class BackfillError(Exception):
 
 # ------------------------------------------------------------------ inputs
 
+
+def is_background_observer_transcript(path, home=None) -> bool:
+    """A Claude transcript written by ECC's homunculus background observer (its own headless sessions under
+    ~/.local/share/ecc-homunculus[/projects/<12 hex>]). The live router skips these sessions; backfill must too."""
+    slug = re.sub(r'[^a-zA-Z0-9]', '-', str(Path(home or Path.home()) / '.local' / 'share' / 'ecc-homunculus'))
+    name = Path(path).parent.name
+    return name == slug or re.fullmatch(re.escape(slug) + r'-projects-[0-9a-f]{12}', name) is not None
+
 def parse_instant(value, name) -> datetime:
     """Date ('2026-09-27') or ISO timestamp carrying Z/offset, as an aware UTC datetime."""
     try:
@@ -387,6 +395,12 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
                     unmatched['no_context_hash'] += 1
                     continue
                 ts = iso(moment)
+                transcripts_for = scanner.paths().get(contract.sha256_text(session_id)) or []
+                if isinstance(transcripts_for, (str, Path)):
+                    transcripts_for = [transcripts_for]
+                if any(is_background_observer_transcript(item) for item in transcripts_for):
+                    unmatched['background_observer'] += 1  # ECC homunculus machine sessions (router skips them live)
+                    continue
                 match, reason = scanner.find_turn(session_id, context_hash, ts)
                 if match is None:
                     unmatched[reason] += 1

@@ -335,11 +335,20 @@ remain unavailable. The existing preview-only injection/write-back policy is unc
 
 ## Host attribution
 
-For the local Laya pilot, Context Manager can score bounded skill/workflow shortlists,
+For the local Laya pilot, Context Manager can score bounded workflow shortlists,
 authorized graph results and source-bound retention candidates. Enable only the
 specific shadow flags in [the pilot matrix](../docs/typed-decision-layer.md); the
 incumbent selector, ACL and protected context remain authoritative. Use private
 receipts and adjudicated decisions before calling a routing hit an improvement.
+
+Skill fit is different: the skill router's Laya co-sign is governed by the earned-authority
+registry (`catalog/decision-registry.json`, state under `~/.local/share/rhize/typed-decisions/`),
+not an environment flag. It ships in `shadow` (the router's output is unchanged; one private
+decision record per eligible prompt), and only a passed frozen cohort gate promotes it to
+`cosign`, where a router suggestion is shown only when Laya independently picks the same skill.
+Any Laya failure emits today's output byte for byte. The hook needs a host timeout of at least
+8 s. Inspect, pin or roll back with `scripts/typed_decisions/decision_registry.py`; the operator
+guide is [skill fit](../docs/typed-decisions/skill-fit.md).
 
 Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.
 

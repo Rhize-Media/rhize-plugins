@@ -1070,3 +1070,16 @@ def test_skill_ref_mirrors_the_router_display_form():
     assert outcomes.skill_ref('skill:rhize-devflow/ship') == 'rhize-devflow:ship'
     assert outcomes.skill_ref('skill:market/plugin/name') == 'plugin:name'
     assert outcomes.skill_ref('skill:flat') is None and outcomes.skill_ref('nope') is None
+
+
+def test_backfill_recognizes_background_observer_transcripts():
+    from typed_decisions import backfill as bf
+    home = '/Users/someone'
+    assert bf.is_background_observer_transcript(
+        '/Users/someone/.claude/projects/-Users-someone--local-share-ecc-homunculus/s.jsonl', home=home)
+    assert bf.is_background_observer_transcript(
+        '/Users/someone/.claude/projects/-Users-someone--local-share-ecc-homunculus-projects-0123456789ab/s.jsonl', home=home)
+    assert not bf.is_background_observer_transcript(
+        '/Users/someone/.claude/projects/-Users-someone--local-share-ecc-homunculus-projects-notes/s.jsonl', home=home)
+    assert not bf.is_background_observer_transcript(
+        '/Users/someone/.claude/projects/-Users-someone-dev-local-app/s.jsonl', home=home)

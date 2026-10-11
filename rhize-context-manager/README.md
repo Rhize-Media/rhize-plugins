@@ -352,7 +352,7 @@ remain unavailable. The existing preview-only injection/write-back policy is unc
 
 Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.
 
-The optional local Laya shadow scorer ranks verified Context Pack candidates without changing inclusion. Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass `--decision-task` to a native pack preview; see [Context Pack](commands/context-pack.md). No real relevance or task-benefit result is established.
+Skill-router suggestions can be co-signed by the local Laya server under the earned-authority registry: `shadow` by default, `cosign` only after a passed statistical gate, automatic demotion, fail-open on any Laya failure — see [skill fit](../docs/typed-decisions/skill-fit.md). The optional local Laya shadow scorer ranks verified Context Pack candidates without changing inclusion. Set `RHIZE_LAYA_GRAPH_SHADOW=1` and pass `--decision-task` to a native pack preview; see [Context Pack](commands/context-pack.md). No real relevance or task-benefit result is established.
 
 The [typed decision pilot](../docs/typed-decision-layer.md) also scores bounded skill and workflow shortlists, governed graph query results, and source-bound retention candidates. All scores remain private shadow evidence; existing selectors and protected context continue to decide.
 

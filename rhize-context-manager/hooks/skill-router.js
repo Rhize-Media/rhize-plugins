@@ -126,6 +126,24 @@ function formatMatch(match) {
   return `Consider the ${ref} skill (matches ${why})`;
 }
 
+// ECC's homunculus background observer runs its own headless Claude sessions
+// (cwd ~/.local/share/ecc-homunculus or its projects/<12 hex> children,
+// launched with ECC_SKIP_OBSERVE=1 + ECC_HOOK_PROFILE=minimal). That is
+// machine traffic: replaying 2026-09-27..10-11 on the maintainer's Mac, it was
+// 1,134 of 1,366 router fires (83%), every one parallel-agent-optimization.
+// The workflow selector already excludes these sessions
+// (workflow_context_packet.native_observer); the router now skips its own
+// suggestion, the Laya call, the decision record and the silence sample for
+// them. Either signal suffices: being lenient here can only withhold advice
+// from a background observer.
+function isBackgroundObserver(data, env = process.env, home = os.homedir()) {
+  if (env.ECC_SKIP_OBSERVE === '1' && env.ECC_HOOK_PROFILE === 'minimal') return true;
+  if (!data || typeof data.cwd !== 'string' || !data.cwd) return false;
+  const cwd = path.resolve(data.cwd);
+  const root = path.join(home, '.local', 'share', 'ecc-homunculus');
+  return cwd === root || (path.dirname(cwd) === path.join(root, 'projects') && /^[0-9a-f]{12}$/.test(path.basename(cwd)));
+}
+
 function payloadFor(message) {
   if (!message) return null;
   return JSON.stringify({
@@ -177,8 +195,10 @@ function prepare() {
   const promptTokens = tokenize(prompt);
   const ctxHash = contextHash(prompt);
 
-  const routerIndex = readIndexes();
-  const match = routerIndex
+  const observer = isBackgroundObserver(data);
+  if (observer && !workflowMessage) return null;
+  const routerIndex = observer ? null : readIndexes();
+  const match = observer ? null : routerIndex
     ? routeFromIndex(routerIndex, promptTokens, prompt)
     : (() => {
         const doc = readMap();
@@ -192,7 +212,7 @@ function prepare() {
 
   const explicit = Boolean(match) && match.signals.some((signal) => signal.label === 'explicit skill request');
   return {
-    ts, prompt, sessionId, promptTokens, contextHash: ctxHash, routerIndex, match,
+    ts, prompt, sessionId, promptTokens, contextHash: ctxHash, routerIndex, match, observer,
     incumbentPayload: payloadFor(incumbentMessage),
     incumbentShown: incumbentMessage && routerRef && match ? match.skillId : null,
     suppressedPayload: payloadFor(suppressedMessage),
@@ -357,7 +377,7 @@ function persist(state, plan, laya, emitted, shown) {
         context_hash: state.contextHash,
         ...typed,
       });
-    } else if (Math.random() < 1 / 20) {
+    } else if (!state.observer && Math.random() < 1 / 20) {
       logSuggestion({
         ts: state.ts,
         session_id: state.sessionId,
