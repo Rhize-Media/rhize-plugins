@@ -1,401 +1,443 @@
 # Laya decision layer: earned authority (plan + impact map)
 
-**Status:** v2. This version reconciles the Fable advisory review (§10); Codex review is pending. Nothing here is implemented yet.
-
+**Status:** v3. The Fable advisory review (approve-with-changes, §10) and the Codex review (implement-with-changes, §11) have both been reconciled. This version is the implementation baseline.
 **Branch:** `claude/laya-earned-authority`
-
 **Authority:** Jim, 2026-10-11:
 
 > implement our decision layer strategy fully now and try to recursively implement and prove it as we go using tools like the autoresearch library … optimally integrating Laya's decision-making capabilities into our daily operations.
 
 He also asked for:
 - a Fable + Codex review before implementation;
-- Sonnet 5.5 parallel lanes, but only if they are recommended;
+- Sonnet 5.5 parallel lanes, used only if recommended;
 - a final Fable + Codex review before `main`.
 
 ## 1. What we measured (2026-10-11, all read-only)
 
-All figures below were measured on Jim's Mac today. The replays are exploratory and use small samples. None of them is a release-gate result.
+All figures come from Jim's Mac today. These are exploratory replays with small samples, not release-gate results.
 
 | # | Finding | Evidence |
 |---|---|---|
-| E1 | **Laya is already in daily use.** The v2 workflow pilot has 349 observations since 2026-09-28: 179 scored in shadow, 163 excluded (operational, prebound or continuation) and 4 unavailable. | `~/.local/share/rhize/workflow-selection/pilot/v2/*` |
-| E2 | **The workflow labels are few and lopsided.** There are 75 AI-reviewed taxonomy labels; 73 have an explicit choice (58 general, 13 none, 2 content). Research is held at the 200-label floor. | `taxonomy-labels/`, 07:30 `media.rhize.laya-autolabel` |
-| E3 | **The workflow instrument is broken, and data volume is not the cause.** `request_for()` asks three *independent* `noul` questions using only `{eventKind, action, domain, exclusions}`, then takes the argmax. Laya picks `content` 70 of 73 times, so it agrees with the labels **2/73 = 2.7%** of the time. | replay via `127.0.0.1:8000/v1/systemone` |
-| E4 | **A better question helps, but still loses to trivial baselines.** <br>• Laya's native **`choice`** question type on the same fields agrees **47/73 = 64.4%**. <br>• Adding the redacted task text gives **21/35 = 60%** (only 35 cases have a request snapshot). <br>• Both lose to always-`general` (**79.5%**). <br>• A 3-line rule scores ~91%, but that is in-sample: I fit it after seeing the labels. | same replay |
-| E5 | **Skill fit is where Laya helps.** Measured on the 279 routing-harness rows (frozen third-party snapshot), in the table below. | `evals/skill-map-routing`, Laya replay |
-| E6 | **Laya itself is fast.** A direct HTTP call takes **59 ms p50 / 92 ms p90** for the short harness prompts. The pilot's 1.57 s p50 is mostly the cost of launching Python for every call. Long-prompt latency has not been measured yet (see §4.2). | replay timings |
-| E7 | **What the checkpoint is.** The typed-decisions checkpoint is a ModernBERT-large model with an RL head. <br>• `build_sequence` puts the instructions and options in a **192-token head**. Each option is capped at 48 tokens and shrunk to about 29 tokens when there are 6 options. <br>• The state gets the remaining room up to **512 tokens** (about 317), keeping the start of the text. <br>• It supports `choice`, `score` and `noul` questions; `choice` returns per-option `probabilities`. <br>• It makes no network calls and does not log requests (`managed-service.log` is 397 bytes). `/health` returns `{"loaded":["typed-decisions"]}`. <br>• There is no fine-tune API. | `laya` 0.3.20, checkpoint `55cf4c4` |
-| E8 | **The skill-fit shadow never runs.** <br>• It needs `RHIZE_LAYA_SKILL_SHADOW=1`, which is unset. <br>• It is skipped whenever workflow selection is attempted. <br>• Laya only ever sees hashed ids and router-matched tokens, which is circular. <br>• Its shortlist uses the *floored* `scoreCandidates()`. | `skill-router.js:84-127` |
-| E9 | **None of the routing fixes are live.** <br>• The `settings.json` skill-router hook runs `node <repo checkout>/…/skill-router.js`. <br>• That checkout is on `codex/laya-transcript-size-limit` (99083e5), 24 commits behind `main`. <br>• It suggested `completed-branch-promotion` from stack-only matches at 17:51 today. <br>• The setup orchestrator already supports a portable path, `$HOME/.claude/plugins/marketplaces/<clone>/<plugin>`, that follows `claude plugin marketplace update`. | Mac settings; `rhize-core/scripts/setup_orchestrator.py:253-272` |
-| E10 | **There is a large backlog of real prompts to learn from.** <br>• Since 2026-09-27 the router has fired **2,235** times, about **150 per day**, plus 110 sampled silences (a 1-in-20 sample). <br>• Each row carries the raw `session_id` and `context_hash = sha256(prompt)[:16]`. <br>• Workflow outcomes are 183/183 `undetermined`. | `~/.claude/context-manager/suggestion-log.jsonl` |
+| E1 | **Laya is already in daily use.** The v2 workflow pilot has 349 observations since 2026-09-28: 179 scored in shadow, 163 excluded and 4 unavailable. | `~/.local/share/rhize/workflow-selection/pilot/v2/*` |
+| E2 | **There are 73 explicit AI-reviewed labels.** They split 58 general, 13 none and 2 content. Research is held at the 200-label floor. | `taxonomy-labels/`, 07:30 autolabel |
+| E3 | **The workflow instrument is broken.** It asks three independent `noul` questions using only four enum fields, then takes the argmax. Agreement is **2/73 = 2.7%**, because Laya picks `content` 70 of 73 times. | replay via `/v1/systemone` |
+| E4 | **Fixing the question type helps but does not beat the baseline.** A native `choice` question on the same fields agrees **47/73 = 64.4%**. Adding the redacted task text gives **21/35 = 60%**. Both lose to always-`general` (**79.5%**). | same replay |
+| E5 | **Skill fit looks promising.** On the 279-row routing harness, co-signing raises precision from 0.67 to 0.86 (table below). | `evals/skill-map-routing` + Laya replay |
+| E6 | **Direct HTTP is fast.** Laya answers in 59 ms p50 / 92 ms p90 on short prompts. Most of the pilot's 1.57 s p50 is the cost of spawning Python. Long-prompt latency has not been measured. | replay timings |
+| E7 | **Model limits.** The checkpoint is ModernBERT-large with an RL head. Instructions and options get a 192-token head (each option is capped at 48 tokens, and shrinks to about 29 when there are 6). The state gets the remaining room up to 512 tokens (about 317, head-kept). `choice` returns per-option `probabilities`. The server makes no network calls and logs no requests. `/health` lists the loaded models. There is no fine-tune API. | `laya` 0.3.20, checkpoint `55cf4c4` |
+| E8 | **The skill-fit shadow never runs.** It needs an environment flag that is unset. It is skipped whenever workflow selection is attempted. Even when it runs, Laya sees only hashed ids and the tokens the router already matched. | `skill-router.js:84-127` |
+| E9 | **The routing fixes are not live.** The `settings.json` hook runs the repo checkout, which is on a Codex branch 24 commits behind `main`. The setup orchestrator already supports a portable path that follows marketplace updates. | Mac settings; `setup_orchestrator.py:253-272` |
+| E10 | **There is plenty of real traffic.** Since 2026-09-27 the router has fired **2,235** times (about 150 a day), plus 110 silences sampled at 1 in 20. Each log row carries `session_id` and `sha256(prompt)[:16]`. | `suggestion-log.jsonl` |
 
-**E5 in detail.** The baseline is the current router. The other policies are:
-- *Stricter floor*: the router with a higher minimum score.
-- *Co-sign*: a suggestion is shown only when Laya's `choice` independently names the same skill. Laya chooses from the top 5 unfloored lexical candidates plus `none`, given the prompt text.
+**E5 in detail.** Co-sign means a suggestion is shown only when Laya's `choice` independently names the same skill. Laya chooses among the top-5 unfloored lexical shortlist plus `none`, given the prompt text.
 
 | Policy | Fires | Precision | Hits | Wrong | False fires |
 |---|---|---|---|---|---|
 | Router (incumbent) | 33 | 0.67 | 22 | 8 | 3 |
 | Router, score ≥ 3 | 29 | 0.76 | 22 | 6 | 1 |
 | Router, score ≥ 3.5 | 9 | 0.89 | 8 | 1 | 0 |
-| Co-sign | 21 | 0.86 | 18 | 3 | 0 |
-| Co-sign + score ≥ 3 | 21 | 0.86 | 18 | 3 | 0 |
-| Laya replaces the router (p ≥ 0.4) | 65 | 0.45 | — | — | — |
+| **Co-sign** | 21 | **0.86** | 18 | 3 | 0 |
+| Laya replaces router (p ≥ 0.4) | 65 | 0.45 | — | — | — |
 
-Notes on E5:
-- **Agreement carries the signal.** There are 12 disagreements. The router was right in 4 of them and Laya's alternative in 5. Agreement vs hit gives Fisher p ≈ 0.0055.
-- **Caveats.** The prompts are authored trigger cases that share vocabulary with skill descriptions, and they are short (p90 148 characters). The router's thresholds were also tuned on this same corpus. Treat E5 as a hypothesis; backfill on real prompts is the real test.
-- **Descriptions** came from `generated/skill-map.static.json` plus the `description` fields in `third_party_snapshot.json`.
+- **Disagreements:** there were 12. The router was right in 4 and Laya's alternative in 5. Fisher's exact test gives p ≈ 0.0055.
+- **Caveats:** these are authored trigger prompts that share vocabulary with skill descriptions. They are short (p90 148 characters), and the router's thresholds were tuned on this same corpus.
+- **Status:** E5 justifies *testing* the instrument. It does not establish that the 1,200/120-character instrument beats the incumbent on real prompts.
 
 ## 2. Thesis
 
-Laya's problem has been **how it is asked**, not how much data it gets:
-- It is a text classifier, but it has been given category labels and hashed ids.
-- Its independent yes/no scores are not comparable across options.
+Laya has been held back by **how it is asked**, not by data volume. The question is: "**for which decision does Laya beat the incumbent and the trivial baselines?**" The answer has to come continuously from live evidence, so that authority is earned and lost automatically.
 
-The real question is "**for which decision does Laya beat the incumbent and the trivial baselines?**" That has to be answered continuously from live evidence, so authority is earned and lost automatically.
-
-This plan does five things:
-1. **Fixes the instrument:** native `choice`, a bounded prompt head, candidate descriptions and a direct HTTP call.
-2. **Gives Laya one real job:** co-signing skill suggestions. It is high-volume, low-risk and advisory, and Laya has measured value there.
-3. **Bootstraps evidence from real traffic on day one:** backfill plus a disagreement-focused labeling batch, so the first promotion decision does not wait weeks.
-4. **Builds a small generic registry plus research loop,** so later decisions plug in.
-5. **Keeps workflow fit with Arm A,** and critical decisions in schema-enforced shadow.
+This plan:
+1. **Fixes the instrument:** a native `choice` question, a bounded prompt head, candidate descriptions and a direct HTTP call.
+2. **Gives Laya one real job:** co-signing skill suggestions. This decision is high-volume, low-risk and advisory.
+3. **Validates the instrument and collects evidence from real traffic on day 0.** A reserved bootstrap cohort decides the first promotion test.
+4. **Builds a small generic registry and research loop** that later decisions can join.
+5. **Keeps workflow fit with Arm A** and keeps critical decisions in schema-enforced shadow.
 
 ## 3. Policy changes Jim must accept
 
-**P-A — task text goes to the loopback Laya server.** This applies to the advisory tier only. `docs/typed-decision-layer.md` currently says "do not send prompts … to Laya." The change:
-- **What is sent:** the first ≤1,200 characters of the prompt, which matches Laya's ~317-token state budget.
-- **Where it goes:** the **loopback, offline** Laya server, and only after a cached identity probe passes (`/health` lists `typed-decisions`).
-- **What is kept:** the text is never persisted. Records keep hashes, ids and probabilities only.
-- **No hook-side redaction.** The text never leaves the machine, and transcripts already hold it on the same disk. Cloud annotators still only see `pilot_redaction.sanitize` output.
+**P-A: task text goes to loopback Laya (advisory tier only).**
+- **What is sent:** the first ≤1,200 Unicode code points of the prompt.
+- **Where it can go:** only literal loopback addresses (`127.0.0.1`, `::1`). HTTP redirects are refused, and nothing is sent until a cached `/health` probe for that exact endpoint and model has passed.
+- **What is kept:** nothing. The text is never persisted, and cloud annotators still see only redactor output.
+- **No hook-side redaction.** The text never leaves the machine, and transcripts already hold it on the same disk.
+- **Trust assumption, stated explicitly:** any process listening on the loopback port already runs as Jim's user and could read his transcripts anyway.
 
-**P-B — AI-reviewed labels are enough for the advisory tier.** These are two annotators plus a Fable reviewer, as for workflow. The tier uses the disagreement-based gates in §4.6. The workflow and critical tiers keep their current gates. The workflow 200-label floor is **unchanged**. Separately, a small optional weekly human-adjudicated stratum (`basis:"human_adjudicated"`) calibrates the AI labeler against Jim's intent.
+**P-B: AI-reviewed labels are sufficient for the advisory tier.** These are two annotators plus a Fable reviewer, using the exact binomial gate in §4.6. The workflow and critical tiers are unchanged, and the workflow 200-label floor is **unchanged**. An optional weekly human-adjudicated stratum calibrates the labeler.
 
-**P-C — mode changes are automatic for the advisory tier only.** Each change is audited, reversible with a single CLI command, and allowed only through the gate.
+**P-C: mode changes are automatic for the advisory tier only.** Every change is audited and reversible. A manual pin suspends automation.
 
 ## 4. Design
 
-### 4.1 Registry and modes (kept small)
+### 4.1 Registry, modes and the mutation contract
 
-| Piece | Location | Notes |
-|---|---|---|
-| Shipped default | `rhize-context-manager/config/decision-registry.json` | Validated by `schemas/decision-registry.schema.json` |
-| Machine-local state | `~/.local/share/rhize/typed-decisions/registry-state.json` | Validated by `schemas/decision-registry-state.schema.json` |
-| Audit trail | `registry-audit.jsonl` | Every mode change appends one line |
+The registry has three parts:
+- **Shipped default:** `rhize-context-manager/catalog/decision-registry.json`, validated by `schemas/decision-registry-v1.schema.json`.
+- **Machine-local state:** `~/.local/share/rhize/typed-decisions/registry-state.json`, validated by `schemas/decision-registry-state-v1.schema.json`.
+- **Audit log:** `registry-audit.jsonl`.
 
-Only `decision_cycle.py` and `decision_registry.py set-mode` may write the state. If the state file is missing, the shipped default applies. **If it is corrupt or unreadable, the mode is `shadow`.**
+**Single mutation path.** All state writes go through `scripts/typed_decisions/decision_registry.py`, both the CLI and the library calls `decision_cycle.py` makes.
+1. Take an exclusive `fcntl` lock on `registry-state.lock`.
+2. Read the state and check `revision`. A stale `expectedRevision` is rejected.
+3. Validate the new state.
+4. Append an audit `intent` line containing the old and new revision and the full new state.
+5. Write to a temp file, `fsync`, then `os.replace`.
+6. Append an audit `commit` line.
 
-The modes are `off`, `shadow` and `cosign`. Under `cosign`, the incumbent's output is shown only when the challenger agrees. A permanent randomized **holdback** (default 10%, propensity logged) uses the incumbent alone; it exists to measure acceptance effects.
+**Recovery.** If the audit log shows an intent with no commit and the state revision is older, recovery re-applies the audited new state. If the state already matches, recovery adds the missing commit line.
 
-The tier enum is `advisory`, `workflow` and `critical`. The schema rejects any mode other than `shadow`/`off` for `critical`.
+**Readers.** The Node hook reads the state only and never writes it. A missing state file means the shipped default applies. A corrupt, unreadable or schema-invalid state means `shadow`.
 
-Only two decisions are registered:
+**Manual pin.** `set-mode --pin` writes `pinned:true` and suspends automatic changes until `unpin`.
 
-| Decision | Tier | Default mode | Reachable modes |
+**Modes:** `off`, `shadow` and `cosign`.
+- **Holdback:** a permanent randomized holdback (default 10%, propensity logged) stays on the incumbent alone. It measures acceptance effects only.
+- **Tiers:** `advisory`, `workflow` and `critical`. The schema rejects any mode other than `shadow` or `off` for `critical`.
+
+**Deployable policy.** In v1 the **only** policy that can be deployed automatically is `cosign-v1`, plain co-sign. Every other candidate produces a recommendation only. Each mode transition and gate receipt is bound to `policySha256`, `instrumentSha256`, `layaRevision` and the registry revision.
+
+Registered decisions:
+
+| Decision | Tier | Default | Reachable modes |
 |---|---|---|---|
 | `skill-fit` | advisory | **`shadow`** | off, shadow, cosign |
-| `workflow-fit` | workflow | `shadow` | shadow |
-
-`workflow-fit` is a reference entry only: the v2 pilot keeps its own machinery. Other decisions are added when they are actually wired.
-
-`skill-fit` starts in **shadow**, and automatic promotion is expected on day zero or one (§4.6). The reason: labels judge a prompt and its candidates regardless of arm, so shadow yields the same promotion evidence as cosign. Starting in cosign would only add the confounded acceptance signal early. If the first gate passes, cosign switches on automatically, so "prove as we go" happens on real traffic within the first cycle.
+| `workflow-fit` | workflow | `shadow` | shadow (reference only) |
 
 ### 4.2 Laya client v2 and instrument `laya-choice-v1`
 
-**`hooks/lib/laya-client.js`** (Node ≥ 18, using global `fetch` with `AbortController`):
-- Allows loopback URLs only.
-- **Identity probe:** `GET /health` must list `typed-decisions`. The result is cached for 60 s in `~/.local/share/rhize/typed-decisions/laya-health.json` (mode 0600). Prompt text is **never** sent unless the probe has passed.
-- Makes one `POST /v1/systemone` with a **hard abort at `latencyBudgetMs`** (default 800 ms).
-- Validates the response: `routing.model` matches, and the `choice` answer has per-option `probabilities`.
-- Never throws. It returns `{status: ok|timeout|unavailable|invalid|identity_failed, …}`.
+**Request builder (coordinator-owned contract code).** There is one reference builder in each language:
+- `hooks/lib/laya-instrument.js` (Node);
+- `scripts/typed_decisions/instrument.py` (Python).
 
-**`scripts/typed_decisions/laya_choice.py`** is the Python mirror used for replay and research.
+A shared fixture pins byte-identical canonical requests. The cases cover fewer than 5 candidates, astral and combining Unicode, long and empty descriptions, and long skill names.
 
-**Request builder.** There is one reference implementation, plus a shared fixture `tests/rhize-context-manager/fixtures/typed-decisions/laya-choice-requests.json`. The fixture pins byte-identical requests from Node and Python. It covers fewer than 5 candidates, unicode, long descriptions and empty descriptions, and includes a response fixture.
+Counting and serialization rules (both languages):
+- **Counting:** Unicode code points, in both languages.
+- **Whitespace:** ASCII whitespace only.
+- **Prompt head:** at most 1,200 code points, cut back to the last ASCII whitespace if one falls in the final 200 code points.
+- **Descriptions:** ASCII whitespace runs collapse to one space, then the text is truncated to 120 code points.
+- **Serialization:** canonical JSON (sorted keys, compact separators, UTF-8, no ASCII escaping) is used only for hashing.
 
-The instrument:
-- **State:** `{request: <prompt head, ≤1,200 chars, cut at a whitespace boundary>}`.
-- **Question:** a single `choice` question, `skill`, asking "Which skill, if any, should be loaded to handle `request`?"
-- **Criteria:** `s0..s{k-1}` = `"<skill-name>: <description[:120]>"`, plus `none` = "none of these skills is needed; answer directly".
-- **Truncation flag:** the record notes `truncated:true` whenever the prompt head was cut.
-- **`instrumentSha256`** covers the template.
+`promptLengthBucket` (`lt200`, `200-600`, `600-1200`, `gt1200`) is computed from the **original** prompt.
 
-**Acceptance:**
-- The longest fixture request stays inside Laya's budget. The test checks this with the vendored tokenizer when it is available, otherwise with a conservative character proxy.
-- A8 reports agreement and latency **by prompt-length bucket**: <200, 200–600, 600–1,200 and >1,200 characters.
+The request:
+- **State:** `{request: head}`.
+- **Question:** one `choice` question named `skill`: "Which skill, if any, should be loaded to handle `request`?"
+- **Criteria:** `s0..s{k-1}` = `"<skill-name>: <description>"`, plus `none` = "none of these skills is needed; answer directly".
 
-### 4.3 Skill-fit in `skill-router.js`
+The builder also returns:
+- `keyMap`, which maps each `s*` key to its skill id;
+- `truncated`;
+- `promptLengthBucket`;
+- `criteriaSha256`, the hash of the canonical criteria, which pins the description content per record;
+- `instrumentSha256`, the hash of the template constants.
 
-1. `main` becomes **async**. Incumbent `routeFromIndex()` runs unchanged.
-2. If the incumbent fired, the prompt is not an explicit skill request, and the mode is not `off`, the hook builds the shortlist with the new exported **`lexicalShortlist(index, promptTokens, incumbentId, k=5)`** in `route-core.js`.
-   - It is unfloored: ranking is by matched non-partial weight, and the incumbent is forced in.
-   - It is pinned by a fixture.
-   - The replay runner uses it too.
-3. Descriptions come from the existing `readMap()` (resolved, falling back to static), parsed once per hook run.
-4. The arm is `sha256(sessionHash‖promptHash) mod 10000 < holdback·10000`. That band is holdback; everything else is treatment.
-5. What gets shown:
+**Clients:**
+- **Node:** `hooks/lib/laya-client.js` (Node ≥ 18, `fetch` with `redirect:'error'`).
+- **Python:** `scripts/typed_decisions/laya_choice.py` (`urllib` with no redirect handler).
 
-| Situation | Shown |
+Both clients:
+- accept only literal `127.0.0.1` or `::1` endpoints, with no hostnames;
+- keep **one monotonic deadline (`latencyBudgetMs`, default 800 ms) covering the probe and the POST together**;
+- read at most 64 KiB of response;
+- validate that `routing.model` matches, that `choice` is a criteria key, and that `probabilities` covers every key with values in [0, 1];
+- never throw;
+- return `{status: ok|timeout|unavailable|invalid|identity_failed|redirect_refused, choice, probabilities, latencyMs}`.
+
+The probe result is cached for 60 s in `laya-health.json` (mode 0600), keyed by `{endpoint, model}`.
+
+**Laya revision.** `layaRevision` is read from an optional `~/.local/share/rhize/typed-decisions/laya-runtime.json`, which activation writes from the runtime pins. If that file is missing, the value is `"unknown"`. Evidence cohorts are keyed by it.
+
+### 4.3 Skill-fit in `skill-router.js` (async, settle-once)
+
+1. Compute the incumbent and the **complete incumbent hook payload first**: the exact bytes today's code would emit, including any workflow message.
+2. If the incumbent fired, the prompt is not an explicit skill request, and the mode is not `off`, build the shortlist. It comes from **`lexicalShortlist(index, promptTokens, incumbentId, k=5)`**, a new export of `route-core.js` that is unfloored, forces the incumbent in, breaks ties by code-unit order, and is pinned by a fixture. Descriptions come from `readMap()`, parsed once.
+3. Assign the arm: `sha256(sessionHash‖promptHash) mod 10000 < holdback·10000` puts the prompt in holdback.
+4. Call Laya under the single deadline. The routing decision **settles exactly once**:
+   - In the treatment arm with mode `cosign`, if Laya returns `ok`: emit the incumbent only when `choice === incumbent`; otherwise emit the payload without the router suggestion. A workflow message, if present, is still emitted.
+   - In every other case (shadow, holdback, any non-`ok` status, deadline expiry, or an exception) emit the precomputed incumbent payload.
+   - A late HTTP completion after settlement is ignored.
+5. **Await the `stdout.write` callback** before any persistence or exit. Persistence happens afterwards inside its own try/catch, so it can never erase output. `process.exit(0)` runs only after the write callback (or an error) and the persistence attempt.
+6. The workflow bridge is untouched. The old `workflowAttempted` gate on the Laya call is removed. The content-engine overlap suppression stays. The host hook timeout is documented as ≥ 8 s.
+7. The legacy log row records what was **emitted**, plus `typed_mode`, `typed_arm`, `typed_status` and `typed_agrees`.
+8. A decision record (§4.4) is appended for every eligible prompt. It must be under 2 KB.
+
+Router-silent prompts are not sent to Laya live.
+
+### 4.4 Contract (committed before any lane starts)
+
+Data is machine-local under `~/.local/share/rhize/typed-decisions/<decision>/`. Directories are 0700 and files 0600, in JSONL partitioned by UTC day. Schemas live in `rhize-context-manager/schemas/` and fixtures in `tests/rhize-context-manager/fixtures/typed-decisions/`.
+
+**`rhize-typed-decision-record-v1`.** It contains no text, paths or tokens, and sets `additionalProperties:false`.
+
+| Group | Fields |
 |---|---|
-| Treatment arm, mode `cosign`, Laya agrees with the incumbent | the incumbent |
-| Treatment arm, mode `cosign`, Laya disagrees or picks `none` | nothing |
-| `shadow` mode, or holdback arm | the incumbent |
-| Any Laya status other than `ok` | the incumbent (fail-open) |
-| A timer at the budget expires before Laya returns, or anything unexpected happens | the incumbent |
+| Identity | `decision`, `decisionId` (uuid4 hex), `occurrenceKey`, `ts`, `host`, `basis` (`live` \| `backfill`), `sourceStratum` (`fired` \| `silent_sample`) |
+| Hashes | `sessionHash`, `promptHash` (full sha256, recovered from the transcript for backfill), `promptLengthBucket` |
+| Versions | `routerSourceSha256` (route-core + skill-router + laya-instrument), `indexSha256`, `registryRevision`, `policy`, `policySha256`, `instrument`, `instrumentSha256`, `criteriaSha256`, `layaRevision` |
+| Assignment | `mode`, `arm`, `propensity` |
+| Decision | `incumbent {skillId, score}\|null`, `shortlist` (at most 5 ids), `laya {status, choice, probabilities, latencyMs, truncated}`, `emitted` |
 
-The timer guarantees an emission. Records are written **after** the output has been written.
+Field rules:
+- **`occurrenceKey`** = `sha256(sessionHash + ":" + promptHash + ":" + ts truncated to the minute)`. The `ts` is the router hook's own clock in both cases: the live record time, or the legacy log row's `ts`. Repeated identical prompts within one minute count as one occurrence.
+- **`sourceStratum`** is the *original* router outcome from the log, kept independent of the replayed decision.
 
-6. `process.exit` happens only after stdout has flushed. The required host hook timeout is ≥ 8 s, which covers the 4.5 s workflow bridge, the 0.8 s Laya call and startup. That is documented in GUIDE and checked in A1.
-7. The workflow bridge logic is untouched.
-   - The old `workflowAttempted` gate on the Laya call is removed. It no longer competes with the bridge, because it is a capped HTTP call, not a Python spawn.
-   - The content-engine overlap suppression stays.
-8. The **legacy `suggestion-log.jsonl` row logs what was *emitted*** (null when suppressed). It adds `typed_mode`, `typed_arm`, `typed_status` and `typed_agrees`. GUIDE documents the expected drop in legacy fire rate under cosign.
-9. Every eligible prompt appends one decision record (§4.4). Records stay under 2 KB so that `appendFileSync` stays atomic.
+**`rhize-typed-decision-label-v1`.** Fields: `decisionId`, `occurrenceKey`, `basis` (`ai_model_reviewed` \| `human_adjudicated` \| `harness`), `cohortId`, `stratum`, `inclusionProbability`, `candidates`, `acceptable` (a subset of `candidates`), `bestSkill` (an id or `none`), `unlistedBetter`, `ambiguous`, `annotators`, `reviewer`, `evidenceSha256`, `labeledAt`.
 
-Router-silent prompts are not sent to Laya live. "Laya adds missed skills" is evaluated only from backfill, with silence weights (§4.6).
+**Scoring rules, frozen in the contract.** For a shown suggestion `s`:
 
-### 4.4 Contract (committed by the coordinator before any lane starts)
+| Case | Score |
+|---|---|
+| `s ∈ acceptable` | **hit** |
+| `acceptable = ∅` | **false fire** |
+| otherwise | **wrong** |
 
-All data is machine-local under `~/.local/share/rhize/typed-decisions/<decision>/`:
-- 0700 directories and 0600 JSONL files, partitioned by UTC day;
-- schemas in `rhize-context-manager/schemas/`;
-- fixtures in `tests/rhize-context-manager/fixtures/typed-decisions/`.
+- `ambiguous` labels are excluded from gates and counted.
+- Labels are **shortlist-constrained**. No claim about catalog-wide recall or silence recovery is made from them.
 
-**`rhize-typed-decision-record-v1`**:
-- Identity: `decision`, `decisionId` (uuid4 hex), `ts`, `promptTs`, `host`, `basis` (`live` | `backfill`).
-- Hashes: `sessionHash` = sha256(session_id) and `promptHash` = sha256(prompt), the same functions as workflow receipts. Backfill rows whose full hash cannot be recovered use `promptHashPrefix`.
-- Provenance: `registrySha256`, `instrument`, `instrumentSha256`, `routerSourceSha256`.
-- Assignment: `mode`, `arm`, `propensity`, `stratumWeight` (1 for fired prompts, 20 for sampled silences).
-- Decision: `incumbent {skillId, score}` or null, `shortlist` (≤5 ids), `laya {status, choice, probabilities, latencyMs, truncated, reason}`, `emitted`.
-- **No text, paths or tokens. `additionalProperties: false`.**
+**`rhize-typed-decision-outcome-v1`.** Fields: `decisionId`, `occurrenceKey`, `outcome` (`invoked_emitted` \| `invoked_other_shortlisted` \| `invoked_unlisted` \| `none_invoked` \| `transcript_unavailable`), `skillInvoked`, `via` (`skill_tool` \| `slash_command`), `latencyTurns`, `joinedAt`, `transcriptSha256`. Outcomes are a secondary signal only.
 
-**`rhize-typed-decision-outcome-v1`**:
-- Fields: `decisionId`, `outcome`, `skillInvoked`, `via` (`skill_tool` | `slash_command`), `latencyTurns`, `joinedAt`, `transcriptSha256`.
-- `outcome` is one of: `invoked_emitted`, `invoked_other_shortlisted`, `invoked_unlisted`, `none_invoked`, `transcript_unavailable`.
-- This is a **secondary signal only**, because it is confounded by the suggestion effect.
+**`rhize-typed-decision-cohort-v1`.** This is a ledger with one line per cohort event:
 
-**`rhize-typed-decision-label-v1`**:
-- Fields: `decisionId`, `basis` (`ai_model_reviewed` | `human_adjudicated` | `harness`), `bestSkill` (an id or `none`), `acceptable`, `annotators`, `reviewer`, `evidenceSha256`, `labeledAt`.
-- Labels are arm-independent, so every policy is scored offline on the same cases.
+| Event | Fields |
+|---|---|
+| `reserve` | `cohortId`, `decision`, `policySha256`, `instrumentSha256`, `layaRevision`, `lambda`, `alpha`, `attempt`, `target`, `occurrenceKeys` |
+| `labeled` | `cohortId`, the counts |
+| `consumed` | `cohortId`, `verdict`, the statistic, `receiptSha256` |
+
+A cohort is frozen at `reserve`. Its policy is fixed before any of its labels exist, and it is tested exactly once.
 
 The contract commit also includes:
-- the **registry-state and audit schemas**;
-- `lexicalShortlist()` with its fixture;
-- the request-builder reference implementation and fixture;
-- the prefix-transcript-scanner interface (§4.5).
+- the registry and registry-state schemas plus the mutation contract docstring;
+- `lexicalShortlist()` and its fixture;
+- both instrument builders and their fixture;
+- the `transcripts.py` interface stub.
 
 ### 4.5 Evidence pipeline (L2)
 
-**`scripts/typed_decisions/transcripts.py`** is a new module owned by L2. `pilot_autolabel.py` is **not** edited.
-- It provides a prefix-capable scanner (`sha256(text)[:16]` within one session).
-- It imports and reuses `transcript_message` and `choose_match` (timestamp tolerance resolves repeated prompts such as "continue") from `pilot_autolabel`, and `sanitize` from `pilot_redaction`.
-- Real 64-bit collisions are negligible. Identical repeated prompts are disambiguated by timestamp, not refused.
+**`scripts/typed_decisions/transcripts.py`** is new; `pilot_autolabel.py` is not edited.
+- It provides a prefix-capable scanner.
+- It reuses `transcript_message` and `choose_match`, which resolves repeated prompts by timestamp, and `sanitize`.
+- It recovers the full `promptHash` and the turn text in memory only.
 
-**`backfill.py`** — for router rows since 2026-09-27 (about 2,235 fires and 110 silences):
-1. Recover each turn from its transcript.
-2. Replay the **current** incumbent and `laya-choice-v1` through `route_replay.js`, which uses `lexicalShortlist`.
-3. Write records with `basis:"backfill"`, `mode:"shadow"`, `emitted:null`.
-- Backfill records count for label-based ΔU, because they are deterministic replays of real prompts. They **never** count for acceptance or causal claims.
-- The run is bounded and resumable, with a call budget per run.
+**`backfill.py`** covers only router log rows **before the live-collection cutover** recorded at activation, so live and backfill can never overlap.
+- **Inputs:** each run freezes a manifest of the index, map, route-core, instrument and Laya revision hashes. A resumed run must reuse that manifest.
+- **Replay:** current incumbent plus `laya-choice-v1`, run through `route_replay.js`.
+- **Output:** records with `basis:"backfill"`, `mode:"shadow"`, `emitted:null`, deduplicated by `occurrenceKey`.
+- **Limits:** bounded, resumable, with a per-run call budget.
 
-**`outcomes.py`** — joins records to `Skill` tool_use events **and** to skill slash-command invocations in the same session after `promptTs`, within the next 3 user turns or 30 minutes. It is idempotent. Codex transcripts are marked `transcript_unavailable` in v1.
+**`outcomes.py`** joins records to `Skill` tool_use events and skill slash commands in the same session, after `ts`, within the next 3 user turns or 30 minutes. It is idempotent.
 
-**`skillfit_labels.py`** — folded into L2. It reuses the `pilot_autolabel` primitives (`model_command`, `child_env`, auth handling and the `run_process` guards) by import.
+**`skillfit_labels.py`** reuses the `pilot_autolabel` primitives by import.
+- **Sampling:** for a cohort it picks a uniform random sample **within its stratum**, with at most **1 case per session**, and records `inclusionProbability`.
+- **Cohort inputs:** the cohort stratum for the gate is *disagreements* (incumbent fired, Laya status `ok`, Laya choice ≠ incumbent).
+- **Annotation:** two annotators see the redacted prompt, the preceding context and the candidates with descriptions. Each answers `acceptable`, `bestSkill`, `unlistedBetter` and `ambiguous` under a schema. A Fable reviewer resolves splits.
+- **Daily scoreboard sample:** a separate pool of ≤12 cases (agreements and disagreements, with inclusion probabilities). It is never used for gates.
 
-| Run | Budget | What it labels |
-|---|---|---|
-| Daily | ≤ 12 cases | Stratified: **disagreements oversampled to ≥ 50%**, then agreements, then a Laya-only pick on a silence (weighted) |
-| One-time day-0 bootstrap | ≤ 40 cases | Backfill disagreements |
+**Harness rows** (279) become `basis:"harness"` labels. They are a regression gate only.
 
-Each case gives the annotators the redacted prompt, the preceding context and the candidate set with descriptions. Two annotators answer under a schema; a Fable reviewer resolves splits.
+### 4.6 Research loop (`evals/typed-decision/decision_cycle.py`, L3)
 
-**Harness labels.** The 279 harness rows become `basis:"harness"` labels. They are a fixed regression gate and are never part of a holdout.
+This is an autoresearch-style loop and a sibling of `pilot_cycle.py`, which it does not modify.
 
-### 4.6 Recursive research loop (`evals/typed-decision/decision_cycle.py`, L3)
+**Estimand.** Co-sign and the incumbent differ **only** on disagreement cases. With λ the registry's wrong-suggestion cost (λ = 1, frozen per cohort):
+- the change in utility per router-fired prompt is P(disagree) × (λ·p − (1 − p));
+- p is the share of disagreements in which the incumbent's suggestion is **not** a hit;
+- so co-sign improves utility exactly when **p > 1/(1+λ)**, which is 0.5 at λ = 1.
 
-This is an autoresearch-style keep/discard loop and a sibling of `pilot_cycle.py`, which it does not modify. v1 handles `skill-fit` only.
+**Promotion test (only `cosign-v1`).**
+1. Reserve a fresh cohort of ≥ 60 disagreement cases from distinct sessions, under a frozen policy.
+2. Label the cohort.
+3. Exclude ambiguous labels. If more than 20% are ambiguous, the result is held.
+4. Promote if the **one-sided exact Clopper–Pearson lower bound on p is above 1/(1+λ)** at α_k, and Laya's unavailable rate is ≤ 5%.
 
-**Candidates.** All are decoding policies computed from **logged** probabilities, so no new Laya calls are needed:
-- the incumbent;
-- never-fire;
-- **the incumbent at stricter floors** (score ≥ 3, ≥ 3.5);
-- co-sign;
-- co-sign at p ≥ τ, for τ ∈ {0.3, 0.4, 0.5};
-- veto-only;
-- co-sign-or-swap (show Laya's pick on disagreement);
-- router-else-Laya at τ, evaluated with silence weights.
+**Alpha spending.**
+- Attempt k uses α_k = 0.05·2^−(k−1), so the total false-promotion risk stays ≤ 0.10 per (policy, instrument, Laya revision).
+- Each attempt needs a **new cohort reserved after the previous one was consumed**.
+- At n = 60 and α₁ = 0.05, the test needs ≥ 37/60. If the E5 point estimate p ≈ 0.67 holds, power is about 0.85.
 
-Instrument-variant search (wording, description length, k) is deferred.
+**Demotion test (in `cosign`).**
+- **Statistical:** a rolling cohort of ≥ 30 labeled live disagreements; demote if the one-sided upper bound at 0.10 falls below 1/(1+λ).
+- **Operational:** demote if unavailable plus invalid exceeds 10% over 3 days.
+- **Latency:** report-only for the first 14 days; timeouts are counted separately.
+- **Pins:** a manual pin wins over both.
 
-**Metric.** Utility per eligible prompt: U = hits − λ·(wrong + false fires), with λ = 1 set in the registry. Precision and recall are also reported, with Wilson intervals. The paired bootstrap uses 2,000 resamples and a fixed seed. Stratum weights apply.
-
-**Splits** follow the `research.py` contract:
-- Order is by `promptTs`. The newest 25% of labeled cases (live and backfill) form the holdout.
-- The dev split picks **one** candidate per cycle, recorded as a dev keep.
-- The holdout is locked **per dataset hash** (`check_holdout_authority` semantics): **one holdout test per cycle per decision**.
-- Between holdout tests there must be at least 7 days or at least 20 new labeled disagreements.
-- Harness labels form a regression gate only.
-
-**Gates for the advisory tier.** Defaults live in the registry and are tunable:
-
-| Action | Conditions (all must hold unless marked "or") |
-|---|---|
-| **Promote** shadow → cosign | ≥ 20 labeled **disagreement** cases in the holdout; **and** the 80% paired-bootstrap lower bound on ΔU vs the incumbent is > 0; **and** harness precision ≥ the incumbent's; **and** unavailable ≤ 5% |
-| **Demote** cosign → shadow | Over a rolling 14 days with ≥ 15 labeled disagreements, the 80% upper bound on ΔU is < 0; **or** unavailable > 10% |
-
-Timeouts are counted separately. Demotion on latency (p90 over budget for 3 days) is **report-only for the first 14 days**, to avoid demoting on MPS contention or cold starts.
-
-**Floor baselines.** If a stricter-floor baseline beats both co-sign and the incumbent, the cycle **recommends** a router floor change in the scoreboard. That change ships through normal code review and the harness. It is never auto-applied.
+**Alternatives are report-only.** These include stricter floors, thresholded co-sign, veto, swap and router-else-Laya. They are scored on scoreboard pools with Horvitz–Thompson weights (inclusion probability × `sourceStratum` weight). Intervals come from a **session-cluster bootstrap**, and results carry a shortlist-constraint caveat. A stricter-floor win becomes a code-review recommendation.
 
 **Outputs:**
-- a cycle receipt;
-- a mode change for the advisory tier only, applied through `decision_registry.py`;
-- a minimal **scoreboard** (`scripts/typed_decisions/scoreboard.py`) appended to the autolabel summary that the 08:00 Codex automation already reads. It shows:
-  - mode and arm counts;
-  - labeled precision and recall with CIs, and the disagreement count;
-  - acceptance (secondary);
-  - Laya p50/p90 and its timeout/unavailable rates by length bucket;
-  - the last verdict, and any change applied.
+- a cycle receipt bound to all version hashes;
+- a mode change made through the registry mutation contract;
+- a minimal **scoreboard** appended to the autolabel summary that the 08:00 automation reads.
+
+The scoreboard shows:
+- mode and arm counts;
+- cohort status and test statistic;
+- disagreement prevalence;
+- the report-only alternatives;
+- acceptance (secondary);
+- Laya p50/p90 and timeout/unavailable rates by length bucket;
+- the last verdict and any change.
 
 ### 4.7 Activation on the Mac (ops, after merge)
 
-1. **Repoint the router.** Change Jim's `settings.json` skill-router entry from the dev checkout to the portable marketplace-clone path. Do this either by re-running the setup orchestrator against the marketplace source or by editing that one entry (with a backup). This needs no change to `hooks.json` and no new trust prompt for other users.
-2. **Update both hosts.** Update the Claude and Codex plugins through the native lifecycle, run `claude plugin marketplace update`, rebuild the local skill map, and verify in a fresh session.
-3. **Day-0 bootstrap.** Run backfill, then the outcomes join, then the bootstrap labels (≤ 40), then the first cycle.
-4. **Daily steps.** Append labels → cycle → scoreboard to `laya-autolabel.sh`. They run **after** the existing workflow steps, under the same lock, with their own sub-deadline of 10 minutes and a Laya-call budget.
-5. Send Jim the first scoreboard.
+1. **Repoint the router.** Change the `settings.json` skill-router entry to the portable marketplace-clone path (re-run setup, or edit the one entry with a backup). Do not change `hooks.json`.
+2. **Update both hosts.** Update the Claude and Codex plugins through the native lifecycle, run the marketplace update, rebuild the local skill map, and write `laya-runtime.json` from the runtime pins. Record the **live-collection cutover** timestamp, then verify in a fresh session.
+3. **Day 0 is for instrument validation and evidence collection.**
+   - Run the A8 smoke.
+   - Run the backfill.
+   - Run the outcomes join.
+   - Reserve and label **bootstrap cohort 1**: 60 backfill disagreements from distinct sessions, roughly 60 case-labelings in a one-time batch.
+   - Run the first test. If it passes, `skill-fit` is promoted to `cosign` that day. If it fails, it stays in shadow and live evidence keeps accruing.
+4. **Daily.** Append labels, then the cycle, then the scoreboard, to `laya-autolabel.sh`. These run after the existing workflow steps, under the same lock, with a 10-minute sub-deadline and a call budget.
+5. **Report.** Send Jim the first scoreboard.
 
 ## 5. Invariants
 
-- **I1:** The only user-visible change is `skill-fit` cosign suppression in the treatment arm, after promotion. Workflow Arm A, the v2 pilot and critical decisions are unchanged.
-- **I2:** Any Laya failure, a timer expiry or any hook error emits the incumbent byte-for-byte, and the failure is recorded.
-- **I3:**
-  - Hooks persist no prompt text, paths or tokens.
-  - Text reaches only loopback Laya, and only after the identity probe passes.
-  - Cloud annotators receive text only through the shared redactor.
-- **I4:** Laya adds at most `latencyBudgetMs` (800 ms) to the hook, enforced by a hard cap. The target is p50 ≤ 150 ms.
-- **I5:** The v2 pilot is unmodified: collection, the files behind `source_digest()`, labels, `pilot_cycle.py` and the 200 floor.
-- **I6:**
-  - Only advisory-tier decisions change mode automatically.
-  - Every change is audited and reversible.
-  - Corrupt state means `shadow`.
-  - The schema rejects any non-shadow mode on the critical tier.
-- **I7:** The holdout is locked per dataset, with one test per cycle. Harness rows never enter it.
-- **I8:** The routing harness's incumbent gates pass unchanged.
-- **I9:** Plugins stay islands. `pilot_autolabel.py` and `decision_pilot_v2.py` are not edited.
+- **I1** The only user-visible change is cosign suppression in the treatment arm, and only after a passed gate. Workflow Arm A, the v2 pilot and critical decisions are unchanged.
+- **I2** Any Laya failure, deadline expiry, exception or persistence failure emits the precomputed incumbent payload byte-for-byte, and output is flushed before anything else.
+- **I3** Hooks persist no prompt text, paths or tokens. Text reaches only literal-loopback Laya, with redirects refused and only after the identity probe. Cloud annotators see only redactor output.
+- **I4** Probe plus POST fits within one 800 ms deadline. The target is p50 ≤ 150 ms.
+- **I5** The v2 pilot is unmodified: collection, the `source_digest()` files, labels, `pilot_cycle.py` and the 200 floor.
+- **I6** Only the advisory tier changes mode automatically, through the single locked, revisioned and audited mutation path. A corrupt state means `shadow`. A pin suspends automation. Critical decisions are shadow-only by schema.
+- **I7** Each cohort is frozen before labeling and tested once. Attempts follow alpha spending. Harness rows never enter a cohort.
+- **I8** Only `cosign-v1` is auto-deployable. Receipts and transitions are bound to the policy, instrument and Laya revision hashes.
+- **I9** The routing harness's incumbent gates pass unchanged.
+- **I10** Plugins stay islands. `pilot_autolabel.py` and `decision_pilot_v2.py` are not edited.
 
 ## 6. Acceptance tests
 
-- **A1 — router** (`tests/skill-map/test_router_skill_fit.js`):
-  - cosign suppresses on disagreement and emits on agreement;
-  - timeout, unavailable, invalid and identity-failure all emit the incumbent;
-  - when the timer fires before the HTTP call returns, the incumbent is emitted;
-  - shadow and holdback never change output;
-  - arm assignment is deterministic;
-  - explicit skill requests skip Laya;
-  - the legacy row logs `emitted`;
-  - records are under 2 KB;
-  - a corrupt registry state means shadow.
-- **A2 — client:**
-  - identical request bytes from Node and Python on the shared fixture;
-  - loopback-only;
-  - abort at budget;
-  - probe caching;
-  - `choice` and `probabilities` validation;
-  - the longest request stays within budget.
-- **A3 — schemas:** record, outcome, label, registry and registry-state schemas validate their fixtures in Node and Python. A record with a text field fails. The critical tier set to cosign fails.
-- **A4 — backfill and outcomes** on fixture transcripts and log rows:
-  - repeated prompts are resolved by timestamp;
-  - slash-command and `Skill` invocations are both joined;
-  - the join is idempotent;
-  - the run is budgeted and resumable.
+- **A1 — router** (`tests/skill-map/test_router_skill_fit.js`, run in CI through a pytest wrapper):
+  - cosign agree/disagree;
+  - shadow and holdback;
+  - every non-`ok` status;
+  - a **hanging probe**;
+  - **late HTTP after fallback**;
+  - a **persistence failure** that leaves output intact;
+  - an explicit request skips Laya;
+  - a workflow message is preserved under suppression;
+  - legacy row semantics;
+  - records under 2 KB;
+  - a corrupt state yields shadow;
+  - a pinned state is respected;
+  - deterministic arm assignment.
+- **A2 — clients:**
+  - byte-identical builder output on the shared fixture;
+  - code-point and whitespace rules;
+  - length buckets;
+  - loopback literal-only (`localhost` is refused);
+  - **external redirect refused**;
+  - **endpoint change invalidates the probe cache**;
+  - the shared deadline;
+  - the 64 KiB response cap;
+  - `choice` and probabilities validation.
+- **A3 — schemas:**
+  - fixtures validate in Node and Python;
+  - text fields fail;
+  - the critical tier set to `cosign` fails;
+  - the label scoring-rule table is applied as specified.
+- **A4 — backfill and outcomes:**
+  - occurrence-key dedup;
+  - the pre-cutover-only rule;
+  - frozen-manifest reuse on resume;
+  - repeated prompts resolved by timestamp;
+  - slash commands and `Skill` invocations;
+  - idempotency.
 - **A5 — labeler:**
-  - deterministic stratified sample with disagreement oversampling;
-  - redaction happens before any model call;
-  - guards are reused;
-  - labels validate;
-  - the bootstrap budget is respected.
-- **A6 — `decision_cycle`:**
-  - holds below the gate;
-  - one holdout test per cycle, with the dataset lock and the spacing rule;
-  - promotes and demotes through the gate only;
-  - refuses the critical tier;
-  - stricter-floor wins become recommendations only;
-  - silence weights are applied;
-  - the ledger is append-only;
-  - nothing is written to workflow-v2 paths.
-- **A7 — full suite:** full `pytest -q`, all `tests/**/*.js`, `validate_skill_map.py --check-stale`, the harness `--check`, `bump_version.py --check` and the parity tests.
-- **A8 — live smoke on the Mac after merge:**
-  - backfill on ≥ 50 real prompts, with p50/p90 and agreement by length bucket;
-  - one cold-start call and one concurrent call (two sessions);
-  - a canary: send a unique token, then confirm it is absent from Laya's log and cache directories;
+  - uniform within-stratum sampling with at most 1 case per session;
+  - inclusion probabilities;
+  - redaction before any model call;
+  - guards reused;
+  - cohort/scoreboard pool separation.
+- **A6 — cycle and registry:**
+  - the Clopper–Pearson gate;
+  - alpha spending across attempts;
+  - one test per cohort;
+  - a fresh cohort is required;
+  - only `cosign-v1` can deploy;
+  - the ambiguity hold;
+  - **concurrent CLI and cycle writes**;
+  - an **interrupted update is recovered** from the audit;
+  - stale-revision rejection;
+  - HT and cluster-bootstrap report math;
+  - no writes to workflow-v2 paths.
+- **A7 — full suite:** `pytest -q`, all `tests/**/*.js`, `validate_skill_map.py --check-stale`, the harness `--check`, `bump_version.py --check` and the parity tests.
+- **A8 — Mac smoke:**
+  - backfill on ≥ 50 real prompts, with p50/p90 and agreement **by length bucket**;
+  - **actual tokenizer** measurement of client versus server truncation on those requests (character caps are heuristics);
+  - a cold start and a concurrent pair;
+  - the canary token is absent from Laya's log and cache;
   - the scoreboard renders.
 
-## 7. Implementation plan and parallelization
+## 7. Implementation and parallelization
 
-**Recommendation: three parallel Sonnet 5.5 lanes,** with disjoint file ownership. Before dispatch, the coordinator (Opus) commits the contract:
+**Three parallel Sonnet 5.5 lanes**, each with disjoint ownership.
+
+The coordinator (Opus) first commits the contract:
 - schemas and fixtures;
 - the registry files;
 - `lexicalShortlist()`;
-- the request-builder reference implementation;
-- the scanner interface stub.
+- both instrument builders;
+- the stubs.
 
-Each lane gets its own worktree and branch, task-graph v2 validation, and begin/finalize receipts, per `rhize-ops:parallel-agent-optimization`.
+Each lane then works in its own worktree and branch, with task-graph v2 validation and begin/finalize receipts.
 
-| Lane | Owns | Depends on |
-|---|---|---|
-| L1 Router/runtime (JS) | `hooks/lib/laya-client.js`, `hooks/lib/decision-registry.js`, async `skill-router.js`, `tests/skill-map/test_router_skill_fit.js`, `tests/rhize-context-manager/test_laya_client*.js` | contract |
-| L2 Evidence + labels (Py) | `scripts/typed_decisions/{records,laya_choice,transcripts,backfill,outcomes,skillfit_labels}.py`, `scripts/typed_decisions/route_replay.js`, tests | contract |
-| L3 Research/report (Py) | `evals/typed-decision/decision_cycle.py`, `scripts/typed_decisions/{decision_registry,scoreboard}.py`, tests; imports L2's `records.py` (stubbed by fixtures until merge) | contract |
+| Lane | Owns |
+|---|---|
+| L1 Router/runtime (JS) | `hooks/lib/laya-client.js`, `hooks/lib/decision-registry.js` (read-only state reader), async `skill-router.js`, `tests/skill-map/test_router_skill_fit.js`, `tests/rhize-context-manager/test_laya_client.js`, and the pytest wrapper `tests/skill-map/test_node_suites.py` |
+| L2 Evidence + labels (Py) | `scripts/typed_decisions/{records,laya_choice,transcripts,backfill,outcomes,skillfit_labels}.py`, `scripts/typed_decisions/route_replay.js`, tests |
+| L3 Research/registry/report (Py) | `scripts/typed_decisions/{decision_registry,cohorts,scoreboard}.py`, `evals/typed-decision/decision_cycle.py`, tests; it imports L2's `records.py` (fixtures until merge) |
 
-The coordinator owns:
-- integration, as fast-forward merges in the order L2 → L1 → L3;
-- docs: the `docs/typed-decision-layer.md` policy update (P-A/B/C), `docs/typed-decisions/skill-fit.md`, and the GUIDE/README hook-timeout notes;
+The coordinator also owns:
+- integration (L2 → L1 → L3);
+- docs: the `typed-decision-layer.md` policy, `docs/typed-decisions/skill-fit.md`, and GUIDE/README;
 - the full suite;
-- `bump_version.py --plugin rhize-context-manager --level minor` with a CHANGELOG entry;
+- the minor version bump of `rhize-context-manager` with its CHANGELOG entry;
 - impact-map reconciliation;
-- the final Fable + Codex review;
-- the push to `main`;
-- the Mac activation.
+- the final reviews;
+- the push;
+- Mac activation.
 
-Executors never push.
+## 8. Out of scope
 
-## 8. Out of scope (next steps)
+- instrument-variant search;
+- `agent-brief-skill` co-sign;
+- Codex-host outcomes;
+- the workflow v3 cohort with `choice` (a separate spike, recommended to the v2 owners);
+- a learned calibrator;
+- context-retention and graph wiring;
+- more decisions.
 
-- Instrument-variant search, which needs a text replay.
-- `agent-brief-skill` co-sign.
-- Codex-host outcomes.
-- A workflow v3 cohort with the `choice` instrument. This is a separate spike, recommended to the v2 owners because of E3/E4.
-- A learned calibrator.
-- Context-retention and graph wiring.
-- Registering further decisions.
+## 10. Fable advisory review: reconciliation
 
-## 9. Questions for Codex
-
-1. Is shadow-first with day-0 bootstrap promotion sound? Can the disagreement-based gate be gamed, or is it too weak at 20 cases?
-2. Is the holdout contract (per-dataset lock, one test per cycle, spacing) equivalent to or stronger than `research.py`'s? Is mixing backfill and live cases in a time-ordered holdout acceptable for label-based ΔU?
-3. P-A: are the identity probe and the no-redaction rationale adequate?
-4. The async hook: is there any path where the incumbent fails to emit (host kill, stdout flush, unhandled rejection)?
-5. Are there hidden couplings left in the three-lane split, or a better cut?
-
-## 10. Fable advisory review — reconciliation (2026-10-11)
-
-**Verdict: approve-with-changes.** Each finding was checked against code or data before it was accepted.
+**Verdict: approve-with-changes.** Every finding was verified against code or data before being accepted.
 
 | Finding | Disposition |
 |---|---|
-| B1 instrument overflows 512 | **Accepted, re-scoped to major.** `build_sequence` budgets the head and options (192 tokens) separately and keeps the start of the state, so criteria are never cut. The prompt cap is set to 1,200 characters and descriptions to 120, with a truncation flag and length-bucket reporting. |
-| M1 gates in the wrong unit | **Accepted.** Gates now count disagreement cases, labeling oversamples disagreements, and silence weights apply. Fisher p = 0.0055 was verified. |
-| M2 stricter-floor baseline | **Accepted and measured.** Score ≥ 3 gives 0.76 precision with 0 hits lost. It is now a candidate, and a win produces a recommendation only. |
-| M3 E5 optimistic | **Accepted.** Caveats were added, and the description source is pinned. |
-| M4 shortlist and descriptions contract | **Accepted.** `lexicalShortlist()` is in the contract; descriptions come from `readMap()`. |
-| M5 port-8000 identity | **Accepted.** A `/health` probe, cached 60 s, is required before any text is sent; there is also a canary. |
-| M6 `hooks.json` move | **Accepted.** The work is dropped; the `settings.json` entry is repointed to the portable path instead. |
-| M7 holdout weaker than `research.py` | **Accepted.** Per-dataset lock, one test per cycle, and spacing. |
-| M8 `TranscriptIndex` coupling | **Accepted.** A new L2 module does prefix matching with `choose_match`, and slash commands are counted. |
-| M9 async hook fail-open | **Accepted.** A timer-guaranteed emission, write after emit, and a ≥ 8 s host timeout. |
-| m1 shadow-first | **Accepted.** Shadow plus day-0 bootstrap promotion. |
-| m2–m8 | **Accepted:** legacy log semantics, volume (about 150 fires per day), corrupt state means shadow, latency demotion report-only, sub-deadline, probabilities fixture, 3 lanes. |
-| Scope cuts | **Accepted:** no `hooks.json`, no instrument search, no workflow challengers in the cycle, 2 registered decisions, minimal scoreboard. |
+| B1: window overflow | Re-scoped to major. `build_sequence` budgets the head and options separately and keeps the start of the state. The plan sets explicit caps, a truncation flag, length buckets and a tokenizer measurement. |
+| M1: gate units | Accepted. The gate is now the exact binomial test on disagreements in §4.6. |
+| M2: stricter-floor baseline | Measured (score ≥ 3: 0.76, no hits lost). Kept as a report-only recommendation. |
+| M3 | Caveats added. |
+| M4 | `lexicalShortlist()` and `readMap()` descriptions are in the contract. |
+| M5 | Identity probe and canary added. |
+| M6 | `hooks.json` change dropped; repoint `settings.json` instead. |
+| M7 | Superseded by Codex B1: cohorts. |
+| M8 | Prefix scanner added, using `choose_match`; slash commands are counted. |
+| M9 | Settle-once with an awaited flush. |
+| m1–m8 and scope cuts | Accepted. |
+
+## 11. Codex review: reconciliation (job `fe1383b9`, gpt-6.1-sol, high)
+
+**Verdict: implement-with-changes.** Every finding was accepted.
+
+| Finding | Disposition |
+|---|---|
+| BLOCKER: holdout reuse | Persistent frozen cohorts, each tested once, with alpha spending across attempts (§4.4 cohort ledger, §4.6). |
+| Sampling and bootstrap | The estimand is restricted to disagreements (exact binomial). Sampling is uniform within stratum with at most 1 case per session, and inclusion probabilities are recorded. `sourceStratum` is preserved. Report-only alternatives use HT weights and a session-cluster bootstrap. |
+| Evaluated vs deployed policy | Only `cosign-v1` is auto-deployable. Transitions and receipts are bound to policy, instrument and Laya hashes. |
+| Async failure boundaries | One shared deadline covering probe and POST, a precomputed payload, settle-once, an awaited write before persistence, and bounded parsing. Tests cover a hanging probe, late completion and logging failure. |
+| Loopback and redirects | Redirects refused in both clients, literal loopback only, probe cache keyed by endpoint and model, and the trust assumption stated. |
+| Day-0 promotion claim | Reworded. Day 0 is validation plus a reserved 60-case bootstrap cohort, and promotion happens only if that cohort passes. |
+| Registry transaction | One locked, revisioned, atomic, audited mutation path with recovery. A pin suspends automation. |
+| Evidence identity and replay | `occurrenceKey` dedup, a pre-cutover backfill boundary, a frozen manifest on resume, and full version hashes on every record. |
+| Label semantics | Scoring-rule table frozen. Labels are shortlist-constrained, with no recall claims. |
+| Length telemetry (minor) | `promptLengthBucket` added, with code-point parity rules. |
+| Token budget (minor) | Tokenizer measurement added to A8; character caps are heuristics. |
