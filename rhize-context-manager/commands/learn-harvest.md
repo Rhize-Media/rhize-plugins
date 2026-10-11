@@ -24,15 +24,18 @@ replace ad-hoc use, e.g. right before a `/skill-refine review` session.
 One JSON object per line:
 
 ```json
-{"id": "<sha1-12 of source+pattern>", "ts": "<ISO8601>", "source": "headroom-learn|claude-mem|skill-monitor|skill-map-drift",
+{"id": "<sha1-12 of source+pattern>", "ts": "<ISO8601>", "source": "headroom-learn|claude-mem|skill-monitor|skill-map-drift|skill-fit-decisions",
  "repo": "<project path or 'global'>", "pattern": "<the finding, verbatim or tightly summarized>",
  "est_savings": "<tokens/session if stated, else null>", "target_skill": null, "status": "pending",
- "signal_type": "<optional: 'routing-miss'|'drift' — omit for the original skill-body-refinement signals>"}
+ "signal_type": "<optional: 'routing-miss'|'drift'|'decision-layer' — omit for the original skill-body-refinement signals>"}
 ```
 
 `signal_type` is optional and new (added alongside the skill-map substrate's routing-miss and
 drift signals below); its absence means "skill body/description" is the implied refinement
-target, matching every pre-existing entry.
+target, matching every pre-existing entry. `source: "skill-fit-decisions"` and
+`signal_type: "decision-layer"` come from the skill-fit decision records (step 5, "Decision-record
+signals"); `decision-layer` findings are about the co-sign and keep-warm path rather than a skill's own
+text, so their `target_skill` is informational (and `null` for `laya-timeouts`).
 
 `id` is the dedupe key. Statuses: `pending → triaged | rejected → consumed`.
 
@@ -132,15 +135,12 @@ target, matching every pre-existing entry.
      actionable. (Tightened 2026-09-04 after four routing-miss signals were rejected at
      `/skill-refine review` as exactly these classes: two commands, one third-party skill,
      one skill with no node.)
-   - **What is NOT computed here, and must not be claimed as computed**: true
-     "suggested-but-ignored" (the router surfaced a skill in a session but a different one
-     was used instead). `skill-router.js` emits its suggestion transiently as
-     `additionalContext` per prompt and persists nothing, and no prompt text is retained
-     anywhere in this pipeline by design (see skill-monitor's co-occurrence snapshot —
-     counts only). Computing that signal needs future instrumentation: a small append-only
-     suggestion log on the router (e.g. `{ts, sessionIdHash, suggestedSkillId}`, no prompt
-     text) diffed against skill-monitor's per-session invocation record. Until that log
-     exists, only the map/tag-deficiency check above runs.
+   - **Suggested-but-ignored is computed, but not by this check.** The router's
+     suggestion is now recorded per prompt in the skill-fit decision records (hashes, ids and
+     statuses only, never prompt text) and joined to what the user invoked next, so
+     `scripts/typed_decisions/harvest_signals.py emit` derives it deterministically — see
+     "Decision-record signals" after this step. The map/tag-deficiency check in this
+     bullet list still covers only structural deficiency, and nothing here may claim more.
    - Queue one entry per flagged skill: `source: skill-monitor`, `signal_type: "routing-miss"`,
      `target_skill` set to the skill, and `pattern` stating the skill is used but has 0
      topic/stack tag edges. The proposed fix is always to the **map or the skill's
@@ -165,6 +165,60 @@ target, matching every pre-existing entry.
    install trees are just the common case). Routing a signal through `skill-forge refine
    capture` instead of `/skill-refine` is also deferred until that command's
    project-scope override files can be materialized into a plugin cache.
+
+   **Decision-record signals (`source: "skill-fit-decisions"`).** Run, with a NEW private
+   file that does not exist yet:
+
+   ```bash
+   python3 "$CLAUDE_PLUGIN_ROOT/scripts/typed_decisions/harvest_signals.py" emit \
+     --queue <private-dir>/decision-candidates.jsonl --repo rhize-plugins
+   ```
+
+   Options: `--root` (typed-decisions store, default `~/.local/share/rhize/typed-decisions`),
+   `--now`, `--window-days 14`, `--min-events 3`. It reads the skill-fit records and outcomes
+   (ids, hashes and statuses; no prompt text exists there) over the trailing window, writes
+   queue-schema candidates to `--queue`, and prints a counts-only JSON summary.
+
+   - **Private-file contract.** `--queue` must not exist (it is created `0600`, atomically,
+     symlinks refused) and must never be the live queue: `emit` refuses
+     `~/.claude/context-manager/refinement-queue.jsonl`, in any spelling or through any
+     symlink, and exits 2 without writing. It never touches the live queue. Its candidates
+     reach the queue only through the steps below — id dedupe (step 6), the noise filter
+     (step 7), the routine's verify step — and then the normal append.
+   - **Idempotent, no watermark.** Every run recomputes the whole trailing window. The pattern
+     text has no counts and no dates, so a finding keeps the same `id`
+     (`sha1-12(source + pattern)`) day after day and step 6 drops repeats against every queue
+     status. A candidate is a *review candidate*, not ground truth.
+   - **Signals**, grouped per (signal, subtype, skill, host); a group is emitted at
+     `--min-events` or more events. Subtypes 1-3 use finalized records only (a record with an
+     outcome); the host (`claude`, `codex`, `unknown`) is part of every pattern:
+     1. `signal_type: "routing-miss"`, subtype `not-shortlisted`: a skill was invoked
+        (`invoked_unlisted`) after prompts where the router suggested another skill or none
+        and did not shortlist it. `target_skill` is the invoked skill. Fix target: its tags and
+        trigger phrases.
+     2. `signal_type: "routing-miss"`, subtype `suggested-but-ignored`: the router's shown
+        suggestion (`emitted`, non-null) was passed over for a different shortlisted skill
+        (`invoked_other_shortlisted`). `target_skill` is the suggested skill.
+     3. `signal_type: "decision-layer"`, subtype `cosign-suppressed-then-invoked`: mode `cosign`,
+        treatment arm, nothing emitted (Laya disagreed or was unavailable), and the incumbent
+        was invoked within one user turn. `target_skill` is the incumbent — the direct cost of
+        Laya's authority.
+     4. `signal_type: "decision-layer"`, subtype `laya-timeouts`: live records in the window with
+        at least 20 Laya calls (status not `skipped`) and a timeout share above 5%. One
+        candidate per host, `target_skill: null`. Needs no outcome. The fix is keep-warm
+        health (`scripts/typed_decisions/laya_keepwarm.py status`) or the latency budget, never
+        a skill edit.
+   - **Verify before queuing.** For the two `routing-miss` subtypes apply the node-resolution
+     rule of the map/tag check above (drop commands, skills with no node, third-party
+     `origin`) so triage only sees an owned `kind: "skill"` target. `decision-layer`
+     candidates are operational findings and are kept as emitted. Example:
+
+   ```json
+   {"id": "<sha1-12>", "ts": "<ISO8601>", "source": "skill-fit-decisions", "repo": "rhize-plugins",
+    "pattern": "routing-miss (not-shortlisted, host claude): skill:rhize-ops/skill-dashboard was invoked soon after prompts where the router suggested another skill or none and did not shortlist it, repeatedly within the trailing window — review its tags and trigger phrases.",
+    "est_savings": null, "target_skill": "rhize-ops/skill-dashboard", "status": "pending",
+    "signal_type": "routing-miss"}
+   ```
 6. Skip any entry whose `id` already exists in the queue regardless of status.
 7. **Content noise filter — run it, do not eyeball it.** `id` is
    `sha1-12(source + pattern)`, so *any rephrasing of a known fact produces a new
