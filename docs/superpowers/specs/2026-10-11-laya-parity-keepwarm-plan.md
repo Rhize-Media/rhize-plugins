@@ -267,3 +267,67 @@ Executors never push.
 - **Harvest and weekly loop.** Revert the runbook commit or pause the automation. Both are queue- and
   report-only.
 - **Skill-fit authority.** `decision_registry.py set-mode skill-fit shadow --reason manual_rollback --pin`.
+
+## 7. Plan-review reconciliation (supersedes §2 to §5 where they conflict)
+
+Fable verdict: proceed-with-changes (0.75). Codex `dcbc1824` verdict: proceed-with-changes. Claims were
+checked against the Mac:
+
+- **Hook transcript path.** Codex hook payloads carry `transcript_path`. Of the last 600 workflow request
+  snapshots, 105 point at a Codex rollout.
+- **Thread source.** Rollout `session_meta` has `thread_source`. In October there were 917 rollouts: 752
+  `guardian_review`, 152 `subagent`, 11 `user`, 1 `automation` and 1 `agent_created_thread`.
+- **Session ids.** `session_meta.session_id == id ==` the filename UUID for user threads. For subagents,
+  `session_id` is the root thread's id.
+- **Router opt-in.** The router is an opt-in T3 hook: setup manifest `skill-router`, `"default": false`.
+
+| # | Finding | Resolution |
+|---|---|---|
+| F1 / Fable 1 | Codex machine traffic would pollute evidence: guardian reviews, subagents, automations | For host codex, the router reads the first line of `transcript_path` (bounded to 512 KiB) and runs only when `session_meta.thread_source == "user"`. Otherwise there is no suggestion, no Laya call and no record. Harvest and the evaluator also drop non-user Codex sessions. A8 adds: an automation run produces zero records. |
+| F2 / Codex | Unverified Codex session identity | The Codex session identity is `session_meta.id` (which equals the rollout UUID that `session_paths` indexes), falling back to `session_id ‖ thread_id`. A8 verifies the mapping. The outcome summary keeps counting unmatched sessions. |
+| F3 / both | SKILL.md reads and `$` mentions over-count invocations | Count only read-shaped shell `function_call` commands (`cat`, `sed -n`, `head`, `tail`, `nl`, `bat`, `less`) on a `…/skills/<s>/SKILL.md` under plugin cache or marketplace roots (`~/.codex/plugins/cache`, `~/.claude/plugins/{cache,marketplaces}`). Never count the dev checkout, `custom_tool_call` (e.g. `apply_patch`), or mentions. `via = "skill_file_read"` is a separate evidence type; the outcome schema `via` enum gains it. Precision is checked by hand on real rollouts before activation. The evaluator excludes `skill_file_read` weak positives. |
+| F4 / Codex | Host-detection precedence | Order: a valid `RHIZE_HOST` override, then the `transcript_path` location (`~/.codex/{sessions,archived_sessions}/…/rollout-*.jsonl` means codex, `~/.claude/projects/` means claude), then payload `thread_id` (codex) or the `CLAUDE_CODE_ENTRYPOINT` env var (claude). Conflicting inferred signals give `unknown`. An invalid override is ignored. Each case gets a fixture. |
+| F5 / both | Minute-bucket dedupe receipt is unsound | Dropped. There is a single registration instead. The `hooks.json` entry runs `skill-router.js --packaged`. A packaged run requires the opt-in config `~/.local/share/rhize/skill-router/config.json` = `{"schemaVersion":1,"enabled":true}` (default off, so other plugin users are unaffected). In Claude, a packaged run also defers silently while `~/.claude/settings.json` still has a manual `skill-router.js` hook. Manual runs behave exactly as today. Migration: enable the config, then remove the manual entry. |
+| F6 / both | Codex would go straight to cosign with zero Codex evidence and be pooled into the gate and demotion | Router: `COSIGN_HOSTS = ['claude']`, so any other host's effective mode is capped at `shadow`. `cohorts.py`: `GATE_HOSTS = ('claude',)` filters the reserve pool, live unavailability and the demotion windows. Codex shadow evidence accumulates for a later Codex-stratified gate. The scoreboard shows every metric per host. The binding is unaffected: no policy or instrument change. |
+| F7 / both | Weekly keep rule is weak; the holdout is adaptive; shortlist-constrained labels; weak-positive confounding | `real_traffic.py` uses a **prospective** design. A candidate is frozen with hashes, then confirmed only on cases first recorded **after** its freeze time, so it never sees them. Weak positives require `latencyTurns == 0`, the nearest record, `via ∈ {skill_tool, slash_command}`, and must not be a mandated-skill-only signal. Labeled metrics cover comparable cases only; a route outside the labeled shortlist is unscorable and reported separately. Silence samples (the 1/20 non-fires) act as negatives, and the fire rate must not rise. **Keep** requires: the harness `--check` passes, ≥ 10 discordant confirmatory cases, a one-sided sign test at p ≤ 0.05 favoring the candidate, no rise in fire rate, and an unscorable share ≤ 20%. The weekly automation confirms the last frozen candidates on fresh data, then proposes ≤ 3 new ones using dev data only. It never pushes, merges or opens a PR. |
+| F8 / Codex | Prompt-text boundary in replay | Replay prompts reach node via stdin only (never argv), in a child environment with a temporary `RHIZE_TYPED_DECISIONS_ROOT` and `XDG_DATA_HOME`, so no Laya call, no workflow bridge and no decision writes happen. Outputs are an allowlist of aggregates and opaque occurrence keys. Errors pass through `safe_reason`. |
+| F9 / both | Keep-warm thread inside the live server; backoff cap above the cold threshold; gated on router activity | It runs as a **separate** launchd agent, `media.rhize.laya-keepwarm` (KeepAlive, `/usr/bin/python3`, marketplace clone), with no server restart. Interval 90 s, backoff capped at 120 s, and the first ping waits for `/health`. It skips a ping when any activity signal is under 60 s old, since live traffic is already keeping Laya warm. The activity gate is the newest of: the workflow-selection `receipts/` directory (both hosts write a receipt per prompt), the suggestion log and the newest skill-fit records file, inside 2 h. Its health is reported separately from server health. |
+| F10 / both | Harvest watermark semantics; daily duplicate ids | No watermark. Each run is idempotent over a trailing 14-day window of finalized records (outcome present). A candidate is emitted when (signal, subtype, skill, host) has ≥ 3 events. The pattern is stable (no counts or dates), so `id = sha1-12(source+pattern)` dedupes against every queue status. Signals are framed as **review candidates**, not ground truth. Suggested-but-ignored needs the suggestion to have been shown. Suppressed-then-invoked needs the treatment arm, `emitted` null and `latencyTurns ≤ 1`. |
+| F11 / Codex | Ordered rollout | See §8. |
+| Note | Shipping in `hooks.json` reaches all plugin users | Default-off config plus fail-silent behavior, documented in the README, GUIDE and setup manifest. |
+| Ops | Tonight's smoke tests reached the workflow pilot through the router's workflow bridge | 17 synthetic opportunities (2026-10-11 21:18–21:32Z, `transcriptPath` null) are recorded in ACTIVATION.md and in the 08:00 prompt as operator probes, not user tasks. Captures are not edited. From now on, smokes set a temporary `XDG_DATA_HOME`. |
+
+## 8. Lane contract and ordered rollout
+
+**Contract (coordinator; lanes implement against it).**
+
+- **`<root>/laya-keepwarm.json`** (written by L3, read by L2's scoreboard). Fields:
+  - `schema: "rhize-laya-keepwarm-v1"`, `startedAt`, `lastPingAt`
+  - `lastStatus` ∈ {ok, timeout, unavailable, invalid, redirect_refused}
+  - `lastLatencyMs`, `consecutiveFailures`, `pings`, `ok`, `skippedIdle`, `skippedWarm`
+  - `intervalSeconds`, `activeWindowHours`, `lastActivityAt`
+- **Skill-router opt-in.** `$XDG_DATA_HOME|~/.local/share/rhize/skill-router/config.json` holds
+  `{"schemaVersion":1,"enabled":true}`. Any other content means disabled.
+- **Host and session.**
+  - Record `host` ∈ {claude, codex, unknown}.
+  - Codex session identity is `session_meta.id`.
+  - The `typed_*` legacy row fields are unchanged.
+  - The legacy row gains `host`, and the suggestion-log readers tolerate the extra key.
+- **Outcome `via` enum.** {skill_tool, slash_command, skill_file_read}.
+- **Gate scope.** `cohorts.GATE_HOSTS = ('claude',)` and router `COSIGN_HOSTS = ['claude']`.
+
+**Ordered rollout (A8).**
+1. Merge and release, then confirm CI.
+2. Update the Claude plugin and the Codex marketplace and plugin through the native lifecycle. Confirm both
+   hosts report the new version.
+3. Load and start the keep-warm agent. Verify its pings and state file, then re-measure latency after a
+   5-minute idle.
+4. Write the skill-router opt-in config. Claude defers to its manual entry, so there is still exactly one run.
+5. Ask Jim to approve the appended Codex hook in the native trust UI. Verify the existing trust entries are
+   unchanged.
+6. Remove the Claude manual `settings.json` router entry, keeping a backup. Verify that a fresh Claude prompt
+   produces one record with `host=claude`.
+7. Verify that a fresh Codex user prompt produces one record with `host=codex`, in shadow, whose
+   `sessionHash` maps to its rollout. Verify that an automation or subagent prompt produces none.
+8. Run outcomes, then harvest emit, then the scoreboard, and confirm the per-host rows.
+9. Update the 08:00 prompt, commit the runbook change, and create the weekly automation.
