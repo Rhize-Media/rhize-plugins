@@ -34,6 +34,7 @@ point-in-time record.
 
 ### Added
 
+- _2026-10-11_ version bump — **rhize-context-manager** 0.46.0 → 0.47.0 (minor); marketplace 2.103.0 → 2.104.0.
 - _2026-10-11_ version bump — **rhize-context-manager** 0.45.2 → 0.46.0 (minor); marketplace 2.102.2 → 2.103.0.
 - _2026-10-10_ version bump — **rhize-context-manager** 0.45.1 → 0.45.2 (patch); marketplace 2.102.1 → 2.102.2.
 - _2026-10-10_ version bump — **rhize-context-manager** 0.45.0 → 0.45.1 (patch); marketplace 2.102.0 → 2.102.1.

@@ -331,3 +331,35 @@ checked against the Mac:
    `sessionHash` maps to its rollout. Verify that an automation or subagent prompt produces none.
 8. Run outcomes, then harvest emit, then the scoreboard, and confirm the per-host rows.
 9. Update the 08:00 prompt, commit the runbook change, and create the weekly automation.
+
+## 9. Implementation reconciliation
+
+Four parallel Sonnet lanes worked in isolated worktrees: task-graph v2 was validated, 2 waves, 4 isolated roots. Each lane was squash-merged with the correct attribution.
+
+**Deviations accepted:**
+- **L1:**
+  - `transcript_path` outranks the `thread_id`/`CLAUDE_CODE_ENTRYPOINT` pair. A Codex process started from Claude therefore stays `codex` and is gated.
+  - Non-user Codex threads write no legacy row, so they are not counted as silence samples.
+  - A packaged run on an `unknown` host does not look for a manual registration.
+  - Codex roots are `~/.codex` only; `CODEX_HOME` is not honored.
+- **L2:**
+  - `current_key` and its reserve feed are also scoped to `GATE_HOSTS`. This stops a newer Codex record from moving the gate key.
+  - One existing test, the old "Codex has no parser" assertion, was updated.
+  - `decision_cycle.alternatives_report` still pools hosts. It is report-only.
+- **L3:**
+  - `once --force` (for diagnosis) and a single-writer lock.
+  - The first ping waits for `/health`.
+  - Harvest patterns carry no numerals.
+  - `laya-timeouts` uses all live records in the window.
+  - The plist must use `KeepAlive` with `SuccessfulExit=false`.
+- **L4:**
+  - `freeze` refuses a dirty checkout, a candidate that changes router code, and a manifest overwrite.
+  - Arm index and map copies are frozen next to the manifest.
+  - The weekly prompt retires an `insufficient` candidate after 4 weeks. The prompt enforces this, not the code.
+
+**Integration fixes:**
+- The scoreboard's keep-warm reader accepts every `laya_choice.STATUSES` value, including `identity_failed`, which the writer can record. A seam test covers this.
+- Harvest gives Codex `skill_file_read` outcomes their own candidates ("host codex, SKILL.md-read evidence"), and a seam test covers this too.
+- A test pins the bound instrument (8df42f4f…) and policy (19509e93…) hashes (I8).
+
+**Release:** Context Manager 0.47.0, marketplace 2.104.0.

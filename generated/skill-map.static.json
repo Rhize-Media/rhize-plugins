@@ -4220,15 +4220,15 @@
       "status": "opt-in"
     },
     {
-      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js\"",
+      "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js\" --packaged",
       "event": "UserPromptSubmit",
       "id": "hook:rhize-context-manager/skill-router",
       "kind": "hook",
       "matcher": "",
       "name": "skill-router",
       "owner": "rhize-context-manager",
-      "path": "rhize-context-manager/setup/manifest.json",
-      "status": "opt-in"
+      "path": "rhize-context-manager/hooks/hooks.json",
+      "status": "wired"
     },
     {
       "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-stop",

@@ -172,6 +172,9 @@ def collect(root, now, window_days=14, min_events=3, repo=DEFAULT_REPO) -> tuple
     groups: Counter = Counter()
     for rec, outcome in finalized:
         kind, host = outcome['outcome'], rec['host']
+        if outcome.get('via') == 'skill_file_read':
+            # Codex evidence is a SKILL.md read, weaker than a Skill tool call: keep it a separate candidate.
+            host = f'{host}, SKILL.md-read evidence'
         if kind == 'invoked_unlisted':
             label, target = label_for_ref(outcome['skillInvoked'])
             groups[('routing-miss', 'not-shortlisted', host, label, target)] += 1

@@ -112,6 +112,40 @@ The existing 07:30 autolabel job, `laya-autolabel.sh`, runs the workflow labeler
 
 The steps run from the native marketplace clone, the same tree the live hook runs from, so the cycle's policy and instrument hashes match the records the hook writes. A step that fails or times out is recorded, and the rest still run. If the job receives SIGTERM, the signal is forwarded to the running step, and any steps not yet started are skipped. `SKIP_SKILLFIT=1` skips the loop.
 
+## Claude and Codex
+
+Both hosts run the same router from the plugin's `hooks/hooks.json` (`skill-router.js --packaged`, appended as UserPromptSubmit entry 3) and share one registry state, binding and evidence store.
+
+- **Opt-in.** The packaged router runs only when `~/.local/share/rhize/skill-router/config.json` is exactly `{"schemaVersion":1,"enabled":true}`. In Claude it also stays silent while `~/.claude/settings.json` (or `settings.local.json`, or the project's `.claude/` copies) still lists a manual `skill-router.js` hook. Remove that entry once the config is written; until then the router still runs exactly once. Codex asks you to approve the appended hook in its native trust prompt.
+- **Host.** Each record carries `host`. The order is: a valid `RHIZE_HOST`, then the `transcript_path` location (`~/.codex/sessions` or `archived_sessions` rollouts mean codex; `~/.claude/projects` means claude), then payload `thread_id` (codex) or `CLAUDE_CODE_ENTRYPOINT` (claude). Conflicting signals record `unknown`. No signal at all records `claude`, the legacy default.
+- **Codex machine threads.** The router reads the first line of the rollout and runs only when `thread_source` is `user`. Guardian reviews, subagents, automations and agent-created threads produce no suggestion, no Laya call and no record. The Codex session identity is the rollout's `session_meta.id`, which is the same UUID the transcript index uses.
+- **Authority.** Codex stays in `shadow` (`COSIGN_HOSTS = ['claude']`). The gate's reserve pool, live unavailability and demotion windows count only `GATE_HOSTS = ('claude',)`. Codex shadow evidence accumulates for a later Codex-stratified gate.
+- **Outcomes.** Codex invocations come from read-shaped shell commands (`cat`, `sed -n`, `head`, `tail`, `nl`, `bat`, `less`) on a `SKILL.md` under a plugin cache or marketplace root. They are recorded as `via: skill_file_read`, a weaker evidence type than Claude's `Skill` tool call. Edits, `apply_patch`, grep and `$skill` mentions never count.
+- **Scoreboard.** Every count, arm, status, prevalence figure and outcome is reported per host.
+
+## Keep-warm
+
+After about 5 minutes idle, Laya's first answer took about 1.3 s, past the 800 ms hook budget; warm calls take 30–220 ms. `laya_keepwarm.py run` sends one fixed synthetic choice request, with no user data, every 90 s. It does this only while the hosts are active: the newest workflow-selection receipt, suggestion-log write or skill-fit record must be under 2 h old. It skips the ping while live traffic is already keeping Laya warm, which means activity in the last 60 s. After a failure it backs off to at most 120 s. It never writes decision evidence. State lives in `<root>/laya-keepwarm.json`, which the scoreboard reports. `LAYA_KEEPWARM=0` disables it. Run it as its own launchd agent so the Laya server never needs restarting:
+
+```xml
+<key>Label</key><string>media.rhize.laya-keepwarm</string>
+<key>ProgramArguments</key><array><string>/usr/bin/python3</string>
+  <string>$HOME/.claude/plugins/marketplaces/rhize-plugins/rhize-context-manager/scripts/typed_decisions/laya_keepwarm.py</string><string>run</string></array>
+<key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+<key>ThrottleInterval</key><integer>60</integer>
+```
+
+(Use the absolute home path in a real plist. `SuccessfulExit=false` stops launchd from respawning the agent after `LAYA_KEEPWARM=0` makes it exit cleanly.)
+
+## Learning feed and weekly improvement
+
+- `harvest_signals.py emit --queue NEW_PRIVATE_FILE` writes `skill-fit-decisions` review candidates for `/learn-harvest`. It covers four kinds: not-shortlisted, suggested-but-ignored, cosign-suppressed-then-invoked and laya-timeouts, per skill and host, with at least 3 events in 14 days. Codex SKILL.md-read evidence gets its own candidates. It never writes the live queue, and its patterns are stable so the queue dedupes by id. See [learn-harvest](../../rhize-context-manager/commands/learn-harvest.md).
+- `evals/skill-map-routing/real_traffic.py` (`freeze`, `evaluate`, `dev-report`) proves a router candidate on cases recorded after it was frozen. See [weekly improvement](weekly-improvement.md) for the keep rule and the weekly automation. Nothing in this loop pushes, merges or touches the gate.
+
+## Testing without touching live evidence
+
+A smoke test of the hook must set `RHIZE_TYPED_DECISIONS_ROOT`, `RHIZE_SUGGESTION_LOG` and `XDG_DATA_HOME` to temp paths. Otherwise the router's workflow bridge writes real workflow-pilot opportunities.
+
 ## Limits
 
 - Labels are constrained to the shortlist. They support no claim about catalog-wide recall or about Laya recovering skills the router missed.

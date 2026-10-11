@@ -350,6 +350,11 @@ Any Laya failure emits today's output byte for byte. The hook needs a host timeo
 8 s. Inspect, pin or roll back with `scripts/typed_decisions/decision_registry.py`; the operator
 guide is [skill fit](../docs/typed-decisions/skill-fit.md).
 
+The router is wired into `hooks/hooks.json` for both Claude and Codex as an opt-in packaged entry. To enable it, write `{"schemaVersion":1,"enabled":true}` to `~/.local/share/rhize/skill-router/config.json`. If you previously added the router to `~/.claude/settings.json` by hand, remove that entry: until you do, the packaged copy defers to it, so the router still runs only once. Codex asks you to trust the new hook through its own trust prompt. Codex runs the router only on your own threads, never on guardian reviews, subagents or automations, and keeps skill fit in shadow until a Codex-specific gate exists. Skill fit also has three companion tools:
+- `laya_keepwarm.py` keeps the local Laya model warm while you work;
+- `harvest_signals.py` turns decision evidence into `/learn-harvest` review candidates;
+- `evals/skill-map-routing/real_traffic.py` proves a router change on traffic recorded after the change was frozen, before anyone merges it.
+
 Workflow host attribution uses native host signals and reports conflicts as `unknown`. An inherited `CODEX_THREAD_ID` alone does not identify the child host. Native canary harnesses must clear inherited host/session markers before launching either CLI; unknown attribution is never counted as Claude or Codex evidence. The advisory labels its opportunity ID explicitly.
 
 For a measured graph/code relevance pilot, the native Context Pack command can add an opt-in local Laya shadow score after source verification. It keeps all deterministic pack entries and records a private Arm A/B score receipt. See [Context Pack](commands/context-pack.md).

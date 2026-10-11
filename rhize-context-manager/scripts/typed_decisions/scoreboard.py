@@ -34,7 +34,7 @@ SCHEMA = 'rhize-typed-decision-scoreboard-v1'
 DECISION = 'skill-fit'
 KEEPWARM_FILE = 'laya-keepwarm.json'
 KEEPWARM_SCHEMA = 'rhize-laya-keepwarm-v1'
-KEEPWARM_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'redirect_refused')
+KEEPWARM_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'identity_failed', 'redirect_refused')  # laya_choice.STATUSES
 MAX_KEEPWARM_BYTES = 64 * 1024
 
 
