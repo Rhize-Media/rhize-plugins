@@ -63,6 +63,17 @@
 // payload is settled exactly once and flushed before any logging or exit, and
 // one decision record (no prompt text) is appended per eligible prompt.
 //
+// HOSTS AND PACKAGING (plan 2026-10-11 section 7): the host (claude|codex|unknown) is detected from
+// RHIZE_HOST, then the transcript_path location, then thread_id / CLAUDE_CODE_ENTRYPOINT; records and
+// legacy rows carry it. For codex the hook proceeds only for a user thread (first rollout line is a
+// session_meta whose thread_source is "user") and identifies the session by session_meta.payload.id;
+// guardian reviews, subagents and automations behave like the background observer. Only hosts in
+// COSIGN_HOSTS may co-sign; any other host is capped at shadow for the invocation. hooks.json registers
+// this file once as `skill-router.js --packaged`: that run is silent unless the opt-in config
+// ($XDG_DATA_HOME|~/.local/share/rhize/skill-router/config.json = {"schemaVersion":1,"enabled":true})
+// exists and, in Claude, no manual (non-packaged) router hook is registered in settings.json /
+// settings.local.json (user or project). A manual run behaves as before.
+//
 // BUDGET: <150ms warm without workflow opt-in or a reachable Laya; opt-in
 // bridge deadline 4.5s; Laya probe + POST share one 800ms deadline (registry
 // latencyBudgetMs). The host hook timeout must be >= 8s. The map is read
@@ -111,6 +122,14 @@ try {
 } catch (_) { L = null; }
 
 const DECISION = 'skill-fit';
+// Hosts whose skill-fit decision may run in `cosign`. Every other host (codex, unknown) is capped at
+// `shadow` for the invocation, whatever the registry or machine state says: Codex has no co-sign
+// evidence yet, and it must not be pooled into the promotion/demotion gate (plan section 7, F6).
+const COSIGN_HOSTS = ['claude'];
+const PACKAGED = process.argv.includes('--packaged');
+const MAX_CONFIG_BYTES = 16 * 1024;
+const MAX_SETTINGS_BYTES = 1024 * 1024;
+const MAX_ROLLOUT_LINE_BYTES = 512 * 1024;
 const SKILL_ID = /^skill:[A-Za-z0-9_.\-/]+$/;
 const MAX_RECORD_BYTES = 4096;
 const SETTLE_MARGIN_MS = 50; // settle-once backstop fires this long after the Laya deadline
@@ -143,6 +162,162 @@ function isBackgroundObserver(data, home = os.homedir()) {
   return cwd === root || (path.dirname(cwd) === path.join(root, 'projects') && /^[0-9a-f]{12}$/.test(path.basename(cwd)));
 }
 
+// ---------------------------------------------------------------- host, opt-in and thread gate
+
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim() !== '';
+
+// Reads a regular file with a hard size bound. Never follows a symlink unless `follow` is set (the
+// opt-in config and Codex rollouts refuse them; a user's settings.json is often a dotfiles symlink).
+// `firstLine` returns only the first line (null when it exceeds maxBytes). null on any failure.
+function readBounded(file, maxBytes, { follow = false, firstLine = false } = {}) {
+  let fd = null;
+  try {
+    if (!follow) {
+      const link = fs.lstatSync(file);
+      if (link.isSymbolicLink() || !link.isFile()) return null;
+    }
+    const flags = fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0) | (follow ? 0 : (fs.constants.O_NOFOLLOW || 0));
+    fd = fs.openSync(file, flags);
+    const stat = fs.fstatSync(fd);
+    if (!stat.isFile()) return null;
+    if (!firstLine && stat.size > maxBytes) return null;
+    const buf = Buffer.allocUnsafe(Math.min(stat.size, maxBytes));
+    let filled = 0;
+    while (filled < buf.length) {
+      const n = fs.readSync(fd, buf, filled, buf.length - filled, null);
+      if (n <= 0) break;
+      filled += n;
+    }
+    if (!firstLine) return buf.toString('utf8', 0, filled);
+    const newline = buf.indexOf(0x0a);
+    if (newline === -1) return stat.size > maxBytes ? null : buf.toString('utf8', 0, filled).replace(/\r$/, '');
+    return buf.toString('utf8', 0, newline).replace(/\r$/, '');
+  } catch (_) {
+    return null;
+  } finally {
+    if (fd !== null) { try { fs.closeSync(fd); } catch (_) { /* ignore */ } }
+  }
+}
+
+const CODEX_ROOTS = ['sessions', 'archived_sessions'];
+const codexRoot = (home, sub) => path.join(home, '.codex', sub);
+
+// Absolute, normalized rollout path when `value` names ~/.codex/{sessions,archived_sessions}/**/rollout-*.jsonl.
+function codexRolloutPath(value, home) {
+  if (typeof value !== 'string' || !value || value.indexOf('\0') !== -1 || !path.isAbsolute(value)) return null;
+  const abs = path.resolve(value);
+  if (!/^rollout-.*\.jsonl$/.test(path.basename(abs))) return null;
+  return CODEX_ROOTS.some((sub) => abs.startsWith(codexRoot(home, sub) + path.sep)) ? abs : null;
+}
+
+function claudeTranscriptPath(value, home) {
+  if (typeof value !== 'string' || !value || value.indexOf('\0') !== -1 || !path.isAbsolute(value)) return false;
+  return path.resolve(value).startsWith(path.join(home, '.claude', 'projects') + path.sep);
+}
+
+// Pure host detection (plan section 7, F4). Precedence:
+//   1. a valid RHIZE_HOST override (claude|codex); an invalid value is ignored;
+//   2. the transcript_path location (the host's own transcript is the strongest native evidence, and it
+//      outranks session variables that can leak into a cross-host child process);
+//   3. payload thread_id (codex) versus env CLAUDE_CODE_ENTRYPOINT (claude); both present -> 'unknown';
+//   4. no evidence at all -> 'claude' (the legacy default).
+function detectHost(payload, env = process.env, home = os.homedir()) {
+  const explicit = env && env.RHIZE_HOST;
+  if (explicit === 'claude' || explicit === 'codex') return explicit;
+  const data = isObject(payload) ? payload : {};
+  if (codexRolloutPath(data.transcript_path, home)) return 'codex';
+  if (claudeTranscriptPath(data.transcript_path, home)) return 'claude';
+  const codex = isNonEmptyString(data.thread_id);
+  const claude = Boolean(env) && isNonEmptyString(env.CLAUDE_CODE_ENTRYPOINT);
+  if (codex && claude) return 'unknown';
+  if (codex) return 'codex';
+  return 'claude';
+}
+
+// Codex user-thread gate (F1). Reads ONLY the first line of the rollout (bounded, no symlinks, regular
+// file under the Codex roots) and returns { user, id }: user is true only for a session_meta whose
+// payload.thread_source is exactly 'user'. null when the file is missing, unsafe, oversized or not JSON.
+function readCodexThread(transcriptPath, home = os.homedir()) {
+  const abs = codexRolloutPath(transcriptPath, home);
+  if (!abs) return null;
+  try {
+    const real = fs.realpathSync(abs);
+    const contained = CODEX_ROOTS.some((sub) => {
+      try { return real.startsWith(fs.realpathSync(codexRoot(home, sub)) + path.sep); } catch (_) { return false; }
+    });
+    if (!contained) return null;
+    const line = readBounded(abs, MAX_ROLLOUT_LINE_BYTES, { follow: false, firstLine: true });
+    if (!line) return null;
+    const meta = JSON.parse(line);
+    const payload = isObject(meta) ? meta.payload : null;
+    if (!isObject(payload)) return null;
+    const isMeta = meta.type === 'session_meta' || Object.prototype.hasOwnProperty.call(payload, 'thread_source');
+    if (!isMeta) return null;
+    return { user: payload.thread_source === 'user', id: isNonEmptyString(payload.id) ? payload.id : null };
+  } catch (_) {
+    return null;
+  }
+}
+
+// Session identity (F2): codex -> session_meta.payload.id, else session_id || thread_id; claude -> session_id.
+function sessionIdentity(host, data, thread) {
+  const strings = (...values) => values.find(isNonEmptyString) || null;
+  if (host === 'claude') return typeof data.session_id === 'string' ? data.session_id : null;
+  if (host === 'codex') return strings(thread && thread.id, data.session_id, data.thread_id);
+  return strings(data.session_id, data.thread_id);
+}
+
+function packagedConfigEnabled(env = process.env, home = os.homedir()) {
+  const root = (env && env.XDG_DATA_HOME) || path.join(home, '.local', 'share');
+  const text = readBounded(path.join(root, 'rhize', 'skill-router', 'config.json'), MAX_CONFIG_BYTES);
+  if (!text) return false;
+  try {
+    const cfg = JSON.parse(text);
+    return isObject(cfg) && cfg.schemaVersion === 1 && cfg.enabled === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// True when any `command` string under `node` runs skill-router.js without --packaged.
+function hasManualRouterCommand(node, depth = 0, budget = { nodes: 20000 }) {
+  if (depth > 12 || budget.nodes-- <= 0 || node === null || typeof node !== 'object') return false;
+  if (!Array.isArray(node) && typeof node.command === 'string'
+      && node.command.includes('skill-router.js') && !node.command.includes('--packaged')) return true;
+  return Object.values(node).some((child) => hasManualRouterCommand(child, depth + 1, budget));
+}
+
+// A manual (legacy) registration of this hook in Claude's user or project settings.
+function hasManualRegistration(data, home = os.homedir()) {
+  const cwd = isObject(data) && typeof data.cwd === 'string' && path.isAbsolute(data.cwd) ? data.cwd : process.cwd();
+  for (const dir of [path.join(home, '.claude'), path.join(cwd, '.claude')]) {
+    for (const name of ['settings.json', 'settings.local.json']) {
+      const text = readBounded(path.join(dir, name), MAX_SETTINGS_BYTES, { follow: true });
+      if (!text) continue;
+      try {
+        const settings = JSON.parse(text);
+        if (isObject(settings) && hasManualRouterCommand(settings.hooks)) return true;
+      } catch (_) { /* invalid settings: no entry */ }
+    }
+  }
+  return false;
+}
+
+// A packaged run proceeds only when the user opted in AND (in Claude) no manual registration already
+// runs the router, so exactly one run produces output, Laya calls and records per prompt.
+function packagedMayRun(data, env = process.env, home = os.homedir()) {
+  if (!packagedConfigEnabled(env, home)) return false;
+  if (detectHost(data, env, home) === 'claude' && hasManualRegistration(data, home)) return false;
+  return true;
+}
+
+// Caps the effective mode at shadow for hosts outside COSIGN_HOSTS (state and registry stay untouched).
+function capModeForHost(config, host) {
+  if (config && config.mode === 'cosign' && !COSIGN_HOSTS.includes(host)) return { ...config, mode: 'shadow' };
+  return config;
+}
+
 function payloadFor(message) {
   if (!message) return null;
   return JSON.stringify({
@@ -164,13 +339,16 @@ function payloadFor(message) {
 // Tries the materialized router index first (routeFromIndex); only when no
 // indexes file is present/parseable does this fall back to the original
 // map-scanning path (readMap/route) — see the INDEX RESOLUTION note above.
-function prepare() {
+function prepare(raw, data) {
   const ts = new Date().toISOString();
-  const raw = fs.readFileSync(0, 'utf8');
-  const data = JSON.parse(raw);
   const prompt = typeof data.prompt === 'string' ? data.prompt : '';
-  const sessionId = typeof data.session_id === 'string' ? data.session_id : null;
   if (!prompt) return null;
+  const host = detectHost(data);
+  // Codex runs the router for every thread, including guardian reviews, subagents and automations:
+  // only a user thread is router traffic. Anything else is treated exactly like the background observer.
+  const thread = host === 'codex' ? readCodexThread(data.transcript_path) : null;
+  const machineThread = host === 'codex' && !(thread && thread.user);
+  const sessionId = sessionIdentity(host, data, thread);
 
   let workflowMessage = null;
   let workflowHandled = false;
@@ -194,7 +372,7 @@ function prepare() {
   const promptTokens = tokenize(prompt);
   const ctxHash = contextHash(prompt);
 
-  const observer = isBackgroundObserver(data);
+  const observer = isBackgroundObserver(data) || machineThread;
   if (observer && !workflowMessage) return null;
   const routerIndex = observer ? null : readIndexes();
   const match = observer ? null : routerIndex
@@ -211,7 +389,7 @@ function prepare() {
 
   const explicit = Boolean(match) && match.signals.some((signal) => signal.label === 'explicit skill request');
   return {
-    ts, prompt, sessionId, promptTokens, contextHash: ctxHash, routerIndex, match, observer,
+    ts, prompt, sessionId, host, machineThread, promptTokens, contextHash: ctxHash, routerIndex, match, observer,
     incumbentPayload: payloadFor(incumbentMessage),
     incumbentShown: incumbentMessage && routerRef && match ? match.skillId : null,
     suppressedPayload: payloadFor(suppressedMessage),
@@ -224,7 +402,7 @@ function prepare() {
 // request cannot be built; throws are caught by the caller with the same effect.
 function planLaya(state) {
   if (!L) return null;
-  const config = L.readDecisionConfig(DECISION);
+  const config = capModeForHost(L.readDecisionConfig(DECISION), state.host);
   if (config.mode === 'off' || !config.endpoint || !config.model) return null;
   const incumbentId = state.match.skillId;
   if (!SKILL_ID.test(incumbentId)) return null;
@@ -331,7 +509,7 @@ function buildRecord(state, plan, laya, shown) {
     decisionId: crypto.randomBytes(16).toString('hex'),
     occurrenceKey: L.td.occurrenceKey(plan.sessionHash, plan.promptHash, state.ts),
     ts: state.ts,
-    host: process.env.RHIZE_HOST === 'codex' ? 'codex' : 'claude',
+    host: state.host,
     basis: 'live',
     sourceStratum: 'fired',
     sessionHash: plan.sessionHash,
@@ -367,7 +545,11 @@ function persist(state, plan, laya, emitted, shown) {
       typed_status: laya.status,
       typed_agrees: laya.status === 'ok' ? laya.choice === state.match.skillId : null,
     } : { typed_mode: null, typed_arm: null, typed_status: null, typed_agrees: null };
-    if (emitted) {
+    // A non-user Codex thread (guardian review, subagent, automation) leaves no legacy row either: a
+    // `suggested: null` row reads as a silence sample, and this is machine traffic (workflow message only).
+    if (state.machineThread) {
+      // nothing to log
+    } else if (emitted) {
       logSuggestion({
         ts: state.ts,
         session_id: state.sessionId,
@@ -375,6 +557,7 @@ function persist(state, plan, laya, emitted, shown) {
         suggested: shown,
         context_hash: state.contextHash,
         ...typed,
+        host: state.host,
       });
     } else if (!state.observer && Math.random() < 1 / 20) {
       logSuggestion({
@@ -384,6 +567,7 @@ function persist(state, plan, laya, emitted, shown) {
         suggested: null,
         context_hash: state.contextHash,
         ...(plan && laya ? typed : {}),
+        host: state.host,
       });
     }
   } catch (_) { /* fail-silent */ }
@@ -429,7 +613,12 @@ async function main() {
 
   let state = null;
   try {
-    state = prepare();
+    const raw = fs.readFileSync(0, 'utf8');
+    const data = JSON.parse(raw);
+    // A packaged run is opt-in and defers to a manual registration: otherwise exit silently, before
+    // the workflow bridge, Laya, any decision record or any legacy suggestion-log row.
+    if (PACKAGED && !packagedMayRun(data)) { process.exit(0); return; }
+    state = prepare(raw, data);
   } catch (_err) {
     state = null; // fail-silent contract: never surface an error to the user or Claude
   }
@@ -494,4 +683,9 @@ async function main() {
   settleOnce(outcome);
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = {
+  COSIGN_HOSTS, detectHost, readCodexThread, sessionIdentity, packagedConfigEnabled, hasManualRegistration,
+  packagedMayRun, capModeForHost,
+};

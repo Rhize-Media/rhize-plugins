@@ -254,7 +254,7 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     assert.strictEqual(baselineServer.hits.health + baselineServer.hits.post, 0);
     assert.strictEqual(recordFiles(baselineSc).length, 0);
     const [row] = readLog(baselineSc);
-    assert.deepStrictEqual(Object.keys(row), ['ts', 'session_id', 'hook', 'suggested', 'context_hash', 'typed_mode', 'typed_arm', 'typed_status', 'typed_agrees']);
+    assert.deepStrictEqual(Object.keys(row), ['ts', 'session_id', 'hook', 'suggested', 'context_hash', 'typed_mode', 'typed_arm', 'typed_status', 'typed_agrees', 'host']);
     assert.strictEqual(row.suggested, SKILL.ctx);
     assert.strictEqual(row.typed_mode, null);
     assert.strictEqual(row.typed_status, null);
@@ -309,7 +309,7 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     assert.strictEqual(rows.length, 1);
     assert.deepStrictEqual(rows[0], {
       ts: rec.ts, session_id: TREATMENT, hook: 'router', suggested: SKILL.ctx, context_hash: sha(PROMPT).slice(0, 16),
-      typed_mode: 'cosign', typed_arm: 'treatment', typed_status: 'ok', typed_agrees: true,
+      typed_mode: 'cosign', typed_arm: 'treatment', typed_status: 'ok', typed_agrees: true, host: 'claude',
     });
     await server.close();
   });
@@ -778,7 +778,11 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     const good = track(scenario({ mode: 'shadow', endpoint: server.endpoint, env: { RHIZE_HOST: 'codex' } }));
     fs.mkdirSync(good.root, { recursive: true });
     fs.writeFileSync(path.join(good.root, 'laya-runtime.json'), JSON.stringify({ revision: '55cf4c4' }));
-    await runHook(good);
+    // A Codex run now needs a user-thread rollout (the router refuses guardian/subagent/automation threads).
+    const rollout = path.join(good.home, '.codex', 'sessions', '2026', '10', '11', 'rollout-2026-10-11T00-00-00-user.jsonl');
+    fs.mkdirSync(path.dirname(rollout), { recursive: true });
+    fs.writeFileSync(rollout, `${JSON.stringify({ type: 'session_meta', payload: { id: 'codex-user-thread', thread_source: 'user' } })}\n`);
+    await runHook(good, { input: JSON.stringify({ prompt: PROMPT, session_id: 'sess-default', transcript_path: rollout }) });
     const [rec] = assertRecordsValid(good, 1);
     assert.strictEqual(rec.layaRevision, '55cf4c4');
     assert.strictEqual(rec.host, 'codex');

@@ -37,7 +37,7 @@
       "tier": "T3",
       "event": "UserPromptSubmit",
       "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js\"",
-      "description": "Reads the compiled skill-map artifact (~/.claude/context-manager/skill-map.resolved.json, falling back to skill-map.static.json), ranks topic/stack tag and skill-name matches against the submitted prompt, and surfaces at most one suggested skill to Claude via additionalContext. Requires 2+ distinct matching signals to fire; fails silently (exit 0, no output) if the map is missing or corrupt. Replaces the keyword-grep skill-suggester.sh (retired 2026-08-09) — see CHANGELOG.md.",
+      "description": "Reads the compiled skill-map artifact (~/.claude/context-manager/skill-map.resolved.json, falling back to skill-map.static.json), ranks topic/stack tag and skill-name matches against the submitted prompt, and surfaces at most one suggested skill to Claude or Codex via additionalContext. Requires 2+ distinct matching signals to fire; fails silently (exit 0, no output) if the map is missing or corrupt. Replaces the keyword-grep skill-suggester.sh (retired 2026-08-09) — see CHANGELOG.md. The router is now auto-wired in hooks/hooks.json as a packaged entry (skill-router.js --packaged). That entry is enabled by an opt-in config file, ${XDG_DATA_HOME:-~/.local/share}/rhize/skill-router/config.json containing {\"schemaVersion\":1,\"enabled\":true}; it is off by default and fails silent. The manual settings.json hook configured here is legacy: a packaged run defers to a manual registration until it is removed.",
       "default": false
     },
     {
