@@ -417,7 +417,7 @@ def start_runner(runner, config, root):
     """(runner, cleanup). A default CliBackend works in a private temp dir that cleanup removes."""
     if runner is not None:
         return runner, (lambda: None)
-    workdir = evidence_fs.private_dir(Path(root) / DECISION / 'labeling' / ('run-' + uuid.uuid4().hex[:12]))
+    workdir = evidence_fs.private_dir(Path(root) / DECISION / 'labeling' / ('run-' + uuid.uuid4().hex[:12]), anchor=Path(root))
     backend = auto.CliBackend(config['claudeBin'], config['codexBin'], config['effort'], workdir)
     return backend, (lambda: shutil.rmtree(workdir, ignore_errors=True))
 
@@ -667,7 +667,7 @@ def main(argv=None) -> int:
         print(json.dumps({'status': 'refused', 'reason': str(exc)}))
         return EXIT_ABORTED
     except Exception as exc:  # noqa: BLE001 - a bounded error type, never case text
-        print(json.dumps({'status': 'failed', 'error': type(exc).__name__}))
+        print(json.dumps({'status': 'failed', 'error': type(exc).__name__, 'reason': contract.safe_reason(exc)}))
         return EXIT_FAILED
     print(json.dumps(summary, sort_keys=True))
     return code

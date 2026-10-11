@@ -210,3 +210,18 @@ def test_records_storage_creates_private_intermediate_dirs(tmp_path):
     path = store.append(root, 'skill-fit', 'records', load('records.json')['valid']['live-shadow-agree'])
     for directory in (root, root / 'skill-fit', path.parent):
         assert stat.S_IMODE(os.stat(directory).st_mode) == 0o700
+
+
+def test_records_storage_accepts_symlinked_ancestor_above_root(tmp_path):
+    # macOS /tmp -> /private/tmp, or a symlinked ~/.local: ancestors above the store root are the user's own layout.
+    from typed_decisions import records as store
+    real = tmp_path / 'private-tmp'
+    real.mkdir()
+    (tmp_path / 'tmp').symlink_to(real, target_is_directory=True)
+    root = tmp_path / 'tmp' / 'store'
+    path = store.append(root, 'skill-fit', 'records', load('records.json')['valid']['live-shadow-agree'])
+    assert path.exists()
+    (root / 'skill-fit' / 'labels-real').mkdir()
+    (root / 'skill-fit' / 'labels').symlink_to(root / 'skill-fit' / 'labels-real', target_is_directory=True)
+    with pytest.raises(ValueError):
+        store.append(root, 'skill-fit', 'labels', load('labels.json')['valid']['disagreement-incumbent-wrong'])

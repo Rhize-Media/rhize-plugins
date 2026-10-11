@@ -344,7 +344,7 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
     log = Path(log) if log else context_dir() / 'suggestion-log.jsonl'
     node = node or find_node()
     evidence_fs.tighten(root / DECISION)
-    workdir = evidence_fs.private_dir(root / DECISION / 'backfill')
+    workdir = evidence_fs.private_dir(root / DECISION / 'backfill', anchor=root)
     summary = {'status': 'started', 'since': iso(since), 'cutover': iso(cutover)}
     with evidence_fs.exclusive_lock(workdir / 'run.lock') as held:
         if not held:
@@ -493,7 +493,7 @@ def main(argv=None) -> int:
         print(str(exc), file=sys.stderr)
         return exc.code
     except Exception as exc:  # noqa: BLE001 - a bounded error type, never text from a prompt
-        print(json.dumps({'status': 'failed', 'error': type(exc).__name__}))
+        print(json.dumps({'status': 'failed', 'error': type(exc).__name__, 'reason': contract.safe_reason(exc)}))
         return 1
     print(json.dumps(summary, sort_keys=True))
     return code

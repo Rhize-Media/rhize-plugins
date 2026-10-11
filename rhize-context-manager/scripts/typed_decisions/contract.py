@@ -58,6 +58,16 @@ SKILL_REF = re.compile(r'[A-Za-z0-9_.:/-]{1,160}\Z')
 STRATUM = re.compile(r'[a-z_]{1,40}\Z')
 
 
+SAFE_REASON = re.compile(r"[A-Za-z0-9 _.:()/,'=<>-]{1,160}\Z")
+
+
+def safe_reason(exc: BaseException) -> str | None:
+    """An exception message fit for a counts-only summary: our own short reasons pass, anything that could
+    carry free text (prompt or transcript fragments, paths with spaces in odd places) is dropped."""
+    message = str(exc)
+    return message if SAFE_REASON.match(message) else None
+
+
 def policy_sha256(policy: str = POLICY_COSIGN) -> str:
     if policy not in POLICIES:
         raise ValueError('unknown policy')

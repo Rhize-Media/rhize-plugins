@@ -13,24 +13,13 @@ import tempfile
 from pathlib import Path
 
 
-def private_dir(path) -> Path:
-    """Create `path` (and missing parents) as 0700 directories; refuse any symlinked component."""
-    path = Path(path)
-    chain = [path, *path.parents]
-    for item in chain:
-        if item.is_symlink():
-            raise ValueError('symlinked path refused')
-    for item in reversed(chain):
-        if item.exists():
-            continue
-        try:
-            os.mkdir(item, 0o700)
-        except FileExistsError:
-            pass
-        os.chmod(item, 0o700)
-    if not path.is_dir():
-        raise ValueError('not a directory')
-    return path
+def private_dir(path, anchor=None) -> Path:
+    """Create `path` (and missing parents) as 0700 directories; refuse symlinked components at or below `anchor`.
+
+    Delegates to the contract rule (records.private_dir) so the store has one symlink policy.
+    """
+    from typed_decisions import records
+    return records.private_dir(path, anchor)
 
 
 def tighten(path) -> None:

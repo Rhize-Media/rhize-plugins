@@ -266,7 +266,7 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
     if to_mode != 'cosign' and binding is not None:
         raise RegistryError('invalid_binding', 'a binding only applies to cosign')
 
-    locked_io.private_dir(root)
+    locked_io.private_dir(root, anchor=root)
     try:
         with locked_io.file_lock(root / LOCK_FILE, LOCK_TIMEOUT_SECONDS):
             return _mutate_locked(root, registry, entry, decision, to_mode, actor, reason, expected_revision,

@@ -46,23 +46,13 @@ def iso(value=None) -> str:
     return utc(value).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def private_dir(path) -> Path:
-    """Create a 0700 directory chain, refusing symlinked components."""
-    path = Path(path)
-    missing = []
-    for parent in [path, *path.parents]:
-        if parent.is_symlink():
-            raise ValueError('symlinked typed-decision path refused')
-        if not parent.exists():
-            missing.append(parent)
-        if parent == parent.parent:
-            break
-    for parent in reversed(missing):        # every directory we create is private, not just the leaf
-        try:
-            parent.mkdir(mode=0o700)
-        except FileExistsError:
-            pass
-    return path
+def private_dir(path, anchor=None) -> Path:
+    """Create a 0700 directory chain, refusing symlinked components at or below `anchor`.
+
+    Delegates to the contract rule (records.private_dir) so the store has one symlink policy.
+    """
+    from typed_decisions import records
+    return records.private_dir(path, anchor)
 
 
 def fsync_dir(path) -> None:

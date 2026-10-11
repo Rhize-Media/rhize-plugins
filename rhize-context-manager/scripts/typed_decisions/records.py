@@ -34,17 +34,39 @@ def default_root() -> Path:
     return Path.home() / '.local' / 'share' / 'rhize' / 'typed-decisions'
 
 
-def _safe_dir(path: Path) -> Path:
-    for parent in [path, *path.parents]:
-        if parent.is_symlink():
-            raise ValueError('symlinked typed-decision path refused')
-        if parent == parent.parent:
+def _is_within(path: Path, base: Path) -> bool:
+    try:
+        Path(path).relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def private_dir(path, anchor=None) -> Path:
+    """Create `path` as a chain of 0700 directories and return it.
+
+    Symlinks are refused for every component at or below `anchor` (the store root). Ancestors above
+    the anchor belong to the user's own layout (macOS /tmp -> /private/tmp, a symlinked ~/.local)
+    and are not inspected. Without an anchor, default_root() is the anchor when `path` lies inside
+    it; otherwise only `path` itself and the directories created here are checked.
+    mkdir(parents=True, mode=...) applies the mode to the leaf only, so every missing level is
+    created here (umask can only narrow 0700).
+    """
+    path = Path(path)
+    if anchor is None:
+        default = default_root()
+        anchor = default if _is_within(path, default) else path
+    anchor = Path(anchor)
+    if not _is_within(path, anchor):
+        raise ValueError('typed-decision path outside its store root')
+    for component in [path, *path.parents]:
+        if not _is_within(component, anchor):
             break
-    # mkdir(parents=True, mode=...) applies the mode to the leaf only; create every missing level
-    # ourselves so intermediate directories are private too (umask can only narrow 0700).
+        if component.is_symlink():
+            raise ValueError('symlinked typed-decision path refused')
     missing = []
     probe = path
-    while not probe.exists():
+    while not probe.exists() and not probe.is_symlink() and probe != probe.parent:
         missing.append(probe)
         probe = probe.parent
     for directory in reversed(missing):
@@ -54,13 +76,15 @@ def _safe_dir(path: Path) -> Path:
             pass
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError('symlinked typed-decision path refused')
+    if not path.is_dir():
+        raise ValueError('typed-decision path is not a directory')
     return path
 
 
 def kind_dir(root: Path, decision: str, kind: str) -> Path:
     if decision not in contract.RECORDED_DECISIONS or kind not in KINDS:
         raise ValueError('unknown decision or kind')
-    return _safe_dir(Path(root) / decision / kind)
+    return private_dir(Path(root) / decision / kind, anchor=Path(root))
 
 
 def append(root: Path, decision: str, kind: str, obj: dict) -> Path:

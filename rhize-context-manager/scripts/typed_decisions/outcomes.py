@@ -204,7 +204,7 @@ def main(argv=None) -> int:
         print(json.dumps({'status': 'refused', 'reason': str(exc)}))
         return EXIT_USAGE
     except Exception as exc:  # noqa: BLE001 - a bounded error type, never transcript text
-        print(json.dumps({'status': 'failed', 'error': type(exc).__name__}))
+        print(json.dumps({'status': 'failed', 'error': type(exc).__name__, 'reason': contract.safe_reason(exc)}))
         return 1
     print(json.dumps(summary, sort_keys=True))
     return code
