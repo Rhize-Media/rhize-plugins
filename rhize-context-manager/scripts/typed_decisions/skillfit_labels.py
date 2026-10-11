@@ -504,7 +504,16 @@ def label_cohort(root, cohort_id, runner=None, limit=None, prepare_only=False, t
         by_key = {r['occurrenceKey']: r for r in unique}
         existing, _ = records.read(root, DECISION, 'labels')
         done = {l['occurrenceKey'] for l in existing if l['cohortId'] == cohort_id}
-        probability = inclusion_probability if inclusion_probability is not None else cohort_inclusion(unique, reserve)
+        probability = inclusion_probability
+        if probability is None:
+            # Prefer the reserving code's own figure (cohorts.reserve sidecar); fall back to a ledger estimate.
+            from typed_decisions import cohorts
+            meta = cohorts.read_cohort_meta(root, cohort_id)
+            sidecar = meta.get('inclusionProbability') if meta else None
+            if isinstance(sidecar, (int, float)) and not isinstance(sidecar, bool) and 0 < sidecar <= 1:
+                probability = float(sidecar)
+            else:
+                probability = cohort_inclusion(unique, reserve)
         summary = {'cohortId': cohort_id, 'reserved': len(reserve['occurrenceKeys']), 'alreadyLabeled': len(done),
                    'inclusionProbability': probability}
         items, missing = [], 0

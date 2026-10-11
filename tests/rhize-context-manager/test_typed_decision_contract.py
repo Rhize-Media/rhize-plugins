@@ -200,3 +200,13 @@ def test_records_storage_refuses_symlinks(tmp_path):
     (tmp_path / 'link').symlink_to(real, target_is_directory=True)
     with pytest.raises(ValueError):
         store.append(tmp_path / 'link', 'skill-fit', 'records', load('records.json')['valid']['live-shadow-agree'])
+
+
+def test_records_storage_creates_private_intermediate_dirs(tmp_path):
+    import os
+    import stat
+    from typed_decisions import records as store
+    root = tmp_path / 'fresh' / 'root'
+    path = store.append(root, 'skill-fit', 'records', load('records.json')['valid']['live-shadow-agree'])
+    for directory in (root, root / 'skill-fit', path.parent):
+        assert stat.S_IMODE(os.stat(directory).st_mode) == 0o700

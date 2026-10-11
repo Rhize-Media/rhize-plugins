@@ -40,7 +40,20 @@ def _safe_dir(path: Path) -> Path:
             raise ValueError('symlinked typed-decision path refused')
         if parent == parent.parent:
             break
-    path.mkdir(parents=True, exist_ok=True, mode=0o700)
+    # mkdir(parents=True, mode=...) applies the mode to the leaf only; create every missing level
+    # ourselves so intermediate directories are private too (umask can only narrow 0700).
+    missing = []
+    probe = path
+    while not probe.exists():
+        missing.append(probe)
+        probe = probe.parent
+    for directory in reversed(missing):
+        try:
+            directory.mkdir(mode=0o700)
+        except FileExistsError:
+            pass
+        if directory.is_symlink() or not directory.is_dir():
+            raise ValueError('symlinked typed-decision path refused')
     return path
 
 

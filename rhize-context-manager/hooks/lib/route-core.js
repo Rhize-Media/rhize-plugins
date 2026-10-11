@@ -214,9 +214,9 @@ function explicitRequest(skillIds, prompt) {
 }
 
 // ---------------------------------------------------------------------------
-// Shared matcher. routeFromIndex(), route() and skill-router.js's
-// shadowShortlist() all score through scoreCandidates() so the three can't
-// drift apart.
+// Shared matcher. routeFromIndex() and route() both score through
+// scoreCandidates() so the two can't drift apart. The skill-fit challenger
+// shortlist (lexicalShortlist() below) deliberately skips the floor.
 //
 // MATCH RULE: a signal matches when every word of its label (wordsOf(): lowercased, split on
 // non-alphanumerics, plural-folded) is in the prompt token set (tokenize(), same folding).
