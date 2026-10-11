@@ -53,15 +53,28 @@
 // total weight wins; ties break on skill id (deterministic, no randomness).
 // All of this lives in route-core's shared matcher (scoreCandidates()).
 //
-// BUDGET: <150ms warm without workflow opt-in; opt-in bridge deadline 4.5s.
-// No network; the optional metadata selector is a bounded child. The map is read
-// synchronously once per invocation.
+// SKILL-FIT CO-SIGN (Laya earned authority, plan v3 §4.3): for a fired,
+// non-explicit router suggestion the hook asks the local Laya server (literal
+// loopback only, see lib/laya-client.js) which of the lexical top-5 skills (or
+// none) fits the prompt. In mode `cosign`, in the treatment arm, a suggestion
+// Laya does not independently choose is withheld; in every other case (mode
+// `shadow`, the holdback arm, any Laya failure or deadline expiry, any
+// exception) the precomputed incumbent payload is emitted unchanged. The
+// payload is settled exactly once and flushed before any logging or exit, and
+// one decision record (no prompt text) is appended per eligible prompt.
+//
+// BUDGET: <150ms warm without workflow opt-in or a reachable Laya; opt-in
+// bridge deadline 4.5s; Laya probe + POST share one 800ms deadline (registry
+// latencyBudgetMs). The host hook timeout must be >= 8s. The map is read
+// synchronously once per invocation (and only for eligible prompts, for skill
+// descriptions).
 
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { execFileSync } = require('child_process');
+const { performance } = require('perf_hooks');
 
 // Shared primitives (index/map reading, tokenize, scoring, logging) live in
 // hooks/lib/route-core.js so agent-brief-router.js can reuse them without
@@ -71,60 +84,39 @@ const {
   readIndexes,
   readMap,
   tokenize,
-  rawWordsOf,
-  scoreCandidates,
   formatSkillRef,
   formatSignalLabel,
   routeFromIndex,
   route,
   contextHash,
   logSuggestion,
+  lexicalShortlist,
 } = require(path.join(__dirname, 'lib', 'route-core.js'));
-
-function shadowShortlist(index, promptTokens, incumbent) {
-  if (!index || !incumbent || incumbent.signals.some((signal) => signal.label === 'explicit skill request')) return null;
-  // Same matcher/floor/partial-name guard as routeFromIndex() (route-core's
-  // scoreCandidates()), so the shadow shortlist can't drift from the live route.
-  const scored = [];
-  for (const [skillId, result] of scoreCandidates(Object.entries(index.signals || {}), promptTokens)) {
-    scored.push({ skillId, score: result.score, signals: result.signals });
-  }
-  scored.sort((a, b) => b.score - a.score || a.skillId.localeCompare(b.skillId));
-  const selected = scored.slice(0, 5);
-  if (!selected.some((item) => item.skillId === incumbent.skillId)) {
-    selected.pop();
-    selected.push({ skillId: incumbent.skillId, score: incumbent.score, signals: incumbent.signals });
-  }
-  if (!selected.length) return null;
-  const id = (skillId) => 's' + crypto.createHash('sha256').update(skillId).digest('hex').slice(0, 16);
-  const hint = (label) => String(label).toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
-  // Task hints come only from signals that actually matched in full: a
-  // name-partial label names a word the prompt lacks and carries the literal
-  // "(partial)" annotation, neither of which is a task hint.
-  const taskSignals = [...new Set(selected.flatMap((item) => item.signals.filter((signal) => signal.kind !== 'name-partial').flatMap((signal) => rawWordsOf(signal.label))))].filter((word) => /^[a-z][a-z0-9_-]{0,47}$/.test(word)).slice(0, 8);
-  return {
-    schema: 'rhize-typed-candidates-v1', capability: 'skill_workflow',
-    sourceSha256: crypto.createHash('sha256').update(JSON.stringify(index)).digest('hex'),
-    taskSignals,
-    candidates: selected.map((item) => ({ id: id(item.skillId), hints: item.signals.map((signal) => hint(signal.label)).filter(Boolean).slice(0, 6), protected: false })),
-    incumbentIds: [id(incumbent.skillId)],
+// The skill-fit layer is optional: if any of its modules cannot be loaded (a
+// partially updated checkout, version skew) the hook behaves exactly like the
+// legacy router instead of crashing.
+let L = null;
+try {
+  const instrument = require(path.join(__dirname, 'lib', 'laya-instrument.js'));
+  L = {
+    buildChoiceRequest: instrument.buildChoiceRequest,
+    canonicalJson: instrument.canonicalJson,
+    sha256Hex: instrument.sha256Hex,
+    INSTRUMENT: instrument.INSTRUMENT,
+    td: require(path.join(__dirname, 'lib', 'typed-decisions.js')),
+    readDecisionConfig: require(path.join(__dirname, 'lib', 'decision-registry.js')).readDecisionConfig,
+    // Kept as a module object so callChoice is late-bound (a test preload can substitute the transport).
+    client: require(path.join(__dirname, 'lib', 'laya-client.js')),
   };
-}
+} catch (_) { L = null; }
 
-function shadowSkillDecision(index, promptTokens, incumbent, workflowHandled) {
-  if (process.env.RHIZE_LAYA_SKILL_SHADOW !== '1' || workflowHandled) return null;
-  const state = shadowShortlist(index, promptTokens, incumbent);
-  if (!state) return null;
-  try {
-    const args = [path.join(__dirname, '..', 'scripts', 'context_experiments', 'typed_candidates.py'), '--mode', 'shadow'];
-    if (process.env.RHIZE_LAYA_BASE_URL) args.push('--base-url', process.env.RHIZE_LAYA_BASE_URL);
-    const raw = execFileSync('python3', args, {
-      input: JSON.stringify(state), encoding: 'utf8', timeout: 2500, maxBuffer: 16384, stdio: ['pipe', 'pipe', 'ignore'],
-    });
-    const result = JSON.parse(raw);
-    return { status: result.status, count: state.candidates.length };
-  } catch (_) { return { status: 'unavailable', count: state.candidates.length }; }
-}
+const DECISION = 'skill-fit';
+const SKILL_ID = /^skill:[A-Za-z0-9_.\-/]+$/;
+const MAX_RECORD_BYTES = 4096;
+const SETTLE_MARGIN_MS = 50; // settle-once backstop fires this long after the Laya deadline
+const HARD_EXIT_MARGIN_MS = 2000; // last-resort exit if a flush or socket never completes
+const NON_LAYA_HARD_EXIT_MS = 2000;
+const LAYA_STATUSES = ['ok', 'timeout', 'unavailable', 'invalid', 'identity_failed', 'redirect_refused'];
 
 function formatMatch(match) {
   if (!match) return null;
@@ -134,20 +126,29 @@ function formatMatch(match) {
   return `Consider the ${ref} skill (matches ${why})`;
 }
 
-// Reads stdin, ranks the prompt against the map, and returns the suggestion
-// message, or null if nothing qualifies. Throws on any unreadable/corrupt
-// input; main()'s try/catch turns that into the same silent no-op.
+function payloadFor(message) {
+  if (!message) return null;
+  return JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'UserPromptSubmit',
+      additionalContext: message,
+    },
+  }) + '\n';
+}
+
+// Reads stdin, ranks the prompt against the map, and returns everything main()
+// needs to settle exactly once: the COMPLETE incumbent payload (the bytes
+// today's hook would write, or null), the payload without the router
+// suggestion (used only by a cosign suppression), and the facts the Laya
+// co-sign and the logs need. Returns null when there is nothing to do. Throws
+// on any unreadable/corrupt input; main()'s try/catch turns that into the
+// same silent no-op.
 //
 // Tries the materialized router index first (routeFromIndex); only when no
 // indexes file is present/parseable does this fall back to the original
 // map-scanning path (readMap/route) — see the INDEX RESOLUTION note above.
-// Returns null (nothing to do), or an object describing the outcome for
-// main() to emit and log: { message, sessionId, suggested, contextHash } when
-// a suggestion fires, or { message: null, sessionId, sampled, contextHash }
-// when the prompt qualified for consideration but nothing matched (sampled is
-// true 1-in-20 times, so silence precision has a denominator — see
-// scripts/suggestion_log_report.py).
-function computeMessage() {
+function prepare() {
+  const ts = new Date().toISOString();
   const raw = fs.readFileSync(0, 'utf8');
   const data = JSON.parse(raw);
   const prompt = typeof data.prompt === 'string' ? data.prompt : '';
@@ -156,7 +157,6 @@ function computeMessage() {
 
   let workflowMessage = null;
   let workflowHandled = false;
-  let workflowAttempted = false;
   // One shared selector owns opted-in workflow decisions. Both the legacy
   // router and packaged hook use its atomic receipt; configuration alone
   // never suppresses advice. A failed bridge falls back to this router.
@@ -165,7 +165,6 @@ function computeMessage() {
     const cfgPath = path.join(root, 'rhize', 'workflow-selection', 'config.json');
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     if (cfg.schemaVersion === 1 && cfg.enabled === true) {
-      workflowAttempted = true;
       const output = execFileSync('python3', [path.join(__dirname, '..', 'scripts', 'workflow_selection.py'), 'hook', '--router-bridge'], {
         input: raw, encoding: 'utf8', timeout: 4500, maxBuffer: 16384, stdio: ['pipe','pipe','ignore'],
       });
@@ -185,51 +184,287 @@ function computeMessage() {
         const doc = readMap();
         return doc ? route(doc, promptTokens, prompt) : null;
       })();
-  const typed = shadowSkillDecision(routerIndex, promptTokens, match, workflowAttempted);
 
   const overlaps = workflowHandled && match && /\/(?:rhize-content-engine|content-engine)$/.test(match.skillId) && !/\becc\b/i.test(prompt);
-  const message = [workflowMessage, overlaps ? null : formatMatch(match)].filter(Boolean).join(' ') || null;
-  if (message) {
-    return { message, sessionId, suggested: match ? match.skillId : null, contextHash: ctxHash, typed };
-  }
-  return { message: null, sessionId, sampled: Math.random() < 1 / 20, contextHash: ctxHash, typed };
+  const routerRef = overlaps ? null : formatMatch(match);
+  const incumbentMessage = [workflowMessage, routerRef].filter(Boolean).join(' ') || null;
+  const suppressedMessage = [workflowMessage].filter(Boolean).join(' ') || null;
+
+  const explicit = Boolean(match) && match.signals.some((signal) => signal.label === 'explicit skill request');
+  return {
+    ts, prompt, sessionId, promptTokens, contextHash: ctxHash, routerIndex, match,
+    incumbentPayload: payloadFor(incumbentMessage),
+    incumbentShown: incumbentMessage && routerRef && match ? match.skillId : null,
+    suppressedPayload: payloadFor(suppressedMessage),
+    eligible: Boolean(match) && Boolean(routerIndex) && !explicit,
+  };
 }
 
-function main() {
+// Builds the Laya request for an eligible prompt. Returns null (no Laya call,
+// no record) when the mode is off, the incumbent id cannot be sent, or the
+// request cannot be built; throws are caught by the caller with the same effect.
+function planLaya(state) {
+  if (!L) return null;
+  const config = L.readDecisionConfig(DECISION);
+  if (config.mode === 'off' || !config.endpoint || !config.model) return null;
+  const incumbentId = state.match.skillId;
+  if (!SKILL_ID.test(incumbentId)) return null;
+  const shortlist = lexicalShortlist(state.routerIndex, state.promptTokens, incumbentId, 5).filter((id) => SKILL_ID.test(id));
+  if (!shortlist.includes(incumbentId)) return null;
+
+  const wanted = new Set(shortlist);
+  const descriptions = new Map();
   try {
-    const result = computeMessage();
-    if (result && result.message) {
-      process.stdout.write(
-        JSON.stringify({
-          hookSpecificOutput: {
-            hookEventName: 'UserPromptSubmit',
-            additionalContext: result.message,
-          },
-        }) + '\n'
-      );
+    const doc = readMap();
+    if (doc) {
+      for (const node of doc.nodes) {
+        if (node && node.kind === 'skill' && wanted.has(node.id) && typeof node.description === 'string') {
+          descriptions.set(node.id, node.description);
+        }
+      }
+    }
+  } catch (_) { /* descriptions are optional */ }
+  const built = L.buildChoiceRequest(state.prompt, shortlist.map((skillId) => ({
+    skillId, description: descriptions.has(skillId) ? descriptions.get(skillId) : null,
+  })));
+
+  const sessionHash = L.sha256Hex(state.sessionId || '');
+  const promptHash = L.sha256Hex(state.prompt);
+  const arm = L.td.armFor(sessionHash, promptHash, config.holdback);
+  const propensity = arm === 'holdback' ? config.holdback : 1 - config.holdback;
+  return { config, shortlist, built, sessionHash, promptHash, arm, propensity };
+}
+
+// Coerces whatever the transport returned into a record-safe Laya outcome.
+function normalizeLaya(raw, plan) {
+  const out = { status: 'unavailable', choice: null, probabilities: null, latencyMs: null, truncated: plan.built.truncated };
+  if (!raw || typeof raw !== 'object' || !LAYA_STATUSES.includes(raw.status)) return out;
+  if (typeof raw.latencyMs === 'number' && Number.isFinite(raw.latencyMs) && raw.latencyMs >= 0) out.latencyMs = raw.latencyMs;
+  if (raw.status !== 'ok') { out.status = raw.status; return out; }
+  const probs = raw.probabilities;
+  const choiceOk = raw.choice === 'none' || plan.shortlist.includes(raw.choice);
+  const probsOk = Array.isArray(probs) && probs.length === plan.shortlist.length + 1
+    && probs.every((p) => typeof p === 'number' && Number.isFinite(p) && p >= 0 && p <= 1);
+  if (!choiceOk || !probsOk) { out.status = 'invalid'; return out; }
+  out.status = 'ok';
+  out.choice = raw.choice;
+  out.probabilities = probs.slice();
+  return out;
+}
+
+// ---------------------------------------------------------------- persistence
+// Everything below runs only AFTER the hook payload has been flushed, each part
+// in its own try/catch: a persistence failure can never alter the output.
+
+function ensurePrivateDir(dir) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let stat = null;
+    try { stat = fs.lstatSync(dir); } catch (err) { if (!err || err.code !== 'ENOENT') throw err; }
+    if (stat) {
+      if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('unsafe typed-decision directory');
+      return;
+    }
+    try { fs.mkdirSync(dir, { mode: 0o700 }); return; } catch (err) { if (!err || err.code !== 'EEXIST') throw err; }
+  }
+  throw new Error('typed-decision directory race');
+}
+
+function appendRecord(record) {
+  const json = L.canonicalJson(record);
+  if (Buffer.byteLength(json, 'utf8') >= MAX_RECORD_BYTES) return false; // records stay under 4096 bytes
+  const root = L.td.defaultRoot();
+  const file = L.td.recordsPath(root, DECISION, record.ts);
+  fs.mkdirSync(path.dirname(root), { recursive: true, mode: 0o700 });
+  ensurePrivateDir(root);
+  ensurePrivateDir(path.join(root, DECISION));
+  ensurePrivateDir(path.dirname(file));
+  let stat = null;
+  try { stat = fs.lstatSync(file); } catch (err) { if (!err || err.code !== 'ENOENT') throw err; }
+  if (stat && (stat.isSymbolicLink() || !stat.isFile())) throw new Error('unsafe typed-decision file');
+  const flags = fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT
+    | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0); // never block on a swapped-in FIFO
+  const fd = fs.openSync(file, flags, 0o600);
+  try { fs.writeSync(fd, json + '\n'); } finally { fs.closeSync(fd); }
+  return true;
+}
+
+function readLayaRevision() {
+  try {
+    const doc = JSON.parse(fs.readFileSync(path.join(L.td.defaultRoot(), 'laya-runtime.json'), 'utf8'));
+    if (doc && typeof doc.revision === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(doc.revision)) return doc.revision;
+  } catch (_) { /* optional */ }
+  return 'unknown';
+}
+
+function routerSourceSha256() {
+  const lib = path.join(__dirname, 'lib');
+  const hash = crypto.createHash('sha256');
+  for (const file of [path.join(lib, 'route-core.js'), __filename, path.join(lib, 'laya-instrument.js')]) {
+    hash.update(fs.readFileSync(file));
+  }
+  return hash.digest('hex');
+}
+
+function buildRecord(state, plan, laya, shown) {
+  return {
+    schema: L.td.RECORD_SCHEMA,
+    decision: DECISION,
+    decisionId: crypto.randomBytes(16).toString('hex'),
+    occurrenceKey: L.td.occurrenceKey(plan.sessionHash, plan.promptHash, state.ts),
+    ts: state.ts,
+    host: process.env.RHIZE_HOST === 'codex' ? 'codex' : 'claude',
+    basis: 'live',
+    sourceStratum: 'fired',
+    sessionHash: plan.sessionHash,
+    promptHash: plan.promptHash,
+    promptLengthBucket: plan.built.promptLengthBucket,
+    routerSourceSha256: routerSourceSha256(),
+    indexSha256: L.sha256Hex(JSON.stringify(state.routerIndex)),
+    registryRevision: plan.config.registryRevision,
+    policy: L.td.POLICY_COSIGN,
+    policySha256: L.td.policySha256(),
+    instrument: L.INSTRUMENT,
+    instrumentSha256: plan.built.instrumentSha256,
+    criteriaSha256: plan.built.criteriaSha256,
+    layaRevision: readLayaRevision(),
+    mode: plan.config.mode,
+    arm: plan.arm,
+    propensity: plan.propensity,
+    incumbent: { skillId: state.match.skillId, score: state.match.score },
+    shortlist: plan.shortlist,
+    laya: {
+      status: laya.status, choice: laya.choice, probabilities: laya.probabilities,
+      latencyMs: laya.latencyMs, truncated: laya.truncated,
+    },
+    emitted: shown,
+  };
+}
+
+function persist(state, plan, laya, emitted, shown) {
+  try {
+    const typed = plan && laya ? {
+      typed_mode: plan.config.mode,
+      typed_arm: plan.arm,
+      typed_status: laya.status,
+      typed_agrees: laya.status === 'ok' ? laya.choice === state.match.skillId : null,
+    } : { typed_mode: null, typed_arm: null, typed_status: null, typed_agrees: null };
+    if (emitted) {
       logSuggestion({
-        ts: new Date().toISOString(),
-        session_id: result.sessionId,
+        ts: state.ts,
+        session_id: state.sessionId,
         hook: 'router',
-        suggested: result.suggested,
-        context_hash: result.contextHash,
-        typed_status: result.typed?.status || null,
-        typed_candidate_count: result.typed?.count || null,
+        suggested: shown,
+        context_hash: state.contextHash,
+        ...typed,
       });
-    } else if (result && result.sampled) {
+    } else if (Math.random() < 1 / 20) {
       logSuggestion({
-        ts: new Date().toISOString(),
-        session_id: result.sessionId,
+        ts: state.ts,
+        session_id: state.sessionId,
         hook: 'router',
         suggested: null,
-        context_hash: result.contextHash,
+        context_hash: state.contextHash,
+        ...(plan && laya ? typed : {}),
       });
     }
+  } catch (_) { /* fail-silent */ }
+  try {
+    if (plan && laya) appendRecord(buildRecord(state, plan, laya, shown));
+  } catch (_) { /* fail-silent */ }
+}
+
+// ---------------------------------------------------------------- settle once
+
+function emit(payload) {
+  return new Promise((resolve) => {
+    if (!payload) { resolve(); return; }
+    try { process.stdout.write(payload, () => resolve()); } catch (_) { resolve(); }
+  });
+}
+
+async function finalize(state, plan, laya) {
+  let payload = state.incumbentPayload;
+  let shown = state.incumbentShown;
+  try {
+    if (plan && laya && plan.config.mode === 'cosign' && plan.arm === 'treatment'
+        && laya.status === 'ok' && laya.choice !== state.match.skillId) {
+      payload = state.suppressedPayload;
+      shown = null;
+    }
+  } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
+  await emit(payload); // flush BEFORE any persistence or exit
+  persist(state, plan, laya, Boolean(payload), shown);
+}
+
+let fatalHandler = null;
+function onFatal() {
+  try { if (fatalHandler) { fatalHandler(); return; } } catch (_) { /* fall through */ }
+  process.exit(0);
+}
+
+async function main() {
+  process.stdout.on('error', () => { /* EPIPE etc.: never crash the hook */ });
+  process.on('uncaughtException', onFatal);
+  process.on('unhandledRejection', onFatal);
+
+  let state = null;
+  try {
+    state = prepare();
   } catch (_err) {
-    // fail-silent contract: never surface an error to the user or Claude
-  } finally {
-    process.exit(0);
+    state = null; // fail-silent contract: never surface an error to the user or Claude
   }
+  if (!state) { process.exit(0); return; }
+
+  let plan = null;
+  if (state.eligible) {
+    try { plan = planLaya(state); } catch (_) { plan = null; }
+  }
+
+  let settled = false;
+  let backstop = null;
+  let hardExit = null;
+  const settleOnce = (laya) => {
+    if (settled) return; // a late Laya completion after settlement is ignored
+    settled = true;
+    if (backstop) clearTimeout(backstop);
+    finalize(state, plan, laya)
+      .catch(() => {})
+      .then(() => { if (hardExit) clearTimeout(hardExit); process.exit(0); });
+  };
+
+  if (!plan) {
+    // Nothing to ask Laya (ineligible prompt, mode off, or no buildable request): emit the incumbent.
+    fatalHandler = () => settleOnce(null);
+    hardExit = setTimeout(() => process.exit(0), NON_LAYA_HARD_EXIT_MS);
+    settleOnce(null);
+    return;
+  }
+
+  const budget = plan.config.latencyBudgetMs;
+  const startedAt = performance.now();
+  const deadlineAt = startedAt + budget;
+  const elapsed = () => Math.max(0, Math.round((performance.now() - startedAt) * 10) / 10);
+  // Plain literals (no helper that could throw) for every fallback path.
+  const failed = (status) => ({
+    status, choice: null, probabilities: null, latencyMs: elapsed(), truncated: plan.built.truncated === true,
+  });
+  fatalHandler = () => settleOnce(failed('unavailable'));
+  hardExit = setTimeout(() => process.exit(0), budget + SETTLE_MARGIN_MS + HARD_EXIT_MARGIN_MS);
+  backstop = setTimeout(() => settleOnce(failed('timeout')), budget + SETTLE_MARGIN_MS);
+
+  let outcome;
+  try {
+    outcome = normalizeLaya(await L.client.callChoice({
+      endpoint: plan.config.endpoint,
+      model: plan.config.model,
+      request: plan.built.request,
+      keyMap: plan.built.keyMap,
+      deadlineAt,
+    }), plan);
+  } catch (_) {
+    outcome = failed('unavailable');
+  }
+  settleOnce(outcome);
 }
 
 main();
