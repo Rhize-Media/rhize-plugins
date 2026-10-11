@@ -81,6 +81,19 @@ def private_dir(path, anchor=None) -> Path:
     return path
 
 
+def laya_revision(root: Path | None = None) -> str:
+    """Current Laya checkpoint revision from <root>/laya-runtime.json ({"revision": ...}); 'unknown' when the
+    file is missing, symlinked or invalid. Mirrors hooks/lib/decision-registry.js currentLayaRevision()."""
+    path = Path(root if root is not None else default_root()) / 'laya-runtime.json'
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 16384:
+            return 'unknown'
+        value = json.loads(path.read_text(encoding='utf-8')).get('revision')
+    except (OSError, ValueError, AttributeError):
+        return 'unknown'
+    return value if isinstance(value, str) and contract.REVISION.match(value) else 'unknown'
+
+
 def kind_dir(root: Path, decision: str, kind: str) -> Path:
     if decision not in contract.RECORDED_DECISIONS or kind not in KINDS:
         raise ValueError('unknown decision or kind')

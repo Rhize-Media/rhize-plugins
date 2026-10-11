@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // The skill router skips ECC's homunculus background-observer sessions (machine
-// traffic: 83% of replayed router fires on 2026-10-11): no suggestion, no Laya
+// traffic: 83% of replayed router fires on 2026-10-11), identified by cwd: no suggestion, no Laya
 // call, no decision record, no silence sample. Control: an ordinary session
 // still emits the incumbent and is co-signed in shadow. Standalone script.
 'use strict';
@@ -95,7 +95,6 @@ async function main() {
   for (const [name, cwdOf, env] of [
     ['observer root cwd', (h) => path.join(h, '.local', 'share', 'ecc-homunculus'), {}],
     ['observer project cwd', (h) => path.join(h, '.local', 'share', 'ecc-homunculus', 'projects', '0123456789ab'), {}],
-    ['ECC launcher env', (h) => path.join(h, 'dev', 'project'), { ECC_SKIP_OBSERVE: '1', ECC_HOOK_PROFILE: 'minimal' }],
   ]) {
     await check(`background observer skipped: ${name}`, async () => {
       const sc = scenario(port, env);
@@ -108,6 +107,12 @@ async function main() {
       assert.ok(!fs.existsSync(path.join(sc.home, 'log.jsonl')), 'no legacy row');
     });
   }
+
+  await check('ECC launcher env alone does not silence an interactive session', async () => {
+    const sc = scenario(port, { ECC_SKIP_OBSERVE: '1', ECC_HOOK_PROFILE: 'minimal' });
+    const res = await runHook(sc, path.join(sc.home, 'dev', 'project'));
+    assert.match(res.stdout, /alpha:git-helper/);
+  });
 
   await check('a non-hex projects child is an ordinary session', async () => {
     const sc = scenario(port);

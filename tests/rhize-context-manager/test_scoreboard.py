@@ -22,7 +22,11 @@ NOW = '2026-10-12T12:00:00Z'
 
 @pytest.fixture
 def root(tmp_path):
-    return tmp_path / 'typed-decisions'
+    # The Laya runtime pin the fixtures' records and bindings were produced under (activation writes it).
+    path = tmp_path / 'typed-decisions'
+    path.mkdir(mode=0o700)
+    (path / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
+    return path
 
 
 def outcome_for(rec, kind):

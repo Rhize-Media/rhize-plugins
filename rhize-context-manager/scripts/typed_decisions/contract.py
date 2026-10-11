@@ -437,7 +437,7 @@ REGISTRY_ENTRY_KEYS = ('tier', 'defaultMode', 'reachableModes', 'incumbent', 'de
 PROMOTE_GATE_KEYS = ('cohortSize', 'maxPerSession', 'alphaBase', 'maxAmbiguousShare', 'maxUnavailableShare')
 DEMOTE_GATE_KEYS = ('minLabeled', 'alpha', 'maxUnavailableShare', 'operationalWindowDays', 'latencyReportOnlyDays')
 LOOPBACK_ENDPOINTS = ('http://127.0.0.1:8000', 'http://[::1]:8000')
-ENDPOINT = re.compile(r'http://(127\.0\.0\.1|\[::1\]):\d{2,5}\Z')
+ENDPOINT = re.compile(r'http://(127\.0\.0\.1|\[::1\]):(\d{1,5})\Z')
 
 
 def validate_registry(registry: dict) -> dict:
@@ -465,7 +465,8 @@ def validate_registry(registry: dict) -> dict:
             _enum(entry['deployablePolicy'], tuple(POLICIES), 'deployablePolicy')
             if entry['instrument'] != INSTRUMENT:
                 raise ValueError('cosign requires the laya-choice-v1 instrument')
-            if not isinstance(entry['endpoint'], str) or not ENDPOINT.match(entry['endpoint']):
+            endpoint_match = ENDPOINT.match(entry['endpoint']) if isinstance(entry['endpoint'], str) else None
+            if not endpoint_match or not 1 <= int(endpoint_match.group(2)) <= 65535:
                 raise ValueError('endpoint must be a literal loopback http address')
             if entry['model'] != 'typed-decisions':
                 raise ValueError('invalid model')

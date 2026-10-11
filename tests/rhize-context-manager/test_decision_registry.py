@@ -486,6 +486,9 @@ def test_cli_show_set_mode_pin_and_recover(root):
     code, out = run_cli(root, 'set-mode', SKILL, 'cosign', '--reason', 'manual_override')
     assert code == 2 and out['error'] == 'binding_required'
     code, out = run_cli(root, 'set-mode', SKILL, 'cosign', '--reason', 'manual_override', '--laya-revision', LAYA_REV)
+    assert code == 2 and out['error'] == 'binding_required'            # omission never grants authority
+    code, out = run_cli(root, 'set-mode', SKILL, 'cosign', '--reason', 'manual_override', '--laya-revision', LAYA_REV,
+                        '--manual-override')
     assert (code, out['mode']) == (0, 'cosign')
     code, out = run_cli(root, 'set-mode', SKILL, 'cosign', '--reason', 'manual_pin', '--pin')
     assert (code, out['pinned']) == (0, True)

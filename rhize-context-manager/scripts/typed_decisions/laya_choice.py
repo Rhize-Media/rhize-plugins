@@ -121,16 +121,9 @@ def _fetch(opener, request, deadline) -> bytes:
 
 
 def _model_loaded(document, model) -> bool:
+    """The real server answers {"loaded": ["typed-decisions", ...]}; accept exactly that shape (the Node client's rule)."""
     loaded = document.get('loaded') if isinstance(document, dict) else None
-    if isinstance(loaded, dict):
-        return model in loaded
-    if isinstance(loaded, list):
-        for item in loaded:
-            if item == model:
-                return True
-            if isinstance(item, dict) and model in (item.get('id'), item.get('name'), item.get('model')):
-                return True
-    return False
+    return isinstance(loaded, list) and model in [item for item in loaded if isinstance(item, str)]
 
 
 def _cache_fresh(path, endpoint, model) -> bool:

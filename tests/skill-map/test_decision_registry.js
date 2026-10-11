@@ -35,7 +35,11 @@ function write(name, body) {
   return file;
 }
 const clone = (v) => JSON.parse(JSON.stringify(v));
-const read = (opts) => reg.readDecisionConfig('skill-fit', opts);
+// The cosign fixture is bound to Laya revision 55cf4c4ebb4e: point the reader at a runtime pin that matches.
+const FIXTURE_REVISION = fixtures.validStates.cosign.decisions['skill-fit'].layaRevision;
+const RUNTIME = path.join(dir, 'laya-runtime.json');
+fs.writeFileSync(RUNTIME, JSON.stringify({ revision: FIXTURE_REVISION }));
+const read = (opts) => reg.readDecisionConfig('skill-fit', { layaRuntimePath: RUNTIME, ...opts });
 const noEnv = (fn) => {
   const prior = process.env.RHIZE_LAYA_ENDPOINT;
   delete process.env.RHIZE_LAYA_ENDPOINT;
@@ -62,6 +66,7 @@ check('default state path is <typed-decisions root>/registry-state.json', () => 
   process.env.RHIZE_TYPED_DECISIONS_ROOT = root;
   try {
     fs.writeFileSync(path.join(root, 'registry-state.json'), JSON.stringify(fixtures.validStates.cosign));
+    fs.writeFileSync(path.join(root, 'laya-runtime.json'), JSON.stringify({ revision: FIXTURE_REVISION }));
     const cfg = reg.readDecisionConfig('skill-fit');
     assert.strictEqual(cfg.mode, fixtures.validStates.cosign.decisions['skill-fit'].mode);
     assert.strictEqual(cfg.registryRevision, fixtures.validStates.cosign.revision);
@@ -96,6 +101,24 @@ check('cosign bound to different policy/instrument hashes is not deployed (shado
   }
   const ok = read({ statePath: write('bound.json', fixtures.validStates.cosign) });
   assert.strictEqual(ok.mode, 'cosign', 'the fixture binds the real policy and instrument hashes');
+}));
+
+check('cosign bound to another Laya revision (or to one the runtime pin no longer confirms) reads as shadow', () => noEnv(() => {
+  const other = write('runtime-other.json', { revision: 'ffffffffffff' });
+  assert.strictEqual(read({ statePath: write('rev.json', fixtures.validStates.cosign), layaRuntimePath: other }).mode, 'shadow');
+  assert.strictEqual(read({ statePath: write('rev2.json', fixtures.validStates.cosign), layaRuntimePath: missing }).mode, 'shadow');
+  const unbound = clone(fixtures.validStates.cosign);
+  unbound.decisions['skill-fit'].layaRevision = null;
+  assert.strictEqual(read({ statePath: write('rev3.json', unbound), layaRuntimePath: missing }).mode, 'cosign');
+  assert.strictEqual(reg.currentLayaRevision(RUNTIME), FIXTURE_REVISION);
+  assert.strictEqual(reg.currentLayaRevision(missing), 'unknown');
+}));
+
+check('a symlinked state file is corrupt -> shadow (parity with the Python reader)', () => noEnv(() => {
+  const target = write('real-state.json', fixtures.validStates.cosign);
+  const link = path.join(dir, 'linked-state.json');
+  fs.symlinkSync(target, link);
+  assert.strictEqual(read({ statePath: link }).mode, 'shadow');
 }));
 
 check('valid state without a skill-fit entry -> registry default, state revision', () => noEnv(() => {

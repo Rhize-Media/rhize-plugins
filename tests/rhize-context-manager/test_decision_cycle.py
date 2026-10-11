@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from typed_decision_testkit import (  # noqa: E402
-    ALT1, ALT2, INC, LAYA_REV, REPO, SCRIPTS, disagreements, label_cohort, load_cycle_module, make_label,
+    ALT1, ALT2, INC, LAYA_REV, REPO, SCRIPTS, disagreements, label_cohort, load_cycle_module, make_label, passed_cohort,
     make_record, min_pass_x, reserve_cohort, small_registry, write_labels, write_records)
 from typed_decisions import cohorts, contract, decision_registry as reg, instrument, locked_io, records  # noqa: E402
 
@@ -33,7 +33,11 @@ class Crash(BaseException):
 
 @pytest.fixture
 def root(tmp_path):
-    return tmp_path / 'typed-decisions'
+    # The Laya runtime pin the fixtures' records and bindings were produced under (activation writes it).
+    path = tmp_path / 'typed-decisions'
+    path.mkdir(mode=0o700)
+    (path / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
+    return path
 
 
 @pytest.fixture
@@ -71,6 +75,9 @@ def cosign_binding(cohort_id=None):
 
 
 def go_cosign(root, since='2026-10-01T00:00:00Z', registry=None):
+    root = Path(root)
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))   # the binding's checkpoint
     return reg.mutate(root, SKILL, 'cosign', actor='cli', reason='manual_override', expected_revision=0,
                       binding=cosign_binding(), now=since, registry=registry)
 
@@ -1080,3 +1087,91 @@ def test_cli_run_uses_the_env_root_and_prints_a_compact_summary(tmp_path):
     bad = subprocess.run([sys.executable, str(CYCLE_CLI), 'run', '--now', 'not-a-time'], capture_output=True,
                          text=True, timeout=120, env=env)
     assert bad.returncode == 2 and json.loads(bad.stdout)['status'] == 'error'
+
+
+# ================================================================ final-review fixes (Fable, 2026-10-11)
+
+def test_effective_mode_reads_a_stale_cosign_binding_as_shadow(root, registry):
+    go_cosign(root, registry=registry)
+    state, status = reg.read_state(root, registry)
+    assert reg.effective_mode(SKILL, registry, state, status, LAYA_REV) == 'cosign'
+    assert reg.effective_mode(SKILL, registry, state, status, 'other-rev') == 'shadow'       # new checkpoint
+    assert reg.binding_stale(SKILL, registry, state['decisions'][SKILL], 'other-rev') == 'laya_revision_changed'
+    stale = json.loads(json.dumps(state))
+    stale['decisions'][SKILL]['instrumentSha256'] = 'f' * 64                                 # an update changed it
+    assert reg.effective_mode(SKILL, registry, stale, 'ok', LAYA_REV) == 'shadow'
+    assert reg.binding_stale(SKILL, registry, stale['decisions'][SKILL], LAYA_REV) == 'binding_stale'
+
+
+def test_cycle_makes_a_stale_cosign_state_honest_and_resumes_gating(root, registry):
+    go_cosign(root, registry=registry)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'new-rev'}))            # checkpoint swapped
+    write_records(root, disagreements(45, laya_revision='new-rev'))
+    result = run(root, registry)
+    assert result['actions'][:2] == ['demote', 'reserve'] and result['mode'] == 'shadow'
+    entry = reg.read_state(root, registry)[0]['decisions'][SKILL]
+    assert entry['mode'] == 'shadow' and entry['reason'] == 'laya_revision_changed'
+    reserve = [e for e in ledger_events(root) if e['event'] == 'reserve'][-1]
+    assert reserve['layaRevision'] == 'new-rev'
+
+
+def test_reserve_holds_when_the_laya_revision_is_unknown(root, registry):
+    write_records(root, disagreements(45, laya_revision='unknown'))
+    assert cohorts.reserve(root, registry, T_RESERVE, 1) == {'status': 'held', 'reason': 'laya_revision_unknown'}
+
+
+def test_held_cohorts_spend_no_alpha(root, registry):
+    recs = disagreements(45)
+    write_records(root, recs)
+    _, first = reserve_cohort(root, registry, seed=1)
+    label_cohort(root, first, by_key(recs), not_hit=0, ambiguous=10)                         # 50% ambiguous
+    assert cohorts.evaluate(root, registry, first['cohortId'], T_EVAL)['verdict'] == 'held'
+    _, second = reserve_cohort(root, registry, seed=2, now='2026-10-11T07:00:00Z')
+    assert second['attempt'] == 1 and second['alpha'] == pytest.approx(0.05)
+
+
+def test_a_passed_cohort_whose_promotion_failed_is_promoted_by_the_next_cycle(root, registry, monkeypatch):
+    recs = disagreements(45)
+    event, _ = passed_cohort(root, registry, recs)
+    real = reg.mutate
+    calls = {'n': 0}
+
+    def flaky(*args, **kwargs):
+        calls['n'] += 1
+        if calls['n'] == 1:
+            raise reg.RegistryError('lock_timeout', 'simulated')
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(reg, 'mutate', flaky)
+    first = run(root, registry)
+    assert reg.effective_mode(SKILL, registry, *reg.read_state(root, registry), LAYA_REV) == 'shadow'
+    second = run(root, registry)
+    assert 'retry_promotion' in second['actions'] and second['mode'] == 'cosign'
+    entry = reg.read_state(root, registry)[0]['decisions'][SKILL]
+    assert entry['cohortId'] == event['cohortId'] and entry['reason'] == 'gate_passed'
+    # once promoted (and later demoted) the same cohort is never applied again
+    assert event['cohortId'] in CYCLE._cohorts_ever_promoted(root)
+
+
+def test_backfill_run_failures_count_toward_the_unavailability_hold(root, registry):
+    recs = disagreements(45, basis='backfill', mode='shadow', arm='none')
+    write_records(root, recs)
+    _, event = reserve_cohort(root, registry)
+    runs = root / 'skill-fit' / 'backfill' / 'runs.jsonl'
+    runs.parent.mkdir(parents=True, exist_ok=True)
+    runs.write_text(json.dumps({'schema': 'rhize-typed-decision-backfill-run-v1', 'at': '2026-10-11T00:00:00Z',
+                                'instrumentSha256': event['instrumentSha256'], 'layaRevision': event['layaRevision'],
+                                'layaCalls': 60, 'layaStatuses': {'ok': 45, 'timeout': 15}}) + '\n')
+    label_cohort(root, event, by_key(recs), not_hit=len(event['occurrenceKeys']))
+    result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
+    assert result['verdict'] == 'held' and 'laya_unavailable' in result['holdReasons']
+
+
+def test_gate_shares_are_frozen_at_reserve(root, registry):
+    recs = disagreements(45)
+    write_records(root, recs)
+    _, event = reserve_cohort(root, registry)
+    loosened = json.loads(json.dumps(registry))
+    loosened['decisions'][SKILL]['gates']['promote']['maxAmbiguousShare'] = 0.9               # edited after reserve
+    label_cohort(root, event, by_key(recs), not_hit=0, ambiguous=10)
+    assert cohorts.evaluate(root, loosened, event['cohortId'], T_EVAL)['verdict'] == 'held'

@@ -60,6 +60,8 @@ python3 decision_registry.py show
 python3 decision_registry.py set-mode skill-fit shadow --reason manual_rollback --pin
 python3 decision_registry.py set-mode skill-fit shadow --reason manual_unpin --unpin
 python3 decision_registry.py recover            # finish an interrupted mode change
+python3 decision_registry.py set-mode skill-fit cosign --reason manual_override \
+    --laya-revision <rev> --manual-override       # ungated, audited override (prefer --cohort-id)
 
 # Evidence
 python3 backfill.py run --since 2026-09-27 --cutover <activation ISO> --budget 1200
@@ -88,6 +90,10 @@ At n = 60 the first attempt needs at least 37 "router wrong". Each new attempt n
 - **Operational:** demote when Laya is unavailable or invalid on more than 10% of calls over 3 days.
 - **Latency:** report-only for the first 14 days after a promotion, then enforced.
 - **Pin:** a manual pin overrides all of these.
+
+**Binding.** A cosign state is bound to the policy hash, the instrument hash and the Laya revision it was tested with. When a plugin update changes the policy or instrument, or when `laya-runtime.json` names a different checkpoint, the hook reads the state as `shadow` immediately. The next cycle records the demotion (`binding_stale` or `laya_revision_changed`) and starts a new cohort, so authority is re-earned on the new version. Rewrite `laya-runtime.json` whenever the Laya checkpoint changes. No cohort is reserved while the revision is `unknown`.
+
+**Manual override.** `set-mode skill-fit cosign` needs `--laya-revision`. It also needs either `--cohort-id <passed cohort>` or an explicit `--manual-override`; leaving the cohort out never grants authority on its own. Overrides are audited as actor `cli`. Pin them (`--pin`) if automation must not demote them.
 
 **Alternatives** (stricter router floors, thresholded co-sign, veto, swap, router-else-Laya) are scored on the daily label pool and reported only. A stricter floor that wins becomes a code-review recommendation.
 

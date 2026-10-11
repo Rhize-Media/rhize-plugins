@@ -127,17 +127,16 @@ function formatMatch(match) {
 }
 
 // ECC's homunculus background observer runs its own headless Claude sessions
-// (cwd ~/.local/share/ecc-homunculus or its projects/<12 hex> children,
-// launched with ECC_SKIP_OBSERVE=1 + ECC_HOOK_PROFILE=minimal). That is
+// (cwd ~/.local/share/ecc-homunculus or its projects/<12 hex> children). That is
 // machine traffic: replaying 2026-09-27..10-11 on the maintainer's Mac, it was
 // 1,134 of 1,366 router fires (83%), every one parallel-agent-optimization.
 // The workflow selector already excludes these sessions
 // (workflow_context_packet.native_observer); the router now skips its own
 // suggestion, the Laya call, the decision record and the silence sample for
-// them. Either signal suffices: being lenient here can only withhold advice
-// from a background observer.
-function isBackgroundObserver(data, env = process.env, home = os.homedir()) {
-  if (env.ECC_SKIP_OBSERVE === '1' && env.ECC_HOOK_PROFILE === 'minimal') return true;
+// them. Only the cwd identifies them: the ECC launcher's env knobs
+// (ECC_SKIP_OBSERVE/ECC_HOOK_PROFILE) are user-facing settings a person may
+// export in an interactive shell, so they alone must not silence the router.
+function isBackgroundObserver(data, home = os.homedir()) {
   if (!data || typeof data.cwd !== 'string' || !data.cwd) return false;
   const cwd = path.resolve(data.cwd);
   const root = path.join(home, '.local', 'share', 'ecc-homunculus');
@@ -291,7 +290,7 @@ function ensurePrivateDir(dir) {
 
 function appendRecord(record) {
   const json = L.canonicalJson(record);
-  if (Buffer.byteLength(json, 'utf8') >= MAX_RECORD_BYTES) return false; // records stay under 4096 bytes
+  if (Buffer.byteLength(json, 'utf8') > MAX_RECORD_BYTES) return false; // contract: at most 4096 bytes
   const root = L.td.defaultRoot();
   const file = L.td.recordsPath(root, DECISION, record.ts);
   fs.mkdirSync(path.dirname(root), { recursive: true, mode: 0o700 });
@@ -414,6 +413,7 @@ async function finalize(state, plan, laya) {
   } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
   await emit(payload); // flush BEFORE any persistence or exit
   persist(state, plan, laya, Boolean(payload), shown);
+  try { if (plan && plan.probeCache) L.client.commitProbeCache(plan.probeCache); } catch (_) { /* best effort */ }
 }
 
 let fatalHandler = null;
@@ -474,13 +474,16 @@ async function main() {
 
   let outcome;
   try {
-    outcome = normalizeLaya(await L.client.callChoice({
+    const raw = await L.client.callChoice({
       endpoint: plan.config.endpoint,
       model: plan.config.model,
       request: plan.built.request,
       keyMap: plan.built.keyMap,
       deadlineAt,
-    }), plan);
+      deferProbeCache: true, // the cache write is synchronous I/O: do it after the flush (finalize)
+    });
+    if (raw && raw.probeCache) plan.probeCache = raw.probeCache;
+    outcome = normalizeLaya(raw, plan);
   } catch (_) {
     outcome = failed('unavailable');
   }

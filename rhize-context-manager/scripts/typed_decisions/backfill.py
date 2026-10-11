@@ -471,6 +471,16 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
         summary['unmatchedTotal'] = sum(unmatched.values())
         summary['layaStatuses'] = dict(sorted(laya_statuses.items()))
         summary['layaCalls'] = calls
+        # Failed Laya calls are not persisted as records (they are retried next run), so keep their counts:
+        # cohorts.evaluate folds them into the promotion gate's unavailability hold for backfill cohorts.
+        try:
+            from typed_decisions import locked_io
+            locked_io.append_line(workdir / 'runs.jsonl', {
+                'schema': 'rhize-typed-decision-backfill-run-v1', 'at': locked_io.iso(),
+                'instrumentSha256': instrument.instrument_sha256(), 'layaRevision': laya_revision,
+                'layaCalls': calls, 'layaStatuses': summary['layaStatuses']})
+        except (OSError, ValueError, AttributeError):
+            summary['runLogWritten'] = False
         return summary, EXIT_ABORTED if aborted else EXIT_OK
 
 

@@ -233,9 +233,10 @@ def test_unusable_probe_bodies_fail_identity(body, make_laya):
     assert ask(server.url)['status'] == 'identity_failed' and server.posts == []
 
 
-def test_loaded_may_be_a_mapping_or_objects(make_laya):
-    assert ask(make_laya(loaded={'typed-decisions': {}}).url)['status'] == 'ok'
-    assert ask(make_laya(loaded=[{'name': 'typed-decisions'}]).url)['status'] == 'ok'
+def test_loaded_must_be_a_list_of_model_names(make_laya):
+    # Same rule as the Node client: the real server answers {"loaded": ["typed-decisions"]}.
+    assert ask(make_laya(loaded=['other', 'typed-decisions']).url)['status'] == 'ok'
+    assert ask(make_laya(loaded=[{'name': 'typed-decisions'}]).url)['status'] == 'identity_failed'
 
 
 def test_oversize_responses_are_invalid(make_laya):

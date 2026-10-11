@@ -70,6 +70,12 @@ function result(status, started, now, choice = null, probabilities = null) {
   return { status, choice, probabilities, latencyMs };
 }
 
+// A deferred, passed probe travels with the result (deferProbeCache: true only).
+function withCache(value, pending) {
+  if (pending) value.probeCache = pending;
+  return value;
+}
+
 // ---------------------------------------------------------------- probe cache
 
 function cacheKey(endpoint, model) {
@@ -90,9 +96,9 @@ function readProbeCache(cachePath, endpoint, model, wallNow) {
   }
 }
 
-function writeProbeCache(cachePath, endpoint, model, wallNow) {
+function writeProbeCache(cachePath, endpoint, model, wallNow, atOverride) {
   try {
-    const at = wallNow();
+    const at = typeof atOverride === 'number' ? atOverride : wallNow();
     let entries = {};
     try {
       const stat = fs.lstatSync(cachePath);
@@ -195,8 +201,16 @@ function isRedirectResponse(res) {
 
 // ---------------------------------------------------------------- main entry
 
+// Writes a probe-cache entry that callChoice({deferProbeCache: true}) returned as
+// `probeCache`, so a hook can do this synchronous I/O after its output is flushed.
+function commitProbeCache(pending) {
+  if (!pending || typeof pending.cachePath !== 'string' || typeof pending.at !== 'number') return;
+  writeProbeCache(pending.cachePath, pending.endpoint, pending.model, () => pending.at, pending.at);
+}
+
 async function callChoice(options) {
   let started = null;
+  let pendingCache = null;
   const clock = (options && typeof options.now === 'function') ? options.now : () => performance.now();
   let timer = null;
   try {
@@ -255,7 +269,10 @@ async function callChoice(options) {
         if (!health || typeof health !== 'object' || !Array.isArray(health.loaded) || !health.loaded.includes(model)) {
           throw new ProbeFailure('identity_failed');
         }
-        if (cachePath) writeProbeCache(cachePath, endpoint, model, wallNow);
+        if (cachePath) {
+          if (options.deferProbeCache === true) pendingCache = { cachePath, endpoint, model, at: wallNow() };
+          else writeProbeCache(cachePath, endpoint, model, wallNow);
+        }
       }
 
       // ---- POST (only after the probe passed)
@@ -280,12 +297,12 @@ async function callChoice(options) {
         if (timedOut) throw new DeadlineError('deadline');
         throw new ProbeFailure('invalid');
       }
-      return result('ok', started, clock, decoded.choice, decoded.probabilities);
+      return withCache(result('ok', started, clock, decoded.choice, decoded.probabilities), pendingCache);
     } catch (err) {
-      if (timedOut || err instanceof DeadlineError) return result('timeout', started, clock);
-      if (err instanceof ProbeFailure) return result(err.layaStatus, started, clock);
-      if (isRedirectError(err)) return result('redirect_refused', started, clock);
-      return result('unavailable', started, clock);
+      if (timedOut || err instanceof DeadlineError) return withCache(result('timeout', started, clock), pendingCache);
+      if (err instanceof ProbeFailure) return withCache(result(err.layaStatus, started, clock), pendingCache);
+      if (isRedirectError(err)) return withCache(result('redirect_refused', started, clock), pendingCache);
+      return withCache(result('unavailable', started, clock), pendingCache);
     }
   } catch (_err) {
     return result('unavailable', started, clock);
@@ -295,5 +312,5 @@ async function callChoice(options) {
 }
 
 module.exports = {
-  callChoice, isLoopbackEndpoint, envProxyHazard, MAX_RESPONSE_BYTES, PROBE_TTL_MS,
+  callChoice, commitProbeCache, isLoopbackEndpoint, envProxyHazard, MAX_RESPONSE_BYTES, PROBE_TTL_MS,
 };

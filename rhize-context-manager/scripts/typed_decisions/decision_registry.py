@@ -90,14 +90,41 @@ def read_state(root, registry=None):
     return state, 'ok'
 
 
-def effective_mode(decision: str, registry: dict, state, status: str) -> str:
-    """Mode in force: missing -> shipped default, corrupt -> 'shadow', ok -> state mode (default if no entry)."""
+def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str | None) -> str | None:
+    """Why a cosign state no longer binds to what would run now, or None when it still does.
+
+    A promotion is valid only for the policy and instrument it was tested with ('binding_stale') and for the
+    Laya checkpoint it was tested against ('laya_revision_changed', when the state recorded one). Mirrors the
+    Node reader (hooks/lib/decision-registry.js), which reads such a state as shadow.
+    """
+    if not entry or entry.get('mode') != 'cosign':
+        return None
+    try:
+        policy_hash, instrument_hash = cohorts.deployable_hashes(registry['decisions'][decision])
+    except ValueError:
+        return 'binding_stale'
+    if entry.get('policySha256') != policy_hash or entry.get('instrumentSha256') != instrument_hash:
+        return 'binding_stale'
+    if entry.get('layaRevision') is not None and laya_revision is not None and entry['layaRevision'] != laya_revision:
+        return 'laya_revision_changed'
+    return None
+
+
+def effective_mode(decision: str, registry: dict, state, status: str, laya_revision: str | None = None) -> str:
+    """Mode in force, the same rule as the Node hook's reader.
+
+    missing -> shipped default; corrupt -> 'shadow'; ok -> the state's mode (default if no entry), except that a
+    cosign state whose policy/instrument hashes differ from the deployable ones, or whose recorded Laya revision
+    differs from `laya_revision` (records.laya_revision(root); pass it whenever a root is known), reads as 'shadow'.
+    """
     default = registry['decisions'][decision]['defaultMode']
     if status == 'corrupt':
         return 'shadow'
     if status == 'ok' and state:
         entry = (state.get('decisions') or {}).get(decision)
         if entry:
+            if binding_stale(decision, registry, entry, laya_revision):
+                return 'shadow'
             return entry['mode']
     return default
 
@@ -330,7 +357,7 @@ def _cli_show(root, registry) -> dict:
         item = ((state or {}).get('decisions') or {}).get(decision_id)
         decisions[decision_id] = {
             'tier': entry['tier'], 'defaultMode': entry['defaultMode'],
-            'effectiveMode': effective_mode(decision_id, registry, state, status),
+            'effectiveMode': effective_mode(decision_id, registry, state, status, records.laya_revision(root)),
             'pinned': bool(item and item['pinned']), 'since': item['since'] if item else None,
             'reason': item['reason'] if item else None, 'cohortId': item['cohortId'] if item else None}
     lines, invalid = read_audit(root)
@@ -352,6 +379,10 @@ def _cli_set_mode(args, root, registry) -> dict:
     if args.mode == 'cosign' and 'cosign' in entry['reachableModes'] and not pin_only:
         if not args.laya_revision:
             raise RegistryError('binding_required', 'cosign needs --laya-revision (and --cohort-id for a gated promotion)')
+        if not args.cohort_id and not args.manual_override:
+            # Omitting the cohort must never grant authority by accident: an ungated promotion is explicit.
+            raise RegistryError('binding_required', 'cosign without --cohort-id is an ungated manual override; '
+                                                    'pass --manual-override to confirm')
         try:
             policy_hash, instrument_hash = cohorts.deployable_hashes(entry)
         except ValueError as err:
@@ -381,6 +412,8 @@ def main(argv=None) -> int:
     group.add_argument('--unpin', action='store_true', help='resume automatic mode changes')
     setter.add_argument('--cohort-id', help='passed cohort backing a cosign change (omit for a manual override)')
     setter.add_argument('--laya-revision', help='Laya revision the cosign change is bound to')
+    setter.add_argument('--manual-override', action='store_true',
+                        help='confirm an ungated cosign (no --cohort-id); audited as actor cli')
     sub.add_parser('recover', help='finish an interrupted update from the audit log')
     args = parser.parse_args(argv)
     root = Path(args.root) if args.root else records.default_root()

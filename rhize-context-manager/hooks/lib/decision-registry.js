@@ -162,9 +162,10 @@ function validateState(state, registry) {
 
 function readJson(file) {
   // Returns {status: 'ok', value} | {status: 'missing'} | {status: 'bad'}.
+  // lstat: a symlinked state/registry file is 'bad' (the Python reader treats it as corrupt too).
   let stat;
   try {
-    stat = fs.statSync(file);
+    stat = fs.lstatSync(file);
   } catch (err) {
     return { status: err && err.code === 'ENOENT' ? 'missing' : 'bad' };
   }
@@ -189,6 +190,15 @@ function defaultRegistryPath() {
 
 function defaultStatePath() {
   return path.join(defaultRoot(), 'registry-state.json');
+}
+
+// Current Laya checkpoint revision from <root>/laya-runtime.json ({"revision": ...});
+// 'unknown' when the file is missing or invalid. Mirrors records.laya_revision().
+function currentLayaRevision(runtimePath) {
+  const loaded = readJson(runtimePath || path.join(defaultRoot(), 'laya-runtime.json'));
+  if (loaded.status === 'ok' && loaded.value && typeof loaded.value.revision === 'string'
+      && /^[A-Za-z0-9._-]{1,80}$/.test(loaded.value.revision)) return loaded.value.revision;
+  return 'unknown';
 }
 
 function readDecisionConfig(decisionId, options = {}) {
@@ -220,6 +230,11 @@ function readDecisionConfig(decisionId, options = {}) {
               || stateEntry.instrumentSha256 !== instrumentSha256())) {
             mode = 'shadow';
           }
+          // ... and for the Laya checkpoint it was tested against (laya-runtime.json).
+          if (mode === 'cosign' && stateEntry.layaRevision !== null
+              && stateEntry.layaRevision !== currentLayaRevision(options.layaRuntimePath)) {
+            mode = 'shadow';
+          }
         }
       } catch (_err) {
         mode = 'shadow';
@@ -246,4 +261,5 @@ function readDecisionConfig(decisionId, options = {}) {
 
 module.exports = {
   readDecisionConfig, validateRegistry, validateState, isLoopbackEndpoint, defaultRegistryPath, defaultStatePath,
+  currentLayaRevision,
 };

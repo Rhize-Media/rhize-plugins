@@ -346,6 +346,20 @@ def run_cycle(root, now=None, dry_run: bool = False, seed=None, registry=None) -
         locked_io.release_lock(lock_fd)
 
 
+def _cohorts_ever_promoted(root) -> set:
+    """Cohort ids that some committed mode change already bound to a cosign promotion (from audit intents)."""
+    lines, _ = decision_registry.read_audit(root)
+    committed = {line['revision'] for line in lines if line['phase'] == 'commit'}
+    ids = set()
+    for line in lines:
+        if line['phase'] != 'intent' or line['revision'] not in committed or line['toMode'] != 'cosign':
+            continue
+        entry = ((line.get('state') or {}).get('decisions') or {}).get(DECISION) or {}
+        if entry.get('cohortId'):
+            ids.add(entry['cohortId'])
+    return ids
+
+
 def _run(root, now, dry_run, seed, registry) -> dict:
     entry = registry['decisions'][DECISION]
     actions = []
@@ -364,7 +378,8 @@ def _run(root, now, dry_run, seed, registry) -> dict:
         if recovery['action'] == 'blocked':
             registry_ready = False
     state, status = decision_registry.read_state(root, registry)
-    mode = decision_registry.effective_mode(DECISION, registry, state, status)
+    laya_revision = records.laya_revision(root)
+    mode = decision_registry.effective_mode(DECISION, registry, state, status, laya_revision)
     current = ((state or {}).get('decisions') or {}).get(DECISION)
     pinned = bool(current and current['pinned'])
     revision = state['revision'] if state else 0
@@ -385,19 +400,42 @@ def _run(root, now, dry_run, seed, registry) -> dict:
     else:
         promoted_now = False
         flow = mode                      # what the remaining steps act on; a dry run plans without changing `mode`
+        # 1b. a cosign state that no longer binds (policy/instrument changed by an update, or a new Laya
+        # checkpoint) already reads as shadow in the hook; make the state say so, then re-gate from shadow.
+        stale = decision_registry.binding_stale(DECISION, registry, current, laya_revision) if current else None
+        if stale:
+            if dry_run:
+                actions.append({'type': 'would_demote', 'toMode': 'shadow', 'reason': stale})
+            else:
+                new_state = _try_mutate(root, registry, 'shadow', stale, revision, None, now, actions, 'demote')
+                if new_state is not None:
+                    state, revision, mode = new_state, new_state['revision'], 'shadow'
+                    current = new_state['decisions'].get(DECISION)
+            flow = 'shadow'
         # 2. test a fully labeled open cohort once; promote only a passed, current-key cohort
         if flow == 'shadow':
+            applied = _cohorts_ever_promoted(root)
             for row in cohorts.cohort_table(root):
-                if row['status'] != 'awaiting_evaluation':
+                # A passed cohort whose promotion never landed (stale revision, lock timeout) is applied now,
+                # unless it already promoted once (a later demotion must not be undone by old evidence).
+                retry_pass = (row['status'] == 'consumed' and row.get('verdict') == 'pass'
+                              and row['cohortId'] not in applied and stale is None)
+                if row['status'] != 'awaiting_evaluation' and not retry_pass:
                     continue
                 cohort_key = (row['policySha256'], row['instrumentSha256'], row['layaRevision'])
                 if cohort_key != key or row['policySha256'] != policy_hash or row['instrumentSha256'] != instrument_hash:
                     actions.append({'type': 'skip_cohort', 'cohortId': row['cohortId'], 'reason': 'stale_key'})
                     continue
-                result = cohorts.evaluate(root, registry, row['cohortId'], now, dry_run=dry_run)
-                actions.append({'type': 'would_evaluate' if dry_run else 'evaluate', 'cohortId': row['cohortId'],
-                                'status': result['status'], 'verdict': result.get('verdict'),
-                                'statistic': result.get('statistic')})
+                if retry_pass:
+                    result = {'status': 'consumed', 'verdict': 'pass', 'statistic': row.get('statistic'),
+                              'key': {'policySha256': row['policySha256'], 'instrumentSha256': row['instrumentSha256'],
+                                      'layaRevision': row['layaRevision']}}
+                    actions.append({'type': 'retry_promotion', 'cohortId': row['cohortId']})
+                else:
+                    result = cohorts.evaluate(root, registry, row['cohortId'], now, dry_run=dry_run)
+                    actions.append({'type': 'would_evaluate' if dry_run else 'evaluate', 'cohortId': row['cohortId'],
+                                    'status': result['status'], 'verdict': result.get('verdict'),
+                                    'statistic': result.get('statistic')})
                 if result.get('verdict') != 'pass':
                     continue
                 if dry_run:
