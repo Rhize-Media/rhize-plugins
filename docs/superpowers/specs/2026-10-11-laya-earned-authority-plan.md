@@ -1,6 +1,6 @@
 # Laya decision layer: earned authority (plan + impact map)
 
-**Status:** v3. The Fable advisory review (approve-with-changes, §10) and the Codex review (implement-with-changes, §11) have both been reconciled. This version is the implementation baseline.
+**Status:** v3, implemented on this branch (§12 reconciles the actual changes). The Fable advisory review (approve-with-changes, §10) and the Codex review (implement-with-changes, §11) were reconciled before implementation.
 **Branch:** `claude/laya-earned-authority`
 **Authority:** Jim, 2026-10-11:
 
@@ -441,3 +441,56 @@ The coordinator also owns:
 | Label semantics | Scoring-rule table frozen. Labels are shortlist-constrained, with no recall claims. |
 | Length telemetry (minor) | `promptLengthBucket` added, with code-point parity rules. |
 | Token budget (minor) | Tokenizer measurement added to A8; character caps are heuristics. |
+
+## 12. Implementation reconciliation (2026-10-11)
+
+Implemented as planned: a coordinator contract commit, then three parallel Sonnet lanes in isolated worktrees (task graph v2 validated: one wave, three isolated writers; observational receipt reserved), then coordinator integration.
+
+**Changed paths:**
+- Contract (coordinator):
+  - `hooks/lib/{laya-instrument,typed-decisions}.js` and route-core `lexicalShortlist()`;
+  - `scripts/typed_decisions/{__init__,contract,instrument,records}.py`;
+  - seven schemas in `rhize-context-manager/schemas/`;
+  - `catalog/decision-registry.json`;
+  - fixtures and `make_fixtures.py`;
+  - `tests/skill-map/test_node_suites.py` (every Node suite now runs in CI).
+- L1:
+  - `hooks/lib/{laya-client,decision-registry}.js`;
+  - the async, settle-once `hooks/skill-router.js`;
+  - `tests/skill-map/test_{router_skill_fit,laya_client,decision_registry}.js`;
+  - the retired-flag case in `test_router.js`.
+- L2:
+  - `scripts/typed_decisions/{laya_choice,transcripts,backfill,outcomes,skillfit_labels,evidence_fs}.py` and `route_replay.js`;
+  - two test files.
+- L3:
+  - `scripts/typed_decisions/{decision_registry,cohorts,scoreboard,locked_io}.py`;
+  - `evals/typed-decision/decision_cycle.py`;
+  - three test files.
+- Integration (coordinator):
+  - one store symlink policy, anchored at the store root (macOS `/tmp` is a symlink, and the first real backfill failed on it);
+  - private intermediate directories;
+  - the labeler reads the cohort-meta inclusion probability;
+  - safe failure reasons;
+  - the background-observer skip (router and backfill);
+  - docs (`typed-decision-layer.md` policy, `docs/typed-decisions/skill-fit.md`, GUIDE, README, CHANGELOG);
+  - `rhize-context-manager` 0.46.0.
+
+**Deviations from the plan, all accepted:**
+- **L1:**
+  - the cosign state must carry this code's policy and instrument hashes, or it reads as shadow (enforces I8);
+  - an env-proxy guard;
+  - a module-load fallback to the legacy router;
+  - the cosign suppression that leaves no message goes through the 1-in-20 silence sample.
+- **L2:** backfill does not persist failed Laya calls (they are retried next run), and a resume is refused unless every frozen hash matches.
+- **L3:**
+  - operational and latency demotion need at least 20 live records in the window;
+  - demotion windows start at the last promotion;
+  - a manual CLI cosign is allowed with a null `cohortId`, still bound to the policy and instrument hashes.
+- **New finding, the background-observer skip:** this was not in the plan. Real traffic showed 83% of router fires were ECC homunculus machine sessions. Skipping them withholds advice only from a background observer.
+
+**Real-data smoke** (Mac, 2026-10-11, temporary store, nothing activated):
+- **Backfill coverage:** of 2,364 log rows in the window, 1,425 were recovered from transcripts. The 939 not recovered break down as 492 legacy rows without `session_id`, 442 prompts not found and 5 missing transcripts.
+- **Background observer:** 1,134 of the 1,366 replayed fires were background-observer sessions.
+- **Interactive traffic:** 232 fires (about 15 a day). Laya disagreed on 199 of them (86%), spread across 192 distinct sessions. That is enough for the 60-case bootstrap cohort.
+- **Laya latency:** p50 89–117 ms and p90 117–137 ms across length buckets. 210 of 262 prompts exceeded 1,200 characters and were truncated by design.
+- **Live hook:** the run through the real Laya took 184–373 ms end to end (cold to warm), against about 80 ms for a non-eligible prompt.

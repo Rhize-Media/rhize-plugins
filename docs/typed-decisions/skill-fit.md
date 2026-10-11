@@ -10,24 +10,25 @@ Laya starts in `shadow`. It earns `cosign` only by passing a frozen statistical 
 ## What happens on each prompt
 
 1. The router computes its incumbent suggestion exactly as before. It also precomputes today's exact hook output.
-2. The hook skips the Laya call (records nothing, and emits the incumbent output) when any of these is true:
+2. Sessions run by ECC's homunculus background observer (cwd under `~/.local/share/ecc-homunculus`, or the ECC launcher environment) get no router suggestion, no Laya call and no record. On 2026-10-11 that machine traffic was 83% of all replayed router fires.
+3. The hook skips the Laya call (records nothing, and emits the incumbent output) when any of these is true:
    - `skill-fit` mode is `off`;
    - the router did not fire;
    - the prompt is an explicit skill request.
-3. Otherwise the hook builds the `laya-choice-v1` request:
+4. Otherwise the hook builds the `laya-choice-v1` request:
    - the first ≤1,200 code points of the prompt;
    - up to 5 shortlisted skills, each with a 120-character description;
    - a `none` option.
 
    It sends the request to the literal-loopback Laya server. A refused redirect, a failed `/health` identity probe, or the 800 ms deadline (shared by probe and request) all count as failures.
-4. The output settles exactly once:
+5. The output settles exactly once:
 
    | Situation | Hook output |
    |---|---|
    | Mode `cosign`, treatment arm (90%), Laya status `ok`, Laya's choice differs from the incumbent | The output without the router suggestion. A workflow message, if any, is still shown. |
    | Everything else (`shadow`, the 10% holdback arm, any Laya failure, deadline expiry, any error) | The incumbent output, byte for byte. |
 
-5. After stdout has flushed, the hook appends one private decision record. The record holds hashes, ids, probabilities and latency, but never prompt text. The legacy suggestion-log row is written as before. Its `suggested` field now records what was actually shown, plus `typed_mode`, `typed_arm`, `typed_status` and `typed_agrees`.
+6. After stdout has flushed, the hook appends one private decision record. The record holds hashes, ids, probabilities and latency, but never prompt text. The legacy suggestion-log row is written as before. Its `suggested` field now records what was actually shown, plus `typed_mode`, `typed_arm`, `typed_status` and `typed_agrees`.
 
 **Hook timeout.** The hook needs a host timeout of at least 8 s. That covers the 4.5 s workflow bridge, the 0.8 s Laya deadline and Node startup. The default Claude Code command-hook timeout already exceeds this.
 
