@@ -114,6 +114,24 @@ check('cosign bound to another Laya revision (or to one the runtime pin no longe
   assert.strictEqual(reg.currentLayaRevision(missing), 'unknown');
 }));
 
+check('an overriding endpoint keeps an earned cosign only when its authority is asserted', () => {
+  const statePath = write('override.json', fixtures.validStates.cosign);
+  const priorAuthority = process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
+  delete process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
+  try {
+    withEnv('http://127.0.0.1:9999', () => {
+      const cfg = read({ statePath });
+      assert.strictEqual(cfg.endpoint, 'http://127.0.0.1:9999');
+      assert.strictEqual(cfg.mode, 'shadow');
+    });
+    withEnv('http://127.0.0.1:8000', () => assert.strictEqual(read({ statePath }).mode, 'cosign')); // same endpoint: no override
+    process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY = '1';
+    withEnv('http://127.0.0.1:9999', () => assert.strictEqual(read({ statePath }).mode, 'cosign'));
+  } finally {
+    if (priorAuthority === undefined) delete process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY; else process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY = priorAuthority;
+  }
+});
+
 check('a symlinked state file is corrupt -> shadow (parity with the Python reader)', () => noEnv(() => {
   const target = write('real-state.json', fixtures.validStates.cosign);
   const link = path.join(dir, 'linked-state.json');

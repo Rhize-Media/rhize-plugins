@@ -7,6 +7,8 @@ import os
 import stat
 import subprocess
 import sys
+from pathlib import Path
+
 import pytest
 
 from typed_decision_testkit import (  # noqa: E402
@@ -18,6 +20,19 @@ SKILL = 'skill-fit'
 CLI = SCRIPTS / 'typed_decisions' / 'scoreboard.py'
 CYCLE = load_cycle_module()
 NOW = '2026-10-12T12:00:00Z'
+
+
+@pytest.fixture(autouse=True)
+def _runtime_pin(monkeypatch):
+    """Roots without a laya-runtime.json read as running the fixtures' checkpoint (LAYA_REV); a real pin file wins."""
+    real = records.laya_revision
+
+    def pinned(root=None):
+        value = real(root)
+        base = Path(root) if root is not None else records.default_root()
+        return LAYA_REV if value == 'unknown' and not (base / 'laya-runtime.json').exists() else value
+
+    monkeypatch.setattr(records, 'laya_revision', pinned)
 
 
 @pytest.fixture

@@ -31,6 +31,19 @@ class Crash(BaseException):
     pass
 
 
+@pytest.fixture(autouse=True)
+def _runtime_pin(monkeypatch):
+    """Roots without a laya-runtime.json read as running the fixtures' checkpoint (LAYA_REV); a real pin file wins."""
+    real = records.laya_revision
+
+    def pinned(root=None):
+        value = real(root)
+        base = Path(root) if root is not None else records.default_root()
+        return LAYA_REV if value == 'unknown' and not (base / 'laya-runtime.json').exists() else value
+
+    monkeypatch.setattr(records, 'laya_revision', pinned)
+
+
 @pytest.fixture
 def root(tmp_path):
     # The Laya runtime pin the fixtures' records and bindings were produced under (activation writes it).
@@ -209,6 +222,7 @@ def test_reserve_only_samples_disagreements_of_the_current_key(root, registry):
              + [make_record(380 + i, basis='backfill', incumbent=None, stratum='silent_sample',
                             laya_revision='new-rev') for i in range(10)])                              # router silent
     write_records(root, old + new + noise)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'new-rev'}))    # the checkpoint now running
     held = cohorts.reserve(root, registry, T_RESERVE, 1)
     assert (held['status'], held['available']) == ('held', 12)        # only the newest key counts
     more = [make_record(400 + i, laya_revision='new-rev', ts=f'2026-10-06T00:{i:02d}:05.000Z') for i in range(10)]
@@ -351,16 +365,26 @@ def test_ambiguity_above_the_limit_holds_the_cohort_but_still_spends_it(root, re
     label_cohort(root, event, by_key(recs), not_hit=15, ambiguous=5)       # 25% > 20%
     result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
     assert result['status'] == 'consumed' and result['verdict'] == 'held' and result['holdReasons'] == ['ambiguity']
-    assert result['statistic']['bound'] is None and result['statistic']['n'] == 15
+    assert result['statistic']['bound'] is None and result['statistic']['n'] == 20   # ambiguous stay in n
     assert [e['event'] for e in ledger_events(root)] == ['reserve', 'labeled', 'consumed']
     assert cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)['status'] == 'refused'
 
 
 def test_ambiguity_at_exactly_the_limit_is_tested(root, registry):
     recs, event = cohort_world(root, registry)
-    label_cohort(root, event, by_key(recs), not_hit=min_pass_x(16), ambiguous=4)    # 20% is allowed
+    # 20% ambiguity is allowed; ambiguous cases count in n (never in x), so the pass needs the n=20 threshold
+    label_cohort(root, event, by_key(recs), not_hit=min_pass_x(20), ambiguous=4)
     result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
-    assert result['verdict'] == 'pass' and result['statistic']['n'] == 16 and result['counts']['ambiguous'] == 4
+    assert result['verdict'] == 'pass' and result['statistic']['n'] == 20 and result['counts']['ambiguous'] == 4
+
+
+def test_ambiguous_cases_are_conservative_and_cannot_rescue_a_cohort(root, registry):
+    recs, event = cohort_world(root, registry)
+    # min_pass_x(16) misses among 16 unambiguous cases would pass if ambiguity were dropped from n; it must not
+    label_cohort(root, event, by_key(recs), not_hit=min_pass_x(16), ambiguous=4)
+    result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
+    if min_pass_x(16) < min_pass_x(20):
+        assert result['verdict'] == 'fail' and result['statistic']['n'] == 20
 
 
 def test_unavailable_laya_above_five_percent_holds_the_cohort(tmp_path, registry):
@@ -1071,6 +1095,7 @@ def test_cli_run_uses_the_env_root_and_prints_a_compact_summary(tmp_path):
     home = tmp_path / 'home'
     home.mkdir()
     write_records(env_root, disagreements(65))
+    (env_root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
     env = {**os.environ, 'HOME': str(home), 'RHIZE_TYPED_DECISIONS_ROOT': str(env_root)}
     dry = subprocess.run([sys.executable, str(CYCLE_CLI), 'run', '--dry-run', '--now', NOW, '--seed', '7'],
                          capture_output=True, text=True, timeout=120, env=env)
@@ -1120,14 +1145,14 @@ def test_reserve_holds_when_the_laya_revision_is_unknown(root, registry):
     assert cohorts.reserve(root, registry, T_RESERVE, 1) == {'status': 'held', 'reason': 'laya_revision_unknown'}
 
 
-def test_held_cohorts_spend_no_alpha(root, registry):
+def test_held_cohorts_spend_alpha(root, registry):
     recs = disagreements(45)
     write_records(root, recs)
     _, first = reserve_cohort(root, registry, seed=1)
     label_cohort(root, first, by_key(recs), not_hit=0, ambiguous=10)                         # 50% ambiguous
     assert cohorts.evaluate(root, registry, first['cohortId'], T_EVAL)['verdict'] == 'held'
     _, second = reserve_cohort(root, registry, seed=2, now='2026-10-11T07:00:00Z')
-    assert second['attempt'] == 1 and second['alpha'] == pytest.approx(0.05)
+    assert second['attempt'] == 2 and second['alpha'] == pytest.approx(0.025)
 
 
 def test_a_passed_cohort_whose_promotion_failed_is_promoted_by_the_next_cycle(root, registry, monkeypatch):

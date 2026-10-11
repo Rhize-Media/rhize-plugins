@@ -248,7 +248,13 @@ function readDecisionConfig(decisionId, options = {}) {
 
     let endpoint = entry.endpoint;
     const override = process.env.RHIZE_LAYA_ENDPOINT;
-    if (endpoint !== null && isLoopbackEndpoint(override)) endpoint = override;
+    if (endpoint !== null && isLoopbackEndpoint(override) && override !== endpoint) {
+      endpoint = override;
+      // An earned cosign is bound to the checkpoint evaluated behind the registry endpoint. Nothing
+      // shows that an overriding endpoint serves it, so the override keeps authority only when that is
+      // asserted explicitly (RHIZE_LAYA_ENDPOINT_AUTHORITY=1, used by test harnesses); otherwise shadow.
+      if (mode === 'cosign' && process.env.RHIZE_LAYA_ENDPOINT_AUTHORITY !== '1') mode = 'shadow';
+    }
 
     return {
       mode, pinned, holdback: entry.holdback, latencyBudgetMs: entry.latencyBudgetMs, endpoint,

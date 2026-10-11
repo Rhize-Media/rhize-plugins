@@ -423,7 +423,9 @@ def _run(root, now, dry_run, seed, registry) -> dict:
                 if row['status'] != 'awaiting_evaluation' and not retry_pass:
                     continue
                 cohort_key = (row['policySha256'], row['instrumentSha256'], row['layaRevision'])
-                if cohort_key != key or row['policySha256'] != policy_hash or row['instrumentSha256'] != instrument_hash:
+                if (cohort_key != key or row['policySha256'] != policy_hash or row['instrumentSha256'] != instrument_hash
+                        or row['layaRevision'] != laya_revision or laya_revision == 'unknown'):
+                    # Only evidence from the checkpoint that is running now can grant authority.
                     actions.append({'type': 'skip_cohort', 'cohortId': row['cohortId'], 'reason': 'stale_key'})
                     continue
                 if retry_pass:

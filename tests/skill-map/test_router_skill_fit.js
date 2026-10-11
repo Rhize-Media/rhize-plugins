@@ -108,7 +108,9 @@ function scenario(opts = {}) {
   };
   delete env.RHIZE_HOST;
   if (opts.env && opts.env.RHIZE_HOST) env.RHIZE_HOST = opts.env.RHIZE_HOST;
-  if (opts.endpoint) env.RHIZE_LAYA_ENDPOINT = opts.endpoint; else delete env.RHIZE_LAYA_ENDPOINT;
+  // The fake server stands in for the evaluated checkpoint, so the harness asserts endpoint authority.
+  if (opts.endpoint) { env.RHIZE_LAYA_ENDPOINT = opts.endpoint; env.RHIZE_LAYA_ENDPOINT_AUTHORITY = '1'; }
+  else { delete env.RHIZE_LAYA_ENDPOINT; delete env.RHIZE_LAYA_ENDPOINT_AUTHORITY; }
   return { home, root, logPath, env };
 }
 

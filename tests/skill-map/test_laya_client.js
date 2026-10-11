@@ -504,6 +504,10 @@ function jsonResponse(status, body, extra = {}) {
     assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: 'localhost,127.0.0.1,::1' }), false);
     assert.strictEqual(client.envProxyHazard({ NODE_OPTIONS: '--use-env-proxy', no_proxy: 'example.com' }), true);
     assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '*' }), false);
+    // the exemption must cover THIS endpoint's host: 127.0.0.1 does not exempt [::1], CIDR is not trusted
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.1' }, 'http://[::1]:8000'), true);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '::1' }, 'http://[::1]:8000'), false);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.0/8' }, 'http://127.0.0.1:8000'), true);
   });
 
   const failed = results.filter(([, ok]) => !ok);

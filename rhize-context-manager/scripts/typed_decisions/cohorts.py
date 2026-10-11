@@ -280,13 +280,18 @@ def reserve(root, registry: dict, now, seed, dry_run: bool = False) -> dict:
         if key[2] == 'unknown':
             # Authority must bind to a checkpoint: write laya-runtime.json (activation) before collecting gate evidence.
             return _held('laya_revision_unknown')
+        runtime_revision = records.laya_revision(root)
+        if key[2] != runtime_revision:
+            # The newest evidence was produced under another checkpoint than the one now running.
+            return _held('laya_revision_mismatch', recordRevision=key[2], runtimeRevision=runtime_revision)
         ledger = cohort_ledger(root)
         same_key = [c for c in ledger.values() if key_of(c['reserve']) == key]
         open_cohorts = [c['reserve']['cohortId'] for c in same_key if c['consumed'] is None]
         if open_cohorts:
             return _held('open_cohort', cohortId=open_cohorts[0])
-        # Only cohorts that were actually tested spend alpha; a 'held' verdict (ambiguity, unavailability) ran no test.
-        attempt = 1 + sum(1 for c in same_key if c['consumed'] is not None and c['consumed']['verdict'] in ('pass', 'fail'))
+        # Every consumed cohort spends alpha, held ones included: a hold is decided after labeling and may be
+        # outcome-dependent, so discarding held cohorts for free would void the alpha-spending guarantee.
+        attempt = 1 + sum(1 for c in same_key if c['consumed'] is not None)
         alpha = alpha_for_attempt(gates['alphaBase'], attempt)
         if alpha < MIN_ALPHA:
             return _held('alpha_exhausted', attempt=attempt)
@@ -424,8 +429,10 @@ def evaluate(root, registry: dict, cohort_id: str, now, dry_run: bool = False) -
         meta = read_cohort_meta(root, cohort_id) or {}
         for frozen in ('maxAmbiguousShare', 'maxUnavailableShare'):   # frozen at reserve, like lambda and alpha
             value = meta.get(frozen)
-            if isinstance(value, (int, float)) and not isinstance(value, bool) and 0 <= value <= 1:
-                gates[frozen] = value
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= value <= 1:
+                # Never fall back to the live registry: a later, looser setting must not decide this cohort.
+                return _held('cohort_meta_invalid', field=frozen)
+            gates[frozen] = value
         keys = reserve_event['occurrenceKeys']
         found = cohort_labels(load_labels(root)[0], reserve_event)
         missing = [k for k in keys if k not in found]
@@ -506,17 +513,23 @@ def _build_receipt(reserve_event, gates, entry, cohort_recs, all_recs, found, re
             not_hit += 1
             wrong += score == 'wrong'
             false_fire += score == 'false_fire'
-    n, x = hit + not_hit, not_hit
+    # Conservative: ambiguous cases stay in the denominator and never count toward x, so outcome-dependent
+    # ambiguity cannot inflate the estimated share of incumbent misses among disagreements.
+    n, x = hit + not_hit + ambiguous, not_hit
     counts = {'labeled': labeled, 'ambiguous': ambiguous, 'hit': hit, 'notHit': not_hit}
     key = key_of(reserve_event)
     times = [utc(r['ts']) for r in cohort_recs]
-    unavailable = unavailable_stats(all_recs, key, min(times), max(times))
+    live_recs = [r for r in all_recs if r['basis'] == 'live']
+    unavailable = unavailable_stats(live_recs, key, min(times), max(times))
     if any(r['basis'] == 'backfill' for r in cohort_recs):
+        # Backfill attempts (answered and failed) come only from its run logs: its records are the answered
+        # subset of those same attempts, so counting them again would dilute the failure share.
         runs = backfill_run_stats(skill_dir(root) if root is not None else None, key)
-        if runs['total']:
-            total = unavailable['total'] + runs['total']
-            bad = unavailable['unavailable'] + runs['unavailable']
-            unavailable = {'total': total, 'unavailable': bad, 'share': bad / total, 'backfillRuns': runs}
+        total = unavailable['total'] + runs['total']
+        bad = unavailable['unavailable'] + runs['unavailable']
+        unavailable = {'total': total, 'unavailable': bad, 'share': (bad / total) if total else 0.0,
+                       'live': {'total': unavailable['total'], 'unavailable': unavailable['unavailable']},
+                       'backfillRuns': runs}
     ambiguous_share = ambiguous / labeled if labeled else 0.0
     threshold = threshold_for(reserve_event['lambda'])
     alpha = reserve_event['alpha']

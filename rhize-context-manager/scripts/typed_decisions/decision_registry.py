@@ -242,6 +242,11 @@ def _check_binding(root, registry_entry: dict, actor: str, binding) -> dict:
     rev = binding['layaRevision']
     if not isinstance(rev, str) or not contract.REVISION.match(rev):
         raise RegistryError('invalid_binding', 'invalid layaRevision')
+    runtime_revision = records.laya_revision(root)
+    if rev != runtime_revision:
+        raise RegistryError('invalid_binding', f'layaRevision {rev} is not the running checkpoint ({runtime_revision})')
+    if actor == 'cycle' and rev == 'unknown':
+        raise RegistryError('invalid_binding', 'the cycle never promotes on an unknown Laya revision')
     cohort_id = binding['cohortId']
     if cohort_id is None:
         if actor != 'cycle':
@@ -263,7 +268,7 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
     expected_revision is the revision the caller observed (0 when the state file was missing). Raises
     RegistryError with code: invalid_actor, invalid_reason, unknown_decision, unreachable_mode,
     state_corrupt, stale_revision, pinned, pin_forbidden, binding_required, invalid_binding,
-    policy_not_deployable, no_change, lock_timeout.
+    policy_not_deployable, no_change, lock_timeout, recovery_blocked.
 
     Rules: actor 'cycle' is refused for a pinned decision and may never change a pin; a mode must be in
     the registry's reachableModes (a critical tier never leaves shadow/off); cosign needs a binding
@@ -304,7 +309,10 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
 
 def _mutate_locked(root, registry, entry, decision, to_mode, actor, reason, expected_revision, pinned, binding,
                    now) -> dict:
-    _recover_locked(root, registry, now)
+    recovery = _recover_locked(root, registry, now)
+    if recovery['action'] == 'blocked':
+        # An unresolved transaction (diverged state, revision gap, invalid intent) must be fixed first.
+        raise RegistryError('recovery_blocked', f"unresolved registry transaction: {recovery['reason']}")
     state, status = read_state(root, registry)
     if status == 'corrupt':
         raise RegistryError('state_corrupt', 'registry-state.json is unreadable or invalid; hooks run in shadow. '

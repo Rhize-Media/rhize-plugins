@@ -494,3 +494,28 @@ Implemented as planned: a coordinator contract commit, then three parallel Sonne
 - **Interactive traffic:** 232 fires (about 15 a day). Laya disagreed on 199 of them (86%), spread across 192 distinct sessions. That is enough for the 60-case bootstrap cohort.
 - **Laya latency:** p50 89–117 ms and p90 117–137 ms across length buckets. 210 of 262 prompts exceeded 1,200 characters and were truncated by design.
 - **Live hook:** the run through the real Laya took 184–373 ms end to end (cold to warm), against about 80 ms for a non-eligible prompt.
+
+## 13. Final reviews (2026-10-11)
+
+**Fable** (merge-after-fixes): three majors, four minors and parity nits. All were fixed in `9f84919`:
+- cosign is bound to policy, instrument and Laya revision in both readers, and the cycle demotes honestly;
+- the observer skip is cwd-only;
+- an explicit `--manual-override` is required;
+- backfill failure counts are kept;
+- a failed promotion is retried;
+- the probe cache is written after the flush;
+- reader parity is fixed.
+
+**Codex**, two parallel jobs:
+- **Part A, runtime** (`1b8c5dae`, merge-after-fixes):
+  - the env-proxy exemption must match the exact endpoint host;
+  - an overriding `RHIZE_LAYA_ENDPOINT` drops cosign to shadow unless `RHIZE_LAYA_ENDPOINT_AUTHORITY=1` (test harnesses);
+  - the Laya budget now starts before the optional preparation.
+- **Part B, authority** (`bbdd816e`, hold):
+  - **blocker:** ambiguous labels now stay in n, never in x. Every consumed cohort spends α, held ones included; this reverses the Fable m3 "held spends no α" change, because a hold is decided after labeling.
+  - live and backfill attempts are each counted once in the unavailability hold;
+  - reserving and promoting require the cohort's revision to equal the running checkpoint, and mutation refuses a binding to any other revision;
+  - a blocked recovery stops every mutation;
+  - evaluation holds when the frozen gate shares are missing.
+
+  All were fixed and tested, then sent back to Codex for verification.

@@ -435,6 +435,9 @@ async function main() {
   }
   if (!state) { process.exit(0); return; }
 
+  // The Laya budget starts BEFORE the optional preparation (registry/state/map reads, request
+  // building), so that work counts against it; the reads are small local files.
+  const optionalStartedAt = performance.now();
   let plan = null;
   if (state.eligible) {
     try { plan = planLaya(state); } catch (_) { plan = null; }
@@ -461,16 +464,17 @@ async function main() {
   }
 
   const budget = plan.config.latencyBudgetMs;
-  const startedAt = performance.now();
+  const startedAt = optionalStartedAt;
   const deadlineAt = startedAt + budget;
   const elapsed = () => Math.max(0, Math.round((performance.now() - startedAt) * 10) / 10);
+  const untilDeadline = () => Math.max(0, deadlineAt - performance.now());
   // Plain literals (no helper that could throw) for every fallback path.
   const failed = (status) => ({
     status, choice: null, probabilities: null, latencyMs: elapsed(), truncated: plan.built.truncated === true,
   });
   fatalHandler = () => settleOnce(failed('unavailable'));
-  hardExit = setTimeout(() => process.exit(0), budget + SETTLE_MARGIN_MS + HARD_EXIT_MARGIN_MS);
-  backstop = setTimeout(() => settleOnce(failed('timeout')), budget + SETTLE_MARGIN_MS);
+  hardExit = setTimeout(() => process.exit(0), untilDeadline() + SETTLE_MARGIN_MS + HARD_EXIT_MARGIN_MS);
+  backstop = setTimeout(() => settleOnce(failed('timeout')), untilDeadline() + SETTLE_MARGIN_MS);
 
   let outcome;
   try {

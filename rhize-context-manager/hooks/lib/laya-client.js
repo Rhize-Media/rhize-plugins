@@ -54,14 +54,15 @@ function isLoopbackEndpoint(endpoint) {
 }
 
 // Node's fetch ignores proxy variables unless the env-proxy mode is on. When it
-// is on and loopback is not exempted, a request to 127.0.0.1 could be routed to
-// the proxy, so refuse rather than risk sending task text off-host.
-function envProxyHazard(env = process.env) {
+// is on, the request to THIS endpoint goes direct only if NO_PROXY exempts its
+// exact host (or '*'); otherwise refuse rather than risk sending task text
+// off-host. CIDR and suffix forms are deliberately not trusted.
+function envProxyHazard(env = process.env, endpoint = 'http://127.0.0.1:0') {
   const on = /^(1|true)$/i.test(String(env.NODE_USE_ENV_PROXY || '')) || /--use-env-proxy/.test(String(env.NODE_OPTIONS || ''));
   if (!on) return false;
   const noProxy = String(env.NO_PROXY || env.no_proxy || '').split(',').map((s) => s.trim().toLowerCase());
-  return !noProxy.some((entry) => entry === '*' || entry === '127.0.0.1' || entry === '::1' || entry === '[::1]'
-    || entry === '127.0.0.0/8');
+  const exempt = /^http:\/\/\[::1\]:/.test(String(endpoint)) ? ['*', '::1', '[::1]'] : ['*', '127.0.0.1'];
+  return !noProxy.some((entry) => exempt.includes(entry));
 }
 
 function result(status, started, now, choice = null, probabilities = null) {
@@ -227,7 +228,7 @@ async function callChoice(options) {
     if (typeof body !== 'string') return result('invalid', null, clock);
     const doFetch = fetchImpl || globalThis.fetch;
     if (typeof doFetch !== 'function') return result('unavailable', null, clock);
-    if (!fetchImpl && envProxyHazard()) return result('unavailable', null, clock);
+    if (!fetchImpl && envProxyHazard(process.env, endpoint)) return result('unavailable', null, clock);
 
     started = clock();
     const wallNow = typeof wallNowOpt === 'function' ? wallNowOpt : () => Date.now();

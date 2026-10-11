@@ -21,6 +21,19 @@ NOW = '2026-10-11T20:00:00Z'
 CLI = SCRIPTS / 'typed_decisions' / 'decision_registry.py'
 
 
+@pytest.fixture(autouse=True)
+def _runtime_pin(monkeypatch):
+    """Roots without a laya-runtime.json read as running the fixtures' checkpoint (LAYA_REV); a real pin file wins."""
+    real = records.laya_revision
+
+    def pinned(root=None):
+        value = real(root)
+        base = Path(root) if root is not None else records.default_root()
+        return LAYA_REV if value == 'unknown' and not (base / 'laya-runtime.json').exists() else value
+
+    monkeypatch.setattr(records, 'laya_revision', pinned)
+
+
 @pytest.fixture
 def root(tmp_path):
     return tmp_path / 'typed-decisions'
@@ -475,6 +488,8 @@ def run_cli(root, *args):
 
 
 def test_cli_show_set_mode_pin_and_recover(root):
+    root.mkdir(mode=0o700, parents=True)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))   # the CLI runs in a subprocess
     code, out = run_cli(root, 'show')
     assert code == 0 and out['status'] == 'missing' and out['decisions'][SKILL]['effectiveMode'] == 'shadow'
     code, out = run_cli(root, 'set-mode', SKILL, 'off', '--reason', 'manual_off', '--pin')
@@ -505,3 +520,27 @@ def test_cli_pin_and_unpin_are_mutually_exclusive(root):
     proc = subprocess.run([sys.executable, str(CLI), '--root', str(root), 'set-mode', SKILL, 'off', '--reason', 'x',
                            '--pin', '--unpin'], capture_output=True, text=True, timeout=60)
     assert proc.returncode == 2 and 'not allowed' in proc.stderr
+
+
+def test_a_binding_must_name_the_running_checkpoint(root):
+    root.mkdir(mode=0o700, parents=True)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'other-rev'}))
+    with pytest.raises(reg.RegistryError) as err:
+        reg.mutate(root, SKILL, 'cosign', actor='cli', reason='manual_override', expected_revision=0, binding=binding())
+    assert err.value.code == 'invalid_binding'
+
+
+def test_a_blocked_recovery_stops_every_mutation(root):
+    reg.mutate(root, SKILL, 'off', actor='cli', reason='manual_off', expected_revision=0)
+    state = reg.read_state(root)[0]
+    # a dangling intent two revisions ahead of the state (revision gap): recovery is blocked
+    bogus = json.loads(json.dumps(state))
+    bogus['revision'] = 3
+    line = {'schema': contract.AUDIT_SCHEMA, 'phase': 'intent', 'revision': 3, 'previousRevision': 2,
+            'at': '2026-10-11T00:00:00Z', 'actor': 'cli', 'decision': SKILL, 'fromMode': 'shadow', 'toMode': 'off',
+            'pinned': False, 'reason': 'diverged', 'state': bogus}
+    locked_io.append_line(reg.audit_path(root), line)
+    assert reg.recover(root)['action'] == 'blocked'
+    with pytest.raises(reg.RegistryError) as err:
+        reg.mutate(root, SKILL, 'shadow', actor='cli', reason='resume', expected_revision=1)
+    assert err.value.code == 'recovery_blocked'

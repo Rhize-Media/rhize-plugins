@@ -83,7 +83,7 @@ python3 scoreboard.py render --format md
 - at most 20% of labels are ambiguous;
 - Laya's unavailable rate is at most 5%.
 
-At n = 60 the first attempt needs at least 37 "router wrong". Each new attempt needs a new cohort and a stricter α. Only the plain co-sign policy (`cosign-v1`) can ever be deployed.
+At n = 60 the first attempt needs at least 37 "router wrong". Ambiguous labels stay in the denominator and never count as "router wrong", so they can only make promotion harder. Every tested cohort spends its α, including one that ends in a hold, and each new attempt needs a new cohort with a stricter α. Only evidence from the Laya checkpoint that is running now (`laya-runtime.json`) can reserve or promote a cohort. Only the plain co-sign policy (`cosign-v1`) can ever be deployed.
 
 **Demotion.**
 - **Quality:** demote when there are at least 30 labeled live co-sign disagreements in 14 days and the upper bound falls below 0.5.
