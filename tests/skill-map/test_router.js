@@ -377,23 +377,31 @@ check('[logging] appendFileSync of one line stays well within the 50ms hook budg
   assert.strictEqual(core.routeFromIndex(collision, core.tokenize('Use ecc:accessibility'), 'Use ecc:accessibility'), null);
 }
 
-check('[laya shadow] unavailable local model preserves incumbent suggestion and private receipt', () => {
+// The skill-fit shadow now ships on by default (registry mode `shadow`): an unreachable local
+// Laya server must leave the incumbent output untouched and still leave a private decision
+// record. The full matrix lives in test_router_skill_fit.js.
+check('[laya shadow] unavailable local model preserves incumbent suggestion and private decision record', () => {
   withTempHome((tmpHome) => {
     writeIndexes(tmpHome, fs.readFileSync(INDEX_FIXTURE_PATH, 'utf8'));
     const prompt = 'help me get git and context tooling set up';
     const baseline = runRouter(tmpHome, prompt);
+    const root = path.join(tmpHome, 'typed-root');
     const shadow = runRouterFull(tmpHome, prompt, 'session-shadow', {
-      RHIZE_LAYA_SKILL_SHADOW: '1', RHIZE_LAYA_BASE_URL: 'http://127.0.0.1:1',
+      RHIZE_TYPED_DECISIONS_ROOT: root, RHIZE_LAYA_ENDPOINT: 'http://127.0.0.1:1',
     });
     assert.strictEqual(shadow.status, 0, shadow.stderr);
     assert.strictEqual(shadow.stdout, baseline.stdout);
-    const receipts = path.join(tmpHome, '.local', 'share', 'rhize', 'typed-decisions', 'receipts');
-    const names = fs.readdirSync(receipts);
+    const records = path.join(root, 'skill-fit', 'records');
+    const names = fs.readdirSync(records);
     assert.strictEqual(names.length, 1);
-    const receipt = JSON.parse(fs.readFileSync(path.join(receipts, names[0]), 'utf8'));
-    assert.strictEqual(receipt.status, 'unavailable');
-    assert.strictEqual(receipt.incumbentAltered, false);
-    assert.strictEqual(fs.statSync(path.join(receipts, names[0])).mode & 0o777, 0o600);
+    const lines = fs.readFileSync(path.join(records, names[0]), 'utf8').split('\n').filter(Boolean);
+    assert.strictEqual(lines.length, 1);
+    const record = JSON.parse(lines[0]);
+    assert.strictEqual(record.laya.status, 'unavailable');
+    assert.strictEqual(record.mode, 'shadow');
+    assert.strictEqual(record.emitted, 'skill:rhize-context-manager/graphify');
+    assert.strictEqual(fs.statSync(path.join(records, names[0])).mode & 0o777, 0o600);
+    assert.ok(!lines[0].includes(prompt), 'records never carry prompt text');
   });
 });
 
