@@ -53,7 +53,8 @@
         {
           "enum": [
             "skill_tool",
-            "slash_command"
+            "slash_command",
+            "skill_file_read"
           ]
         },
         {

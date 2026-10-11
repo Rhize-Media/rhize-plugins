@@ -434,15 +434,18 @@ def test_lookup_by_stored_hashes_matches_the_prefix_lookup(tmp_path, roots):
     assert scanner.find_turn_by_hash(sha(S2), sha('Audit our SEO'), None) == (None, 'transcript_unavailable')
 
 
-def test_codex_layout_is_searchable_but_has_no_invocation_parser(tmp_path, roots):
+def test_codex_layout_is_searchable_and_parsed_for_invocations(tmp_path, roots):
+    # Codex rollouts now have an invocation parser (SKILL.md reads; see test_codex_outcomes.py): a rollout with
+    # no skill read parses cleanly to no invocations instead of raising 'transcript_unavailable'.
     path = tmp_path / 'transcripts' / '2026' / '10' / f'rollout-2026-10-05T10-00-00-{S2}.jsonl'
     path.parent.mkdir(parents=True)
     path.write_text(json.dumps({'type': 'response_item', 'timestamp': '2026-10-05T10:00:01.000Z', 'payload': {
         'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': 'codex prompt'}]}}) + '\n')
     match, reason = transcripts.find_turn(S2, sha('codex prompt')[:16], '2026-10-05T10:00:01.000Z', roots)
     assert reason is None and match['text'] == 'codex prompt'
+    assert transcripts.skill_invocations(path, 0) == []
     with pytest.raises(transcripts.TranscriptError) as caught:
-        transcripts.skill_invocations(path, 0)
+        transcripts.skill_invocations(tmp_path / 'missing' / f'rollout-2026-10-05T10-00-00-{S3}.jsonl', 0)
     assert caught.value.reason == 'transcript_unavailable'
 
 

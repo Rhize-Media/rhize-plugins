@@ -12,7 +12,13 @@ the record) AND the next N user turns. The outcome is the first match in this or
     invoked_other_shortlisted  another shortlisted skill was invoked
     invoked_unlisted           some other skill or command was invoked
     none_invoked               nothing was invoked in the window
-    transcript_unavailable     no readable Claude transcript for the session
+    transcript_unavailable     no readable Claude transcript, or Codex user-thread rollout, for the session
+
+Claude transcripts yield `Skill` tool_use events (via skill_tool) and slash commands (via slash_command). Codex
+rollouts yield read-shaped shell reads of a plugin's SKILL.md (via skill_file_read, a weaker, separate kind of
+evidence; see transcripts.py). A Codex rollout counts only when its session_meta thread_source is 'user': guardian
+reviews, subagents and automations are machine traffic and read as transcript_unavailable, as does a rollout
+whose thread_source is unknown.
 
 `plugin:skill` references are normalized to skill ids through the record's own shortlist (a bare name matches when
 it is unique there); skillInvoked keeps the plugin:skill form. Windows that have not closed yet are left for a
@@ -36,6 +42,7 @@ import pilot_autolabel as auto  # noqa: E402
 from typed_decisions import contract, evidence_fs, records, transcripts  # noqa: E402
 
 DECISION = 'skill-fit'
+USER_THREAD = 'user'                     # the only Codex session_meta.thread_source whose rollout is joined
 EXIT_OK, EXIT_USAGE = 0, 2
 
 
@@ -162,8 +169,10 @@ def outcome_for(record, moment, scanner, window_minutes, turns, joined_at):
     chosen = None
     for path in paths:
         parsed = scanner.parsed(path)
-        if isinstance(parsed, str) or parsed.codex:
+        if isinstance(parsed, str):
             continue
+        if parsed.codex and parsed.thread_source != USER_THREAD:
+            continue                      # guardian_review, subagent, automation, ... or unknown: not the user's work
         line = anchor_for(parsed, record['promptHash'], epoch)
         if line is not None:
             chosen = (parsed, line)

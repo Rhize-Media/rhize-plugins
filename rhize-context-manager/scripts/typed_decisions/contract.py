@@ -36,7 +36,7 @@ LAYA_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'identity_failed', '
 LABEL_BASES = ('ai_model_reviewed', 'human_adjudicated', 'harness')
 OUTCOMES = ('invoked_emitted', 'invoked_other_shortlisted', 'invoked_unlisted', 'none_invoked',
             'transcript_unavailable')
-OUTCOME_VIA = ('skill_tool', 'slash_command')
+OUTCOME_VIA = ('skill_tool', 'slash_command', 'skill_file_read')
 COHORT_EVENTS = ('reserve', 'labeled', 'consumed')
 VERDICTS = ('pass', 'fail', 'held')
 AUDIT_PHASES = ('intent', 'commit')

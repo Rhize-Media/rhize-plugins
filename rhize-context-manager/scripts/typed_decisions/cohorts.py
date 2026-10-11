@@ -5,6 +5,11 @@ exactly once (`evaluate`). The test is the one-sided exact Clopper-Pearson lower
 disagreement cases in which the incumbent suggestion is not a hit, against 1/(1+lambda). Attempt k spends
 alpha_base * 2**-(k-1). `demotion_check` is the reverse test for a deployed `cosign` mode.
 
+Gate scope: only records whose host is in GATE_HOSTS ever reach a cohort pool, the cohort key, the unavailability
+share or a demotion window. Codex records are written (in shadow) so that they accumulate evidence for a later
+Codex-stratified gate, but they must never be pooled into the Claude gate or into the demotion of a Claude-granted
+`cosign`: the two hosts differ in router build, prompt shape and Laya traffic, and the binding was earned on Claude.
+
 Ledger events live in <root>/skill-fit/cohorts/<day>.jsonl (typed_decisions.records). Sidecars:
   <root>/skill-fit/cohort-meta/<cohortId>.json   inclusion probability of the reservation (labeler input)
   <root>/skill-fit/receipts/<cohortId>.json      full receipt; its sha256 is in the consumed event
@@ -35,6 +40,9 @@ QUALITY_WINDOW_DAYS = 14
 # need a minimum sample; an outage still trips them within hours at ~150 fires a day.
 MIN_OPERATIONAL_RECORDS = 20
 MIN_ALPHA = 1e-9
+# Hosts whose records may feed the gate (reserve pool, cohort key, live unavailability, every demotion window).
+# Backfill records carry host 'claude'. Codex accumulates shadow evidence for a later Codex-stratified gate.
+GATE_HOSTS = ('claude',)
 META_SCHEMA = 'rhize-typed-decision-cohort-meta-v1'
 RECEIPT_SCHEMA = 'rhize-typed-decision-cohort-receipt-v1'
 
@@ -145,6 +153,16 @@ def load_records(root) -> tuple[list[dict], int]:
     return records.dedupe_by_occurrence(items), invalid
 
 
+def is_gate_record(rec: dict) -> bool:
+    """True when the record's host may feed the gate (see GATE_HOSTS)."""
+    return rec.get('host') in GATE_HOSTS
+
+
+def gate_records(recs: list[dict]) -> list[dict]:
+    """The records that may feed the gate: those of a GATE_HOSTS host."""
+    return [rec for rec in recs if is_gate_record(rec)]
+
+
 def load_labels(root) -> tuple[list[dict], int]:
     return records.read(Path(root), DECISION, 'labels')
 
@@ -162,10 +180,15 @@ def deployable_hashes(entry: dict) -> tuple[str, str]:
 
 
 def current_key(entry: dict, recs: list[dict]):
-    """Evidence key of the most recent record that matches the deployable policy and instrument."""
+    """Evidence key of the most recent gate-host record that matches the deployable policy and instrument.
+
+    Non-gate hosts are skipped so that a newer Codex record can never move the key the gate is bound to.
+    """
     policy_hash, instrument_hash = deployable_hashes(entry)
     best, best_t = None, None
     for rec in recs:
+        if not is_gate_record(rec):
+            continue
         if rec['policySha256'] != policy_hash or rec['instrumentSha256'] != instrument_hash:
             continue
         t = utc(rec['ts'])
@@ -274,7 +297,8 @@ def reserve(root, registry: dict, now, seed, dry_run: bool = False) -> dict:
     target, cap = gates['cohortSize'], gates['maxPerSession']
 
     def attempt_reserve():
-        recs, _ = load_records(root)
+        # Gate scope: the pool, the cohort key and the availability share are all computed from GATE_HOSTS records.
+        recs = gate_records(load_records(root)[0])
         key = current_key(entry, recs)
         if key is None:
             return _held('no_records')
@@ -372,11 +396,12 @@ def read_cohort_meta(root, cohort_id: str):
 def unavailable_stats(recs: list[dict], key, tmin, tmax) -> dict:
     """Share of Laya calls that were not 'ok' among records with the cohort key inside [tmin, tmax].
 
-    'skipped' records never called Laya and are not counted either way.
+    'skipped' records never called Laya and are not counted either way. Records of hosts outside GATE_HOSTS
+    are not counted: another host's outage must not hold or demote the gate.
     """
     total = bad = 0
     for rec in recs:
-        if key_of(rec) != key or rec['laya']['status'] == 'skipped':
+        if not is_gate_record(rec) or key_of(rec) != key or rec['laya']['status'] == 'skipped':
             continue
         if not tmin <= utc(rec['ts']) <= tmax:
             continue
@@ -658,7 +683,9 @@ def demotion_check(root, registry: dict, state, now) -> dict:
     now = utc(now)
     since = utc(current['since'])
     threshold = threshold_for(entry['lambda'])
-    recs, _ = load_records(root)
+    # Gate scope: all three windows below read GATE_HOSTS records only. A label of a non-gate record finds no
+    # record in by_key and is skipped, so Codex evidence can neither trigger nor mask a demotion.
+    recs = gate_records(load_records(root)[0])
     labels, _ = load_labels(root)
     by_key = {r['occurrenceKey']: r for r in recs}
 

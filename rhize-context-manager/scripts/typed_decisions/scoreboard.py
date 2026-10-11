@@ -6,11 +6,20 @@
 Built from the latest cycle receipt (<root>/skill-fit/cycles/*.json: report-only alternatives, versions,
 actions) plus the current registry state, records, labels, outcomes and the registry audit log. The markdown
 form is short enough to append to the 08:00 autolabel summary. With no data at all it still renders.
+
+Every metric is also reported per host (claude, codex, unknown): only the hosts in cohorts.GATE_HOSTS feed the
+gate, so the per-host table is where Codex shadow evidence is visible. A keep-warm line is read from
+<root>/laya-keepwarm.json (schema rhize-laya-keepwarm-v1, written by laya_keepwarm.py): last ping age, status,
+latency and failures, or "keep-warm: not running" when the file is absent. The file is read defensively
+(lstat, no symlinks, size cap) and anything that does not validate reads as "invalid".
 """
 from __future__ import annotations
 
 import argparse
 import json
+import math
+import os
+import stat
 import sys
 from collections import Counter
 from pathlib import Path
@@ -19,10 +28,14 @@ HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:
     sys.path.insert(0, str(HERE.parent))
 
-from typed_decisions import cohorts, decision_registry, locked_io, records  # noqa: E402
+from typed_decisions import cohorts, contract, decision_registry, locked_io, records  # noqa: E402
 
 SCHEMA = 'rhize-typed-decision-scoreboard-v1'
 DECISION = 'skill-fit'
+KEEPWARM_FILE = 'laya-keepwarm.json'
+KEEPWARM_SCHEMA = 'rhize-laya-keepwarm-v1'
+KEEPWARM_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'redirect_refused')
+MAX_KEEPWARM_BYTES = 64 * 1024
 
 
 def latest_cycle_receipt(root):
@@ -66,6 +79,114 @@ def acceptance(recs: list, outcomes: list) -> dict:
             'joined': sum(distribution.values()), 'outcomes': dict(distribution), 'byArm': arms}
 
 
+def host_breakdown(recs: list, outcomes: list) -> dict:
+    """Per-host counts: records by basis, live arms and modes, Laya statuses, disagreement prevalence among fired
+    records, live latency and timeout share, and joined outcomes. Every host in contract.HOSTS has a row (zeros
+    when it has no records), so a consumer never has to guess whether a host is missing or merely quiet.
+    """
+    result = {}
+    for host in contract.HOSTS:
+        own = [r for r in recs if r['host'] == host]
+        stats = cohorts.summarize_records(own)
+        live = [r for r in own if r['basis'] == 'live']
+        called = [r for r in live if r['laya']['status'] != 'skipped']
+        latencies = [r['laya']['latencyMs'] for r in called
+                     if r['laya']['status'] == 'ok' and r['laya']['latencyMs'] is not None]
+        timeouts = sum(r['laya']['status'] == 'timeout' for r in called)
+        joined = acceptance(own, outcomes)
+        result[host] = {
+            'gate': host in cohorts.GATE_HOSTS,
+            'records': stats['total'], 'byBasis': stats['byBasis'],
+            'liveArms': stats['liveArms'], 'liveModes': stats['liveModes'],
+            'layaStatuses': {basis: dict(Counter(r['laya']['status'] for r in own if r['basis'] == basis))
+                             for basis in ('live', 'backfill')},
+            'prevalence': stats['prevalence'],
+            'latency': {'n': len(latencies), 'p50': cohorts.percentile_nearest_rank(latencies, 0.5),
+                        'p90': cohorts.percentile_nearest_rank(latencies, 0.9)},
+            'timeouts': {'calls': len(called), 'timeouts': timeouts,
+                         'share': (timeouts / len(called)) if called else None},
+            'outcomes': {'joined': joined['joined'], 'counts': joined['outcomes'], 'byArm': joined['byArm']}}
+    return result
+
+
+def _timestamp(value, nullable=False):
+    if value is None:
+        if nullable:
+            return None
+        raise ValueError('missing timestamp')              # locked_io.utc(None) would silently mean "now"
+    return locked_io.utc(value)                            # ValueError for a non-string, naive or malformed time
+
+
+def _number(value, positive=False):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise ValueError('invalid number')
+    if value < 0 or (positive and value == 0):
+        raise ValueError('invalid number')
+    return value
+
+
+def _count(value):
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError('invalid count')
+    return value
+
+
+def read_keepwarm(root, now=None) -> dict:
+    """State of the Laya keep-warm loop from <root>/laya-keepwarm.json, never raising.
+
+    {'state': 'missing'} when there is no file, {'state': 'invalid'} for anything unsafe or malformed (a symlink,
+    a non-regular or oversized file, bad JSON, the wrong schema, a wrong type), else {'state': 'present', ...}
+    with the file's fields plus lastPingAgeSeconds and lastActivityAgeSeconds (None when the time is unknown).
+    """
+    path = Path(root) / KEEPWARM_FILE
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return {'state': 'missing'}
+    except OSError:
+        return {'state': 'invalid'}
+    if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_KEEPWARM_BYTES:
+        return {'state': 'invalid'}
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                return {'state': 'invalid'}
+            with os.fdopen(fd, 'rb', closefd=False) as handle:
+                raw = handle.read(MAX_KEEPWARM_BYTES + 1)
+        finally:
+            os.close(fd)
+        if len(raw) > MAX_KEEPWARM_BYTES:
+            return {'state': 'invalid'}
+        data = json.loads(raw.decode('utf-8'))
+        if not isinstance(data, dict) or data.get('schema') != KEEPWARM_SCHEMA:
+            return {'state': 'invalid'}
+        status = data.get('lastStatus')
+        if status is not None and status not in KEEPWARM_STATUSES:
+            return {'state': 'invalid'}
+        latency = data.get('lastLatencyMs')
+        if latency is not None:
+            _number(latency)
+        moment = locked_io.utc(now)
+        started = _timestamp(data.get('startedAt'))
+        last_ping = _timestamp(data.get('lastPingAt'), nullable=True)
+        last_activity = _timestamp(data.get('lastActivityAt'), nullable=True)
+        result = {'state': 'present', 'startedAt': locked_io.iso(started),
+                  'lastPingAt': None if last_ping is None else locked_io.iso(last_ping),
+                  'lastPingAgeSeconds': None if last_ping is None else max(0.0, (moment - last_ping).total_seconds()),
+                  'lastStatus': status, 'lastLatencyMs': latency,
+                  'lastActivityAt': None if last_activity is None else locked_io.iso(last_activity),
+                  'lastActivityAgeSeconds': (None if last_activity is None
+                                             else max(0.0, (moment - last_activity).total_seconds())),
+                  'intervalSeconds': _number(data.get('intervalSeconds'), positive=True),
+                  'activeWindowHours': _number(data.get('activeWindowHours'), positive=True)}
+        for name in ('consecutiveFailures', 'pings', 'ok', 'skippedIdle', 'skippedWarm'):
+            result[name] = _count(data.get(name))
+        return result
+    except (OSError, ValueError, UnicodeDecodeError, OverflowError, RecursionError):
+        return {'state': 'invalid'}
+
+
 def last_mode_change(root):
     lines, _ = decision_registry.read_audit(root)
     for line in reversed(lines):
@@ -107,6 +228,9 @@ def build(root, now=None) -> dict:
         'demotion': None if receipt is None else receipt.get('demotion'),
         'acceptance': acceptance(recs, outcomes),
         'laya': stats['laya'],
+        'gateHosts': list(cohorts.GATE_HOSTS),
+        'hosts': host_breakdown(recs, outcomes),
+        'keepWarm': read_keepwarm(root, now),
     }
 
 
@@ -116,6 +240,56 @@ def _pct(value, digits=1):
 
 def _num(value, digits=3):
     return '-' if value is None else f'{value:.{digits}f}'
+
+
+def _age(seconds):
+    if seconds is None:
+        return '-'
+    seconds = int(seconds)
+    if seconds < 120:
+        return f'{seconds}s'
+    if seconds < 7200:
+        return f'{seconds // 60}m'
+    if seconds < 2 * 86400:
+        return f'{seconds / 3600:.1f}h'
+    return f'{seconds / 86400:.1f}d'
+
+
+def _counts(counter: dict) -> str:
+    return ', '.join(f'{k} {v}' for k, v in sorted(counter.items())) or '-'
+
+
+def keepwarm_line(info: dict) -> str:
+    if info['state'] == 'missing':
+        return '- keep-warm: not running'
+    if info['state'] != 'present':
+        return '- keep-warm: invalid state file (laya-keepwarm.json)'
+    latency = '-' if info['lastLatencyMs'] is None else f'{info["lastLatencyMs"]:g} ms'
+    return (f'- keep-warm: last ping {_age(info["lastPingAgeSeconds"])} ago, status {info["lastStatus"] or "-"}, '
+            f'latency {latency}, consecutive failures {info["consecutiveFailures"]}; pings {info["pings"]} '
+            f'(ok {info["ok"]}, skipped idle {info["skippedIdle"]}, skipped warm {info["skippedWarm"]}), '
+            f'every {info["intervalSeconds"]:g} s within {info["activeWindowHours"]:g} h of activity, '
+            f'last activity {_age(info["lastActivityAgeSeconds"])} ago')
+
+
+def render_hosts(data: dict) -> list:
+    lines = ['', '### Per host (gate hosts: ' + (', '.join(data['gateHosts']) or 'none') + '; other hosts are shadow evidence only)',
+             '| host | records | live arms | live modes | Laya statuses (live) | disagreement/fired (live) | '
+             'live p50/p90 ms | timeout share | outcomes joined |',
+             '|---|---|---|---|---|---|---|---|---|']
+    for host, row in data['hosts'].items():
+        if host == 'unknown' and not row['records']:
+            continue                                            # keep the table to the hosts that exist
+        basis = f'{row["records"]} (live {row["byBasis"].get("live", 0)}, backfill {row["byBasis"].get("backfill", 0)})'
+        prev = row['prevalence']['live']
+        latency = row['latency']
+        outcomes = row['outcomes']
+        joined = f'{outcomes["joined"]}: {_counts(outcomes["counts"])}' if outcomes['joined'] else '0'
+        lines.append(f'| {host}{" (gate)" if row["gate"] else ""} | {basis} | {_counts(row["liveArms"])} | '
+                     f'{_counts(row["liveModes"])} | {_counts(row["layaStatuses"]["live"])} | '
+                     f'{prev["disagreements"]}/{prev["fired"]} ({_pct(prev["share"])}) | '
+                     f'{_num(latency["p50"], 0)}/{_num(latency["p90"], 0)} | {_pct(row["timeouts"]["share"])} | {joined} |')
+    return lines
 
 
 def render_md(data: dict) -> str:
@@ -130,6 +304,7 @@ def render_md(data: dict) -> str:
     cycle = data['lastCycle']
     lines.append('- Last cycle: ' + ('none yet' if cycle is None else
                  f'{cycle["at"]}{" (dry run)" if cycle["dryRun"] else ""}, actions: {", ".join(cycle["actions"]) or "none"}'))
+    lines.append(keepwarm_line(data['keepWarm']))
     rec = data['records']
     arms = ', '.join(f'{k} {v}' for k, v in sorted(rec['liveArms'].items())) or 'none'
     basis = ', '.join(f'{k} {v}' for k, v in sorted(rec['byBasis'].items())) or 'none'
@@ -137,6 +312,7 @@ def render_md(data: dict) -> str:
     for name in ('live', 'backfill'):
         prev = data['prevalence'][name]
         lines.append(f'- Disagreement prevalence among fired ({name}): {prev["disagreements"]}/{prev["fired"]} ({_pct(prev["share"])})')
+    lines += render_hosts(data)
     lines += ['', '### Gate (frozen single-use cohorts)']
     if not data['cohorts']:
         lines.append('No cohort reserved yet.')
