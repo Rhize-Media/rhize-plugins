@@ -547,3 +547,30 @@ Regressions added:
 - the kill-switch recovery test
 
 **Codex verification round 4** (`bb4f52e6`, **merge**, no findings). The fixes close every reported finding: per-run identity coverage matched on instrument and revision, reserve-time holds that preserve α, evaluation re-checks, IPv6 proxy detection, and CLI de-escalation. Final gate: full pytest 2905 passed, 5 skipped, 1 deselected, all Node suites included; routing harness all gates passed; `validate_skill_map.py --check-stale` passed; `bump_version.py --check --since origin/main` passed.
+
+## 14. Activation and first proof (2026-10-11, Mac)
+
+**Release.** `main` is at 1b407d0, and CI validate and tag-release passed. Both hosts are on Context Manager 0.46.0, through the native lifecycle. The `settings.json` skill-router entry now uses the portable marketplace-clone path, and its backup is kept. The local skill map was rebuilt. `laya-runtime.json` pins Laya 55cf4c4e. The live cutover was 2026-10-11T21:18:27Z.
+
+**Day 0:**
+- **Backfill** (2026-09-27 to cutover): 294 records, and all 265 Laya calls returned ok. Of the 2,400 router rows in the window:
+  - 1,152 were background-observer rows and were skipped;
+  - 457 had no context hash in a transcript;
+  - 492 had no session id.
+  
+  Disagreement prevalence among fired backfill rows was 201/235 (85.5%).
+- **Outcomes:** 291 joined. None of the emitted suggestions was invoked within 3 turns: 264 none_invoked, 24 invoked a skill outside the shortlist, 3 invoked another shortlisted skill.
+- **Bootstrap cohort `748f1c76`:** 60 disagreements from distinct sessions, out of 201 eligible. AI-labeled by Claude and Codex annotators, with Fable reviewing the 28 splits. Results: hit 1, false fire 59, wrong 0, ambiguous 0.
+- **Gate:** pass. x = 59/60 and the one-sided CP lower bound is 0.923, against a threshold of 0.5 at α 0.05. Unavailability was 0/265, and run coverage was complete. The cycle promoted skill-fit from **shadow to cosign** at 21:30:47Z, at registry revision 1.
+
+**What the proof says.** When Laya and the router disagree, the router's suggestion was almost always a false fire: no shortlisted skill fit the prompt. Co-signing mainly removes that noise. It is not yet evidence that Laya picks better skills. Measured cost: 1 of the 60 disagreements was a correct router suggestion, which co-sign would suppress.
+
+**Caveats:**
+- These are AI labels, not human ones.
+- It is one cohort from 15 days of one user's backfill.
+- Labels are constrained to the shortlist.
+- The 10% holdback arm keeps the incumbent for live comparison.
+
+**Daily loop.** `laya-autolabel.sh` (07:30) now runs `skillfit-daily.py` after the workflow labeler: outcomes, then cohort and pool labels, then the cycle, then the scoreboard, within a 10-minute budget. A smoke run passed. Live cosign smoke: an agreed suggestion was shown, and a timeout fell back to the incumbent.
+
+**Open finding (operational).** After a few idle minutes, the first Laya inference exceeded the 800 ms hook budget, so the record shows `timeout` and the incumbent is shown. Warm calls took 137–220 ms, and after 45 s idle a call took 322 ms. Timeouts are reported separately and do not trigger operational demotion. They do count as unavailable in the promotion gate, so they would hold future live cohorts once they pass 5%. Recommended fix: a keep-warm tick in the Laya service, or a measured budget increase.

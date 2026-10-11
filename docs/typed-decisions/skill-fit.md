@@ -103,12 +103,14 @@ At n = 60 the first attempt needs at least 37 "router wrong". Ambiguous labels s
 
 ## Daily rhythm
 
-The existing 07:30 autolabel job, `laya-autolabel.sh`, runs these steps after its workflow steps, under the same lock and with a 10-minute sub-deadline:
+The existing 07:30 autolabel job, `laya-autolabel.sh`, runs the workflow labeler first. It then runs `skillfit-daily.py` in the same job. That script has its own lock, a 10-minute budget, and per-call deadlines for the labelers. It runs these steps:
 1. `outcomes.py join`
-2. `skillfit_labels.py label-cohort` for any open cohort
-3. `skillfit_labels.py label-pool`
+2. `skillfit_labels.py label-cohort` for any open cohort, at most 30 cases a day
+3. `skillfit_labels.py label-pool --n 12`
 4. `decision_cycle.py run`
-5. `scoreboard.py render`, appended to the summary the 08:00 Codex automation already reads
+5. `scoreboard.py render`, which writes `skill-fit/daily/latest-scoreboard.md`. A counts-only run summary goes to `skill-fit/daily/latest-summary.json`.
+
+The steps run from the native marketplace clone, the same tree the live hook runs from, so the cycle's policy and instrument hashes match the records the hook writes. A step that fails or times out is recorded, and the rest still run. If the job receives SIGTERM, the signal is forwarded to the running step, and any steps not yet started are skipped. `SKIP_SKILLFIT=1` skips the loop.
 
 ## Limits
 
