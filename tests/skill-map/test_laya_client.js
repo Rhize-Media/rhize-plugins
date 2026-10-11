@@ -506,8 +506,15 @@ function jsonResponse(status, body, extra = {}) {
     assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '*' }), false);
     // the exemption must cover THIS endpoint's host: 127.0.0.1 does not exempt [::1], CIDR is not trusted
     assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.1' }, 'http://[::1]:8000'), true);
-    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '::1' }, 'http://[::1]:8000'), false);
+    // bare ::1 does not exempt [::1] in undici (parsed as host ':' port 1); only the bracketed form does
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '::1' }, 'http://[::1]:8000'), true);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '[::1]' }, 'http://[::1]:8000'), false);
     assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.0/8' }, 'http://127.0.0.1:8000'), true);
+    // Node reads lowercase no_proxy first: an exempting NO_PROXY cannot mask a non-exempting no_proxy
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.1', no_proxy: 'example.com' }), true);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.1', no_proxy: '' }), true);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: 'example.com', no_proxy: '127.0.0.1' }), true);
+    assert.strictEqual(client.envProxyHazard({ NODE_USE_ENV_PROXY: '1', NO_PROXY: '127.0.0.1', no_proxy: 'localhost,127.0.0.1' }), false);
   });
 
   const failed = results.filter(([, ok]) => !ok);

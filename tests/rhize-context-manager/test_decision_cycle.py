@@ -388,20 +388,31 @@ def test_ambiguous_cases_are_conservative_and_cannot_rescue_a_cohort(root, regis
 
 
 def test_unavailable_laya_above_five_percent_holds_the_cohort(tmp_path, registry):
-    outcomes = {}
-    for timeouts in (1, 3):
-        root = tmp_path / f'timeouts-{timeouts}'
-        recs = disagreements(20)
-        write_records(root, recs)
-        # timeouts inside the cohort's own time window: 1/21 = 4.8% passes the limit, 3/23 = 13% does not
-        write_records(root, [make_record(100 + k, status='timeout', ts=f'2026-10-10T00:10:{10 + k}.000Z')
-                             for k in range(timeouts)])
-        _, event = reserve_cohort(root, registry)
-        label_cohort(root, event, by_key(recs), not_hit=18)
-        outcomes[timeouts] = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
-    assert outcomes[1]['verdict'] == 'pass'
-    assert outcomes[3]['verdict'] == 'held' and outcomes[3]['holdReasons'] == ['laya_unavailable']
-    receipt = json.loads(cohorts.receipt_path(tmp_path / 'timeouts-3', outcomes[3]['cohortId']).read_text())
+    timeouts_of = lambda k_count: [make_record(100 + k, status='timeout', ts=f'2026-10-10T00:10:{10 + k}.000Z')
+                                   for k in range(k_count)]
+    # timeouts inside the cohort's own time window: 1/21 = 4.8% passes the limit
+    root = tmp_path / 'timeouts-1'
+    recs = disagreements(20)
+    write_records(root, recs + timeouts_of(1))
+    _, event = reserve_cohort(root, registry)
+    label_cohort(root, event, by_key(recs), not_hit=18)
+    assert cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)['verdict'] == 'pass'
+    # 3/23 = 13% is known before labeling: reserve refuses, writes nothing and spends no alpha
+    root = tmp_path / 'timeouts-3'
+    write_records(root, recs + timeouts_of(3))
+    held = cohorts.reserve(root, registry, '2026-10-11T00:00:00Z', 1)
+    assert held['status'] == 'held' and held['reason'] == 'laya_unavailable'
+    assert held['share'] == pytest.approx(3 / 23) and cohorts.cohort_ledger(root) == {}
+    # defense in depth: failures that land in the window after reserve still hold the cohort at evaluation
+    root = tmp_path / 'late-timeouts'
+    write_records(root, recs)
+    _, event = reserve_cohort(root, registry)
+    assert event['attempt'] == 1
+    write_records(root, timeouts_of(3))
+    label_cohort(root, event, by_key(recs), not_hit=18)
+    late = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
+    assert late['verdict'] == 'held' and late['holdReasons'] == ['laya_unavailable']
+    receipt = json.loads(cohorts.receipt_path(root, late['cohortId']).read_text())
     assert receipt['unavailable']['unavailable'] == 3 and receipt['unavailable']['total'] == 23
 
 
@@ -1178,18 +1189,99 @@ def test_a_passed_cohort_whose_promotion_failed_is_promoted_by_the_next_cycle(ro
     assert event['cohortId'] in CYCLE._cohorts_ever_promoted(root)
 
 
+RUN0 = '0' * 16          # make_record's decisionId f'{i:032x}' starts with this run id for small i
+
+
+def from_run(recs, run_id):
+    """Backfill records answered by run `run_id` (their decisionId carries it as a 16-hex prefix)."""
+    for rec in recs:
+        rec['decisionId'] = run_id + rec['decisionId'][16:]
+    return recs
+
+
+def write_backfill_runs(root, statuses, *, instrument_sha=None, revision=LAYA_REV, append=False, run_id=RUN0):
+    runs = root / 'skill-fit' / 'backfill' / 'runs.jsonl'
+    runs.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps({'schema': 'rhize-typed-decision-backfill-run-v1', 'at': '2026-10-11T00:00:00Z', 'runId': run_id,
+                       'instrumentSha256': instrument_sha or instrument.instrument_sha256(), 'layaRevision': revision,
+                       'layaCalls': sum(statuses.values()), 'layaStatuses': statuses}) + '\n'
+    with runs.open('a' if append else 'w', encoding='utf-8') as handle:
+        handle.write(line)
+    return runs
+
+
 def test_backfill_run_failures_count_toward_the_unavailability_hold(root, registry):
     recs = disagreements(45, basis='backfill', mode='shadow', arm='none')
     write_records(root, recs)
-    _, event = reserve_cohort(root, registry)
-    runs = root / 'skill-fit' / 'backfill' / 'runs.jsonl'
-    runs.parent.mkdir(parents=True, exist_ok=True)
-    runs.write_text(json.dumps({'schema': 'rhize-typed-decision-backfill-run-v1', 'at': '2026-10-11T00:00:00Z',
-                                'instrumentSha256': event['instrumentSha256'], 'layaRevision': event['layaRevision'],
-                                'layaCalls': 60, 'layaStatuses': {'ok': 45, 'timeout': 15}}) + '\n')
-    label_cohort(root, event, by_key(recs), not_hit=len(event['occurrenceKeys']))
-    result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
-    assert result['verdict'] == 'held' and 'laya_unavailable' in result['holdReasons']
+    write_backfill_runs(root, {'ok': 45, 'timeout': 15})
+    held = cohorts.reserve(root, registry, '2026-10-11T00:00:00Z', 1)
+    assert held['status'] == 'held' and held['reason'] == 'laya_unavailable' and held['share'] == pytest.approx(0.25)
+
+
+@pytest.mark.parametrize('logged_ok', [None, 20])
+def test_backfill_records_without_covering_run_logs_are_left_out_of_the_pool(root, registry, logged_ok):
+    """Missing or partial run logs must not read as a zero failure share (Codex final review, round 2)."""
+    recs = disagreements(45, basis='backfill', mode='shadow', arm='none')
+    write_records(root, recs)
+    if logged_ok is not None:
+        write_backfill_runs(root, {'ok': logged_ok})
+    held = cohorts.reserve(root, registry, '2026-10-11T00:00:00Z', 1)
+    assert held == {'status': 'held', 'reason': 'insufficient_disagreements', 'available': 0, 'eligible': 0,
+                    'target': 20, 'backfillExcluded': 45}
+    # live disagreements are still eligible on their own; the uncovered backfill rows simply sit out
+    live = disagreements(20, start=100)
+    write_records(root, live)
+    result, event = reserve_cohort(root, registry)
+    assert result['backfillExcluded'] == 45 and set(event['occurrenceKeys']) == {r['occurrenceKey'] for r in live}
+
+
+def test_backfill_coverage_matches_run_logs_on_instrument_and_revision_only(root, registry):
+    """Answered calls logged under another revision cannot mask missing logs for this one."""
+    recs = disagreements(45, basis='backfill', mode='shadow', arm='none')
+    write_records(root, recs)
+    key = cohorts.key_of(recs[0])
+    write_backfill_runs(root, {'ok': 45}, revision='other-revision')
+    assert len(cohorts.backfill_coverage(cohorts.load_records(root)[0], key, root)[0]) == 45
+    write_backfill_runs(root, {'ok': 45}, append=True)
+    uncovered, runs = cohorts.backfill_coverage(cohorts.load_records(root)[0], key, root)
+    assert uncovered == set() and runs['answeredRecords'] == 45 and runs['runsLogged'] == 1
+
+
+def test_backfill_coverage_is_reconciled_per_run_not_in_aggregate(root, registry):
+    """Codex round 3: other runs' answered-call counts cannot vouch for a run whose log is missing."""
+    run_a, run_b, run_c = 'a' * 16, 'b' * 16, 'c' * 16
+    logged = from_run(disagreements(30, basis='backfill', mode='shadow', arm='none'), run_a)
+    unlogged = from_run(disagreements(15, start=30, basis='backfill', mode='shadow', arm='none'), run_c)
+    write_records(root, logged + unlogged)
+    write_backfill_runs(root, {'ok': 30}, run_id=run_a)
+    write_backfill_runs(root, {'ok': 30}, run_id=run_b, append=True)      # 60 logged answers >= 45 records in aggregate
+    uncovered, runs = cohorts.backfill_coverage(cohorts.load_records(root)[0], cohorts.key_of(logged[0]), root)
+    assert uncovered == {r['occurrenceKey'] for r in unlogged} and runs['uncoveredRecords'] == 15
+    result, event = reserve_cohort(root, registry)
+    assert result['backfillExcluded'] == 15
+    assert set(event['occurrenceKeys']) <= {r['occurrenceKey'] for r in logged}
+    # a run log without a run id vouches for nothing
+    legacy = root / 'skill-fit' / 'backfill' / 'runs.jsonl'
+    legacy.write_text(json.dumps({'instrumentSha256': instrument.instrument_sha256(), 'layaRevision': LAYA_REV,
+                                  'layaStatuses': {'ok': 99}}) + '\n')
+    assert len(cohorts.backfill_coverage(cohorts.load_records(root)[0], cohorts.key_of(logged[0]), root)[0]) == 45
+
+
+def test_a_covered_backfill_cohort_passes_and_a_vanished_run_log_still_holds_it(tmp_path, registry):
+    for vanish in (False, True):
+        root = tmp_path / f'vanish-{vanish}'
+        recs = disagreements(45, basis='backfill', mode='shadow', arm='none')
+        write_records(root, recs)
+        runs = write_backfill_runs(root, {'ok': 45})
+        _, event = reserve_cohort(root, registry)
+        if vanish:
+            runs.unlink()                                   # deleted between reserve and evaluation
+        label_cohort(root, event, by_key(recs), not_hit=len(event['occurrenceKeys']))
+        result = cohorts.evaluate(root, registry, event['cohortId'], T_EVAL)
+        if vanish:
+            assert result['verdict'] == 'held' and result['holdReasons'] == ['backfill_runs_missing']
+        else:
+            assert result['verdict'] == 'pass' and result['holdReasons'] == []
 
 
 def test_gate_shares_are_frozen_at_reserve(root, registry):

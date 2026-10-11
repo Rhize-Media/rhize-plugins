@@ -519,3 +519,31 @@ Implemented as planned: a coordinator contract commit, then three parallel Sonne
   - evaluation holds when the frozen gate shares are missing.
 
   All were fixed and tested, then sent back to Codex for verification.
+
+**Codex verification round 2** (`48c0d2cd`, merge-after-fixes): the part A and part B fixes are consistent. It raised two new majors, both confirmed and fixed:
+- `envProxyHazard` read `NO_PROXY` before `no_proxy`, but Node's env-proxy agent reads lowercase first. The guard now requires every defined spelling to exempt the endpoint host, which is safe under either precedence.
+- A cohort that contains backfill records, but whose run logs are missing or partial, read as a zero failure share. The receipt now requires the logged answered calls to cover every answered backfill record under the cohort key. If they don't, the cohort is held with `backfill_runs_missing`.
+
+Regression tests: four new proxy cases in `test_laya_client.js`, and `test_a_backfill_cohort_needs_run_logs_covering_its_records` with missing, partial and full coverage.
+
+**Fable sign-off on the post-review delta** (merge-after-fixes, confidence 0.8). Fable accepted the m3 reversal: a hold is decided after labeling, so a free hold would be an outcome-correlated retry channel. It raised four findings, all confirmed and fixed:
+- **Medium (safety):** for `[::1]` the guard trusted a bare `::1` in `NO_PROXY`, but undici parses that as host `:` port 1 and still proxies. Reproduced here with a fake proxy, which received `CONNECT [::1]:8765`. Only `[::1]` and `*` exempt it now.
+- **Medium (liveness):** label-independent holds cost α. `reserve()` now settles them before anything is committed:
+  - it refuses a cohort whose unavailability is over the limit, with `laya_unavailable` and no α spent;
+  - it leaves uncovered backfill records out of the pool (`backfillExcluded`);
+  - `backfill.py` writes its run log in `finally`, so a crash still logs the calls it answered. Evaluation re-checks both.
+- **Low:** `recovery_blocked` refused the kill switch. It now refuses only cosign or automated changes. A CLI off or shadow proceeds and supersedes the dangling intent.
+- **Low:** coverage is matched on (instrument, revision), like the run logs.
+
+**Codex verification round 3** (`81f6f854`, merge-after-fixes). The proxy precedence fix is confirmed. One high finding, confirmed and fixed: aggregate answered-call counts don't prove coverage, because retained runs can vouch for a run whose log is missing. Coverage is now reconciled per run, by identity:
+- each backfill record's `decisionId` starts with its run's 16-hex `runId`, which the run log also carries;
+- a run's records count as covered only if that run logged at least that many answered calls;
+- a log line without a run id vouches for nothing.
+
+Regressions added:
+- `test_backfill_coverage_is_reconciled_per_run_not_in_aggregate`
+- `test_the_run_log_is_written_even_when_a_backfill_run_crashes`
+- the reserve-time unavailability and exclusion tests
+- the kill-switch recovery test
+
+**Codex verification round 4** (`bb4f52e6`, **merge**, no findings). The fixes close every reported finding: per-run identity coverage matched on instrument and revision, reserve-time holds that preserve α, evaluation re-checks, IPv6 proxy detection, and CLI de-escalation. Final gate: full pytest 2905 passed, 5 skipped, 1 deselected, all Node suites included; routing harness all gates passed; `validate_skill_map.py --check-stale` passed; `bump_version.py --check --since origin/main` passed.

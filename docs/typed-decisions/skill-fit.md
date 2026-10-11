@@ -60,6 +60,8 @@ python3 decision_registry.py show
 python3 decision_registry.py set-mode skill-fit shadow --reason manual_rollback --pin
 python3 decision_registry.py set-mode skill-fit shadow --reason manual_unpin --unpin
 python3 decision_registry.py recover            # finish an interrupted mode change
+# If recovery is blocked (diverged state, revision gap), cosign and automated changes are refused until it is
+# fixed, but set-mode off/shadow from the CLI still works: the kill switch never waits on recovery.
 python3 decision_registry.py set-mode skill-fit cosign --reason manual_override \
     --laya-revision <rev> --manual-override       # ungated, audited override (prefer --cohort-id)
 
@@ -81,9 +83,11 @@ python3 scoreboard.py render --format md
 **Promotion.** The cycle reserves a frozen cohort of 60 disagreement cases from distinct sessions; reserving does not label anything. Once the labeler has labeled the cohort, the cycle tests it once. Promotion requires all of these:
 - the one-sided exact Clopper–Pearson lower bound on "router wrong" exceeds 0.5 at α_k = 0.05·2^−(k−1), where k is the attempt number;
 - at most 20% of labels are ambiguous;
-- Laya's unavailable rate is at most 5%.
+- Laya's unavailable rate is at most 5%. For backfilled cases that rate comes from the backfill run logs (`skill-fit/backfill/runs.jsonl`). Each backfill record's `decisionId` starts with the 16-hex id of the run that answered it. A record whose run never logged, or logged fewer answered calls than it has records, is left out of the cohort pool.
 
-At n = 60 the first attempt needs at least 37 "router wrong". Ambiguous labels stay in the denominator and never count as "router wrong", so they can only make promotion harder. Every tested cohort spends its α, including one that ends in a hold, and each new attempt needs a new cohort with a stricter α. Only evidence from the Laya checkpoint that is running now (`laya-runtime.json`) can reserve or promote a cohort. Only the plain co-sign policy (`cosign-v1`) can ever be deployed.
+Holds that need no labels are settled when the cohort is reserved, so they never spend α. This covers unavailability above the limit and backfill records the logs don't account for. Evaluation re-checks both, in case the evidence changed after reservation (`laya_unavailable`, `backfill_runs_missing`).
+
+At n = 60 the first attempt needs at least 37 "router wrong". Ambiguous labels stay in the denominator and never count as "router wrong", so they can only make promotion harder. Every tested cohort spends its α, including one held at evaluation, and each new attempt needs a new cohort with a stricter α. Only evidence from the Laya checkpoint that is running now (`laya-runtime.json`) can reserve or promote a cohort. Only the plain co-sign policy (`cosign-v1`) can ever be deployed.
 
 **Demotion.**
 - **Quality:** demote when there are at least 30 labeled live co-sign disagreements in 14 days and the upper bound falls below 0.5.

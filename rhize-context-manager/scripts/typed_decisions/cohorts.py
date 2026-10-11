@@ -17,6 +17,7 @@ import hashlib
 import json
 import math
 import random
+import re
 from collections import Counter
 from datetime import timedelta
 from pathlib import Path
@@ -298,10 +299,18 @@ def reserve(root, registry: dict, now, seed, dry_run: bool = False) -> dict:
         already = {k for c in ledger.values() for k in c['reserve']['occurrenceKeys']}
         pool = [r for r in recs if key_of(r) == key and contract.is_disagreement(r)
                 and r['occurrenceKey'] not in already]
+        # Label-independent holds are settled here, before any alpha is committed (evaluate re-checks them).
+        # Backfill records that their run's log doesn't account for can't show its failure share: leave them out.
+        backfill_excluded = 0
+        if any(r['basis'] == 'backfill' for r in pool):
+            uncovered, _ = backfill_coverage(recs, key, root)
+            backfill_excluded = sum(1 for r in pool if r['occurrenceKey'] in uncovered)
+            pool = [r for r in pool if r['occurrenceKey'] not in uncovered]
         sessions = Counter(r['sessionHash'] for r in pool)
         selectable = sum(min(count, cap) for count in sessions.values())
         if selectable < target:
-            return _held('insufficient_disagreements', available=selectable, eligible=len(pool), target=target)
+            return _held('insufficient_disagreements', available=selectable, eligible=len(pool), target=target,
+                         backfillExcluded=backfill_excluded)
         order = sorted(pool, key=lambda r: r['occurrenceKey'])
         random.Random(seed).shuffle(order)
         taken, per_session = [], Counter()
@@ -313,6 +322,11 @@ def reserve(root, registry: dict, now, seed, dry_run: bool = False) -> dict:
             if len(taken) == target:
                 break
         taken.sort()
+        by_key = {r['occurrenceKey']: r for r in pool}
+        unavailable, _ = cohort_availability(recs, [by_key[k] for k in taken], key, root)
+        if unavailable['share'] > gates['maxUnavailableShare']:
+            # Known before labeling: refuse now rather than reserve a cohort that can only be held.
+            return _held('laya_unavailable', share=unavailable['share'], max=gates['maxUnavailableShare'])
         inclusion = min(1.0, target / len(pool))
         cohort_id = hashlib.sha256(canonical({
             'decision': DECISION, 'attempt': attempt, 'key': list(key), 'keys': taken,
@@ -324,13 +338,13 @@ def reserve(root, registry: dict, now, seed, dry_run: bool = False) -> dict:
         contract.validate_cohort_event(event)
         result = {'status': 'reserved', 'cohortId': cohort_id, 'attempt': attempt, 'alpha': alpha,
                   'target': target, 'inclusionProbability': inclusion, 'eligible': len(pool),
-                  'selectable': selectable, 'key': {'policySha256': key[0], 'instrumentSha256': key[1],
-                                                     'layaRevision': key[2]}}
+                  'selectable': selectable, 'backfillExcluded': backfill_excluded,
+                  'key': {'policySha256': key[0], 'instrumentSha256': key[1], 'layaRevision': key[2]}}
         if dry_run:
             return {**result, 'status': 'would_reserve'}
         meta = {'schema': META_SCHEMA, 'cohortId': cohort_id, 'decision': DECISION, 'attempt': attempt,
                 'target': target, 'eligible': len(pool), 'selectable': selectable,
-                'inclusionProbability': inclusion, 'reservedAt': event['at'],
+                'backfillExcluded': backfill_excluded, 'inclusionProbability': inclusion, 'reservedAt': event['at'],
                 'maxAmbiguousShare': gates['maxAmbiguousShare'], 'maxUnavailableShare': gates['maxUnavailableShare']}
         # Sidecar first: an orphan sidecar is harmless, a reservation without one would starve the labeler.
         write_private_atomic(meta_path(root, cohort_id),
@@ -371,14 +385,19 @@ def unavailable_stats(recs: list[dict], key, tmin, tmax) -> dict:
     return {'total': total, 'unavailable': bad, 'share': (bad / total) if total else 0.0}
 
 
+RUN_ID = re.compile(r'[0-9a-f]{16}\Z')
+RUN_ID_HEX = 16
+
+
 def backfill_run_stats(skill_root, key) -> dict:
     """Laya call outcomes of backfill runs under the cohort's instrument and Laya revision.
 
     backfill.py persists only answered calls as records (failures are retried), so its per-run status counts
     (skill-fit/backfill/runs.jsonl) are the only trace of failed calls; without them a backfill cohort's
-    unavailability share would be zero by construction.
+    unavailability share would be zero by construction. okByRun maps each logged run id to its answered calls.
     """
     total = bad = 0
+    ok_by_run = Counter()
     path = Path(skill_root) / 'backfill' / 'runs.jsonl' if skill_root else None
     try:
         lines = path.read_text(encoding='utf-8').splitlines() if path and path.is_file() and not path.is_symlink() else []
@@ -392,12 +411,62 @@ def backfill_run_stats(skill_root, key) -> dict:
         if not isinstance(run, dict) or run.get('instrumentSha256') != key[1] or run.get('layaRevision') != key[2]:
             continue
         statuses = run.get('layaStatuses') if isinstance(run.get('layaStatuses'), dict) else {}
+        run_id = run.get('runId') if isinstance(run.get('runId'), str) and RUN_ID.match(run['runId']) else None
         for status, count in statuses.items():
             if status == 'skipped' or not isinstance(count, int) or isinstance(count, bool) or count < 0:
                 continue
             total += count
             bad += count if status != 'ok' else 0
-    return {'total': total, 'unavailable': bad}
+            if status == 'ok' and run_id is not None:
+                ok_by_run[run_id] += count
+    return {'total': total, 'unavailable': bad, 'okByRun': dict(ok_by_run)}
+
+
+def backfill_coverage(all_recs: list[dict], key, root) -> tuple[set, dict]:
+    """(occurrence keys of uncovered answered backfill records, run stats) for the cohort key.
+
+    Coverage is reconciled per run, by identity: a backfill record's decisionId starts with the id of the run that
+    answered it, and that run's log line must account for at least as many answered calls as there are records
+    carrying its id. A record whose run never logged (a killed run, a lost or truncated log) is uncovered, however
+    many answered calls other runs logged. Run logs carry no policy hash, so both sides are matched on
+    (instrumentSha256, layaRevision). Uses no labels, so reserve can apply it before any alpha is committed.
+    """
+    runs = backfill_run_stats(skill_dir(root) if root is not None else None, key)
+    ok_by_run = runs.pop('okByRun')
+    by_run: dict[str, list[str]] = {}
+    for rec in all_recs:
+        if (rec['basis'] == 'backfill' and rec['laya']['status'] == 'ok'
+                and rec['instrumentSha256'] == key[1] and rec['layaRevision'] == key[2]):
+            by_run.setdefault(rec['decisionId'][:RUN_ID_HEX], []).append(rec['occurrenceKey'])
+    uncovered = set()
+    for run_id, keys in by_run.items():
+        if len(keys) > ok_by_run.get(run_id, 0):
+            uncovered.update(keys)
+    runs = {**runs, 'runsLogged': len(ok_by_run), 'answeredRecords': sum(len(k) for k in by_run.values()),
+            'uncoveredRecords': len(uncovered)}
+    return uncovered, runs
+
+
+def cohort_availability(all_recs: list[dict], cohort_recs: list[dict], key, root) -> tuple[dict, bool]:
+    """(unavailability stats, backfill_uncovered) for a cohort. Uses no labels, so reserve can apply it for free.
+
+    Live attempts are the live records under the key inside the cohort's time window. Backfill attempts (answered
+    and failed) come only from the run logs: backfill records are the answered subset of those same attempts, so
+    counting them again would dilute the failure share. A cohort backfill record that its run's log does not
+    account for makes the cohort uncovered: its run's failures would otherwise be invisible.
+    """
+    times = [utc(r['ts']) for r in cohort_recs]
+    live_recs = [r for r in all_recs if r['basis'] == 'live']
+    unavailable = unavailable_stats(live_recs, key, min(times), max(times))
+    if not any(r['basis'] == 'backfill' for r in cohort_recs):
+        return unavailable, False
+    uncovered, runs = backfill_coverage(all_recs, key, root)
+    total = unavailable['total'] + runs['total']
+    bad = unavailable['unavailable'] + runs['unavailable']
+    return ({'total': total, 'unavailable': bad, 'share': (bad / total) if total else 0.0,
+             'live': {'total': unavailable['total'], 'unavailable': unavailable['unavailable']},
+             'backfillRuns': runs},
+            any(r['occurrenceKey'] in uncovered for r in cohort_recs if r['basis'] == 'backfill'))
 
 
 # ---------------------------------------------------------------- evaluate
@@ -519,17 +588,8 @@ def _build_receipt(reserve_event, gates, entry, cohort_recs, all_recs, found, re
     counts = {'labeled': labeled, 'ambiguous': ambiguous, 'hit': hit, 'notHit': not_hit}
     key = key_of(reserve_event)
     times = [utc(r['ts']) for r in cohort_recs]
-    live_recs = [r for r in all_recs if r['basis'] == 'live']
-    unavailable = unavailable_stats(live_recs, key, min(times), max(times))
-    if any(r['basis'] == 'backfill' for r in cohort_recs):
-        # Backfill attempts (answered and failed) come only from its run logs: its records are the answered
-        # subset of those same attempts, so counting them again would dilute the failure share.
-        runs = backfill_run_stats(skill_dir(root) if root is not None else None, key)
-        total = unavailable['total'] + runs['total']
-        bad = unavailable['unavailable'] + runs['unavailable']
-        unavailable = {'total': total, 'unavailable': bad, 'share': (bad / total) if total else 0.0,
-                       'live': {'total': unavailable['total'], 'unavailable': unavailable['unavailable']},
-                       'backfillRuns': runs}
+    # Re-checked here (reserve already refused these holds) in case records or run logs changed in between.
+    unavailable, backfill_uncovered = cohort_availability(all_recs, cohort_recs, key, root)
     ambiguous_share = ambiguous / labeled if labeled else 0.0
     threshold = threshold_for(reserve_event['lambda'])
     alpha = reserve_event['alpha']
@@ -538,6 +598,8 @@ def _build_receipt(reserve_event, gates, entry, cohort_recs, all_recs, found, re
         hold_reasons.append('ambiguity')
     if unavailable['share'] > gates['maxUnavailableShare']:
         hold_reasons.append('laya_unavailable')
+    if backfill_uncovered:
+        hold_reasons.append('backfill_runs_missing')
     if n == 0:
         hold_reasons.append('no_unambiguous_labels')
     if hold_reasons:

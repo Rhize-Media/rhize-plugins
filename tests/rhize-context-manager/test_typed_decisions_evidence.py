@@ -1084,3 +1084,27 @@ def test_backfill_recognizes_background_observer_transcripts():
         '/Users/someone/.claude/projects/-Users-someone--local-share-ecc-homunculus-projects-notes/s.jsonl', home=home)
     assert not bf.is_background_observer_transcript(
         '/Users/someone/.claude/projects/-Users-someone-dev-local-app/s.jsonl', home=home)
+
+
+@needs_node
+def test_the_run_log_is_written_even_when_a_backfill_run_crashes(world, make_laya, monkeypatch):
+    """Every answered call is already a record, so its run-log count must survive a crash (Fable final review)."""
+    real = backfill.Replayer.replay
+    calls = {'n': 0}
+
+    def crash_on_third(self, text):
+        calls['n'] += 1
+        if calls['n'] == 3:
+            raise RuntimeError('simulated crash')
+        return real(self, text)
+
+    monkeypatch.setattr(backfill.Replayer, 'replay', crash_on_third)
+    with pytest.raises(RuntimeError):
+        world.run(make_laya())
+    lines = (world.root / 'skill-fit' / 'backfill' / 'runs.jsonl').read_text().splitlines()
+    assert len(lines) == 1
+    run = json.loads(lines[0])
+    stored_ok = [r for r in world.stored() if r['laya']['status'] == 'ok']
+    assert stored_ok and run['layaStatuses'].get('ok', 0) == len(stored_ok)
+    # every record carries its run's id, so the gate can reconcile coverage per run (cohorts.backfill_coverage)
+    assert len(run['runId']) == 16 and {r['decisionId'][:16] for r in world.stored()} == {run['runId']}

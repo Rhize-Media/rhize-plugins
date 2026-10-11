@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from typed_decisions import contract, evidence_fs, instrument, laya_choice, records, transcripts  # noqa: E402
 
 MANIFEST_SCHEMA = 'rhize-typed-decision-backfill-manifest-v1'
+RUN_ID_HEX = 16
 DECISION = 'skill-fit'
 DEFAULT_ENDPOINT = 'http://127.0.0.1:8000'
 MAX_CONFIG_BYTES = 64 * 1024 * 1024
@@ -317,10 +318,16 @@ def verify_resume(manifest, workdir, node, laya_revision, since, cutover) -> Non
 
 # ------------------------------------------------------------------ records
 
+def new_run_id() -> str:
+    return uuid.uuid4().hex[:RUN_ID_HEX]
+
+
 def build_record(*, key, ts, source_stratum, session_hash, prompt_hash, length_bucket, manifest, registry_revision,
-                 criteria_sha256, incumbent, shortlist, laya):
+                 criteria_sha256, incumbent, shortlist, laya, run_id):
+    # decisionId = <run id (16 hex)><random (16 hex)>: the run log (runs.jsonl) carries the same run id, so the
+    # promotion gate can tie every answered record to the run that logged its call (cohorts.backfill_coverage).
     return {
-        'schema': contract.RECORD_SCHEMA, 'decision': DECISION, 'decisionId': uuid.uuid4().hex,
+        'schema': contract.RECORD_SCHEMA, 'decision': DECISION, 'decisionId': run_id + uuid.uuid4().hex[RUN_ID_HEX:],
         'occurrenceKey': key, 'ts': ts, 'host': 'claude', 'basis': 'backfill', 'sourceStratum': source_stratum,
         'sessionHash': session_hash, 'promptHash': prompt_hash, 'promptLengthBucket': length_bucket,
         'routerSourceSha256': manifest['routerSourceSha256'], 'indexSha256': manifest['indexSha256'],
@@ -385,6 +392,7 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
         replayer = Replayer(node, index_copy, map_copy)
         calls = consecutive_failures = 0
         aborted = None
+        run_id = new_run_id()
         try:
             for moment, _, row in rows:
                 session_id, context_hash = row.get('session_id'), row.get('context_hash')
@@ -426,7 +434,7 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
                 common = dict(key=key, ts=ts, source_stratum=stratum, session_hash=session_hash,
                               prompt_hash=prompt_hash, length_bucket=instrument.length_bucket(text),
                               manifest=manifest, registry_revision=registry_revision, incumbent=incumbent,
-                              shortlist=shortlist)
+                              shortlist=shortlist, run_id=run_id)
                 if not shortlist:
                     record = build_record(criteria_sha256=None, laya=dict(SKIPPED), **common)
                     laya_statuses['skipped'] += 1
@@ -465,23 +473,36 @@ def run_backfill(root=None, since=None, cutover=None, budget=None, log=None, ind
                 stats['recordsWritten'] += 1
         finally:
             replayer.close()
+            # Written even when the loop raises: every answered call is already a record, so the run log must
+            # account for it or later gate cohorts would have to leave this key's backfill evidence out.
+            run_log_written = append_run_log(workdir, laya_revision, calls, laya_statuses, run_id)
         summary.update(status=f'aborted:{aborted}' if aborted else 'completed')
         summary.update({key: stats[key] for key in sorted(stats)})
         summary['unmatched'] = dict(sorted(unmatched.items()))
         summary['unmatchedTotal'] = sum(unmatched.values())
         summary['layaStatuses'] = dict(sorted(laya_statuses.items()))
         summary['layaCalls'] = calls
-        # Failed Laya calls are not persisted as records (they are retried next run), so keep their counts:
-        # cohorts.evaluate folds them into the promotion gate's unavailability hold for backfill cohorts.
-        try:
-            from typed_decisions import locked_io
-            locked_io.append_line(workdir / 'runs.jsonl', {
-                'schema': 'rhize-typed-decision-backfill-run-v1', 'at': locked_io.iso(),
-                'instrumentSha256': instrument.instrument_sha256(), 'layaRevision': laya_revision,
-                'layaCalls': calls, 'layaStatuses': summary['layaStatuses']})
-        except (OSError, ValueError, AttributeError):
+        if not run_log_written:
             summary['runLogWritten'] = False
         return summary, EXIT_ABORTED if aborted else EXIT_OK
+
+
+def append_run_log(workdir, laya_revision, calls, laya_statuses, run_id) -> bool:
+    """Append this run's Laya call counts to skill-fit/backfill/runs.jsonl. Returns False if it could not.
+
+    Failed Laya calls are not persisted as records (they are retried next run), so these counts are their only
+    trace: the promotion gate folds them into the unavailability hold for backfill cohorts, and requires each run's
+    logged answered calls to cover the records carrying its run id (cohorts.backfill_coverage).
+    """
+    try:
+        from typed_decisions import locked_io
+        locked_io.append_line(Path(workdir) / 'runs.jsonl', {
+            'schema': 'rhize-typed-decision-backfill-run-v1', 'at': locked_io.iso(), 'runId': run_id,
+            'instrumentSha256': instrument.instrument_sha256(), 'layaRevision': laya_revision,
+            'layaCalls': calls, 'layaStatuses': dict(sorted(laya_statuses.items()))})
+    except (OSError, ValueError, AttributeError):
+        return False
+    return True
 
 
 # ------------------------------------------------------------------ CLI

@@ -530,7 +530,7 @@ def test_a_binding_must_name_the_running_checkpoint(root):
     assert err.value.code == 'invalid_binding'
 
 
-def test_a_blocked_recovery_stops_every_mutation(root):
+def test_a_blocked_recovery_stops_escalation_and_automation_but_not_the_kill_switch(root):
     reg.mutate(root, SKILL, 'off', actor='cli', reason='manual_off', expected_revision=0)
     state = reg.read_state(root)[0]
     # a dangling intent two revisions ahead of the state (revision gap): recovery is blocked
@@ -541,6 +541,11 @@ def test_a_blocked_recovery_stops_every_mutation(root):
             'pinned': False, 'reason': 'diverged', 'state': bogus}
     locked_io.append_line(reg.audit_path(root), line)
     assert reg.recover(root)['action'] == 'blocked'
-    with pytest.raises(reg.RegistryError) as err:
-        reg.mutate(root, SKILL, 'shadow', actor='cli', reason='resume', expected_revision=1)
-    assert err.value.code == 'recovery_blocked'
+    for to_mode, actor, extra in (('cosign', 'cli', {'binding': binding()}), ('shadow', 'cycle', {})):
+        with pytest.raises(reg.RegistryError) as err:
+            reg.mutate(root, SKILL, to_mode, actor=actor, reason='resume', expected_revision=1, **extra)
+        assert err.value.code == 'recovery_blocked', (to_mode, actor)
+    # a CLI de-escalation still works and supersedes the dangling intent
+    new_state = reg.mutate(root, SKILL, 'shadow', actor='cli', reason='resume', expected_revision=1)
+    assert new_state['revision'] == 2 and reg.read_state(root)[0]['decisions'][SKILL]['mode'] == 'shadow'
+    assert reg.recover(root)['action'] == 'none'

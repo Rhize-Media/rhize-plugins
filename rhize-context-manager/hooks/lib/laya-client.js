@@ -54,15 +54,21 @@ function isLoopbackEndpoint(endpoint) {
 }
 
 // Node's fetch ignores proxy variables unless the env-proxy mode is on. When it
-// is on, the request to THIS endpoint goes direct only if NO_PROXY exempts its
-// exact host (or '*'); otherwise refuse rather than risk sending task text
-// off-host. CIDR and suffix forms are deliberately not trusted.
+// is on, the request to THIS endpoint goes direct only if the no-proxy list
+// exempts its exact host (or '*'); otherwise refuse rather than risk sending
+// task text off-host. Node's EnvHttpProxyAgent reads `no_proxy` before
+// `NO_PROXY` (and an empty value still wins), so EVERY defined spelling must
+// exempt the host: that holds under either precedence. CIDR and suffix forms
+// are deliberately not trusted.
 function envProxyHazard(env = process.env, endpoint = 'http://127.0.0.1:0') {
   const on = /^(1|true)$/i.test(String(env.NODE_USE_ENV_PROXY || '')) || /--use-env-proxy/.test(String(env.NODE_OPTIONS || ''));
   if (!on) return false;
-  const noProxy = String(env.NO_PROXY || env.no_proxy || '').split(',').map((s) => s.trim().toLowerCase());
-  const exempt = /^http:\/\/\[::1\]:/.test(String(endpoint)) ? ['*', '::1', '[::1]'] : ['*', '127.0.0.1'];
-  return !noProxy.some((entry) => exempt.includes(entry));
+  // Bare `::1` is NOT an exemption: undici parses it as host ':' port 1 and still proxies [::1] (verified,
+  // Node 22.22 / undici 6.23). Only the bracketed form and '*' keep an IPv6 loopback request direct.
+  const exempt = /^http:\/\/\[::1\]:/.test(String(endpoint)) ? ['*', '[::1]'] : ['*', '127.0.0.1'];
+  const lists = ['no_proxy', 'NO_PROXY'].filter((name) => env[name] !== undefined).map((name) => String(env[name]));
+  if (lists.length === 0) return true;
+  return !lists.every((list) => list.split(',').map((s) => s.trim().toLowerCase()).some((entry) => exempt.includes(entry)));
 }
 
 function result(status, started, now, choice = null, probabilities = null) {

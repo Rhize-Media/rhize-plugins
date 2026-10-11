@@ -310,8 +310,10 @@ def mutate(root, decision: str, to_mode: str, *, actor: str, reason: str, expect
 def _mutate_locked(root, registry, entry, decision, to_mode, actor, reason, expected_revision, pinned, binding,
                    now) -> dict:
     recovery = _recover_locked(root, registry, now)
-    if recovery['action'] == 'blocked':
-        # An unresolved transaction (diverged state, revision gap, invalid intent) must be fixed first.
+    if recovery['action'] == 'blocked' and (to_mode == 'cosign' or actor != 'cli'):
+        # An unresolved transaction (diverged state, revision gap, invalid intent) must be fixed before any
+        # escalation or automated change. A CLI de-escalation (the kill switch: off/shadow) still proceeds: it
+        # writes a newer committed revision, which supersedes the dangling intent.
         raise RegistryError('recovery_blocked', f"unresolved registry transaction: {recovery['reason']}")
     state, status = read_state(root, registry)
     if status == 'corrupt':
