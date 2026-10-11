@@ -1,0 +1,754 @@
+{
+ "arms": [
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "b471b5dc9022ace887d13967942f4a4f33f4acb395811223a7eb321861bb18b9",
+   "sessionHash": "27ac7a3cd2914d4585149aa02fc0856a9ec85a5c48e9e191f106968c36a52c3e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "b471b5dc9022ace887d13967942f4a4f33f4acb395811223a7eb321861bb18b9",
+   "sessionHash": "27ac7a3cd2914d4585149aa02fc0856a9ec85a5c48e9e191f106968c36a52c3e"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "b471b5dc9022ace887d13967942f4a4f33f4acb395811223a7eb321861bb18b9",
+   "sessionHash": "27ac7a3cd2914d4585149aa02fc0856a9ec85a5c48e9e191f106968c36a52c3e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "7ed65932e8020d4d9f9f6a3685dd16ea62b9bd0477726edcf734750de827e343",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "7ed65932e8020d4d9f9f6a3685dd16ea62b9bd0477726edcf734750de827e343",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "7ed65932e8020d4d9f9f6a3685dd16ea62b9bd0477726edcf734750de827e343",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "4fa87b9db139b966f397df83744edc0242967c6b0aac4f5edb71a35202daf7bf",
+   "sessionHash": "5d9061408048c12d053925aed45333a142997f26a2cd1e0c4a87678c53a1e3ae"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "4fa87b9db139b966f397df83744edc0242967c6b0aac4f5edb71a35202daf7bf",
+   "sessionHash": "5d9061408048c12d053925aed45333a142997f26a2cd1e0c4a87678c53a1e3ae"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "4fa87b9db139b966f397df83744edc0242967c6b0aac4f5edb71a35202daf7bf",
+   "sessionHash": "5d9061408048c12d053925aed45333a142997f26a2cd1e0c4a87678c53a1e3ae"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "6ea151302a2ea3e3a1a9641086c28fc6c73a282822e0a42e1ebca5be5d9eeaf0",
+   "sessionHash": "eb278475f606714397df8cb657e1c7ee252f4c85e62e2cb65c5fea66b2ec4fb0"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "6ea151302a2ea3e3a1a9641086c28fc6c73a282822e0a42e1ebca5be5d9eeaf0",
+   "sessionHash": "eb278475f606714397df8cb657e1c7ee252f4c85e62e2cb65c5fea66b2ec4fb0"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "6ea151302a2ea3e3a1a9641086c28fc6c73a282822e0a42e1ebca5be5d9eeaf0",
+   "sessionHash": "eb278475f606714397df8cb657e1c7ee252f4c85e62e2cb65c5fea66b2ec4fb0"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "5d6d91eaf34c56039141d5b50ee6a44a836d3ebb88d44693ccc363ec8c1a5196",
+   "sessionHash": "e1cdfcfb8292183130a3c977a5fd646fc16a3dd1e1d9d90d99f555b736b3260e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "5d6d91eaf34c56039141d5b50ee6a44a836d3ebb88d44693ccc363ec8c1a5196",
+   "sessionHash": "e1cdfcfb8292183130a3c977a5fd646fc16a3dd1e1d9d90d99f555b736b3260e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "5d6d91eaf34c56039141d5b50ee6a44a836d3ebb88d44693ccc363ec8c1a5196",
+   "sessionHash": "e1cdfcfb8292183130a3c977a5fd646fc16a3dd1e1d9d90d99f555b736b3260e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "21b4ef43b42379d4a8843e10dbef18fb01bbc2305d8345e68109107a0cd12b02",
+   "sessionHash": "d7b2fab495bd092aed57a1cc49972141a4149ff3f7e7b936a153d4d80e069545"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "21b4ef43b42379d4a8843e10dbef18fb01bbc2305d8345e68109107a0cd12b02",
+   "sessionHash": "d7b2fab495bd092aed57a1cc49972141a4149ff3f7e7b936a153d4d80e069545"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "21b4ef43b42379d4a8843e10dbef18fb01bbc2305d8345e68109107a0cd12b02",
+   "sessionHash": "d7b2fab495bd092aed57a1cc49972141a4149ff3f7e7b936a153d4d80e069545"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "04491212ea8c1e9f95e8cefe69d721e9124eff2d6b46bb88248cb10a27cedd77",
+   "sessionHash": "977ee55f21e49dd392178f9f39af6fb366404762e2a07be5b36388f49ef49797"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.1,
+   "promptHash": "04491212ea8c1e9f95e8cefe69d721e9124eff2d6b46bb88248cb10a27cedd77",
+   "sessionHash": "977ee55f21e49dd392178f9f39af6fb366404762e2a07be5b36388f49ef49797"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "04491212ea8c1e9f95e8cefe69d721e9124eff2d6b46bb88248cb10a27cedd77",
+   "sessionHash": "977ee55f21e49dd392178f9f39af6fb366404762e2a07be5b36388f49ef49797"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "752df37e9d7adaee425c3702f45719d8ff3ed4208eebb80c9441e8be3e877792",
+   "sessionHash": "cef8bce549cdc050cb3da30f5672426b30b651a926d1a77f71bacc1b3bb45b81"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "752df37e9d7adaee425c3702f45719d8ff3ed4208eebb80c9441e8be3e877792",
+   "sessionHash": "cef8bce549cdc050cb3da30f5672426b30b651a926d1a77f71bacc1b3bb45b81"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "752df37e9d7adaee425c3702f45719d8ff3ed4208eebb80c9441e8be3e877792",
+   "sessionHash": "cef8bce549cdc050cb3da30f5672426b30b651a926d1a77f71bacc1b3bb45b81"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "dcd97065117961d21a0b83fdff25ae0e1473dce214d1348229c963f533324645",
+   "sessionHash": "50d71bf29b367e63005759d7f5307419fa5ca59ef01d1efd430d63ab1e5fff91"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "dcd97065117961d21a0b83fdff25ae0e1473dce214d1348229c963f533324645",
+   "sessionHash": "50d71bf29b367e63005759d7f5307419fa5ca59ef01d1efd430d63ab1e5fff91"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "dcd97065117961d21a0b83fdff25ae0e1473dce214d1348229c963f533324645",
+   "sessionHash": "50d71bf29b367e63005759d7f5307419fa5ca59ef01d1efd430d63ab1e5fff91"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "dc87059d05ca2c1ee0becd6b99623a74d716ab1e46ff18561833c01daad406d2",
+   "sessionHash": "94467c45436d751a367f55ec8052a2c3c8649e3580ecba8db8a5b62b01d5d1d1"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "dc87059d05ca2c1ee0becd6b99623a74d716ab1e46ff18561833c01daad406d2",
+   "sessionHash": "94467c45436d751a367f55ec8052a2c3c8649e3580ecba8db8a5b62b01d5d1d1"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "dc87059d05ca2c1ee0becd6b99623a74d716ab1e46ff18561833c01daad406d2",
+   "sessionHash": "94467c45436d751a367f55ec8052a2c3c8649e3580ecba8db8a5b62b01d5d1d1"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "8e7662bf073f73b2fd7cb3bb0bb27f39e9454576eb7cda0f3664326236156a38",
+   "sessionHash": "f630bcaa05255c3a82bb6a222ba4854a864021dde6ff63e7bb2a62c6b676bf61"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "8e7662bf073f73b2fd7cb3bb0bb27f39e9454576eb7cda0f3664326236156a38",
+   "sessionHash": "f630bcaa05255c3a82bb6a222ba4854a864021dde6ff63e7bb2a62c6b676bf61"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "8e7662bf073f73b2fd7cb3bb0bb27f39e9454576eb7cda0f3664326236156a38",
+   "sessionHash": "f630bcaa05255c3a82bb6a222ba4854a864021dde6ff63e7bb2a62c6b676bf61"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "a7e15127f8209c972688b46dc012d2bd5f2e9dddde2609ce8ec86153f58e393f",
+   "sessionHash": "8314869982775cb370fea7a6d5efecf8052852da67e9eb177dd8c392660a5a31"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "a7e15127f8209c972688b46dc012d2bd5f2e9dddde2609ce8ec86153f58e393f",
+   "sessionHash": "8314869982775cb370fea7a6d5efecf8052852da67e9eb177dd8c392660a5a31"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "a7e15127f8209c972688b46dc012d2bd5f2e9dddde2609ce8ec86153f58e393f",
+   "sessionHash": "8314869982775cb370fea7a6d5efecf8052852da67e9eb177dd8c392660a5a31"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "28bd245d7159d959c87e54f422f5ebbb85da213d7d5e814dca79a3adc8f6bfcd",
+   "sessionHash": "b84039f94b49b09371cc2afb5ad7dfdd38bf46c6340c2cb59dad65d008dfce6b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "28bd245d7159d959c87e54f422f5ebbb85da213d7d5e814dca79a3adc8f6bfcd",
+   "sessionHash": "b84039f94b49b09371cc2afb5ad7dfdd38bf46c6340c2cb59dad65d008dfce6b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "28bd245d7159d959c87e54f422f5ebbb85da213d7d5e814dca79a3adc8f6bfcd",
+   "sessionHash": "b84039f94b49b09371cc2afb5ad7dfdd38bf46c6340c2cb59dad65d008dfce6b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "0d88c1c782bb31c88695636b06d2860cbde444be4341bc9551fb2b81ac9a3d2b",
+   "sessionHash": "85000fd0b18dea2c67e82a70e20cef519337ae7be6f3ea0606892b8645822a8e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "0d88c1c782bb31c88695636b06d2860cbde444be4341bc9551fb2b81ac9a3d2b",
+   "sessionHash": "85000fd0b18dea2c67e82a70e20cef519337ae7be6f3ea0606892b8645822a8e"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "0d88c1c782bb31c88695636b06d2860cbde444be4341bc9551fb2b81ac9a3d2b",
+   "sessionHash": "85000fd0b18dea2c67e82a70e20cef519337ae7be6f3ea0606892b8645822a8e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "fd573866f97c775a7c1a22c60a59fda85613f2136cd176d24dd3a0ff36f2ac37",
+   "sessionHash": "8b21ff623c3a0cb3b7c2736247be89d0a987d95c2d2b5984dc71a8b6e0f14130"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "fd573866f97c775a7c1a22c60a59fda85613f2136cd176d24dd3a0ff36f2ac37",
+   "sessionHash": "8b21ff623c3a0cb3b7c2736247be89d0a987d95c2d2b5984dc71a8b6e0f14130"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "fd573866f97c775a7c1a22c60a59fda85613f2136cd176d24dd3a0ff36f2ac37",
+   "sessionHash": "8b21ff623c3a0cb3b7c2736247be89d0a987d95c2d2b5984dc71a8b6e0f14130"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "3f7efd54463d7ab15c9fe6e4ebd61062933795b626bcf4767019969ce7e436fe",
+   "sessionHash": "9b145aef14cce828eb62ea7df1b0702d3c961187412a102558b6e6fc4f366f13"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "3f7efd54463d7ab15c9fe6e4ebd61062933795b626bcf4767019969ce7e436fe",
+   "sessionHash": "9b145aef14cce828eb62ea7df1b0702d3c961187412a102558b6e6fc4f366f13"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "3f7efd54463d7ab15c9fe6e4ebd61062933795b626bcf4767019969ce7e436fe",
+   "sessionHash": "9b145aef14cce828eb62ea7df1b0702d3c961187412a102558b6e6fc4f366f13"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "aca29e28981ca169ef27ed8f1700614b2af49ae2724c42d96cbc371132b6b04c",
+   "sessionHash": "67ac6c4265e0d49723be6c02f8c50cd919a7257aabfb31f8810f64572791001f"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "aca29e28981ca169ef27ed8f1700614b2af49ae2724c42d96cbc371132b6b04c",
+   "sessionHash": "67ac6c4265e0d49723be6c02f8c50cd919a7257aabfb31f8810f64572791001f"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "aca29e28981ca169ef27ed8f1700614b2af49ae2724c42d96cbc371132b6b04c",
+   "sessionHash": "67ac6c4265e0d49723be6c02f8c50cd919a7257aabfb31f8810f64572791001f"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "9043ecc3ed95d593922806d49860b8702142caac52e7c63276ed071c494f6185",
+   "sessionHash": "e4535ed32ea54a757a048144d80e995ae2c17f490cfd66a82ba067382625e083"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "9043ecc3ed95d593922806d49860b8702142caac52e7c63276ed071c494f6185",
+   "sessionHash": "e4535ed32ea54a757a048144d80e995ae2c17f490cfd66a82ba067382625e083"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "9043ecc3ed95d593922806d49860b8702142caac52e7c63276ed071c494f6185",
+   "sessionHash": "e4535ed32ea54a757a048144d80e995ae2c17f490cfd66a82ba067382625e083"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "e8859e1aa0121bed54e309e1fe0b72c9695a57b03dd66b42ddc6122d0ade063c",
+   "sessionHash": "927d573bf459e7f10fbce15e9640915d8a89debf18b202053775f9f51ecb2787"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "e8859e1aa0121bed54e309e1fe0b72c9695a57b03dd66b42ddc6122d0ade063c",
+   "sessionHash": "927d573bf459e7f10fbce15e9640915d8a89debf18b202053775f9f51ecb2787"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "e8859e1aa0121bed54e309e1fe0b72c9695a57b03dd66b42ddc6122d0ade063c",
+   "sessionHash": "927d573bf459e7f10fbce15e9640915d8a89debf18b202053775f9f51ecb2787"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "4bf7a31229d60bbe2e26718f953ed69c68d4a890755805d236edd67b53918632",
+   "sessionHash": "0f802af1b49d139c783ff2f817afa16c26690ab72858d10609ce3691f48875d9"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "4bf7a31229d60bbe2e26718f953ed69c68d4a890755805d236edd67b53918632",
+   "sessionHash": "0f802af1b49d139c783ff2f817afa16c26690ab72858d10609ce3691f48875d9"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "4bf7a31229d60bbe2e26718f953ed69c68d4a890755805d236edd67b53918632",
+   "sessionHash": "0f802af1b49d139c783ff2f817afa16c26690ab72858d10609ce3691f48875d9"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "feae36fa13a03a47bed3f19b8fe32e5c1fca642181ce0ecc18a8fe0ed6447b72",
+   "sessionHash": "5a3ec12d1d59e95c72621b54bebc1f54600727de3610a9b89646264df6c138f8"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.1,
+   "promptHash": "feae36fa13a03a47bed3f19b8fe32e5c1fca642181ce0ecc18a8fe0ed6447b72",
+   "sessionHash": "5a3ec12d1d59e95c72621b54bebc1f54600727de3610a9b89646264df6c138f8"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "feae36fa13a03a47bed3f19b8fe32e5c1fca642181ce0ecc18a8fe0ed6447b72",
+   "sessionHash": "5a3ec12d1d59e95c72621b54bebc1f54600727de3610a9b89646264df6c138f8"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "d17c8c15e009db69872d74cd22d43ed18d924986cb084f8e1b73f336a70b1403",
+   "sessionHash": "24c29d78b60ca13f166ddc6045854e2639d057cc0e27d48b32d1c739563c9333"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.1,
+   "promptHash": "d17c8c15e009db69872d74cd22d43ed18d924986cb084f8e1b73f336a70b1403",
+   "sessionHash": "24c29d78b60ca13f166ddc6045854e2639d057cc0e27d48b32d1c739563c9333"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "d17c8c15e009db69872d74cd22d43ed18d924986cb084f8e1b73f336a70b1403",
+   "sessionHash": "24c29d78b60ca13f166ddc6045854e2639d057cc0e27d48b32d1c739563c9333"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "df2dbaed052157ddffc7f517f350a24ca951cb1a4e755155eba4b2e5b3300aba",
+   "sessionHash": "b9a548d86f107391529de0823c5c504a73fe123a7f17905b392681b3e64d209e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "df2dbaed052157ddffc7f517f350a24ca951cb1a4e755155eba4b2e5b3300aba",
+   "sessionHash": "b9a548d86f107391529de0823c5c504a73fe123a7f17905b392681b3e64d209e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "df2dbaed052157ddffc7f517f350a24ca951cb1a4e755155eba4b2e5b3300aba",
+   "sessionHash": "b9a548d86f107391529de0823c5c504a73fe123a7f17905b392681b3e64d209e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "e190d8eec2d8e7babbe8b630d7a4f823fea66d3bd010787f1a5c46e16df57b22",
+   "sessionHash": "c1742c4841c95620c94a8ec276b6015d482edc3b7039b6fc949ae5da075e904d"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "e190d8eec2d8e7babbe8b630d7a4f823fea66d3bd010787f1a5c46e16df57b22",
+   "sessionHash": "c1742c4841c95620c94a8ec276b6015d482edc3b7039b6fc949ae5da075e904d"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "e190d8eec2d8e7babbe8b630d7a4f823fea66d3bd010787f1a5c46e16df57b22",
+   "sessionHash": "c1742c4841c95620c94a8ec276b6015d482edc3b7039b6fc949ae5da075e904d"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "7d295cb10afd03c56046be230bdfef5c54a069c774571435898ffafcb0db09d9",
+   "sessionHash": "4fdaef71805c43fb8bf43dea66ccadff2d2cd9536aa736f4dc3e830e97148fb4"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "7d295cb10afd03c56046be230bdfef5c54a069c774571435898ffafcb0db09d9",
+   "sessionHash": "4fdaef71805c43fb8bf43dea66ccadff2d2cd9536aa736f4dc3e830e97148fb4"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "7d295cb10afd03c56046be230bdfef5c54a069c774571435898ffafcb0db09d9",
+   "sessionHash": "4fdaef71805c43fb8bf43dea66ccadff2d2cd9536aa736f4dc3e830e97148fb4"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "2858fd15f58a265ebef295f651915b9ea5dc1a24c826e1d74078db3b0bb433cb",
+   "sessionHash": "22f62315665e993ce0ed012f1ccd3da7e079e873b76a1821aef6c94680cdb15c"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "2858fd15f58a265ebef295f651915b9ea5dc1a24c826e1d74078db3b0bb433cb",
+   "sessionHash": "22f62315665e993ce0ed012f1ccd3da7e079e873b76a1821aef6c94680cdb15c"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "2858fd15f58a265ebef295f651915b9ea5dc1a24c826e1d74078db3b0bb433cb",
+   "sessionHash": "22f62315665e993ce0ed012f1ccd3da7e079e873b76a1821aef6c94680cdb15c"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "4fff31b9abfbb3283dea38c7558e81e55b9d8ff9460bcea32185a0f80249e646",
+   "sessionHash": "23f34953ff5dc40dfd4232389088306c575136fd546ceba70401b424352642ee"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.1,
+   "promptHash": "4fff31b9abfbb3283dea38c7558e81e55b9d8ff9460bcea32185a0f80249e646",
+   "sessionHash": "23f34953ff5dc40dfd4232389088306c575136fd546ceba70401b424352642ee"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "4fff31b9abfbb3283dea38c7558e81e55b9d8ff9460bcea32185a0f80249e646",
+   "sessionHash": "23f34953ff5dc40dfd4232389088306c575136fd546ceba70401b424352642ee"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "05b9c9c18393e4c9c290a02134a6dfa00c7e8c48aded6b451c4fb087987bab70",
+   "sessionHash": "7e84ec2f3e80857394a46cccd081aa36e8d1975cc36a901bcf0f36500641974e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "05b9c9c18393e4c9c290a02134a6dfa00c7e8c48aded6b451c4fb087987bab70",
+   "sessionHash": "7e84ec2f3e80857394a46cccd081aa36e8d1975cc36a901bcf0f36500641974e"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "05b9c9c18393e4c9c290a02134a6dfa00c7e8c48aded6b451c4fb087987bab70",
+   "sessionHash": "7e84ec2f3e80857394a46cccd081aa36e8d1975cc36a901bcf0f36500641974e"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "67c01530aea83de912b0fa14d6054b84fecc4b8f5f46d8073fc65f133ed37246",
+   "sessionHash": "f12337c60af04a3d120dafd5f92f345f874e278ba7b98c3ae6a588c4fa1eed55"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "67c01530aea83de912b0fa14d6054b84fecc4b8f5f46d8073fc65f133ed37246",
+   "sessionHash": "f12337c60af04a3d120dafd5f92f345f874e278ba7b98c3ae6a588c4fa1eed55"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "67c01530aea83de912b0fa14d6054b84fecc4b8f5f46d8073fc65f133ed37246",
+   "sessionHash": "f12337c60af04a3d120dafd5f92f345f874e278ba7b98c3ae6a588c4fa1eed55"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "0c2ee823761e0f0b08865355b52d65828135f734061f21f41bfc0f7c7c522dde",
+   "sessionHash": "001bc293ea681d91f09d9e0a179fc9ab6bbce90449d5ea4b495420b1db692144"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "0c2ee823761e0f0b08865355b52d65828135f734061f21f41bfc0f7c7c522dde",
+   "sessionHash": "001bc293ea681d91f09d9e0a179fc9ab6bbce90449d5ea4b495420b1db692144"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "0c2ee823761e0f0b08865355b52d65828135f734061f21f41bfc0f7c7c522dde",
+   "sessionHash": "001bc293ea681d91f09d9e0a179fc9ab6bbce90449d5ea4b495420b1db692144"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "27c439f6937364aa6febee460dc4f219b8075241190c2782ce1ac9a9c97fa743",
+   "sessionHash": "7739c6f85d9e80b31f4021d4e5006137d142c8539e9697bd7980eb9f57ad37d4"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "27c439f6937364aa6febee460dc4f219b8075241190c2782ce1ac9a9c97fa743",
+   "sessionHash": "7739c6f85d9e80b31f4021d4e5006137d142c8539e9697bd7980eb9f57ad37d4"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "27c439f6937364aa6febee460dc4f219b8075241190c2782ce1ac9a9c97fa743",
+   "sessionHash": "7739c6f85d9e80b31f4021d4e5006137d142c8539e9697bd7980eb9f57ad37d4"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "286672ced8e7436e9b26fe2ba0b35336d25d400ad965b91db7872ac98aad2d5a",
+   "sessionHash": "047b69c065ab279befe5e8583c4bcedad2d0cfd94f8d3edd9fea9700163ab73d"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "286672ced8e7436e9b26fe2ba0b35336d25d400ad965b91db7872ac98aad2d5a",
+   "sessionHash": "047b69c065ab279befe5e8583c4bcedad2d0cfd94f8d3edd9fea9700163ab73d"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "286672ced8e7436e9b26fe2ba0b35336d25d400ad965b91db7872ac98aad2d5a",
+   "sessionHash": "047b69c065ab279befe5e8583c4bcedad2d0cfd94f8d3edd9fea9700163ab73d"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "5ca33df22b8f78bf29a3b8bb2008b8d3b2142d9dae339d4ba5767281f7c55926",
+   "sessionHash": "6f5ca49c03b66bce6b0dff47454e92998e131ea295a19763ba9d98cc3d5e2f4b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "5ca33df22b8f78bf29a3b8bb2008b8d3b2142d9dae339d4ba5767281f7c55926",
+   "sessionHash": "6f5ca49c03b66bce6b0dff47454e92998e131ea295a19763ba9d98cc3d5e2f4b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "5ca33df22b8f78bf29a3b8bb2008b8d3b2142d9dae339d4ba5767281f7c55926",
+   "sessionHash": "6f5ca49c03b66bce6b0dff47454e92998e131ea295a19763ba9d98cc3d5e2f4b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "c871745267e2a0902168d82c8fb1f9462a96c311003a7d02e980850d1c03a490",
+   "sessionHash": "fc7defc18bc6106eef83b86953266f253f5b806352b693523fac9c7b8f6cf238"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "c871745267e2a0902168d82c8fb1f9462a96c311003a7d02e980850d1c03a490",
+   "sessionHash": "fc7defc18bc6106eef83b86953266f253f5b806352b693523fac9c7b8f6cf238"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "c871745267e2a0902168d82c8fb1f9462a96c311003a7d02e980850d1c03a490",
+   "sessionHash": "fc7defc18bc6106eef83b86953266f253f5b806352b693523fac9c7b8f6cf238"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "24ec73d8786d8825425677d2b4c52a59f37aea3297a138d1d9ef3cafd7d30e51",
+   "sessionHash": "69c31f037bb3d0faecdd76c0a1fb9389b216c2b3383a4ee4801e7f380a81c75b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "24ec73d8786d8825425677d2b4c52a59f37aea3297a138d1d9ef3cafd7d30e51",
+   "sessionHash": "69c31f037bb3d0faecdd76c0a1fb9389b216c2b3383a4ee4801e7f380a81c75b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "24ec73d8786d8825425677d2b4c52a59f37aea3297a138d1d9ef3cafd7d30e51",
+   "sessionHash": "69c31f037bb3d0faecdd76c0a1fb9389b216c2b3383a4ee4801e7f380a81c75b"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "c43b600bb67077bbe96499b1107a043ae80df35da8c5b519a8f4978fe1139327",
+   "sessionHash": "7b607ce2e60bd6eb1e6caf875aacd4993b6c94465444cf2fa6e6fa861189ae9a"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "c43b600bb67077bbe96499b1107a043ae80df35da8c5b519a8f4978fe1139327",
+   "sessionHash": "7b607ce2e60bd6eb1e6caf875aacd4993b6c94465444cf2fa6e6fa861189ae9a"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "c43b600bb67077bbe96499b1107a043ae80df35da8c5b519a8f4978fe1139327",
+   "sessionHash": "7b607ce2e60bd6eb1e6caf875aacd4993b6c94465444cf2fa6e6fa861189ae9a"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "dda5145de57f4c6bfcc6fce2fc3a8d4d2ebb582af0fe7dfe2033acec31724399",
+   "sessionHash": "7b56e18f23c6692b8e7abd5aa289edd2bd65183598ee2c510ec398ee46580779"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "dda5145de57f4c6bfcc6fce2fc3a8d4d2ebb582af0fe7dfe2033acec31724399",
+   "sessionHash": "7b56e18f23c6692b8e7abd5aa289edd2bd65183598ee2c510ec398ee46580779"
+  },
+  {
+   "expected": "holdback",
+   "holdback": 0.5,
+   "promptHash": "dda5145de57f4c6bfcc6fce2fc3a8d4d2ebb582af0fe7dfe2033acec31724399",
+   "sessionHash": "7b56e18f23c6692b8e7abd5aa289edd2bd65183598ee2c510ec398ee46580779"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "6ee9e7c10af042e267cde888caee82bf67414bfc4412ed575d87583c5a7ef60e",
+   "sessionHash": "8e50d3418bf1d47c0f7637c3b77750484ce2f938ae13fdd009074629d55d4c08"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "6ee9e7c10af042e267cde888caee82bf67414bfc4412ed575d87583c5a7ef60e",
+   "sessionHash": "8e50d3418bf1d47c0f7637c3b77750484ce2f938ae13fdd009074629d55d4c08"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "6ee9e7c10af042e267cde888caee82bf67414bfc4412ed575d87583c5a7ef60e",
+   "sessionHash": "8e50d3418bf1d47c0f7637c3b77750484ce2f938ae13fdd009074629d55d4c08"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "9d72a8203f04f6c267b53a48db39ee97cf2e70ab411887e47f57410201c273fc",
+   "sessionHash": "4e7f82eda5e88092866426e4fb2daf9d57f3a77fab82cd4f65a80c5ac55f9cfc"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "9d72a8203f04f6c267b53a48db39ee97cf2e70ab411887e47f57410201c273fc",
+   "sessionHash": "4e7f82eda5e88092866426e4fb2daf9d57f3a77fab82cd4f65a80c5ac55f9cfc"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "9d72a8203f04f6c267b53a48db39ee97cf2e70ab411887e47f57410201c273fc",
+   "sessionHash": "4e7f82eda5e88092866426e4fb2daf9d57f3a77fab82cd4f65a80c5ac55f9cfc"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0,
+   "promptHash": "9d479ea6f8a81b559750184a855978b5b7c1dd4794f538aabcb374b033cae88f",
+   "sessionHash": "fa7e32442baac10fbb758c7f89db804dc70c2bd8c228f55165850369cf9a8ad9"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.1,
+   "promptHash": "9d479ea6f8a81b559750184a855978b5b7c1dd4794f538aabcb374b033cae88f",
+   "sessionHash": "fa7e32442baac10fbb758c7f89db804dc70c2bd8c228f55165850369cf9a8ad9"
+  },
+  {
+   "expected": "treatment",
+   "holdback": 0.5,
+   "promptHash": "9d479ea6f8a81b559750184a855978b5b7c1dd4794f538aabcb374b033cae88f",
+   "sessionHash": "fa7e32442baac10fbb758c7f89db804dc70c2bd8c228f55165850369cf9a8ad9"
+  }
+ ],
+ "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+ "occurrenceKeys": [
+  {
+   "expected": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  {
+   "expected": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "ts": "2026-10-11T17:51:59Z"
+  },
+  {
+   "expected": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "ts": "2026-10-11T19:51:05+02:00"
+  },
+  {
+   "expected": "f7585f98e1b1dd50aba6d799dcf264f43112e152db70b9f5406ad13b4290f8a8",
+   "promptHash": "af20df5b7fcb9e8b227b97aa533e1f902760bdaa6ea1507aa3b705213064c89d",
+   "sessionHash": "5d9061408048c12d053925aed45333a142997f26a2cd1e0c4a87678c53a1e3ae",
+   "ts": "2026-10-11T00:00:00.000Z"
+  }
+ ],
+ "policySha256": {
+  "cosign-v1": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205"
+ }
+}

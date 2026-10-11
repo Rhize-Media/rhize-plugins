@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-decision-record-v1.schema.json",
+  "title": "typed-decision-record-v1",
+  "description": "One router-hook decision for an eligible prompt (live) or a replayed historical prompt (backfill). Never contains prompt text, paths or tokens; at most 4096 bytes. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "decision",
+    "decisionId",
+    "occurrenceKey",
+    "ts",
+    "host",
+    "basis",
+    "sourceStratum",
+    "sessionHash",
+    "promptHash",
+    "promptLengthBucket",
+    "routerSourceSha256",
+    "indexSha256",
+    "registryRevision",
+    "policy",
+    "policySha256",
+    "instrument",
+    "instrumentSha256",
+    "criteriaSha256",
+    "layaRevision",
+    "mode",
+    "arm",
+    "propensity",
+    "incumbent",
+    "shortlist",
+    "laya",
+    "emitted"
+  ],
+  "properties": {
+    "schema": {
+      "const": "rhize-typed-decision-record-v1"
+    },
+    "decision": {
+      "enum": [
+        "skill-fit"
+      ]
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "occurrenceKey": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ts": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    },
+    "host": {
+      "enum": [
+        "claude",
+        "codex",
+        "unknown"
+      ]
+    },
+    "basis": {
+      "enum": [
+        "live",
+        "backfill"
+      ]
+    },
+    "sourceStratum": {
+      "enum": [
+        "fired",
+        "silent_sample"
+      ]
+    },
+    "sessionHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "promptHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "promptLengthBucket": {
+      "enum": [
+        "lt200",
+        "200-600",
+        "600-1200",
+        "gt1200"
+      ]
+    },
+    "routerSourceSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "indexSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "registryRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "policy": {
+      "enum": [
+        "cosign-v1"
+      ]
+    },
+    "policySha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "instrument": {
+      "const": "laya-choice-v1"
+    },
+    "instrumentSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "criteriaSha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "layaRevision": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,80}$"
+    },
+    "mode": {
+      "enum": [
+        "shadow",
+        "cosign"
+      ]
+    },
+    "arm": {
+      "enum": [
+        "treatment",
+        "holdback",
+        "none"
+      ]
+    },
+    "propensity": {
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "incumbent": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "skillId",
+            "score"
+          ],
+          "properties": {
+            "skillId": {
+              "type": "string",
+              "pattern": "^skill:[A-Za-z0-9_.\\-/]+$"
+            },
+            "score": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "shortlist": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^skill:[A-Za-z0-9_.\\-/]+$"
+      },
+      "maxItems": 5,
+      "uniqueItems": true
+    },
+    "laya": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "choice",
+        "probabilities",
+        "latencyMs",
+        "truncated"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "ok",
+            "timeout",
+            "unavailable",
+            "invalid",
+            "identity_failed",
+            "redirect_refused",
+            "skipped"
+          ]
+        },
+        "choice": {
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^skill:[A-Za-z0-9_.\\-/]+$"
+                },
+                {
+                  "const": "none"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "probabilities": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "minItems": 2,
+              "maxItems": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latencyMs": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "truncated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "emitted": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^skill:[A-Za-z0-9_.\\-/]+$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

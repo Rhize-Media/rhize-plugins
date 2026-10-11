@@ -1,0 +1,387 @@
+{
+ "invalid": [
+  {
+   "label": {
+    "acceptable": [
+     "skill:x/y"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "ai_model_reviewed",
+    "bestSkill": "skill:x/y",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": 0.25,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "acceptable-outside-candidates",
+   "reason": "acceptable must be a subset of candidates"
+  },
+  {
+   "label": {
+    "acceptable": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "ai_model_reviewed",
+    "bestSkill": "skill:seo-aeo-geo/seo-site-audit",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": 0.25,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "best-not-acceptable",
+   "reason": "bestSkill must be acceptable"
+  },
+  {
+   "label": {
+    "acceptable": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "ai_model_reviewed",
+    "bestSkill": "none",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": 0.25,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "none-with-acceptable",
+   "reason": "bestSkill none requires an empty acceptable set"
+  },
+  {
+   "label": {
+    "acceptable": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "ai_model_reviewed",
+    "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": 0,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "zero-inclusion",
+   "reason": "invalid inclusionProbability"
+  },
+  {
+   "label": {
+    "acceptable": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "harness",
+    "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": null,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "harness-with-cohort",
+   "reason": "harness labels carry no cohort or inclusion probability"
+  },
+  {
+   "label": {
+    "acceptable": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "ambiguous": false,
+    "annotators": [
+     "claude-sonnet-5-5",
+     "gpt-5.6-sol"
+    ],
+    "basis": "ai_model_reviewed",
+    "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "candidates": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "decisionId": "00000000000000000000000000000001",
+    "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+    "inclusionProbability": 0.25,
+    "labeledAt": "2026-10-11T18:00:00Z",
+    "note": "free text",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "reviewer": "claude-fable-5-1",
+    "schema": "rhize-typed-decision-label-v1",
+    "stratum": "disagreement",
+    "unlistedBetter": false
+   },
+   "name": "extra-field",
+   "reason": "label keys mismatch (missing=[], extra=['note'])"
+  }
+ ],
+ "scoring": [
+  {
+   "expected": "wrong",
+   "label": "disagreement-incumbent-wrong",
+   "suggestion": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "expected": "false_fire",
+   "label": "none-acceptable",
+   "suggestion": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "expected": null,
+   "label": "ambiguous",
+   "suggestion": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "expected": "wrong",
+   "label": "harness",
+   "suggestion": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "expected": "wrong",
+   "label": "scoreboard-pool",
+   "suggestion": "skill:seo-aeo-geo/seo-site-audit"
+  },
+  {
+   "expected": "hit",
+   "label": "disagreement-incumbent-wrong",
+   "suggestion": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "expected": "false_fire",
+   "label": "none-acceptable",
+   "suggestion": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "expected": null,
+   "label": "ambiguous",
+   "suggestion": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "expected": "hit",
+   "label": "harness",
+   "suggestion": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "expected": "hit",
+   "label": "scoreboard-pool",
+   "suggestion": "skill:seo-aeo-geo/aeo-geo-optimization"
+  },
+  {
+   "expected": "silent",
+   "label": "disagreement-incumbent-wrong",
+   "suggestion": null
+  },
+  {
+   "expected": "silent",
+   "label": "none-acceptable",
+   "suggestion": null
+  },
+  {
+   "expected": null,
+   "label": "ambiguous",
+   "suggestion": null
+  },
+  {
+   "expected": "silent",
+   "label": "harness",
+   "suggestion": null
+  },
+  {
+   "expected": "silent",
+   "label": "scoreboard-pool",
+   "suggestion": null
+  }
+ ],
+ "valid": {
+  "ambiguous": {
+   "acceptable": [],
+   "ambiguous": true,
+   "annotators": [
+    "claude-sonnet-5-5",
+    "gpt-5.6-sol"
+   ],
+   "basis": "ai_model_reviewed",
+   "bestSkill": "none",
+   "candidates": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "decisionId": "00000000000000000000000000000001",
+   "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+   "inclusionProbability": 0.25,
+   "labeledAt": "2026-10-11T18:00:00Z",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "reviewer": "claude-fable-5-1",
+   "schema": "rhize-typed-decision-label-v1",
+   "stratum": "disagreement",
+   "unlistedBetter": false
+  },
+  "disagreement-incumbent-wrong": {
+   "acceptable": [
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "ambiguous": false,
+   "annotators": [
+    "claude-sonnet-5-5",
+    "gpt-5.6-sol"
+   ],
+   "basis": "ai_model_reviewed",
+   "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "candidates": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "decisionId": "00000000000000000000000000000001",
+   "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+   "inclusionProbability": 0.25,
+   "labeledAt": "2026-10-11T18:00:00Z",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "reviewer": "claude-fable-5-1",
+   "schema": "rhize-typed-decision-label-v1",
+   "stratum": "disagreement",
+   "unlistedBetter": false
+  },
+  "harness": {
+   "acceptable": [
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "ambiguous": false,
+   "annotators": [],
+   "basis": "harness",
+   "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "candidates": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "cohortId": null,
+   "decisionId": "00000000000000000000000000000001",
+   "evidenceSha256": null,
+   "inclusionProbability": null,
+   "labeledAt": "2026-10-11T18:00:00Z",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "reviewer": null,
+   "schema": "rhize-typed-decision-label-v1",
+   "stratum": "harness",
+   "unlistedBetter": false
+  },
+  "none-acceptable": {
+   "acceptable": [],
+   "ambiguous": false,
+   "annotators": [
+    "claude-sonnet-5-5",
+    "gpt-5.6-sol"
+   ],
+   "basis": "ai_model_reviewed",
+   "bestSkill": "none",
+   "candidates": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "cohortId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "decisionId": "00000000000000000000000000000001",
+   "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+   "inclusionProbability": 0.25,
+   "labeledAt": "2026-10-11T18:00:00Z",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "reviewer": "claude-fable-5-1",
+   "schema": "rhize-typed-decision-label-v1",
+   "stratum": "disagreement",
+   "unlistedBetter": false
+  },
+  "scoreboard-pool": {
+   "acceptable": [
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "ambiguous": false,
+   "annotators": [
+    "claude-sonnet-5-5",
+    "gpt-5.6-sol"
+   ],
+   "basis": "ai_model_reviewed",
+   "bestSkill": "skill:seo-aeo-geo/aeo-geo-optimization",
+   "candidates": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "cohortId": null,
+   "decisionId": "00000000000000000000000000000001",
+   "evidenceSha256": "ee8250fb76e094b34b471f13a73dbbe51d1ae142e9df59d7c0d31ec20f0a0a8e",
+   "inclusionProbability": 0.05,
+   "labeledAt": "2026-10-11T18:00:00Z",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "reviewer": "claude-fable-5-1",
+   "schema": "rhize-typed-decision-label-v1",
+   "stratum": "agreement",
+   "unlistedBetter": false
+  }
+ }
+}

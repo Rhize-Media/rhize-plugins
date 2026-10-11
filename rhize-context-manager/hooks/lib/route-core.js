@@ -360,6 +360,31 @@ function routeFromIndex(routerIndex, promptTokens, prompt) {
   return pickBest(scored, Object.entries(routerIndex.extendsBases || {}));
 }
 
+// Unfloored lexical shortlist for the skill-fit challenger (Laya co-sign; see
+// docs/superpowers/specs/2026-10-11-laya-earned-authority-plan.md §4.3). It is
+// NOT a routing decision: no qualification floor, no partial-name signals and
+// no extends tie-break. Every skill with at least one fully matched signal is
+// ranked by the summed weight of those signals, ties broken on skill id by
+// code-unit order (locale-independent, so Python replays agree). The incumbent
+// is forced in by replacing the last slot. Pinned by
+// tests/rhize-context-manager/fixtures/typed-decisions/lexical-shortlist.json.
+function lexicalShortlist(routerIndex, promptTokens, incumbentId, k = 5) {
+  const limit = Number.isInteger(k) && k > 0 ? k : 5;
+  const scored = [];
+  for (const [skillId, signals] of Object.entries((routerIndex && routerIndex.signals) || {})) {
+    const { matched } = matchSignals(signals, promptTokens);
+    if (matched.length === 0) continue;
+    scored.push({ skillId, score: matched.reduce((sum, s) => sum + s.weight, 0) });
+  }
+  scored.sort((a, b) => b.score - a.score || (a.skillId < b.skillId ? -1 : a.skillId > b.skillId ? 1 : 0));
+  const out = scored.slice(0, limit).map((item) => item.skillId);
+  if (incumbentId && !out.includes(incumbentId)) {
+    if (out.length >= limit) out.pop();
+    out.push(incumbentId);
+  }
+  return out;
+}
+
 // Map-scan fallback: returns the single best-matching skill, or null if none
 // qualifies.
 //
@@ -435,6 +460,7 @@ module.exports = {
   normalizeWord,
   matchSignals,
   scoreCandidates,
+  lexicalShortlist,
   pickBest,
   splitSkillId,
   formatSkillRef,

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "decisions": {
+    "skill-fit": {
+      "tier": "advisory",
+      "defaultMode": "shadow",
+      "reachableModes": ["off", "shadow", "cosign"],
+      "incumbent": "router-lexical",
+      "deployablePolicy": "cosign-v1",
+      "instrument": "laya-choice-v1",
+      "holdback": 0.1,
+      "latencyBudgetMs": 800,
+      "lambda": 1,
+      "endpoint": "http://127.0.0.1:8000",
+      "model": "typed-decisions",
+      "gates": {
+        "promote": {
+          "cohortSize": 60,
+          "maxPerSession": 1,
+          "alphaBase": 0.05,
+          "maxAmbiguousShare": 0.2,
+          "maxUnavailableShare": 0.05
+        },
+        "demote": {
+          "minLabeled": 30,
+          "alpha": 0.1,
+          "maxUnavailableShare": 0.1,
+          "operationalWindowDays": 3,
+          "latencyReportOnlyDays": 14
+        }
+      }
+    },
+    "workflow-fit": {
+      "tier": "workflow",
+      "defaultMode": "shadow",
+      "reachableModes": ["shadow"],
+      "incumbent": "arm-a",
+      "deployablePolicy": null,
+      "instrument": null,
+      "holdback": null,
+      "latencyBudgetMs": null,
+      "lambda": null,
+      "endpoint": null,
+      "model": null,
+      "gates": null
+    }
+  }
+}

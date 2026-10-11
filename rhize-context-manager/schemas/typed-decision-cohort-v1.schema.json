@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-decision-cohort-v1.schema.json",
+  "title": "typed-decision-cohort-v1",
+  "description": "Append-only gate-cohort ledger line. A cohort is frozen at reserve (policy, instrument, Laya revision, lambda, alpha, attempt) before any of its labels exist and is consumed (tested) exactly once. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "event",
+        "cohortId",
+        "decision",
+        "at",
+        "policy",
+        "policySha256",
+        "instrumentSha256",
+        "layaRevision",
+        "lambda",
+        "alpha",
+        "attempt",
+        "target",
+        "stratum",
+        "occurrenceKeys"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rhize-typed-decision-cohort-v1"
+        },
+        "event": {
+          "const": "reserve"
+        },
+        "cohortId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "decision": {
+          "enum": [
+            "skill-fit"
+          ]
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+        },
+        "policy": {
+          "enum": [
+            "cosign-v1"
+          ]
+        },
+        "policySha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "instrumentSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "layaRevision": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9._-]{1,80}$"
+        },
+        "lambda": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "alpha": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.5
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "target": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stratum": {
+          "const": "disagreement"
+        },
+        "occurrenceKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "event",
+        "cohortId",
+        "decision",
+        "at",
+        "counts"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rhize-typed-decision-cohort-v1"
+        },
+        "event": {
+          "const": "labeled"
+        },
+        "cohortId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "decision": {
+          "enum": [
+            "skill-fit"
+          ]
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "labeled",
+            "ambiguous",
+            "hit",
+            "notHit"
+          ],
+          "properties": {
+            "labeled": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ambiguous": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "hit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "notHit": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "event",
+        "cohortId",
+        "decision",
+        "at",
+        "verdict",
+        "statistic",
+        "receiptSha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rhize-typed-decision-cohort-v1"
+        },
+        "event": {
+          "const": "consumed"
+        },
+        "cohortId": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "decision": {
+          "enum": [
+            "skill-fit"
+          ]
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "held"
+          ]
+        },
+        "statistic": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "n",
+            "x",
+            "bound",
+            "threshold",
+            "alpha"
+          ],
+          "properties": {
+            "n": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "x": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "bound": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "threshold": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "receiptSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,513 @@
+{
+ "invalidAudit": [
+  {
+   "line": {
+    "actor": "cycle",
+    "at": "2026-10-11T20:00:00Z",
+    "decision": "skill-fit",
+    "fromMode": "shadow",
+    "phase": "commit",
+    "pinned": false,
+    "previousRevision": 1,
+    "reason": "gate_passed",
+    "revision": 3,
+    "schema": "rhize-typed-decision-registry-audit-v1",
+    "toMode": "cosign"
+   },
+   "name": "revision-skip",
+   "reason": "revision must increment by one"
+  },
+  {
+   "line": {
+    "actor": "cycle",
+    "at": "2026-10-11T20:00:00Z",
+    "decision": "skill-fit",
+    "fromMode": "shadow",
+    "phase": "intent",
+    "pinned": false,
+    "previousRevision": 1,
+    "reason": "gate_passed",
+    "revision": 2,
+    "schema": "rhize-typed-decision-registry-audit-v1",
+    "toMode": "cosign"
+   },
+   "name": "intent-without-state",
+   "reason": "audit line keys mismatch (missing=['state'], extra=[])"
+  }
+ ],
+ "invalidRegistries": [
+  {
+   "name": "critical-cosign",
+   "reason": "critical decisions are shadow-only",
+   "registry": {
+    "decisions": {
+     "skill-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": "cosign-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": {
+       "demote": {
+        "alpha": 0.1,
+        "latencyReportOnlyDays": 14,
+        "maxUnavailableShare": 0.1,
+        "minLabeled": 30,
+        "operationalWindowDays": 3
+       },
+       "promote": {
+        "alphaBase": 0.05,
+        "cohortSize": 60,
+        "maxAmbiguousShare": 0.2,
+        "maxPerSession": 1,
+        "maxUnavailableShare": 0.05
+       }
+      },
+      "holdback": 0.1,
+      "incumbent": "router-lexical",
+      "instrument": "laya-choice-v1",
+      "lambda": 1,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "critical"
+     },
+     "workflow-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow"
+      ],
+      "tier": "workflow"
+     }
+    },
+    "schemaVersion": 1
+   }
+  },
+  {
+   "name": "workflow-cosign",
+   "reason": "only advisory decisions may reach cosign",
+   "registry": {
+    "decisions": {
+     "skill-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": "cosign-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": {
+       "demote": {
+        "alpha": 0.1,
+        "latencyReportOnlyDays": 14,
+        "maxUnavailableShare": 0.1,
+        "minLabeled": 30,
+        "operationalWindowDays": 3
+       },
+       "promote": {
+        "alphaBase": 0.05,
+        "cohortSize": 60,
+        "maxAmbiguousShare": 0.2,
+        "maxPerSession": 1,
+        "maxUnavailableShare": 0.05
+       }
+      },
+      "holdback": 0.1,
+      "incumbent": "router-lexical",
+      "instrument": "laya-choice-v1",
+      "lambda": 1,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "advisory"
+     },
+     "workflow-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow",
+       "cosign"
+      ],
+      "tier": "workflow"
+     }
+    },
+    "schemaVersion": 1
+   }
+  },
+  {
+   "name": "hostname-endpoint",
+   "reason": "endpoint must be a literal loopback http address",
+   "registry": {
+    "decisions": {
+     "skill-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": "cosign-v1",
+      "endpoint": "http://localhost:8000",
+      "gates": {
+       "demote": {
+        "alpha": 0.1,
+        "latencyReportOnlyDays": 14,
+        "maxUnavailableShare": 0.1,
+        "minLabeled": 30,
+        "operationalWindowDays": 3
+       },
+       "promote": {
+        "alphaBase": 0.05,
+        "cohortSize": 60,
+        "maxAmbiguousShare": 0.2,
+        "maxPerSession": 1,
+        "maxUnavailableShare": 0.05
+       }
+      },
+      "holdback": 0.1,
+      "incumbent": "router-lexical",
+      "instrument": "laya-choice-v1",
+      "lambda": 1,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "advisory"
+     },
+     "workflow-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow"
+      ],
+      "tier": "workflow"
+     }
+    },
+    "schemaVersion": 1
+   }
+  },
+  {
+   "name": "default-unreachable",
+   "reason": "invalid defaultMode",
+   "registry": {
+    "decisions": {
+     "skill-fit": {
+      "defaultMode": "cosign",
+      "deployablePolicy": "cosign-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": {
+       "demote": {
+        "alpha": 0.1,
+        "latencyReportOnlyDays": 14,
+        "maxUnavailableShare": 0.1,
+        "minLabeled": 30,
+        "operationalWindowDays": 3
+       },
+       "promote": {
+        "alphaBase": 0.05,
+        "cohortSize": 60,
+        "maxAmbiguousShare": 0.2,
+        "maxPerSession": 1,
+        "maxUnavailableShare": 0.05
+       }
+      },
+      "holdback": 0.1,
+      "incumbent": "router-lexical",
+      "instrument": "laya-choice-v1",
+      "lambda": 1,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow"
+      ],
+      "tier": "advisory"
+     },
+     "workflow-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow"
+      ],
+      "tier": "workflow"
+     }
+    },
+    "schemaVersion": 1
+   }
+  },
+  {
+   "name": "unknown-decision",
+   "reason": "invalid decision id",
+   "registry": {
+    "decisions": {
+     "gsd-finish": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow"
+      ],
+      "tier": "workflow"
+     },
+     "skill-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": "cosign-v1",
+      "endpoint": "http://127.0.0.1:8000",
+      "gates": {
+       "demote": {
+        "alpha": 0.1,
+        "latencyReportOnlyDays": 14,
+        "maxUnavailableShare": 0.1,
+        "minLabeled": 30,
+        "operationalWindowDays": 3
+       },
+       "promote": {
+        "alphaBase": 0.05,
+        "cohortSize": 60,
+        "maxAmbiguousShare": 0.2,
+        "maxPerSession": 1,
+        "maxUnavailableShare": 0.05
+       }
+      },
+      "holdback": 0.1,
+      "incumbent": "router-lexical",
+      "instrument": "laya-choice-v1",
+      "lambda": 1,
+      "latencyBudgetMs": 800,
+      "model": "typed-decisions",
+      "reachableModes": [
+       "off",
+       "shadow",
+       "cosign"
+      ],
+      "tier": "advisory"
+     },
+     "workflow-fit": {
+      "defaultMode": "shadow",
+      "deployablePolicy": null,
+      "endpoint": null,
+      "gates": null,
+      "holdback": null,
+      "incumbent": "arm-a",
+      "instrument": null,
+      "lambda": null,
+      "latencyBudgetMs": null,
+      "model": null,
+      "reachableModes": [
+       "shadow"
+      ],
+      "tier": "workflow"
+     }
+    },
+    "schemaVersion": 1
+   }
+  }
+ ],
+ "invalidStates": [
+  {
+   "name": "unreachable-mode",
+   "reason": "invalid mode",
+   "state": {
+    "decisions": {
+     "workflow-fit": {
+      "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+      "layaRevision": "55cf4c4ebb4e",
+      "mode": "cosign",
+      "pinned": false,
+      "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+      "reason": "gate_passed",
+      "since": "2026-10-11T20:00:00Z"
+     }
+    },
+    "revision": 2,
+    "schemaVersion": 1,
+    "updatedAt": "2026-10-11T20:00:00Z"
+   }
+  },
+  {
+   "name": "cosign-unbound",
+   "reason": "cosign state must bind policy and instrument hashes",
+   "state": {
+    "decisions": {
+     "skill-fit": {
+      "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+      "layaRevision": "55cf4c4ebb4e",
+      "mode": "cosign",
+      "pinned": false,
+      "policySha256": null,
+      "reason": "gate_passed",
+      "since": "2026-10-11T20:00:00Z"
+     }
+    },
+    "revision": 2,
+    "schemaVersion": 1,
+    "updatedAt": "2026-10-11T20:00:00Z"
+   }
+  },
+  {
+   "name": "revision-zero",
+   "reason": "invalid revision",
+   "state": {
+    "decisions": {
+     "skill-fit": {
+      "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+      "layaRevision": "55cf4c4ebb4e",
+      "mode": "cosign",
+      "pinned": false,
+      "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+      "reason": "gate_passed",
+      "since": "2026-10-11T20:00:00Z"
+     }
+    },
+    "revision": 0,
+    "schemaVersion": 1,
+    "updatedAt": "2026-10-11T20:00:00Z"
+   }
+  },
+  {
+   "name": "unknown-decision",
+   "reason": "unknown decision in state",
+   "state": {
+    "decisions": {
+     "gsd-finish": {
+      "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+      "layaRevision": "55cf4c4ebb4e",
+      "mode": "cosign",
+      "pinned": false,
+      "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+      "reason": "gate_passed",
+      "since": "2026-10-11T20:00:00Z"
+     }
+    },
+    "revision": 2,
+    "schemaVersion": 1,
+    "updatedAt": "2026-10-11T20:00:00Z"
+   }
+  }
+ ],
+ "validAudit": {
+  "commit": {
+   "actor": "cycle",
+   "at": "2026-10-11T20:00:00Z",
+   "decision": "skill-fit",
+   "fromMode": "shadow",
+   "phase": "commit",
+   "pinned": false,
+   "previousRevision": 1,
+   "reason": "gate_passed",
+   "revision": 2,
+   "schema": "rhize-typed-decision-registry-audit-v1",
+   "toMode": "cosign"
+  },
+  "intent": {
+   "actor": "cycle",
+   "at": "2026-10-11T20:00:00Z",
+   "decision": "skill-fit",
+   "fromMode": "shadow",
+   "phase": "intent",
+   "pinned": false,
+   "previousRevision": 1,
+   "reason": "gate_passed",
+   "revision": 2,
+   "schema": "rhize-typed-decision-registry-audit-v1",
+   "state": {
+    "decisions": {
+     "skill-fit": {
+      "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+      "layaRevision": "55cf4c4ebb4e",
+      "mode": "cosign",
+      "pinned": false,
+      "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+      "reason": "gate_passed",
+      "since": "2026-10-11T20:00:00Z"
+     }
+    },
+    "revision": 2,
+    "schemaVersion": 1,
+    "updatedAt": "2026-10-11T20:00:00Z"
+   },
+   "toMode": "cosign"
+  }
+ },
+ "validStates": {
+  "cosign": {
+   "decisions": {
+    "skill-fit": {
+     "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+     "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+     "layaRevision": "55cf4c4ebb4e",
+     "mode": "cosign",
+     "pinned": false,
+     "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+     "reason": "gate_passed",
+     "since": "2026-10-11T20:00:00Z"
+    }
+   },
+   "revision": 2,
+   "schemaVersion": 1,
+   "updatedAt": "2026-10-11T20:00:00Z"
+  },
+  "pinned-shadow": {
+   "decisions": {
+    "skill-fit": {
+     "cohortId": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+     "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+     "layaRevision": "55cf4c4ebb4e",
+     "mode": "shadow",
+     "pinned": true,
+     "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+     "reason": "manual_pin",
+     "since": "2026-10-11T20:00:00Z"
+    }
+   },
+   "revision": 2,
+   "schemaVersion": 1,
+   "updatedAt": "2026-10-11T20:00:00Z"
+  }
+ }
+}

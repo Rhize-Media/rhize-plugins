@@ -1,0 +1,334 @@
+{
+ "cases": [
+  {
+   "candidates": [
+    {
+     "description": "Full technical SEO audit of a site.",
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    {
+     "description": "Optimize content for AI answer engines.",
+     "skillId": "skill:seo-aeo-geo/aeo-geo-optimization"
+    },
+    {
+     "description": "Collect test evidence.",
+     "skillId": "skill:rhize-devflow/test-evidence"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"seo-site-audit: Full technical SEO audit of a site.\",\"s1\":\"aeo-geo-optimization: Optimize content for AI answer engines.\",\"s2\":\"test-evidence: Collect test evidence.\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"Run an SEO audit for the Rhize homepage and summarize the top issues.\"}}",
+    "criteriaSha256": "7caf4468e79a7c17b0515a3457f62df4adb39b9b7b4e01d5e14e27a1b8d333d3",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:seo-aeo-geo/seo-site-audit",
+     "s1": "skill:seo-aeo-geo/aeo-geo-optimization",
+     "s2": "skill:rhize-devflow/test-evidence"
+    },
+    "promptLengthBucket": "lt200",
+    "truncated": false
+   },
+   "name": "basic",
+   "prompt": "Run an SEO audit for the Rhize homepage and summarize the top issues."
+  },
+  {
+   "candidates": [
+    {
+     "description": null,
+     "skillId": "skill:rhize-devflow/test-evidence"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"test-evidence\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"write tests\"}}",
+    "criteriaSha256": "d1e2f5acc8020eee5817c350172a386f99c71ce40e966816f88ba0789b92e293",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-devflow/test-evidence"
+    },
+    "promptLengthBucket": "lt200",
+    "truncated": false
+   },
+   "name": "single-null-description",
+   "prompt": "write tests"
+  },
+  {
+   "candidates": [
+    {
+     "description": "Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces  end 0",
+     "skillId": "skill:rhize-devflow/skill-0"
+    },
+    {
+     "description": "Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces  end 1",
+     "skillId": "skill:rhize-devflow/skill-1"
+    },
+    {
+     "description": "Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces  end 2",
+     "skillId": "skill:rhize-devflow/skill-2"
+    },
+    {
+     "description": "Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces  end 3",
+     "skillId": "skill:rhize-devflow/skill-3"
+    },
+    {
+     "description": "Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces Line one\twith\ttabs\n\nand   many    spaces  end 4",
+     "skillId": "skill:rhize-devflow/skill-4"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"skill-0: Line one with tabs and many spaces Line one with tabs and many spaces Line one with tabs and many spaces Line one with t\",\"s1\":\"skill-1: Line one with tabs and many spaces Line one with tabs and many spaces Line one with tabs and many spaces Line one with t\",\"s2\":\"skill-2: Line one with tabs and many spaces Line one with tabs and many spaces Line one with tabs and many spaces Line one with t\",\"s3\":\"skill-3: Line one with tabs and many spaces Line one with tabs and many spaces Line one with tabs and many spaces Line one with t\",\"s4\":\"skill-4: Line one with tabs and many spaces Line one with tabs and many spaces Line one with tabs and many spaces Line one with t\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"plan the sanity schema migration\"}}",
+    "criteriaSha256": "be3da6704356cf28eb824d93dc49da5a515e5611ca253d8ab3e214a99a695a46",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-devflow/skill-0",
+     "s1": "skill:rhize-devflow/skill-1",
+     "s2": "skill:rhize-devflow/skill-2",
+     "s3": "skill:rhize-devflow/skill-3",
+     "s4": "skill:rhize-devflow/skill-4"
+    },
+    "promptLengthBucket": "lt200",
+    "truncated": false
+   },
+   "name": "five-long-descriptions",
+   "prompt": "plan the sanity schema migration"
+  },
+  {
+   "candidates": [
+    {
+     "description": "Sanity Studio development.",
+     "skillId": "skill:rhize-devflow/sanity-development"
+    },
+    {
+     "description": "Vercel functions.",
+     "skillId": "skill:claude-plugins-official/vercel/vercel-functions"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"sanity-development: Sanity Studio development.\",\"s1\":\"vercel-functions: Vercel functions.\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy\"}}",
+    "criteriaSha256": "76265c64387656aa03f8b0b7ce6a664c9d699be43e95236982cbbc39ef52a53f",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-devflow/sanity-development",
+     "s1": "skill:claude-plugins-official/vercel/vercel-functions"
+    },
+    "promptLengthBucket": "gt1200",
+    "truncated": true
+   },
+   "name": "long-prompt-whitespace-cut",
+   "prompt": "deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning deploy the nextjs site and check the sanity schema before we publish the release notes for the client tomorrow morning "
+  },
+  {
+   "candidates": [
+    {
+     "description": "Sanity Studio development.",
+     "skillId": "skill:rhize-devflow/sanity-development"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"sanity-development: Sanity Studio development.\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}",
+    "criteriaSha256": "f8ca16523c950d78e4c2d257dc8c600a0e327dcdadd4004fc0caa53d97a01b47",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-devflow/sanity-development"
+    },
+    "promptLengthBucket": "gt1200",
+    "truncated": true
+   },
+   "name": "long-prompt-no-whitespace",
+   "prompt": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "candidates": [
+    {
+     "description": "Clip 🌐 web pages — café notes.",
+     "skillId": "skill:obsidian-second-brain/defuddle"
+    },
+    {
+     "description": "  \t  ",
+     "skillId": "skill:rhize-tasks/task-planner"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"defuddle: Clip 🌐 web pages — café notes.\",\"s1\":\"task-planner\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é\"}}",
+    "criteriaSha256": "953b7fc93c7264730a9f4a436bcf386744fb84d16de40af24dd6a2a563715edb",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:obsidian-second-brain/defuddle",
+     "s1": "skill:rhize-tasks/task-planner"
+    },
+    "promptLengthBucket": "gt1200",
+    "truncated": true
+   },
+   "name": "unicode-astral-combining",
+   "prompt": "héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é héllo wörld 🚀 é 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀"
+  },
+  {
+   "candidates": [
+    {
+     "description": "d",
+     "skillId": "skill:rhize-ops/ops-x"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"ops-x: d\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}",
+    "criteriaSha256": "7a8cc81c33a7244c9121e0beeed612929cd10822493253f42bcec23f21c43a10",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-ops/ops-x"
+    },
+    "promptLengthBucket": "600-1200",
+    "truncated": false
+   },
+   "name": "exact-limit",
+   "prompt": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "candidates": [
+    {
+     "description": "Manage Vercel env vars.",
+     "skillId": "skill:claude-plugins-official/vercel/env-vars"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"env-vars: Manage Vercel env vars.\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"clean up env vars on vercel\"}}",
+    "criteriaSha256": "117a30f310988f951c7411f266df858715545653b53be5df58ea010dc991d536",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:claude-plugins-official/vercel/env-vars"
+    },
+    "promptLengthBucket": "lt200",
+    "truncated": false
+   },
+   "name": "third-party-deep-id",
+   "prompt": "clean up env vars on vercel"
+  },
+  {
+   "candidates": [
+    {
+     "description": "y",
+     "skillId": "skill:rhize-ops/ops-y"
+    }
+   ],
+   "expected": {
+    "canonicalRequest": "{\"model\":\"typed-decisions\",\"questions\":{\"skill\":{\"criteria\":{\"none\":\"none of these skills is needed; answer directly\",\"s0\":\"ops-y: y\"},\"instructions\":\"Which skill, if any, should be loaded to handle `request`?\",\"type\":\"choice\"}},\"state\":{\"request\":\"word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word tail\"}}",
+    "criteriaSha256": "68139a0a2b935665f96495c65d0c9b7eb8c23cb956423e499388723471ec2f87",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "keyMap": {
+     "s0": "skill:rhize-ops/ops-y"
+    },
+    "promptLengthBucket": "gt1200",
+    "truncated": true
+   },
+   "name": "trailing-whitespace-in-window",
+   "prompt": "word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word word tail                                                  zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+  }
+ ],
+ "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+ "invalid": [
+  {
+   "candidates": [],
+   "name": "no-candidates",
+   "prompt": "p"
+  },
+  {
+   "candidates": [
+    {
+     "description": "d",
+     "skillId": "skill:a/s0"
+    },
+    {
+     "description": "d",
+     "skillId": "skill:a/s1"
+    },
+    {
+     "description": "d",
+     "skillId": "skill:a/s2"
+    },
+    {
+     "description": "d",
+     "skillId": "skill:a/s3"
+    },
+    {
+     "description": "d",
+     "skillId": "skill:a/s4"
+    },
+    {
+     "description": "d",
+     "skillId": "skill:a/s5"
+    }
+   ],
+   "name": "six-candidates",
+   "prompt": "p"
+  },
+  {
+   "candidates": [
+    {
+     "description": "d",
+     "skillId": "skill:a/s"
+    },
+    {
+     "description": "e",
+     "skillId": "skill:a/s"
+    }
+   ],
+   "name": "duplicate",
+   "prompt": "p"
+  },
+  {
+   "candidates": [
+    {
+     "description": "d",
+     "skillId": "command:a/s"
+    }
+   ],
+   "name": "bad-id",
+   "prompt": "p"
+  },
+  {
+   "candidates": [
+    {
+     "description": "d",
+     "score": 3,
+     "skillId": "skill:a/s"
+    }
+   ],
+   "name": "extra-key",
+   "prompt": "p"
+  }
+ ],
+ "lengthBuckets": [
+  {
+   "bucket": "lt200",
+   "length": 0,
+   "prompt": ""
+  },
+  {
+   "bucket": "lt200",
+   "length": 199,
+   "prompt": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  },
+  {
+   "bucket": "200-600",
+   "length": 200,
+   "prompt": "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀"
+  },
+  {
+   "bucket": "200-600",
+   "length": 599,
+   "prompt": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  },
+  {
+   "bucket": "600-1200",
+   "length": 600,
+   "prompt": "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀"
+  },
+  {
+   "bucket": "600-1200",
+   "length": 1200,
+   "prompt": "🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀"
+  },
+  {
+   "bucket": "gt1200",
+   "length": 1201,
+   "prompt": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  }
+ ]
+}

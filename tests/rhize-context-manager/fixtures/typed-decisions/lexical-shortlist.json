@@ -1,0 +1,155 @@
+{
+ "cases": [
+  {
+   "expected": [
+    "skill:a/seo-site-audit",
+    "skill:a/aeo-geo-optimization"
+   ],
+   "incumbentId": "skill:a/seo-site-audit",
+   "k": 5,
+   "name": "seo-ranking",
+   "prompt": "run a seo audit of the site"
+  },
+  {
+   "expected": [
+    "skill:a/sanity-development",
+    "skill:b/env-vars",
+    "skill:b/vercel-functions",
+    "skill:c/test-evidence",
+    "skill:c/zz-testing-extra"
+   ],
+   "incumbentId": null,
+   "k": 5,
+   "name": "ties-by-code-unit",
+   "prompt": "testing on vercel with sanity"
+  },
+  {
+   "expected": [
+    "skill:b/env-vars",
+    "skill:a/sanity-development",
+    "skill:a/aeo-geo-optimization"
+   ],
+   "incumbentId": "skill:a/aeo-geo-optimization",
+   "k": 3,
+   "name": "k-limit-forces-incumbent",
+   "prompt": "testing on vercel with sanity deployment"
+  },
+  {
+   "expected": [],
+   "incumbentId": null,
+   "k": 5,
+   "name": "no-match",
+   "prompt": "hello there"
+  },
+  {
+   "expected": [
+    "skill:c/test-evidence"
+   ],
+   "incumbentId": "skill:c/test-evidence",
+   "k": 5,
+   "name": "incumbent-without-match",
+   "prompt": "hello there"
+  }
+ ],
+ "index": {
+  "signals": {
+   "skill:a/aeo-geo-optimization": [
+    {
+     "facet": "topic",
+     "kind": "tag",
+     "label": "seo",
+     "weight": 2
+    },
+    {
+     "kind": "name",
+     "label": "aeo-geo-optimization",
+     "weight": 1
+    }
+   ],
+   "skill:a/sanity-development": [
+    {
+     "facet": "stack",
+     "kind": "tag",
+     "label": "sanity",
+     "weight": 2
+    },
+    {
+     "kind": "name",
+     "label": "sanity-development",
+     "weight": 1
+    }
+   ],
+   "skill:a/seo-site-audit": [
+    {
+     "facet": "topic",
+     "kind": "tag",
+     "label": "seo-audit",
+     "weight": 2
+    },
+    {
+     "facet": "topic",
+     "kind": "tag",
+     "label": "seo",
+     "weight": 2
+    },
+    {
+     "kind": "name",
+     "label": "seo-site-audit",
+     "weight": 1
+    }
+   ],
+   "skill:b/env-vars": [
+    {
+     "facet": "stack",
+     "kind": "tag",
+     "label": "vercel",
+     "weight": 2
+    },
+    {
+     "kind": "tag-inferred",
+     "label": "deployment",
+     "weight": 0.5
+    },
+    {
+     "kind": "name",
+     "label": "env-vars",
+     "weight": 1
+    }
+   ],
+   "skill:b/vercel-functions": [
+    {
+     "facet": "stack",
+     "kind": "tag",
+     "label": "vercel",
+     "weight": 2
+    },
+    {
+     "kind": "name",
+     "label": "vercel-functions",
+     "weight": 1
+    }
+   ],
+   "skill:c/test-evidence": [
+    {
+     "facet": "topic",
+     "kind": "tag",
+     "label": "testing",
+     "weight": 2
+    },
+    {
+     "kind": "name",
+     "label": "test-evidence",
+     "weight": 1
+    }
+   ],
+   "skill:c/zz-testing-extra": [
+    {
+     "facet": "topic",
+     "kind": "tag",
+     "label": "testing",
+     "weight": 2
+    }
+   ]
+  }
+ }
+}

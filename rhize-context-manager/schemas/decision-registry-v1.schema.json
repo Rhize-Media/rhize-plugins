@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/decision-registry-v1.schema.json",
+  "title": "decision-registry-v1",
+  "description": "Shipped default typed-decision registry (rhize-context-manager/catalog/decision-registry.json). Critical decisions are shadow-only; cosign is reachable only by advisory decisions with a deployable policy. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisions"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "decisions": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "enum": [
+          "skill-fit",
+          "workflow-fit"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tier",
+          "defaultMode",
+          "reachableModes",
+          "incumbent",
+          "deployablePolicy",
+          "instrument",
+          "holdback",
+          "latencyBudgetMs",
+          "lambda",
+          "endpoint",
+          "model",
+          "gates"
+        ],
+        "properties": {
+          "tier": {
+            "enum": [
+              "advisory",
+              "workflow",
+              "critical"
+            ]
+          },
+          "defaultMode": {
+            "enum": [
+              "off",
+              "shadow",
+              "cosign"
+            ]
+          },
+          "reachableModes": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "off",
+                "shadow",
+                "cosign"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "incumbent": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]{1,80}$"
+          },
+          "deployablePolicy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "cosign-v1"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "instrument": {
+            "anyOf": [
+              {
+                "const": "laya-choice-v1"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "holdback": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 0.5
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latencyBudgetMs": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 5000
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lambda": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "endpoint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^http://(127\\.0\\.0\\.1|\\[::1\\]):\\d{2,5}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "model": {
+            "anyOf": [
+              {
+                "const": "typed-decisions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gates": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "tier": {
+                  "const": "critical"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "reachableModes": {
+                  "items": {
+                    "enum": [
+                      "off",
+                      "shadow"
+                    ]
+                  }
+                },
+                "defaultMode": {
+                  "enum": [
+                    "off",
+                    "shadow"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

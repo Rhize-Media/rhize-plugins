@@ -1,0 +1,95 @@
+{
+ "invalid": [
+  {
+   "name": "none-with-skill",
+   "outcome": {
+    "decisionId": "00000000000000000000000000000001",
+    "joinedAt": "2026-10-11T19:00:00Z",
+    "latencyTurns": null,
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "outcome": "none_invoked",
+    "schema": "rhize-typed-decision-outcome-v1",
+    "skillInvoked": "a:b",
+    "transcriptSha256": "54e6289e14c7b0e7ad9acc2dfc4c1e3d027d0eef7f5c4c3fe7c292761d0e06a6",
+    "via": null
+   },
+   "reason": "non-invocation outcomes carry no skill, via or latency"
+  },
+  {
+   "name": "invoked-without-via",
+   "outcome": {
+    "decisionId": "00000000000000000000000000000001",
+    "joinedAt": "2026-10-11T19:00:00Z",
+    "latencyTurns": 0,
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "outcome": "invoked_emitted",
+    "schema": "rhize-typed-decision-outcome-v1",
+    "skillInvoked": "seo-aeo-geo:seo-site-audit",
+    "transcriptSha256": "54e6289e14c7b0e7ad9acc2dfc4c1e3d027d0eef7f5c4c3fe7c292761d0e06a6",
+    "via": null
+   },
+   "reason": "invalid via"
+  },
+  {
+   "name": "missing-transcript-hash",
+   "outcome": {
+    "decisionId": "00000000000000000000000000000001",
+    "joinedAt": "2026-10-11T19:00:00Z",
+    "latencyTurns": null,
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "outcome": "none_invoked",
+    "schema": "rhize-typed-decision-outcome-v1",
+    "skillInvoked": null,
+    "transcriptSha256": null,
+    "via": null
+   },
+   "reason": "transcriptSha256 required unless transcript_unavailable"
+  }
+ ],
+ "valid": {
+  "invoked-emitted": {
+   "decisionId": "00000000000000000000000000000001",
+   "joinedAt": "2026-10-11T19:00:00Z",
+   "latencyTurns": 0,
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "outcome": "invoked_emitted",
+   "schema": "rhize-typed-decision-outcome-v1",
+   "skillInvoked": "seo-aeo-geo:seo-site-audit",
+   "transcriptSha256": "54e6289e14c7b0e7ad9acc2dfc4c1e3d027d0eef7f5c4c3fe7c292761d0e06a6",
+   "via": "skill_tool"
+  },
+  "none-invoked": {
+   "decisionId": "00000000000000000000000000000001",
+   "joinedAt": "2026-10-11T19:00:00Z",
+   "latencyTurns": null,
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "outcome": "none_invoked",
+   "schema": "rhize-typed-decision-outcome-v1",
+   "skillInvoked": null,
+   "transcriptSha256": "54e6289e14c7b0e7ad9acc2dfc4c1e3d027d0eef7f5c4c3fe7c292761d0e06a6",
+   "via": null
+  },
+  "slash-command": {
+   "decisionId": "00000000000000000000000000000001",
+   "joinedAt": "2026-10-11T19:00:00Z",
+   "latencyTurns": 2,
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "outcome": "invoked_unlisted",
+   "schema": "rhize-typed-decision-outcome-v1",
+   "skillInvoked": "rhize-devflow:ship",
+   "transcriptSha256": "54e6289e14c7b0e7ad9acc2dfc4c1e3d027d0eef7f5c4c3fe7c292761d0e06a6",
+   "via": "slash_command"
+  },
+  "transcript-unavailable": {
+   "decisionId": "00000000000000000000000000000001",
+   "joinedAt": "2026-10-11T19:00:00Z",
+   "latencyTurns": null,
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "outcome": "transcript_unavailable",
+   "schema": "rhize-typed-decision-outcome-v1",
+   "skillInvoked": null,
+   "transcriptSha256": null,
+   "via": null
+  }
+ }
+}

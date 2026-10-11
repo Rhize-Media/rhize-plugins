@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/decision-registry-audit-v1.schema.json",
+  "title": "decision-registry-audit-v1",
+  "description": "registry-audit.jsonl line. Each mutation writes an intent line (with the full new state) before the atomic replace and a commit line after it; recovery replays an uncommitted intent. Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "revision",
+        "previousRevision",
+        "at",
+        "actor",
+        "decision",
+        "fromMode",
+        "toMode",
+        "pinned",
+        "reason",
+        "phase",
+        "state"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rhize-typed-decision-registry-audit-v1"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previousRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+        },
+        "actor": {
+          "enum": [
+            "cli",
+            "cycle",
+            "recovery"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "skill-fit",
+            "workflow-fit"
+          ]
+        },
+        "fromMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "off",
+                "shadow",
+                "cosign"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toMode": {
+          "enum": [
+            "off",
+            "shadow",
+            "cosign"
+          ]
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[a-z_]{1,40}$"
+        },
+        "phase": {
+          "const": "intent"
+        },
+        "state": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "revision",
+        "previousRevision",
+        "at",
+        "actor",
+        "decision",
+        "fromMode",
+        "toMode",
+        "pinned",
+        "reason",
+        "phase"
+      ],
+      "properties": {
+        "schema": {
+          "const": "rhize-typed-decision-registry-audit-v1"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "previousRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+        },
+        "actor": {
+          "enum": [
+            "cli",
+            "cycle",
+            "recovery"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "skill-fit",
+            "workflow-fit"
+          ]
+        },
+        "fromMode": {
+          "anyOf": [
+            {
+              "enum": [
+                "off",
+                "shadow",
+                "cosign"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toMode": {
+          "enum": [
+            "off",
+            "shadow",
+            "cosign"
+          ]
+        },
+        "pinned": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "pattern": "^[a-z_]{1,40}$"
+        },
+        "phase": {
+          "const": "commit"
+        }
+      }
+    }
+  ]
+}

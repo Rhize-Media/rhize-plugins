@@ -1,0 +1,350 @@
+{
+ "cases": [
+  {
+   "expected": {
+    "choice": "skill:rhize-devflow/test-evidence",
+    "probabilities": [
+     0.2,
+     0.7,
+     0.1
+    ]
+   },
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "ok-skill",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": 0.2,
+       "s1": 0.7
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "expected": {
+    "choice": "none",
+    "probabilities": [
+     0.1,
+     0.2,
+     0.7
+    ]
+   },
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "ok-none",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "none",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.7,
+       "s0": 0.1,
+       "s1": 0.2
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "expected": {
+    "choice": "skill:seo-aeo-geo/seo-site-audit",
+    "probabilities": [
+     1.0,
+     0.0,
+     0.0
+    ]
+   },
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "ok-integer-probability",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s0",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0,
+       "s0": 1,
+       "s1": 0
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "wrong-model",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": 0.2,
+       "s1": 0.7
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "other"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "missing-probability",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "s0": 0.2,
+       "s1": 0.8
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "extra-probability",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": 0.2,
+       "s1": 0.7,
+       "s2": 0.0
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "probability-out-of-range",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": 1.2,
+       "s1": 0.7
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "boolean-probability",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s1",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": true,
+       "s1": 0.7
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "choice-not-a-key",
+   "response": {
+    "answers": {
+     "skill": {
+      "choice": "s7",
+      "confidence": 0.4,
+      "probabilities": {
+       "none": 0.1,
+       "s0": 0.2,
+       "s1": 0.7
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "noul-type",
+   "response": {
+    "answers": {
+     "skill": {
+      "noul": 0.5,
+      "type": "noul"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "extra-answer",
+   "response": {
+    "answers": {
+     "other": {
+      "noul": 0.1,
+      "type": "noul"
+     },
+     "skill": {
+      "choice": "s0",
+      "probabilities": {
+       "none": 0,
+       "s0": 1,
+       "s1": 0
+      },
+      "type": "choice"
+     }
+    },
+    "routing": {
+     "model": "typed-decisions"
+    },
+    "usage": {
+     "input_tokens": 10,
+     "output_tokens": 1
+    }
+   }
+  },
+  {
+   "error": "invalid_response",
+   "keyMap": {
+    "s0": "skill:seo-aeo-geo/seo-site-audit",
+    "s1": "skill:rhize-devflow/test-evidence"
+   },
+   "name": "not-an-object",
+   "response": []
+  }
+ ]
+}

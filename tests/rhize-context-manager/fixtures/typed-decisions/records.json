@@ -1,0 +1,1125 @@
+{
+ "invalid": [
+  {
+   "name": "extra-text-field",
+   "reason": "record keys mismatch (missing=[], extra=['prompt'])",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "prompt": "do the thing",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "missing-field",
+   "reason": "record keys mismatch (missing=['emitted'], extra=[])",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "cosign-disagree-emitted",
+   "reason": "cosign treatment must suppress on disagreement",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/aeo-geo-optimization",
+     "latencyMs": 1,
+     "probabilities": [
+      0.2,
+      0.7,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "cosign",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "probabilities-misaligned",
+   "reason": "laya.probabilities must align with shortlist + none",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 1,
+     "probabilities": [
+      0.6,
+      0.4
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "choice-outside-shortlist",
+   "reason": "laya.choice must be a shortlist id or none",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:x/y",
+     "latencyMs": 1,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "choice-on-timeout",
+   "reason": "laya.choice/probabilities only when status ok",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 800,
+     "probabilities": null,
+     "status": "timeout",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "occurrence-key-mismatch",
+   "reason": "occurrenceKey mismatch",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "policy-hash-mismatch",
+   "reason": "policySha256 mismatch",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "ca3704aa0b06f5954c79ee837faa152d84d6b2d42838f0637a15eda8337dbdce",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "backfill-with-arm",
+   "reason": "backfill records are shadow, arm none, propensity null",
+   "record": {
+    "arm": "treatment",
+    "basis": "backfill",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": null,
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "live-without-incumbent",
+   "reason": "live records require an incumbent",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": null,
+    "host": "claude",
+    "incumbent": null,
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "incumbent-not-in-shortlist",
+   "reason": "incumbent must be in shortlist",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/aeo-geo-optimization",
+     "latencyMs": 1,
+     "probabilities": [
+      0.9,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "emitted-not-incumbent",
+   "reason": "emitted must be the incumbent or null",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "mode-off",
+   "reason": "invalid mode",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "off",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  },
+  {
+   "name": "bad-ts",
+   "reason": "timestamp must carry a timezone",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 61.2,
+     "probabilities": [
+      0.6,
+      0.3,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:seo-aeo-geo/aeo-geo-optimization"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11 17:51:05"
+   }
+  },
+  {
+   "name": "too-many-shortlist",
+   "reason": "invalid shortlist",
+   "record": {
+    "arm": "treatment",
+    "basis": "live",
+    "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+    "decision": "skill-fit",
+    "decisionId": "00000000000000000000000000000001",
+    "emitted": "skill:seo-aeo-geo/seo-site-audit",
+    "host": "claude",
+    "incumbent": {
+     "score": 5,
+     "skillId": "skill:seo-aeo-geo/seo-site-audit"
+    },
+    "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+    "instrument": "laya-choice-v1",
+    "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+    "laya": {
+     "choice": "skill:seo-aeo-geo/seo-site-audit",
+     "latencyMs": 1,
+     "probabilities": [
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1,
+      0.1
+     ],
+     "status": "ok",
+     "truncated": false
+    },
+    "layaRevision": "55cf4c4ebb4e",
+    "mode": "shadow",
+    "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+    "policy": "cosign-v1",
+    "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+    "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+    "promptLengthBucket": "lt200",
+    "propensity": 0.9,
+    "registryRevision": 0,
+    "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+    "schema": "rhize-typed-decision-record-v1",
+    "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+    "shortlist": [
+     "skill:seo-aeo-geo/seo-site-audit",
+     "skill:z/s0",
+     "skill:z/s1",
+     "skill:z/s2",
+     "skill:z/s3",
+     "skill:z/s4"
+    ],
+    "sourceStratum": "fired",
+    "ts": "2026-10-11T17:51:05.818Z"
+   }
+  }
+ ],
+ "valid": {
+  "backfill-fired": {
+   "arm": "none",
+   "basis": "backfill",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": null,
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/seo-site-audit",
+    "latencyMs": 61.2,
+    "probabilities": [
+     0.6,
+     0.3,
+     0.1
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": null,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "backfill-silent-laya-pick": {
+   "arm": "none",
+   "basis": "backfill",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": null,
+   "host": "claude",
+   "incumbent": null,
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "latencyMs": 40,
+    "probabilities": [
+     0.8,
+     0.2
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": null,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "silent_sample",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "backfill-silent-skipped": {
+   "arm": "none",
+   "basis": "backfill",
+   "criteriaSha256": null,
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": null,
+   "host": "claude",
+   "incumbent": null,
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": null,
+    "latencyMs": null,
+    "probabilities": null,
+    "status": "skipped",
+    "truncated": null
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": null,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [],
+   "sourceStratum": "silent_sample",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-cosign-disagree-suppressed": {
+   "arm": "treatment",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": null,
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "none",
+    "latencyMs": 55,
+    "probabilities": [
+     0.2,
+     0.1,
+     0.7
+    ],
+    "status": "ok",
+    "truncated": true
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "cosign",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.9,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-cosign-holdback-emits": {
+   "arm": "holdback",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": "skill:seo-aeo-geo/seo-site-audit",
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "latencyMs": 55,
+    "probabilities": [
+     0.2,
+     0.7,
+     0.1
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "cosign",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.1,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-overlap-suppressed-in-shadow": {
+   "arm": "treatment",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": null,
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/seo-site-audit",
+    "latencyMs": 61.2,
+    "probabilities": [
+     0.6,
+     0.3,
+     0.1
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.9,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-shadow-agree": {
+   "arm": "treatment",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": "skill:seo-aeo-geo/seo-site-audit",
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/seo-site-audit",
+    "latencyMs": 61.2,
+    "probabilities": [
+     0.6,
+     0.3,
+     0.1
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.9,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-shadow-disagree-still-emits": {
+   "arm": "treatment",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": "skill:seo-aeo-geo/seo-site-audit",
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": "skill:seo-aeo-geo/aeo-geo-optimization",
+    "latencyMs": 70,
+    "probabilities": [
+     0.2,
+     0.7,
+     0.1
+    ],
+    "status": "ok",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "shadow",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.9,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  },
+  "live-timeout-emits": {
+   "arm": "treatment",
+   "basis": "live",
+   "criteriaSha256": "262d517bffd06484e2341b4a379c7f4fa4be9284a9a82631c03420953d60bd67",
+   "decision": "skill-fit",
+   "decisionId": "00000000000000000000000000000001",
+   "emitted": "skill:seo-aeo-geo/seo-site-audit",
+   "host": "claude",
+   "incumbent": {
+    "score": 5,
+    "skillId": "skill:seo-aeo-geo/seo-site-audit"
+   },
+   "indexSha256": "1bc04b5291c26a46d918139138b992d2de976d6851d0893b0476b85bfbdfc6e6",
+   "instrument": "laya-choice-v1",
+   "instrumentSha256": "8df42f4f0a89fb13fe696e5dd427e67cce7bd0ee0401ac1acecb027830a7b0ed",
+   "laya": {
+    "choice": null,
+    "latencyMs": 800,
+    "probabilities": null,
+    "status": "timeout",
+    "truncated": false
+   },
+   "layaRevision": "55cf4c4ebb4e",
+   "mode": "cosign",
+   "occurrenceKey": "e10dd8d775bf16811ced6950deae221e62d35e5689eae6492e4513af68b42f81",
+   "policy": "cosign-v1",
+   "policySha256": "19509e93ee72927d5e46ad62dd4fe69bfd090a31f86ac4f944a0ad89085eb205",
+   "promptHash": "fabfb92cdb862dd4f5275e05b0f06519c28c68472c549c9bb5e2b8052fcb7fbd",
+   "promptLengthBucket": "lt200",
+   "propensity": 0.9,
+   "registryRevision": 0,
+   "routerSourceSha256": "74c95604043427f0bee1d0e16bfa53afd537f736ad0073c4cc4e1ccb3a82b5dc",
+   "schema": "rhize-typed-decision-record-v1",
+   "sessionHash": "84097828fc31a8c8d29210df48901a85de7fd013f686b17be77d1be29cb7a98b",
+   "shortlist": [
+    "skill:seo-aeo-geo/seo-site-audit",
+    "skill:seo-aeo-geo/aeo-geo-optimization"
+   ],
+   "sourceStratum": "fired",
+   "ts": "2026-10-11T17:51:05.818Z"
+  }
+ }
+}

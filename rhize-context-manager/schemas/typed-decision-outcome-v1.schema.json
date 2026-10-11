@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rhize.media/schemas/typed-decision-outcome-v1.schema.json",
+  "title": "typed-decision-outcome-v1",
+  "description": "Transcript-joined skill invocation after a decision. Secondary signal only (confounded by suggestion effects). Cross-field rules (occurrenceKey recomputation, policySha256, shortlist alignment, consistency) are enforced by the canonical stdlib validator in rhize-context-manager/scripts/typed_decisions/contract.py; this schema documents the shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "decisionId",
+    "occurrenceKey",
+    "outcome",
+    "skillInvoked",
+    "via",
+    "latencyTurns",
+    "joinedAt",
+    "transcriptSha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "rhize-typed-decision-outcome-v1"
+    },
+    "decisionId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$"
+    },
+    "occurrenceKey": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "outcome": {
+      "enum": [
+        "invoked_emitted",
+        "invoked_other_shortlisted",
+        "invoked_unlisted",
+        "none_invoked",
+        "transcript_unavailable"
+      ]
+    },
+    "skillInvoked": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_.:/-]{1,160}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "via": {
+      "anyOf": [
+        {
+          "enum": [
+            "skill_tool",
+            "slash_command"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latencyTurns": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "joinedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,6})?Z$"
+    },
+    "transcriptSha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
