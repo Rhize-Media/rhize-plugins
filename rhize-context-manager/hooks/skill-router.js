@@ -351,9 +351,10 @@ const COMMAND_PREFIXES = {
   arch: new Set(),
   caffeinate: new Set(['-t', '-w']),
 };
-// Words a wrapper takes before the command: options, VAR=value, numbers or durations (`timeout 10`, `nice 5`),
-// mise's `exec`/`x` subcommand and its `--` separator.
-const WRAPPER_OPERAND = /^(?:-.*|[A-Za-z_][A-Za-z0-9_]*=.*|\d+(?:\.\d+)?[smhd]?|exec|x)$/;
+// Words a wrapper takes before the command: options, VAR=value, mise's `exec`/`x` subcommand and its `--`
+// separator, and at most ONE number or duration per wrapper (`timeout 10`), so `timeout 10 123 node ...` runs `123`.
+const WRAPPER_OPERAND = /^(?:-.*|[A-Za-z_][A-Za-z0-9_]*=.*|exec|x)$/;
+const WRAPPER_NUMBER = /^\d+(?:\.\d+)?[smhd]?$/;
 // Shell reserved words that may precede a command in a compound (`if ...; then node ...; fi`, `{ node ...; }`).
 const RESERVED_WORDS = new Set(['if', 'then', 'else', 'elif', 'do', 'while', 'until', '{', '!']);
 // A redirection word that is only the operator (`>`, `2>`, `>>`, `<<<`, `>&`): its target is the next word.
@@ -386,11 +387,13 @@ function runsManualRouter(rawWords, depth) {
   const words = withoutRedirections(rawWords);
   let i = 0;
   let prefix = null;
+  let numberUsed = false;
   while (i < words.length) {
     const word = words[i];
     const base = path.basename(word);
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word) || (!prefix && RESERVED_WORDS.has(word))) { i += 1; continue; }
-    if (Object.prototype.hasOwnProperty.call(COMMAND_PREFIXES, base)) { prefix = base; i += 1; continue; }
+    if (Object.prototype.hasOwnProperty.call(COMMAND_PREFIXES, base)) { prefix = base; numberUsed = false; i += 1; continue; }
+    if (prefix && !numberUsed && WRAPPER_NUMBER.test(word)) { numberUsed = true; i += 1; continue; }
     if (prefix && WRAPPER_OPERAND.test(word)) {
       if (prefix === 'command' && (word === '-v' || word === '-V')) return false; // a lookup, not a run
       i += COMMAND_PREFIXES[prefix].has(word) ? 2 : 1;

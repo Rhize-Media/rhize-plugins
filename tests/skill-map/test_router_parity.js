@@ -311,6 +311,8 @@ const TREATMENT = sessionForArm('treatment');
     ['{ node /x/skill-router.js; }', true],
     ['nohup echo node /x/skill-router.js', false],
     ['timeout 10 cat /x/skill-router.js', false],
+    ['timeout 10 123 node /x/skill-router.js', false],      // timeout runs `123`, not node
+    ['timeout 10 nice 5 node /x/skill-router.js', true],
     ['if true; then echo /x/skill-router.js; fi', false],
     // Codex round 4: a quoted -c string that starts with a redirection is still parsed.
     ["bash -c '>/dev/null node /x/skill-router.js'", true],
