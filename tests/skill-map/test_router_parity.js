@@ -295,6 +295,29 @@ const TREATMENT = sessionForArm('treatment');
     ['>/dev/null node /x/skill-router.js', true],
     ['node /x/skill-router.js &>/dev/null --packaged', false],
     ['node /x/skill-router.js 2> /tmp/err.log --packaged', false],
+    // Fable final review: glued redirections, more wrappers, compound commands.
+    ['node /x/skill-router.js>/dev/null', true],
+    ['node /x/skill-router.js&>/dev/null', true],
+    ['node /x/skill-router.js 2>&1>/dev/null', true],
+    ['node /x/skill-router.js>/dev/null --packaged', false],
+    ['node "/x/a>b/skill-router.js"', true],
+    ['timeout 10 node /x/skill-router.js', true],
+    ['timeout -k 2 10s node /x/skill-router.js', true],
+    ['mise exec -- node /x/skill-router.js', true],
+    ['mise x -C /tmp -- node /x/skill-router.js', true],
+    ['arch -arm64 node /x/skill-router.js', true],
+    ['nice --adjustment 5 node /x/skill-router.js', true],
+    ['if [ -f /x/skill-router.js ]; then node /x/skill-router.js; fi', true],
+    ['{ node /x/skill-router.js; }', true],
+    ['nohup echo node /x/skill-router.js', false],
+    ['timeout 10 cat /x/skill-router.js', false],
+    ['if true; then echo /x/skill-router.js; fi', false],
+    // Codex round 4: a quoted -c string that starts with a redirection is still parsed.
+    ["bash -c '>/dev/null node /x/skill-router.js'", true],
+    ["bash -c '2>&1 node /x/skill-router.js --packaged'", false],
+    ['node /x/skill-router.js ">"', true],
+    ['node /x/skill-router.js ">" --packaged', false],
+    ['node 2 > /dev/null /x/skill-router.js', false],     // `2` is node's script argument here, not an fd
     ['node /x/skill-router.js # --packaged', true],          // a comment is not an argument
     ['node /x/skill-router.js a#--packaged', true],          // # inside a word is not a comment
     ['true # comment\nnode /x/skill-router.js', true],

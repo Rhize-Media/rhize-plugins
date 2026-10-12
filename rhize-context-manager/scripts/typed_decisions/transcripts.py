@@ -10,16 +10,20 @@ transcript stays in memory: callers get text and context back, and nothing here 
     session_index(roots) -> {sha256(session_id): transcript Path}
     skill_invocations(path, after_ts) -> [{'skillRef', 'via', 'ts', 'userTurnsAfter'}]
         via is 'skill_tool' (an assistant `Skill` tool_use, input.skill), 'slash_command' (a user turn carrying
-        a <command-name>/plugin:skill</command-name> marker) or 'skill_file_read' (a Codex shell function_call
-        that only reads a plugin's SKILL.md; see "Codex skill reads" below).
+        a <command-name>/plugin:skill</command-name> marker) or 'skill_file_read' (a Codex command that only reads a
+        skill's SKILL.md; see "Codex skill reads" below).
     codex_thread_source(path) -> str | None
         session_meta.payload.thread_source of a Codex rollout (first line only, bounded).
 
 Reads are bounded: a transcript larger than MAX_TRANSCRIPT_BYTES is 'transcript_unavailable', lines are
 streamed, and a single line larger than MAX_LINE_BYTES is skipped. Symlinks are never followed.
 
-Codex skill reads (plan §7 F3). Codex loads a skill by reading `.../skills/<skill>/SKILL.md`, so the only evidence a
-rollout carries is a shell `function_call`. It counts when, and only when, all of these hold:
+Codex skill reads (plan §7 F3). Codex loads a skill by reading `.../skills/<skill>/SKILL.md`. Current rollouts record
+each command as an `event_msg` / `item_completed` CommandExecution with Codex's own `parsed_cmd`: a `read` entry
+counts when its path is a SKILL.md under a plugin root (below) or a user skill folder (`~/.agents/skills`,
+`~/.codex/skills`, `~/.claude/skills[/synced/<id>]`, which yield a bare `<skill>` ref) and the command exited with
+the integer 0. In such a rollout the coexisting `function_call` lines are ignored, since they carry no exit code.
+Older rollouts carry only the shell `function_call`, which counts when, and only when, all of these hold:
   * the response_item payload type is exactly `function_call` and the tool is a shell or exec tool;
   * the command is read-shaped: cat, sed (only with -n), head, tail, nl, bat or less, optionally behind a leading
     `cd X &&`, optionally piped into head/tail, with no redirection, substitution or globbing;
@@ -516,11 +520,19 @@ def _item_cwd(item):
     return cwd if isinstance(cwd, str) and cwd.startswith('/') else None
 
 
+def _is_command_execution(record) -> bool:
+    """True for a current-layout Codex `event_msg` / `item_completed` line whose item is a CommandExecution."""
+    payload = record.get('payload') if record.get('type') == 'event_msg' else None
+    item = payload.get('item') if isinstance(payload, dict) and payload.get('type') == 'item_completed' else None
+    return isinstance(item, dict) and item.get('type') == 'CommandExecution'
+
+
 def codex_executed_skill_reads(record) -> list:
     """Skill refs from a Codex `item_completed` CommandExecution: Codex's own parsed_cmd entries of type 'read' whose
     path is a SKILL.md under a skill root. The command must have exited 0: a non-zero exit (a missing file, a
-    permission error, one failing file of several) proves no specific read succeeded, so it never counts, whatever
-    output it produced (Codex final review). search and list_files entries never count."""
+    permission error, one failing file of `cat A B`) proves no specific read succeeded, so it never counts, whatever
+    output it produced (Codex final review). The exit code is the whole command's, so `cat A; true` still counts A.
+    search and list_files entries never count."""
     if record.get('type') != 'event_msg':
         return []
     payload = record.get('payload')
@@ -618,6 +630,9 @@ def parse_transcript(path) -> Parsed:
     parsed = Parsed(path, info.st_size)
     digest = hashlib.sha256()
     prior: deque = deque(maxlen=PRIOR_TURNS * 2)
+    # A rollout that records CommandExecution completions also persists each command's `function_call`; only the
+    # completion knows the exit code, so legacy function_call reads count only in rollouts without completions.
+    executed_layout, legacy_reads = False, []
     with handle:
         for number, raw in enumerate(_lines(handle, digest), 1):
             if raw is None:
@@ -637,9 +652,12 @@ def parse_transcript(path) -> Parsed:
             if parsed.codex:
                 # A Codex rollout has no `Skill` tool and no slash-command marker: its only skill evidence is a
                 # read-shaped shell call on a SKILL.md. `$skill` mentions in user turns are deliberately ignored.
+                executed_layout = executed_layout or _is_command_execution(record)
                 for ref in codex_skill_file_reads(record):
-                    parsed.invocations.append({'line': number, 'timestamp': stamp, 'epoch': epoch, 'ref': ref,
-                                               'via': 'skill_file_read'})
+                    entry = {'line': number, 'timestamp': stamp, 'epoch': epoch, 'ref': ref, 'via': 'skill_file_read'}
+                    parsed.invocations.append(entry)
+                    if record.get('type') == 'response_item':
+                        legacy_reads.append(entry)
             else:
                 for ref in _skill_uses(record):
                     parsed.invocations.append({'line': number, 'timestamp': stamp, 'epoch': epoch, 'ref': ref,
@@ -657,6 +675,9 @@ def parse_transcript(path) -> Parsed:
                                            'ref': command.group(1), 'via': 'slash_command'})
             if not boiler and not auto.LEAK.search(text):
                 prior.append({'role': 'user', 'text': text, 'stamp': epoch})
+    if executed_layout and legacy_reads:
+        legacy = {id(entry) for entry in legacy_reads}
+        parsed.invocations = [entry for entry in parsed.invocations if id(entry) not in legacy]
     parsed.sha256 = digest.hexdigest()
     return parsed
 

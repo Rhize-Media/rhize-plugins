@@ -283,16 +283,24 @@ function packagedConfigEnabled(env = process.env, home = os.homedir()) {
 // A command that actually runs this router manually: node … skill-router.js, without --packaged. A command that only
 // mentions the file name (an echo, a grep, a different script) is not a registration (Codex final review).
 const MAX_HOOK_COMMAND_CHARS = 8192;
-// Splits a hook command into simple commands (arrays of words), honouring quotes and backslashes. `;`, `&`,
-// `|`, parentheses and newlines end a simple command. Variables are kept literally. Enough to find the program
-// and its script argument; not a full shell parser.
+// Splits a hook command into simple commands (arrays of {text, redirect} words), honouring quotes, backslashes and
+// comments. `;`, `&`, `|`, parentheses and newlines end a simple command. `redirect` marks a word that starts with an
+// UNQUOTED redirection operator, so a quoted argument such as a `bash -c '>/dev/null node ...'` string is never
+// mistaken for one. Variables are kept literally. Enough to find the program and its script argument; not a full
+// shell parser.
 function shellSimpleCommands(command) {
   const commands = [];
   let words = [];
   let word = '';
   let inWord = false;
   let quote = null;
-  const endWord = () => { if (inWord) words.push(word); word = ''; inWord = false; };
+  let redirect = false;
+  const endWord = () => {
+    if (inWord) words.push({ text: word, redirect });
+    word = '';
+    inWord = false;
+    redirect = false;
+  };
   const endCommand = () => { endWord(); if (words.length) commands.push(words); words = []; };
   for (let i = 0; i < command.length; i += 1) {
     const ch = command[i];
@@ -304,8 +312,18 @@ function shellSimpleCommands(command) {
       continue;
     }
     if (ch === "'" || ch === '"') { quote = ch; inWord = true; continue; }
-    // `>&`, `<&` and `&>` belong to a redirection word (`2>&1`, `&>/dev/null`), not a command separator.
-    if (ch === '&' && ((inWord && /[<>]$/.test(word)) || command[i + 1] === '>')) { word += ch; inWord = true; continue; }
+    // Redirections are their own words, even when glued to the previous word (`x.js>/dev/null`): `>` / `<` start
+    // a new word unless the current one is an fd number or an operator in progress; `>&`/`<&` (`2>&1`) and `&>`
+    // (`&>/dev/null`) belong to the redirection word, not a command separator.
+    if (ch === '&' && redirect && /[<>]$/.test(word)) { word += ch; continue; }
+    if (ch === '&' && command[i + 1] === '>') { endWord(); word = '&'; inWord = true; redirect = true; continue; }
+    if (ch === '>' || ch === '<') {
+      if (inWord && !redirect && !/^\d+$/.test(word)) endWord();
+      word += ch;
+      inWord = true;
+      redirect = true;
+      continue;
+    }
     if (ch === '#' && !inWord) { // a comment runs to the end of the line
       while (i + 1 < command.length && command[i + 1] !== '\n') i += 1;
       continue;
@@ -320,24 +338,33 @@ function shellSimpleCommands(command) {
   return commands;
 }
 
-// Wrappers that run the following words as the command, with the options that take a value.
+// Wrappers that run a later word as the command, with the options that take a separate value.
 const COMMAND_PREFIXES = {
   env: new Set(['-u', '--unset', '-C', '--chdir']),
   exec: new Set(['-a']),
   command: new Set(),
   nohup: new Set(),
-  nice: new Set(['-n']),
+  nice: new Set(['-n', '--adjustment']),
   time: new Set(),
+  timeout: new Set(['-s', '--signal', '-k', '--kill-after']),
+  mise: new Set(['-C', '--cd', '-E', '--env']),
+  arch: new Set(),
+  caffeinate: new Set(['-t', '-w']),
 };
-// A redirection word: `>f`, `2>f`, `2>&1`, `&>f`, `<f`, `<<<x`; with no target attached, the next word is it.
-const REDIRECTION = /^(?:\d*|&)(?:>>?|<<?<?|>&|<&|>\|)(.*)$/;
+// Words a wrapper takes before the command: options, VAR=value, numbers or durations (`timeout 10`, `nice 5`),
+// mise's `exec`/`x` subcommand and its `--` separator.
+const WRAPPER_OPERAND = /^(?:-.*|[A-Za-z_][A-Za-z0-9_]*=.*|\d+(?:\.\d+)?[smhd]?|exec|x)$/;
+// Shell reserved words that may precede a command in a compound (`if ...; then node ...; fi`, `{ node ...; }`).
+const RESERVED_WORDS = new Set(['if', 'then', 'else', 'elif', 'do', 'while', 'until', '{', '!']);
+// A redirection word that is only the operator (`>`, `2>`, `>>`, `<<<`, `>&`): its target is the next word.
+const BARE_REDIRECTION = /^(?:\d+|&)?(?:[<>]+&?|>\|)$/;
 
+// The plain words of a simple command, without its redirections (`>f`, `2>&1`, `&>f`, `> f`, `<<< x`).
 function withoutRedirections(words) {
   const kept = [];
   for (let i = 0; i < words.length; i += 1) {
-    const match = REDIRECTION.exec(words[i]);
-    if (!match) kept.push(words[i]);
-    else if (match[1] === '') i += 1;
+    if (!words[i].redirect) kept.push(words[i].text);
+    else if (BARE_REDIRECTION.test(words[i].text)) i += 1;
   }
   return kept;
 }
@@ -362,9 +389,9 @@ function runsManualRouter(rawWords, depth) {
   while (i < words.length) {
     const word = words[i];
     const base = path.basename(word);
-    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word)) { i += 1; continue; }          // VAR=value
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word) || (!prefix && RESERVED_WORDS.has(word))) { i += 1; continue; }
     if (Object.prototype.hasOwnProperty.call(COMMAND_PREFIXES, base)) { prefix = base; i += 1; continue; }
-    if (prefix && word.startsWith('-')) {
+    if (prefix && WRAPPER_OPERAND.test(word)) {
       if (prefix === 'command' && (word === '-v' || word === '-V')) return false; // a lookup, not a run
       i += COMMAND_PREFIXES[prefix].has(word) ? 2 : 1;
       continue;

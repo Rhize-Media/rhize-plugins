@@ -644,3 +644,47 @@ def test_codex_executed_reads_use_codex_parsed_cmd(parsed_cmd, kwargs, expected)
 ])
 def test_legacy_shell_reads_reject_help_non_printing_sed_and_quoted_home(command, expected):
     assert transcripts.codex_skill_reads(command) == expected
+
+
+# ---------------------------------------------------------------- Fable final review: dual-line rollouts
+
+def _completion(path, when, exit_code, cmd=None):
+    return {'timestamp': when, 'type': 'event_msg',
+            'payload': {'type': 'item_completed', 'thread_id': 't', 'turn_id': 'u',
+                        'item': {'type': 'CommandExecution', 'command': ['/bin/zsh', '-lc', cmd or f'cat {path}'],
+                                 'cwd': f'file://{HOME}/dev-local/client',
+                                 'parsed_cmd': [{'type': 'read', 'path': path}], 'exit_code': exit_code,
+                                 'aggregated_output': '# Skill\n' if exit_code == 0 else 'cat: No such file\n'}}}
+
+
+@pytest.mark.parametrize('exit_code,expected', [(1, []), (0, ['rhize-ops:cross-model-handoff'])])
+def test_a_rollout_with_completions_ignores_the_coexisting_function_call(tmp_path, exit_code, expected):
+    """Codex persists both the shell function_call and its CommandExecution completion; only the completion knows the
+    exit code, so a failed read (a stale version directory after a plugin upgrade) never counts and a successful read
+    counts once."""
+    session = new_session()
+    rows = [meta(session), user_turn('hand this to the other model', at(1)),
+            shell_call(['bash', '-lc', f'cat {CODEX_SKILL}'], at(2)),
+            _completion(CODEX_SKILL, at(3), exit_code)]
+    parsed = transcripts.parse_transcript(write_rollout(tmp_path, session, rows))
+    assert [item['ref'] for item in parsed.invocations] == expected
+    assert all(item['line'] == 4 for item in parsed.invocations)       # from the completion line, not the call
+
+
+def test_a_legacy_rollout_without_completions_still_counts_function_call_reads(tmp_path):
+    session = new_session()
+    rows = [meta(session), user_turn('hand this to the other model', at(1)),
+            shell_call(['bash', '-lc', f'cat {CODEX_SKILL}'], at(2)), call_output('# Skill', at(3))]
+    parsed = transcripts.parse_transcript(write_rollout(tmp_path, session, rows))
+    assert [(item['ref'], item['line']) for item in parsed.invocations] == [('rhize-ops:cross-model-handoff', 3)]
+
+
+def test_any_completion_line_switches_the_whole_rollout_to_completion_evidence(tmp_path):
+    session = new_session()
+    other = f'{HOME}/.codex/plugins/cache/rhize-plugins/seo-aeo-geo/1.0.0/skills/seo-site-audit/SKILL.md'
+    rows = [meta(session), user_turn('first', at(1)),
+            shell_call(['bash', '-lc', f'cat {CODEX_SKILL}'], at(2)),          # no completion recorded for this one
+            user_turn('second', at(3)),
+            _completion(other, at(4), 0, cmd='ls')]
+    parsed = transcripts.parse_transcript(write_rollout(tmp_path, session, rows))
+    assert [item['ref'] for item in parsed.invocations] == ['seo-aeo-geo:seo-site-audit']

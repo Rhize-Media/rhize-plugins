@@ -169,7 +169,7 @@ def _record_epoch(value):
         return None
     try:
         return locked_io.utc(value).timestamp()
-    except ValueError:
+    except (ValueError, OverflowError):              # e.g. year 1 with a +14:00 offset
         return None
 
 
