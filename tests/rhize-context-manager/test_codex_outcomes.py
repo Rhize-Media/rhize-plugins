@@ -599,6 +599,8 @@ def _executed(parsed_cmd, exit_code=0, output='# Skill\n', cwd='file:///Users/ji
     ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': None}, []),                      # unknown exit
     ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': '0'}, []),                       # not an integer
     ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': False}, []),                     # bool is not 0
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': 0.0}, []),                       # float is not 0
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': -0.0}, []),
     ([{'type': 'search', 'query': 'SKILL.md', 'path': '/Users/jim/.codex/plugins/cache'}], {}, []),
     ([{'type': 'list_files', 'path': 'skills'}], {}, []),
     ([{'type': 'read', 'path': '/Users/jim/.codex/memories/skills/foo/SKILL.md'}], {}, []),  # Codex memory skills
@@ -633,6 +635,11 @@ def test_codex_executed_reads_use_codex_parsed_cmd(parsed_cmd, kwargs, expected)
     ('cat "$HOME"/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md',
      ['rhize-ops:delegate-to-teammate']),
     ('cat ~/".codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md"',
+     ['rhize-ops:delegate-to-teammate']),
+    # A leading cd into a literal (quoted) home path fails, so the && read never runs.
+    ("cd '$HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate' && cat SKILL.md", []),
+    ('cd "~/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0" && cat skills/delegate-to-teammate/SKILL.md', []),
+    ('cd "$HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0" && cat skills/delegate-to-teammate/SKILL.md',
      ['rhize-ops:delegate-to-teammate']),
 ])
 def test_legacy_shell_reads_reject_help_non_printing_sed_and_quoted_home(command, expected):

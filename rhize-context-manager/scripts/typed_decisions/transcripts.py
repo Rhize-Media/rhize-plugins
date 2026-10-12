@@ -442,6 +442,8 @@ def codex_skill_reads(command, workdir=None, _depth=0) -> list:
             # Only a leading `cd X &&` is allowed; its target becomes the base for relative paths.
             if index != 0 or len(pipe) != 1 or len(head) != 2 or len(pipelines) < 2 or pipelines[1][0] != '&&':
                 return []
+            if head[1] in literal:
+                return []                   # cd into a quoted ~ / '$HOME' path fails, so the && read never runs
             base = _resolve(head[1], base)
             continue
         words = _read_words(head)
@@ -526,7 +528,7 @@ def codex_executed_skill_reads(record) -> list:
     if not isinstance(item, dict) or item.get('type') != 'CommandExecution':
         return []
     exit_code = item.get('exit_code')
-    if isinstance(exit_code, bool) or exit_code != 0:
+    if type(exit_code) is not int or exit_code != 0:      # an int 0 only: no bool, no 0.0, no '0'
         return []
     parsed = item.get('parsed_cmd')
     if not isinstance(parsed, list):

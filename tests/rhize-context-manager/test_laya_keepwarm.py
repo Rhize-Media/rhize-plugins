@@ -625,7 +625,10 @@ def test_warm_signal_reads_the_two_newest_day_files_and_ignores_junk(root, tmp_p
     laya_record(tmp_path, 900, now=now, day='2026-10-11')
     directory = root / 'skill-fit' / 'records'
     with (directory / '2026-10-11.jsonl').open('a') as handle:
-        handle.write('not json\n[1, 2]\n{"basis": "live", "laya": {"status": "ok"}, "ts": "garbage"}\n')
+        handle.write('not json\n[1, 2]\n{"basis": "live", "laya": {"status": "ok"}, "ts": "garbage"}\n'
+                     '{"basis": "live", "laya": {"status": "ok"}}\n'                      # no ts: never "now"
+                     '{"basis": "live", "laya": {"status": "ok"}, "ts": null}\n'
+                     '{"basis": "live", "laya": {"status": "ok"}, "ts": 1790000000}\n')
     assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 20, abs=1)
     laya_record(tmp_path, 1, now=now, day='2026-10-01')                        # an older day-file is not read
     (directory / 'notes.txt').write_text('{"basis": "live"}\n')

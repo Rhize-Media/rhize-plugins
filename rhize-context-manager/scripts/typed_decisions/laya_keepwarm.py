@@ -163,6 +163,10 @@ def _tail_lines(path, limit):
 
 
 def _record_epoch(value):
+    """Epoch seconds of a record's ISO `ts`, or None. Only a string counts: locked_io.utc(None) means "now", so a
+    missing or null ts must never become fresh warmth evidence (Codex final review)."""
+    if not isinstance(value, str):
+        return None
     try:
         return locked_io.utc(value).timestamp()
     except ValueError:

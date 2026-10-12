@@ -304,6 +304,12 @@ function shellSimpleCommands(command) {
       continue;
     }
     if (ch === "'" || ch === '"') { quote = ch; inWord = true; continue; }
+    // `>&`, `<&` and `&>` belong to a redirection word (`2>&1`, `&>/dev/null`), not a command separator.
+    if (ch === '&' && ((inWord && /[<>]$/.test(word)) || command[i + 1] === '>')) { word += ch; inWord = true; continue; }
+    if (ch === '#' && !inWord) { // a comment runs to the end of the line
+      while (i + 1 < command.length && command[i + 1] !== '\n') i += 1;
+      continue;
+    }
     if (ch === '\\' && i + 1 < command.length) { i += 1; if (command[i] !== '\n') { word += command[i]; inWord = true; } continue; }
     if (ch === '\n' || ';&|()'.includes(ch)) { endCommand(); continue; }
     if (/\s/.test(ch)) { endWord(); continue; }
@@ -314,8 +320,30 @@ function shellSimpleCommands(command) {
   return commands;
 }
 
-const COMMAND_PREFIXES = new Set(['env', 'exec', 'command', 'nohup', 'time']);
+// Wrappers that run the following words as the command, with the options that take a value.
+const COMMAND_PREFIXES = {
+  env: new Set(['-u', '--unset', '-C', '--chdir']),
+  exec: new Set(['-a']),
+  command: new Set(),
+  nohup: new Set(),
+  nice: new Set(['-n']),
+  time: new Set(),
+};
+// A redirection word: `>f`, `2>f`, `2>&1`, `&>f`, `<f`, `<<<x`; with no target attached, the next word is it.
+const REDIRECTION = /^(?:\d*|&)(?:>>?|<<?<?|>&|<&|>\|)(.*)$/;
+
+function withoutRedirections(words) {
+  const kept = [];
+  for (let i = 0; i < words.length; i += 1) {
+    const match = REDIRECTION.exec(words[i]);
+    if (!match) kept.push(words[i]);
+    else if (match[1] === '') i += 1;
+  }
+  return kept;
+}
 const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash']);
+// Shell options that take the next word as their value (`bash -o pipefail -c ...`).
+const SHELL_VALUE_OPTIONS = new Set(['-o', '+o', '-O', '+O', '--rcfile', '--init-file']);
 // Node options that take the next word as their value; any other `-` word is a flag.
 const NODE_VALUE_OPTIONS = new Set(['-r', '--require', '--import', '--loader', '--experimental-loader', '-C',
   '--conditions', '--env-file', '--input-type', '--title', '--inspect-port', '--redirect-warnings']);
@@ -327,16 +355,29 @@ const NODE_NO_SCRIPT = new Set(['-e', '--eval', '-p', '--print', '-c', '--check'
 // `--packaged` among that router's own arguments. Only the program word (after assignments and env/exec-style
 // prefixes) counts, and only Node's actual script argument counts (Codex final review): a mention elsewhere,
 // another script receiving the path as an argument, or `--packaged` belonging to another command decides nothing.
-function runsManualRouter(words, depth) {
+function runsManualRouter(rawWords, depth) {
+  const words = withoutRedirections(rawWords);
   let i = 0;
-  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]) || COMMAND_PREFIXES.has(words[i])
-    || (i > 0 && words[i - 1] === 'env' && words[i].startsWith('-')))) i += 1;
+  let prefix = null;
+  while (i < words.length) {
+    const word = words[i];
+    const base = path.basename(word);
+    if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(word)) { i += 1; continue; }          // VAR=value
+    if (Object.prototype.hasOwnProperty.call(COMMAND_PREFIXES, base)) { prefix = base; i += 1; continue; }
+    if (prefix && word.startsWith('-')) {
+      if (prefix === 'command' && (word === '-v' || word === '-V')) return false; // a lookup, not a run
+      i += COMMAND_PREFIXES[prefix].has(word) ? 2 : 1;
+      continue;
+    }
+    break;
+  }
   if (i >= words.length) return false;
   const program = path.basename(words[i]);
   if (SHELLS.has(program)) {
     if (depth >= 2) return false;
     for (let k = i + 1; k < words.length; k += 1) {
-      if (!words[k].startsWith('-')) return false; // a script file, not a -c string
+      if (SHELL_VALUE_OPTIONS.has(words[k])) { k += 1; continue; }
+      if (!/^[-+]/.test(words[k])) return false; // a script file, not a -c string
       if (/^-[A-Za-z]*c[A-Za-z]*$/.test(words[k])) {
         return k + 1 < words.length && isManualRouterCommandAt(words[k + 1], depth + 1);
       }
