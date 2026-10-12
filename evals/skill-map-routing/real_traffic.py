@@ -86,7 +86,9 @@ DECISION = 'skill-fit'
 EXIT_OK, EXIT_FAILED, EXIT_USAGE, EXIT_REFUSED = 0, 1, 2, 3
 
 DEFAULT_MANDATED = ('rhize-ops:parallel-agent-optimization',)
-WEAK_OUTCOMES = ('invoked_unlisted', 'invoked_other_shortlisted')
+# invoked_emitted counts too: a prompt where the user followed the (baseline) suggestion is a case the candidate
+# can LOSE by rerouting it. Without it the weak lane could only ever favor the candidate (Fable final review).
+WEAK_OUTCOMES = ('invoked_emitted', 'invoked_unlisted', 'invoked_other_shortlisted')
 WEAK_VIA = ('skill_tool', 'slash_command')            # skill_file_read is a separate, weaker kind of evidence
 MIN_DISCORDANT = 10
 ALPHA = 0.05
@@ -798,7 +800,11 @@ def sign_test(wins: int, losses: int) -> dict:
 
 def decide(*, harness_status, discordant, wins, losses, baseline_fires, candidate_fires, candidate_unscorable,
            candidate_labeled, rule) -> dict:
-    """The frozen keep rule. verdict is keep | insufficient | discard; blockers name every unmet condition."""
+    """The frozen keep rule. verdict is keep | insufficient | discard | blocked; blockers name every unmet condition.
+
+    `blocked` (not final) means the harness gave no pass/fail answer (not_run, unavailable, invalid_result,
+    candidate_mismatch): an infrastructure gap is never turned into a permanent discard.
+    """
     keep = rule['keep']
     test = sign_test(wins, losses)
     significant = test['exact'] <= Fraction(str(keep['alpha'])) and wins > losses
@@ -812,6 +818,8 @@ def decide(*, harness_status, discordant, wins, losses, baseline_fires, candidat
     blockers = [name for name, ok in checks if not ok]
     if not blockers:
         verdict = 'keep'
+    elif harness_status not in ('pass', 'fail'):
+        verdict = 'blocked'
     elif discordant < keep['minDiscordant']:
         verdict = 'insufficient'
     else:

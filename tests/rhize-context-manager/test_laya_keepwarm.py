@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -171,6 +172,19 @@ def activity(tmp_path, age, now=None, source='log'):
     return path
 
 
+def laya_record(tmp_path, age, now=None, basis='live', status='ok', day='2026-10-11', root=None):
+    """Append one record-shaped line (only the fields the warm signal reads) dated `age` seconds before `now`."""
+    now = time.time() if now is None else now
+    directory = (Path(root) if root else tmp_path / 'store') / 'skill-fit' / 'records'
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f'{day}.jsonl'
+    line = {'basis': basis, 'ts': locked_io.iso(datetime.fromtimestamp(now - age, timezone.utc)),
+            'laya': {'status': status}, 'note': SENTINEL}
+    with path.open('a') as handle:
+        handle.write(json.dumps(line) + '\n')
+    return path
+
+
 def run_main(args, **kwargs):
     return laya_keepwarm.main(args, **kwargs)
 
@@ -268,7 +282,7 @@ def test_no_activity_source_at_all_counts_as_idle(stub, root):
 
 def test_warm_skip_gate_skips_when_live_traffic_is_fresh(stub, root, tmp_path, capsys):
     server = stub()
-    activity(tmp_path, 10)
+    laya_record(tmp_path, 10)                                                  # a hook's Laya call answered 10 s ago
     assert run_main(['once', '--root', str(root), '--endpoint', server.url]) == 0
     assert server.paths == []
     assert state_of(root)['skippedWarm'] == 1 and state_of(root)['pings'] == 0
@@ -286,7 +300,15 @@ def test_force_pings_through_the_gate(stub, root):
 def test_gate_boundaries(age, expected):
     now = 1_000_000.0
     newest = None if age is None else now - age
-    assert laya_keepwarm.gate(newest, now, 7200, 60) == expected
+    assert laya_keepwarm.gate(newest, now, 7200, 60, laya=newest) == expected
+
+
+def test_only_a_real_laya_call_counts_as_warm():
+    """Fable final review: a fresh receipt or log row (e.g. a Codex guardian review) proves activity, not warmth."""
+    now = 1_000_000.0
+    assert laya_keepwarm.gate(now - 5, now, 7200, 60) == 'ping'                       # activity only: ping
+    assert laya_keepwarm.gate(now - 5, now, 7200, 60, laya=now - 5) == 'warm'         # a Laya call 5 s ago
+    assert laya_keepwarm.gate(now - 5, now, 7200, 60, laya=now - 600) == 'ping'       # last Laya call is stale
 
 
 @pytest.mark.parametrize('source', ['log', 'receipts', 'records'])
@@ -382,12 +404,16 @@ def test_idle_and_warm_ticks_do_not_ping_and_keep_the_current_wait(stub, root, t
     worker = make_worker(root, server.url, clock)
     assert drive(worker, clock, 3) == [90, 90]
     assert server.paths == [] and state_of(root)['skippedIdle'] == 3
-    set_mtime(log, clock.now - 5)                                               # live traffic just happened
+    set_mtime(log, clock.now - 5)                                               # activity, but no Laya call: ping
     drive(worker, clock, 1)
-    assert server.paths == [] and state_of(root)['skippedWarm'] == 1
-    set_mtime(log, clock.now - 200)                                             # quiet for 200 s: ping
+    assert server.posted() == 1 and state_of(root)['skippedWarm'] == 0
+    laya_record(tmp_path, 5, now=clock.now)                                     # a hook's Laya call answered 5 s ago
     drive(worker, clock, 1)
-    assert server.posted() == 1 and state_of(root)['pings'] == 1
+    assert server.posted() == 1 and state_of(root)['skippedWarm'] == 1
+    clock.advance(90)                                                           # that call is now 95 s old...
+    set_mtime(log, clock.now - 200)                                             # ...and activity is recent: ping
+    drive(worker, clock, 1)
+    assert server.posted() == 2 and state_of(root)['pings'] == 2
 
 
 def test_loop_stops_pinging_when_activity_ages_out_of_the_window(stub, root, tmp_path):
@@ -572,6 +598,77 @@ def test_run_in_process_with_injected_clock_sleep_and_max_iterations(stub, root,
     assert json.loads(capsys.readouterr().out) == {'status': 'stopped', 'ticks': 3, 'pings': 3, 'ok': 3}
 
 
+@pytest.mark.parametrize('basis,status', [('backfill', 'skipped'), ('backfill', 'ok'), ('live', 'skipped'),
+                                          ('live', 'timeout'), ('live', 'unavailable'), ('live', 'invalid')])
+def test_records_that_never_reached_inference_do_not_count_as_warm(stub, root, tmp_path, capsys, basis, status):
+    server = stub()
+    laya_record(tmp_path, 5, basis=basis, status=status)                      # fresh file mtime, but no live ok call
+    assert run_main(['once', '--root', str(root), '--endpoint', server.url]) == 0
+    assert server.posted() == 1 and state_of(root)['skippedWarm'] == 0
+    assert json.loads(capsys.readouterr().out)['action'] == 'ping'
+
+
+def test_warm_signal_uses_the_record_ts_not_the_file_mtime(root, tmp_path):
+    now = time.time()
+    path = laya_record(tmp_path, 600, now=now)                                 # a live ok call 10 minutes ago
+    set_mtime(path, now)                                                       # ...in a file touched just now
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 600, abs=1)
+    laya_record(tmp_path, 3, now=now, basis='backfill', status='skipped')      # a backfill appended afterwards
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 600, abs=1)
+    laya_record(tmp_path, 4, now=now)
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 4, abs=1)
+
+
+def test_warm_signal_reads_the_two_newest_day_files_and_ignores_junk(root, tmp_path):
+    now = time.time()
+    laya_record(tmp_path, 20, now=now, day='2026-10-10')                       # just before UTC midnight
+    laya_record(tmp_path, 900, now=now, day='2026-10-11')
+    directory = root / 'skill-fit' / 'records'
+    with (directory / '2026-10-11.jsonl').open('a') as handle:
+        handle.write('not json\n[1, 2]\n{"basis": "live", "laya": {"status": "ok"}, "ts": "garbage"}\n')
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 20, abs=1)
+    laya_record(tmp_path, 1, now=now, day='2026-10-01')                        # an older day-file is not read
+    (directory / 'notes.txt').write_text('{"basis": "live"}\n')
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 20, abs=1)
+    laya_record(tmp_path, -3600, now=now, day='2026-10-12')                    # an hour in the future: clock garbage
+    assert laya_keepwarm.newest_laya_call(root, now) == pytest.approx(now - 900, abs=1)
+
+
+def test_warm_signal_refuses_symlinked_day_files_and_directories(root, tmp_path):
+    now = time.time()
+    real = laya_record(tmp_path, 5, now=now, root=tmp_path / 'elsewhere')
+    directory = root / 'skill-fit' / 'records'
+    directory.mkdir(parents=True)
+    (directory / '2026-10-11.jsonl').symlink_to(real)
+    assert laya_keepwarm.newest_laya_call(root, now) is None
+    other = tmp_path / 'other-root'
+    (other / 'skill-fit').mkdir(parents=True)
+    (other / 'skill-fit' / 'records').symlink_to(real.parent, target_is_directory=True)
+    assert laya_keepwarm.newest_laya_call(other, now) is None
+
+
+def test_warm_signal_reads_only_a_bounded_tail(root, tmp_path, monkeypatch):
+    now = time.time()
+    path = laya_record(tmp_path, 5, now=now)                                   # the ok call is at the file start
+    with path.open('a') as handle:
+        handle.write(('{"basis": "backfill", "laya": {"status": "skipped"}, "pad": "' + 'x' * 200 + '"}\n') * 50)
+    monkeypatch.setattr(laya_keepwarm, 'MAX_RECORD_TAIL_BYTES', 4096)
+    assert laya_keepwarm.newest_laya_call(root, now) is None                   # out of the tail: unknown, so ping
+
+
+def test_run_exits_1_when_the_final_state_write_fails(stub, root, tmp_path, capsys):
+    server = stub()
+    clock = FakeClock()
+    activity(tmp_path, 400, now=clock.now)
+    root.mkdir(mode=0o700)
+    (root / 'laya-keepwarm.json').symlink_to(tmp_path / 'nowhere')
+    assert run_main(['run', '--root', str(root), '--endpoint', server.url, '--max-iterations', '2'],
+                    clock=clock, sleep=lambda s: clock.advance(s)) == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out['status'] == 'failed' and out['reason'] == 'final state write failed' and out['pings'] == 2
+    assert server.posted() == 2 and not (tmp_path / 'nowhere').exists()
+
+
 def test_a_failing_state_write_does_not_end_the_loop(stub, root, tmp_path):
     server = stub()
     clock = FakeClock()
@@ -582,6 +679,7 @@ def test_a_failing_state_write_does_not_end_the_loop(stub, root, tmp_path):
     (root / 'laya-keepwarm.json').symlink_to(tmp_path / 'nowhere')
     ticks = laya_keepwarm.run_loop(worker, sleep=lambda s: clock.advance(s), max_iterations=3, on_error=errors.append)
     assert ticks == 3 and server.posted() == 3 and errors and not (tmp_path / 'nowhere').exists()
+    assert worker.final_save_ok is False
 
 
 # ---------------------------------------------------------------- SIGTERM / SIGINT

@@ -266,6 +266,42 @@ const TREATMENT = sessionForArm('treatment');
   }
   await check('host detection: COSIGN_HOSTS is claude only', async () => assert.deepStrictEqual(router.COSIGN_HOSTS, ['claude']));
 
+  // ------------------------------------------------ manual-registration recognition (pure)
+  const manualCommandCases = [
+    [MANUAL_COMMAND, true],
+    ['node "${CLAUDE_PLUGIN_ROOT}/hooks/skill-router.js"', true],
+    ['/opt/homebrew/bin/node "$HOME/dev/rhize-context-manager/hooks/skill-router.js"', true],
+    ['FOO=1 exec node --no-warnings /x/hooks/skill-router.js --quiet', true],
+    ['node --require ./preload.js /x/skill-router.js', true],
+    ['node -- /x/skill-router.js', true],
+    ['cd /x && node hooks/skill-router.js', true],
+    ['node /x/skill-router.js 2>/dev/null; true', true],
+    ['node /x/skill-router.js && echo --packaged', true],
+    ["bash -lc 'node /x/skill-router.js'", true],
+    ['env -i PATH=/usr/bin node /x/skill-router.js', true],
+    [PACKAGED_COMMAND, false],
+    ['node /x/skill-router.js --quiet --packaged', false],
+    ['node /x/other.js /x/skill-router.js', false],
+    ['node --require /x/skill-router.js /x/other.js', false],
+    ['node -e "require(1)" /x/skill-router.js', false],
+    ['echo node /x/skill-router.js', false],
+    ['echo skill-router.js', false],
+    ['grep -c skill-router.js ~/.claude/context-manager/suggestion-log.jsonl', false],
+    ['node /x/skill-router.jsx', false],
+    ['node /x/session-disclosure.js', false],
+    ["bash -lc 'node /x/skill-router.js --packaged'", false],
+    ['bash /x/skill-router.js', false],
+    ['', false],
+    [null, false],
+    [`node /x/skill-router.js ${'a'.repeat(9000)}`, false],
+  ];
+  for (const [command, expected] of manualCommandCases) {
+    const label = typeof command === 'string' ? command.slice(0, 80) : String(command);
+    await check(`manual command recognition: ${label} -> ${expected}`, async () => {
+      assert.strictEqual(router.isManualRouterCommand(command), expected);
+    });
+  }
+
   // ------------------------------------------------ hooks.json and manifest
   await check('hooks.json: entries 0-2 unchanged vs HEAD, the packaged router is entry 3, other events identical', async () => {
     const current = JSON.parse(fs.readFileSync(path.join(PLUGIN, 'hooks', 'hooks.json'), 'utf8'));
@@ -379,13 +415,36 @@ const TREATMENT = sessionForArm('treatment');
       assertSilent(sc, await runHook(sc, payload, { packaged: true }), server, before);
     });
   }
-  await check('packaged (claude) defers to a manual entry under any event, nested, and through a symlinked settings.json', async () => {
+  await check('packaged (claude) defers to a manual UserPromptSubmit entry through a symlinked settings.json', async () => {
     const sc = scenario({ endpoint: server.endpoint, optin: true });
     const real = path.join(sc.home, 'dotfiles-settings.json');
-    fs.writeFileSync(real, JSON.stringify({ theme: 'dark', hooks: { Stop: [{ matcher: '', hooks: [{ type: 'command', command: `FOO=1 ${MANUAL_COMMAND} --quiet` }] }] } }));
+    fs.writeFileSync(real, JSON.stringify({ theme: 'dark', hooks: { UserPromptSubmit: [{ matcher: '', hooks: [{ type: 'command', command: `FOO=1 ${MANUAL_COMMAND} --quiet` }] }] } }));
     fs.symlinkSync(real, path.join(sc.home, '.claude', 'settings.json'));
     const before = server.hits.health + server.hits.post;
     assertSilent(sc, await runHook(sc, sessionFor('p'), { packaged: true }), server, before);
+  });
+  await check('packaged (claude) does NOT defer to a router command under another event or a mere mention (no zero-run)', async () => {
+    const cases = {
+      'Stop event': JSON.stringify({ hooks: { Stop: [{ hooks: [{ type: 'command', command: MANUAL_COMMAND }] }] } }),
+      'SessionStart event': JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ type: 'command', command: MANUAL_COMMAND }] }] } }),
+      'echo mention': settingsWith('echo skill-router.js'),
+      'grep mention': settingsWith('grep -c skill-router.js ~/.claude/context-manager/suggestion-log.jsonl'),
+    };
+    for (const [label, text] of Object.entries(cases)) {
+      const sc = scenario({ endpoint: server.endpoint, optin: true });
+      put(path.join(sc.home, '.claude', 'settings.json'), text);
+      const res = await runHook(sc, sessionFor('p'), { packaged: true });
+      assert.strictEqual(res.stdout, INCUMBENT_LINE, label);
+      assert.strictEqual(readRecords(sc).length, 1, label);
+    }
+  });
+  await check('packaged (claude) defers to a manual entry in a project root ABOVE cwd (no double run)', async () => {
+    const sc = scenario({ endpoint: server.endpoint, optin: true });
+    put(path.join(sc.home, 'proj', '.claude', 'settings.json'), settingsWith(MANUAL_COMMAND));
+    fs.mkdirSync(path.join(sc.home, 'proj', 'src', 'deep'), { recursive: true });
+    const payload = { ...sessionFor('p'), cwd: path.join(sc.home, 'proj', 'src', 'deep') };
+    const before = server.hits.health + server.hits.post;
+    assertSilent(sc, await runHook(sc, payload, { packaged: true }), server, before);
   });
   await check('packaged (claude) ignores settings it cannot use: invalid JSON, oversize, packaged-only command, unrelated hooks, wrong key', async () => {
     const cases = {

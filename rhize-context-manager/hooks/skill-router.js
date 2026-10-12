@@ -280,24 +280,125 @@ function packagedConfigEnabled(env = process.env, home = os.homedir()) {
   }
 }
 
-// True when any `command` string under `node` runs skill-router.js without --packaged.
-function hasManualRouterCommand(node, depth = 0, budget = { nodes: 20000 }) {
-  if (depth > 12 || budget.nodes-- <= 0 || node === null || typeof node !== 'object') return false;
-  if (!Array.isArray(node) && typeof node.command === 'string'
-      && node.command.includes('skill-router.js') && !node.command.includes('--packaged')) return true;
-  return Object.values(node).some((child) => hasManualRouterCommand(child, depth + 1, budget));
+// A command that actually runs this router manually: node … skill-router.js, without --packaged. A command that only
+// mentions the file name (an echo, a grep, a different script) is not a registration (Codex final review).
+const MAX_HOOK_COMMAND_CHARS = 8192;
+// Splits a hook command into simple commands (arrays of words), honouring quotes and backslashes. `;`, `&`,
+// `|`, parentheses and newlines end a simple command. Variables are kept literally. Enough to find the program
+// and its script argument; not a full shell parser.
+function shellSimpleCommands(command) {
+  const commands = [];
+  let words = [];
+  let word = '';
+  let inWord = false;
+  let quote = null;
+  const endWord = () => { if (inWord) words.push(word); word = ''; inWord = false; };
+  const endCommand = () => { endWord(); if (words.length) commands.push(words); words = []; };
+  for (let i = 0; i < command.length; i += 1) {
+    const ch = command[i];
+    if (quote === "'") { if (ch === "'") quote = null; else word += ch; continue; }
+    if (quote === '"') {
+      if (ch === '"') quote = null;
+      else if (ch === '\\' && i + 1 < command.length && '"\\$`'.includes(command[i + 1])) { i += 1; word += command[i]; }
+      else word += ch;
+      continue;
+    }
+    if (ch === "'" || ch === '"') { quote = ch; inWord = true; continue; }
+    if (ch === '\\' && i + 1 < command.length) { i += 1; if (command[i] !== '\n') { word += command[i]; inWord = true; } continue; }
+    if (ch === '\n' || ';&|()'.includes(ch)) { endCommand(); continue; }
+    if (/\s/.test(ch)) { endWord(); continue; }
+    word += ch;
+    inWord = true;
+  }
+  endCommand();
+  return commands;
+}
+
+const COMMAND_PREFIXES = new Set(['env', 'exec', 'command', 'nohup', 'time']);
+const SHELLS = new Set(['sh', 'bash', 'zsh', 'dash']);
+// Node options that take the next word as their value; any other `-` word is a flag.
+const NODE_VALUE_OPTIONS = new Set(['-r', '--require', '--import', '--loader', '--experimental-loader', '-C',
+  '--conditions', '--env-file', '--input-type', '--title', '--inspect-port', '--redirect-warnings']);
+// Node options after which no script file runs.
+const NODE_NO_SCRIPT = new Set(['-e', '--eval', '-p', '--print', '-c', '--check', '-i', '--interactive', '-v',
+  '--version', '-h', '--help']);
+
+// True when this simple command (or a `sh -c` string it runs) executes `node <...>/skill-router.js` WITHOUT
+// `--packaged` among that router's own arguments. Only the program word (after assignments and env/exec-style
+// prefixes) counts, and only Node's actual script argument counts (Codex final review): a mention elsewhere,
+// another script receiving the path as an argument, or `--packaged` belonging to another command decides nothing.
+function runsManualRouter(words, depth) {
+  let i = 0;
+  while (i < words.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(words[i]) || COMMAND_PREFIXES.has(words[i])
+    || (i > 0 && words[i - 1] === 'env' && words[i].startsWith('-')))) i += 1;
+  if (i >= words.length) return false;
+  const program = path.basename(words[i]);
+  if (SHELLS.has(program)) {
+    if (depth >= 2) return false;
+    for (let k = i + 1; k < words.length; k += 1) {
+      if (!words[k].startsWith('-')) return false; // a script file, not a -c string
+      if (/^-[A-Za-z]*c[A-Za-z]*$/.test(words[k])) {
+        return k + 1 < words.length && isManualRouterCommandAt(words[k + 1], depth + 1);
+      }
+    }
+    return false;
+  }
+  if (program !== 'node' && program !== 'nodejs') return false;
+  let k = i + 1;
+  for (; k < words.length; k += 1) {
+    const w = words[k];
+    if (w === '--') { k += 1; break; }
+    if (!w.startsWith('-') || w === '-') break;
+    if (NODE_NO_SCRIPT.has(w)) return false;
+    if (NODE_VALUE_OPTIONS.has(w)) k += 1;
+  }
+  if (k >= words.length || path.basename(words[k]) !== 'skill-router.js') return false;
+  return !words.slice(k + 1).includes('--packaged');
+}
+
+function isManualRouterCommandAt(command, depth) {
+  if (typeof command !== 'string' || !command || command.length > MAX_HOOK_COMMAND_CHARS) return false;
+  return shellSimpleCommands(command).some((words) => runsManualRouter(words, depth));
+}
+
+function isManualRouterCommand(command) {
+  return isManualRouterCommandAt(command, 0);
+}
+
+// True when the settings' UserPromptSubmit hooks (the only event this router serves) run it manually. Registrations
+// under other events never invoke it for a prompt, so they must not silence the packaged entry.
+function hasManualRouterHook(hooks) {
+  const groups = isObject(hooks) && Array.isArray(hooks.UserPromptSubmit) ? hooks.UserPromptSubmit : [];
+  return groups.slice(0, 256).some((group) => isObject(group) && Array.isArray(group.hooks)
+    && group.hooks.slice(0, 256).some((hook) => isObject(hook) && isManualRouterCommand(hook.command)));
+}
+
+// Project settings directories Claude may read for this session: <dir>/.claude for cwd and every parent, so a
+// project root above cwd is covered (Codex final review). Bounded depth; the home directory's own .claude is
+// always included.
+function claudeSettingsDirs(cwd, home) {
+  const dirs = [path.join(home, '.claude')];
+  let dir = path.resolve(cwd);
+  for (let i = 0; i < 32; i += 1) {
+    const candidate = path.join(dir, '.claude');
+    if (!dirs.includes(candidate)) dirs.push(candidate);
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return dirs;
 }
 
 // A manual (legacy) registration of this hook in Claude's user or project settings.
 function hasManualRegistration(data, home = os.homedir()) {
   const cwd = isObject(data) && typeof data.cwd === 'string' && path.isAbsolute(data.cwd) ? data.cwd : process.cwd();
-  for (const dir of [path.join(home, '.claude'), path.join(cwd, '.claude')]) {
+  for (const dir of claudeSettingsDirs(cwd, home)) {
     for (const name of ['settings.json', 'settings.local.json']) {
       const text = readBounded(path.join(dir, name), MAX_SETTINGS_BYTES, { follow: true });
       if (!text) continue;
       try {
         const settings = JSON.parse(text);
-        if (isObject(settings) && hasManualRouterCommand(settings.hooks)) return true;
+        if (isObject(settings) && hasManualRouterHook(settings.hooks)) return true;
       } catch (_) { /* invalid settings: no entry */ }
     }
   }
@@ -687,5 +788,5 @@ if (require.main === module) main();
 
 module.exports = {
   COSIGN_HOSTS, detectHost, readCodexThread, sessionIdentity, packagedConfigEnabled, hasManualRegistration,
-  packagedMayRun, capModeForHost,
+  packagedMayRun, capModeForHost, isManualRouterCommand, claudeSettingsDirs,
 };

@@ -17,7 +17,10 @@ Activity gate (newest mtime of): the workflow-selection `receipts` directory und
 ${XDG_DATA_HOME:-~/.local/share}/rhize, $RHIZE_SUGGESTION_LOG (default ~/.claude/context-manager/suggestion-log.jsonl)
 and the newest file under <root>/skill-fit/records/.
   * older than --active-window-hours       -> skip, skippedIdle++   (nobody is working; let Laya idle)
-  * younger than --warm-skip-seconds       -> skip, skippedWarm++   (live traffic is already keeping Laya warm)
+  * a real Laya call younger than --warm-skip-seconds: the newest `ts` of a LIVE skill-fit record whose Laya
+    status is 'ok' (read from the tails of the two newest record day-files; backfill replays, skipped calls,
+    failed calls and bare file mtimes prove nothing about warmth)
+                                           -> skip, skippedWarm++   (live traffic is already keeping Laya warm)
   * otherwise                              -> ping
 
 Failure backoff: after a failed ping the next wait doubles (interval -> 2 x interval ...) up to --max-backoff and
@@ -28,15 +31,18 @@ State: <root>/laya-keepwarm.json (0600, atomic, symlinks refused), schema rhize-
 never writes decision records, labels, outcomes or cohort events, and never reads prompt text.
 `intervalSeconds` is the configured base interval; the current backoff is visible through `consecutiveFailures`.
 
-Exit codes: 0 done / skipped / disabled, 1 the ping or the state write failed, 2 bad arguments (for example a
-non-loopback endpoint).
+Exit codes: 0 done / skipped / disabled, 1 the ping or the state write failed (for `run`: the final state write on
+the way out; a failing write mid-run is reported once on stderr and the loop keeps pinging), 2 bad arguments (for
+example a non-loopback endpoint).
 """
 from __future__ import annotations
 
 import argparse
 import json
 import os
+import re
 import signal
+import stat
 import sys
 import time
 from datetime import datetime, timezone
@@ -59,6 +65,9 @@ HEALTH_POLL_SECONDS = 5
 # An activity mtime this far in the future is clock garbage and must not suppress pings forever.
 MAX_FUTURE_SKEW_SECONDS = 60
 SLEEP_SLICE_SECONDS = 0.5
+# Bytes read from the end of each record day-file when looking for the newest live Laya call.
+MAX_RECORD_TAIL_BYTES = 256 * 1024
+DAY_FILE = re.compile(r'\d{4}-\d{2}-\d{2}\.jsonl\Z')
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
 
@@ -126,14 +135,82 @@ def newest_activity(root, now):
     return max(usable) if usable else None
 
 
-def gate(newest, now, window_seconds, warm_seconds) -> str:
-    """'idle' | 'warm' | 'ping' for the newest activity mtime."""
+def _tail_lines(path, limit):
+    """Complete lines in the last `limit` bytes of a regular, non-symlink file ([] when it cannot be read)."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    except OSError:
+        return []
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode):
+            return []
+        start = max(0, info.st_size - limit)
+        os.lseek(fd, start, os.SEEK_SET)
+        chunks, left = [], info.st_size - start
+        while left > 0:
+            chunk = os.read(fd, min(left, 65536))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            left -= len(chunk)
+    except OSError:
+        return []
+    finally:
+        os.close(fd)
+    lines = b''.join(chunks).split(b'\n')
+    return lines[1:] if start > 0 else lines            # the first line of a mid-file tail may be partial
+
+
+def _record_epoch(value):
+    try:
+        return locked_io.utc(value).timestamp()
+    except ValueError:
+        return None
+
+
+def newest_laya_call(root, now):
+    """Epoch of the newest LIVE skill-fit record whose Laya call returned 'ok' — the last time a hook's request
+    actually reached inference (None when unknown). Only this signal may skip a ping as 'warm'.
+
+    Workflow receipts and suggestion-log rows also come from prompts that never reach Laya (Codex guardian reviews,
+    subagents, silent prompts), and the records directory itself also receives backfill replays and skipped or
+    failed calls (Codex final review), so none of those, nor a file mtime, proves the server is warm.
+    """
+    directory = activity_sources(root)[2]
+    if os.path.islink(directory):
+        return None
+    try:
+        names = sorted(name for name in os.listdir(directory) if DAY_FILE.match(name))[-2:]
+    except OSError:
+        return None
+    newest = None
+    for name in names:
+        for line in _tail_lines(directory / name, MAX_RECORD_TAIL_BYTES):
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(rec, dict):
+                continue
+            laya = rec.get('laya')
+            if rec.get('basis') != 'live' or not isinstance(laya, dict) or laya.get('status') != 'ok':
+                continue
+            epoch = _record_epoch(rec.get('ts'))
+            if epoch is None or epoch > now + MAX_FUTURE_SKEW_SECONDS:
+                continue
+            if newest is None or epoch > newest:
+                newest = epoch
+    return newest
+
+
+def gate(newest, now, window_seconds, warm_seconds, laya=None) -> str:
+    """'idle' | 'warm' | 'ping'. `newest` is the newest activity of any kind; `laya` the newest real Laya call."""
     if newest is None:
         return 'idle'
-    age = now - newest
-    if age > window_seconds:
+    if now - newest > window_seconds:
         return 'idle'
-    if age < warm_seconds:
+    if laya is not None and now - laya < warm_seconds:
         return 'warm'
     return 'ping'
 
@@ -196,6 +273,7 @@ class KeepWarm:
         self.health_cache = self.root / HEALTH_CACHE_NAME
         self.health_ready = not wait_for_health
         self.current_interval = interval
+        self.final_save_ok = None                   # set by run_loop: did the last state write succeed?
         self.state = state if state is not None else initial_state(clock(), interval, active_window_hours)
         self.state['intervalSeconds'] = interval
         self.state['activeWindowHours'] = active_window_hours
@@ -224,7 +302,8 @@ class KeepWarm:
         newest = newest_activity(self.root, now)
         if newest is not None:
             state['lastActivityAt'] = _iso(newest)
-        decision = 'ping' if force else gate(newest, now, self.window_seconds, self.warm_seconds)
+        decision = 'ping' if force else gate(newest, now, self.window_seconds, self.warm_seconds,
+                                             laya=newest_laya_call(self.root, now))
         if decision == 'idle':
             state['skippedIdle'] += 1
             return self.current_interval, {'action': 'skipped_idle'}
@@ -270,7 +349,8 @@ def run_loop(worker, sleep=None, max_iterations=None, should_stop=lambda: False,
 
     `sleep(seconds)` is injectable (the default sleeps in short slices so a stop request is honored promptly).
     A failing state write is reported through `on_error(exc)` and never ends the loop; the final state write
-    happens on the way out so SIGTERM leaves a current file behind.
+    happens on the way out so SIGTERM leaves a current file behind. `worker.final_save_ok` records whether that
+    last write succeeded, so the caller can exit non-zero when it did not (Codex final review).
     """
     if sleep is None:
         def sleep(seconds):
@@ -287,8 +367,10 @@ def run_loop(worker, sleep=None, max_iterations=None, should_stop=lambda: False,
         if max_iterations is not None and ticks >= max_iterations:
             break
         sleep(wait)
+    worker.final_save_ok = False
     try:
         worker.save()
+        worker.final_save_ok = True
     except Exception as exc:  # noqa: BLE001
         if on_error:
             on_error(exc)
@@ -435,6 +517,10 @@ def _command_run(args, clock, sleep, opener) -> int:
     finally:
         for sig, handler in previous.items():
             signal.signal(sig, handler)
+    if not worker.final_save_ok:
+        _emit({'status': 'failed', 'reason': 'final state write failed', 'ticks': ticks,
+               'pings': worker.state['pings'], 'ok': worker.state['ok']})
+        return EXIT_FAILED
     _emit({'status': 'stopped', 'ticks': ticks, 'pings': worker.state['pings'], 'ok': worker.state['ok']})
     return EXIT_OK
 

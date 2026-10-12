@@ -61,19 +61,20 @@ class Seeder:
     def ts(self, days_ago=1.0, base=NOW_DT):
         return (base - timedelta(days=days_ago)).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
-    def record(self, *, host='claude', days_ago=1.0, outcome=None, skill=None, turns=0, **kwargs):
+    def record(self, *, host='claude', days_ago=1.0, outcome=None, skill=None, turns=0, join_after_hours=1.0,
+               **kwargs):
         self.n += 1
         rec = make_record(self.n, ts=self.ts(days_ago), **kwargs)
         rec['host'] = host
         records.append(self.root, 'skill-fit', 'records', contract.validate_record(rec))
         if outcome:
-            self.outcome(rec, outcome, skill, turns)
+            self.outcome(rec, outcome, skill, turns, join_after_hours)
         return rec
 
-    def outcome(self, rec, kind, skill=None, turns=0):
+    def outcome(self, rec, kind, skill=None, turns=0, join_after_hours=1.0):
         invoked = kind.startswith('invoked')
-        joined = (datetime.fromisoformat(rec['ts'].replace('Z', '+00:00')) + timedelta(hours=1)).strftime(
-            '%Y-%m-%dT%H:%M:%SZ')
+        joined = (datetime.fromisoformat(rec['ts'].replace('Z', '+00:00'))
+                  + timedelta(hours=join_after_hours)).strftime('%Y-%m-%dT%H:%M:%SZ')
         row = {'schema': contract.OUTCOME_SCHEMA, 'decisionId': rec['decisionId'],
                'occurrenceKey': rec['occurrenceKey'], 'outcome': kind, 'skillInvoked': skill if invoked else None,
                'via': 'skill_tool' if invoked else None, 'latencyTurns': turns if invoked else None,
@@ -286,9 +287,29 @@ def test_window_excludes_old_and_future_records(seed, tmp_path):
 def test_window_edges_are_inclusive_of_the_start_and_of_now(seed, tmp_path):
     for _ in range(2):
         seed.record(days_ago=14, outcome='invoked_unlisted', skill='edge:skill')     # exactly the window start
-    seed.record(days_ago=0, outcome='invoked_unlisted', skill='edge:skill')          # exactly now
+    seed.record(days_ago=0, outcome='invoked_unlisted', skill='edge:skill', join_after_hours=0)  # exactly now
     _, queue = run_emit(seed, tmp_path)
     assert [r['target_skill'] for r in read_queue(queue)] == ['edge/skill']
+
+
+def test_outcomes_joined_after_now_are_not_evidence(seed, tmp_path):
+    for _ in range(3):                                           # records in the window, outcomes joined later
+        seed.record(days_ago=0.01, outcome='invoked_unlisted', skill='late:skill', join_after_hours=1)
+    _, queue = run_emit(seed, tmp_path)
+    assert read_queue(queue) == []
+    for _ in range(3):
+        seed.record(days_ago=0.01, outcome='invoked_unlisted', skill='late:skill', join_after_hours=0.001)
+    _, queue2 = run_emit(seed, tmp_path, name='queue2.jsonl')
+    assert [r['target_skill'] for r in read_queue(queue2)] == ['late/skill']
+
+
+def test_the_newest_join_at_or_before_now_wins(seed, tmp_path):
+    for _ in range(3):
+        rec = seed.record(days_ago=2, outcome='none_invoked')    # first join: nothing invoked
+        seed.outcome(rec, 'invoked_unlisted', 'rejoin:skill', join_after_hours=5)    # a later re-join
+        seed.outcome(rec, 'none_invoked', join_after_hours=72)   # a "re-join" dated after now: ignored
+    _, queue = run_emit(seed, tmp_path)
+    assert [r['target_skill'] for r in read_queue(queue)] == ['rejoin/skill']
 
 
 def test_timeout_signal_also_respects_the_window(seed, tmp_path):

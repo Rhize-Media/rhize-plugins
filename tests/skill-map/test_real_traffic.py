@@ -290,10 +290,14 @@ def test_keep_requires_every_condition():
     assert keep['signTest']['n'] == 12 and keep['signTest']['pValue'] == pytest.approx(13 / 4096)
 
 
-@pytest.mark.parametrize('status', ['fail', 'not_run', 'invalid_result', 'candidate_mismatch', 'unavailable'])
-def test_harness_must_pass(status):
+@pytest.mark.parametrize('status,verdict', [('fail', 'discard'), ('not_run', 'blocked'), ('invalid_result', 'blocked'),
+                                            ('candidate_mismatch', 'blocked'), ('unavailable', 'blocked')])
+def test_harness_must_pass(status, verdict):
+    # only a real harness failure is a final discard; an infrastructure gap is a non-final `blocked`
     result = decide(harness_status=status)
-    assert result['verdict'] == 'discard' and result['blockers'] == ['harness']
+    assert result['verdict'] == verdict and result['blockers'] == ['harness']
+    assert decide(harness_status=status, discordant=9, wins=9, losses=0)['verdict'] == (
+        'insufficient' if status == 'fail' else 'blocked')
 
 
 def test_fewer_than_ten_discordant_is_insufficient_even_when_one_sided():
@@ -365,7 +369,7 @@ def test_weak_and_silence_scoring():
     ({'outcome': 'invoked_unlisted', 'via': 'skill_file_read', 'latencyTurns': 0, 'skillInvoked': 'demo:x'}, None),
     ({'outcome': 'invoked_unlisted', 'via': 'skill_tool', 'latencyTurns': 1, 'skillInvoked': 'demo:x'}, None),
     ({'outcome': 'invoked_unlisted', 'via': 'skill_tool', 'latencyTurns': None, 'skillInvoked': 'demo:x'}, None),
-    ({'outcome': 'invoked_emitted', 'via': 'skill_tool', 'latencyTurns': 0, 'skillInvoked': 'demo:x'}, None),
+    ({'outcome': 'invoked_emitted', 'via': 'skill_tool', 'latencyTurns': 0, 'skillInvoked': 'demo:x'}, 'demo:x'),
     ({'outcome': 'none_invoked', 'via': None, 'latencyTurns': None, 'skillInvoked': None}, None),
     ({'outcome': 'invoked_unlisted', 'via': 'skill_tool', 'latencyTurns': 0,
       'skillInvoked': 'rhize-ops:parallel-agent-optimization'}, None),
@@ -401,12 +405,14 @@ def test_case_selection_precedence_and_weak_rules(tmp_path):
     root = w.flush()
     cases, counts = rt.select_cases(root)
     kinds = {c['key']: c['type'] for c in cases}
+    # a prompt where the user followed the router's own suggestion is a weak case too (the candidate can lose it)
     assert kinds == {labeled['occurrenceKey']: 'labeled', weak['occurrenceKey']: 'weak',
+                     emitted['occurrenceKey']: 'weak',
                      silent_weak['occurrenceKey']: 'weak', mandated_silent['occurrenceKey']: 'silence',
                      silent['occurrenceKey']: 'silence'}
-    assert counts['records'] == 10 and counts['ambiguousLabel'] == 1 and counts['notACase'] == 4
+    assert counts['records'] == 10 and counts['ambiguousLabel'] == 1 and counts['notACase'] == 3
     assert ambiguous['occurrenceKey'] not in kinds and slow['occurrenceKey'] not in kinds
-    assert emitted['occurrenceKey'] not in kinds and mandated['occurrenceKey'] not in kinds
+    assert mandated['occurrenceKey'] not in kinds
     assert plain['occurrenceKey'] not in kinds
 
 
@@ -729,7 +735,7 @@ def test_evaluate_without_a_harness_result_cannot_keep(tmp_path, repos, arms):
     out, _ = do_freeze(tmp_path, repos, arms, w.root)
     w.flush()
     report, _ = rt.evaluate(out, w.root, [w.tx])
-    assert report['harness'] == {'status': 'not_run'} and report['verdict'] == 'discard'
+    assert report['harness'] == {'status': 'not_run'} and report['verdict'] == 'blocked'
 
 
 def test_evaluate_is_insufficient_with_few_discordant_cases(tmp_path, repos, arms):

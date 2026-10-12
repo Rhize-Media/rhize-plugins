@@ -38,7 +38,7 @@ A record becomes at most one case. The first matching type wins, in this order.
 | Type | Which records | Correct means |
 |---|---|---|
 | labeled | A record with a non-ambiguous skill-fit label. The latest label wins, and `human_adjudicated` is preferred. | The route is in the label's acceptable set (`hit`), or there is no route and the acceptable set is empty (`silentCorrect`). Otherwise: no route with a non-empty set is a `miss`, a route inside the shortlist but outside the set is `wrong`, or a `falseFire` when the set is empty. |
-| weak positive | Outcome `invoked_unlisted` or `invoked_other_shortlisted`, with `latencyTurns == 0`, via `skill_tool` or `slash_command` (never `skill_file_read`), on the nearest record of that turn. The invoked skill must not be in the mandated list (default `rhize-ops:parallel-agent-optimization`). | The arm routes to exactly the skill the user invoked. |
+| weak positive | Outcome `invoked_emitted`, `invoked_unlisted` or `invoked_other_shortlisted`, with `latencyTurns == 0`, via `skill_tool` or `slash_command` (never `skill_file_read`), on the nearest record of that turn. The invoked skill must not be in the mandated list (default `rhize-ops:parallel-agent-optimization`). | The arm routes to exactly the skill the user invoked. |
 | silence negative | `sourceStratum` is `silent_sample`: the router stayed silent in production and was sampled anyway. | The arm stays silent. Any fire is bad. |
 
 **Unscorable.** A labeled case whose route falls outside the record's original shortlist cannot be judged from the label. It is counted and reported separately and is never discordant. It still counts toward the unscorable share.
@@ -57,7 +57,7 @@ A record becomes at most one case. The first matching type wins, in this order.
 | The candidate's silence-negative fire count is no higher than the baseline's. | `silenceFireCount` |
 | The candidate's unscorable share of its labeled cases is at most 0.20. | `unscorableShare` |
 
-Otherwise the verdict is `insufficient` when fewer than 10 cases are discordant, and `discard` in every other case. The report lists every unmet condition in `blockers`. A harness failure with fewer than 10 discordant cases is therefore reported as `insufficient` with `harness` in `blockers`.
+Otherwise the verdict is `blocked` when the harness gave no pass/fail answer (`not_run`, `unavailable`, `invalid_result` or `candidate_mismatch`). It is `insufficient` when fewer than 10 cases are discordant, and `discard` in every other case. The report lists every unmet condition in `blockers`. A real harness failure with fewer than 10 discordant cases is reported as `insufficient` with `harness` in `blockers`. `blocked` is never final: an infrastructure gap must not discard a candidate for good. The candidate is looked at again on a later Sunday, inside the same 4-week window.
 
 The p-value is exact: P(X >= wins) for X distributed Binomial(n, 1/2), with n = wins + losses, computed with `math.comb` and rational arithmetic (the comparison with alpha is exact, with no floating-point rounding). The smallest passing result for a few sizes:
 
@@ -112,7 +112,7 @@ Anything other than `pass` (`fail`, `candidate_mismatch`, `invalid_result`, `una
 | `discordant` | `total`, `candidateWins`, `baselineWins`, and the same split `byType`. |
 | `signTest` | `n`, `wins`, `pValue`, `alpha`. |
 | `harness` | `{status}`. |
-| `blockers`, `verdict` | The unmet conditions and `keep`, `discard` or `insufficient`. |
+| `blockers`, `verdict` | The unmet conditions and `keep`, `discard`, `insufficient` or `blocked`. |
 
 The file is created 0600 in a 0700 directory. Symlinks are refused (`O_NOFOLLOW` and a private-directory check), the append runs under a lock, and a torn final line from an earlier crash is terminated before the next line is written.
 
@@ -140,9 +140,10 @@ The evaluator and the automation never:
 
 - **Freeze preconditions.** Both checkouts must be clean (`freeze` refuses uncommitted changes unless `--allow-dirty`). Use a detached baseline worktree at `main` and a candidate worktree on a local branch with the edit committed. After editing, regenerate the map with `python3 scripts/build_skill_map.py` and commit `generated/` with the edit, so the candidate's arm reflects it. The router code must be identical in both checkouts.
 - **Small samples.** Only a fraction of router fires becomes a scorable case, and confirmation needs at least 10 discordant ones. Many candidates will sit at `insufficient` for weeks. That is the intended result when the evidence is thin, not a defect.
-- **Weak positives lean toward the candidate.** A weak positive exists because the live router did not suggest the skill the user then invoked, so the baseline is more likely wrong on these cases than a random case. The sign test cannot remove that tilt. The labeled and silence guards bound the damage from over-firing, and `discordant.byType` in the report shows where each win came from. Read a `keep` that rests only on weak positives with that in mind.
+- **Weak positives cut both ways.** A weak positive is any prompt the user acted on within the same turn. That includes prompts where they followed the router's own suggestion (`invoked_emitted`), which the candidate loses if it reroutes them. The shown suggestion nudges users toward following it, so on these cases the tilt favors the baseline, which makes the rule conservative. `discordant.byType` in the report shows where each win and loss came from.
 - **Codex traffic joins, Codex authority does not.** Codex user sessions feed the evaluator like Claude sessions. Laya's authority on Codex stays capped at `shadow` and Codex evidence stays out of the earned-authority gate (the plan's row F6). This evaluator scores only the router's tags and phrases, so that cap does not change it.
 - **A `keep` is not a release.** Shipping a kept patch follows the repo's release rules (plugin README and GUIDE, CHANGELOG, `bump_version.py`). A human or an orchestrator does that. The automation does not.
+- **Prerequisite.** Confirmation reads outcomes, so it relies on the daily `outcomes.py join` (part of the 07:30 skill-fit loop) having run. The automation never runs the join itself.
 - **Access the automation needs.** Write access to `~/.local/share/rhize/typed-decisions/skill-fit/improvement/` and to the repo's `.git` (worktrees and local branches), and read access to local Claude and Codex session folders and `~/.claude/context-manager/refinement-queue.jsonl`. It needs no network.
 
 ## The weekly automation: `skill-fit-weekly-improvement`
@@ -154,7 +155,7 @@ You are running skill-fit-weekly-improvement, Jim's weekly, local-only router im
 
 RULES THAT NEVER BEND
 - Never git push, never merge, never open a pull request, and never switch the primary checkout off main.
-- Never edit or run anything under rhize-context-manager/scripts/typed_decisions/ (including decision_registry.py and the cycle), decision-registry.json, rhize-context-manager/hooks/lib/decision-registry.js, rhize-context-manager/hooks/lib/laya-instrument.js, rhize-context-manager/hooks/lib/route-core.js, rhize-context-manager/hooks/skill-router.js, anything under evals/ except to run the two commands named below, or any CI workflow. Never run the earned-authority gate or its cycle. Running the routing harness (run.py --check) and real_traffic.py is your job and is allowed.
+- Never edit, or invoke directly, anything under rhize-context-manager/scripts/typed_decisions/ (including decision_registry.py and the cycle; real_traffic.py and run.py may import and run these modules internally, which is expected), decision-registry.json, rhize-context-manager/hooks/lib/decision-registry.js, rhize-context-manager/hooks/lib/laya-instrument.js, rhize-context-manager/hooks/lib/route-core.js, rhize-context-manager/hooks/skill-router.js, anything under evals/ except to run the two commands named below, or any CI workflow. Never run the earned-authority gate or its cycle. Running the routing harness (run.py --check) and real_traffic.py is your job and is allowed.
 - Never write, print, quote or summarise prompt text, transcript text, session ids or transcript paths. You handle only counts, hashes, skill ids, and the files named below. If any command prints something that looks like prompt text, stop and tell Jim.
 - Make no network request. Nothing here needs one.
 - Everything you write lives under $OUT (a private folder) or in git worktrees and local branches of this repo.
@@ -204,7 +205,7 @@ PY
 For each line with state "pending", let F be its folder and N its name (for example c2); the candidate number n is N without the leading c:
 - The manifest is $IMPROVE/$F/$N.freeze.json and the candidate worktree is $IMPROVE/$F/worktrees/$N on the local branch skill-fit-weekly/$F-$n. If that worktree is missing, recreate it with: git -C "$REPO" worktree add "$IMPROVE/$F/worktrees/$N" skill-fit-weekly/$F-$n. If it still cannot be used, do not evaluate; list the candidate under "needs attention" in your notification.
 - Run: $EVAL evaluate --manifest "$IMPROVE/$F/$N.freeze.json" --root "$ROOT" --run-harness --out "$OUT/confirm-$F-$N.report.json"
-- The command prints one JSON line with the verdict (keep, discard or insufficient), the blockers, the discordant count and the p-value, and appends one line to the ledger. Keep that line for your notification.
+- The command prints one JSON line with the verdict (keep, discard, insufficient or blocked), the blockers, the discordant count and the p-value, and appends one line to the ledger. Keep that line for your notification.
 - Evaluate each manifest at most once in this run, and never a manifest that already has a keep or discard line in the ledger. A keep or discard verdict is final. After a final verdict, remove that candidate's worktree with git -C "$REPO" worktree remove --force; keep its branch.
 For each line with state "expired": report it as expired without a decision (insufficient evidence after 4 weeks), remove its worktree the same way, and keep its branch. Evaluate nothing else.
 
@@ -236,7 +237,7 @@ STEP 6. WRITE THE RESULTS (all of it under $OUT)
 - For each frozen candidate: git -C "$REPO" diff "$BASE_SHA" skill-fit-weekly/$DATE-$n > "$OUT/$N.patch"
 - Write "$OUT/summary.json" with this shape, using counts, hashes and skill ids only:
   {"date": "<DATE>", "baselineHead": "<BASE_SHA>",
-   "confirmed": [{"folder": "...", "name": "cN", "verdict": "keep|discard|insufficient|expired", "pValue": 0.0, "discordant": 0, "blockers": []}],
+   "confirmed": [{"folder": "...", "name": "cN", "verdict": "keep|discard|insufficient|blocked|expired", "pValue": 0.0, "discordant": 0, "blockers": []}],
    "frozen": [{"name": "cN", "branch": "skill-fit-weekly/<DATE>-n", "manifestSha256": "...", "freezeAt": "...", "files": ["..."]}],
    "dropped": [{"name": "cN", "reason": "out_of_scope|harness_failed|refused"}],
    "needsAttention": []}

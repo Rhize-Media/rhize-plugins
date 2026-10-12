@@ -16,7 +16,8 @@ learn-harvest filter and verify steps. There is no watermark: every run is idemp
 the same finding keeps the same id from day to day and the queue's own dedupe (any status) absorbs repeats.
 
 Signals, grouped per (signal, subtype, skill, host); a group becomes a candidate at >= --min-events events.
-Signals 1-3 look at finalized records (a record with an outcome) whose ts is inside the window:
+Signals 1-3 look at finalized records (a record with an outcome joined at or before --now) whose ts is inside the
+window; when an occurrence was joined more than once, the newest such join is the one that counts:
 
   1. routing-miss / not-shortlisted             outcome invoked_unlisted. target_skill: the invoked skill.
   2. routing-miss / suggested-but-ignored       emitted is non-null and the outcome is invoked_other_shortlisted.
@@ -165,9 +166,17 @@ def collect(root, now, window_days=14, min_events=3, repo=DEFAULT_REPO) -> tuple
     outcomes, invalid_outcomes = records.read(root, DECISION, 'outcomes', since_day=since_day)
     in_window = _dedupe_by_occurrence(
         [rec for rec in recs if start <= locked_io.utc(rec['ts']) <= now])
-    latest_outcome = {outcome['occurrenceKey']: outcome for outcome in outcomes}   # a join re-run replaces the row
-    finalized = [(rec, latest_outcome[rec['occurrenceKey']]) for rec in in_window
-                 if rec['occurrenceKey'] in latest_outcome]
+    # A join re-run replaces the row (newest joinedAt wins; ties go to the later line), and an outcome joined after
+    # `now` is evidence from beyond the cutoff, so it never counts (Codex final review).
+    latest: dict = {}
+    for outcome in outcomes:
+        joined = locked_io.utc(outcome['joinedAt'])
+        if joined > now:
+            continue
+        held = latest.get(outcome['occurrenceKey'])
+        if held is None or joined >= held[0]:
+            latest[outcome['occurrenceKey']] = (joined, outcome)
+    finalized = [(rec, latest[rec['occurrenceKey']][1]) for rec in in_window if rec['occurrenceKey'] in latest]
 
     groups: Counter = Counter()
     for rec, outcome in finalized:

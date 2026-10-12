@@ -362,4 +362,11 @@ Four parallel Sonnet lanes worked in isolated worktrees: task-graph v2 was valid
 - Harvest gives Codex `skill_file_read` outcomes their own candidates ("host codex, SKILL.md-read evidence"), and a seam test covers this too.
 - A test pins the bound instrument (8df42f4f…) and policy (19509e93…) hashes (I8).
 
+**Final review (Fable and Codex, two rounds each), fixes applied before merge:**
+- **Router:** a manual Claude registration is recognised only when `node` is the program word and `skill-router.js` is Node's actual script argument, with `--packaged` judged among that invocation's own arguments. One level of `sh -c` is followed. Registrations under other events, mentions, and project settings in any parent of `cwd` are handled.
+- **Codex outcomes:** current rollouts are read through Codex's `parsed_cmd` read entries, which count only when the command exited 0. Home expansion is judged per complete shell word, so `'$HOME'/x` and `"~"/x` stay literal. `--help`/`--version`, and `sed -n` programs that print nothing, are rejected. Outcomes join Codex user threads only.
+- **Keep-warm:** a warm skip needs a live record whose Laya call answered `ok` in the last 60 s, judged by its `ts` and not by the file mtime; backfill replays and skipped calls are excluded. `run` exits 1 when its final state write fails.
+- **Harvest:** outcomes joined after `--now` are ignored, and the newest join at or before `--now` wins.
+- **Weekly evaluator:** `invoked_emitted` is weak evidence, and a harness that neither passes nor fails yields `blocked`. The prompt wording and the outcomes-join prerequisite were also tightened.
+
 **Release:** Context Manager 0.47.0, marketplace 2.104.0.

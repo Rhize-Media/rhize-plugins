@@ -215,7 +215,9 @@ def _resolve(token, base):
 
 
 def _sed_program_ok(text):
-    return len(text) <= MAX_SED_PROGRAM_CHARS and SED_READ_PROGRAM.match(text) is not None
+    """A read-only sed program that actually prints lines (p/P); `q` or `=` alone print no instructions."""
+    return (len(text) <= MAX_SED_PROGRAM_CHARS and SED_READ_PROGRAM.match(text) is not None
+            and re.search(r'[pP]', text) is not None)
 
 
 def _sed_files(args):
@@ -248,6 +250,48 @@ def _sed_files(args):
     return positional
 
 
+COUNT = re.compile(r'\+?\d{1,9}\Z')
+READ_FLAGS = {                  # the only options under which these commands still just print the file
+    'cat': frozenset(('-n', '-b', '-s')),
+    'nl': frozenset(('-ba', '-b', '-a', '-n', '-nln', '-nrn', '-nrz')),
+    'bat': frozenset(('-p', '-pp', '--plain', '--paging=never', '--style=plain', '--color=never')),
+    'less': frozenset(),
+}
+
+
+def _count_flag(arg, rest):
+    """How many words a head/tail count option consumes (1 or 2), or 0 when `arg` is not one."""
+    if arg in ('-n', '-c'):
+        return 2 if rest and COUNT.match(rest[0]) else 0
+    if re.match(r'-[nc]\+?\d{1,9}\Z', arg) or re.match(r'-\d{1,9}\Z', arg) \
+            or re.match(r'--(?:lines|bytes)=\+?\d{1,9}\Z', arg):
+        return 1
+    return 0
+
+
+def _plain_words(name, args):
+    """File words of cat/head/tail/nl/bat/less, or None when any option is outside the print-the-file set
+    (e.g. --help or --version, which print no skill instructions)."""
+    words, index, options = [], 0, True
+    while index < len(args):
+        arg = args[index]
+        if options and arg == '--':
+            options = False
+        elif options and arg.startswith('-') and arg != '-':
+            if name in ('head', 'tail'):
+                used = _count_flag(arg, args[index + 1:])
+                if not used:
+                    return None
+                index += used
+                continue
+            if arg not in READ_FLAGS.get(name, frozenset()):
+                return None
+        else:
+            words.append(arg)
+        index += 1
+    return words
+
+
 def _read_words(argv):
     """The argument words of a read-shaped command (candidate file paths), or None when it is not one."""
     name = _executable(argv[0])
@@ -255,7 +299,7 @@ def _read_words(argv):
         return None
     if name == 'sed':
         return _sed_files(argv[1:])
-    return argv[1:]
+    return _plain_words(name, argv[1:])
 
 
 def _pipelines(tokens):
@@ -292,6 +336,72 @@ def _shell_wrapped(script):
     return None
 
 
+def _quoted_words(script):
+    """[(value, contexts)] per shell word, where contexts[i] is the quoting of value[i]: None (unquoted), "'",
+    '"' or '\\\\' (backslash-escaped). Unquoted whitespace and operators end a word, as in `_tokens`."""
+    words, chars, ctxs, quote, in_word, index = [], [], [], None, False, 0
+
+    def end():
+        nonlocal chars, ctxs, in_word
+        if in_word:
+            words.append((''.join(chars), ctxs))
+        chars, ctxs, in_word = [], [], False
+
+    while index < len(script):
+        char = script[index]
+        if quote == "'":
+            if char == "'":
+                quote = None
+            else:
+                chars.append(char)
+                ctxs.append("'")
+        elif quote == '"':
+            if char == '"':
+                quote = None
+            elif char == '\\' and index + 1 < len(script) and script[index + 1] in '"\\$`':
+                index += 1
+                chars.append(script[index])
+                ctxs.append('\\')
+            else:
+                chars.append(char)
+                ctxs.append('"')
+        elif char in ("'", '"'):
+            quote, in_word = char, True
+        elif char == '\\' and index + 1 < len(script):
+            index += 1
+            chars.append(script[index])
+            ctxs.append('\\')
+            in_word = True
+        elif char.isspace() or char in PUNCTUATION:
+            end()
+        else:
+            chars.append(char)
+            ctxs.append(None)
+            in_word = True
+        index += 1
+    end()
+    return words
+
+
+def _unexpanded_words(script):
+    """Whole words whose leading ~ / $HOME / ${HOME} the shell would NOT expand to the home directory. `~` expands
+    only when unquoted; `$HOME`/`${HOME}` only when every character of it is unquoted or every one is inside double
+    quotes. Judged per complete word, so concatenated fragments (`'$HOME'/x`, `"~"/x`, `\\~/x`) are literals too."""
+    literal = set()
+    for value, ctxs in _quoted_words(script):
+        if value.startswith('~'):
+            if ctxs[0] is not None:
+                literal.add(value)
+            continue
+        for prefix in ('${HOME}', '$HOME'):
+            if value.startswith(prefix):
+                head = set(ctxs[:len(prefix)])
+                if head not in ({None}, {'"'}):
+                    literal.add(value)
+                break
+    return literal
+
+
 def codex_skill_reads(command, workdir=None, _depth=0) -> list:
     """Distinct `<plugin>:<skill>` refs read by a read-shaped Codex shell command ([] for any other command).
 
@@ -323,6 +433,7 @@ def codex_skill_reads(command, workdir=None, _depth=0) -> list:
         return []
     if pipelines is None:
         return []
+    literal = _unexpanded_words(script)
     base = _resolve(workdir, None) if isinstance(workdir, str) and workdir else None
     refs = []
     for index, (_, pipe) in enumerate(pipelines):
@@ -337,6 +448,8 @@ def codex_skill_reads(command, workdir=None, _depth=0) -> list:
         if words is None or any(_executable(stage[0]) not in PIPE_COMMANDS for stage in pipe[1:]):
             return []
         for word in words:
+            if word in literal:
+                continue                    # a quoted ~ or single-quoted $HOME is a literal, not the home directory
             path = _resolve(word, base)
             for pattern in SKILL_FILE_PATTERNS:
                 match = pattern.match(path) if path else None
@@ -370,8 +483,69 @@ def _codex_shell_command(payload):
     return command, (workdir if isinstance(workdir, str) else None)
 
 
+# Skill folders whose SKILL.md is a user- or host-level skill rather than a plugin's: the ref is the bare skill name
+# (outcomes.py resolves a bare name through the record's shortlist when it is unique there). Codex's own generated
+# memory skills (~/.codex/memories/skills) are not router targets and never count.
+BARE_SKILL_PATTERNS = tuple(re.compile(pattern) for pattern in (
+    rf'{_HOME}\.agents/skills/(?P<skill>{_NAME})/SKILL\.md\Z',
+    rf'{_HOME}\.codex/skills/(?P<skill>{_NAME})/SKILL\.md\Z',
+    rf'{_HOME}\.claude/skills/(?:synced/{_NAME}/)?(?P<skill>{_NAME})/SKILL\.md\Z'))
+
+
+def skill_ref_for_path(path):
+    """'plugin:skill' (plugin roots) or 'skill' (user/host skill folders) for an absolute SKILL.md path, else None."""
+    if not path:
+        return None
+    for pattern in SKILL_FILE_PATTERNS:
+        match = pattern.match(path)
+        if match:
+            return f'{match.group("plugin")}:{match.group("skill")}'
+    for pattern in BARE_SKILL_PATTERNS:
+        match = pattern.match(path)
+        if match:
+            return match.group('skill')
+    return None
+
+
+def _item_cwd(item):
+    cwd = item.get('cwd')
+    if isinstance(cwd, str) and cwd.startswith('file://'):
+        cwd = cwd[len('file://'):]
+    return cwd if isinstance(cwd, str) and cwd.startswith('/') else None
+
+
+def codex_executed_skill_reads(record) -> list:
+    """Skill refs from a Codex `item_completed` CommandExecution: Codex's own parsed_cmd entries of type 'read' whose
+    path is a SKILL.md under a skill root. The command must have exited 0: a non-zero exit (a missing file, a
+    permission error, one failing file of several) proves no specific read succeeded, so it never counts, whatever
+    output it produced (Codex final review). search and list_files entries never count."""
+    if record.get('type') != 'event_msg':
+        return []
+    payload = record.get('payload')
+    item = payload.get('item') if isinstance(payload, dict) and payload.get('type') == 'item_completed' else None
+    if not isinstance(item, dict) or item.get('type') != 'CommandExecution':
+        return []
+    exit_code = item.get('exit_code')
+    if isinstance(exit_code, bool) or exit_code != 0:
+        return []
+    parsed = item.get('parsed_cmd')
+    if not isinstance(parsed, list):
+        return []
+    base, refs = _item_cwd(item), []
+    for entry in parsed[:64]:
+        if not isinstance(entry, dict) or entry.get('type') != 'read':
+            continue
+        ref = skill_ref_for_path(_resolve(entry.get('path') or '', base)) if isinstance(entry.get('path'), str) else None
+        if ref and ref not in refs:
+            refs.append(ref)
+    return refs
+
+
 def codex_skill_file_reads(record) -> list:
-    """Skill refs read by one Codex rollout line (only `response_item` / `function_call` lines can count)."""
+    """Skill refs read by one Codex rollout line: a legacy shell `function_call`, or a current-layout
+    `item_completed` CommandExecution (see codex_executed_skill_reads)."""
+    if record.get('type') == 'event_msg':
+        return codex_executed_skill_reads(record)
     if record.get('type') != 'response_item':
         return []
     call = _codex_shell_command(record.get('payload'))

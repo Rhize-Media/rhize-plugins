@@ -573,3 +573,67 @@ def test_the_outcome_json_schema_enum_matches_the_contract():
         validator.validate({**base, 'via': 'file_read'})
     enum = next(option['enum'] for option in schema['properties']['via']['anyOf'] if 'enum' in option)
     assert tuple(enum) == contract.OUTCOME_VIA
+
+
+# ---------------------------------------------------------------- final-review hardening (Codex A, real layouts)
+
+PLUGIN_SKILL = '/Users/jim/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md'
+
+
+def _executed(parsed_cmd, exit_code=0, output='# Skill\n', cwd='file:///Users/jim/dev/project'):
+    return {'timestamp': '2026-10-11T12:00:00.000Z', 'type': 'event_msg',
+            'payload': {'type': 'item_completed', 'thread_id': 't', 'turn_id': 'u',
+                        'item': {'type': 'CommandExecution', 'command': ['/bin/zsh', '-lc', 'x'],
+                                 'cwd': cwd, 'parsed_cmd': parsed_cmd, 'exit_code': exit_code,
+                                 'aggregated_output': output}}}
+
+
+@pytest.mark.parametrize('parsed_cmd,kwargs,expected', [
+    ([{'type': 'read', 'cmd': 'sed -n 1,200p X', 'name': 'SKILL.md', 'path': PLUGIN_SKILL}], {}, ['rhize-ops:delegate-to-teammate']),
+    ([{'type': 'read', 'path': '~/.agents/skills/analytics-tracking/SKILL.md'}], {}, ['analytics-tracking']),
+    ([{'type': 'read', 'path': '/Users/jim/.claude/skills/synced/8b0da063/deep-research/SKILL.md'}], {}, ['deep-research']),
+    ([{'type': 'read', 'path': PLUGIN_SKILL}, {'type': 'search', 'query': 'x', 'path': 'src'}], {}, ['rhize-ops:delegate-to-teammate']),
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': 1, 'output': ''}, []),          # failed, printed nothing
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': 1, 'output': 'cat: X: No such file or directory\n'}, []),
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': 2, 'output': '# Skill\n'}, []),  # output, but non-zero
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': None}, []),                      # unknown exit
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': '0'}, []),                       # not an integer
+    ([{'type': 'read', 'path': PLUGIN_SKILL}], {'exit_code': False}, []),                     # bool is not 0
+    ([{'type': 'search', 'query': 'SKILL.md', 'path': '/Users/jim/.codex/plugins/cache'}], {}, []),
+    ([{'type': 'list_files', 'path': 'skills'}], {}, []),
+    ([{'type': 'read', 'path': '/Users/jim/.codex/memories/skills/foo/SKILL.md'}], {}, []),  # Codex memory skills
+    ([{'type': 'read', 'path': '/Users/jim/dev/rhize-plugins/rhize-ops/skills/x/SKILL.md'}], {}, []),  # dev checkout
+    ([{'type': 'unknown', 'cmd': f'sed -i s/a/b/ {PLUGIN_SKILL}'}], {}, []),
+    ([{'type': 'read', 'path': '.agents/skills/local-skill/SKILL.md'}], {'cwd': 'file:///Users/jim'}, ['local-skill']),
+])
+def test_codex_executed_reads_use_codex_parsed_cmd(parsed_cmd, kwargs, expected):
+    assert transcripts.codex_skill_file_reads(_executed(parsed_cmd, **kwargs)) == expected
+
+
+@pytest.mark.parametrize('command,expected', [
+    (f'cat --help {PLUGIN_SKILL}', []),
+    (f'cat --version {PLUGIN_SKILL}', []),
+    (f"sed -n 'q' {PLUGIN_SKILL}", []),
+    (f"sed -n '=' {PLUGIN_SKILL}", []),
+    (f"sed -n '1,200p' {PLUGIN_SKILL}", ['rhize-ops:delegate-to-teammate']),
+    (f'head -n 40 {PLUGIN_SKILL}', ['rhize-ops:delegate-to-teammate']),
+    (f'tail --bogus {PLUGIN_SKILL}', []),
+    ("cat '$HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md'", []),
+    ('cat "~/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md"', []),
+    ('cat "$HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md"',
+     ['rhize-ops:delegate-to-teammate']),
+    # Concatenated fragments are judged as one word (Codex final review): the quoted prefix stays literal.
+    ("cat '$HOME'/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md", []),
+    ("cat '${HOME}'/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md", []),
+    ("cat '$'HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md", []),
+    ('cat "~"/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md', []),
+    ("cat '~'/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md", []),
+    ('cat \\~/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md', []),
+    ('cat \\$HOME/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md', []),
+    ('cat "$HOME"/.codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md',
+     ['rhize-ops:delegate-to-teammate']),
+    ('cat ~/".codex/plugins/cache/rhize-plugins/rhize-ops/0.30.0/skills/delegate-to-teammate/SKILL.md"',
+     ['rhize-ops:delegate-to-teammate']),
+])
+def test_legacy_shell_reads_reject_help_non_printing_sed_and_quoted_home(command, expected):
+    assert transcripts.codex_skill_reads(command) == expected
