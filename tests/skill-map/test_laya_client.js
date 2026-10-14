@@ -251,6 +251,18 @@ function jsonResponse(status, body, extra = {}) {
     assert.strictEqual(typeof out.latencyMs, 'number');
   });
 
+  await check('a synchronous response decode crossing the deadline remains timeout', async () => {
+    let clock = 0;
+    const fetchImpl = scriptedFetch([jsonResponse(200, { loaded: [MODEL] }), {
+      status: 200,
+      text: async () => { clock = 101; return JSON.stringify(okAnswer()); },
+    }]);
+    const out = await call({ endpoint: 'http://127.0.0.1:8123', fetchImpl, now: () => clock,
+      deadlineAt: 100, healthCachePath: null });
+    assert.strictEqual(out.status, 'timeout');
+    assert.strictEqual(out.choice, null);
+  });
+
   await check('probe is cached for 60 s (0600 file) and the POST alone follows', async () => {
     const dir = tmpDir();
     const cachePath = path.join(dir, 'sub', 'laya-health.json');
@@ -375,7 +387,7 @@ function jsonResponse(status, body, extra = {}) {
     }
   });
 
-  await check('a closed port is detected by a bare TCP connect before fetch is touched', async () => {
+  await check('native loopback HTTP bypasses global fetch and detects a closed port quickly', async () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
     let fetchCalls = 0;
     Object.defineProperty(globalThis, 'fetch', {
@@ -389,7 +401,9 @@ function jsonResponse(status, body, extra = {}) {
       assert.ok(performance.now() - started < 500);
       const server = await startServer();
       assert.strictEqual((await call({ endpoint: server.endpoint })).status, 'ok');
-      assert.strictEqual(fetchCalls, 2, 'probe + POST use fetch when the port is open');
+      assert.strictEqual(fetchCalls, 0, 'native transport must not initialize global fetch');
+      assert.strictEqual(server.hits.health, 1);
+      assert.strictEqual(server.hits.post, 1);
       await server.close();
     } finally {
       Object.defineProperty(globalThis, 'fetch', original);

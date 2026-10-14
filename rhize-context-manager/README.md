@@ -386,6 +386,8 @@ regex timing limits remain unchanged. Known residual: Codex still receives the n
 
 Failed model calls retain bounded, redacted stdout/stderr in private `call-*/failure.json` receipts. Both labelers report `callFailures` by error tag; skill-fit archives only these receipts under `skill-fit/labeling/failed/` before removing transient CLI files. A fresh successful probe does not erase an earlier failure or establish label acceptance.
 
+The default loopback skill-fit client uses Node's direct HTTP transport, avoiding cold global-fetch initialization inside the 800 ms deadline. It retains identity-before-prompt, redirect refusal, capped responses, abort cleanup and proxy checks, and rechecks the monotonic deadline after decoding.
+
 The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
 is sealed before the incumbent consultation/selection; background events and continuations have
 explicit dispositions, while missing or conflicting context remains visible. Catalog consultation,

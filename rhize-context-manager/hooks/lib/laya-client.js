@@ -11,8 +11,8 @@
 //   - the endpoint must be a literal loopback http URL (http://127.0.0.1:<port>
 //     or http://[::1]:<port>); 'localhost', other hosts, paths and https are
 //     rejected with status 'unavailable' before any network I/O;
-//   - both the identity probe and the POST use fetch redirect:'error'; a
-//     redirect is 'redirect_refused';
+//   - native HTTP never follows redirects; injected fetch uses redirect:'error';
+//     a redirect is 'redirect_refused';
 //   - ONE monotonic deadline (deadlineAt, same clock as `now`) covers the probe
 //     and the POST together. Every await is raced against it, so the call
 //     resolves with 'timeout' at the deadline even if the transport ignores the
@@ -26,7 +26,8 @@
 //   - the response is decoded with decodeChoiceResponse() (routing.model,
 //     choice key, probabilities coverage and range).
 const fs = require('fs');
-const net = require('net');
+const http = require('http');
+const { Readable } = require('stream');
 const path = require('path');
 const crypto = require('crypto');
 const { performance } = require('perf_hooks');
@@ -53,13 +54,10 @@ function isLoopbackEndpoint(endpoint) {
   return port >= 1 && port <= 65535;
 }
 
-// Node's fetch ignores proxy variables unless the env-proxy mode is on. When it
-// is on, the request to THIS endpoint goes direct only if the no-proxy list
-// exempts its exact host (or '*'); otherwise refuse rather than risk sending
-// task text off-host. Node's EnvHttpProxyAgent reads `no_proxy` before
-// `NO_PROXY` (and an empty value still wins), so EVERY defined spelling must
-// exempt the host: that holds under either precedence. CIDR and suffix forms
-// are deliberately not trusted.
+// Retain the fail-closed proxy policy: explicit proxy mode requires an exact
+// loopback no-proxy exemption. Node's EnvHttpProxyAgent reads no_proxy first
+// (including an empty value), so both defined spellings must exempt the host.
+// CIDR and suffix forms are deliberately not trusted.
 function envProxyHazard(env = process.env, endpoint = 'http://127.0.0.1:0') {
   const on = /^(1|true)$/i.test(String(env.NODE_USE_ENV_PROXY || '')) || /--use-env-proxy/.test(String(env.NODE_OPTIONS || ''));
   if (!on) return false;
@@ -138,27 +136,18 @@ function writeProbeCache(cachePath, endpoint, model, wallNow, atOverride) {
 
 // ---------------------------------------------------------------- transport
 
-// A bare TCP connect to the literal loopback port, used before the first real
-// request so that "nothing is listening" costs ~1 ms instead of the ~70 ms it
-// takes Node to initialise fetch (undici). It sends no bytes. Not used when a
-// fetch implementation is injected (tests).
-function tcpReachable(endpoint, signal) {
-  const m = LOOPBACK_ENDPOINT.exec(endpoint);
-  const host = m[1] === '[::1]' ? '::1' : m[1];
-  return new Promise((resolve) => {
-    let done = false;
-    const socket = net.createConnection({ host, port: Number(m[2]) });
-    const finish = (reachable) => {
-      if (done) return;
-      done = true;
-      signal.removeEventListener('abort', onAbort);
-      socket.destroy();
-      resolve(reachable);
-    };
-    const onAbort = () => finish(false);
-    signal.addEventListener('abort', onAbort, { once: true });
-    socket.once('connect', () => finish(true));
-    socket.once('error', () => finish(false));
+// Direct HTTP avoids cold global-fetch initialization inside the hook's short deadline.
+function requestLoopback(url, init) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(url, {
+      method: init.method, headers: init.headers, signal: init.signal, agent: false,
+    }, (response) => resolve({
+      status: response.statusCode,
+      headers: { get: (name) => response.headers[name.toLowerCase()] ?? null },
+      body: Readable.toWeb(response),
+    }));
+    request.once('error', reject);
+    request.end(init.body);
   });
 }
 
@@ -232,7 +221,7 @@ async function callChoice(options) {
     let body;
     try { body = JSON.stringify(request); } catch (_e) { body = undefined; }
     if (typeof body !== 'string') return result('invalid', null, clock);
-    const doFetch = fetchImpl || globalThis.fetch;
+    const doFetch = fetchImpl || requestLoopback;
     if (typeof doFetch !== 'function') return result('unavailable', null, clock);
     if (!fetchImpl && envProxyHazard(process.env, endpoint)) return result('unavailable', null, clock);
 
@@ -254,8 +243,6 @@ async function callChoice(options) {
     const race = (promise) => Promise.race([promise, deadlinePromise]);
 
     try {
-      if (!fetchImpl && !(await race(tcpReachable(endpoint, controller.signal)))) throw new ProbeFailure('unavailable');
-
       // ---- identity probe (cached for PROBE_TTL_MS per endpoint+model)
       const cachePath = healthCachePath === undefined ? path.join(defaultRoot(), 'laya-health.json') : healthCachePath;
       const cached = cachePath ? readProbeCache(cachePath, endpoint, model, wallNow) : false;
@@ -304,6 +291,7 @@ async function callChoice(options) {
         if (timedOut) throw new DeadlineError('deadline');
         throw new ProbeFailure('invalid');
       }
+      if (remaining() <= 0) throw new DeadlineError('deadline');
       return withCache(result('ok', started, clock, decoded.choice, decoded.probabilities), pendingCache);
     } catch (err) {
       if (timedOut || err instanceof DeadlineError) return withCache(result('timeout', started, clock), pendingCache);

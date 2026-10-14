@@ -153,3 +153,5 @@ A smoke test of the hook must set `RHIZE_TYPED_DECISIONS_ROOT`, `RHIZE_SUGGESTIO
 - Codex transcripts are not yet joined for outcomes.
 
 Failed native model calls expose bounded error-tag counts in the labeler summary. Only redacted failure receipts are archived under `skill-fit/labeling/failed/`; transient CLI homes and other temporary files are removed. Failed or unavailable annotations remain unlabelled.
+
+The default loopback skill-fit client uses Node's direct HTTP transport, avoiding cold global-fetch initialization inside the 800 ms deadline. It retains identity-before-prompt, redirect refusal, capped responses, abort cleanup and proxy checks, and rechecks the monotonic deadline after decoding.
