@@ -2352,3 +2352,30 @@ def test_stored_output_is_capped_and_none_when_there_is_none(tmp_path):
     summary, _ = go(tmp_path, Verbose())
     records = [json.loads(path.read_text()) for path in Path(summary['runDir'], 'calls').glob('*.json')]
     assert records and all(len(r['output']) <= auto.MAX_STORED_OUTPUT + 100 and 'TRUNCATED' in r['output'] for r in records)
+
+
+def test_cli_failure_preserves_bounded_sanitized_private_evidence(cli, monkeypatch):
+    backend, home, claude, codex = cli
+    secret = 'sk-ant-abcdefghijklmnop1234567890'
+    monkeypatch.setattr(backend, '_run', lambda *args, **kwargs: (1, json.dumps(
+                         {'result': 'Model service unavailable', 'input_tokens': 42, 'authToken': secret}),
+                         'Bearer ' + secret + '\ncontact jane.doe@example.com\n' + 'retry later\n' * 1000))
+    with pytest.raises(auto.LabelerError, match='claude_exit_1'):
+        backend.call('claude', 'claude-sonnet-5-5', auto.SYSTEM, 'PRIVATE-PROMPT', auto.ANNOTATE_SCHEMA, 30)
+    path = backend.workdir / 'call-001-claude' / 'failure.json'
+    evidence = json.loads(path.read_text())
+    assert evidence['error'] == 'claude_exit_1' and evidence['exitCode'] == 1
+    assert evidence['stdout'] == 'Model service unavailable'
+    assert len(evidence['stderr']) <= 4000
+    assert secret not in path.read_text() and 'jane.doe@example.com' not in path.read_text()
+    assert 'PRIVATE-PROMPT' not in path.read_text() and stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def test_workflow_summary_reports_failed_call_reasons(tmp_path):
+    make(tmp_path, 'add the report filter')
+    transcript(tmp_path, SESSION, [('user', 'add the report filter')])
+    class Failing(FakeBackend):
+        def call(self, host, model, system, prompt, schema, timeout):
+            raise auto.LabelerError('claude_exit_1')
+    summary, code = go(tmp_path, Failing())
+    assert code == 3 and summary['callFailures'] == {'claude_exit_1': 1}

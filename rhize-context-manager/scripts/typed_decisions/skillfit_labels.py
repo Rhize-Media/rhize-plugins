@@ -245,6 +245,7 @@ class Engine:
         self.failed_in_a_row = 0
         self.deadline = clock() + config['deadlineSeconds']
         self.stats = Counter()
+        self.failures = Counter()
 
     # -- preparation (no model is involved)
     def prepare(self, items, limit=None):
@@ -271,7 +272,8 @@ class Engine:
         self.calls += 1
         try:
             result = self.runner.call(host, model, system, prompt, schema, min(self.config['callTimeoutSeconds'], left))
-        except auto.LabelerError:
+        except auto.LabelerError as exc:
+            self.failures[str(exc)] += 1
             self.failed_in_a_row += 1
             raise
         self.failed_in_a_row = 0
@@ -419,7 +421,15 @@ def start_runner(runner, config, root):
         return runner, (lambda: None)
     workdir = evidence_fs.private_dir(Path(root) / DECISION / 'labeling' / ('run-' + uuid.uuid4().hex[:12]), anchor=Path(root))
     backend = auto.CliBackend(config['claudeBin'], config['codexBin'], config['effort'], workdir)
-    return backend, (lambda: shutil.rmtree(workdir, ignore_errors=True))
+    def cleanup():
+        # Keep only sanitized failure receipts, never the CLI's transient home or other files.
+        for failure in sorted(workdir.glob('call-*/failure.json')):
+            if failure.is_symlink() or failure.parent.is_symlink() or not failure.is_file() or failure.stat().st_size > 64 * 1024:
+                raise LabelError('unsafe_failure_evidence')
+            archive = auto.ensure_private(workdir.parent / 'failed' / workdir.name / failure.parent.name)
+            auto.write_private(archive / 'failure.json', failure.read_text())
+        shutil.rmtree(workdir, ignore_errors=True)
+    return backend, cleanup
 
 
 def execute(root, items, runner, config, scanner, descriptions, *, limit, prepare_only, clock, summary):
@@ -446,6 +456,10 @@ def execute(root, items, runner, config, scanner, descriptions, *, limit, prepar
     finally:
         cleanup()
     summary.update({key: engine.stats[key] for key in engine.stats})
+    if engine.failures:
+        summary['callFailures'] = dict(sorted(engine.failures.items()))
+    if getattr(backend, 'warnings', None):
+        summary['warnings'] = sorted(set(backend.warnings))
     summary['modelCalls'] = engine.calls
     summary['labelsWritten'] = len(written)
     unfinished = len(cases) - len(written)
