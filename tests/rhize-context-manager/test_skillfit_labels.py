@@ -711,3 +711,36 @@ def test_pool_size_must_be_a_non_negative_integer(lab):
             lab.run_pool(FakeRunner(), n=bad)
     summary, code = lab.run_pool(FakeRunner(), n=0)
     assert code == 0 and summary['status'] == 'nothing_to_do'
+
+
+def test_failed_skillfit_call_reports_reason_and_keeps_only_failure_evidence(lab, monkeypatch):
+    cid, _ = lab.cohort(['WANT-GEO'])
+    seen = {}
+    class Backend(FakeRunner):
+        def __init__(self, claude_bin, codex_bin, effort, workdir):
+            super().__init__(fail='claude_exit_1')
+            seen['workdir'] = Path(workdir)
+            call = seen['workdir'] / 'call-001-claude'
+            call.mkdir(mode=0o700)
+            auto.write_json(call / 'failure.json', {'error': 'claude_exit_1'})
+            (call / 'auth.json').write_text('TRANSIENT-CREDENTIAL')
+    monkeypatch.setattr(auto, 'CliBackend', Backend)
+    summary, code = lab.run_cohort(cid, runner=None)
+    assert code == 3 and summary['callFailures'] == {'claude_exit_1': 1}
+    assert not seen['workdir'].exists()
+    archived = list((seen['workdir'].parent / 'failed').rglob('failure.json'))
+    assert len(archived) == 1 and json.loads(archived[0].read_text()) == {'error': 'claude_exit_1'}
+    assert not list((seen['workdir'].parent / 'failed').rglob('auth.json'))
+
+
+def test_failure_archive_refuses_symlink_without_copying_or_destroying_it(tmp_path):
+    backend, cleanup = sl.start_runner(None, {'claudeBin': None, 'codexBin': None, 'effort': 'high'}, tmp_path)
+    call = backend.workdir / 'call-001-claude'
+    call.mkdir()
+    secret = tmp_path / 'private-credential'
+    secret.write_text('PRIVATE-CREDENTIAL')
+    (call / 'failure.json').symlink_to(secret)
+    with pytest.raises(sl.LabelError, match='unsafe_failure_evidence'):
+        cleanup()
+    assert (call / 'failure.json').is_symlink() and secret.read_text() == 'PRIVATE-CREDENTIAL'
+    assert not (backend.workdir.parent / 'failed').exists()

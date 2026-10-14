@@ -1046,6 +1046,7 @@ class CliBackend:
         # Codex takes the instructions in-band; Claude also gets them as its system prompt.
         payload = (system + '\n\n' + prompt) if host == 'codex' else prompt
         login = CodexLogin(real_codex_home(self.environ), directory / 'codex-home').open() if host == 'codex' else None
+        code, out, err = None, '', ''
         try:
             try:
                 code, out, err = self._run(command, payload.encode('utf-8', 'replace'), directory, timeout,
@@ -1053,6 +1054,27 @@ class CliBackend:
                                            guard=codex_line_guard if login else None)
             except OSError as exc:
                 raise LabelerError(host + '_launch_failed:' + type(exc).__name__)
+            if code != 0:
+                raise LabelerError('%s_exit_%s' % (host, code))
+            try:
+                answer, meta = parse_native(host, out, model)
+            except (ValueError, TypeError, AttributeError):
+                raise LabelerError(host + '_unparseable_output')
+        except LabelerError as exc:
+            failure = {'host': host, 'requestedModel': model, 'error': str(exc), 'exitCode': code}
+            if host == 'claude':
+                try:
+                    value = json.loads(out)
+                    if isinstance(value, dict) and isinstance(value.get('result'), str):
+                        out = value['result']  # Error text survives redaction of credential-shaped CLI metadata.
+                except ValueError:
+                    pass
+            try:
+                write_json(directory / 'failure.json', {**failure, 'stdout': sanitize(out, 4000)[0][:4000],
+                                                        'stderr': sanitize(err, 4000)[0][:4000]})
+            except (OSError, ValueError):
+                self.warnings.append('call_failure_evidence_unavailable')
+            raise
         finally:
             if login is not None:
                 outcome = login.close()
@@ -1063,12 +1085,6 @@ class CliBackend:
                                'a spent refresh token. Run `codex login status` (and `codex login` if it fails).')
                     self.warnings.append(warning)
                     print('WARNING: ' + warning, file=sys.stderr, flush=True)
-        if code != 0:
-            raise LabelerError('%s_exit_%s' % (host, code))
-        try:
-            answer, meta = parse_native(host, out, model)
-        except (ValueError, TypeError, AttributeError):
-            raise LabelerError(host + '_unparseable_output')
         return {'answer': answer, 'raw': out, 'requestedModel': model, **meta}
 
 
@@ -1196,6 +1212,7 @@ class Run:
         self.calls, self.failed_in_a_row = 0, 0
         self.run_dir = None
         self.cases, self.results = [], {}
+        self.failures = Counter()
 
     def guarded(self, host, model, kind, system, prompt, schema):
         if self.failed_in_a_row >= MAX_FAILED_CALLS_IN_A_ROW:
@@ -1212,6 +1229,7 @@ class Run:
             result = self.backend.call(host, model, system, prompt, schema, min(self.config['callTimeoutSeconds'], left))
         except LabelerError as exc:
             detail = str(exc)
+            self.failures[detail] += 1
             if limited_by_deadline and detail == 'timed_out':
                 # The wall clock, not the model, ended this call: the case is retried, its attempt is not spent.
                 detail = 'deadline_exceeded'
@@ -1504,6 +1522,8 @@ def _execute(config, state, backend, clock, prepare_only, no_import, force):
         summary.update(status=status, exitCode=code, calls=run.calls, wallSeconds=round(clock() - started, 3))
         if reason:
             summary['reason'] = reason
+        if run.failures:
+            summary['callFailures'] = dict(sorted(run.failures.items()))
         if getattr(run.backend, 'auth_writebacks', 0):
             summary['codexAuthWritebacks'] = run.backend.auth_writebacks
         if getattr(run.backend, 'auth_writeback_skips', 0):

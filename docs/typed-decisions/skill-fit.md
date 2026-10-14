@@ -151,3 +151,5 @@ A smoke test of the hook must set `RHIZE_TYPED_DECISIONS_ROOT`, `RHIZE_SUGGESTIO
 - Labels are constrained to the shortlist. They support no claim about catalog-wide recall or about Laya recovering skills the router missed.
 - The acceptance outcome (was the suggested skill invoked?) is confounded by the suggestion itself. It is reported as a secondary signal only.
 - Codex transcripts are not yet joined for outcomes.
+
+Failed native model calls expose bounded error-tag counts in the labeler summary. Only redacted failure receipts are archived under `skill-fit/labeling/failed/`; transient CLI homes and other temporary files are removed. Failed or unavailable annotations remain unlabelled.

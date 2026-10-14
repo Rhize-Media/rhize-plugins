@@ -384,6 +384,8 @@ regex timing limits remain unchanged. Known residual: Codex still receives the n
 `$HOME/.agents/skills` (about 15K characters). The definitions it embeds are in
 [workflow-taxonomy.md](docs/workflow-taxonomy.md). See [daily AI labeling](docs/decision-pilot.md#daily-ai-labeling).
 
+Failed model calls retain bounded, redacted stdout/stderr in private `call-*/failure.json` receipts. Both labelers report `callFailures` by error tag; skill-fit archives only these receipts under `skill-fit/labeling/failed/` before removing transient CLI files. A fresh successful probe does not erase an earlier failure or establish label acceptance.
+
 The separately enabled v2 cohort uses bounded task intent instead of prompt keywords. Context
 is sealed before the incumbent consultation/selection; background events and continuations have
 explicit dispositions, while missing or conflicting context remains visible. Catalog consultation,
