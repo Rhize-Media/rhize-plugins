@@ -26,6 +26,8 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
+- _2026-10-14_ Use direct native HTTP for loopback skill-fit requests so global-fetch initialization cannot consume the hook deadline; preserve probe-before-prompt, redirect/byte/proxy/abort checks and enforce the deadline after decoding. Remove the redundant TCP probe; routing policy, instrument and registry state are unchanged.
+- _2026-10-14_ version bump — 0.47.1 → 0.47.2 (patch); marketplace 2.104.1 → 2.104.2.
 - _2026-10-14_ Preserve bounded, redacted native model-call failure receipts; workflow and skill-fit summaries report error-tag counts, skill-fit archives only failure receipts before transient cleanup, and auth write-back warnings reach its caller. Label eligibility, reviewer identity, imports and live routing modes remain unchanged.
 - _2026-10-14_ version bump — 0.47.0 → 0.47.1 (patch); marketplace 2.104.0 → 2.104.1.
 - _2026-10-11_ version bump — 0.46.0 → 0.47.0 (minor); marketplace 2.103.0 → 2.104.0.
