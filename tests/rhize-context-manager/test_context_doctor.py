@@ -165,6 +165,33 @@ class DoctorContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             doctor.validate_config({'schema_version':1,'probes':[]})
 
+    def test_default_optional_reviews_cover_october_maintenance(self):
+        config=json.loads((SCRIPTS/'context-doctor.config.json').read_text())
+        with patch.object(doctor,'utc_now',return_value='2026-10-15T00:00:00Z'):
+            self.assertEqual(doctor.validate_config(config),config)
+        self.assertEqual({p['id'] for p in config['probes'] if p['required']},
+                         {'headroom','rtk','claude_mem','codegraph','credential_expiry'})
+
+    def test_capture_recovers_after_quota_failure_without_erasing_history(self):
+        import sqlite3
+        from context_doctor_probes import capture
+        directory=self.root/'.claude-mem';directory.mkdir()
+        now=doctor.timestamp(doctor.utc_now())
+        health={'consecutiveFailures':0,'lastSuccessAt':int(now.timestamp()*1000),
+                'lastErrorAt':int((now-timedelta(days=1)).timestamp()*1000),
+                'lastErrorKind':'quota_exhausted','failingSinceAt':None}
+        path=directory/'observer-health.json';path.write_text(json.dumps(health))
+        with sqlite3.connect(directory/'claude-mem.db') as conn:
+            conn.execute('CREATE TABLE observations (created_at_epoch INTEGER)')
+            conn.execute('CREATE TABLE sdk_sessions (started_at_epoch INTEGER)')
+            conn.execute('INSERT INTO observations VALUES (?)',(int(now.timestamp()*1000),))
+            conn.execute('INSERT INTO sdk_sessions VALUES (?)',(int(now.timestamp()*1000),))
+        window=(now-timedelta(days=2)).isoformat()
+        self.assertEqual(capture(self.root,window)[:2],('OK','capture_persisted'))
+        self.assertEqual(json.loads(path.read_text()),health)
+        health['consecutiveFailures']=1;path.write_text(json.dumps(health))
+        self.assertEqual(capture(self.root,window)[:2],('PROBLEM','capture_errors_recorded'))
+
     def test_cli_persists_not_run_and_rejects_manual_render_rewrite(self):
         config = self.root / 'config.json'
         spec = dict(self.spec, kind='harness', params={})

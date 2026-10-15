@@ -26,6 +26,12 @@ review makes configuration invalid until reviewed. Never demote a required probe
 a failure. Review config for other repositories: this pilot expects an existing CodeGraph
 index and never initializes one.
 
+The [October 15 coverage review](context-doctor-review-2026-10-15.md) retains these
+three explicit omissions through November 15, 2026. Required checks and expiry/
+freshness limits are unchanged. A recovered capture writer may retain its last
+quota-error metadata; current failures and persisted capture evidence determine
+health, rather than the mere presence of a historical error.
+
 ## Durable evidence
 
 Each attempt has a private directory in `~/.claude/context-manager/doctor/v1/`:
