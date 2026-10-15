@@ -6,8 +6,8 @@
     {"id":"claude_mem","kind":"claude_mem","required":true,"timeout_seconds":10,"params":{"maximum_age_hours":24}},
     {"id":"codegraph","kind":"codegraph","required":true,"timeout_seconds":12,"params":{}},
     {"id":"credential_expiry","kind":"credentials","required":true,"timeout_seconds":8,"params":{}},
-    {"id":"openwolf","kind":"openwolf","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"},
-    {"id":"memory_adapters","kind":"adapters","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"},
-    {"id":"harness_audit","kind":"harness","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-10-11T00:00:00Z"}
+    {"id":"openwolf","kind":"openwolf","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-11-15T00:00:00Z"},
+    {"id":"memory_adapters","kind":"adapters","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-11-15T00:00:00Z"},
+    {"id":"harness_audit","kind":"harness","required":false,"timeout_seconds":3,"params":{},"owner":"context-manager-maintainers","review_by":"2026-11-15T00:00:00Z"}
   ]
 }

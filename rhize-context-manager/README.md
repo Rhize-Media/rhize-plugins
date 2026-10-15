@@ -17,6 +17,9 @@ safety-gated skill library.
 
 ## Design: orchestrate, don't vendor
 
+Weekly doctor optional coverage was [reviewed October 15](docs/context-doctor-review-2026-10-15.md),
+with the next review due November 15. All five required checks and their limits remain unchanged.
+
 Headroom, claude-mem, Serena, OpenWolf, RTK, and CodeGraph are living external
 tools with their own release cycles. This plugin owns the *decision layer* — which tool
 to use when, how they coexist, and how to health-check the stack — while the binaries

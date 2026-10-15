@@ -9,6 +9,9 @@ the right one, and health-checks the whole thing.
 
 ## When to reach for what
 
+The weekly doctor's [optional coverage review](docs/context-doctor-review-2026-10-15.md)
+is current through November 15, 2026; unavailable optional checks remain visible.
+
 - **"Which tool should hold this knowledge?" / "set up context tooling for this repo"**
   → the `context-stack` skill answers routing questions.
   *Example: "Where should the client's evolving pricing decisions live, and what may be previewed?"*
