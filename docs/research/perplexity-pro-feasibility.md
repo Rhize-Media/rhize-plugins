@@ -2,10 +2,13 @@
 
 Reviewed 2026-10-16, using the Codex client date (America/New_York).
 
-Follow-up: the [local CLI and MCP adapter](perplexity-local-bridge.md) now have one successful
-CLI Research submission with GET recovery, full-report parity and all 37 ordered source URLs
-matching the same web thread. Quota consumption remains unverified. The user explicitly
-authorized the live attempt and scoped Keychain transfer. The review below is the historical
+Follow-up: the [local CLI and installed MCP plugin](perplexity-local-bridge.md) now have a
+successful native Codex MCP workflow: scoped session refresh, Research submission, polling,
+result/export parity with the CLI and same-ID replay. That fresh report contains 8,410 characters
+and 16 sources, with observed RESEARCH / pplx_alpha. The earlier CLI proof used GET recovery
+and matched its web thread's full report and all 37 source URLs. Quota consumption remains
+unverified. The user explicitly authorized live tests, scoped Keychain transfer and local
+installation. The review below is the historical
 pre-implementation assessment; its statements about no account access and held validation
 apply to that earlier phase, not the subsequent live proof.
 

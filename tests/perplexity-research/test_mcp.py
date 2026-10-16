@@ -130,3 +130,11 @@ def test_auth_tools_are_fixed_no_secret_arguments(monkeypatch):
         with pytest.raises(ValueError): m.invoke(name, {'cookies': 'secret'}, '/state', '/authorization')
     annotations = {t['name']: t['annotations'] for t in m.schemas()}
     assert not annotations['research_auth_start']['readOnlyHint']
+
+
+def test_native_codex_discovery_metadata(tmp_path):
+    output = run_server(tmp_path, [request("initialize", {"protocolVersion": "2025-06-18"}),
+        request("tools/list", {"_meta": {"progressToken": 0}}),
+        request("tools/list", {"unexpected": True})])
+    assert len(output[1]["result"]["tools"]) == 11
+    assert output[2]["error"]["code"] == -32602

@@ -1,11 +1,11 @@
 # Local Perplexity Search and Research bridge
 
-Experimental local CLI and stdio MCP adapter. On 2026-10-16 (Codex client date), one actual
-CLI Research submission completed on Perplexity. A parser correction and GET-only recovery
-retrieved its full report: 7,908 characters and 37 ordered source URLs, exactly matching the
-same web thread. The service reported RESEARCH / pplx_alpha and the UI showed Deep research.
-Subscription quota consumption remains unknown. This is a working local proof, not a claim of
-stable undocumented endpoints, provider permission or installed host activation.
+Experimental local CLI and installed Codex MCP plugin. On 2026-10-16 (environment date),
+native Codex MCP discovery, encrypted session refresh, health/models, one new Research
+submission, polling, result, export and same-ID replay passed. The new report contains 8,410
+Markdown characters and 16 sources; Perplexity reported RESEARCH / pplx_alpha. CLI and MCP
+results and exports match exactly. Subscription quota consumption remains unknown. This is
+a verified local workflow, not a claim of stable undocumented endpoints or provider permission.
 
 ## Scope
 
@@ -13,8 +13,57 @@ stable undocumented endpoints, provider permission or installed host activation.
 `jobs`, `models`, `health`, `export`, `auth-start` and `auth-status` using Python 3.10+ on macOS. A thin stdio adapter in
 `scripts/perplexity_research_mcp.py` exposes those same operations through the actual CLI.
 Querying uses only the standard library. Optional session setup requires the Python `cryptography`
-package in that same interpreter and a Node-capable local browser host. There is no marketplace registration, installed plugin activation,
-API-key fallback, uploads, account creation, browser impersonation or automatic retries.
+package in that same interpreter and a Node-capable local browser host. A separate local Codex
+marketplace packages this bridge; the eleven-plugin public marketplace remains unchanged.
+There is no API-key fallback, uploads, account creation, browser impersonation or automatic retries.
+
+## Install and activate in Codex
+
+Run these commands from a reviewed source checkout, using the Python interpreter that has
+`cryptography` installed. First create an owned, mode-600 authorization-reference file outside
+the checkout, as described below. It records the user's actual authorization, never cookies.
+The destination's parent must already exist and be private; the destination itself must be new.
+
+```sh
+python3 scripts/build_perplexity_plugin.py "$HOME/.rhize/perplexity-local" \
+  --permission-reference "$HOME/.rhize/perplexity-research/mcp-authorization.txt"
+codex plugin marketplace add "$HOME/.rhize/perplexity-local" --json
+codex plugin add perplexity-research@perplexity-local --json
+codex plugin list --marketplace perplexity-local --json
+```
+
+The builder copies only the three runtime files, documentation, MIT notice and manifests;
+`snapshot.json` records their SHA-256 hashes. It never installs, reads credential values or
+submits queries. It refuses an existing destination and removes an incomplete new snapshot
+on failure. The package pins the selected Python executable and authorization-file path;
+moving either requires a new snapshot. Core querying remains stdlib; the builder checks
+`cryptography` so installed native session setup is available too.
+
+The marketplace uses `.agents/plugins/marketplace.json`, with inline `mcpServers` in the
+plugin's `.codex-plugin/plugin.json`. `cwd: "."` resolves the installed package, so the MCP
+adapter finds its sibling CLI and browser adapter. This uses the native
+[Codex local marketplace format](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
+Codex 0.162.1 installed this version at
+`~/.codex/plugins/cache/perplexity-local/perplexity-research/0.1.0` and reported it enabled.
+
+Restart the desktop app or open a fresh host session to load the plugin into an already-running
+tool catalog. Do not add a separate `mcp_servers.perplexity_research` config entry: it would
+shadow the plugin. Native discovery should attribute all eleven tools to
+`perplexity-research@perplexity-local`, with no `toolsError`. Then call `research_health`;
+use the session setup flow below when credentials need refreshing. Installation itself does
+not run a query or refresh credentials.
+
+For a local update, stop active jobs first, retain the old snapshot as a rollback, rebuild at
+the registered marketplace path, and repeat `codex plugin add`. The builder deliberately
+does not overwrite snapshots. Verify installed hashes, reload the host, and check health.
+Never delete durable jobs to update a plugin. To uninstall only the plugin:
+
+```sh
+codex plugin remove perplexity-research@perplexity-local --json
+```
+
+Uninstall removes the plugin cache, not the Keychain item, local jobs, authorization reference
+or source snapshot. Removing those separately discards credentials or duplicate protection.
 
 The HTTP request and answer shapes are adapted from
 [anxkhn/perplexity-mcp, commit 356f7d0e7c8d146dce0105bf09a409046ccb923c](https://github.com/anxkhn/perplexity-mcp/tree/356f7d0e7c8d146dce0105bf09a409046ccb923c).
@@ -285,11 +334,30 @@ was submitted. The live test exposed home-directory write denial (`EPERM`); the 
 temporary handoff fixed it without weakening browser permissions. The actual completed live job was also read and
 exported through both production interfaces with equal results and no new submission.
 
-The original live stream stopped on an unsupported citation-less source. GET recovery succeeded
-after the fix. A fresh uninterrupted live stream through the final parser/MCP submission path
-has not been run: the authorization was for one query. Automatic end-of-stream GET is covered
-by synthetic tests. Cookies can expire, undocumented schemas can change, quota is unmeasured,
-and host installation/discovery is untested. Live model discovery returned the current Pro
-Search choices and Research default without submission. Search and follow-up POSTs have synthetic
-coverage only. Cold self-review was used, without an independent agent. Uploads, account creation,
-Computer/Labs, API billing and marketplace packaging are outside this local implementation.
+The original CLI stream stopped on an unsupported citation-less source. After the parser fix,
+GET recovery retrieved 7,908 Markdown characters and 37 ordered source URLs, exactly matching
+that web thread. The separate installed-MCP acceptance run subsequently completed a fresh
+Research job without manual recovery or resubmission. Its request ID was
+`7290aedb-2445-482f-8565-0476cdfc7341`; the returned
+[Perplexity thread](https://www.perplexity.ai/search/7e3ba507-3b82-405b-b5d2-96219ef2e0ff)
+contains the Python 3.14 ProcessPoolExecutor migration report. Native `mcpServer/tool/call`
+exercised the installed adapter and actual CLI, not a browser query or source-only test harness.
+The host used an ephemeral diagnostic context with no model turn. Ten tools were exercised;
+live cancellation was intentionally left to synthetic tests so the report could complete.
+
+Codex 0.162.1 initially failed discovery because its `tools/list` includes
+`_meta.progressToken`. The adapter now accepts that standard metadata and still rejects
+unknown fields; a regression reproduces the exact handshake. Native discovery returned all
+eleven tools attributed to the installed plugin, with no error. The installed browser adapter
+also completed a fresh scoped transfer and Keychain readback before submission. The new
+report has 8,410 Markdown characters, 16 report sources and six summary citations. Result
+and export equal the CLI output; replay returned the same completed job. Calling recovery
+on that completed job was a local no-op. Automatic end-of-stream GET remains part of the
+normal completion path; this proof does not isolate whether that read was needed.
+
+Cookies can expire, undocumented schemas can change and quota is unmeasured. The new report's
+browser UI parity was not rechecked; the original proof established parity for its own thread.
+Search and follow-up POSTs and live cancellation have synthetic coverage only. Cold self-review
+was used, without an independent agent. This chat's already-loaded tool catalog was not hot
+reloaded; a fresh native host was verified. Uploads, account creation, Computer/Labs, API billing
+and public marketplace publication remain outside this local implementation.

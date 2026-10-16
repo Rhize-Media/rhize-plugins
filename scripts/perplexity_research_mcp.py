@@ -124,7 +124,7 @@ def serve(state_dir, permission_reference):
                 elif not initialized:
                     raise ValueError("initialize first")
                 elif method == "tools/list":
-                    if params:
+                    if set(params) - {"_meta"}:
                         raise ValueError("invalid parameters")
                     response["result"] = {"tools": schemas()}
                 else:

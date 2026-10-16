@@ -77,7 +77,8 @@ Version 0.4.0. Find local businesses with concrete website and search opportunit
 ## Cross-plugin references
 
 - [`research/perplexity-local-bridge.md`](research/perplexity-local-bridge.md) — experimental
-  local Research CLI/MCP, one live proof, report recovery, exports and verification limits.
+  installed local Codex plugin, native session refresh, verified live Research MCP workflow,
+  Search/follow-up controls, recovery, exports, installation and verification limits.
 
 - [`release/astra-instruction-optimization.md`](release/astra-instruction-optimization.md) — implemented diagnostics, evaluation fixes and the staged shared-description pilot.
 

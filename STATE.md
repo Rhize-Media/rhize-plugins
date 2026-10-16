@@ -2,6 +2,22 @@
 
 ## Verified facts
 
+- 2026-10-16: Perplexity local plugin 0.1.0 is installed and enabled as
+  perplexity-research@perplexity-local. Native Codex 0.162.1 discovery found all 11 tools;
+  its tools/list progress metadata exposed a rejection fixed with an exact regression.
+  The snapshot builder uses the supported .agents/plugins marketplace path, copies only
+  runtime/docs/license and pins the interpreter plus private authorization-file path.
+  Installed browser-to-Keychain refresh, health/models and one fresh MCP Research submission
+  passed. Job 7290aedb-2445-482f-8565-0476cdfc7341 completed without manual recovery; observed
+  RESEARCH/pplx_alpha, 8,410 report characters, 16 sources and six summary citations.
+  MCP result/export equal the installed CLI; replay returns the same completed job.
+  Native app-server calls used an ephemeral context without a model turn. The current chat's
+  tool catalog was not hot reloaded. Quota, fresh browser parity, Search/follow-up POSTs and
+  live cancellation remain unverified. All 107 focused checks pass; final installed hashes and
+  native discovery/result/export were rechecked after documentation refresh. Required release
+  checks pass: 534 Dev Flow tests, seven impact-map contracts and static/config/setup checks. Cold self-review;
+  see the guide for installation and update/uninstall semantics. Lesson: synthetic stdio tests need real host discovery metadata.
+
 - 2026-10-16: Perplexity native session setup/refresh now uses auth-start/auth-status and two
   no-argument MCP tools, plus a shipped host-side browser adapter. Only scoped secure session
   cookies are selected; five-minute RSA/AES-GCM handoff keeps the private key in memory and
