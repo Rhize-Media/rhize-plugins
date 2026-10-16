@@ -562,6 +562,7 @@ function prepare(raw, data) {
   const explicit = Boolean(match) && match.signals.some((signal) => signal.label === 'explicit skill request');
   return {
     ts, prompt, sessionId, host, machineThread, promptTokens, contextHash: ctxHash, routerIndex, match, observer,
+    incumbentMessage,
     incumbentPayload: payloadFor(incumbentMessage),
     incumbentShown: incumbentMessage && routerRef && match ? match.skillId : null,
     suppressedPayload: payloadFor(suppressedMessage),
@@ -765,6 +766,11 @@ async function finalize(state, plan, laya) {
         && laya.status === 'ok' && laya.choice !== state.match.skillId) {
       payload = state.suppressedPayload;
       shown = null;
+    } else if (plan && laya && plan.config.mode === 'advise' && plan.arm === 'treatment'
+        && laya.status === 'ok' && laya.choice !== 'none' && laya.choice !== state.match.skillId) {
+      // advise: the incumbent payload is unchanged and one advisory line is appended; `shown` stays the incumbent.
+      const ref = formatSkillRef(laya.choice);
+      if (ref) payload = payloadFor([state.incumbentMessage, `Laya suggests the ${ref} skill (advisory).`].filter(Boolean).join('\n'));
     }
   } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
   await emit(payload); // flush BEFORE any persistence or exit

@@ -233,7 +233,7 @@ def validate_record(record: dict) -> dict:
         raise ValueError('invalid instrument')
     if not isinstance(record['layaRevision'], str) or not REVISION.match(record['layaRevision']):
         raise ValueError('invalid layaRevision')
-    _enum(record['mode'], ('shadow', 'cosign'), 'mode')
+    _enum(record['mode'], ('shadow', 'advise', 'cosign'), 'mode')
     _enum(record['arm'], ARMS, 'arm')
     if record['basis'] == 'backfill':
         if record['arm'] != 'none' or record['propensity'] is not None or record['mode'] != 'shadow':

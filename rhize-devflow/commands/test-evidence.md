@@ -15,6 +15,6 @@ If the runner is invoked without `--output`, it writes the packet to a default l
 `~/.rhize/test-evidence/packets/<repo-slug>-<head-sha12>.json` — and prints the resolved path;
 pass `--output` explicitly to choose a different location.
 
-## Optional local Laya shadow signal
+## Optional local Laya advice
 
-When `RHIZE_LAYA_DEVFLOW_SHADOW=1`, after this command's deterministic `test-evidence` evidence exists, call `scripts/typed_checkpoint.py --stage test-evidence --mode shadow` with the current deterministic evidence file and the bounded signal state in [the adapter contract](../docs/typed-checkpoint.md). Record its private receipt alongside Arm A's verdict. An unavailable model leaves the original verdict intact. A candidate directive does not change this command's obligations or approval gates.
+After this command's deterministic `test-evidence` evidence exists, call `scripts/typed_checkpoint.py --stage test-evidence --mode advise` with the current deterministic evidence file and the bounded signal state in [the adapter contract](../docs/typed-checkpoint.md). The decision registry decides whether anything is shown (shadow until earned); a non-empty `advice` line is an uncalibrated recommendation you may override. Record what you actually did with `typed_checkpoint.py outcome --decision-id <id> --chosen <action>`. An unavailable model leaves the original verdict intact. The advisory line never changes this command's obligations, approvals or required checks.

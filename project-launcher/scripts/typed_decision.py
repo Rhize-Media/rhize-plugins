@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -18,9 +19,26 @@ from urllib.request import Request, urlopen
 
 SKILL = "skills/rhize-typed-decision"
 CLIENT = ".claude/rhize-decision/typed_decision.py"
+ADVICE_CLIENT = ".claude/rhize-decision/typed_advice.py"
 RECEIPTS = ".planning/decision-layer/receipts.jsonl"
 AGENTS = ("gsd-planner", "gsd-executor", "gsd-verifier")
 HOOK_EVENTS = ("SubagentStart", "SubagentStop")
+LOCAL_LAYA_ENV = {
+    "RHIZE_DECISION_MODE": "advisory",
+    "TYPESAFE_BASE_URL": "http://127.0.0.1:8000",
+    "TYPESAFE_DEFAULT_MODEL": "typed-decisions",
+}
+GSD_DECISION = "gsd-directive"
+GSD_QUESTION = "Which directive best fits this GSD checkpoint, given the evidence summary and check status?"
+GSD_CANDIDATES = (
+    ("continue", "Continue the current work as planned."),
+    ("investigate", "Investigate drift, a stuck worker or a trace risk before proceeding."),
+    ("verify", "Run further independent verification before finishing."),
+    ("escalate", "Ask a human for input or approval now."),
+    ("finish_candidate", "The work looks complete; checks and independent review have passed."),
+)
+# The registry binding covers the full candidate set; per-call suppression of finish_candidate never changes it.
+GSD_POLICY = {"candidates": [item[0] for item in GSD_CANDIDATES], "version": 1}
 SUPERVISOR_CHECKS = {
     "gsd-planner": {
         "requirements_covered": "Does the plan cover every stated requirement with a concrete verification route?",
@@ -68,7 +86,7 @@ def load_object(path: Path) -> dict:
     return value
 
 
-def install(project: Path) -> dict:
+def install(project: Path, local_laya: bool = False) -> dict:
     config_path = project / ".planning/config.json"
     config = load_object(config_path) if config_path.exists() else {}
     mapping = config.setdefault("agent_skills", {})
@@ -96,7 +114,15 @@ def install(project: Path) -> dict:
         entry = {"matcher": "^gsd-(planner|executor|verifier)$", "hooks": [{"type": "command", "command": command}]}
         if entry not in entries:
             entries.append(entry)
+    if local_laya:
+        env = settings.setdefault("env", {})
+        if not isinstance(env, dict):
+            raise DecisionError("settings env must be an object")
+        env.update(LOCAL_LAYA_ENV)
     source = Path(__file__).resolve()
+    advice_source = source.parent / "typed_advice.py"
+    if not advice_source.is_file():
+        raise DecisionError("project-local install needs typed_advice.py beside the Project Launcher client")
     template = source.parent.parent / "skills/project-launcher/references/typed-decision-skill.md"
     if not template.is_file():
         raise DecisionError("project-local install must use the Project Launcher source copy")
@@ -106,6 +132,7 @@ def install(project: Path) -> dict:
     local_client.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(template, local_skill)
     shutil.copyfile(source, local_client)
+    shutil.copyfile(advice_source, project / ADVICE_CLIENT)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config_path.write_text(json.dumps(config, indent=2, sort_keys=True) + "\n")
     settings_path.write_text(json.dumps(settings, indent=2, sort_keys=True) + "\n")
@@ -115,7 +142,7 @@ def install(project: Path) -> dict:
     if ignore_line not in ignore_text.splitlines():
         prefix = ignore_text.rstrip("\n")
         ignore_path.write_text((prefix + "\n" if prefix else "") + ignore_line + "\n")
-    return {"status": "installed", "agents": AGENTS, "project": str(project)}
+    return {"status": "installed", "agents": AGENTS, "project": str(project), "local_laya": local_laya}
 
 
 def validate_request(value: dict) -> None:
@@ -219,7 +246,7 @@ def call_provider(request: dict) -> tuple[dict, int, str]:
     return result, round((time.monotonic() - started) * 1000), provider
 
 
-def append_receipt(project: Path, checkpoint: str, request: dict, result: dict | None, latency: int | None, provider: str | None, outcome: str, agent_id: str | None = None) -> dict:
+def append_receipt(project: Path, checkpoint: str, request: dict, result: dict | None, latency: int | None, provider: str | None, outcome: str, agent_id: str | None = None, advice: dict | None = None) -> dict:
     routing = result.get("routing", {}) if result else {}
     if not isinstance(routing, dict):
         routing = {}
@@ -239,11 +266,19 @@ def append_receipt(project: Path, checkpoint: str, request: dict, result: dict |
             and isinstance(request["state"], dict)):
         entry["assessment"] = {name: result["answers"][name]["noul"] for name in SUPERVISOR_CHECKS[checkpoint]}
         entry["candidate_directive"] = candidate_directive(checkpoint, result["answers"], request["state"])
+    if advice:
+        recommendation = advice.get("recommendation") or {}
+        entry["decision_id"] = advice["decisionId"]
+        entry["advice"] = {"mode": advice["mode"], "holdback": advice["holdback"], "recommended": recommendation.get("id")}
     target = project / RECEIPTS
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("a") as handle:
         handle.write(json.dumps(entry, sort_keys=True) + "\n")
     return entry
+
+
+def checks_and_review_passed(state: dict) -> bool:
+    return state.get("required_checks_passed") is True and state.get("independent_review_passed") is True
 
 
 def candidate_directive(checkpoint: str, answers: dict, state: dict) -> str:
@@ -264,10 +299,68 @@ def candidate_directive(checkpoint: str, answers: dict, state: dict) -> str:
         if yes("needs_verification", 0.65) or not yes("tests_sufficient", 0.75):
             return "verify"
         if (all(yes(name, 0.75) for name in ("implementation_complete", "requirements_satisfied", "ready_to_finish"))
-                and state.get("required_checks_passed") is True
-                and state.get("independent_review_passed") is True):
+                and checks_and_review_passed(state)):
             return "finish_candidate"
     return "continue"
+
+
+_ADVICE_MODULE: list = []
+
+
+def advice_module():
+    """The sibling typed_advice.py (loaded once), or None when it is not installed."""
+    if not _ADVICE_MODULE:
+        path = Path(__file__).with_name("typed_advice.py")
+        module = None
+        if path.is_file():
+            spec = importlib.util.spec_from_file_location("typed_advice", path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+        _ADVICE_MODULE.append(module)
+    return _ADVICE_MODULE[0]
+
+
+def local_laya_endpoint() -> str | None:
+    """The literal-loopback base URL typed_advice accepts when TYPESAFE_BASE_URL names a local server."""
+    parsed = urlparse(os.environ.get("TYPESAFE_BASE_URL", ""))
+    if parsed.scheme != "http" or parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        return None
+    return f"http://{'[::1]' if parsed.hostname == '::1' else '127.0.0.1'}:{parsed.port or 80}"
+
+
+def decision_mode() -> dict:
+    """Configured env mode, the registry's effective mode for gsd-directive, and whether local Laya is set."""
+    configured = os.environ.get("RHIZE_DECISION_MODE", "shadow")
+    local = local_laya_endpoint() is not None
+    advice = advice_module()
+    effective = "shadow"
+    if configured == "advisory" and local and advice is not None:
+        effective = advice.effective_mode(GSD_DECISION, advice.policy_sha256(GSD_DECISION, GSD_QUESTION, GSD_POLICY))
+    return {"configured_mode": configured, "effective_mode": effective, "local_laya": local,
+            "advice_client": advice is not None}
+
+
+def advise_gsd(project: Path, checkpoint: str, state: dict, agent_id: str | None) -> dict | None:
+    """Ask local Laya for an advisory directive. None unless advisory mode with local Laya; never raises.
+
+    The directive is text for the agent only: no gate, verification step or hook result reads it.
+    """
+    endpoint_url = local_laya_endpoint()
+    advice = advice_module()
+    if os.environ.get("RHIZE_DECISION_MODE") != "advisory" or endpoint_url is None or advice is None:
+        return None
+    passed = checks_and_review_passed(state)
+    candidates = [{"id": name, "criterion": text} for name, text in GSD_CANDIDATES if passed or name != "finish_candidate"]
+    state_sha = hashlib.sha256(json.dumps(state, sort_keys=True).encode()).hexdigest()
+    summary = state["summary"] if isinstance(state.get("summary"), str) else json.dumps(state, sort_keys=True)
+    request = (f"{checkpoint} required_checks_passed={state.get('required_checks_passed') is True} "
+               f"independent_review_passed={state.get('independent_review_passed') is True} {summary}")
+    try:
+        return advice.advise(GSD_DECISION, request, candidates, f"{agent_id or project}:{checkpoint}:{state_sha}",
+                             critical_if_wrong=not passed, question=GSD_QUESTION, policy=GSD_POLICY,
+                             endpoint=endpoint_url)
+    except Exception:  # noqa: BLE001 - advice must never break supervision
+        return None
 
 
 def supervise(project: Path, checkpoint: str, state: dict, agent_id: str | None = None) -> dict:
@@ -277,12 +370,25 @@ def supervise(project: Path, checkpoint: str, state: dict, agent_id: str | None 
         name: {"type": "noul", "instructions": instruction}
         for name, instruction in SUPERVISOR_CHECKS[checkpoint].items()
     }}
-    result = decide(project, checkpoint, request, agent_id=agent_id)
+    advice = advise_gsd(project, checkpoint, state, agent_id)
+    result = decide(project, checkpoint, request, agent_id=agent_id, advice=advice)
     result["candidate_directive"] = candidate_directive(checkpoint, result["answers"], state)
+    if advice:
+        result["decision_id"] = advice["decisionId"]
+        line = advice_module().advice_line(GSD_DECISION, advice, "the next GSD directive")
+        if line:
+            result["advice"] = line
     return result
 
 
-def decide(project: Path, checkpoint: str, request: dict, probe: bool = False, agent_id: str | None = None) -> dict:
+def record_outcome(decision_id: str, chosen: str) -> dict:
+    advice = advice_module()
+    if advice is None:
+        raise DecisionError("typed_advice.py is not installed beside the client")
+    return {"status": "recorded" if advice.record_outcome(GSD_DECISION, decision_id, chosen) else "not_recorded"}
+
+
+def decide(project: Path, checkpoint: str, request: dict, probe: bool = False, agent_id: str | None = None, advice: dict | None = None) -> dict:
     validate_request(request)
     if not checkpoint or len(checkpoint) > 80:
         raise DecisionError("checkpoint must be 1-80 characters")
@@ -294,7 +400,7 @@ def decide(project: Path, checkpoint: str, request: dict, probe: bool = False, a
     try:
         result, latency, provider = call_provider(request)
     except DecisionError:
-        append_receipt(project, checkpoint, request, None, None, None, "unavailable", agent_id)
+        append_receipt(project, checkpoint, request, None, None, None, "unavailable", agent_id, advice)
         raise
     requested_model = request.get("model") or os.environ.get("TYPESAFE_DEFAULT_MODEL")
     if probe and provider == "compatible" and requested_model and result.get("routing", {}).get("model") != requested_model:
@@ -304,9 +410,11 @@ def decide(project: Path, checkpoint: str, request: dict, probe: bool = False, a
         name: answer["choice"] for name, answer in result["answers"].items()
         if answer["type"] == "choice" and answer["confidence"] >= 0.70 and mode == "advisory"
     }
-    outcome = "probe" if probe else ("shadow" if mode == "shadow" else ("advisory" if recommendations else "abstain"))
-    receipt = append_receipt(project, checkpoint, request, result, latency, provider, outcome, agent_id)
-    return {"status": outcome, "answers": result["answers"], "recommendations": recommendations, "receipt": receipt}
+    if mode == "advisory" and advice and advice.get("recommendation"):
+        recommendations[GSD_DECISION] = advice["recommendation"]["id"]
+    status_value = "probe" if probe else ("shadow" if mode == "shadow" else ("advisory" if recommendations else "abstain"))
+    receipt = append_receipt(project, checkpoint, request, result, latency, provider, status_value, agent_id, advice)
+    return {"status": status_value, "answers": result["answers"], "recommendations": recommendations, "receipt": receipt}
 
 
 def status(project: Path) -> dict:
@@ -354,7 +462,20 @@ def status(project: Path) -> dict:
                 fresh = latest_probe.get("outcome") == "probe" and route_ok and 0 <= age.total_seconds() < 86400
             except (DecisionError, KeyError, ValueError, TypeError):
                 pass
-    return {"status": "ready" if installed and mapped and hooked and fresh else "blocked", "installed": installed, "mapped": mapped, "hooked": hooked, "fresh_probe": fresh}
+    return {"status": "ready" if installed and mapped and hooked and fresh else "blocked", "installed": installed, "mapped": mapped, "hooked": hooked, "fresh_probe": fresh, **decision_mode()}
+
+
+def stop_outcome(receipt: dict) -> None:
+    """Best-effort outcome capture at SubagentStop: the incumbent directive stands as what the agent worked under.
+
+    Write-once, so an explicit `outcome` call made earlier wins. Never raises and never affects the hook result.
+    """
+    try:
+        advice = advice_module()
+        if advice is not None and receipt.get("decision_id") and receipt.get("candidate_directive"):
+            advice.record_outcome(GSD_DECISION, receipt["decision_id"], receipt["candidate_directive"])
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def hook(project: Path, event: str, payload: dict) -> dict:
@@ -363,11 +484,16 @@ def hook(project: Path, event: str, payload: dict) -> dict:
     if agent_type not in AGENTS or not isinstance(agent_id, str) or not agent_id:
         raise DecisionError("invalid GSD agent hook payload")
     if event == "SubagentStart":
+        if decision_mode()["effective_mode"] == "advise":
+            tail = ("The output may carry an `advice` line from Laya; it is advisory and never replaces tests, review or "
+                    "approval gates. Afterwards record what you did with `outcome --decision-id <decision_id> --chosen <directive>`. ")
+        else:
+            tail = "The suggested action is shadow-only. "
         message = (
             f"Before finishing, call the project-local typed decision client: supervise "
             f"--checkpoint {agent_type} --agent-id {agent_id}. "
-            "Pipe a bounded, secret-free JSON evidence object on stdin. The suggested action is shadow-only; "
-            "this agent's SubagentStop hook checks its own receipt."
+            "Pipe a bounded, secret-free JSON evidence object on stdin. " + tail +
+            "This agent's SubagentStop hook checks its own receipt."
         )
         return {"hookSpecificOutput": {"hookEventName": event, "additionalContext": message}}
     receipts = project / RECEIPTS
@@ -380,21 +506,25 @@ def hook(project: Path, event: str, payload: dict) -> dict:
                     continue
                 if (item.get("agent_id") == agent_id and item.get("checkpoint") == agent_type
                         and item.get("question_ids") == sorted(SUPERVISOR_CHECKS[agent_type])):
+                    stop_outcome(item)
                     return {}
     return {"decision": "block", "reason": f"Call the typed decision client for {agent_type} with --agent-id {agent_id}, then finish. Record unavailable/fallback if the provider fails."}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("install", "probe", "decide", "supervise", "status", "hook-start", "hook-stop"))
+    parser.add_argument("command", choices=("install", "probe", "decide", "supervise", "status", "outcome", "hook-start", "hook-stop"))
     parser.add_argument("--project", type=Path, default=Path.cwd())
     parser.add_argument("--checkpoint", default="unspecified")
     parser.add_argument("--agent-id")
+    parser.add_argument("--local-laya", action="store_true", help="install: write local Laya advisory env (no secrets)")
+    parser.add_argument("--decision-id", help="outcome: decision id from the supervise output")
+    parser.add_argument("--chosen", help="outcome: the directive actually taken")
     args = parser.parse_args()
     project = args.project.resolve()
     try:
         if args.command == "install":
-            output = install(project)
+            output = install(project, local_laya=args.local_laya)
         elif args.command == "status":
             output = status(project)
         elif args.command == "probe":
@@ -402,6 +532,10 @@ def main() -> int:
         elif args.command.startswith("hook-"):
             payload = json.load(sys.stdin)
             output = hook(project, "SubagentStart" if args.command == "hook-start" else "SubagentStop", payload)
+        elif args.command == "outcome":
+            if not args.decision_id or not args.chosen:
+                raise DecisionError("outcome requires --decision-id and --chosen")
+            output = record_outcome(args.decision_id, args.chosen)
         elif args.command == "supervise":
             output = supervise(project, args.checkpoint, json.load(sys.stdin), agent_id=args.agent_id)
         else:
@@ -410,7 +544,7 @@ def main() -> int:
                 raise DecisionError("stdin must contain a JSON object")
             output = decide(project, args.checkpoint, request, agent_id=args.agent_id)
         print(json.dumps(output, sort_keys=True))
-        return 0 if output.get("status") != "blocked" else 1
+        return 0 if output.get("status") not in ("blocked", "not_recorded") else 1
     except (DecisionError, ValueError) as exc:
         print(json.dumps({"status": "unavailable", "error": str(exc)}))
         return 2

@@ -47,6 +47,121 @@ def read_json(path, maximum=MAX_RECEIPT):
     return value
 
 
+PROCEDURE_QUESTION = 'Which stored procedure, if any, best fits this request?'
+# Dynamic shortlist: the policy describes how candidates are built, never their ids.
+PROCEDURE_POLICY = {'shortlist': 'procedural-memory-recall-top5+none', 'version': 1}
+ADVICE_NOTE = ('Advisory recommendation from the local decision model. Consult the family you judge correct; '
+               'your consult record is the decision.')
+
+
+def _advice():
+    import typed_advice
+    return typed_advice
+
+
+def advice_mode():
+    """Cheap registry read for the hook text; any failure reads as shadow."""
+    try:
+        import decision_pilot_v2 as pilot
+        advice = _advice()
+        return advice.effective_mode('workflow-fit', advice.policy_sha256(
+            'workflow-fit', pilot.ADVICE_QUESTION, pilot.ADVICE_POLICY))
+    except Exception:  # noqa: BLE001 - the hook never depends on advice
+        return 'shadow'
+
+
+def workflow_advice(root, identity):
+    """Advisory workflow-fit recommendation for a frozen context, or None. Never raises."""
+    try:
+        import decision_pilot_v2 as pilot
+        from workflow_context_packet import load_request_snapshot
+        snapshot = load_request_snapshot(root, identity)
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get('originalRequest'), str):
+            return None
+        result = _advice().advise('workflow-fit', snapshot['originalRequest'], pilot.ADVICE_CANDIDATES, identity,
+                                  critical_if_wrong=False, question=pilot.ADVICE_QUESTION,
+                                  policy=pilot.ADVICE_POLICY, budget_ms=3000)
+        rec = result['recommendation']
+        if not rec:
+            return None
+        return {'decisionType': 'workflow-fit', 'decisionId': result['decisionId'], 'recommendedFamily': rec['id'],
+                'confidence': rec['confidence'], 'calibrated': False, 'holdback': False, 'basis': 'laya-advise',
+                'note': ADVICE_NOTE}
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def record_advice_outcome(decision, key, chosen):
+    """Best-effort outcome for an advised decision; a missing record or conflicting duplicate is ignored."""
+    try:
+        advice = _advice()
+        advice.record_outcome(decision, advice.sha256(decision + ':' + key)[:32], chosen)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def recommend_procedure(root, identity, hits):
+    """Advisory procedure-pick over procedural-memory recall hits; returns the CLI output dict."""
+    from workflow_task_context import receipt_for
+    from workflow_context_packet import load_request_snapshot
+    advice = _advice()
+    receipt_for(root, identity)
+    candidates = []
+    for hit in hits if isinstance(hits, list) else ():
+        hit_id = hit.get('id') if isinstance(hit, dict) else None
+        if (not isinstance(hit_id, str) or not advice._CANDIDATE.fullmatch(hit_id) or hit_id == 'none'
+                or any(c['id'] == hit_id for c in candidates)):
+            continue
+        title, summary = hit.get('title'), hit.get('summary')
+        text = ' '.join(((title if isinstance(title, str) and title.strip() else hit_id) + (
+            ': ' + summary if isinstance(summary, str) and summary.strip() else '')).split())[:160]
+        candidates.append({'id': hit_id, 'criterion': text})
+        if len(candidates) == 5:
+            break
+    if not candidates:
+        raise ValueError('recommend-procedure needs at least one valid hit')
+    try:
+        snapshot = load_request_snapshot(root, identity)
+    except (OSError, ValueError, KeyError, TypeError):
+        snapshot = None
+    if not isinstance(snapshot, dict) or not isinstance(snapshot.get('originalRequest'), str):
+        return {'layaAdvice': None, 'reason': 'request_snapshot_missing'}
+    candidates.append({'id': 'none', 'criterion': 'none of these procedures fits; work without one'})
+    key = identity + ':' + advice.sha256(sorted(c['id'] for c in candidates))[:16]
+    result = advice.advise('procedure-pick', snapshot['originalRequest'], candidates, key, critical_if_wrong=False,
+                           question=PROCEDURE_QUESTION, policy=PROCEDURE_POLICY, budget_ms=3000)
+    pointer = Path(root).parent / 'procedure-advice'
+    if result['mode'] != 'off':
+        try:  # decide finds the advised decision through this per-opportunity pointer (latest call wins)
+            pointer.mkdir(parents=True, exist_ok=True, mode=0o700)
+            handle, temporary = tempfile.mkstemp(prefix='.tmp-', dir=str(pointer))
+            with os.fdopen(handle, 'w') as stream:
+                json.dump({'decisionId': result['decisionId']}, stream)
+            os.replace(temporary, pointer / (identity + '.json'))
+        except OSError:
+            pass
+    rec = result['recommendation']
+    return {'decisionId': result['decisionId'], 'mode': result['mode'],
+            'layaAdvice': rec and {'decisionType': 'procedure-pick', 'decisionId': result['decisionId'],
+                                   'recommendedProcedure': rec['id'], 'confidence': rec['confidence'],
+                                   'calibrated': False, 'holdback': False, 'basis': 'laya-advise',
+                                   'note': ADVICE_NOTE.replace('family', 'procedure')}}
+
+
+def record_procedure_outcome(root, args):
+    """decide reuse/adapt records the chosen procedure (no_match -> none) against the advised decision."""
+    try:
+        chosen = {'no_match': 'none'}.get(args.decision) or (
+            (getattr(args, 'procedure', None) or args.workflow) if args.decision in {'reuse', 'adapt'} else None)
+        if not chosen:
+            return
+        advice = _advice()
+        pointer = json.loads((Path(root).parent / 'procedure-advice' / (args.id + '.json')).read_text())
+        advice.record_outcome('procedure-pick', pointer['decisionId'], chosen)
+    except Exception:  # noqa: BLE001 - no advice was requested, or the outcome is not a candidate
+        pass
+
+
 def locked_update(root, identity, update):
     if not re.fullmatch(r'[0-9a-f]{64}', identity):
         raise ValueError('invalid opportunity id')
@@ -173,7 +288,11 @@ def hook_message(receipt):
         measure = shlex.quote(str(Path(__file__).with_name('decision_measure.py')))
         identity = receipt['opportunityId']
         return (
-            'Workflow selection checkpoint before substantial work. The content/general measurement pilot keeps Arm A authoritative and Laya in shadow. '
+            'Workflow selection checkpoint before substantial work. ' + (
+                'The content/general measurement pilot keeps Arm A authoritative; the context command may print an advisory '
+                'Laya recommendation (layaAdvice) that you may override. '
+                if advice_mode() == 'advise' else
+                'The content/general measurement pilot keeps Arm A authoritative and Laya in shadow. ') +
             'Separately configured credential CLI procedure selection may use its bounded active policy; it never grants permissions or clears the credential GUI hard deny. '
             f'Opportunity ID: {identity}. BEFORE catalog recall, consult or decide, capture enum-only context: '
             f'python3 {script} context --id {identity} --event-kind KIND --action ACTION --domain DOMAIN '
@@ -189,6 +308,8 @@ def hook_message(receipt):
             'action/domain/exclusions; --parent-id is only for continuations. Changed intent starts a fresh root. Missing/invalid context stays visible and '
             'must not block the task. For RHIZE resource articles consult procedural-memory:rhize-content-engine; '
             'for other repeatable multi-step work use procedural-memory:procedural-memory recall --json. '
+            f'You may pipe recall hits as {{"hits":[{{"id","title","summary"}}]}} JSON to python3 {script} recommend-procedure --id {identity} '
+            'for an advisory Laya procedure pick before choosing; you decide. '
             f'After actual consultation record python3 {script} consult --id {identity} --family content|general|none '
             '--evidence PRIVATE_FILE, then use decide for reuse/adapt/no_match/unavailable/candidate/skip as documented. '
             'A catalog no-match is distinct from the consulted family. Record execution, validation and capture separately. '
@@ -369,6 +490,7 @@ def main():
     dp.add_argument('--decision', choices=['reuse','adapt','no_match','unavailable','candidate','skip'], required=True)
     dp.add_argument('--workflow'); dp.add_argument('--variant'); dp.add_argument('--reason', choices=['existing_workflow','scope_mismatch','capability_missing','no_suitable_workflow','repeatable_steps_observed','simple_or_nonworkflow_task'], required=True)
     dp.add_argument('--run-id'); dp.add_argument('--source-sha256')
+    dp.add_argument('--procedure', help='Procedure id chosen from recommend-procedure hits (defaults to --workflow)')
     dp.add_argument('--config', type=Path, default=DEFAULT_ROOT / 'config.json')
     from workflow_task_context import EVENT_KINDS, ACTIONS, DOMAINS, EXCLUSIONS
     cp = sub.add_parser('context', help='Freeze bounded v2 context before consultation and decision')
@@ -386,6 +508,8 @@ def main():
     fp = sub.add_parser('finish'); fp.add_argument('--id', required=True); fp.add_argument('--status', choices=['completed','failed','partial','skipped','unavailable'], required=True)
     fp.add_argument('--reason', choices=['gate_failed','transport_failed','capability_missing','operator_stopped','no_suitable_workflow'])
     fp.add_argument('--evidence')
+    rec = sub.add_parser('recommend-procedure', help='Advisory Laya procedure pick over recall hits JSON on stdin')
+    rec.add_argument('--id', required=True)
     sp = sub.add_parser('status'); sp.add_argument('--id', required=True)
     args = ap.parse_args()
     try:
@@ -477,12 +601,21 @@ def main():
                     raise ValueError('request_context_unavailable') from exc
             context = capture_context(args.root, args.id, value,
                       seal=lambda c, r: enqueue_v2(c, r, args.root.parent / 'pilot', receipts=args.root))
-            print(json.dumps(context))
+            advice = workflow_advice(args.root, args.id)
+            print(json.dumps({**context, 'layaAdvice': advice} if advice else context))
         elif args.command == 'consult':
             from workflow_task_context import capture_consultation
-            print(json.dumps(capture_consultation(args.root, args.id, args.family, args.evidence)))
+            value = capture_consultation(args.root, args.id, args.family, args.evidence)
+            record_advice_outcome('workflow-fit', args.id, args.family)
+            print(json.dumps(value))
+        elif args.command == 'recommend-procedure':
+            raw = sys.stdin.buffer.read(MAX_INPUT + 1)
+            if len(raw) > MAX_INPUT: raise ValueError('recommend-procedure input budget exceeded')
+            document = json.loads(raw)
+            print(json.dumps(recommend_procedure(args.root, args.id, document.get('hits') if isinstance(document, dict) else None)))
         elif args.command == 'decide':
             value = decide(args.root, args)
+            record_procedure_outcome(args.root, args)
             if value.get('decisionPilot') == 'shadow-v2' and value.get('contextCaptureStatus') != 'captured':
                 try:
                     from workflow_task_context import diagnostic_context
