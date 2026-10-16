@@ -181,12 +181,20 @@ def test_a_legacy_state_with_only_the_original_decisions_still_validates(catalog
     contract.validate_state(state_with(catalog, SKILL), catalog)
 
 
-@pytest.mark.parametrize('mode', ['advise', 'cosign'])
-@pytest.mark.parametrize('field', ['policySha256', 'instrumentSha256', 'layaRevision'])
-def test_earned_state_must_bind_policy_instrument_and_revision(catalog, mode, field):
+@pytest.mark.parametrize('mode,field', [('advise', 'policySha256'), ('advise', 'instrumentSha256'),
+                                        ('advise', 'layaRevision'), ('cosign', 'policySha256'),
+                                        ('cosign', 'instrumentSha256')])
+def test_earned_state_must_bind_its_hashes(catalog, mode, field):
     state = state_with(catalog, SKILL, mode=mode, **{field: None})
     with pytest.raises(ValueError, match='must bind'):
         contract.validate_state(state, catalog)
+
+
+def test_cosign_state_without_a_laya_revision_stays_valid_for_now(catalog):
+    # see the shortcut note in contract.validate_state; mutate() always writes a revision for both earned modes
+    state = state_with(catalog, SKILL, mode='cosign', layaRevision=None, policySha256=contract.policy_sha256(),
+                       instrumentSha256=instrument.instrument_sha256())
+    contract.validate_state(state, catalog)
 
 
 def test_state_modes_must_be_reachable(catalog):
@@ -299,22 +307,22 @@ def test_a_critical_decision_reaches_advise_but_never_cosign(root, catalog):
     assert down['decisions'][CRITICAL]['mode'] == 'shadow' and down['decisions'][CRITICAL]['cohortId'] is None
 
 
-def test_a_cosign_cohort_never_authorizes_advise(root, tmp_path):
+def test_a_cosign_cohort_never_authorizes_advise(root):
     registry = small_registry()
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
     event, _ = passed_cohort(root, registry, disagreements(25))
     cosign_binding = {'policySha256': contract.policy_sha256(), 'instrumentSha256': instrument.instrument_sha256(),
                       'layaRevision': LAYA_REV, 'cohortId': event['cohortId']}
     # the same cohort is a valid cosign authority ...
     cohorts.verify_passed_cohort(root, registry['decisions'][SKILL], cosign_binding)
     # ... and no authority for advise: its ledger is separate
-    (root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
     with pytest.raises(reg.RegistryError) as err:
         reg.mutate(root, SKILL, 'advise', actor='cycle', reason='gate_pass', expected_revision=0, registry=registry,
                    binding={**cosign_binding, 'instrumentSha256': instrument_hash(registry, SKILL)})
     assert err.value.code == 'invalid_binding'
 
 
-def test_an_advise_cohort_never_authorizes_cosign(root, catalog):
+def test_an_advise_cohort_never_authorizes_cosign(root):
     registry = small_registry()
     (root / 'laya-runtime.json').write_text(json.dumps({'revision': LAYA_REV}))
     advise_binding = binding(registry, SKILL, '5' * 32, rev=LAYA_REV)

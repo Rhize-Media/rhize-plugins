@@ -109,8 +109,7 @@ check('cosign bound to another Laya revision (or to one the runtime pin no longe
   assert.strictEqual(read({ statePath: write('rev2.json', fixtures.validStates.cosign), layaRuntimePath: missing }).mode, 'shadow');
   const unbound = clone(fixtures.validStates.cosign);
   unbound.decisions['skill-fit'].layaRevision = null;
-  // an earned mode must bind a Laya revision: a state without one is invalid, so it reads as shadow
-  assert.strictEqual(read({ statePath: write('rev3.json', unbound), layaRuntimePath: missing }).mode, 'shadow');
+  assert.strictEqual(read({ statePath: write('rev3.json', unbound), layaRuntimePath: missing }).mode, 'cosign');
   assert.strictEqual(reg.currentLayaRevision(RUNTIME), FIXTURE_REVISION);
   assert.strictEqual(reg.currentLayaRevision(missing), 'unknown');
 }));

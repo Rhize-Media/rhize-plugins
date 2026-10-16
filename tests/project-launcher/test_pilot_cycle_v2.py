@@ -24,7 +24,22 @@ CHOICES = ('content', 'general', 'none')
 
 @pytest.fixture(autouse=True)
 def private_modes_root(tmp_path, monkeypatch):
-    monkeypatch.setenv('RHIZE_TYPED_DECISIONS_ROOT', str(tmp_path / 'typed-decisions'))
+    """The typed-decisions state root (registry, advise ledger) with a pinned Laya checkpoint."""
+    state = tmp_path / 'typed-decisions'
+    state.mkdir()
+    (state / 'laya-runtime.json').write_text(json.dumps({'revision': 'rev-test'}))
+    monkeypatch.setenv('RHIZE_TYPED_DECISIONS_ROOT', str(state))
+    return state
+
+
+def registry_state(tmp_path):
+    path = tmp_path / 'typed-decisions/registry-state.json'
+    return json.loads(path.read_text()) if path.exists() else None
+
+
+def ledger_events(tmp_path):
+    path = tmp_path / 'typed-decisions/workflow-fit/advise-cohorts.jsonl'
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
 
 
 def key(kind, value):
@@ -74,6 +89,11 @@ def laya(request, right=True):
     return {'answers': {'route': answer(expected(index) if right else 'none')}}, 1.0
 
 
+def shifted_laya(request):
+    index = int(request['state']['request'].split()[1])
+    return {'answers': {'route': answer(expected(index + 1))}}, 1.0
+
+
 def wrong_laya(request):
     return laya(request, right=False)
 
@@ -111,7 +131,7 @@ def test_automatic_floor_is_twenty_and_default_thirty(tmp_path):
 def test_cycle_accepts_thirty_labels_and_holds_below_the_requested_minimum(tmp_path, monkeypatch):
     corpus(monkeypatch, [case(i) for i in range(30)])
     result = run_cycle(tmp_path)
-    assert result['status'] == 'review_required' and result['config']['minimum'] == 30
+    assert result['config']['minimum'] == 30 and result['status'] in {'held', 'review_required'}
     corpus(monkeypatch, [case(i) for i in range(29)])
     result = run_cycle(tmp_path / 'other')
     assert result['reason'] == 'insufficient_accepted_labels' and result['labels'] == 29 and result['required'] == 30
@@ -239,7 +259,7 @@ def test_pooled_collection_sources_proceed_and_are_recorded(tmp_path, monkeypatc
     rows[0]['collection_source_sha256'] = 'b' * 64
     corpus(monkeypatch, rows)
     result = run_cycle(tmp_path)
-    assert result['status'] == 'review_required' and len(result['sourcesSha256']) == 64
+    assert result['status'] in {'held', 'review_required'} and len(result['sourcesSha256']) == 64
     assert 'provenance' in result
 
 
@@ -257,31 +277,111 @@ def test_malformed_replay_failure_preserved(tmp_path, monkeypatch):
 
 
 def test_review_candidate_reports_promotion_without_holdout(tmp_path, monkeypatch):
-    corpus(monkeypatch, [case(i) for i in range(60)])
+    corpus(monkeypatch, [case(i) for i in range(150)])
     result = run_cycle(tmp_path, call=wrong_laya)
     assert result['status'] == 'review_required' and result['holdout'] == 'not_run'
     assert result['releaseEligible'] is False and result['promotion']['earnedMode'] == 'shadow'
-    assert result['promotion']['metrics']['n'] > 0
+    assert result['promotion']['verdict'] == 'hold' and result['promotion']['stats']['n'] > 0
+    assert registry_state(tmp_path) is None and [e['event'] for e in ledger_events(tmp_path)] == ['reserve', 'consumed']
 
 
-def test_accurate_candidate_earns_advise_in_the_private_modes_file(tmp_path, monkeypatch):
-    corpus(monkeypatch, [case(i) for i in range(60)])
+def test_too_few_promotion_cases_hold_without_spending_an_attempt(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(40)])
+    result = run_cycle(tmp_path, call=lambda r: pytest.fail('no cohort, no Laya call'))
+    assert result['status'] == 'held' and result['reason'] == 'insufficient_promotion_cases'
+    assert result['promotion']['required'] == 30 and ledger_events(tmp_path) == []
+
+
+def test_accurate_default_wording_earns_advise_through_the_registry(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
     result = run_cycle(tmp_path)
-    assert result['status'] == 'review_required'
+    assert result['status'] == 'review_required' and result['promotion']['verdict'] == 'pass'
     assert result['promotion']['earnedMode'] == 'advise' and result['releaseEligible'] is True
-    modes = json.loads((tmp_path/'typed-decisions/modes.json').read_text())
-    entry = modes['decisionTypes']['workflow_fit']
-    assert entry['earnedMode'] == 'advise' and len(entry['configSha256']) == 64
-    # The same corpus is `unchanged`; a nearly identical corpus holds on insufficient new promotion cases.
+    assert result['promotion']['registry']['status'] == 'mutated'
+    entry = registry_state(tmp_path)['decisions']['workflow-fit']
+    events = ledger_events(tmp_path)
+    assert entry['mode'] == 'advise' and entry['cohortId'] == events[0]['cohortId'] == events[1]['cohortId']
+    assert [e['event'] for e in events] == ['reserve', 'consumed'] and events[1]['verdict'] == 'pass'
+    assert entry['policySha256'] == events[0]['policySha256'] and entry['layaRevision'] == 'rev-test'
+    assert not (tmp_path / 'typed-decisions/modes.json').exists()
     assert run_cycle(tmp_path)['status'] == 'unchanged'
-    corpus(monkeypatch, [case(i) for i in range(61)])
-    again = run_cycle(tmp_path)
-    assert again['status'] == 'held' and again['reason'] == 'insufficient_new_promotion_cases'
-    assert json.loads((tmp_path/'typed-decisions/modes.json').read_text()) == modes
+
+
+def test_pass_calls_mutate_with_the_gate_binding(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    calls = []
+    def mutate(root, decision, to_mode, **kwargs):
+        calls.append((decision, to_mode, kwargs))
+        return {'revision': 1}
+    monkeypatch.setattr(cycle.decision_registry, 'mutate', mutate)
+    result = run_cycle(tmp_path)
+    (decision, to_mode, kwargs), = calls
+    assert (decision, to_mode) == ('workflow-fit', 'advise')
+    assert kwargs['actor'] == 'cycle' and kwargs['reason'] == 'gate_pass' and kwargs['expected_revision'] == 0
+    event = ledger_events(tmp_path)[0]
+    assert kwargs['binding'] == {
+        'policySha256': cycle.typed_advice.policy_sha256('workflow-fit', cycle.ADVICE_QUESTION, cycle.ADVICE_POLICY),
+        'instrumentSha256': cycle.typed_advice.INSTRUMENT_SHA256, 'layaRevision': 'rev-test',
+        'cohortId': event['cohortId']}
+    assert kwargs['binding']['policySha256'] == event['policySha256']
+    assert result['promotion']['earnedMode'] == 'advise'
+
+
+def test_registry_refusal_is_recorded_as_held_not_raised(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    def refuse(*args, **kwargs):
+        raise cycle.decision_registry.RegistryError('pinned', 'operator pin')
+    monkeypatch.setattr(cycle.decision_registry, 'mutate', refuse)
+    result = run_cycle(tmp_path)
+    assert result['status'] == 'review_required' and result['promotion']['verdict'] == 'pass'
+    assert result['promotion']['registry'] == {'status': 'held', 'to': 'advise', 'code': 'pinned'}
+    assert result['promotion']['earnedMode'] == 'shadow' and result['releaseEligible'] is False
+
+
+def test_a_pass_cohort_is_never_reused_by_the_next_attempt(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(130)])
+    monkeypatch.setattr(cycle.decision_registry, 'mutate', lambda *a, **k: {'revision': 1})
+    run_cycle(tmp_path)
+    first = {i for e in ledger_events(tmp_path) if e['event'] == 'reserve' for i in e['caseIds']}
+    corpus(monkeypatch, [case(i) for i in range(240)])
+    run_cycle(tmp_path)
+    reserves = [e for e in ledger_events(tmp_path) if e['event'] == 'reserve']
+    assert [e['attempt'] for e in reserves] == [1, 2] and reserves[1]['alpha'] == reserves[0]['alpha'] / 2
+    assert not first & set(reserves[1]['caseIds'])
+
+
+def test_earned_advise_is_demoted_after_two_evaluations_below_baseline(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    assert run_cycle(tmp_path)['promotion']['earnedMode'] == 'advise'
+    corpus(monkeypatch, [case(i) for i in range(165)])
+    first = run_cycle(tmp_path, call=shifted_laya)
+    assert first['promotion']['branch'] == 'demotion' and first['promotion']['demotion']['below'] is True
+    assert first['promotion']['earnedMode'] == 'advise' and len(ledger_events(tmp_path)) == 2   # no new attempt
+    corpus(monkeypatch, [case(i) for i in range(180)])
+    second = run_cycle(tmp_path, call=shifted_laya)
+    assert second['promotion']['demotion']['demote'] is True and second['promotion']['earnedMode'] == 'shadow'
+    assert second['promotion']['registry']['status'] == 'mutated'
+    state = registry_state(tmp_path)
+    assert state['decisions']['workflow-fit']['mode'] == 'shadow'
+    audit = (tmp_path / 'typed-decisions/registry-audit.jsonl').read_text()
+    assert 'gate_demote' in audit and 'gate_pass' in audit
+
+
+def test_a_stale_policy_binding_is_reset_to_shadow_before_a_new_attempt(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    run_cycle(tmp_path)
+    monkeypatch.setattr(cycle, 'ADVICE_QUESTION', cycle.ADVICE_QUESTION + ' Pick one.')
+    corpus(monkeypatch, [case(i) for i in range(260)])
+    result = run_cycle(tmp_path)
+    assert result['promotion']['verdict'] == 'pass' and result['promotion']['attempt'] == 2
+    entry = registry_state(tmp_path)['decisions']['workflow-fit']
+    assert entry['mode'] == 'advise' and entry['cohortId'] == result['promotion']['cohortId']
+    audit = (tmp_path / 'typed-decisions/registry-audit.jsonl').read_text()
+    assert 'binding_stale' in audit
 
 
 def test_promotion_split_is_never_handed_to_search(tmp_path, monkeypatch):
-    rows = [case(i) for i in range(60)]
+    rows = [case(i) for i in range(150)]
     corpus(monkeypatch, rows)
     seen = {}
     def run(command, **kwargs):
@@ -300,26 +400,38 @@ def test_promotion_split_is_never_handed_to_search(tmp_path, monkeypatch):
     manifest = json.loads((seen['dir']/'split/manifest.json').read_text())
     assert set(manifest['split_counts']) == {'train', 'validation'} and manifest['release_eligible'] is False
     assert (seen['dir']/'promotion.jsonl').stat().st_mode & 0o777 == 0o600
-    assert result['promotion']['metrics']['n'] == len(promotion)
+    assert result['promotion']['stats']['n'] == len(promotion)
+    reserved = ledger_events(tmp_path)[0]['caseIds']
+    assert set(reserved) == set(promotion)
+    # The gate's own split rule governs: every promotion group hashes to the promotion side.
+    assert all(cycle.typed_promotion.split_of(json.loads(l)['group_id']) == 'promotion'
+               for l in (seen['dir']/'promotion.jsonl').read_text().splitlines())
 
 
-def test_promotion_requests_go_through_the_call_path_once_per_case(tmp_path, monkeypatch):
-    corpus(monkeypatch, [case(i) for i in range(60)])
+def test_only_the_default_wording_is_evaluated_for_promotion(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
     requests = []
     def call(request):
         requests.append(request)
         return laya(request)
-    result = run_cycle(tmp_path, call=call)
-    assert len(requests) == result['promotion']['metrics']['n'] and result['promotion']['status'] == 'updated'
+    def run(command, **kwargs):               # the search "keeps" a non-default candidate
+        options = json.loads(Path(command[command.index('--candidates')+1]).read_text())
+        Path(command[command.index('--ledger')+1]).write_text(
+            json.dumps({'status': 'keep', 'candidate_sha256': research.digest(options[-1])}) + '\n')
+        return SimpleNamespace(returncode=0)
+    result = run_cycle(tmp_path, run=run, call=call)
+    assert result['candidateId'] != 'baseline' and result['promotion']['earnedMode'] == 'advise'
+    assert len(requests) == result['promotion']['stats']['n']
+    assert all(r['questions']['route']['instructions'] == 'Route it' for r in requests)   # no override applied
     assert all(set(r['questions']) == {'route'} and r['model'] == 'typed-decisions' for r in requests)
 
 
-def test_promotion_deadline_fails_without_updating_modes(tmp_path, monkeypatch):
-    corpus(monkeypatch, [case(i) for i in range(60)])
+def test_promotion_deadline_counts_unanswered_cases_wrong_and_never_promotes(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
     monkeypatch.setattr(cycle.time, 'monotonic', iter(range(0, 10**6, 1000)).__next__)
     result = run_cycle(tmp_path)
-    assert result['status'] == 'failed' and result['reason'] == 'TimeoutError'
-    assert not (tmp_path/'typed-decisions/modes.json').exists()
+    assert result['promotion']['verdict'] == 'hold' and 'coverage_below_minimum' in result['promotion']['reasons']
+    assert registry_state(tmp_path) is None and ledger_events(tmp_path)[-1]['verdict'] == 'hold'
 
 
 def test_cross_split_identity_rejected_when_materializing(tmp_path):
@@ -452,11 +564,11 @@ def test_taxonomy_labels_below_floor_hold_with_basis_facts(tmp_path, monkeypatch
 
 
 def test_search_records_policy_provenance_and_exploratory_scope(tmp_path, monkeypatch):
-    corpus(monkeypatch, [taxonomy_case(i) for i in range(40)])
+    corpus(monkeypatch, [taxonomy_case(i) for i in range(150)])
     result = run_cycle(tmp_path)
     assert result['status'] == 'review_required' and result['coverage']['holdReasons'] == []
     assert result['config']['acceptedBases'] == ['human_adjudicated', 'ai_model_reviewed']
-    assert len(result['config']['labelPolicySha256']) == 64 and result['labelBasis'] == {'ai_model_reviewed': 40}
+    assert len(result['config']['labelPolicySha256']) == 64 and result['labelBasis'] == {'ai_model_reviewed': 150}
     assert 'exploratory' in result['claimScope'] and result['provenance']['replayed'] is True
     assert set(result['coverage']['routingChoices']) == set(CHOICES)
 
@@ -479,12 +591,12 @@ def test_missing_split_holds_before_any_search(tmp_path, monkeypatch):
     monkeypatch.setattr(cycle, 'grouping', without_promotion)
     result = run_cycle(tmp_path, run=lambda *a, **kw: pytest.fail('searched with a missing split'))
     assert result['status'] == 'held' and result['reason'] == 'insufficient_split_groups'
-    assert not (tmp_path/'typed-decisions/modes.json').exists()
+    assert registry_state(tmp_path) is None and ledger_events(tmp_path) == []
 
 
 @pytest.mark.parametrize('guarded', ['evaluator', 'decoder', 'promoter'])
-def test_changed_guarded_source_during_promotion_never_writes_modes(tmp_path, monkeypatch, guarded):
-    corpus(monkeypatch, [case(i) for i in range(60)])
+def test_changed_guarded_source_during_promotion_never_mutates_the_registry(tmp_path, monkeypatch, guarded):
+    corpus(monkeypatch, [case(i) for i in range(150)])
     path = {'evaluator': ROOT/'evals/typed-decision/research.py',
             'decoder': ROOT/'rhize-context-manager/scripts/pilot_routing.py',
             'promoter': ROOT/'evals/typed-decision/typed_promotion.py'}[guarded]
@@ -495,7 +607,7 @@ def test_changed_guarded_source_during_promotion_never_writes_modes(tmp_path, mo
         return laya(request)
     result = run_cycle(tmp_path, call=call)
     assert state['changed'] and result['status'] == 'failed' and result['reason'] == 'ValueError'
-    assert not (tmp_path/'typed-decisions/modes.json').exists()
+    assert registry_state(tmp_path) is None
 
 
 class Recorder(BaseHTTPRequestHandler):

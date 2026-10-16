@@ -1,8 +1,7 @@
-"""Earned-mode promotion rules for typed decisions; invented fixtures, no live Laya."""
+"""advise-v1 majority-baseline gate; invented fixtures, no live Laya."""
+import hashlib
 import importlib.util
 import json
-import os
-import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -12,240 +11,332 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('typed_promotion', ROOT / 'evals/typed-decision/typed_promotion.py')
 tp = importlib.util.module_from_spec(spec); spec.loader.exec_module(tp)
+from typed_decisions import advise_ledger  # noqa: E402  (typed_promotion put the scripts dir on sys.path)
 
-PRIOR = {'general': 70, 'content': 15, 'none': 15}
+PRIOR = {'general': 80, 'content': 10, 'none': 10}
+P2 = {'general': 80, 'content': 20}
+D = 'workflow-fit'
+POLICY, INSTRUMENT = 'a' * 64, 'b' * 64
 
 
-def make(spec_counts, start=0, critical=()):
-    """spec_counts: [(truth, predicted, how_many)] -> promotion cases plus predictions."""
-    cases, predictions, index = [], {}, start
-    for truth, predicted, count in spec_counts:
+def gate(cases, alpha=0.10, prior=PRIOR, **kwargs):
+    return tp.evaluate(cases, baseline='general', alpha=alpha, prior=prior, min_cohort=30, min_coverage=0.9, **kwargs)
+
+
+def g80(cases, **kwargs):
+    return gate(cases, prior=P2, **kwargs)
+
+
+def make(spec_counts, start=0):
+    """spec_counts: [(label, choice, count)] or (label, choice, count, status) -> evaluate() cases, one group each."""
+    cases, index = [], start
+    for item in spec_counts:
+        label, choice, count = item[:3]
         for _ in range(count):
-            case_id = f'case-{index}'
-            cases.append({'case_id': case_id, 'routing_choice': truth,
-                          'stratum': 'critical_safety' if case_id in critical else 'ordinary'})
-            predictions[case_id] = predicted
+            cases.append({'id': f'case-{index}', 'group': f'group-{index}', 'label': label, 'choice': choice,
+                          'status': item[3] if len(item) > 3 else 'ok', 'critical_if_wrong': False})
             index += 1
-    return cases, predictions
+    return cases
 
 
-def good(extra=0):
-    # 30 cases, baseline (always general) accuracy .8; 27/30 correct with every class covered.
-    return make([('general', 'general', 22), ('general', 'none', 2), ('content', 'content', 3),
-                 ('none', 'none', 2), ('none', 'general', 1)], start=extra)
+def eighty(correct_minority):
+    """30 cases, two classes: the always-general baseline is right on 24 (80%); Laya is right on all of general
+    plus `correct_minority` of the 6 content cases and answers general on the rest."""
+    return make([('general', 'general', 24), ('content', 'content', correct_minority),
+                 ('content', 'general', 6 - correct_minority)])
 
 
-def test_wilson_numbers_against_an_eighty_percent_baseline():
-    assert tp.wilson_lower(27, 30) > .8 > tp.wilson_lower(26, 30)
-    assert tp.wilson_lower(44, 50) > .8 > tp.wilson_lower(43, 50)
-    assert tp.wilson_lower(0, 0) == 0.0
-    assert abs(tp.wilson_lower(27, 30) - 0.8078) < 1e-3
+def test_split_is_a_stable_one_third_promotion_hash_split():
+    groups = [f'session:{i}' for i in range(3000)]
+    promotion = [g for g in groups if tp.split_of(g) == 'promotion']
+    assert 900 < len(promotion) < 1100
+    assert all(tp.split_of(g) == ('promotion' if int(hashlib.sha256(('split:' + g).encode()).hexdigest(), 16) % 3 == 2
+                                  else 'tuning') for g in groups[:50])
 
 
-def test_27_of_30_promotes_and_26_of_30_does_not():
-    cases, predictions = good()
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['correct'] == 27 and result['baselineAccuracy'] == .8 and result['promote'] is True
-    assert result['scoredClasses'] == ['content', 'general', 'none']
-    predictions['case-24'] = 'general'   # flip one correct content case
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['correct'] == 26 and result['promote'] is False
-    assert 'wilson_lower_not_above_baseline' in result['blockers']
+def test_majority_ties_resolve_to_the_smallest_label():
+    assert tp.majority(['b', 'a', 'a', 'b']) == 'a' and tp.majority(['z', 'a', 'z']) == 'z' and tp.majority([]) is None
 
 
-def test_44_of_50_promotes_and_43_of_50_does_not():
-    cases, predictions = make([('general', 'general', 37), ('general', 'none', 3), ('content', 'content', 4),
-                               ('content', 'general', 1), ('none', 'none', 3), ('none', 'general', 2)])
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['n'] == 50 and result['correct'] == 44 and result['baselineAccuracy'] == .8
-    assert result['promote'] is True
-    predictions['case-0'] = 'none'
-    assert tp.evaluate(cases, predictions, 'general', PRIOR)['promote'] is False
+def test_passes_at_28_of_30_and_holds_at_27_against_an_80_percent_baseline():
+    # Laya's margin over the baseline is b (minority cases it gets right) since it never errs on the majority class:
+    # b=4 (28/30) is the smallest paired margin that clears alpha=.10 at n=30, b=3 (27/30) cannot.
+    four = g80(eighty(4))
+    assert four['verdict'] == 'pass' and four['reasons'] == []
+    assert four['stats']['b'] == 4 and four['stats']['c'] == 0 and four['stats']['baselineAccuracy'] == 0.8
+    assert four['stats']['accuracy'] == 28 / 30 and four['stats']['cpLower'] > 0.5
+    five = g80(eighty(5))
+    assert five['verdict'] == 'pass' and five['stats']['cpLower'] > four['stats']['cpLower']
+    three = g80(eighty(3))
+    assert three['verdict'] == 'hold' and three['reasons'] == ['sign_test_not_significant']
+    assert three['stats']['cpLower'] < 0.5 and three['stats']['accuracy'] == 27 / 30
 
 
-def test_class_with_prior_share_but_fewer_than_three_cases_blocks():
-    cases, predictions = make([('general', 'general', 26), ('general', 'none', 1), ('content', 'content', 3),
-                               ('none', 'none', 2)])
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['accuracy'] > .9 and result['promote'] is False
-    assert result['blockers'] == ['class_coverage:none']
-    # A class below the 10% prior floor is not scored at all.
-    assert tp.evaluate(cases, predictions, 'general', {'general': 90, 'content': 7, 'none': 3})['scoredClasses'] == ['general']
+def test_a_smaller_alpha_needs_a_larger_margin():
+    assert g80(eighty(4), alpha=0.10)['verdict'] == 'pass'
+    assert g80(eighty(4), alpha=0.05)['verdict'] == 'hold'       # attempt 2 spends alpha/2
+    assert g80(eighty(5), alpha=0.05)['verdict'] == 'pass'
 
 
-def test_recall_below_half_on_a_scored_class_blocks():
-    cases, predictions = make([('general', 'general', 25), ('content', 'content', 2), ('content', 'general', 1),
-                               ('none', 'none', 1), ('none', 'general', 2)])
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['promote'] is False and 'class_recall:none' in result['blockers']
-    assert result['classes']['none']['recall'] == pytest.approx(1 / 3)
+def test_a_regression_on_the_baseline_class_counts_against_laya():
+    cases = make([('general', 'general', 20), ('general', 'none', 4), ('content', 'content', 3),
+                  ('none', 'none', 3)])                              # b=6, c=4
+    result = gate(cases)
+    assert result['stats']['b'] == 6 and result['stats']['c'] == 4 and result['verdict'] == 'hold'
+    assert 'sign_test_not_significant' in result['reasons']
 
 
-def test_abstentions_count_as_wrong_and_critical_misses_block():
-    cases, predictions = good()
-    predictions['case-0'] = None
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['abstentions'] == 1 and result['correct'] == 26
-    cases, predictions = good()
-    cases[0]['stratum'] = 'critical_authorization'
-    predictions['case-0'] = None
-    result = tp.evaluate(cases, predictions, 'general', PRIOR)
-    assert result['criticalMisses'] == 1 and result['promote'] is False
-    assert tp.evaluate(*good(), 'general', PRIOR)['criticalMisses'] == 0
+def test_abstention_and_unavailable_count_as_wrong():
+    cases = eighty(4)
+    cases[24]['choice'] = None                                     # the first content case: abstains
+    result = g80(cases)
+    assert result['verdict'] == 'hold' and result['stats']['b'] == 3
+    cases = eighty(4)
+    cases[24]['status'] = 'unavailable'                            # an answer that arrived with a failed status
+    assert g80(cases)['stats']['b'] == 3
+    cases = make([('general', 'general', 23), ('general', None, 1), ('content', 'content', 3), ('none', 'none', 3)])
+    assert gate(cases)['stats']['c'] == 1                          # abstaining on a baseline-right case is a regression
 
 
-def test_balanced_accuracy_must_beat_the_baseline():
-    # Accuracy beats baseline but balanced accuracy of the always-general guess (1/3) is also beaten here;
-    # force the other direction: a model that only ever predicts the baseline class cannot promote.
-    cases, predictions = good()
-    lazy = {case['case_id']: 'general' for case in cases}
-    result = tp.evaluate(cases, lazy, 'general', PRIOR)
-    assert result['promote'] is False and 'balanced_accuracy_not_above_baseline' in result['blockers']
-    assert result['balancedAccuracy'] == result['baselineBalancedAccuracy']
+def test_coverage_below_ninety_percent_holds_even_with_a_clear_margin():
+    cases = make([('general', 'general', 27), ('general', None, 3), ('content', 'content', 5), ('none', 'none', 5)])
+    result = gate(cases)
+    assert result['stats']['coverage'] == pytest.approx(37 / 40) and 'coverage_below_minimum' not in result['reasons']
+    cases = make([('general', 'general', 26), ('general', None, 5), ('content', 'content', 5), ('none', 'none', 4)])
+    result = gate(cases)
+    assert 'coverage_below_minimum' in result['reasons'] and result['stats']['coverage'] < 0.9
+    assert result['verdict'] == 'hold'
+    unavailable = make([('general', 'general', 26), ('general', 'general', 5, 'unavailable'),
+                        ('content', 'content', 5), ('none', 'none', 4)])
+    assert 'coverage_below_minimum' in gate(unavailable)['reasons']
 
 
-def test_empty_promotion_set_never_promotes():
-    result = tp.evaluate([], {}, 'general', PRIOR)
-    assert result['promote'] is False and 'no_promotion_cases' in result['blockers']
+def test_cohort_needs_thirty_cases_from_thirty_groups():
+    assert 'cohort_too_small' in g80(eighty(5)[:29])['reasons']
+    cases = eighty(5)
+    for case in cases[:5]:
+        case['group'] = 'shared'
+    assert 'too_few_groups' in g80(cases)['reasons']
 
 
-def update(tmp_path, cases, predictions, config='cfg-a', now=1.0):
-    return tp.update(cases, predictions, 'general', PRIOR, config, root=str(tmp_path), now=now)
+def test_class_coverage_and_recall_are_enforced_for_classes_with_prior_share():
+    cases = make([('general', 'general', 26), ('content', 'content', 3), ('none', 'none', 2)])
+    assert 'class_coverage:none' in gate(cases)['reasons']
+    cases = make([('general', 'general', 24), ('content', 'content', 3), ('none', 'none', 1), ('none', 'general', 2)])
+    result = gate(cases)
+    assert 'class_recall:none' in result['reasons'] and result['stats']['recall']['none'] == pytest.approx(1 / 3)
+    # A class under the 10% prior floor is not scored, so its thin coverage is not a blocker.
+    cases = make([('general', 'general', 25), ('content', 'content', 4), ('none', 'none', 1)])
+    thin = tp.evaluate(cases, baseline='general', alpha=0.10, prior={'general': 90, 'content': 7, 'none': 3},
+                       min_cohort=30, min_coverage=0.9)
+    assert not [r for r in thin['reasons'] if r.startswith('class_')]
 
 
-def mode(tmp_path):
-    return json.loads((tmp_path / 'modes.json').read_text())['decisionTypes']['workflow_fit']
+def test_balanced_accuracy_must_beat_the_baselines_and_is_computed():
+    lazy = [{**c, 'choice': 'general'} for c in eighty(5)]
+    result = g80(lazy)
+    assert result['verdict'] == 'hold' and 'balanced_accuracy_not_above_baseline' in result['reasons']
+    assert result['stats']['balancedAccuracy'] == pytest.approx(0.5)
+    assert result['stats']['baselineBalancedAccuracy'] == pytest.approx(0.5)
+    # K is the number of classes actually present in the cohort.
+    two = make([('general', 'general', 24), ('content', 'content', 6)])
+    assert gate(two)['stats']['baselineBalancedAccuracy'] == pytest.approx(0.5)
 
 
-def test_promotion_state_is_written_atomically_and_privately(tmp_path):
-    root = tmp_path / 'state'
-    cases, predictions = good()
-    result = tp.update(cases, predictions, 'general', PRIOR, 'cfg-a', root=str(root), now=5.0)
-    assert result['status'] == 'updated' and result['earnedMode'] == 'advise' and result['promoted'] is True
-    path = root / 'modes.json'
-    assert stat.S_IMODE(path.stat().st_mode) == 0o600 and stat.S_IMODE(root.stat().st_mode) == 0o700
-    assert [p.name for p in root.iterdir()] == ['modes.json']          # no stray temp files
-    value = json.loads(path.read_text())
-    assert value['schema'] == 'rhize-typed-modes-v1'
-    entry = value['decisionTypes']['workflow_fit']
-    assert entry['earnedMode'] == 'advise' and entry['configSha256'] == 'cfg-a' and entry['updatedAt'] == 5.0
-    assert entry['belowBaselineStreak'] == 0 and entry['lastAttempt']['n'] == 30
-    assert len(entry['lastAttempt']['promotionCaseIds']) == 64
-    assert 'case-0' not in path.read_text()                              # ids stored hashed, not raw
+def critical_cohort(critical_ids=10):
+    cases = make([('general', 'general', 32), ('content', 'content', 4), ('none', 'none', 4)])
+    for case in cases[:critical_ids]:
+        case['critical_if_wrong'] = True
+    return cases
 
 
-def test_write_is_atomic_when_the_replace_fails(tmp_path, monkeypatch):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions)
-    before = (tmp_path / 'modes.json').read_bytes()
-    def boom(*args): raise OSError('disk full')
-    monkeypatch.setattr(tp.os, 'replace', boom)
-    with pytest.raises(OSError):
-        tp.write_modes({'schema': tp.SCHEMA, 'decisionTypes': {}}, str(tmp_path))
-    assert (tmp_path / 'modes.json').read_bytes() == before
-    assert [p.name for p in tmp_path.iterdir()] == ['modes.json']
+def test_critical_decisions_need_ten_critical_cases_and_no_critical_miss():
+    assert gate(critical_cohort(10), critical=True, min_critical=10)['verdict'] == 'pass'
+    few = gate(critical_cohort(9), critical=True, min_critical=10)
+    assert few['verdict'] == 'hold' and few['reasons'] == ['critical_cases_below_minimum']
+    cases = critical_cohort(10)
+    cases[0]['choice'] = 'content'                                 # answered, wrong, critical
+    miss = gate(cases, critical=True, min_critical=10)
+    assert miss['verdict'] == 'hold' and 'critical_miss' in miss['reasons'] and miss['stats']['criticalMisses'] == 1
+    # The same data is fine for a decision that is not critical.
+    assert gate(cases)['stats']['criticalMisses'] == 1 and 'critical_miss' not in gate(cases)['reasons']
 
 
-def test_state_root_can_come_from_the_environment(tmp_path, monkeypatch):
-    monkeypatch.setenv('RHIZE_TYPED_DECISIONS_ROOT', str(tmp_path / 'env'))
-    assert tp.modes_path() == tmp_path / 'env' / 'modes.json'
-    assert tp.load_modes() == {'schema': 'rhize-typed-modes-v1', 'decisionTypes': {}}
+def test_abstaining_on_a_critical_case_is_not_a_critical_miss_but_still_wrong():
+    cases = critical_cohort(10)
+    cases[0]['choice'] = None
+    result = gate(cases, critical=True, min_critical=10)
+    assert result['stats']['criticalMisses'] == 0 and 'critical_miss' not in result['reasons']
+    assert result['stats']['accuracy'] == 39 / 40
 
 
-def test_critical_miss_demotes_immediately(tmp_path):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions)
-    assert mode(tmp_path)['earnedMode'] == 'advise'
-    cases2, predictions2 = good(extra=100)
-    cases2[0]['stratum'] = 'critical_safety'
-    predictions2['case-100'] = 'none'
-    result = update(tmp_path, cases2, predictions2)
-    assert result['demoted'] is True and result['demotionReason'] == 'critical_miss'
-    assert mode(tmp_path)['earnedMode'] == 'shadow' and mode(tmp_path)['belowBaselineStreak'] == 0
+def test_empty_cohort_never_passes():
+    result = gate([])
+    assert result['verdict'] == 'hold' and 'cohort_too_small' in result['reasons']
 
 
-def test_demotion_needs_two_consecutive_cycles_below_baseline(tmp_path):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions)
-    bad = lambda start: make([('general', 'none', 12), ('general', 'general', 12), ('content', 'general', 3),
-                              ('none', 'none', 3)], start=start)   # accuracy .6 < baseline .8
-    first = update(tmp_path, *bad(100))
-    assert first['earnedMode'] == 'advise' and mode(tmp_path)['belowBaselineStreak'] == 1
-    # A cycle that is not below baseline resets the streak.
-    update(tmp_path, *good(extra=200))
-    assert mode(tmp_path)['belowBaselineStreak'] == 0 and mode(tmp_path)['earnedMode'] == 'advise'
-    update(tmp_path, *bad(300))
-    assert mode(tmp_path)['earnedMode'] == 'advise' and mode(tmp_path)['belowBaselineStreak'] == 1
-    result = update(tmp_path, *bad(400))
-    assert result['demoted'] is True and result['demotionReason'] == 'below_baseline_two_cycles'
-    assert mode(tmp_path)['earnedMode'] == 'shadow'
+# ------------------------------------------------------------------ demotion
+
+def live(right, wrong, start=0):
+    return make([('general', 'general', right), ('general', 'content', wrong)], start=start)
 
 
-def test_a_changed_config_starts_from_shadow(tmp_path):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions, config='cfg-a')
-    assert mode(tmp_path)['earnedMode'] == 'advise'
-    weak = make([('general', 'general', 20), ('general', 'none', 4), ('content', 'general', 3), ('none', 'none', 3)])
-    result = update(tmp_path, *weak, config='cfg-b')
-    assert result['previousMode'] == 'shadow' and result['earnedMode'] == 'shadow'
-    assert mode(tmp_path)['configSha256'] == 'cfg-b'
-    # Returning to the old config does not resurrect its earned mode either.
-    assert update(tmp_path, *good(extra=500), config='cfg-a')['previousMode'] == 'shadow'
+def test_critical_miss_demotes_immediately_whatever_the_fresh_count():
+    cases = live(29, 0)
+    cases[3]['critical_if_wrong'] = True
+    cases[3]['choice'] = 'content'
+    result = tp.demotion(cases, 0, [False], baseline='general', critical=True)
+    assert result['demote'] is True and result['reason'] == 'critical_miss' and result['history'] == []
+    assert tp.demotion(cases, 0, [], baseline='general', critical=False)['demote'] is False
 
 
-def test_reattempt_needs_ten_new_promotion_cases_and_leaves_state_untouched(tmp_path):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions)
-    before = (tmp_path / 'modes.json').read_bytes()
-    more, more_predictions = good(extra=1000)
-    nine = cases + more[:9]
-    result = update(tmp_path, nine, {**predictions, **more_predictions}, now=9.0)
-    assert result == {'status': 'held', 'reason': 'insufficient_new_promotion_cases', 'newCases': 9, 'required': 10}
-    assert (tmp_path / 'modes.json').read_bytes() == before
-    ten = cases + more[:10]
-    assert tp.check_novelty([c['case_id'] for c in ten], 'cfg-a', str(tmp_path)) == (True, 10)
-    assert update(tmp_path, ten, {**predictions, **more_predictions}, now=9.0)['status'] == 'updated'
-    # A different config is never gated by another config's attempt.
-    assert tp.check_novelty([c['case_id'] for c in cases], 'cfg-z', str(tmp_path)) == (True, 30)
+def test_nothing_is_scored_until_ten_fresh_labels_exist():
+    result = tp.demotion(live(10, 20), 9, [True], baseline='general')
+    assert result == {'demote': False, 'reason': None, 'evaluated': False, 'history': [True]}
 
 
-def test_config_digest_ignores_the_display_id_and_tracks_every_frozen_field():
-    base = {'id': 'one', 'model': 'typed-decisions', 'instructions': {'route': 'x'}, 'abstain_below': .6}
-    questions = {'route': {'type': 'choice', 'instructions': 'Route it',
-                           'criteria': {'content': 'Articles', 'general': 'Engineering', 'none': 'Questions'}}}
-    ids = ['content', 'general', 'none']
-    digest = tp.config_sha256(base, 'workflow-input-v3', ids, questions)
-    assert digest == tp.config_sha256({**base, 'id': 'two'}, 'workflow-input-v3', ids, questions)
-    for changed in ({**base, 'model': 'other'}, {**base, 'instructions': {'route': 'y'}}, {**base, 'abstain_below': .8}):
-        assert tp.config_sha256(changed, 'workflow-input-v3', ids, questions) != digest
-    assert tp.config_sha256(base, 'workflow-input-v4', ids, questions) != digest
-    assert tp.config_sha256(base, 'workflow-input-v3', ['content', 'general'], questions) != digest
+def test_two_consecutive_evaluations_below_the_baseline_demote():
+    below = live(10, 20)                                            # laya .33 vs baseline 1.0 on these cases
+    first = tp.demotion(below, 10, [], baseline='general')
+    assert first['demote'] is False and first['evaluated'] and first['below'] is True and first['history'] == [True]
+    second = tp.demotion(below, 10, first['history'], baseline='general')
+    assert second['demote'] is True and second['reason'] == 'below_baseline_consecutive' and second['history'] == []
 
 
-def test_config_digest_tracks_question_criteria_and_baseline_wording():
-    baseline = {'id': 'baseline', 'model': 'typed-decisions', 'instructions': {}, 'abstain_below': 0.0}
-    questions = {'route': {'type': 'choice', 'instructions': 'Route it',
-                           'criteria': {'content': 'Articles', 'general': 'Engineering', 'none': 'Questions'}}}
-    ids = ['content', 'general', 'none']
-    digest = tp.config_sha256(baseline, 'workflow-input-v3', ids, questions)
-    criteria = {**questions['route']['criteria'], 'general': 'Engineering and operations'}
-    edited = {'route': {**questions['route'], 'criteria': criteria}}
-    assert tp.config_sha256(baseline, 'workflow-input-v3', ids, edited) != digest
-    # The baseline's own instructions are effective wording; a candidate override replaces them.
-    reworded = {'route': {**questions['route'], 'instructions': 'Route it differently'}}
-    assert tp.config_sha256(baseline, 'workflow-input-v3', ids, reworded) != digest
-    override = {**baseline, 'instructions': {'route': 'Override'}}
-    assert tp.config_sha256(override, 'workflow-input-v3', ids, questions) == \
-        tp.config_sha256(override, 'workflow-input-v3', ids, reworded)
+def test_a_recovered_evaluation_resets_the_streak():
+    ok = tp.demotion(live(30, 0), 10, [True], baseline='general')
+    assert ok['demote'] is False and ok['below'] is False and ok['history'] == [True, False]
+    again = tp.demotion(live(10, 20), 10, ok['history'], baseline='general')
+    assert again['demote'] is False and again['history'] == [True, False, True]
 
 
-def test_status_cli_prints_modes_json(tmp_path):
-    cases, predictions = good()
-    update(tmp_path, cases, predictions)
+def test_only_the_latest_window_is_scored():
+    cases = live(0, 30) + live(30, 0, start=100)                    # old failures, then a clean window
+    result = tp.demotion(cases, 10, [], baseline='general', window=30)
+    assert result['n'] == 30 and result['accuracy'] == 1.0 and result['below'] is False
+
+
+# ------------------------------------------------------------------ attempts
+
+def pool(count, start=0):
+    """`count` promotion-split cases; labels general 80% / content 10% / none 10%."""
+    cases, index = [], start
+    while len(cases) < count:
+        group = f'session-{index}'
+        index += 1
+        if tp.split_of(group) != 'promotion':
+            continue
+        position = len(cases) % 10
+        label = 'general' if position < 8 else 'content' if position == 8 else 'none'
+        cases.append({'id': f'c-{group}', 'group': group, 'label': label, 'critical_if_wrong': False})
+    return cases
+
+
+def attempt(root, cases, predict_one=None, policy=POLICY, revision='rev-1', **kwargs):
+    return tp.run_attempt(root, D, cases, policy_sha=policy, instrument_sha=INSTRUMENT, laya_revision=revision,
+                          gate_cfg=kwargs.pop('gate_cfg', None), prior=PRIOR, baseline='general',
+                          predict_one=predict_one or (lambda case: case['label']), now='2026-10-16T00:00:00Z', **kwargs)
+
+
+def test_a_clean_attempt_reserves_then_consumes_a_pass_and_verifies(tmp_path):
+    cases = pool(40)
+    seen = []
+    def predict(case):
+        seen.append([e['event'] for e in advise_ledger.read(tmp_path, D)])
+        return case['label']
+    receipt = attempt(tmp_path, cases, predict)
+    assert receipt['status'] == 'evaluated' and receipt['verdict'] == 'pass' and receipt['attempt'] == 1
+    assert set(map(tuple, seen)) == {('reserve',)}                 # the reservation precedes every Laya call
+    events = advise_ledger.read(tmp_path, D)
+    assert [e['event'] for e in events] == ['reserve', 'consumed']
+    assert events[0]['caseIds'] == sorted(c['id'] for c in cases) and events[0]['baseline'] == 'general'
+    assert events[1]['receiptSha256'] == receipt['receiptSha256'] and events[1]['verdict'] == 'pass'
+    advise_ledger.verify_pass(tmp_path, D, {'cohortId': receipt['cohortId'], 'policySha256': POLICY,
+                                            'instrumentSha256': INSTRUMENT, 'layaRevision': 'rev-1'})
+    stored = json.loads((tmp_path / D / 'advise-receipts' / (receipt['cohortId'] + '.json')).read_text())
+    assert tp.sha256(stored) == receipt['receiptSha256']
+
+
+def test_alpha_halves_per_attempt_and_attempts_count_across_policy_changes(tmp_path):
+    first = attempt(tmp_path, pool(35))
+    second = attempt(tmp_path, pool(35, start=10_000), policy='c' * 64, revision='rev-2')
+    third = attempt(tmp_path, pool(35, start=20_000), policy='d' * 64, revision='rev-2')
+    assert [first['attempt'], second['attempt'], third['attempt']] == [1, 2, 3]
+    assert [first['alpha'], second['alpha'], third['alpha']] == [0.10, 0.05, 0.025]
+    assert third['stats']['alpha'] == 0.025 and advise_ledger.next_attempt(tmp_path, D) == 4
+    assert advise_ledger.next_attempt(tmp_path, 'procedure-pick') == 1
+
+
+def test_consumed_case_ids_are_never_reused(tmp_path):
+    cases = pool(60)
+    first = attempt(tmp_path, cases)
+    reserved = set(advise_ledger.consumed_case_ids(tmp_path, D))
+    assert first['status'] == 'evaluated' and reserved == {c['id'] for c in cases}
+    again = attempt(tmp_path, cases)                                # every case is spent
+    assert again == {'status': 'held', 'reason': 'insufficient_promotion_cases', 'available': 0, 'required': 30}
+    fresh = pool(35, start=50_000)
+    assert attempt(tmp_path, cases + fresh)['status'] == 'evaluated'
+    assert len(advise_ledger.consumed_case_ids(tmp_path, D)) == 60 + 35
+
+
+def test_a_hold_is_consumed_too_and_cannot_be_used_as_a_pass(tmp_path):
+    receipt = attempt(tmp_path, pool(40), lambda case: 'general')
+    assert receipt['verdict'] == 'hold' and advise_ledger.read(tmp_path, D)[-1]['verdict'] == 'hold'
+    with pytest.raises(ValueError, match='did not pass'):
+        advise_ledger.verify_pass(tmp_path, D, {'cohortId': receipt['cohortId'], 'policySha256': POLICY,
+                                                'instrumentSha256': INSTRUMENT, 'layaRevision': 'rev-1'})
+
+
+def test_below_the_cohort_floor_touches_nothing(tmp_path):
+    held = attempt(tmp_path, pool(29))
+    assert held['status'] == 'held' and held['available'] == 29 and held['required'] == 30
+    assert advise_ledger.read(tmp_path, D) == [] and not (tmp_path / D).exists()
+
+
+def test_only_promotion_split_groups_are_eligible(tmp_path):
+    cases = pool(40)
+    tuning, index = [], 0
+    while len(tuning) < 20:
+        group = f'tuning-{index}'
+        index += 1
+        if tp.split_of(group) == 'tuning':
+            tuning.append({'id': f'c-{group}', 'group': group, 'label': 'general', 'critical_if_wrong': False})
+    receipt = attempt(tmp_path, cases + tuning)
+    assert receipt['stats']['n'] == 40
+    assert not {c['id'] for c in tuning} & advise_ledger.consumed_case_ids(tmp_path, D)
+
+
+def test_laya_failures_count_as_unavailable_not_as_crashes(tmp_path):
+    def flaky(case):
+        if case['label'] != 'general':
+            raise TimeoutError('laya down')
+        return 'general'
+    receipt = attempt(tmp_path, pool(40), flaky)
+    assert receipt['status'] == 'evaluated' and receipt['verdict'] == 'hold'
+    assert receipt['stats']['coverage'] == 0.8 and 'coverage_below_minimum' in receipt['reasons']
+
+
+def test_dry_run_writes_no_ledger_or_receipt(tmp_path):
+    receipt = attempt(tmp_path, pool(40), dry_run=True)
+    assert receipt['status'] == 'dry_run' and receipt['verdict'] == 'pass' and receipt['dryRun'] is True
+    assert not (tmp_path / D).exists()
+
+
+def test_critical_attempt_needs_ten_trusted_critical_cases(tmp_path):
+    cases = pool(40)
+    for case in cases[:9]:
+        case['critical_if_wrong'] = True
+    cfg = {'minCriticalCases': 10}
+    held = attempt(tmp_path, cases, critical=True, gate_cfg=cfg)
+    assert held['verdict'] == 'hold' and 'critical_cases_below_minimum' in held['reasons']
+    more = pool(40, start=70_000)
+    for case in more[:10]:
+        case['critical_if_wrong'] = True
+    assert attempt(tmp_path, more, critical=True, gate_cfg=cfg)['verdict'] == 'pass'
+
+
+def test_status_cli_prints_the_ledger(tmp_path):
+    attempt(tmp_path, pool(35))
     done = subprocess.run([sys.executable, str(ROOT / 'evals/typed-decision/typed_promotion.py'), 'status',
-                           '--root', str(tmp_path)], text=True, capture_output=True, timeout=10)
-    assert done.returncode == 0 and json.loads(done.stdout)['decisionTypes']['workflow_fit']['earnedMode'] == 'advise'
-    env = {**os.environ, 'RHIZE_TYPED_DECISIONS_ROOT': str(tmp_path / 'empty')}
-    done = subprocess.run([sys.executable, str(ROOT / 'evals/typed-decision/typed_promotion.py'), 'status'],
-                          text=True, capture_output=True, timeout=10, env=env)
-    assert json.loads(done.stdout) == {'decisionTypes': {}, 'schema': 'rhize-typed-modes-v1'}
+                           '--root', str(tmp_path), '--decision', D], text=True, capture_output=True, timeout=20)
+    assert done.returncode == 0 and [e['event'] for e in json.loads(done.stdout)] == ['reserve', 'consumed']

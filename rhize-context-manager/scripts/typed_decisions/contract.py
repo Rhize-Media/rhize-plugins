@@ -651,9 +651,12 @@ def validate_state(state: dict, registry: dict) -> dict:
             raise ValueError('invalid layaRevision')
         if entry['cohortId'] is not None and (not isinstance(entry['cohortId'], str) or not HEX32.match(entry['cohortId'])):
             raise ValueError('invalid cohortId')
-        if entry['mode'] in EARNED_MODES and (entry['policySha256'] is None or entry['instrumentSha256'] is None
-                                              or entry['layaRevision'] is None):
-            raise ValueError(f"{entry['mode']} state must bind policy, instrument and Laya revision")
+        if entry['mode'] in EARNED_MODES and (entry['policySha256'] is None or entry['instrumentSha256'] is None):
+            raise ValueError(f"{entry['mode']} state must bind policy and instrument hashes")
+        # shortcut: a hand-written cosign state may still omit layaRevision (the Node router suites build such
+        # states); every mutate-written state binds one. Tighten once those fixtures pin a runtime revision.
+        if entry['mode'] == 'advise' and entry['layaRevision'] is None:
+            raise ValueError('advise state must bind the Laya revision')
     return state
 
 

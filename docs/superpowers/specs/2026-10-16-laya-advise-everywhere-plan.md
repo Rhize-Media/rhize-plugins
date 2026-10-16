@@ -159,7 +159,7 @@ modified.
 - Transport: hostname refused, redirect refused, proxy ignored, identity failure, oversize body.
 - Critical: a critical miss demotes; critical never reaches `cosign`.
 - S4: protected paths and never-relaxable set enforced with Laya forced to `relaxed`.
-- Gate fixtures: 27/30 at 80% passes, 26/30 holds; class coverage; hysteresis; ≥10 new cases.
+- Gate fixtures (paired Clopper–Pearson, α=0.10, 80% baseline): 28/30 passes, 27/30 holds; class coverage; alpha spending; disjoint cohorts.
 - Full suite, Node router tests, Python 3.9, manifests/config-lint/skill-map freshness all pass.
 - No decision is in `advise` at release unless the live cycle earned it; the release ships the ability.
 

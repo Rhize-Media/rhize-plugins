@@ -1531,7 +1531,7 @@
   },
   {
    "name": "cosign-unbound",
-   "reason": "cosign state must bind policy, instrument and Laya revision",
+   "reason": "cosign state must bind policy and instrument hashes",
    "state": {
     "decisions": {
      "skill-fit": {

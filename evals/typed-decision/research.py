@@ -338,7 +338,7 @@ def prepare_corpus(rows: list[dict], seed: str, out_dir: Path, *, split_assignme
         raise ValueError("train, validation and holdout each need at least one task group")
     type_counts = {kind: sum(row["decision_type"] == kind for row in rows) for kind in {row["decision_type"] for row in rows}}
     holdout_counts = {kind: sum(row["decision_type"] == kind for row in splits.get("holdout", [])) for kind in type_counts}
-    # Informational only: release eligibility is decided by typed_promotion on a promotion split.
+    # Informational only: advise eligibility is decided by the typed_promotion baseline gate on a reserved promotion cohort.
     legacy_release_gate_met = all(count >= 200 and holdout_counts[kind] >= 50 and holdout_counts[kind] / count >= 0.25
                                   for kind, count in type_counts.items())
     manifest = {"schema": "rhize-typed-research-corpus-v1", "corpus_sha256": digest(rows),

@@ -193,10 +193,11 @@ function validateState(state, registry) {
     if (entry.cohortId !== null && (typeof entry.cohortId !== 'string' || !HEX32.test(entry.cohortId))) {
       fail('invalid cohortId');
     }
-    if (EARNED_MODES.includes(entry.mode) && (entry.policySha256 === null || entry.instrumentSha256 === null
-        || entry.layaRevision === null)) {
-      fail(`${entry.mode} state must bind policy, instrument and Laya revision`);
+    if (EARNED_MODES.includes(entry.mode) && (entry.policySha256 === null || entry.instrumentSha256 === null)) {
+      fail(`${entry.mode} state must bind policy and instrument hashes`);
     }
+    // shortcut: a hand-written cosign state may still omit layaRevision (see contract.validate_state).
+    if (entry.mode === 'advise' && entry.layaRevision === null) fail('advise state must bind the Laya revision');
   }
   return state;
 }

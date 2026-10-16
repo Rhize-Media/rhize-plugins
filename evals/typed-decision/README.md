@@ -122,10 +122,36 @@ so a genuine binding-input repair changes the identity. Invalid CLI bounds retur
 failure JSON; unavailable failure-receipt persistence is reported rather than hidden.
 Insufficient labels creates a separate durable non-error hold, not a failed experiment.
 
-Successful development search freezes one candidate for human review and reports
-`releaseEligible: false`, `holdout: not_run`, and `promotion: not_performed`. The daily job never
-runs a holdout, promotes a candidate, trains weights, fabricates labels or launches duplicate
-coding tasks. The generic holdout commands above describe a separately authorized review workflow;
+Successful development search freezes one candidate for human review (`holdout: not_run`). The daily
+job never runs a holdout, trains weights, fabricates labels or launches duplicate coding tasks.
+
+### advise-v1 baseline gate (`workflow-fit`)
+
+The 200-label floor is retired. After the search, the cycle sends only the default wording (no instruction
+overrides, no abstention threshold; the constants `ADVICE_QUESTION`/`ADVICE_CANDIDATES`/`ADVICE_POLICY` in
+`decision_pilot_v2.py`) through one attempt of `typed_promotion.run_attempt`:
+
+- Groups split by `sha256('split:'+group) % 3`: 2/3 tuning, 1/3 promotion. The baseline is the tuning
+  majority class, frozen in the cohort's `reserve` event; it predicts the same promotion cases.
+- The cohort (at least `minCohort` = 30 cases from 30 distinct groups, none reserved before) is written to
+  `<root>/workflow-fit/advise-cohorts.jsonl` BEFORE Laya is called, and consumed by exactly one verdict.
+  Attempt k tests at `alphaBase * 2^-(k-1)`; the budget is per decision, not per policy or Laya revision.
+- Abstentions, timeouts and unavailable answers count as Laya wrong; coverage must be at least `minCoverage`.
+- Pass needs the one-sided Clopper-Pearson lower bound of b/(b+c) above 0.5 (b: Laya right and baseline wrong,
+  c: the reverse), a balanced accuracy above the baseline's, and for every class with at least 10% tuning
+  share at least 3 cases and recall at least 0.5. A critical decision also needs `minCriticalCases` trusted
+  `critical_if_wrong` cases and zero critical misses.
+- A pass calls `decision_registry.mutate('workflow-fit', 'advise', actor='cycle', reason='gate_pass')` with the
+  binding `{policySha256, instrumentSha256, layaRevision, cohortId}`; a refused write (pin, stale revision,
+  corrupt state) is recorded in the status receipt, never raised. `modes.json` no longer exists.
+- With `advise` in force the cycle spends no attempt. It scores the latest `demote.window` cases once
+  `demote.freshLabels` new cases accrue, and demotes to `shadow` (`gate_demote`) after `demote.consecutive`
+  consecutive evaluations below the baseline (state in `<root>/workflow-fit/advise-demotion.json`); a critical
+  miss demotes at once. A binding that went stale (new policy hash) is reset to `shadow` (`binding_stale`)
+  so the gate can earn it again.
+- Gate settings come from the registry entry's `advise` object (`rhize-context-manager/catalog/decision-registry.json`).
+
+The generic holdout commands above describe a separately authorized review workflow;
 they are not part of the automatic pilot. Existing Arm A continues executing throughout shadow
 collection; Arm B recommendations cannot be credited with Arm A's task outcomes. `arm_a_coverage` records
 known/total incumbent choices by split; comparison remains unavailable if even one required
