@@ -72,7 +72,9 @@ def test_response_decoder(case):
 
 def test_identities():
     data = load('identities.json')
-    assert contract.policy_sha256('cosign-v1') == data['policySha256']['cosign-v1']
+    for policy, digest in data['policySha256'].items():
+        assert contract.policy_sha256(policy) == digest
+    assert set(data['policySha256']) == {contract.POLICY_COSIGN, contract.POLICY_ADVISE}
     assert instrument.instrument_sha256() == data['instrumentSha256']
     for case in data['occurrenceKeys']:
         assert contract.occurrence_key(case['sessionHash'], case['promptHash'], case['ts']) == case['expected']

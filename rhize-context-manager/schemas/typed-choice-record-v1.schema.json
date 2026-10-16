@@ -99,6 +99,10 @@
       "minimum": 0,
       "maximum": 20
     },
+    "groupSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
     "laya": {
       "type": "object",
       "additionalProperties": false,

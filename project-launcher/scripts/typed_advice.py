@@ -420,11 +420,12 @@ def _validate_candidates(candidates) -> list:
 
 
 def advise(decision, request, candidates, key, *, critical_if_wrong, question, policy, files=(),
-           endpoint=ENDPOINT, budget_ms=1500, store=None, call=None, snapshot=True) -> dict:
+           endpoint=ENDPOINT, budget_ms=1500, store=None, call=None, snapshot=True, group=None) -> dict:
     """Ask Laya for an advise-v1 recommendation and record it before anything is shown.
 
     `key` identifies the decision occurrence (idempotent: a repeat returns the stored record's answer).
     `critical_if_wrong` must come from trusted caller state (hard gates), never from request text.
+    `group` names the session-like unit the learning loop splits on (default: the key), stored hashed.
     Returns {'decisionId', 'mode', 'holdback', 'recommendation': {'id', 'confidence'} | None, 'policySha256'}.
     """
     if decision not in TIERS:
@@ -451,7 +452,7 @@ def advise(decision, request, candidates, key, *, critical_if_wrong, question, p
                   'policySha256': policy_sha, 'instrumentSha256': INSTRUMENT_SHA256,
                   'layaRevision': laya_revision(store), 'candidates': ids,
                   'criticalIfWrong': bool(critical_if_wrong), 'requestSha256': sha256(scrub(request)),
-                  'files': len(clean_files(files)),
+                  'files': len(clean_files(files)), 'groupSha256': sha256(key if group is None else str(group)),
                   'laya': {k: answer.get(k) for k in ('status', 'choice', 'probabilities', 'latencyMs')}}
         try:
             if snapshot:

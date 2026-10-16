@@ -104,7 +104,8 @@
     },
     "policy": {
       "enum": [
-        "cosign-v1"
+        "cosign-v1",
+        "advise-v1"
       ]
     },
     "policySha256": {

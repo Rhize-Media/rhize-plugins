@@ -70,6 +70,14 @@ def advice_mode():
         return 'shadow'
 
 
+def laya_advice(decision_type, result, field, note):
+    """The agent-facing `layaAdvice` object for an earned recommendation (None otherwise)."""
+    rec = result['recommendation']
+    return rec and {'decisionType': decision_type, 'decisionId': result['decisionId'], field: rec['id'],
+                    'confidence': rec['confidence'], 'calibrated': False, 'holdback': False,
+                    'basis': 'laya-advise', 'note': note}
+
+
 def workflow_advice(root, identity):
     """Advisory workflow-fit recommendation for a frozen context, or None. Never raises."""
     try:
@@ -81,12 +89,7 @@ def workflow_advice(root, identity):
         result = _advice().advise('workflow-fit', snapshot['originalRequest'], pilot.ADVICE_CANDIDATES, identity,
                                   critical_if_wrong=False, question=pilot.ADVICE_QUESTION,
                                   policy=pilot.ADVICE_POLICY, budget_ms=3000)
-        rec = result['recommendation']
-        if not rec:
-            return None
-        return {'decisionType': 'workflow-fit', 'decisionId': result['decisionId'], 'recommendedFamily': rec['id'],
-                'confidence': rec['confidence'], 'calibrated': False, 'holdback': False, 'basis': 'laya-advise',
-                'note': ADVICE_NOTE}
+        return laya_advice('workflow-fit', result, 'recommendedFamily', ADVICE_NOTE)
     except Exception:  # noqa: BLE001
         return None
 
@@ -140,12 +143,9 @@ def recommend_procedure(root, identity, hits):
             os.replace(temporary, pointer / (identity + '.json'))
         except OSError:
             pass
-    rec = result['recommendation']
     return {'decisionId': result['decisionId'], 'mode': result['mode'],
-            'layaAdvice': rec and {'decisionType': 'procedure-pick', 'decisionId': result['decisionId'],
-                                   'recommendedProcedure': rec['id'], 'confidence': rec['confidence'],
-                                   'calibrated': False, 'holdback': False, 'basis': 'laya-advise',
-                                   'note': ADVICE_NOTE.replace('family', 'procedure')}}
+            'layaAdvice': laya_advice('procedure-pick', result, 'recommendedProcedure',
+                                      ADVICE_NOTE.replace('family', 'procedure'))}
 
 
 def record_procedure_outcome(root, args):

@@ -14,8 +14,11 @@ from pathlib import Path
 import pytest
 
 from typed_decision_testkit import (  # noqa: E402
-    ALT1, ALT2, INC, LAYA_REV, REPO, SCRIPTS, disagreements, label_cohort, load_cycle_module, make_label, passed_cohort,
-    make_record, min_pass_x, reserve_cohort, small_registry, write_labels, write_records)
+    ALT1, ALT2, CHOICE_IDS, CHOICE_POLICY, INC, LAYA_REV, REPO, SCRIPTS, disagreements, label_cohort, load_cycle_module,
+    make_label, make_record, min_pass_x, passed_cohort, reserve_cohort, small_registry, write_choice, write_choice_label,
+    write_labels, write_records)
+import typed_advice  # noqa: E402
+from typed_decisions import advise_ledger  # noqa: E402
 from typed_decisions import cohorts, contract, decision_registry as reg, instrument, locked_io, records  # noqa: E402
 
 SKILL = 'skill-fit'
@@ -939,7 +942,7 @@ def test_statistical_cycle_deploys_only_cosign_v1(root, registry):
     entry = dict(registry['decisions'][SKILL], deployablePolicy='router-floor-3')
     with pytest.raises(ValueError, match='unknown deployable policy'):
         cohorts.deployable_hashes(entry)
-    assert set(contract.POLICIES) == {'cosign-v1', 'credential-cli-v1'}
+    assert set(contract.POLICIES) - {contract.POLICY_ADVISE} == {'cosign-v1', 'credential-cli-v1'}  # advise-v1 is gate-earned, never a cosign policy
     recs = disagreements(45)
     write_records(root, recs)
     out = run(root, registry, now='2026-10-11T00:00:00Z')
@@ -1292,3 +1295,226 @@ def test_gate_shares_are_frozen_at_reserve(root, registry):
     loosened['decisions'][SKILL]['gates']['promote']['maxAmbiguousShare'] = 0.9               # edited after reserve
     label_cohort(root, event, by_key(recs), not_hit=0, ambiguous=10)
     assert cohorts.evaluate(root, loosened, event['cohortId'], T_EVAL)['verdict'] == 'held'
+
+
+# ================================================================ advise (majority-baseline gate)
+
+ROUTING, CRITICAL_DECISION = 'model-routing', 'devflow-next-action'
+OPEN_PROBE = lambda: None  # noqa: E731 - Laya is reachable
+
+
+def label_of(i):
+    return CHOICE_IDS[i % 3]
+
+
+def fill(root, decision, count=120, *, start=0, critical=False, wrong=(), policy=CHOICE_POLICY, ambiguous=()):
+    """`count` labelled choice records; labels cycle over three classes and Laya agrees except at the `wrong` indices."""
+    ids = []
+    for i in range(start, start + count):
+        laya = label_of(i + 1) if i in wrong else label_of(i)
+        result = write_choice(root, decision, i, laya=laya, critical=critical, policy=policy)
+        write_choice_label(root, decision, result['decisionId'], label_of(i), ambiguous=i in ambiguous)
+        ids.append(result['decisionId'])
+    return ids
+
+
+def advise_pass(root, decision=ROUTING, **kwargs):
+    kwargs.setdefault('probe', OPEN_PROBE)
+    return CYCLE.run_cycle(root, NOW, seed=1, **kwargs)['advise'][decision]
+
+
+def state_of(root, decision):
+    state, _ = reg.read_state(root)
+    return ((state or {}).get('decisions') or {}).get(decision)
+
+
+def backdate(root, decision, decision_id, ts, **changes):
+    path = root / decision / 'choice' / f'{decision_id}.json'
+    record = {**json.loads(path.read_text()), 'ts': ts, **changes}
+    path.write_text(json.dumps(record))
+
+
+def treatment_index(decision, start):
+    return next(i for i in range(start, start + 500) if not typed_advice.holdback(decision, f'key-{i}'))
+
+
+def test_a_passing_gate_promotes_to_advise_and_the_runtime_reader_honours_it(root):
+    fill(root, ROUTING)
+    result = advise_pass(root)
+    assert result['verdict'] == 'pass' and result['registry']['status'] == 'mutated' and result['earnedMode'] == 'advise'
+    entry = state_of(root, ROUTING)
+    events = advise_ledger.read(root, ROUTING)
+    assert [e['event'] for e in events] == ['reserve', 'consumed'] and events[1]['verdict'] == 'pass'
+    policy = typed_advice.policy_sha256(ROUTING, 'Which option fits this request?', CHOICE_POLICY)
+    assert entry['mode'] == 'advise' and entry['cohortId'] == events[0]['cohortId']
+    assert (entry['policySha256'], entry['instrumentSha256'], entry['layaRevision']) == (
+        policy, typed_advice.INSTRUMENT_SHA256, LAYA_REV)
+    assert typed_advice.effective_mode(ROUTING, policy, root) == 'advise'          # the surface reader agrees
+    assert typed_advice.effective_mode(ROUTING, '0' * 64, root) == 'shadow'        # another policy does not
+    again = write_choice(root, ROUTING, 9000, laya='alpha')                          # next record is stamped advise
+    assert again['mode'] == 'advise'
+    assert 'workflow-fit' not in CYCLE.run_cycle(root, NOW, seed=1, probe=OPEN_PROBE)['advise']
+
+
+def test_critical_decisions_need_ten_critical_cases_and_zero_critical_misses(root):
+    fill(root, CRITICAL_DECISION, critical=True)
+    result = advise_pass(root, CRITICAL_DECISION)
+    assert result['verdict'] == 'pass' and result['stats']['criticalCases'] >= 10 and result['stats']['criticalMisses'] == 0
+    assert state_of(root, CRITICAL_DECISION)['mode'] == 'advise' and state_of(root, CRITICAL_DECISION)['pinned'] is False
+
+
+def test_a_critical_miss_in_the_cohort_holds(root):
+    fill(root, CRITICAL_DECISION, critical=True, wrong=set(range(0, 120, 2)))
+    result = advise_pass(root, CRITICAL_DECISION)
+    assert result['verdict'] == 'hold' and 'critical_miss' in result['reasons'] and state_of(root, CRITICAL_DECISION) is None
+    assert advise_ledger.read(root, CRITICAL_DECISION)[1]['verdict'] == 'hold'
+
+
+def test_without_enough_critical_cases_a_critical_decision_holds(root):
+    fill(root, CRITICAL_DECISION, critical=False)
+    result = advise_pass(root, CRITICAL_DECISION)
+    assert result['verdict'] == 'hold' and 'critical_cases_below_minimum' in result['reasons']
+
+
+def test_no_labelled_cases_is_a_hold_that_touches_nothing(root):
+    before = tree_snapshot(root)
+    result = CYCLE.run_cycle(root, NOW, seed=1, dry_run=True, probe=OPEN_PROBE)['advise']
+    assert all(v['status'] == 'held' for v in result.values()) and set(result) == set(
+        d for d, e in reg.load_registry()['decisions'].items() if e['advise'] and d != 'workflow-fit')
+    assert tree_snapshot(root) == before and not (root / ROUTING).exists()
+    fill(root, ROUTING, count=20)
+    held = advise_pass(root)
+    assert held['status'] == 'held' and held['reason'] == 'insufficient_promotion_cases' and advise_ledger.read(root, ROUTING) == []
+
+
+def test_a_laya_outage_holds_before_a_cohort_is_reserved(root):
+    fill(root, ROUTING)
+
+    def down():
+        raise OSError('connection refused')
+    result = advise_pass(root, probe=down)
+    assert result['status'] == 'held' and result['reason'] == 'laya_unavailable'
+    assert advise_ledger.read(root, ROUTING) == [] and state_of(root, ROUTING) is None
+
+
+def test_pins_off_and_cosign_suppress_the_advise_pass(root):
+    fill(root, ROUTING)
+    reg.mutate(root, ROUTING, 'off', actor='cli', reason='kill_switch', expected_revision=0)
+    assert advise_pass(root)['reason'] == 'mode_off'
+    reg.mutate(root, ROUTING, 'shadow', actor='cli', reason='pin_it', expected_revision=1, pinned=True)
+    assert advise_pass(root)['reason'] == 'pinned' and advise_ledger.read(root, ROUTING) == []
+
+
+def test_a_registry_refusal_is_recorded_not_raised(root, monkeypatch):
+    fill(root, ROUTING)
+
+    def refuse(*args, **kwargs):
+        raise reg.RegistryError('stale_revision', 'raced')
+    monkeypatch.setattr(reg, 'mutate', refuse)
+    result = advise_pass(root)
+    assert result['verdict'] == 'pass' and result['registry'] == {'status': 'held', 'to': 'advise', 'code': 'stale_revision'}
+    assert result['earnedMode'] == 'shadow'
+
+
+def test_a_corrupt_ledger_is_one_recorded_hold_not_a_crash(root):
+    fill(root, ROUTING)
+    (root / ROUTING).mkdir(exist_ok=True)
+    (root / ROUTING / 'advise-cohorts.jsonl').write_text(json.dumps({'event': 'reserve', 'decision': ROUTING}) + '\n')
+    result = advise_pass(root)
+    assert result['status'] == 'held' and result['reason'] == 'error'
+
+
+def test_only_the_current_homogeneous_cohort_feeds_the_gate(root):
+    old = fill(root, ROUTING, count=90, policy='old|policy', wrong=set(range(90)))      # a retired policy, all wrong
+    for decision_id in old:
+        backdate(root, ROUTING, decision_id, '2026-10-01T00:00:00Z')
+    foreign = fill(root, ROUTING, count=30, start=500)
+    for decision_id in foreign:
+        backdate(root, ROUTING, decision_id, '2026-10-05T00:00:00Z', instrumentSha256='f' * 64)
+    stale_rev = fill(root, ROUTING, count=30, start=700)
+    for decision_id in stale_rev:
+        backdate(root, ROUTING, decision_id, '2026-10-06T00:00:00Z', layaRevision='older-checkpoint')
+    fill(root, ROUTING, count=120, start=1000)
+    result = advise_pass(root)
+    reserved = advise_ledger.read(root, ROUTING)[0]['caseIds']
+    assert result['verdict'] == 'pass' and not set(reserved) & set(old + foreign + stale_rev)
+    assert result['stats']['n'] == len(reserved) and result['stats']['accuracy'] == 1.0
+
+
+def test_ambiguous_labels_are_excluded(root):
+    unclear = fill(root, ROUTING, count=90, start=2000, wrong=set(range(2000, 2090)), ambiguous=set(range(2000, 2090)))
+    fill(root, ROUTING, count=120)
+    result = advise_pass(root)
+    reserved = advise_ledger.read(root, ROUTING)[0]['caseIds']
+    assert result['verdict'] == 'pass' and result['stats']['accuracy'] == 1.0 and not set(reserved) & set(unclear)
+
+
+def test_earned_advise_is_demoted_after_two_evaluations_below_baseline(root):
+    fill(root, ROUTING)
+    assert advise_pass(root)['earnedMode'] == 'advise'
+    policy = state_of(root, ROUTING)['policySha256']
+    baseline = advise_ledger.read(root, ROUTING)[0]['baseline']
+    other = next(c for c in CHOICE_IDS if c != baseline)
+    index = [treatment_index(ROUTING, 5000)]
+
+    def batch(n):                                   # advise-arm treatment cases where Laya misses the baseline class
+        for _ in range(n):
+            i = treatment_index(ROUTING, index[0])
+            index[0] = i + 1
+            result = write_choice(root, ROUTING, i, laya=other)
+            assert result['mode'] == 'advise' and result['recommendation']['id'] == other
+            write_choice_label(root, ROUTING, result['decisionId'], baseline)
+    batch(5)
+    quiet = advise_pass(root)
+    assert quiet['branch'] == 'demotion' and quiet['demotion']['evaluated'] is False and quiet['earnedMode'] == 'advise'
+    batch(7)
+    first = advise_pass(root)
+    assert first['demotion']['evaluated'] is True and first['demotion']['below'] is True and first['earnedMode'] == 'advise'
+    batch(10)
+    second = advise_pass(root)
+    assert second['demotion']['demote'] is True and second['registry']['reason'] == 'gate_demote'
+    assert state_of(root, ROUTING)['mode'] == 'shadow' and typed_advice.effective_mode(ROUTING, policy, root) == 'shadow'
+    assert reg.read_audit(root)[0][-1]['reason'] == 'gate_demote'
+
+
+def test_a_live_critical_miss_demotes_at_once(root):
+    fill(root, CRITICAL_DECISION, critical=True)
+    assert advise_pass(root, CRITICAL_DECISION)['earnedMode'] == 'advise'
+    i = treatment_index(CRITICAL_DECISION, 7000)
+    result = write_choice(root, CRITICAL_DECISION, i, laya='alpha', critical=True)
+    write_choice_label(root, CRITICAL_DECISION, result['decisionId'], 'beta')
+    outcome = advise_pass(root, CRITICAL_DECISION)
+    assert outcome['demotion']['reason'] == 'critical_miss' and outcome['registry']['reason'] == 'critical_miss'
+    assert state_of(root, CRITICAL_DECISION)['mode'] == 'shadow'
+
+
+def test_a_changed_laya_checkpoint_resets_to_shadow_and_forces_a_new_gate(root):
+    fill(root, ROUTING)
+    advise_pass(root)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'newer-checkpoint'}))
+    result = advise_pass(root)
+    assert state_of(root, ROUTING)['mode'] == 'shadow' and state_of(root, ROUTING)['reason'] == 'binding_stale'
+    assert result['status'] == 'held'                           # the old records belong to the old checkpoint
+
+
+def test_skill_fit_earns_advise_from_its_own_records_with_the_fixed_policy_hash(root, registry):
+    recs = []
+    for i in range(120):
+        recs.append(make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC))
+    write_records(root, recs)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in recs])
+    result = CYCLE.run_cycle(root, NOW, registry=registry, seed=1, probe=OPEN_PROBE)['advise']['skill-fit']
+    assert result['verdict'] == 'pass' and result['registry']['status'] == 'mutated', result
+    entry = state_of(root, 'skill-fit')
+    instrument_hash = reg.advise_instrument_sha256('laya-choice-v1')
+    assert entry['mode'] == 'advise' and entry['instrumentSha256'] == instrument_hash
+    assert entry['policySha256'] == CYCLE.skill_advise_policy_sha256(instrument_hash)
+    assert reg.effective_mode('skill-fit', registry, *reg.read_state(root, registry), LAYA_REV) == 'advise'
+
+
+def test_the_skill_fit_cosign_path_is_unchanged_by_the_advise_pass(root, registry):
+    write_records(root, disagreements(45))
+    plain = CYCLE.run_cycle(root, NOW, registry=registry, seed=1, dry_run=True, advise=False)
+    with_advise = CYCLE.run_cycle(root, NOW, registry=registry, seed=1, dry_run=True, probe=OPEN_PROBE)
+    assert 'advise' not in plain and {k: v for k, v in with_advise.items() if k != 'advise'} == plain
+    assert plain['actions'] == ['would_reserve']

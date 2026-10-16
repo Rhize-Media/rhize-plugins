@@ -31,7 +31,7 @@
 const fs = require('fs');
 const path = require('path');
 const { INSTRUMENT, instrumentSha256 } = require('./laya-instrument.js');
-const { POLICIES, policySha256, defaultRoot } = require('./typed-decisions.js');
+const { POLICY_COSIGN, policySha256, defaultRoot } = require('./typed-decisions.js');
 
 const REGISTRY_SCHEMA_VERSION = 1;
 const STATE_SCHEMA_VERSION = 1;
@@ -145,7 +145,7 @@ function validateRegistry(registry) {
     }
     if (reachable.includes('cosign')) {
       if (!credential && (decisionId !== 'skill-fit' || entry.tier !== 'advisory')) fail('only advisory decisions may reach cosign');
-      enumOf(entry.deployablePolicy, Object.keys(POLICIES), 'deployablePolicy');
+      enumOf(entry.deployablePolicy, [POLICY_COSIGN, POLICY_CREDENTIAL], 'deployablePolicy');
       if (entry.instrument !== (credential ? POLICY_CREDENTIAL : INSTRUMENT)) fail('cosign requires its shipped policy instrument');
       if (!isLoopbackEndpoint(entry.endpoint)) fail('endpoint must be a literal loopback http address');
       if (entry.model !== 'typed-decisions') fail('invalid model');

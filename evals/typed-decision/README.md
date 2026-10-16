@@ -60,7 +60,7 @@ Run a small replayable 4–6-pair pilot with identical rubric and frozen fixture
 `pilot_cycle.py --research-root PRIVATE_DIRECTORY` is the daily workflow coordinator. Its automatic
 CLI processes only `workflow-pilot-v2`; historical v1 exports and frozen experiments remain intact.
 The older callable `legacy_cycle` is retained for explicit v1 fixture/exploratory compatibility,
-not selected by this CLI. Automatic `--minimum-labels` cannot be below **200**.
+not selected by this CLI. Automatic `--minimum-labels` defaults to **30** and is bounded to 20..10000 (the old 200-label floor is retired; see the advise-v1 gate below).
 
 V2 export adds `cohort_version`, `normalization_version`, `collection_source_sha256`, opaque
 `grouping_keys`, `task_family`, `host`, `candidate_ids`, human `routing_choice` and nullable
@@ -75,7 +75,7 @@ bases the private label policy accepts (human only unless the operator enables
 carry `label_basis`, `family`, `phase`, `areas`, `risk_flags`, `choice_basis` and the richer
 `stratum` (`routine`, `elevated`, `critical`; the evaluator still counts `critical*` misses).
 Only explicitly judged routing choices are scored. Slice gates (each route >=15, >=4 families
->=15, >=20 elevated or critical) apply on top of the 200 floor, and every output reports its label
+>=15, >=20 elevated or critical) apply on top of the label minimum, and every output reports its label
 bases. `research.py` accepts `label_basis` `human_adjudicated` (the default when missing) or
 `ai_model_reviewed`.
 
@@ -91,7 +91,7 @@ and tie break, exclusion mask, then threshold abstention. It does not grade thre
 answers as three independent routing decisions. V2 relevance values are uncalibrated and its
 `brier_mean` stays null; generic non-pilot choice/Noul diagnostics retain their existing semantics.
 
-In addition to 200 eligible human labels, provisional development gates apply to the **whole
+In addition to the label minimum (default 30), provisional development gates apply to the **whole
 corpus**, including the reserved holdout, and require the following. They do not guarantee these
 counts in train or validation separately:
 
@@ -127,7 +127,7 @@ job never runs a holdout, trains weights, fabricates labels or launches duplicat
 
 ### advise-v1 baseline gate (`workflow-fit`)
 
-The 200-label floor is retired. After the search, the cycle sends only the default wording (no instruction
+The 200-label floor is retired for the pilot: advise is earned by a reserved promotion cohort of at least `minCohort` = 30 cases, and the 200-case figure above remains only for the generic non-pilot research release gate (`research.py`). After the search, the cycle sends only the default wording (no instruction
 overrides, no abstention threshold; the constants `ADVICE_QUESTION`/`ADVICE_CANDIDATES`/`ADVICE_POLICY` in
 `decision_pilot_v2.py`) through one attempt of `typed_promotion.run_attempt`:
 
@@ -156,3 +156,11 @@ they are not part of the automatic pilot. Existing Arm A continues executing thr
 collection; Arm B recommendations cannot be credited with Arm A's task outcomes. `arm_a_coverage` records
 known/total incumbent choices by split; comparison remains unavailable if even one required
 incumbent choice is missing, rather than substituting a score for missing evidence.
+
+## The advise learning loop (every advise decision, plan §8)
+
+Surfaces record each advise-capable decision with `typed_advice.advise` (`<root>/<decision>/choice|snapshot|outcome/<id>.json`; `groupSha256` hashes the optional `group`, default the decision key). Three scripts close the loop; the daily autolabel job runs them in this order under its run lock.
+
+1. **Labels** (`rhize-context-manager/scripts/typed_decisions/choice_labels.py run [--decision D] [--max-cases N] [--dry-run]`). For every advise decision except `skill-fit` and `workflow-fit` (which keep their own labelers), choice records with a snapshot and no label get a blinded packet: the snapshot request re-sanitized by `pilot_redaction` (its source hash is stored as `redactor`), the question, and candidate ids with criteria under neutral shuffled keys. Laya's recommendation, probabilities, mode, arm, outcome and earlier labels never enter a packet. Two no-tools annotators (Claude and Codex through `skillfit_labels`' backend) answer independently; identical answers are accepted, a split goes to a reviewer model that is neither annotator, an unresolved review is stored as ambiguous. Labels are write-once `<root>/<decision>/label/<id>.json` (`rhize-typed-choice-label-v1`, `basis: ai_model_reviewed`, `rubricVersion`, annotators, reviewer, `evidenceSha256`). The run spends at most `maxCases` (default 50) model-labelled cases in total, shared fairly across decisions, and shares `pilot_autolabel`'s `state/run.lock` (a held lock exits quietly with zero calls). Right after the import, a critical-tier decision with an imported label that contradicts a shown advice (record mode `advise`, arm `treatment`, `criticalIfWrong`, Laya status `ok`, label not ambiguous) is demoted to `shadow` (`critical_miss`) through `decision_registry.mutate`; `no_change` and pins are recorded in the run receipt `<root>/choice-labels/receipts/`.
+2. **Cycle** (`decision_cycle.py run`). The skill-fit cosign cycle is unchanged. After it, `run_advise` handles every decision with an `advise` entry except `workflow-fit` (owned by `pilot_cycle.py`). Cases are the labelled, unambiguous records of the homogeneous cohort: the most recent record's `policySha256`, the entry's advise instrument hash and the running Laya revision. Group is `groupSha256` (falling back to the decision id); skill-fit uses the session hash and the label's `bestSkill`, with a fixed policy hash `sha256('skill-fit-advise-v1' + instrument hash)` because the Node reader checks only instrument and revision. The baseline is the tuning-split majority; Laya's answers are the ones recorded at decision time, so a Laya outage (`typed_advice.check_identity` probe) only prevents a cohort from being consumed. A pass promotes to `advise` with `{policySha256, instrumentSha256, layaRevision, cohortId}`; with `advise` in force the rolling demotion rule runs on the latest advise-arm treatment cases (`gate_demote`, or `critical_miss`). Pins, `off`, `cosign` and registry refusals are recorded holds. `--no-advise` skips the pass.
+3. **Scoreboard** (`typed_decisions/scoreboard.py render`). One advise row per decision: mode, labelled n, last verdict, accuracy vs baseline, CP lower bound, coverage, critical cases and misses, attempts used and the next alpha.

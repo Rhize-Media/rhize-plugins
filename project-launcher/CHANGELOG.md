@@ -6,7 +6,7 @@ Entries before 2026-09-03 live in [docs/release/CHANGELOG-history.md](../docs/re
 
 ### Added
 
-- _2026-10-16_ GSD directive advice: local-Laya `supervise` now asks the `gsd-directive` decision through the shared `typed_advice.py` (fixes the dead advisory path that sent only noul questions), suppresses `finish_candidate` until checks and review pass, records `critical_if_wrong` from trusted state, and shows advice only when the registry earns `advise`. `install` copies `typed_advice.py` and takes `--local-laya`; new `outcome` command; SubagentStart text is mode-aware; SubagentStop records a proxy outcome and never adds a block; `status` reports the effective mode. Hosted Jev is unchanged.
+- _2026-10-16_ GSD directive advice: local-Laya `supervise` now asks the `gsd-directive` decision through the shared `typed_advice.py` (fixes the dead advisory path that sent only noul questions), suppresses `finish_candidate` until checks and review pass, records `critical_if_wrong` from trusted state, and shows advice only when the registry earns `advise`. `install` copies `typed_advice.py` and takes `--local-laya`; new `outcome` command; SubagentStart text is mode-aware; SubagentStop records no outcome and never adds a block; `status` reports the effective mode. Hosted Jev is unchanged.
 - _2026-10-10_ version bump — 1.13.0 → 1.14.0 (minor); marketplace 2.101.1 → 2.102.0.
 - _2026-10-10_ Router: rhize-visual-plan drops the generic `review` topic, which sent "weekly review"/"literature review" prompts to it.
 - _2026-10-10_ version bump — 1.12.0 → 1.13.0 (minor); marketplace 2.100.4 → 2.101.0.

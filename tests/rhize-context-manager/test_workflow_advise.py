@@ -281,7 +281,14 @@ def test_skill_fit_record_accepts_advise_mode_and_keeps_the_incumbent_emitted():
     from typed_decisions import contract
     record = make_record(1, mode='advise', choice=ALT1)  # Laya disagrees; the incumbent is still the shown payload
     assert record['mode'] == 'advise' and record['emitted'] == record['incumbent']['skillId']
+    assert record['policy'] == 'advise-v1' and record['policySha256'] == contract.policy_sha256('advise-v1')
     assert contract.validate_record(record) is record
+    for policy in ('cosign-v1', 'credential-cli-v1'):  # advise-v1 is the policy of advise records, and only theirs
+        with pytest.raises(ValueError, match='advise-v1'):
+            contract.validate_record({**record, 'policy': policy, 'policySha256': contract.policy_sha256(policy)})
+    shadow = make_record(2)
+    with pytest.raises(ValueError, match='advise-v1'):
+        contract.validate_record({**shadow, 'policy': 'advise-v1', 'policySha256': contract.policy_sha256('advise-v1')})
     record['emitted'] = None if record['emitted'] else record['emitted']
     record['mode'] = 'unknown-mode'
     with pytest.raises(ValueError):

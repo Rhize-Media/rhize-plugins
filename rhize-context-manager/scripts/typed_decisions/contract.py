@@ -50,11 +50,13 @@ AUDIT_ACTORS = ('cli', 'cycle', 'recovery')
 
 POLICY_COSIGN = 'cosign-v1'
 POLICY_CREDENTIAL = 'credential-cli-v1'
+POLICY_ADVISE = 'advise-v1'  # the baseline gate earns it; typed_advice binds its own per-surface hash
 POLICIES = {POLICY_COSIGN: 'emit the incumbent router suggestion iff laya.status == "ok" and laya.choice '
                            '== incumbent.skillId; otherwise emit no router suggestion',
             POLICY_CREDENTIAL: 'emit only a fixed allowed credential CLI procedure selected by Laya; '
-                               'otherwise retain deterministic CLI-first guidance; never grant permissions or clear a deny'}
-POLICY_ADVISE = 'advise-v1'  # advise-v1 is set by the baseline gate; its per-surface hash lives in typed_advice
+                               'otherwise retain deterministic CLI-first guidance; never grant permissions or clear a deny',
+            POLICY_ADVISE: "show Laya's choice as an advisory line next to the unchanged incumbent output when earned; "
+                           'never suppress or alter the incumbent'}
 ADVISE_GATE = 'majority-baseline'
 ADVISE_INSTRUMENTS = ('typed-advice-v1', 'laya-choice-v1')
 MIN_CRITICAL_ADVISE_CASES = 10
@@ -234,6 +236,8 @@ def validate_record(record: dict) -> dict:
     if not isinstance(record['layaRevision'], str) or not REVISION.match(record['layaRevision']):
         raise ValueError('invalid layaRevision')
     _enum(record['mode'], ('shadow', 'advise', 'cosign'), 'mode')
+    if (record['mode'] == 'advise') != (record['policy'] == POLICY_ADVISE):
+        raise ValueError('advise-v1 is the policy of advise records only')
     _enum(record['arm'], ARMS, 'arm')
     if record['basis'] == 'backfill':
         if record['arm'] != 'none' or record['propensity'] is not None or record['mode'] != 'shadow':
@@ -401,7 +405,7 @@ def validate_cohort_event(event: dict) -> dict:
     _enum(event['decision'], RECORDED_DECISIONS, 'decision')
     _ts(event['at'], 'at')
     if event['event'] == 'reserve':
-        _enum(event['policy'], tuple(POLICIES), 'policy')
+        _enum(event['policy'], (POLICY_COSIGN, POLICY_CREDENTIAL), 'policy')  # cohorts are never advise
         if event['policySha256'] != policy_sha256(event['policy']):
             raise ValueError('policySha256 mismatch')
         _hex64(event['instrumentSha256'], 'instrumentSha256')
@@ -448,6 +452,7 @@ def validate_cohort_event(event: dict) -> dict:
 CHOICE_RECORD_KEYS = ('schema', 'decision', 'decisionId', 'ts', 'mode', 'arm', 'tier', 'policySha256',
                       'instrumentSha256', 'layaRevision', 'candidates', 'criticalIfWrong', 'requestSha256', 'files',
                       'laya')
+CHOICE_RECORD_OPTIONAL = ('groupSha256',)   # session-like split unit; records written before it existed lack it
 CHOICE_LAYA_KEYS = ('status', 'choice', 'probabilities', 'latencyMs')
 CHOICE_LAYA_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'identity_failed', 'redirect_refused')
 CHOICE_OUTCOME_KEYS = ('schema', 'decision', 'decisionId', 'chosen', 'followed', 'ts')
@@ -458,7 +463,10 @@ MAX_CHOICE_FILES = 20
 
 def validate_choice_record(record: dict) -> dict:
     """The write-once record typed_advice.advise() stores at <root>/<decision>/choice/<decisionId>.json."""
-    _keys(record, CHOICE_RECORD_KEYS, 'choice record')
+    _keys({k: v for k, v in record.items() if k not in CHOICE_RECORD_OPTIONAL} if isinstance(record, dict) else record,
+          CHOICE_RECORD_KEYS, 'choice record')
+    if 'groupSha256' in record:
+        _hex64(record['groupSha256'], 'groupSha256')
     if record['schema'] != CHOICE_RECORD_SCHEMA:
         raise ValueError('invalid schema')
     _enum(record['decision'], ADVISE_DECISIONS, 'decision')
@@ -587,7 +595,7 @@ def validate_registry(registry: dict) -> dict:
         if 'cosign' in reachable:
             if not credential and (decision_id != 'skill-fit' or entry['tier'] != 'advisory'):
                 raise ValueError('only advisory decisions may reach cosign')
-            _enum(entry['deployablePolicy'], tuple(POLICIES), 'deployablePolicy')
+            _enum(entry['deployablePolicy'], (POLICY_COSIGN, POLICY_CREDENTIAL), 'deployablePolicy')
             if entry['instrument'] != (POLICY_CREDENTIAL if credential else INSTRUMENT):
                 raise ValueError('cosign requires its shipped policy instrument')
             endpoint_match = ENDPOINT.match(entry['endpoint']) if isinstance(entry['endpoint'], str) else None

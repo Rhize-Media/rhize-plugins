@@ -465,19 +465,6 @@ def status(project: Path) -> dict:
     return {"status": "ready" if installed and mapped and hooked and fresh else "blocked", "installed": installed, "mapped": mapped, "hooked": hooked, "fresh_probe": fresh, **decision_mode()}
 
 
-def stop_outcome(receipt: dict) -> None:
-    """Best-effort outcome capture at SubagentStop: the incumbent directive stands as what the agent worked under.
-
-    Write-once, so an explicit `outcome` call made earlier wins. Never raises and never affects the hook result.
-    """
-    try:
-        advice = advice_module()
-        if advice is not None and receipt.get("decision_id") and receipt.get("candidate_directive"):
-            advice.record_outcome(GSD_DECISION, receipt["decision_id"], receipt["candidate_directive"])
-    except Exception:  # noqa: BLE001
-        pass
-
-
 def hook(project: Path, event: str, payload: dict) -> dict:
     agent_type = payload.get("agent_type")
     agent_id = payload.get("agent_id")
@@ -506,7 +493,6 @@ def hook(project: Path, event: str, payload: dict) -> dict:
                     continue
                 if (item.get("agent_id") == agent_id and item.get("checkpoint") == agent_type
                         and item.get("question_ids") == sorted(SUPERVISOR_CHECKS[agent_type])):
-                    stop_outcome(item)
                     return {}
     return {"decision": "block", "reason": f"Call the typed decision client for {agent_type} with --agent-id {agent_id}, then finish. Record unavailable/fallback if the provider fails."}
 

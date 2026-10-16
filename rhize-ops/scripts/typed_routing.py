@@ -152,6 +152,13 @@ def advise_routing(value: dict, endpoint: str, store=None, call=None) -> dict:
             "advice": line, "variant": "B_laya_advice" if line else "A_incumbent"}
 
 
+def read_envelope():
+    raw = sys.stdin.buffer.read(32769)
+    if len(raw) > 32768:
+        raise ValueError("routing envelope too large")
+    return json.loads(raw)
+
+
 def outcome_main(argv) -> int:
     parser = argparse.ArgumentParser(prog="typed_routing.py outcome")
     parser.add_argument("--decision-id", required=True)
@@ -180,10 +187,7 @@ def main() -> int:
         return 0
     if args.mode == "advise":
         try:
-            raw = sys.stdin.buffer.read(32769)
-            if len(raw) > 32768:
-                raise ValueError("routing envelope too large")
-            output = advise_routing(json.loads(raw), args.base_url)
+            output = advise_routing(read_envelope(), args.base_url)
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             output = {"schema": SCHEMA, "status": "unavailable", "variant": "A_incumbent",
                       "reasonCode": type(exc).__name__, "recommendation": None, "advice": "",
@@ -191,10 +195,7 @@ def main() -> int:
         print(json.dumps(output, sort_keys=True))
         return 0
     try:
-        raw = sys.stdin.buffer.read(32769)
-        if len(raw) > 32768:
-            raise ValueError("routing envelope too large")
-        output = assess(json.loads(raw), args.model, args.base_url)
+        output = assess(read_envelope(), args.model, args.base_url)
     except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
         output = {"schema": SCHEMA, "status": "unavailable", "variant": "A_incumbent",
                   "reasonCode": type(exc).__name__, "dispatchOccurred": False}

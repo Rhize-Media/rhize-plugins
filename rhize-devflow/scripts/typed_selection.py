@@ -18,7 +18,7 @@ import uuid
 from pathlib import Path
 
 import typed_advice
-from typed_checkpoint import call_laya, outcome_main
+from typed_checkpoint import advice_fields, call_laya, outcome_main
 
 SCHEMA = "rhize-devflow-typed-selection-v1"
 PROFILES = {"tool_trace_risk": 6, "browser_qa": 8}
@@ -118,9 +118,7 @@ def advise_selection(state: dict) -> dict:
                + "; ".join(f"{item['id']}[{','.join(item['hints'])}]" for item in state["candidates"]))
     result = typed_advice.advise(DECISION, request, candidates, f"{state['sourceSha256']}:browser_qa",
                                  critical_if_wrong=False, question=QUESTION, policy=POLICY)
-    return {"schema": SCHEMA, "decisionId": result["decisionId"], "mode": result["mode"],
-            "holdback": result["holdback"], "recommendation": result["recommendation"],
-            "advice": typed_advice.advice_line(DECISION, result, "browser QA surface"),
+    return {"schema": SCHEMA, **advice_fields(DECISION, result, "browser QA surface"),
             "capability": state["capability"], "sourceSha256": state["sourceSha256"],
             "incumbentIds": state["incumbentIds"], "actionTaken": False, "hardGateChanged": False}
 

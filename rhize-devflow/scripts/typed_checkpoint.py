@@ -118,6 +118,13 @@ def read_side_file(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace")
 
 
+def advice_fields(decision: str, result: dict, label: str) -> dict:
+    """The output fields every devflow advise CLI shares: the decision, the earned recommendation and its line."""
+    return {"decisionId": result["decisionId"], "mode": result["mode"], "holdback": result["holdback"],
+            "recommendation": result["recommendation"],
+            "advice": typed_advice.advice_line(decision, result, label)}
+
+
 def advise_checkpoint(stage: str, state: dict, evidence_sha256: str, summary: str = "",
                       files: tuple = ()) -> dict:
     """Ask Laya for an advisory next action. The deterministic hard gates only decide how critical a wrong
@@ -133,9 +140,7 @@ def advise_checkpoint(stage: str, state: dict, evidence_sha256: str, summary: st
     result = typed_advice.advise(DECISION, request, CANDIDATES, f"{evidence_sha256}:{stage}",
                                  critical_if_wrong=critical, question=QUESTION, policy=POLICY,
                                  files=list(files))
-    return {"decisionId": result["decisionId"], "mode": result["mode"], "holdback": result["holdback"],
-            "recommendation": result["recommendation"],
-            "advice": typed_advice.advice_line(DECISION, result, "next action"),
+    return {**advice_fields(DECISION, result, "next action"),
             "stage": stage, "criticalIfWrong": critical, "gates": gates, "gateChanged": False}
 
 

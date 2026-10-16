@@ -34,8 +34,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / 'rhize-context-manager' / 'scripts'))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from typed_decisions import cohorts, contract, decision_registry, locked_io, records  # noqa: E402
+import typed_advice  # noqa: E402
+import typed_promotion  # noqa: E402
+from typed_decisions import advise_ledger, choice_labels, cohorts, contract, decision_registry, locked_io, records  # noqa: E402
 
 DECISION = 'skill-fit'
 RECEIPT_SCHEMA = 'rhize-typed-decision-cycle-receipt-v1'
@@ -330,7 +333,7 @@ def _try_mutate(root, registry, to_mode, reason, revision, binding, now, actions
     return new_state
 
 
-def run_cycle(root, now=None, dry_run: bool = False, seed=None, registry=None) -> dict:
+def run_cycle(root, now=None, dry_run: bool = False, seed=None, registry=None, advise: bool = True, probe=None) -> dict:
     root = Path(root)
     now = locked_io.utc(now)
     registry = registry if registry is not None else decision_registry.load_registry()
@@ -341,7 +344,10 @@ def run_cycle(root, now=None, dry_run: bool = False, seed=None, registry=None) -
         if lock_fd is None:
             return {'status': 'held', 'reason': 'cycle_busy', 'dryRun': False}
     try:
-        return _run(root, now, dry_run, seed, registry)
+        result = _run(root, now, dry_run, seed, registry)
+        if advise:
+            result['advise'] = run_advise(root, now, dry_run, registry, probe)
+        return result
     finally:
         locked_io.release_lock(lock_fd)
 
@@ -512,6 +518,182 @@ def _write_receipt(root, receipt: dict) -> Path:
     raise RuntimeError('could not allocate a cycle receipt name')
 
 
+# ---------------------------------------------------------------- advise (majority-baseline gate, plan §3, §8)
+
+WORKFLOW_FIT = 'workflow-fit'               # pilot_cycle.py owns its gate
+DEMOTION_FILE = 'advise-demotion.json'
+SKILL_ADVISE_POLICY = 'skill-fit-advise-v1'
+
+
+def skill_advise_policy_sha256(instrument_sha256: str) -> str:
+    """skill-fit has one fixed advise surface: the Node reader checks only instrument and Laya revision for it, so
+    the binding's policy hash is this constant, not a per-surface question hash."""
+    return hashlib.sha256((SKILL_ADVISE_POLICY + instrument_sha256).encode('utf-8')).hexdigest()
+
+
+def _choice_rows(root, decision, instrument_sha, revision):
+    """(policy hash, rows) for a generic decision: labelled, unambiguous cases of the current homogeneous cohort
+    (the most recent record's policy, the entry's advise instrument, the running Laya revision)."""
+    recs = choice_labels.read_choice_records(root, decision)
+    if not recs:
+        return None, []
+    policy = recs[-1]['policySha256']
+    labels = choice_labels.read_labels(root, decision)
+    rows = []
+    for rec in recs:
+        label = labels.get(rec['decisionId'])
+        if (label is None or label['ambiguous'] or rec['policySha256'] != policy or label['label'] not in rec['candidates']
+                or rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision):
+            continue
+        rows.append({'id': rec['decisionId'], 'group': rec.get('groupSha256') or rec['decisionId'],
+                     'label': label['label'], 'critical_if_wrong': rec['criticalIfWrong'], 'choice': rec['laya']['choice'],
+                     'status': rec['laya']['status'], 'mode': rec['mode'], 'arm': rec['arm'], 'ts': rec['ts']})
+    return policy, rows
+
+
+def _skill_rows(root, instrument_sha, revision):
+    recs, _ = cohorts.load_records(root)
+    labels, _ = cohorts.load_labels(root)
+    by_key = {}
+    for label in labels:
+        if label['basis'] != 'harness' and not label['ambiguous']:
+            by_key.setdefault(label['occurrenceKey'], label)
+    rows = []
+    for rec in cohorts.gate_records(recs):
+        label = by_key.get(rec['occurrenceKey'])
+        if label is None or rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision:
+            continue
+        rows.append({'id': rec['occurrenceKey'], 'group': rec['sessionHash'], 'label': label['bestSkill'],
+                     'critical_if_wrong': False, 'choice': rec['laya']['choice'], 'status': rec['laya']['status'],
+                     'mode': rec['mode'], 'arm': rec['arm'], 'ts': rec['ts']})
+    return skill_advise_policy_sha256(instrument_sha), sorted(rows, key=lambda r: (r['ts'], r['id']))
+
+
+def _advise_mutate(root, registry, decision, to_mode, reason, revision, binding, now):
+    """The single mutation path; a refusal is a recorded hold, never a crash."""
+    try:
+        state = decision_registry.mutate(root, decision, to_mode, actor='cycle', reason=reason, expected_revision=revision,
+                                         binding=binding, now=now, registry=registry)
+        return {'status': 'mutated', 'to': to_mode, 'reason': reason, 'revision': state['revision']}
+    except decision_registry.RegistryError as err:
+        return {'status': 'held', 'to': to_mode, 'code': err.code}
+
+
+def _demote_check(root, registry, decision, cfg, critical, rows, saved, revision, now, dry_run):
+    """Rolling live check of an earned advise on the latest labelled advise-arm treatment cases (plan §3.7)."""
+    window = [r for r in rows if r['mode'] == 'advise' and r['arm'] == 'treatment']
+    path = Path(root) / decision / DEMOTION_FILE
+    try:
+        stored = locked_io.read_json_file(path)
+        history, seen = list(stored['history']), set(stored['seen'])
+    except (OSError, ValueError, KeyError, TypeError):
+        history, seen = [], set()
+    latest = window[-cfg['demote']['window']:]
+    ids = [r['id'] for r in latest]
+    reserved = [e for e in advise_ledger.read(root, decision) if e['event'] == 'reserve' and e['cohortId'] == saved.get('cohortId')]
+    outcome = typed_promotion.demotion(
+        latest, len(set(ids) - seen), history, baseline=reserved[0].get('baseline') if reserved else None,
+        critical=critical, window=cfg['demote']['window'], fresh_labels=cfg['demote']['freshLabels'],
+        consecutive=cfg['demote']['consecutive'])
+    result = {'status': 'evaluated', 'branch': 'demotion', 'earnedMode': 'advise', 'registry': None,
+              'demotion': {k: v for k, v in outcome.items() if k != 'history'}}
+    if not dry_run and (outcome['evaluated'] or outcome['demote']):
+        locked_io.write_private_atomic(path, json.dumps({'history': outcome['history'], 'seen': sorted(ids)}).encode())
+    if outcome['demote']:
+        reason = 'critical_miss' if outcome['reason'] == 'critical_miss' else 'gate_demote'
+        if dry_run:
+            result['registry'] = {'status': 'would_mutate', 'to': 'shadow', 'reason': reason}
+        else:
+            result['registry'] = _advise_mutate(root, registry, decision, 'shadow', reason, revision, None, now)
+            if result['registry']['status'] == 'mutated':
+                result['earnedMode'] = 'shadow'
+    return result
+
+
+def _advise_one(root, registry, decision, state, status, revision_laya, now, dry_run, probe):
+    entry = registry['decisions'][decision]
+    cfg, critical = entry['advise'], entry['tier'] == 'critical'
+    if status == 'corrupt':
+        return {'status': 'held', 'reason': 'registry_state_corrupt'}
+    saved = ((state or {}).get('decisions') or {}).get(decision) or {}
+    mode, revision = saved.get('mode', entry['defaultMode']), state['revision'] if state else 0
+    if saved.get('pinned'):
+        return {'status': 'held', 'reason': 'pinned'}
+    if mode in ('off', 'cosign'):
+        return {'status': 'held', 'reason': 'mode_' + mode}
+    if revision_laya == 'unknown':
+        return {'status': 'held', 'reason': 'laya_revision_unknown'}
+    instrument_sha = decision_registry.advise_instrument_sha256(cfg['instrument'])
+    policy, rows = (_skill_rows(root, instrument_sha, revision_laya) if decision == DECISION
+                    else _choice_rows(root, decision, instrument_sha, revision_laya))
+    if mode == 'advise':
+        bound = (decision_registry.effective_mode(decision, registry, state, status, revision_laya) == 'advise'
+                 and saved.get('policySha256') == policy)
+        if bound:
+            return _demote_check(root, registry, decision, cfg, critical, rows, saved, revision, now, dry_run)
+        # A stale binding already reads as shadow at runtime; say so in the state so the gate can earn it again.
+        if dry_run:
+            return {'status': 'held', 'reason': 'would_reset_stale_binding'}
+        moved = _advise_mutate(root, registry, decision, 'shadow', 'binding_stale', revision, None, now)
+        if moved['status'] != 'mutated':
+            return {'status': 'held', 'reason': 'registry_refused', 'registry': moved}
+        revision = moved['revision']
+    tuning = [r['label'] for r in rows if typed_promotion.split_of(r['group']) == 'tuning']
+    baseline = typed_promotion.majority(tuning)
+    if baseline is None:
+        return {'status': 'held', 'reason': 'no_tuning_cases', 'labelled': len(rows)}
+    by_id = {r['id']: r for r in rows}
+
+    def predict_one(case):
+        row = by_id[case['id']]
+        if row['status'] != 'ok':
+            raise RuntimeError('laya_unavailable_when_recorded')
+        return row['choice']
+
+    probe = probe or (lambda: typed_advice.check_identity(entry.get('endpoint') or typed_advice.ENDPOINT))
+    cases = [{k: r[k] for k in ('id', 'group', 'label', 'critical_if_wrong')} for r in rows]
+    receipt = typed_promotion.run_attempt(
+        root, decision, cases, policy_sha=policy, instrument_sha=instrument_sha, laya_revision=revision_laya,
+        gate_cfg=cfg, prior={k: tuning.count(k) for k in set(tuning)}, baseline=baseline, critical=critical, now=now,
+        dry_run=dry_run, predict_one=predict_one, probe=probe)
+    if receipt['status'] == 'held':
+        return {**receipt, 'earnedMode': 'shadow'}
+    result = {'status': receipt['status'], 'earnedMode': 'shadow', 'registry': None,
+              **{k: receipt[k] for k in ('verdict', 'reasons', 'stats', 'cohortId', 'attempt', 'alpha', 'baseline')}}
+    if receipt['verdict'] == 'pass':
+        binding = {'policySha256': policy, 'instrumentSha256': instrument_sha, 'layaRevision': revision_laya,
+                   'cohortId': receipt['cohortId']}
+        if dry_run:
+            result['registry'] = {'status': 'would_mutate', 'to': 'advise', 'reason': 'gate_pass'}
+        else:
+            result['registry'] = _advise_mutate(root, registry, decision, 'advise', 'gate_pass', revision, binding, now)
+            if result['registry']['status'] == 'mutated':
+                result['earnedMode'] = 'advise'
+    return result
+
+
+def run_advise(root, now=None, dry_run: bool = False, registry=None, probe=None) -> dict:
+    """One advise pass over every decision with an `advise` entry except workflow-fit (pilot_cycle.py owns it):
+    earn advise through the baseline gate, or run the rolling demotion check on an earned one. Laya's answers come
+    from the stored choice records, so `probe` (Laya availability; default typed_advice.check_identity) only
+    keeps an outage from consuming a cohort. Failures are recorded per decision, never raised."""
+    root, now = Path(root), locked_io.utc(now)
+    registry = registry if registry is not None else decision_registry.load_registry()
+    state, status = decision_registry.read_state(root, registry)
+    revision_laya = records.laya_revision(root)
+    out = {}
+    for decision, entry in registry['decisions'].items():
+        if not entry.get('advise') or decision == WORKFLOW_FIT:
+            continue
+        try:
+            out[decision] = _advise_one(root, registry, decision, state, status, revision_laya, now, dry_run, probe)
+        except (decision_registry.RegistryError, OSError, ValueError) as err:
+            out[decision] = {'status': 'held', 'reason': 'error', 'error': getattr(err, 'code', type(err).__name__)}
+        if (out[decision].get('registry') or {}).get('status') == 'mutated':
+            state, status = decision_registry.read_state(root, registry)   # a later decision sees the new revision
+    return out
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description='Run one earned-authority cycle for skill-fit.')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -519,6 +701,7 @@ def main(argv=None) -> int:
     run.add_argument('--root', help='typed-decisions data root (default: RHIZE_TYPED_DECISIONS_ROOT or ~/.local/share/rhize/typed-decisions)')
     run.add_argument('--now', help='ISO-8601 time with timezone (default: now)')
     run.add_argument('--dry-run', action='store_true', help='compute everything, write nothing, call no mutation')
+    run.add_argument('--no-advise', action='store_true', help='skip the advise pass (skill-fit cosign only)')
     run.add_argument('--seed', help='cohort sampling and bootstrap seed (default 0, so reruns on the same data agree)')
     args = parser.parse_args(argv)
     root = Path(args.root) if args.root else records.default_root()
@@ -526,7 +709,7 @@ def main(argv=None) -> int:
     if args.seed is not None:
         seed = int(args.seed) if args.seed.lstrip('-').isdigit() else args.seed
     try:
-        result = run_cycle(root, args.now, args.dry_run, seed)
+        result = run_cycle(root, args.now, args.dry_run, seed, advise=not args.no_advise)
     except (OSError, ValueError, decision_registry.RegistryError) as err:
         print(json.dumps({'status': 'error', 'error': str(err)}, sort_keys=True))
         return 2

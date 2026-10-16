@@ -514,8 +514,12 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
         if run_dir.is_symlink(): raise ValueError('symlink attempt refused')
         if run_dir.exists():
             status = run_dir / 'status.json'
-            return {'status': 'unchanged', 'runId': key,
-                    'previous': read_json(status) if status.is_file() else {'status': 'interrupted'}}
+            previous = read_json(status) if status.is_file() else {'status': 'interrupted'}
+            if previous.get('reason') != 'laya_unavailable':
+                return {'status': 'unchanged', 'runId': key, 'previous': previous}
+            # An outage held before any cohort was reserved; it is no evidence about this corpus. Keep the
+            # receipt aside and retry instead of reporting the corpus as processed.
+            run_dir.rename(version_root / f'{key}.laya-unavailable-{time.time_ns()}')
         run_dir.mkdir(mode=0o700)
         state = {'status': 'started', 'cohort': COHORT, 'runId': key, 'versions': versions,
                  'sourcesSha256': sources_sha, 'provenance': provenance, 'legacyMembershipSha256': legacy_sha,

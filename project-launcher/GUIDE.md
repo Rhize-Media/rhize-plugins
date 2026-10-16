@@ -186,8 +186,8 @@ unless checks and review passed, and ~15% of keys are a holdback that never sees
 `advice` line only when the central registry (`registry-state.json`, written by Context Manager) has earned
 `advise` for the decision; any mismatch reads as `shadow`. The line is advisory text: verification, hooks and
 approval gates are untouched (tested). `outcome --decision-id <id> --chosen <directive>` records the real action
-(write-once); at SubagentStop the hook records the deterministic `candidate_directive` as a proxy outcome if the
-agent did not, and never adds a block. `status` reports `configured_mode`, `effective_mode` and `local_laya`.
+(write-once) and is the only way an outcome is recorded; the SubagentStop hook records none and never adds a
+block. `status` reports `configured_mode`, `effective_mode` and `local_laya`.
 Hosted Jev keeps the existing observational path with no advice call.
 
 Foreman-style multi-check results and a deterministic candidate directive are

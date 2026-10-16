@@ -868,6 +868,8 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     assert.strictEqual(outA.stdout, INCUMBENT_LINE);
     const [recA] = assertRecordsValid(scA, 1);
     assert.strictEqual(recA.mode, 'advise');
+    assert.strictEqual(recA.policy, 'advise-v1');
+    assert.strictEqual(recA.policySha256, td.policySha256('advise-v1'));
     assert.strictEqual(recA.arm, 'treatment');
     assert.strictEqual(recA.emitted, SKILL.ctx);
     await agree.close();

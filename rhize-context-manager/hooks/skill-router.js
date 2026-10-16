@@ -57,9 +57,11 @@
 // non-explicit router suggestion the hook asks the local Laya server (literal
 // loopback only, see lib/laya-client.js) which of the lexical top-5 skills (or
 // none) fits the prompt. In mode `cosign`, in the treatment arm, a suggestion
-// Laya does not independently choose is withheld; in every other case (mode
-// `shadow`, the holdback arm, any Laya failure or deadline expiry, any
-// exception) the precomputed incumbent payload is emitted unchanged. The
+// Laya does not independently choose is withheld. In mode `advise` (treatment
+// arm) the incumbent payload is kept and, where Laya picks another skill, one
+// advisory line is appended; those records carry policy `advise-v1`. In every
+// other case (mode `shadow`, the holdback arm, any Laya failure or deadline
+// expiry, any exception) the precomputed incumbent payload is emitted unchanged. The
 // payload is settled exactly once and flushed before any logging or exit, and
 // one decision record (no prompt text) is appended per eligible prompt.
 //
@@ -676,6 +678,7 @@ function routerSourceSha256() {
 }
 
 function buildRecord(state, plan, laya, shown) {
+  const policy = plan.config.mode === 'advise' ? L.td.POLICY_ADVISE : L.td.POLICY_COSIGN;
   return {
     schema: L.td.RECORD_SCHEMA,
     decision: DECISION,
@@ -691,8 +694,8 @@ function buildRecord(state, plan, laya, shown) {
     routerSourceSha256: routerSourceSha256(),
     indexSha256: L.sha256Hex(JSON.stringify(state.routerIndex)),
     registryRevision: plan.config.registryRevision,
-    policy: L.td.POLICY_COSIGN,
-    policySha256: L.td.policySha256(),
+    policy,
+    policySha256: L.td.policySha256(policy),
     instrument: L.INSTRUMENT,
     instrumentSha256: plan.built.instrumentSha256,
     criteriaSha256: plan.built.criteriaSha256,

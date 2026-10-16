@@ -483,7 +483,7 @@ def test_typed_advice_records_validate_against_the_contract(root, catalog):
 
 @pytest.mark.parametrize('change', [
     {'schema': 'x'}, {'decision': 'nope'}, {'mode': 'cosign'}, {'arm': 'none'}, {'candidates': ['only-one']},
-    {'candidates': ['a', 'a']}, {'files': 21}, {'files': True}, {'requestSha256': 'abc'}, {'extra': 1},
+    {'candidates': ['a', 'a']}, {'files': 21}, {'files': True}, {'requestSha256': 'abc'}, {'extra': 1}, {'groupSha256': 'nothex'},
     {'laya': {'status': 'ok', 'choice': 'zzz', 'probabilities': {'a': 1.0, 'b': 0.0}, 'latencyMs': 1}},
     {'laya': {'status': 'ok', 'choice': 'a', 'probabilities': {'a': 1.0}, 'latencyMs': 1}},
     {'laya': {'status': 'timeout', 'choice': 'a', 'probabilities': None, 'latencyMs': 1}},
@@ -535,7 +535,8 @@ def test_json_schemas_agree_with_the_contract_constants():
         assert branch['properties']['toMode']['enum'] == list(contract.MODES)
         assert branch['properties']['fromMode']['anyOf'][0]['enum'] == list(contract.MODES)
     record, outcome = schema('typed-choice-record-v1'), schema('typed-choice-outcome-v1')
-    assert set(record['required']) == set(contract.CHOICE_RECORD_KEYS) == set(record['properties'])
+    assert set(record['required']) == set(contract.CHOICE_RECORD_KEYS)
+    assert set(record['properties']) == set(contract.CHOICE_RECORD_KEYS) | set(contract.CHOICE_RECORD_OPTIONAL)
     assert record['properties']['laya']['required'] == list(contract.CHOICE_LAYA_KEYS)
     assert record['properties']['laya']['properties']['status']['enum'] == list(contract.CHOICE_LAYA_STATUSES)
     assert record['properties']['decision']['enum'] == list(contract.ADVISE_DECISIONS)

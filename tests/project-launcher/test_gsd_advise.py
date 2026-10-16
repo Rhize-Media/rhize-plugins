@@ -223,17 +223,18 @@ class GsdAdviseTests(unittest.TestCase):
         self.assertEqual(with_advice[0]["decision"], "block")
         self.assertEqual(with_advice[1], {})
 
-    def test_stop_hook_records_outcome_and_survives_outcome_failure(self):
+    def test_stop_hook_records_no_outcome(self):
+        # Only the explicit `outcome` command records one: the incumbent directive is never a proxy for what was done.
         self.bind()
         agent_id = self.agent(False)
         payload = {"agent_type": CHECKPOINT, "agent_id": agent_id}
         with laya_server() as base, self.env(base):
             result = MODULE.supervise(self.project, CHECKPOINT, FAILING, agent_id=agent_id)
-            self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload), {})
-            stored = ADVICE.load(MODULE.GSD_DECISION, result["decision_id"], kind="outcome", store=self.store)
-            self.assertEqual(stored["chosen"], result["candidate_directive"])
-            with patch.object(ADVICE, "record_outcome", side_effect=RuntimeError("disk")):
+            with patch.object(ADVICE, "record_outcome") as record:
                 self.assertEqual(MODULE.hook(self.project, "SubagentStop", payload), {})
+            record.assert_not_called()
+            self.assertIsNone(ADVICE.load(MODULE.GSD_DECISION, result["decision_id"], kind="outcome", store=self.store))
+            self.assertEqual(MODULE.record_outcome(result["decision_id"], result["candidate_directive"]), {"status": "recorded"})
 
     def test_stop_hook_without_receipt_still_blocks_once(self):
         payload = {"agent_type": CHECKPOINT, "agent_id": "never-called"}

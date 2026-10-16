@@ -303,6 +303,20 @@ def test_a_laya_outage_holds_before_reserving_a_cohort(tmp_path, monkeypatch):
     assert ledger_events(tmp_path) == [] and registry_state(tmp_path) is None
 
 
+def test_a_laya_outage_hold_does_not_mark_the_corpus_processed(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    live_url = cycle.LAYA_URL
+    with socket.socket() as closed:
+        closed.bind(('127.0.0.1', 0))
+        monkeypatch.setattr(cycle, 'LAYA_URL', f'http://127.0.0.1:{closed.getsockname()[1]}')
+    assert run_cycle(tmp_path, call=None)['reason'] == 'laya_unavailable'
+    monkeypatch.setattr(cycle, 'LAYA_URL', live_url)
+    retry = run_cycle(tmp_path)                                       # Laya is back: the same corpus is attempted again
+    assert retry['status'] == 'review_required' and retry['promotion']['verdict'] == 'pass'
+    assert run_cycle(tmp_path)['status'] == 'unchanged'               # a real verdict still marks it processed
+    assert list((tmp_path / 'research').rglob('*.laya-unavailable-*'))   # the outage receipt is kept aside
+
+
 def test_accurate_default_wording_earns_advise_through_the_registry(tmp_path, monkeypatch):
     corpus(monkeypatch, [case(i) for i in range(150)])
     result = run_cycle(tmp_path)

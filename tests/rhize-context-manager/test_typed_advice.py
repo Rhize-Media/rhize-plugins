@@ -321,6 +321,12 @@ def test_unknown_decision_and_empty_key_raise(tmp_path):
                       policy=POLICY, store=tmp_path, call=Laya())
 
 
+def test_group_is_stored_hashed_and_defaults_to_the_key(tmp_path):
+    write_state(tmp_path)
+    result = run(tmp_path, Laya(), group='session-7')
+    assert ta.load('skill-fit', result['decisionId'], store=tmp_path)['groupSha256'] == ta.sha256('session-7')
+
+
 def test_record_has_the_documented_fields_and_no_raw_request_text(tmp_path):
     write_state(tmp_path)
     laya = Laya()
@@ -329,7 +335,8 @@ def test_record_has_the_documented_fields_and_no_raw_request_text(tmp_path):
     record = json.loads(path.read_text())
     assert set(record) == {'schema', 'decision', 'decisionId', 'ts', 'mode', 'arm', 'tier', 'policySha256',
                            'instrumentSha256', 'layaRevision', 'candidates', 'criticalIfWrong', 'requestSha256',
-                           'files', 'laya'}
+                           'files', 'groupSha256', 'laya'}
+    assert record['groupSha256'] == ta.sha256(key_for('skill-fit', False))
     assert record['schema'] == 'rhize-typed-choice-record-v1' and record['decision'] == 'skill-fit'
     assert record['tier'] == 'advisory' and record['arm'] == 'treatment' and record['mode'] == 'advise'
     assert record['candidates'] == ['a', 'b'] and record['criticalIfWrong'] is True and record['files'] == 1
