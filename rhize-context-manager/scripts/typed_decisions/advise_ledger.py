@@ -15,15 +15,13 @@ import re
 from pathlib import Path
 
 from typed_decisions import locked_io
+from typed_decisions.contract import HEX32, HEX64, REVISION
 
 LEDGER_FILE = 'advise-cohorts.jsonl'
 LOCK_FILE = 'advise-cohorts.lock'
 LOCK_TIMEOUT_SECONDS = 10.0
 
-_HEX32 = re.compile(r'[0-9a-f]{32}\Z')
-_HEX64 = re.compile(r'[0-9a-f]{64}\Z')
 _DECISION = re.compile(r'[a-z][a-z0-9-]{1,40}\Z')
-_REVISION = re.compile(r'[A-Za-z0-9._-]{1,80}\Z')
 _COMMON = {'event', 'cohortId', 'decision', 'policySha256', 'instrumentSha256', 'layaRevision', 'attempt', 'alpha', 'ts'}
 _FIELDS = {'reserve': _COMMON | {'caseIds'}, 'consumed': _COMMON | {'verdict', 'receiptSha256'}}
 _OPTIONAL = {'reserve': {'baseline'}, 'consumed': set()}
@@ -45,12 +43,12 @@ def _check(event, decision) -> None:
         raise ValueError(f'{kind} event has the wrong fields')
     if event['decision'] != decision:
         raise ValueError('event decision does not match the ledger')
-    if not isinstance(event['cohortId'], str) or not _HEX32.match(event['cohortId']):
+    if not isinstance(event['cohortId'], str) or not HEX32.match(event['cohortId']):
         raise ValueError('cohortId must be 32 hex characters')
     for name in ('policySha256', 'instrumentSha256'):
-        if not isinstance(event[name], str) or not _HEX64.match(event[name]):
+        if not isinstance(event[name], str) or not HEX64.match(event[name]):
             raise ValueError(f'{name} must be 64 hex characters')
-    if not isinstance(event['layaRevision'], str) or not _REVISION.match(event['layaRevision']):
+    if not isinstance(event['layaRevision'], str) or not REVISION.match(event['layaRevision']):
         raise ValueError('invalid layaRevision')
     attempt = event['attempt']
     if isinstance(attempt, bool) or not isinstance(attempt, int) or attempt < 1:
@@ -69,7 +67,7 @@ def _check(event, decision) -> None:
     else:
         if event['verdict'] not in ('pass', 'hold'):
             raise ValueError("verdict must be 'pass' or 'hold'")
-        if not isinstance(event['receiptSha256'], str) or not _HEX64.match(event['receiptSha256']):
+        if not isinstance(event['receiptSha256'], str) or not HEX64.match(event['receiptSha256']):
             raise ValueError('receiptSha256 must be 64 hex characters')
 
 

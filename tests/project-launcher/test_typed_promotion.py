@@ -293,6 +293,17 @@ def test_below_the_cohort_floor_touches_nothing(tmp_path):
     assert advise_ledger.read(tmp_path, D) == [] and not (tmp_path / D).exists()
 
 
+def test_an_unavailable_laya_holds_before_reserving_so_no_cohort_or_alpha_is_spent(tmp_path):
+    def down():
+        raise ConnectionRefusedError('laya down')
+    calls = []
+    held = attempt(tmp_path, pool(40), lambda case: calls.append(case) or case['label'], probe=down)
+    assert held == {'status': 'held', 'reason': 'laya_unavailable'} and calls == []
+    assert advise_ledger.read(tmp_path, D) == [] and not (tmp_path / D).exists()
+    receipt = attempt(tmp_path, pool(40), probe=lambda: None)      # the same cases are still unspent at attempt 1
+    assert receipt['status'] == 'evaluated' and receipt['attempt'] == 1 and receipt['alpha'] == 0.10
+
+
 def test_only_promotion_split_groups_are_eligible(tmp_path):
     cases = pool(40)
     tuning, index = [], 0

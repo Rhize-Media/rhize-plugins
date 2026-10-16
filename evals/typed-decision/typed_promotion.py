@@ -138,12 +138,13 @@ def _iso(now):
 
 
 def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, laya_revision, gate_cfg, prior,
-                baseline, critical=False, now=None, dry_run=False, predict_one):
+                baseline, critical=False, now=None, dry_run=False, predict_one, probe=None):
     """One ledger-bound attempt. `candidate_cases` carry id, group, label, critical_if_wrong; `predict_one(case)`
     returns Laya's choice (None to abstain) and may raise, which counts as an unavailable answer (Laya wrong).
 
-    Picks promotion-split cases never reserved before; holds without touching the ledger below minCohort. Otherwise
-    appends `reserve` (case ids, frozen baseline) BEFORE predicting, evaluates at alpha_for_attempt(alphaBase,
+    Picks promotion-split cases never reserved before; holds without touching the ledger below minCohort or when
+    `probe()` (Laya availability; raises when down) fails, so an outage never consumes a cohort or spends alpha.
+    Otherwise appends `reserve` (case ids, frozen baseline) BEFORE predicting, evaluates at alpha_for_attempt(alphaBase,
     next_attempt), stores the receipt and appends the single `consumed` event. dry_run evaluates without any ledger
     or receipt write.
     """
@@ -154,6 +155,11 @@ def run_attempt(root, decision, candidate_cases, *, policy_sha, instrument_sha, 
     if len(selected) < cfg['minCohort']:
         return {'status': 'held', 'reason': 'insufficient_promotion_cases', 'available': len(selected),
                 'required': cfg['minCohort']}
+    if probe is not None:
+        try:
+            probe()
+        except Exception:  # noqa: BLE001 - any failure means Laya is unavailable
+            return {'status': 'held', 'reason': 'laya_unavailable'}
     attempt = advise_ledger.next_attempt(root, decision)
     alpha = alpha_for_attempt(cfg['alphaBase'], attempt)
     ids = [c['id'] for c in selected]

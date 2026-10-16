@@ -1,6 +1,7 @@
 """Invented local fixtures for bounded, versioned development research."""
 import importlib.util
 import json
+import socket
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -290,6 +291,16 @@ def test_too_few_promotion_cases_hold_without_spending_an_attempt(tmp_path, monk
     result = run_cycle(tmp_path, call=lambda r: pytest.fail('no cohort, no Laya call'))
     assert result['status'] == 'held' and result['reason'] == 'insufficient_promotion_cases'
     assert result['promotion']['required'] == 30 and ledger_events(tmp_path) == []
+
+
+def test_a_laya_outage_holds_before_reserving_a_cohort(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    with socket.socket() as closed:                                 # a loopback port nothing listens on
+        closed.bind(('127.0.0.1', 0))
+        monkeypatch.setattr(cycle, 'LAYA_URL', f'http://127.0.0.1:{closed.getsockname()[1]}')
+    result = run_cycle(tmp_path, call=None)
+    assert result['status'] == 'held' and result['reason'] == 'laya_unavailable'
+    assert ledger_events(tmp_path) == [] and registry_state(tmp_path) is None
 
 
 def test_accurate_default_wording_earns_advise_through_the_registry(tmp_path, monkeypatch):

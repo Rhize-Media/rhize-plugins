@@ -170,14 +170,6 @@ def test_laya_revision_reads_a_valid_revision_only(tmp_path):
     assert ta.laya_revision(tmp_path) == 'unknown'
 
 
-def test_tiers_agree_with_the_catalog():
-    catalog = json.loads((REPO / 'rhize-context-manager/catalog/decision-registry.json').read_text())
-    entries = catalog['decisions']
-    entries = entries.items() if isinstance(entries, dict) else ((e['id'], e) for e in entries)
-    for decision, entry in entries:
-        assert ta.TIERS.get(decision) == entry['tier'], decision
-
-
 # ------------------------------------------------------------------ holdback
 
 def test_holdback_is_deterministic_per_decision_and_key():

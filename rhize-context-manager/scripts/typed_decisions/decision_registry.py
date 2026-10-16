@@ -40,7 +40,7 @@ if str(HERE.parent) not in sys.path:
     sys.path.insert(0, str(HERE.parent))
 
 import typed_advice  # noqa: E402  (shared island module; read-only use: its instrument hash)
-from typed_decisions import cohorts, contract, instrument, locked_io, records  # noqa: E402
+from typed_decisions import advise_ledger, cohorts, contract, instrument, locked_io, records  # noqa: E402
 
 STATE_FILE = 'registry-state.json'
 AUDIT_FILE = 'registry-audit.jsonl'
@@ -290,7 +290,6 @@ def _check_binding(root, decision: str, registry_entry: dict, mode: str, actor: 
         if mode == 'cosign':
             cohorts.verify_passed_cohort(root, registry_entry, binding)
         else:  # the advise ledger is separate: a cosign cohort never authorizes advise, nor the reverse
-            from typed_decisions import advise_ledger
             advise_ledger.verify_pass(root, decision, binding)
     except ValueError as err:
         raise RegistryError('invalid_binding', str(err)) from None

@@ -298,8 +298,8 @@ def source_pool_digest(rows):
 
 
 def majority(rows):
-    counts = Counter(row['routing_choice'] for row in rows)
-    return sorted(counts, key=lambda name: (-counts[name], name))[0], dict(counts)
+    labels = [row['routing_choice'] for row in rows]
+    return typed_promotion.majority(labels), dict(Counter(labels))
 
 
 DEMOTION_FILE = 'advise-demotion.json'
@@ -323,7 +323,7 @@ def _demotion_state(path):
         return [], set()
 
 
-def advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline, prior):
+def advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline, prior, probe=None):
     """Earn or lose `advise` for the default wording of workflow-fit (plan §3): demotion when the registry already
     says advise, otherwise one ledger-bound baseline-gate attempt. Registry refusals are recorded, not raised."""
     registry_root = Path(registry_root or typed_advice.root())
@@ -353,7 +353,7 @@ def advise_gate(registry_root, registry, check_sources, predict_one, rows, promo
               'critical_if_wrong': bool(row.get('critical_if_wrong'))} for row in promotion]
     receipt = typed_promotion.run_attempt(
         registry_root, DECISION, cases, policy_sha=policy_sha, instrument_sha=instrument_sha, laya_revision=revision,
-        gate_cfg=cfg, prior=prior, baseline=baseline, critical=critical, predict_one=predict_one)
+        gate_cfg=cfg, prior=prior, baseline=baseline, critical=critical, predict_one=predict_one, probe=probe)
     if receipt['status'] == 'held':
         return {**receipt, 'earnedMode': 'shadow'}
     check_sources()  # a changed evaluator, decoder or promoter never mutates the registry
@@ -593,7 +593,10 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
             by_id = {row['case_id']: row for row in rows}
             def predict_one(case):
                 return module.predict([by_id[case['id']]], default, bounded)[case['id']]
-            gate = advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline_choice, prior)
+            # An injected `call` stands in for Laya, so only the real endpoint needs the availability probe.
+            probe = None if call else lambda: typed_advice.check_identity(LAYA_URL)
+            gate = advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline_choice,
+                               prior, probe)
             result = {**result, 'advise': gate}
             return finish({**result, 'status': 'held' if gate['status'] == 'held' else 'review_required',
                            **({'reason': gate['reason']} if gate['status'] == 'held' else {}),

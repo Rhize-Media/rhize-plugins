@@ -184,6 +184,24 @@ def _probe_fresh(cache, url, model) -> bool:
         return False
 
 
+def _probe(opener, health, model, deadline):
+    try:
+        document = _get_json(opener, urllib.request.Request(health, method='GET'), deadline, 16384)
+    except ValueError as exc:
+        if str(exc) in ('response_not_json', 'response_not_object'):
+            raise ValueError('identity_failed') from None  # not a Laya /health document
+        raise
+    loaded = document.get('loaded')
+    if not isinstance(loaded, list) or model not in loaded:
+        raise ValueError('identity_failed')
+
+
+def check_identity(base_url, model=MODEL, timeout=2.0):
+    """Uncached /health identity probe on the same loopback rules as post_local; no request text is sent.
+    Raises ValueError (post_local's short codes) or an OSError when Laya is not the expected model server."""
+    _probe(_opener(), _destination(base_url, '/health'), model, time.monotonic() + timeout)
+
+
 def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, health_cache=None):
     """POST JSON to a literal loopback IP after a /health identity probe; return (response dict, latency ms).
 
@@ -203,15 +221,7 @@ def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, h
     model = body['model']
     opener = _opener()
     if not (health_cache and _probe_fresh(health_cache, health, model)):
-        try:
-            document = _get_json(opener, urllib.request.Request(health, method='GET'), deadline, 16384)
-        except ValueError as exc:
-            if str(exc) in ('response_not_json', 'response_not_object'):
-                raise ValueError('identity_failed') from None  # not a Laya /health document
-            raise
-        loaded = document.get('loaded')
-        if not isinstance(loaded, list) or model not in loaded:
-            raise ValueError('identity_failed')
+        _probe(opener, health, model, deadline)
         if health_cache:
             try:
                 _write_atomic(Path(health_cache), {'url': health, 'model': model, 'checkedAt': time.time()})

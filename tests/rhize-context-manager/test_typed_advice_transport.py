@@ -82,6 +82,16 @@ def test_identity_probe_failure_sends_nothing(server):
     assert Handler.hits == ['/health']
 
 
+def test_check_identity_probes_health_only_and_rejects_a_foreign_server(server):
+    transport.check_identity(server)
+    assert Handler.hits == ['/health']
+    Handler.loaded = ['other-model']
+    with pytest.raises(ValueError, match='identity_failed'):
+        transport.check_identity(server)
+    with pytest.raises(ValueError, match='loopback_ip_url_required'):
+        transport.check_identity('http://localhost:8000')
+
+
 def test_fresh_probe_cache_skips_the_probe(server, tmp_path):
     cache = tmp_path / 'health.json'
     transport.post_local(server, '/ok', {'model': M}, 5, health_cache=cache)
