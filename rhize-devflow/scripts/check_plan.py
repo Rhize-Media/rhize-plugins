@@ -413,7 +413,7 @@ def _authorized(advice, diff_sha) -> bool:
         record = ta.load(DECISION, decision_id)
         laya = record.get('laya') or {}
         return bool(
-            decision_id == sha256(DECISION + ':' + diff_sha)[:32]
+            decision_id == hashlib.sha256((DECISION + ':' + diff_sha).encode()).hexdigest()[:32]
             and policy_sha == ta.policy_sha256(DECISION, QUESTION, POLICY)
             and record.get('decisionId') == decision_id and record.get('policySha256') == policy_sha
             and record.get('instrumentSha256') == ta.INSTRUMENT_SHA256 and record.get('arm') == 'treatment'

@@ -525,13 +525,12 @@ def _write_receipt(root, receipt: dict) -> Path:
 
 WORKFLOW_FIT = 'workflow-fit'               # pilot_cycle.py owns its gate
 SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'   # written by typed_advice.advise when a recommendation is returned
-SKILL_ADVISE_POLICY = 'skill-fit-advise-v1'
 
 
-def skill_advise_policy_sha256(instrument_sha256: str) -> str:
-    """skill-fit has one fixed advise surface: the Node reader checks only instrument and Laya revision for it, so
-    the binding's policy hash is this constant, not a per-surface question hash."""
-    return hashlib.sha256((SKILL_ADVISE_POLICY + instrument_sha256).encode('utf-8')).hexdigest()
+def skill_advise_policy_sha256(instrument_sha256=None) -> str:
+    """skill-fit has one fixed advise surface, the Node router, which writes the contract's 'advise-v1' policy hash
+    into its records and reads an advise state only when it binds that same hash."""
+    return contract.policy_sha256(contract.POLICY_ADVISE)
 
 
 def _shown(root, decision, decision_id) -> bool:

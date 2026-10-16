@@ -5,9 +5,12 @@ Fake runner in place of the two model CLIs, temp roots only; no model, network o
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import json
+import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -18,10 +21,11 @@ sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pilot_autolabel as auto  # noqa: E402
+import pilot_labels  # noqa: E402
 import typed_advice  # noqa: E402
 from typed_decision_testkit import (CHOICE_IDS, CHOICE_POLICY, CHOICE_QUESTION, write_choice,  # noqa: E402
                                     write_choice_label)
-from typed_decisions import choice_labels as cl, decision_registry as reg, skillfit_labels as sl  # noqa: E402
+from typed_decisions import choice_labels as cl, contract, decision_registry as reg, skillfit_labels as sl  # noqa: E402
 
 REV = 'rev-labels-1'
 MODEL, ADVISORY = 'devflow-next-action', 'model-routing'          # critical tier / advisory tier
@@ -80,9 +84,16 @@ def root(tmp_path):
     return path
 
 
+def enable_ai_labels(pilot_root):
+    return pilot_labels.set_policy(Path(pilot_root), True, 'fixture opt-in', 'jim')
+
+
 @pytest.fixture
 def cfg(tmp_path):
-    return {'state': tmp_path / 'autolabel'}
+    """Labeller config with an operator policy that accepts AI labels (the pilot's own label-policy.json)."""
+    pilot = tmp_path / 'pilot'
+    enable_ai_labels(pilot)
+    return {'state': tmp_path / 'autolabel', 'root': pilot}
 
 
 def go_advise(root, decision):
@@ -295,3 +306,175 @@ def test_a_pin_or_an_unchanged_mode_is_recorded_not_raised(tmp_path, cfg):
     assert summary['criticalDemotions'][0]['status'] == 'held' and summary['criticalDemotions'][0]['code'] == 'pinned'
     assert mode_of(root, MODEL) == 'advise'
     assert CHOICE_IDS  # fixture sanity
+
+
+# ---------------------------------------------------------------- operator opt-in (same policy as the pilot autolabeler)
+
+def policy_sha(pilot_root):
+    return hashlib.sha256(json.dumps(pilot_labels.load_policy(Path(pilot_root)), sort_keys=True).encode()).hexdigest()
+
+
+@pytest.mark.parametrize('policy', ['missing', 'human-only', 'corrupt', 'wrong-schema'])
+def test_without_the_operator_opt_in_the_run_aborts_before_any_model_call(root, tmp_path, policy):
+    seed(root, ADVISORY, 2)
+    pilot = tmp_path / 'pilot-off'
+    pilot.mkdir()
+    if policy == 'human-only':
+        pilot_labels.set_policy(pilot, False, 'fixture', 'jim')
+    elif policy == 'corrupt':
+        (pilot / pilot_labels.POLICY_FILE).write_text('{not json')
+    elif policy == 'wrong-schema':
+        (pilot / pilot_labels.POLICY_FILE).write_text(json.dumps({'schema': 'x', 'acceptedBases': ['ai_model_reviewed']}))
+    runner = FakeRunner()
+    summary, code = cl.run(root, runner=runner, config={'state': tmp_path / 'autolabel', 'root': pilot})
+    assert code == 2 and summary['status'] == 'aborted' and summary['modelCalls'] == 0 and runner.calls == []
+    assert summary['reason'] in ('ai_labels_not_enabled', 'label_policy_invalid')
+    assert cl.read_labels(root, ADVISORY) == {} and not (root / 'choice-labels' / 'receipts').exists()
+
+
+def test_the_cli_exits_2_without_the_opt_in(root, tmp_path, capsys, monkeypatch):
+    seed(root, ADVISORY, 1)
+    assert cl.main(['run', '--root', str(root), '--pilot-root', str(tmp_path / 'none'),
+                    '--claude-bin', '/nonexistent/claude', '--codex-bin', '/nonexistent/codex']) == 2
+    assert json.loads(capsys.readouterr().out)['status'] == 'aborted'
+
+
+def test_the_policy_sha_is_in_the_summary_and_the_receipt(root, cfg):
+    seed(root, ADVISORY, 2)
+    summary, code = run(root, cfg, FakeRunner())
+    assert code == 0 and summary['labelPolicySha256'] == policy_sha(cfg['root'])
+    receipt = json.loads(next((root / 'choice-labels' / 'receipts').glob('*.json')).read_text())
+    assert receipt['labelPolicySha256'] == summary['labelPolicySha256'] and len(receipt['labelPolicySha256']) == 64
+
+
+def test_revoking_the_opt_in_stops_the_next_run(root, cfg):
+    seed(root, ADVISORY, 3)
+    assert run(root, cfg, FakeRunner(), max_cases=1)[0]['labelsWritten'] == 1
+    pilot_labels.set_policy(Path(cfg['root']), False, 'revoked', 'jim')
+    runner = FakeRunner()
+    summary, code = run(root, cfg, runner)
+    assert code == 2 and runner.calls == [] and len(cl.read_labels(root, ADVISORY)) == 1
+
+
+def test_dry_run_and_nothing_to_do_need_no_opt_in(root, tmp_path):
+    cfg = {'state': tmp_path / 'autolabel', 'root': tmp_path / 'no-policy'}
+    assert run(root, cfg, FakeRunner())[0]['status'] == 'nothing_to_do'
+    seed(root, ADVISORY, 1)
+    summary, code = run(root, cfg, FakeRunner(), dry_run=True)
+    assert code == 0 and summary['status'] == 'prepared' and summary['modelCalls'] == 0
+
+
+# ---------------------------------------------------------------- critical miss: shown marker and label in candidates
+
+def critical_case(tmp_path, cfg, *, laya='alpha', want='beta'):
+    root, summary = scenario(tmp_path, cfg, laya=laya, want=want)
+    record_id = next((root / MODEL / 'choice').glob('*.json')).stem
+    return root, summary, record_id
+
+
+def test_a_critical_miss_needs_the_shown_marker(tmp_path, cfg):
+    root, summary, record_id = critical_case(tmp_path, cfg)
+    shown = typed_advice.load(MODEL, record_id, kind='shown', store=root)
+    assert shown['recommendation'] == 'alpha' and contract.validate_choice_shown(shown)  # control: advice was shown
+    assert summary['criticalDemotions'][0]['status'] == 'demoted'
+    # the same record and label without the marker: the advice was never shown, so no miss
+    other = tmp_path / 'no-marker'
+    other.mkdir(mode=0o700)
+    (other / 'laya-runtime.json').write_text(json.dumps({'revision': REV}))
+    go_advise(other, MODEL)
+    index = next(i for i in range(200) if not typed_advice.holdback(MODEL, f'key-{i}'))
+    result = write_choice(other, MODEL, index, laya='alpha', critical=True, text='WANT-beta')
+    (other / MODEL / 'shown' / f"{result['decisionId']}.json").unlink()
+    summary, _ = run(other, cfg, FakeRunner())
+    assert summary['labelsWritten'] == 1 and summary['criticalDemotions'] == [] and mode_of(other, MODEL) == 'advise'
+
+
+def label_of(record, choice, ambiguous=False):
+    return {'decision': record['decision'], 'decisionId': record['decisionId'], 'label': choice, 'ambiguous': ambiguous}
+
+
+def shown_of(record, recommendation, policy=None):
+    return {'schema': contract.CHOICE_SHOWN_SCHEMA, 'decision': record['decision'], 'decisionId': record['decisionId'],
+            'recommendation': recommendation, 'policySha256': policy or record['policySha256'],
+            'ts': '2026-10-16T00:00:00Z'}
+
+
+def test_is_critical_miss_is_the_exact_conjunction(tmp_path, cfg):
+    root, _, record_id = critical_case(tmp_path, cfg)
+    record = typed_advice.load(MODEL, record_id, store=root)
+    shown = shown_of(record, 'alpha')
+    assert cl.is_critical_miss(record, label_of(record, 'beta'), shown) is True                  # control
+    assert cl.is_critical_miss(record, label_of(record, 'alpha'), shown) is False                # shown was right
+    assert cl.is_critical_miss(record, label_of(record, None, True), shown) is False             # ambiguous
+    assert cl.is_critical_miss(record, label_of(record, 'zzz-not-a-candidate'), shown) is False  # label outside candidates
+    assert cl.is_critical_miss(record, label_of(record, 'beta'), None) is False                  # nothing was shown
+    assert cl.is_critical_miss(record, label_of(record, 'beta'), shown_of(record, 'alpha', policy='0' * 64)) is False
+    assert cl.is_critical_miss(record, label_of(record, 'beta'), shown_of(record, 'not-a-candidate')) is False
+    assert cl.is_critical_miss({**record, 'criticalIfWrong': False}, label_of(record, 'beta'), shown) is False
+
+
+def test_a_label_outside_the_candidates_never_demotes(tmp_path, cfg):
+    root, _, record_id = critical_case(tmp_path, cfg, want='AMBIG')                  # an ambiguous label: control for no demotion
+    assert mode_of(root, MODEL) == 'advise'
+    record = typed_advice.load(MODEL, record_id, store=root)
+    label = dict(label_of(record, 'zzz-not-a-candidate'), schema=cl.LABEL_SCHEMA)
+    registry = reg.load_registry()
+    assert cl.demote_critical_misses(root, registry, [label]) == [] and mode_of(root, MODEL) == 'advise'
+    assert cl.demote_critical_misses(root, registry, [label_of(record, 'beta')])[0]['status'] == 'demoted'
+
+
+@pytest.mark.parametrize('damage', ['missing', 'corrupt', 'other-decision', 'other-id'])
+def test_an_invalid_shown_marker_counts_as_not_shown(tmp_path, cfg, damage):
+    root, _, record_id = critical_case(tmp_path, cfg)
+    assert cl.read_shown(root, MODEL, record_id)['recommendation'] == 'alpha'
+    path = root / MODEL / 'shown' / f'{record_id}.json'
+    marker = json.loads(path.read_text())
+    if damage == 'missing':
+        path.unlink()
+    elif damage == 'corrupt':
+        path.write_text('{nope')
+    elif damage == 'other-decision':
+        path.write_text(json.dumps({**marker, 'decision': ADVISORY}))
+    else:
+        path.write_text(json.dumps({**marker, 'decisionId': 'f' * 32}))
+    assert cl.read_shown(root, MODEL, record_id) is None
+
+
+# ---------------------------------------------------------------- snapshot retention
+
+def age(path, days):
+    stamp = time.time() - days * 86400
+    os.utime(path, (stamp, stamp))
+
+
+def test_snapshots_older_than_90_days_are_pruned_on_every_run(root, cfg):
+    old, fresh, edge = seed(root, ADVISORY, 3)
+    snap = lambda r: root / ADVISORY / 'snapshot' / f"{r['decisionId']}.json"  # noqa: E731
+    age(snap(old), 91)
+    age(snap(edge), 89)
+    stray = root / ADVISORY / 'snapshot' / 'notes.txt'
+    stray.write_text('keep')
+    age(stray, 400)
+    summary, _ = run(root, cfg, FakeRunner())
+    assert summary['snapshotsPruned'] == 1 and not snap(old).exists() and snap(fresh).exists() and snap(edge).exists()
+    assert stray.exists()
+    assert summary['noSnapshot'] == 1 and summary['labelsWritten'] == 2  # the pruned record is skipped, not labelled
+    assert run(root, cfg, FakeRunner())[0]['status'] == 'nothing_to_do'
+    age(snap(fresh), 120)
+    assert run(root, cfg, FakeRunner())[0]['snapshotsPruned'] == 1 and not snap(fresh).exists()
+
+
+def test_a_dry_run_prunes_nothing_and_a_symlinked_snapshot_dir_is_left_alone(root, cfg, tmp_path):
+    old = seed(root, ADVISORY, 1)[0]
+    path = root / ADVISORY / 'snapshot' / f"{old['decisionId']}.json"
+    age(path, 200)
+    assert run(root, cfg, FakeRunner(), dry_run=True)[0]['snapshotsPruned'] == 0 and path.exists()
+    elsewhere = tmp_path / 'elsewhere'
+    elsewhere.mkdir()
+    victim = elsewhere / f"{'a' * 32}.json"
+    victim.write_text('{}')
+    age(victim, 200)
+    other = 'browser-qa-selection'
+    (root / other).mkdir()
+    (root / other / 'snapshot').symlink_to(elsewhere)
+    assert cl.prune_snapshots(root, [other]) == 0 and victim.exists()

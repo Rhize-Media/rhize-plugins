@@ -375,7 +375,7 @@ def test_verify_rejects_a_hand_edited_plan_and_git_failure(repo, env, tmp_path):
     other_checks.write_text(env[1].read_text())  # identical bytes, different file than the plan names
     assert not cp.verify_plan(plan_file, "check", repo, other_checks)["valid"]
     assert not cp.verify_plan(plan_file, "check", repo / "docs", env[1])["valid"]
-    for key, value in (("base", "-p"), ("base", None), ("plan", {"x": 1}), ("stage", 7)):
+    for key, value in (("base", "-p"), ("base", ["x"]), ("plan", {"x": 1}), ("stage", 7)):
         tampered = dict(result, **{key: value})
         assert not verify(write_plan(tmp_path, tampered), repo, env)["valid"], key
 
@@ -424,3 +424,141 @@ def test_cli_plan_verify_outcome_exit_codes(repo, env, tmp_path, capsys):
 ])
 def test_classification(path, expected):
     assert cp.classify(path) == expected
+
+
+@pytest.mark.parametrize("path", [
+    "ci/check.py", "pipelines/build.sh", "release/publish.js", "next.config.js", ".eslintrc.js", "jest.config.js",
+    "eslint.config.mjs", "conftest.py", "tests/conftest.py", "alembic/versions/1.py", "scripts/deploy.sh",
+    "scripts/tools/lint.bash", "src/signIn.ts", "src/logOut.ts", "src/JWTVerifier.ts", "src/authutils.ts",
+    "lib/passwords.ts", "Package.swift", "build.rs", "tools/publish.js", "bin/release.py", ".prettierrc.json",
+    ".babelrc.cjs", "src/SSOHandler.py", "src/csrfGuard.ts", "app/api/oauth/callback.ts", "lib/crypto.ts",
+    "src/userSession.ts", "src/apiKeys.ts", "src/PrivateKeyLoader.ts", "cd/promote.py", "workflows/x.sh",
+])
+def test_reviewer_probe_paths_are_protected(path):
+    assert cp.classify(path) == {"protected"}
+
+
+@pytest.mark.parametrize("path", ["src/author.py", "docs/AUTHORS.md", "lib/helpers.ts", "src/block.py",
+                                  "scripts/data.py", "src/util/strings.py"])
+def test_ordinary_paths_stay_unprotected(path):
+    assert "protected" not in cp.classify(path)
+
+
+@pytest.mark.parametrize("path", ["ci/check.py", "next.config.js", "scripts/deploy.sh", "src/signIn.ts"])
+def test_protected_probe_path_blocks_an_otherwise_eligible_diff(repo, env, path):
+    (repo / "docs/a.md").write_text("changed")
+    (repo / path).parent.mkdir(parents=True, exist_ok=True)
+    (repo / path).write_text("x")
+    result = plan(repo, env)
+    assert not result["eligible"] and result["plan"] == result["full"] and any(path in r for r in result["reasons"])
+
+
+def test_policy_binds_candidate_text_and_classifier_tables():
+    ta = cp._advice()
+    assert cp.POLICY["candidates"] == cp.CANDIDATES and cp.POLICY["classifierSha256"] == cp.sha256(cp._tables())
+    base = ta.policy_sha256(cp.DECISION, cp.QUESTION, cp.POLICY)
+    reworded = dict(cp.POLICY, candidates=[dict(cp.CANDIDATES[0], criterion="Run everything"), cp.CANDIDATES[1]])
+    assert ta.policy_sha256(cp.DECISION, cp.QUESTION, reworded) != base
+    other_tables = dict(cp.POLICY, classifierSha256=cp.sha256(dict(cp._tables(), ciDirs=["ci"])))
+    assert ta.policy_sha256(cp.DECISION, cp.QUESTION, other_tables) != base
+
+
+def test_plan_out_is_created_exclusively_with_mode_0600(repo, env, tmp_path):
+    (repo / "docs/a.md").write_text("changed")
+    args = ["plan", "--repo", str(repo), "--base", "HEAD", "--stage", "check", "--checks", str(env[1])]
+    fresh = tmp_path / "plan.json"
+    assert cp.main([*args, "--out", str(fresh)]) == 0 and (fresh.stat().st_mode & 0o777) == 0o600
+    before = fresh.read_text()
+    assert cp.main([*args, "--out", str(fresh)]) == 2 and fresh.read_text() == before  # never overwrites
+    target = tmp_path / "target.json"
+    target.write_text("keep")
+    link = tmp_path / "link.json"
+    os.symlink(target, link)
+    assert cp.main([*args, "--out", str(link)]) == 2 and target.read_text() == "keep"
+    dangling = tmp_path / "dangling.json"
+    os.symlink(tmp_path / "nowhere.json", dangling)
+    assert cp.main([*args, "--out", str(dangling)]) == 2 and not (tmp_path / "nowhere.json").exists()
+
+
+def relaxed_plan_file(repo, env, tmp_path, **kwargs):
+    (repo / "docs/a.md").write_text("changed")
+    result = plan(repo, env, **kwargs)
+    return result, write_plan(tmp_path, result)
+
+
+def test_relaxed_plan_is_valid_only_while_the_advice_record_authorizes_it(repo, env, tmp_path):
+    result, plan_file = relaxed_plan_file(repo, env, tmp_path)
+    assert result["plan"] != result["full"] and result["advice"]["policySha256"]
+    ok = verify(plan_file, repo, env)
+    assert ok["valid"] and ok["plan"] == result["plan"]
+
+
+def test_demoted_registry_makes_a_relaxed_plan_expire_to_full(repo, env, tmp_path):
+    result, plan_file = relaxed_plan_file(repo, env, tmp_path)
+    for mode in ("shadow", "off"):
+        earn_advise(env[0], mode)
+        expired = verify(plan_file, repo, env)
+        assert not expired["valid"] and expired["plan"] == result["full"], mode
+    earn_advise(env[0])
+    assert verify(plan_file, repo, env)["valid"]
+    (env[0] / "registry-state.json").unlink()
+    assert not verify(plan_file, repo, env)["valid"]
+    earn_advise(env[0])
+    (env[0] / "laya-runtime.json").write_text(json.dumps({"revision": "r2"}))  # Laya changed under the plan
+    assert not verify(plan_file, repo, env)["valid"]
+
+
+def test_hand_edited_relaxed_plan_without_a_treatment_relaxed_record_is_full(repo, env, tmp_path, monkeypatch):
+    # Laya said full: the plan is the full list. Hand-editing it into the relaxed list must not validate.
+    (repo / "docs/a.md").write_text("changed")
+    said_full = plan(repo, env, choice="full")
+    assert said_full["plan"] == said_full["full"]
+    relaxed = cp.analyse(repo, "HEAD", "check", cp.load_checks(env[1])[0], cp.load_checks(env[1])[1])["relaxedPlan"]
+    forged = dict(said_full, plan=relaxed)
+    result = verify(write_plan(tmp_path, forged), repo, env)
+    assert not result["valid"] and result["plan"] == said_full["full"]
+
+    # No advice block, a foreign decision id, or a different policy hash.
+    (repo / "docs/a.md").write_text("changed again")
+    good = plan(repo, env)
+    assert good["plan"] != good["full"]
+    for mutate in (lambda a: a.clear(), lambda a: a.update(decisionId="0" * 32),
+                   lambda a: a.update(policySha256="1" * 64), lambda a: a.pop("policySha256"),
+                   lambda a: a.update(decisionId=None)):
+        advice = dict(good["advice"])
+        mutate(advice)
+        assert not verify(write_plan(tmp_path, dict(good, advice=advice)), repo, env)["valid"]
+    assert not verify(write_plan(tmp_path, {k: v for k, v in good.items() if k != "advice"}), repo, env)["valid"]
+    assert verify(write_plan(tmp_path, good), repo, env)["valid"]
+
+    # A record stored for another diff does not authorize this one (decision id derives from the diff hash).
+    (repo / "docs/a.md").write_text("a third version")
+    third = plan(repo, env)
+    mixed = dict(third, advice=good["advice"])
+    assert not verify(write_plan(tmp_path, mixed), repo, env)["valid"]
+
+
+def test_holdback_arm_and_non_ok_record_never_authorize_relaxation(repo, env, tmp_path, monkeypatch):
+    ta = cp._advice()
+    result, plan_file = relaxed_plan_file(repo, env, tmp_path)
+    path = env[0] / cp.DECISION / "choice" / f"{result['advice']['decisionId']}.json"
+    record = json.loads(path.read_text())
+    for edit in ({"arm": "holdback"}, {"laya": dict(record["laya"], choice="full")},
+                 {"laya": dict(record["laya"], status="timeout")}, {"policySha256": "2" * 64},
+                 {"instrumentSha256": "3" * 64}, {"decisionId": "4" * 32}):
+        path.write_text(json.dumps(dict(record, **edit)))
+        assert not verify(plan_file, repo, env)["valid"], edit
+        assert verify(plan_file, repo, env)["plan"] == result["full"]
+    path.write_text(json.dumps(record))
+    assert verify(plan_file, repo, env)["valid"]
+    path.write_text("not json")
+    assert not verify(plan_file, repo, env)["valid"]
+    path.unlink()
+    assert not verify(plan_file, repo, env)["valid"]
+    assert ta.load(cp.DECISION, "../../etc/passwd") is None
+
+
+def test_verify_uses_the_callers_trunk_not_the_plan_files(repo, env, tmp_path):
+    result, plan_file = relaxed_plan_file(repo, env, tmp_path)
+    assert verify(plan_file, repo, env, trunk="origin/main")["valid"]
+    assert not verify(plan_file, repo, env, trunk="origin/missing")["valid"]  # missing trunk: full

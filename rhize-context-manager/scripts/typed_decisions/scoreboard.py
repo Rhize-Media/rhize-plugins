@@ -219,7 +219,7 @@ def advise_rows(root, registry, state, status, labels, laya_revision) -> list:
             row['ledger'] = 'invalid'
             rows.append(row)
             continue
-        row['attempts'] = sum(e['event'] == 'reserve' for e in events)
+        row['attempts'] = sum(e['event'] in ('open', 'reserve') for e in events)
         row['nextAlpha'] = cohorts.alpha_for_attempt(cfg['alphaBase'], row['attempts'] + 1)
         consumed = [e for e in events if e['event'] == 'consumed']
         if consumed:

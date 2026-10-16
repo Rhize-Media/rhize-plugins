@@ -162,12 +162,44 @@ def test_critical_decisions_need_ten_critical_cases_and_no_critical_miss():
     assert gate(cases)['stats']['criticalMisses'] == 1 and 'critical_miss' not in gate(cases)['reasons']
 
 
-def test_abstaining_on_a_critical_case_is_not_a_critical_miss_but_still_wrong():
-    cases = critical_cohort(10)
-    cases[0]['choice'] = None
-    result = gate(cases, critical=True, min_critical=10)
-    assert result['stats']['criticalMisses'] == 0 and 'critical_miss' not in result['reasons']
-    assert result['stats']['accuracy'] == 39 / 40
+def test_abstaining_or_unavailable_on_a_critical_case_is_a_critical_miss():
+    for change in ({'choice': None}, {'status': 'unavailable'}, {'choice': 'content'}):
+        cases = critical_cohort(10)
+        cases[0].update(change)
+        result = gate(cases, critical=True, min_critical=10)
+        assert result['verdict'] == 'hold' and 'critical_miss' in result['reasons'] and result['stats']['criticalMisses'] == 1
+    assert gate(cases)['stats']['criticalMisses'] == 1                 # counted, but only a critical decision holds on it
+
+
+def test_ten_unanswered_critical_cases_among_ninety_correct_ones_hold():
+    cases = make([('general', 'general', 90), ('general', None, 10)])
+    for case in cases[-10:]:
+        case['critical_if_wrong'] = True
+    result = tp.evaluate(cases, baseline='general', alpha=0.10, prior={'general': 100}, min_cohort=30, min_coverage=0.9,
+                         critical=True, min_critical=10)
+    assert result['stats']['coverage'] == 0.9 and result['stats']['criticalMisses'] == 10
+    assert result['verdict'] == 'hold' and 'critical_miss' in result['reasons']
+
+
+def test_a_cohort_missing_a_tuning_class_holds_even_when_every_case_is_right():
+    # all 40 cohort cases are 'relaxed' and Laya is perfect, but 'full' is 40% of the tuning prior and has no case
+    cases = make([('relaxed', 'relaxed', 40)])
+    prior = {'relaxed': 60, 'full': 40}
+    result = tp.evaluate(cases, baseline='relaxed', alpha=0.10, prior=prior, min_cohort=30, min_coverage=0.9)
+    assert result['verdict'] == 'hold' and 'class_coverage:full' in result['reasons']
+    two = tp.evaluate(make([('relaxed', 'relaxed', 38), ('full', 'full', 2)]), baseline='relaxed', alpha=0.10,
+                      prior=prior, min_cohort=30, min_coverage=0.9)
+    assert 'class_coverage:full' in two['reasons']
+    # a class under the 10% prior share is not required
+    assert not [r for r in tp.evaluate(cases, baseline='relaxed', alpha=0.10, prior={'relaxed': 95, 'full': 5},
+                                       min_cohort=30, min_coverage=0.9)['reasons'] if r.startswith('class_')]
+
+
+def test_a_repeated_group_holds_as_duplicate_groups():
+    cases = eighty(5)
+    cases[1]['group'] = cases[0]['group']                         # 30 cases, 29 groups
+    result = g80(cases)
+    assert result['verdict'] == 'hold' and {'duplicate_groups', 'too_few_groups'} <= set(result['reasons'])
 
 
 def test_empty_cohort_never_passes():
@@ -188,6 +220,18 @@ def test_critical_miss_demotes_immediately_whatever_the_fresh_count():
     result = tp.demotion(cases, 0, [False], baseline='general', critical=True)
     assert result['demote'] is True and result['reason'] == 'critical_miss' and result['history'] == []
     assert tp.demotion(cases, 0, [], baseline='general', critical=False)['demote'] is False
+
+
+def test_critical_miss_scans_every_shown_critical_case_not_only_the_window():
+    window = live(30, 0, start=100)                                 # a clean window of 30
+    old_miss = {'id': 'old', 'group': 'g-old', 'label': 'general', 'choice': 'content', 'status': 'ok', 'critical_if_wrong': True}
+    assert tp.demotion(window, 0, [], baseline='general', critical=True)['demote'] is False
+    scanned = tp.demotion(window, 0, [], baseline='general', critical=True, scan_cases=[old_miss] + window)
+    assert scanned['demote'] is True and scanned['reason'] == 'critical_miss'
+    for answer in ({'choice': None}, {'status': 'unavailable', 'choice': None}):
+        assert tp.demotion(window, 0, [], baseline='general', critical=True,
+                           scan_cases=[{**old_miss, **answer}])['demote'] is True      # not answering is a miss too
+    assert tp.demotion(window, 0, [], baseline='general', critical=False, scan_cases=[old_miss])['demote'] is False
 
 
 def test_nothing_is_scored_until_ten_fresh_labels_exist():
@@ -235,7 +279,8 @@ def pool(count, start=0):
 def attempt(root, cases, predict_one=None, policy=POLICY, revision='rev-1', **kwargs):
     return tp.run_attempt(root, D, cases, policy_sha=policy, instrument_sha=INSTRUMENT, laya_revision=revision,
                           gate_cfg=kwargs.pop('gate_cfg', None), prior=PRIOR, baseline='general',
-                          predict_one=predict_one or (lambda case: case['label']), now='2026-10-16T00:00:00Z', **kwargs)
+                          predict_one=predict_one or (lambda case: case['label']), now='2026-10-16T00:00:00Z',
+                          **{'probe': lambda: True, **kwargs})
 
 
 def test_a_clean_attempt_reserves_then_consumes_a_pass_and_verifies(tmp_path):
@@ -300,8 +345,20 @@ def test_an_unavailable_laya_holds_before_reserving_so_no_cohort_or_alpha_is_spe
     held = attempt(tmp_path, pool(40), lambda case: calls.append(case) or case['label'], probe=down)
     assert held == {'status': 'held', 'reason': 'laya_unavailable'} and calls == []
     assert advise_ledger.read(tmp_path, D) == [] and not (tmp_path / D).exists()
-    receipt = attempt(tmp_path, pool(40), probe=lambda: None)      # the same cases are still unspent at attempt 1
+    receipt = attempt(tmp_path, pool(40), probe=lambda: True)      # the same cases are still unspent at attempt 1
     assert receipt['status'] == 'evaluated' and receipt['attempt'] == 1 and receipt['alpha'] == 0.10
+
+
+def test_the_probe_is_mandatory_and_must_return_true(tmp_path):
+    assert tp.probe_ok(lambda: True) is True
+    for bad in (None, lambda: None, lambda: False, lambda: 'ok', lambda: 1, lambda: (_ for _ in ()).throw(OSError('down'))):
+        assert tp.probe_ok(bad) is False
+        held = attempt(tmp_path, pool(40), probe=bad)
+        assert held == {'status': 'held', 'reason': 'laya_unavailable'}
+        assert not (tmp_path / D).exists()
+    with pytest.raises(TypeError):                                  # no default: a caller cannot forget it
+        tp.run_attempt(tmp_path, D, pool(40), policy_sha=POLICY, instrument_sha=INSTRUMENT, laya_revision='rev-1',
+                       gate_cfg=None, prior=PRIOR, baseline='general', predict_one=lambda c: c['label'])
 
 
 def test_only_promotion_split_groups_are_eligible(tmp_path):
@@ -370,3 +427,153 @@ def test_demotion_state_round_trips_and_a_dry_run_never_writes_it(tmp_path):
     quiet = {'demote': False, 'evaluated': False, 'history': [False, True], 'reason': None}
     tp.demotion_result(tmp_path, None, D, quiet, ['c'], expected_revision=0, reason='gate_demote')
     assert tp.read_demotion_state(tmp_path, D) == ([False], {'a', 'b'})              # not evaluated: state untouched
+
+
+# ---- group is the statistical unit (replay)
+
+def test_one_group_with_many_favourable_cases_counts_once(tmp_path):
+    cases = pool(35)
+    heavy = []
+    for i in range(30):                                            # a 'content' group with 30 more cases
+        heavy.append({'id': f'zz-{i}', 'group': cases[8]['group'], 'label': 'content', 'critical_if_wrong': False})
+    receipt = attempt(tmp_path, cases + heavy)
+    assert receipt['stats']['n'] == 35
+    reserved = advise_ledger.read(tmp_path, D)[0]
+    assert len(reserved['caseIds']) == len(reserved['groups']) == 35
+
+
+def test_a_cohort_of_a_few_groups_is_too_small_however_many_cases_they_hold(tmp_path):
+    groups = pool(10)
+    many = [{**g, 'id': f"{g['id']}-{i}"} for g in groups for i in range(10)]     # 100 cases, 10 groups
+    held = attempt(tmp_path, many)
+    assert held['status'] == 'held' and held['available'] == 10 and advise_ledger.read(tmp_path, D) == []
+
+
+def test_groups_cannot_be_reused_by_a_later_attempt_even_under_new_case_ids(tmp_path):
+    cases = pool(40)
+    assert attempt(tmp_path, cases)['status'] == 'evaluated'
+    renamed = [{**c, 'id': c['id'] + '-again'} for c in cases]
+    held = attempt(tmp_path, renamed + pool(10, start=80_000))
+    assert held['status'] == 'held' and held['available'] == 10
+    assert len(advise_ledger.used_groups(tmp_path, D)) == 40
+
+
+# ---- live prospective cohorts
+
+def rows(count, *, start=0, ts='2026-10-16T12:00:00Z', label=None, unlabelled=False, **extra):
+    """`count` promotion-split rows, one per group; labels follow pool()'s 80/10/10 mix unless `label` is given."""
+    out, index = [], start
+    while len(out) < count:
+        group = f'live-{index}'
+        index += 1
+        if tp.split_of(group) != 'promotion':
+            continue
+        position = len(out) % 10
+        mix = 'general' if position < 8 else 'content' if position == 8 else 'none'
+        out.append({'id': f'r-{group}', 'group': group, 'ts': ts, 'label': None if unlabelled else label or mix, 'critical_if_wrong': False, **extra})
+    return out
+
+
+def step(root, data, *, now='2026-10-16T00:00:00Z', probe=lambda: True, predict_one=None, **kwargs):
+    answers = {r['id']: r['label'] for r in data}
+    return tp.run_live(root, D, data, policy_sha=kwargs.pop('policy', POLICY), instrument_sha=INSTRUMENT,
+                       laya_revision=kwargs.pop('revision', 'rev-1'), gate_cfg=kwargs.pop('gate_cfg', None), prior=PRIOR,
+                       baseline='general', now=now, predict_one=predict_one or (lambda case: answers[case['id']]),
+                       probe=probe, **kwargs)
+
+
+def test_the_first_live_step_opens_a_cohort_and_nothing_recorded_before_it_counts(tmp_path):
+    before = rows(60, ts='2026-10-15T00:00:00Z')                    # the policy's records, all earlier than the open
+    opened = step(tmp_path, before)
+    assert opened['status'] == 'held' and opened['reason'] == 'cohort_opened' and opened['attempt'] == 1
+    event = advise_ledger.read(tmp_path, D)[0]
+    assert event['event'] == 'open' and event['openedAt'] == '2026-10-16T00:00:00Z' and event['rule'] == advise_ledger.OPEN_RULE
+    again = step(tmp_path, before, now='2026-10-17T00:00:00Z')      # a perfect-looking history is still not eligible
+    assert again['reason'] == 'cohort_collecting' and again['available'] == 0
+    assert [e['event'] for e in advise_ledger.read(tmp_path, D)] == ['open']
+
+
+def test_a_policy_chosen_after_outcomes_cannot_reuse_earlier_recorded_cases(tmp_path):
+    history = rows(60, ts='2026-10-10T00:00:00Z')                   # recorded and labelled; Laya matched every label
+    step(tmp_path, history, now='2026-10-16T00:00:00Z')             # the new policy only opens now
+    collecting = step(tmp_path, history, now='2026-10-17T00:00:00Z', policy='c' * 64)   # even rebinding finds no case
+    assert collecting['reason'] == 'cohort_opened'                  # binding changed: the old cohort is abandoned
+    kinds = [e['event'] for e in advise_ledger.read(tmp_path, D)]
+    assert kinds == ['open', 'abandoned', 'open']
+
+
+def test_live_evaluates_once_on_the_earliest_labelled_record_per_group_after_the_open(tmp_path):
+    step(tmp_path, [])
+    data = rows(40, ts='2026-10-16T01:00:00Z')
+    first = data[8]
+    late = [{**first, 'id': first['id'] + '-b', 'ts': '2026-10-16T05:00:00Z', 'label': 'none'} for _ in range(1)]
+    outcome_blind = [{**data[0], 'id': 'a-earlier', 'ts': '2026-10-16T00:30:00Z', 'label': 'general'}]
+    result = step(tmp_path, data + late + outcome_blind)
+    assert result['status'] == 'evaluated' and result['verdict'] == 'pass'
+    end = advise_ledger.read(tmp_path, D)[-1]
+    assert end['event'] == 'consumed' and len(end['caseIds']) == len(end['groups']) == 40
+    assert 'a-earlier' in end['caseIds'] and data[0]['id'] not in end['caseIds']      # earliest per group wins
+    assert first['id'] in end['caseIds'] and late[0]['id'] not in end['caseIds']
+    advise_ledger.verify_pass(tmp_path, D, {'cohortId': result['cohortId'], 'policySha256': POLICY,
+                                            'instrumentSha256': INSTRUMENT, 'layaRevision': 'rev-1'})
+    assert tp.cohort_baseline(tmp_path, D, result['cohortId']) == 'general'
+    after = step(tmp_path, data)                                    # a fresh cohort must not reuse the groups
+    assert after['reason'] == 'cohort_opened' and after['attempt'] == 2 and after['alpha'] == 0.05
+    assert step(tmp_path, data)['available'] == 0
+
+
+def test_live_selection_ignores_unlabelled_and_ambiguous_earliest_records_and_non_promotion_groups(tmp_path):
+    step(tmp_path, [])
+    data = rows(29, ts='2026-10-16T01:00:00Z')
+    held = step(tmp_path, data + rows(5, start=500, ts='2026-10-16T02:00:00Z', unlabelled=True))   # unlabelled/ambiguous
+    assert held['reason'] == 'cohort_collecting' and held['available'] == 29 and held['required'] == 30
+    tuning = {'id': 't1', 'group': next(g for g in (f'tg-{i}' for i in range(99)) if tp.split_of(g) == 'tuning'),
+              'ts': '2026-10-16T02:00:00Z', 'label': 'general', 'critical_if_wrong': False}
+    assert step(tmp_path, data + [tuning])['available'] == 29
+    assert step(tmp_path, data + rows(1, start=900, ts='2026-10-16T03:00:00Z'))['status'] == 'evaluated'
+
+
+def test_live_open_needs_a_mandatory_probe_and_an_outage_never_opens(tmp_path):
+    for bad in (None, lambda: None, lambda: False, lambda: (_ for _ in ()).throw(ConnectionRefusedError('down'))):
+        assert step(tmp_path, [], probe=bad) == {'status': 'held', 'reason': 'laya_unavailable'}
+        assert not (tmp_path / D).exists()
+    assert step(tmp_path, [])['reason'] == 'cohort_opened'
+
+
+def test_live_dry_run_writes_nothing(tmp_path):
+    assert step(tmp_path, [], dry_run=True)['reason'] == 'would_open_cohort' and not (tmp_path / D).exists()
+    step(tmp_path, [])
+    before = (tmp_path / D / 'advise-cohorts.jsonl').read_bytes()
+    result = step(tmp_path, rows(40, ts='2026-10-16T01:00:00Z'), dry_run=True)
+    assert result['status'] == 'dry_run' and (tmp_path / D / 'advise-cohorts.jsonl').read_bytes() == before
+    assert not (tmp_path / D / 'advise-receipts').exists()
+
+
+def test_live_critical_cohort_waits_for_ten_critical_cases_and_holds_on_a_miss(tmp_path):
+    step(tmp_path, [], critical=True)
+    data = rows(40, ts='2026-10-16T01:00:00Z')
+    for row in data[:9]:
+        row['critical_if_wrong'] = True
+    waiting = step(tmp_path, data, critical=True, gate_cfg={'minCriticalCases': 10})
+    assert waiting['reason'] == 'cohort_collecting' and waiting['criticalAvailable'] == 9 and waiting['criticalRequired'] == 10
+    data[9]['critical_if_wrong'] = True
+    miss = step(tmp_path, data, critical=True, gate_cfg={'minCriticalCases': 10},
+                predict_one=lambda case: None if case['id'] == data[0]['id'] else {r['id']: r['label'] for r in data}[case['id']])
+    assert miss['verdict'] == 'hold' and 'critical_miss' in miss['reasons']
+
+
+def test_live_cohort_with_a_missing_tuning_class_holds(tmp_path):
+    step(tmp_path, [])
+    data = rows(40, ts='2026-10-16T01:00:00Z', label='general')    # all one class; 'none' and 'content' are in the prior
+    result = step(tmp_path, data)
+    assert result['verdict'] == 'hold' and 'class_coverage:content' in result['reasons']
+
+
+def test_live_binding_change_abandons_but_the_attempt_stays_spent(tmp_path):
+    step(tmp_path, [])
+    moved = step(tmp_path, [], revision='rev-2', now='2026-10-17T00:00:00Z')
+    assert moved['reason'] == 'cohort_opened' and moved['attempt'] == 2 and moved['alpha'] == 0.05
+    assert [e['event'] for e in advise_ledger.read(tmp_path, D)] == ['open', 'abandoned', 'open']
+    assert advise_ledger.open_cohort(tmp_path, D)['layaRevision'] == 'rev-2'
+    assert step(tmp_path, [], revision='rev-3', probe=lambda: False)['reason'] == 'laya_unavailable'
+    assert len(advise_ledger.read(tmp_path, D)) == 3

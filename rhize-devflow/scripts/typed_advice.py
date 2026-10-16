@@ -21,6 +21,7 @@ import re
 import stat
 import tempfile
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -30,15 +31,20 @@ ENDPOINT = 'http://127.0.0.1:8000'
 INSTRUMENT = 'typed-advice-v1'
 RECORD_SCHEMA = 'rhize-typed-choice-record-v1'
 OUTCOME_SCHEMA = 'rhize-typed-choice-outcome-v1'
-SCRUB_VERSION = 'scrub-v1'
+SCRUB_VERSION = 'scrub-v2'
+SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'
 MODES = ('off', 'shadow', 'advise', 'cosign')
 REQUEST_CHARS = 1500
+CRITERION_CHARS = 6000
 MAX_FILES = 20
 MAX_CANDIDATES = 16
 MAX_RESPONSE_BYTES = 64 * 1024
 CHUNK_BYTES = 8192
 PROBE_TTL_SECONDS = 60
 HOLDBACK = {'advisory': 0.10, 'workflow': 0.10, 'critical': 0.15}
+KINDS = ('choice', 'snapshot', 'outcome', 'label', 'shown')
+SESSION_ENV = ('CLAUDE_SESSION_ID', 'CLAUDE_CODE_SESSION_ID', 'CODEX_SESSION_ID', 'CODEX_THREAD_ID')
+MAX_SCRUB_INPUT = 1 << 16
 
 _BASE = re.compile(r'http://(127\.0\.0\.1|\[::1\]):([0-9]{1,5})/?')
 _PATH = re.compile(r'/[A-Za-z0-9._~/-]*')
@@ -46,12 +52,27 @@ _DECISION = re.compile(r'[a-z][a-z0-9-]{1,40}')
 _CANDIDATE = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}')
 _DECISION_ID = re.compile(r'[0-9a-f]{32}')
 _REVISION = re.compile(r'[A-Za-z0-9._-]{1,80}')
-_SECRET_ASSIGN = re.compile(
-    r'(?i)\b([A-Za-z0-9_]*(?:pass(?:word|wd)?|secret|token|api[_-]?key|auth[A-Za-z_]*|bearer|credential|private[_-]?key)'
-    r'[A-Za-z0-9_]*)(?:["\']?\s*[:=]\s*|\s+)(?:(?:bearer|basic)\s+)?'
-    r'("[^"]*"|\'[^\']*\'|["\']?[^\s"\']+)')
+_NAME = (r'[A-Za-z0-9_]{0,40}(?:pass(?:word|wd|phrase)?|secret|token|api[_-]?key|access[_-]?key|auth[A-Za-z_]{0,40}|bearer|'
+         r'credential|private[_-]?key)[A-Za-z0-9_]{0,40}')
+_CLAUSE_END = r'(?=\s+(?:and|then|but|or|so|now|please)\b|[,;&]|\.(?:\s|$)|$)'
+# name[:=]value, including JSON keys and values with escaped quotes; an unquoted value runs to the end of the clause.
+_SECRET_KV = re.compile(
+    r'(?i)\b(' + _NAME + r'|session(?:[_-]?(?:id|token|key))?)\\*["\']?\s*[:=]\s*(?:(?:bearer|basic)\s+)?'
+    r'(?:(\\*["\'])(.*?)\2|\\*["\']?[^\s,;&].*?' + _CLAUSE_END + ')')
+# "the password is hunter2": a bare name, optional filler words, then one token.
+_SECRET_SPOKEN = re.compile(
+    r'(?i)\b(' + _NAME + r')\s+(?:(?:is|was|are|were|be|equals?|set\s+to|to|of)\b\s*[:=]?\s*)*'
+    r'(?:(?:bearer|basic)\s+)?("[^"]*"|\'[^\']*\'|["\']?[^\s"\']+)')
+_USERINFO = re.compile(r'([A-Za-z][A-Za-z0-9+.-]{0,30}://)[^\s/?#@]{1,256}@')
+_CLI_USER = re.compile(r'(?i)(?<!\S)(-u|--user|--proxy-user)(?:\s+|=)\S*:\S*')
+_COOKIE = re.compile(r'(?i)\b(set-cookie|cookie)\s*[:=]\s*[^\s;]+(?:;\s*[^\s;]+)*')
+_CLOUD_KEY = re.compile(r'\b(?:AKIA|ASIA|AGPA|AIDA|AROA|ANPA)[A-Z0-9]{16}\b')
 _SECRET_RUN = re.compile(r'[A-Za-z0-9+/_=-]{32,}')
-_SECRET_FILE = re.compile(r'(?i)(^|/)(\.env[^/]*|.*\.(pem|key|p12|pfx|keystore)|id_[a-z0-9]+|.*credential[^/]*|.*secret[^/]*)$')
+# Any path component of these names is dropped, not only the last one (secrets/prod.txt, .kube/config).
+_SECRET_FILE = re.compile(
+    r'(?i)^(\.env.*|.*\.(pem|key|p12|pfx|jks|keystore|tfvars|tfvars\.json)|id_[a-z0-9]+|.*credential.*|.*secret.*|'
+    r'\.?netrc|_netrc|\.npmrc|\.pypirc|\.pgpass|\.htpasswd|kubeconfig.*|\.kube|\.ssh|\.aws|\.gnupg|'
+    r'service[-_]?account.*\.json|token\.json)$')
 _WS = re.compile(r'\s+')
 
 # shortcut: decision-to-tier map duplicated from catalog/decision-registry.json so islands need no catalog;
@@ -80,14 +101,27 @@ INSTRUMENT_SHA256 = sha256({'instrument': INSTRUMENT, 'model': MODEL, 'requestCh
 
 # ------------------------------------------------------------------ input hygiene
 
-def scrub(text) -> str:
-    """Collapse whitespace, mask credential-shaped assignments and long opaque runs, cap at REQUEST_CHARS."""
+def _normalize(text: str) -> str:
+    """NFKC, then drop format characters (zero-width joiners and spaces, bidi marks) that split a pattern."""
+    return ''.join(c for c in unicodedata.normalize('NFKC', text) if unicodedata.category(c) != 'Cf')
+
+
+def scrub(text, limit=REQUEST_CHARS) -> str:
+    """Normalize, collapse whitespace, mask credential-shaped text and long opaque runs, then cap at `limit`.
+
+    Masking runs on the whole (bounded) text and truncation comes last, so a secret is never cut in half
+    and left below a pattern's reach."""
     if not isinstance(text, str):
         return ''
-    text = _WS.sub(' ', text).strip()[:REQUEST_CHARS * 2]
-    text = _SECRET_ASSIGN.sub(lambda m: m.group(1) + '=<redacted>', text)
+    text = _WS.sub(' ', _normalize(text[:MAX_SCRUB_INPUT])).strip()
+    text = _USERINFO.sub(r'\1<redacted>@', text)
+    text = _CLI_USER.sub(lambda m: m.group(1) + ' <redacted>', text)
+    text = _COOKIE.sub(lambda m: m.group(1) + ': <redacted>', text)
+    text = _CLOUD_KEY.sub('<redacted>', text)
+    text = _SECRET_KV.sub(lambda m: m.group(1) + '=<redacted>', text)
+    text = _SECRET_SPOKEN.sub(lambda m: m.group(1) + '=<redacted>', text)
     text = _SECRET_RUN.sub('<redacted>', text)
-    return text[:REQUEST_CHARS]
+    return text[:limit]
 
 
 def clean_files(paths) -> list:
@@ -96,9 +130,11 @@ def clean_files(paths) -> list:
     for item in paths or ():
         if not isinstance(item, str):
             continue
-        path = item.strip().replace('\\', '/')
+        path = _normalize(item).strip().replace('\\', '/')
+        parts = path.split('/')
         if (not path or len(path) > 200 or path.startswith(('/', '~')) or re.match(r'[A-Za-z]:', path)
-                or '..' in path.split('/') or _SECRET_FILE.search(path) or any(ord(c) < 32 for c in path)):
+                or '..' in parts or any(_SECRET_FILE.match(part) for part in parts)
+                or any(ord(c) < 32 for c in path)):
             continue
         if path not in kept:
             kept.append(path)
@@ -236,7 +272,7 @@ def post_local(base_url, path, payload, timeout, max_bytes=MAX_RESPONSE_BYTES, h
 def build_request(request, files, question, candidates) -> tuple:
     """Laya /v1/systemone payload for one choice question; returns (payload, key->candidate id map)."""
     key_map = {f'c{i}': item['id'] for i, item in enumerate(candidates)}
-    criteria = {f'c{i}': item['criterion'] for i, item in enumerate(candidates)}
+    criteria = {f'c{i}': scrub(item['criterion'], CRITERION_CHARS) for i, item in enumerate(candidates)}
     state = {'request': scrub(request), 'files': clean_files(files)}
     return ({'model': MODEL, 'state': state,
              'questions': {'pick': {'type': 'choice', 'instructions': question, 'criteria': criteria}}}, key_map)
@@ -300,22 +336,35 @@ def policy_sha256(decision, question, policy) -> str:
     return sha256({'decision': decision, 'question': question, 'policy': policy, 'instrument': INSTRUMENT_SHA256})
 
 
+def _trusted(info) -> bool:
+    """Owned by this user and writable by nobody else."""
+    return info.st_uid == os.geteuid() and not info.st_mode & 0o022
+
+
 def effective_mode(decision, policy_sha, store=None) -> str:
-    """'off' | 'shadow' | 'advise'. Only an entry whose earned binding matches what runs now may advise."""
+    """'off' | 'shadow' | 'advise'. Only a well-formed, trusted state whose earned binding matches what runs now
+    may advise; anything else (unowned or group/world-writable files, missing revision, unknown Laya) is shadow."""
+    store = Path(store or root())
     try:
-        state = json.loads(_read_regular(Path(store or root()) / 'registry-state.json', 1 << 20))
+        if not _trusted(os.stat(str(store))):
+            return 'shadow'
+        state = json.loads(_read_regular(store / 'registry-state.json', 1 << 20, trusted=True))
+        if type(state['schemaVersion']) is not int or state['schemaVersion'] != 1:
+            return 'shadow'
+        if type(state['revision']) is not int or state['revision'] < 1:
+            return 'shadow'
         entry = state['decisions'].get(decision)
     except Exception:  # noqa: BLE001 - missing or corrupt state reads as shadow
         return 'shadow'
-    if not isinstance(entry, dict) or entry.get('mode') not in MODES:
+    if not isinstance(entry, dict) or type(entry.get('pinned')) is not bool or entry.get('mode') not in MODES:
         return 'shadow'
     if entry['mode'] == 'off':
         return 'off'
     if entry['mode'] != 'advise':
         return 'shadow'
-    revision = entry.get('layaRevision')
+    revision, current = entry.get('layaRevision'), laya_revision(store)
     if (entry.get('policySha256') != policy_sha or entry.get('instrumentSha256') != INSTRUMENT_SHA256
-            or (revision is not None and revision != laya_revision(store))):
+            or not isinstance(revision, str) or revision == 'unknown' or revision != current):
         return 'shadow'
     return 'advise'
 
@@ -327,12 +376,14 @@ def holdback(decision, key) -> bool:
 
 # ------------------------------------------------------------------ records
 
-def _read_regular(path, max_bytes) -> bytes:
+def _read_regular(path, max_bytes, trusted=False) -> bytes:
     fd = os.open(str(path), os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0))
     try:
         info = os.fstat(fd)
         if not stat.S_ISREG(info.st_mode) or info.st_size > max_bytes:
             raise ValueError('not a regular file within the size limit')
+        if trusted and not _trusted(info):
+            raise ValueError('file is not private to this user')
         with os.fdopen(fd, 'rb', closefd=False) as stream:
             return stream.read(max_bytes)
     finally:
@@ -373,8 +424,9 @@ def _write_atomic(path: Path, value) -> None:
 
 
 def write_once(store: Path, decision, kind, decision_id, value) -> bool:
-    """Publish `value` at <store>/<decision>/<kind>/<id>.json unless it exists. True when this call wrote it."""
-    if not _DECISION.fullmatch(decision) or not _DECISION_ID.fullmatch(decision_id):
+    """Publish `value` at <store>/<decision>/<kind>/<id>.json unless it exists. True when this call wrote it.
+    `kind` must be one of KINDS."""
+    if not _DECISION.fullmatch(decision) or not _DECISION_ID.fullmatch(decision_id) or kind not in KINDS:
         raise ValueError('invalid record path component')
     directory = _private_dir(store / decision / kind, store)
     target = directory / f'{decision_id}.json'
@@ -397,7 +449,7 @@ def write_once(store: Path, decision, kind, decision_id, value) -> bool:
 def load(decision, decision_id, kind='choice', store=None):
     """A stored record (dict) or None."""
     try:
-        if not _DECISION.fullmatch(decision) or not _DECISION_ID.fullmatch(decision_id):
+        if not _DECISION.fullmatch(decision) or not _DECISION_ID.fullmatch(decision_id) or kind not in KINDS:
             return None
         return json.loads(_read_regular(Path(store or root()) / decision / kind / f'{decision_id}.json', 1 << 20))
     except Exception:  # noqa: BLE001
@@ -419,13 +471,27 @@ def _validate_candidates(candidates) -> list:
     return ids
 
 
+def _default_group() -> str:
+    """Session-like unit when the caller names none: the host session id, else cwd + UTC date. Never the key."""
+    for name in SESSION_ENV:
+        value = os.environ.get(name)
+        if value:
+            return 'session:' + value
+    try:
+        cwd = os.path.realpath(os.getcwd())
+    except OSError:
+        cwd = 'unknown-cwd'
+    return sha256(cwd + time.strftime('%Y-%m-%d', time.gmtime()))
+
+
 def advise(decision, request, candidates, key, *, critical_if_wrong, question, policy, files=(),
            endpoint=ENDPOINT, budget_ms=1500, store=None, call=None, snapshot=True, group=None) -> dict:
     """Ask Laya for an advise-v1 recommendation and record it before anything is shown.
 
     `key` identifies the decision occurrence (idempotent: a repeat returns the stored record's answer).
     `critical_if_wrong` must come from trusted caller state (hard gates), never from request text.
-    `group` names the session-like unit the learning loop splits on (default: the key), stored hashed.
+    `group` names the session-like unit the learning loop splits on, stored hashed. Default: the host session id
+    from the environment, else the working directory and UTC date; never the key (one occurrence per group).
     Returns {'decisionId', 'mode', 'holdback', 'recommendation': {'id', 'confidence'} | None, 'policySha256'}.
     """
     if decision not in TIERS:
@@ -443,6 +509,7 @@ def advise(decision, request, candidates, key, *, critical_if_wrong, question, p
     if mode == 'off':
         return result
     existing = load(decision, decision_id, store=store)
+    group = _default_group() if group is None else str(group)
     if existing is None:
         answer = (call or choice)(request, files, question, candidates, endpoint=endpoint, budget_ms=budget_ms,
                                   store=store)
@@ -452,13 +519,14 @@ def advise(decision, request, candidates, key, *, critical_if_wrong, question, p
                   'policySha256': policy_sha, 'instrumentSha256': INSTRUMENT_SHA256,
                   'layaRevision': laya_revision(store), 'candidates': ids,
                   'criticalIfWrong': bool(critical_if_wrong), 'requestSha256': sha256(scrub(request)),
-                  'files': len(clean_files(files)), 'groupSha256': sha256(key if group is None else str(group)),
+                  'files': len(clean_files(files)), 'groupSha256': sha256(group),
                   'laya': {k: answer.get(k) for k in ('status', 'choice', 'probabilities', 'latencyMs')}}
         try:
             if snapshot:
                 write_once(store, decision, 'snapshot', decision_id,
                             {'request': scrub(request), 'files': clean_files(files), 'question': question,
-                             'candidates': candidates, 'scrub': SCRUB_VERSION})
+                             'candidates': [{'id': c['id'], 'criterion': scrub(c['criterion'], CRITERION_CHARS)}
+                                            for c in candidates], 'scrub': SCRUB_VERSION})
             write_once(store, decision, 'choice', decision_id, record)
         except (OSError, ValueError):
             return result  # no durable record, no advice
@@ -467,8 +535,17 @@ def advise(decision, request, candidates, key, *, critical_if_wrong, question, p
             return result
     laya = existing.get('laya') or {}
     if (mode == 'advise' and not held and existing.get('policySha256') == policy_sha
+            and existing.get('instrumentSha256') == INSTRUMENT_SHA256
+            and existing.get('layaRevision') == laya_revision(store)
             and laya.get('status') == 'ok' and laya.get('choice') in ids):
         confidence = (laya.get('probabilities') or {}).get(laya['choice'])
+        try:  # the marker is what makes a recommendation count as shown; no marker, no advice
+            write_once(store, decision, 'shown', decision_id,
+                       {'schema': SHOWN_SCHEMA, 'decision': decision, 'decisionId': decision_id,
+                        'recommendation': laya['choice'], 'policySha256': policy_sha,
+                        'ts': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
+        except (OSError, ValueError):
+            return result
         result['recommendation'] = {'id': laya['choice'],
                                     'confidence': round(confidence, 3) if isinstance(confidence, float) else None}
     return result

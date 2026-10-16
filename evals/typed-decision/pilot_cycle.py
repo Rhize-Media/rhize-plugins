@@ -322,7 +322,7 @@ def advise_gate(registry_root, registry, check_sources, predict_one, rows, promo
                  and saved.get('policySha256') == policy_sha)
         if bound:
             return demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline,
-                                expected)
+                                expected, probe)
         # A stale binding already reads as shadow at runtime; record that so the gate can earn it again.
         moved = typed_promotion.registry_mutate(registry_root, registry, DECISION, 'shadow', 'binding_stale', expected)
         if moved['status'] != 'mutated':
@@ -341,25 +341,34 @@ def advise_gate(registry_root, registry, check_sources, predict_one, rows, promo
         laya_revision=revision, expected_revision=expected)
 
 
-def demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline, expected):
-    """Rolling live check of an earned `advise` (plan §3.7) on the latest labelled cases."""
+def demote_check(registry_root, registry, cfg, critical, check_sources, predict_one, rows, baseline, expected,
+                 probe=None):
+    """Rolling live check of an earned `advise` (plan §3.7) on the latest labelled cases. Laya is re-queried here,
+    so the mandatory probe runs first: an outage holds the check instead of scoring every answer as wrong. A
+    critical decision also replays every critical_if_wrong row, not just the window."""
     demote_cfg = cfg['demote']
     history, seen = typed_promotion.read_demotion_state(registry_root, DECISION)
     latest = rows[-demote_cfg['window']:]
     hashes = {digest(row['case_id']) for row in latest}
     fresh = len(hashes - seen)
-    cases = []
+    scan_rows = [row for row in rows if critical and row.get('critical_if_wrong')]
+    cases, scanned = [], []
     if fresh >= demote_cfg['freshLabels'] or critical:
-        for row in latest:
+        if not typed_promotion.probe_ok(probe):
+            return {'status': 'held', 'reason': 'laya_unavailable', 'earnedMode': 'advise'}
+        answered = {}
+        for row in latest + [r for r in scan_rows if r not in latest]:
             try:
                 choice, status = predict_one({'id': row['case_id']}), 'ok'
             except Exception:  # noqa: BLE001 - unavailable counts as wrong, like the gate
                 choice, status = None, 'unavailable'
-            cases.append({'id': row['case_id'], 'label': row['routing_choice'], 'choice': choice, 'status': status,
-                          'critical_if_wrong': bool(row.get('critical_if_wrong'))})
+            answered[row['case_id']] = {'id': row['case_id'], 'label': row['routing_choice'], 'choice': choice,
+                                        'status': status, 'critical_if_wrong': bool(row.get('critical_if_wrong'))}
+        cases = [answered[row['case_id']] for row in latest]
+        scanned = [answered[row['case_id']] for row in scan_rows]
     outcome = typed_promotion.demotion(cases, fresh, history, baseline=baseline, critical=critical,
                                        window=demote_cfg['window'], fresh_labels=demote_cfg['freshLabels'],
-                                       consecutive=demote_cfg['consecutive'])
+                                       consecutive=demote_cfg['consecutive'], scan_cases=scanned)
     return typed_promotion.demotion_result(registry_root, registry, DECISION, outcome, hashes,
                                            expected_revision=expected, reason='gate_demote', guard=check_sources)
 
@@ -560,8 +569,9 @@ def cycle(root, receipts, research_root, minimum=DEFAULT_MINIMUM, deadline=180, 
             by_id = {row['case_id']: row for row in rows}
             def predict_one(case):
                 return module.predict([by_id[case['id']]], default, bounded)[case['id']]
-            # An injected `call` stands in for Laya, so only the real endpoint needs the availability probe.
-            probe = None if call else lambda: typed_advice.check_identity(LAYA_URL)
+            # An injected `call` stands in for Laya, so only the real endpoint needs the availability probe (which
+            # must return exactly True; check_identity raises when Laya is down).
+            probe = (lambda: True) if call else (lambda: typed_advice.check_identity(LAYA_URL) is not False)
             gate = advise_gate(registry_root, registry, check_sources, predict_one, rows, promotion, baseline_choice,
                                prior, probe)
             result = {**result, 'advise': gate}

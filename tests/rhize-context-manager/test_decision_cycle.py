@@ -5,8 +5,10 @@ import hashlib
 import json
 import os
 import stat
+import calendar
 import subprocess
 import sys
+import time
 from fractions import Fraction
 from math import comb
 from pathlib import Path
@@ -1297,30 +1299,71 @@ def test_gate_shares_are_frozen_at_reserve(root, registry):
     assert cohorts.evaluate(root, loosened, event['cohortId'], T_EVAL)['verdict'] == 'held'
 
 
-# ================================================================ advise (majority-baseline gate)
+# ================================================================ advise (prospective majority-baseline gate)
 
 ROUTING, CRITICAL_DECISION = 'model-routing', 'devflow-next-action'
-OPEN_PROBE = lambda: None  # noqa: E731 - Laya is reachable
+OPEN_PROBE = lambda: True  # noqa: E731 - Laya is reachable (a probe must return exactly True)
+PRE, POST, LATER = '2026-10-12T08:00:00Z', '2026-10-12T16:00:00Z', '2026-10-12T20:00:00Z'   # NOW (12:00) is the open
+CLOCK = {'t': None}
+SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'
+
+
+@pytest.fixture(autouse=True)
+def _record_clock(monkeypatch):
+    """Lets a test choose the timestamp typed_advice.advise stamps on a record (pass-through until `at` is called)."""
+    CLOCK['t'] = None
+    real = time.gmtime
+    monkeypatch.setattr(time, 'gmtime', lambda *a: real(*a) if a or CLOCK['t'] is None else real(CLOCK['t']))
+    yield
+    CLOCK['t'] = None
+
+
+def at(iso):
+    CLOCK['t'] = calendar.timegm(time.strptime(iso, '%Y-%m-%dT%H:%M:%SZ'))
 
 
 def label_of(i):
     return CHOICE_IDS[i % 3]
 
 
-def fill(root, decision, count=120, *, start=0, critical=False, wrong=(), policy=CHOICE_POLICY, ambiguous=()):
-    """`count` labelled choice records; labels cycle over three classes and Laya agrees except at the `wrong` indices."""
+def fill(root, decision, count=120, *, start=0, critical=False, wrong=(), policy=CHOICE_POLICY, ambiguous=(),
+         label_fn=label_of, group=None, status='ok', unlabelled=False):
+    """`count` choice records (the clock decides their ts), labelled by `label_fn` unless `unlabelled`; Laya agrees
+    except at the `wrong` indices. Returns the decision ids."""
     ids = []
     for i in range(start, start + count):
-        laya = label_of(i + 1) if i in wrong else label_of(i)
-        result = write_choice(root, decision, i, laya=laya, critical=critical, policy=policy)
-        write_choice_label(root, decision, result['decisionId'], label_of(i), ambiguous=i in ambiguous)
+        laya = label_of(i + 1) if i in wrong else label_fn(i)
+        result = write_choice(root, decision, i, laya=laya, critical=critical, policy=policy,
+                              group=group(i) if callable(group) else group, status=status)
+        if not unlabelled:
+            write_choice_label(root, decision, result['decisionId'], label_fn(i), ambiguous=i in ambiguous)
         ids.append(result['decisionId'])
     return ids
 
 
 def advise_pass(root, decision=ROUTING, **kwargs):
     kwargs.setdefault('probe', OPEN_PROBE)
-    return CYCLE.run_cycle(root, NOW, seed=1, **kwargs)['advise'][decision]
+    return CYCLE.run_cycle(root, kwargs.pop('now', NOW), seed=1, **kwargs)['advise'][decision]
+
+
+def open_cohort(root, decision=ROUTING, tuning=60, **fill_kwargs):
+    """Tuning data recorded before the open, then the cycle that opens the prospective cohort at NOW."""
+    at(PRE)
+    fill(root, decision, count=tuning, **fill_kwargs)
+    opened = advise_pass(root, decision)
+    assert opened['status'] == 'held' and opened['reason'] == 'cohort_opened', opened
+    return opened
+
+
+def earn(root, decision=ROUTING, *, critical=False, wrong=(), count=120, start=1000, **fill_kwargs):
+    open_cohort(root, decision, critical=critical, **fill_kwargs)
+    at(POST)
+    fill(root, decision, count=count, start=start, critical=critical, wrong=wrong, **fill_kwargs)
+    return advise_pass(root, decision)
+
+
+def events_of(root, decision=ROUTING):
+    return advise_ledger.read(root, decision)
 
 
 def state_of(root, decision):
@@ -1338,13 +1381,40 @@ def treatment_index(decision, start):
     return next(i for i in range(start, start + 500) if not typed_advice.holdback(decision, f'key-{i}'))
 
 
+def promotion_index(start, **kw):
+    """First record index >= start whose default group (group-<i>) falls in the promotion split."""
+    return next(i for i in range(start, start + 500)
+                if typed_promotion_split(hashlib.sha256(f'group-{i}'.encode()).hexdigest()) == 'promotion')
+
+
+def typed_promotion_split(group):
+    return CYCLE.typed_promotion.split_of(group)
+
+
+def mark_shown(root, decision, result):
+    """The 'shown' marker advise() leaves when it returns a recommendation (idempotent: first write wins)."""
+    typed_advice.write_once(Path(root), decision, 'shown', result['decisionId'], {
+        'schema': SHOWN_SCHEMA, 'decision': decision, 'decisionId': result['decisionId'],
+        'recommendation': result['recommendation'], 'policySha256': result['policySha256'], 'ts': NOW})
+
+
+def unshow(root, decision, result):
+    path = root / decision / 'shown' / f"{result['decisionId']}.json"
+    if path.exists():
+        path.unlink()
+
+
 def test_a_passing_gate_promotes_to_advise_and_the_runtime_reader_honours_it(root):
-    fill(root, ROUTING)
+    opened = open_cohort(root)
+    assert opened['attempt'] == 1 and opened['openedAt'] == NOW and state_of(root, ROUTING) is None
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000)
     result = advise_pass(root)
     assert result['verdict'] == 'pass' and result['registry']['status'] == 'mutated' and result['earnedMode'] == 'advise'
     entry = state_of(root, ROUTING)
-    events = advise_ledger.read(root, ROUTING)
-    assert [e['event'] for e in events] == ['reserve', 'consumed'] and events[1]['verdict'] == 'pass'
+    events = events_of(root)
+    assert [e['event'] for e in events] == ['open', 'consumed'] and events[1]['verdict'] == 'pass'
+    assert len(events[1]['caseIds']) == len(events[1]['groups']) == result['stats']['n'] >= 30
     policy = typed_advice.policy_sha256(ROUTING, 'Which option fits this request?', CHOICE_POLICY)
     assert entry['mode'] == 'advise' and entry['cohortId'] == events[0]['cohortId']
     assert (entry['policySha256'], entry['instrumentSha256'], entry['layaRevision']) == (
@@ -1356,57 +1426,145 @@ def test_a_passing_gate_promotes_to_advise_and_the_runtime_reader_honours_it(roo
     assert 'workflow-fit' not in CYCLE.run_cycle(root, NOW, seed=1, probe=OPEN_PROBE)['advise']
 
 
+def test_records_made_before_the_open_are_never_cases_whatever_their_outcome(root):
+    at(PRE)
+    fill(root, ROUTING, count=300)                                   # a long, perfectly labelled history before any open
+    assert advise_pass(root)['reason'] == 'cohort_opened'
+    held = advise_pass(root)                                         # nothing new was recorded after the open
+    assert held['reason'] == 'cohort_collecting' and held['available'] == 0
+    assert [e['event'] for e in events_of(root)] == ['open'] and state_of(root, ROUTING) is None
+
+
+def test_a_policy_chosen_after_outcomes_cannot_reuse_earlier_recorded_cases(root):
+    at(PRE)
+    fill(root, ROUTING, count=200, policy='first|policy')                        # outcomes already known
+    at('2026-10-12T10:00:00Z')
+    fill(root, ROUTING, count=5, start=900, policy='second|policy')              # the new policy, newest record
+    assert advise_pass(root)['reason'] == 'cohort_opened'                        # binds second|policy at NOW
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000, policy='second|policy')
+    result = advise_pass(root)
+    consumed = events_of(root)[-1]
+    assert result['status'] == 'evaluated'
+    records = {r['decisionId']: r for r in CYCLE.choice_labels.read_choice_records(root, ROUTING)}
+    second = typed_advice.policy_sha256(ROUTING, 'Which option fits this request?', 'second|policy')
+    assert {records[i]['policySha256'] for i in consumed['caseIds']} == {second}
+    assert all(records[i]['ts'] > NOW[:-1].replace('T12', 'T12') and records[i]['ts'] > '2026-10-12T12:00:00Z'
+               for i in consumed['caseIds'])
+
+
 def test_critical_decisions_need_ten_critical_cases_and_zero_critical_misses(root):
-    fill(root, CRITICAL_DECISION, critical=True)
-    result = advise_pass(root, CRITICAL_DECISION)
+    result = earn(root, CRITICAL_DECISION, critical=True)
     assert result['verdict'] == 'pass' and result['stats']['criticalCases'] >= 10 and result['stats']['criticalMisses'] == 0
     assert state_of(root, CRITICAL_DECISION)['mode'] == 'advise' and state_of(root, CRITICAL_DECISION)['pinned'] is False
 
 
 def test_a_critical_miss_in_the_cohort_holds(root):
-    fill(root, CRITICAL_DECISION, critical=True, wrong=set(range(0, 120, 2)))
-    result = advise_pass(root, CRITICAL_DECISION)
+    result = earn(root, CRITICAL_DECISION, critical=True, wrong=set(range(1000, 1120, 2)))
     assert result['verdict'] == 'hold' and 'critical_miss' in result['reasons'] and state_of(root, CRITICAL_DECISION) is None
-    assert advise_ledger.read(root, CRITICAL_DECISION)[1]['verdict'] == 'hold'
+    assert events_of(root, CRITICAL_DECISION)[1]['verdict'] == 'hold'
 
 
-def test_without_enough_critical_cases_a_critical_decision_holds(root):
-    fill(root, CRITICAL_DECISION, critical=False)
+def test_an_unanswered_critical_case_among_correct_ones_is_a_critical_miss(root):
+    open_cohort(root, CRITICAL_DECISION, critical=True)
+    at(POST)
+    fill(root, CRITICAL_DECISION, count=120, start=1000, critical=True)
+    skipped = promotion_index(1200)                                  # one promotion-group record Laya never answered
+    fill(root, CRITICAL_DECISION, count=1, start=skipped, critical=True, status='unavailable')
     result = advise_pass(root, CRITICAL_DECISION)
-    assert result['verdict'] == 'hold' and 'critical_cases_below_minimum' in result['reasons']
+    assert result['verdict'] == 'hold' and result['reasons'] == ['critical_miss'], result['reasons']
+    assert result['stats']['criticalMisses'] == 1 and result['stats']['coverage'] > 0.9
 
 
-def test_no_labelled_cases_is_a_hold_that_touches_nothing(root):
+def test_without_enough_critical_cases_a_critical_decision_keeps_collecting(root):
+    open_cohort(root, CRITICAL_DECISION)
+    at(POST)
+    fill(root, CRITICAL_DECISION, count=120, start=1000, critical=False)
+    result = advise_pass(root, CRITICAL_DECISION)
+    assert result['status'] == 'held' and result['reason'] == 'cohort_collecting'
+    assert result['criticalAvailable'] == 0 and result['criticalRequired'] == 10
+    assert [e['event'] for e in events_of(root, CRITICAL_DECISION)] == ['open']      # not consumed: nothing was evaluated
+
+
+def test_a_cohort_missing_a_tuning_class_holds_even_when_every_case_is_right(root):
+    open_cohort(root)                                                # the tuning prior has all three classes
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000, label_fn=lambda i: CHOICE_IDS[0])
+    result = advise_pass(root)
+    assert result['verdict'] == 'hold' and result['stats']['accuracy'] == 1.0
+    assert any(r.startswith('class_coverage:') for r in result['reasons'])
+    assert state_of(root, ROUTING) is None
+
+
+def test_one_group_with_many_cases_counts_once_and_the_earliest_record_is_the_case(root):
+    open_cohort(root)
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000)
+    shared = next(f'shared-{n}' for n in range(500) if typed_promotion_split(hashlib.sha256(f'shared-{n}'.encode()).hexdigest()) == 'promotion')
+    first = write_choice(root, ROUTING, 5000, laya='alpha', group=shared)       # the earliest record of the group, right
+    write_choice_label(root, ROUTING, first['decisionId'], 'alpha')
+    at(LATER)
+    for i in range(5001, 5041):                                                   # forty later, wrong, favourable-to-baseline
+        later = write_choice(root, ROUTING, i, laya='gamma', group=shared)
+        write_choice_label(root, ROUTING, later['decisionId'], 'alpha')
+    result = advise_pass(root, now='2026-10-12T23:00:00Z')
+    consumed = events_of(root)[-1]
+    assert result['status'] == 'evaluated' and first['decisionId'] in consumed['caseIds']
+    assert len(consumed['caseIds']) == len(consumed['groups']) == result['stats']['n']
+    assert sum(g == CYCLE.advise_ledger.group_hash(hashlib.sha256(shared.encode()).hexdigest()) for g in consumed['groups']) == 1
+
+
+def test_no_baseline_data_is_a_hold_that_touches_nothing(root):
     before = tree_snapshot(root)
     result = CYCLE.run_cycle(root, NOW, seed=1, dry_run=True, probe=OPEN_PROBE)['advise']
     assert all(v['status'] == 'held' for v in result.values()) and set(result) == set(
         d for d, e in reg.load_registry()['decisions'].items() if e['advise'] and d != 'workflow-fit')
     assert tree_snapshot(root) == before and not (root / ROUTING).exists()
-    fill(root, ROUTING, count=20)
+    at(PRE)
+    fill(root, ROUTING, count=20, unlabelled=True)                   # records but not one label: no baseline, no open
     held = advise_pass(root)
-    assert held['status'] == 'held' and held['reason'] == 'insufficient_promotion_cases' and advise_ledger.read(root, ROUTING) == []
+    assert held['status'] == 'held' and held['reason'] == 'no_tuning_cases' and events_of(root) == []
 
 
-def test_a_laya_outage_holds_before_a_cohort_is_reserved(root):
-    fill(root, ROUTING)
+def test_a_dry_run_opens_and_evaluates_nothing(root):
+    at(PRE)
+    fill(root, ROUTING, count=60)
+    assert advise_pass(root, dry_run=True)['reason'] == 'would_open_cohort' and events_of(root) == []
+    open_cohort_events = advise_pass(root)
+    assert open_cohort_events['reason'] == 'cohort_opened'
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000)
+    dry = advise_pass(root, dry_run=True)
+    assert dry['status'] == 'dry_run' and dry['verdict'] == 'pass' and dry['registry']['status'] == 'would_mutate'
+    assert [e['event'] for e in events_of(root)] == ['open'] and state_of(root, ROUTING) is None
+
+
+@pytest.mark.parametrize('probe', ['down', 'none', 'false'])
+def test_a_laya_outage_never_opens_a_cohort(root, probe):
+    at(PRE)
+    fill(root, ROUTING, count=60)
 
     def down():
         raise OSError('connection refused')
-    result = advise_pass(root, probe=down)
+    result = advise_pass(root, probe={'down': down, 'none': lambda: None, 'false': lambda: False}[probe])
     assert result['status'] == 'held' and result['reason'] == 'laya_unavailable'
-    assert advise_ledger.read(root, ROUTING) == [] and state_of(root, ROUTING) is None
+    assert events_of(root) == [] and state_of(root, ROUTING) is None
+    assert advise_pass(root)['reason'] == 'cohort_opened'            # the outage spent no attempt
 
 
 def test_pins_off_and_cosign_suppress_the_advise_pass(root):
-    fill(root, ROUTING)
+    at(PRE)
+    fill(root, ROUTING, count=60)
     reg.mutate(root, ROUTING, 'off', actor='cli', reason='kill_switch', expected_revision=0)
     assert advise_pass(root)['reason'] == 'mode_off'
     reg.mutate(root, ROUTING, 'shadow', actor='cli', reason='pin_it', expected_revision=1, pinned=True)
-    assert advise_pass(root)['reason'] == 'pinned' and advise_ledger.read(root, ROUTING) == []
+    assert advise_pass(root)['reason'] == 'pinned' and events_of(root) == []
 
 
 def test_a_registry_refusal_is_recorded_not_raised(root, monkeypatch):
-    fill(root, ROUTING)
+    open_cohort(root)
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000)
 
     def refuse(*args, **kwargs):
         raise reg.RegistryError('stale_revision', 'raced')
@@ -1417,45 +1575,62 @@ def test_a_registry_refusal_is_recorded_not_raised(root, monkeypatch):
 
 
 def test_a_corrupt_ledger_is_one_recorded_hold_not_a_crash(root):
-    fill(root, ROUTING)
+    at(PRE)
+    fill(root, ROUTING, count=60)
     (root / ROUTING).mkdir(exist_ok=True)
     (root / ROUTING / 'advise-cohorts.jsonl').write_text(json.dumps({'event': 'reserve', 'decision': ROUTING}) + '\n')
     result = advise_pass(root)
     assert result['status'] == 'held' and result['reason'] == 'error'
 
 
-def test_only_the_current_homogeneous_cohort_feeds_the_gate(root):
-    old = fill(root, ROUTING, count=90, policy='old|policy', wrong=set(range(90)))      # a retired policy, all wrong
-    for decision_id in old:
-        backdate(root, ROUTING, decision_id, '2026-10-01T00:00:00Z')
-    foreign = fill(root, ROUTING, count=30, start=500)
+def test_only_the_current_homogeneous_binding_feeds_the_cohort(root):
+    open_cohort(root)
+    at('2026-10-12T14:00:00Z')
+    old = fill(root, ROUTING, count=60, start=500, policy='old|policy', wrong=set(range(500, 560)))
+    foreign = fill(root, ROUTING, count=30, start=700, wrong=set(range(700, 730)))
     for decision_id in foreign:
-        backdate(root, ROUTING, decision_id, '2026-10-05T00:00:00Z', instrumentSha256='f' * 64)
-    stale_rev = fill(root, ROUTING, count=30, start=700)
+        backdate(root, ROUTING, decision_id, '2026-10-12T14:00:00Z', instrumentSha256='f' * 64)
+    stale_rev = fill(root, ROUTING, count=30, start=800, wrong=set(range(800, 830)))
     for decision_id in stale_rev:
-        backdate(root, ROUTING, decision_id, '2026-10-06T00:00:00Z', layaRevision='older-checkpoint')
-    fill(root, ROUTING, count=120, start=1000)
+        backdate(root, ROUTING, decision_id, '2026-10-12T14:00:00Z', layaRevision='older-checkpoint')
+    at(POST)
+    fill(root, ROUTING, count=120, start=1000)                       # the most recent record: its policy is the binding
     result = advise_pass(root)
-    reserved = advise_ledger.read(root, ROUTING)[0]['caseIds']
-    assert result['verdict'] == 'pass' and not set(reserved) & set(old + foreign + stale_rev)
-    assert result['stats']['n'] == len(reserved) and result['stats']['accuracy'] == 1.0
+    consumed = events_of(root)[-1]
+    assert result['verdict'] == 'pass' and not set(consumed['caseIds']) & set(old + foreign + stale_rev)
+    assert result['stats']['n'] == len(consumed['caseIds']) and result['stats']['accuracy'] == 1.0
 
 
 def test_ambiguous_labels_are_excluded(root):
+    open_cohort(root)
+    at(POST)
     unclear = fill(root, ROUTING, count=90, start=2000, wrong=set(range(2000, 2090)), ambiguous=set(range(2000, 2090)))
-    fill(root, ROUTING, count=120)
+    fill(root, ROUTING, count=120, start=1000)
+    at(LATER)
     result = advise_pass(root)
-    reserved = advise_ledger.read(root, ROUTING)[0]['caseIds']
-    assert result['verdict'] == 'pass' and result['stats']['accuracy'] == 1.0 and not set(reserved) & set(unclear)
+    consumed = events_of(root)[-1]
+    assert result['verdict'] == 'pass' and result['stats']['accuracy'] == 1.0 and not set(consumed['caseIds']) & set(unclear)
+
+
+def test_a_changed_binding_abandons_the_open_cohort_and_the_attempt_stays_spent(root):
+    open_cohort(root)
+    (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'newer-checkpoint'}))
+    at(POST)
+    fill(root, ROUTING, count=40, start=3000)                        # records of the new checkpoint: another binding
+    result = advise_pass(root)
+    assert result['reason'] == 'cohort_opened' and result['attempt'] == 2 and result['alpha'] == 0.05
+    events = events_of(root)
+    assert [e['event'] for e in events] == ['open', 'abandoned', 'open'] and events[1]['reason'] == 'binding_changed'
+    assert events[2]['layaRevision'] == 'newer-checkpoint' and state_of(root, ROUTING) is None
 
 
 def test_earned_advise_is_demoted_after_two_evaluations_below_baseline(root):
-    fill(root, ROUTING)
-    assert advise_pass(root)['earnedMode'] == 'advise'
+    assert earn(root)['earnedMode'] == 'advise'
     policy = state_of(root, ROUTING)['policySha256']
-    baseline = advise_ledger.read(root, ROUTING)[0]['baseline']
+    baseline = CYCLE.typed_promotion.cohort_baseline(root, ROUTING, state_of(root, ROUTING)['cohortId'])
     other = next(c for c in CHOICE_IDS if c != baseline)
     index = [treatment_index(ROUTING, 5000)]
+    at(LATER)
 
     def batch(n):                                   # advise-arm treatment cases where Laya misses the baseline class
         for _ in range(n):
@@ -1477,38 +1652,80 @@ def test_earned_advise_is_demoted_after_two_evaluations_below_baseline(root):
     assert reg.read_audit(root)[0][-1]['reason'] == 'gate_demote'
 
 
-def test_a_live_critical_miss_demotes_at_once(root):
-    fill(root, CRITICAL_DECISION, critical=True)
-    assert advise_pass(root, CRITICAL_DECISION)['earnedMode'] == 'advise'
-    i = treatment_index(CRITICAL_DECISION, 7000)
-    result = write_choice(root, CRITICAL_DECISION, i, laya='alpha', critical=True)
-    write_choice_label(root, CRITICAL_DECISION, result['decisionId'], 'beta')
+def test_a_stray_record_of_another_policy_does_not_flap_an_earned_advise(root):
+    assert earn(root)['earnedMode'] == 'advise'
+    at(LATER)
+    stray = write_choice(root, ROUTING, 7777, laya='alpha', policy='stray|policy')    # now the newest record overall
+    write_choice_label(root, ROUTING, stray['decisionId'], 'beta')
+    quiet = advise_pass(root)
+    assert quiet['branch'] == 'demotion' and quiet['earnedMode'] == 'advise' and state_of(root, ROUTING)['mode'] == 'advise'
+
+
+def critical_advise(root):
+    assert earn(root, CRITICAL_DECISION, critical=True)['earnedMode'] == 'advise'
+    at(LATER)
+
+
+def shown_case(root, i, *, laya, label, show=True):
+    result = write_choice(root, CRITICAL_DECISION, i, laya=laya, critical=True)
+    write_choice_label(root, CRITICAL_DECISION, result['decisionId'], label)
+    (mark_shown if show else unshow)(root, CRITICAL_DECISION, result)
+    return result
+
+
+def test_a_shown_critical_miss_demotes_at_once(root):
+    critical_advise(root)
+    shown_case(root, treatment_index(CRITICAL_DECISION, 7000), laya='alpha', label='beta')
     outcome = advise_pass(root, CRITICAL_DECISION)
     assert outcome['demotion']['reason'] == 'critical_miss' and outcome['registry']['reason'] == 'critical_miss'
     assert state_of(root, CRITICAL_DECISION)['mode'] == 'shadow'
 
 
+def test_a_critical_miss_outside_the_latest_window_still_demotes(root):
+    critical_advise(root)
+    i = treatment_index(CRITICAL_DECISION, 7000)
+    shown_case(root, i, laya='alpha', label='beta')                  # the miss ...
+    j = i + 1
+    for _ in range(40):                                              # ... then 40 correct shown critical cases bury it
+        j = treatment_index(CRITICAL_DECISION, j)
+        shown_case(root, j, laya='alpha', label='alpha')
+        j += 1
+    outcome = advise_pass(root, CRITICAL_DECISION)
+    assert outcome['demotion']['demote'] is True and outcome['demotion']['reason'] == 'critical_miss'
+
+
+def test_a_critical_miss_that_was_never_shown_does_not_demote_but_showing_it_does(root):
+    critical_advise(root)
+    result = shown_case(root, treatment_index(CRITICAL_DECISION, 7000), laya='alpha', label='beta', show=False)
+    assert advise_pass(root, CRITICAL_DECISION)['earnedMode'] == 'advise'           # never put in front of the agent
+    mark_shown(root, CRITICAL_DECISION, result)
+    assert advise_pass(root, CRITICAL_DECISION)['demotion']['reason'] == 'critical_miss'
+
+
 def test_a_changed_laya_checkpoint_resets_to_shadow_and_forces_a_new_gate(root):
-    fill(root, ROUTING)
-    advise_pass(root)
+    earn(root)
     (root / 'laya-runtime.json').write_text(json.dumps({'revision': 'newer-checkpoint'}))
     result = advise_pass(root)
     assert state_of(root, ROUTING)['mode'] == 'shadow' and state_of(root, ROUTING)['reason'] == 'binding_stale'
     assert result['status'] == 'held'                           # the old records belong to the old checkpoint
 
 
-def test_skill_fit_earns_advise_from_its_own_records_with_the_fixed_policy_hash(root, registry):
-    recs = []
-    for i in range(120):
-        recs.append(make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC))
-    write_records(root, recs)
-    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in recs])
+def test_skill_fit_earns_advise_from_its_own_records_with_the_advise_v1_policy_hash(root, registry):
+    pre = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC) for i in range(60)]
+    write_records(root, pre)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in pre])
+    opened = CYCLE.run_advise(root, NOW, registry=registry, probe=OPEN_PROBE)['skill-fit']
+    assert opened['reason'] == 'cohort_opened'
+    post = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC,
+                        ts=f'2026-10-13T{(i // 60) % 24:02d}:{i % 60:02d}:05.000Z') for i in range(1000, 1200)]
+    write_records(root, post)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in post])
     result = CYCLE.run_cycle(root, NOW, registry=registry, seed=1, probe=OPEN_PROBE)['advise']['skill-fit']
     assert result['verdict'] == 'pass' and result['registry']['status'] == 'mutated', result
     entry = state_of(root, 'skill-fit')
     instrument_hash = reg.advise_instrument_sha256('laya-choice-v1')
     assert entry['mode'] == 'advise' and entry['instrumentSha256'] == instrument_hash
-    assert entry['policySha256'] == CYCLE.skill_advise_policy_sha256(instrument_hash)
+    assert entry['policySha256'] == contract.policy_sha256('advise-v1') == CYCLE.skill_advise_policy_sha256(instrument_hash)
     assert reg.effective_mode('skill-fit', registry, *reg.read_state(root, registry), LAYA_REV) == 'advise'
 
 
@@ -1559,13 +1776,18 @@ def test_a_failed_cosign_cohort_leaves_an_earned_advise_in_place(root, registry)
 
 
 def test_an_advise_pass_never_yields_cosign_and_a_cosign_never_yields_advise(root, registry):
-    recs = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC) for i in range(120)]
-    write_records(root, recs)
-    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in recs])
-    earned = run(root, registry, now='2026-10-11T00:00:00Z', probe=OPEN_PROBE)
+    pre = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC) for i in range(60)]
+    post = [make_record(i, choice=[INC, ALT1, ALT2][i % 3], incumbent=INC,
+                        ts=f'2026-10-11T{1 + (i // 60) % 20:02d}:{i % 60:02d}:05.000Z') for i in range(1000, 1200)]
+    write_records(root, pre)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in pre])
+    assert CYCLE.run_advise(root, '2026-10-11T00:00:00Z', registry=registry, probe=OPEN_PROBE)[SKILL]['reason'] == 'cohort_opened'
+    write_records(root, post)
+    write_labels(root, [make_label(r, acceptable=[r['laya']['choice']], stratum='agreement') for r in post])
+    earned = run(root, registry, now='2026-10-12T00:00:00Z', probe=OPEN_PROBE)
     assert earned['advise'][SKILL]['earnedMode'] == 'advise' and 'promote' not in action_types(earned)
     assert state_of(root, SKILL)['mode'] == 'advise'
-    later = run(root, registry, now='2026-10-11T01:00:00Z', probe=OPEN_PROBE)      # the open, unlabeled cosign cohort
+    later = run(root, registry, now='2026-10-12T01:00:00Z', probe=OPEN_PROBE)      # the open, unlabeled cosign cohort
     assert 'promote' not in action_types(later) and state_of(root, SKILL)['mode'] == 'advise'
 
 

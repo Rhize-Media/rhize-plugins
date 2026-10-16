@@ -105,8 +105,10 @@ def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str
     """Why an earned (advise or cosign) state no longer binds to what would run now, or None when it still does.
 
     A promotion is valid only for the instrument (and, for cosign, the policy) it was tested with
-    ('binding_stale') and for the Laya checkpoint it was tested against ('laya_revision_changed'). The advise
-    policy hash is per surface and is checked by each surface (typed_advice.effective_mode), not here.
+    ('binding_stale') and for the Laya checkpoint it was tested against ('laya_revision_changed'). Advise policy
+    hashes are per surface and checked by each surface (typed_advice.effective_mode), not here - except skill-fit,
+    whose one surface is the Node router: its advise state must bind the contract hash of 'advise-v1' (the policy
+    skill-router writes into its advise records), else 'binding_stale'.
     Mirrors the Node reader (hooks/lib/decision-registry.js), which reads such a state as shadow.
     """
     if not entry or entry.get('mode') not in contract.EARNED_MODES:
@@ -122,6 +124,8 @@ def binding_stale(decision: str, registry: dict, entry: dict, laya_revision: str
                 return 'binding_stale'
         else:
             instrument_hash = advise_instrument_sha256(registry['decisions'][decision]['advise']['instrument'])
+            if decision == 'skill-fit' and entry.get('policySha256') != contract.policy_sha256(contract.POLICY_ADVISE):
+                return 'binding_stale'
     except (ValueError, KeyError, TypeError):
         return 'binding_stale'
     if entry.get('instrumentSha256') != instrument_hash:

@@ -4,6 +4,7 @@ import json
 import os
 import stat
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -11,11 +12,13 @@ import pytest
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / 'rhize-context-manager/scripts'))
 import typed_advice as ta  # noqa: E402
+from typed_decisions import contract  # noqa: E402
 from test_laya_transport_conformance import FakeLaya  # noqa: E402  (real loopback server)
 
 QUESTION = 'Which skill should handle the request?'
 POLICY = {'candidates': ['a', 'b']}
 CANDIDATES = [{'id': 'a', 'criterion': 'use a for small tasks'}, {'id': 'b', 'criterion': 'use b for large tasks'}]
+REV = 'rev-advice-1'
 SECRET_REQUEST = 'Please deploy it. password=hunter2hunter2 and token: abcdef123456 now'
 
 
@@ -23,13 +26,18 @@ def sha(text):
     return hashlib.sha256(text.encode()).hexdigest()
 
 
-def write_state(store, decision='skill-fit', mode='advise', policy=None, instrument=None, revision=None,
-                question=QUESTION, policy_value=POLICY, **extra):
-    entry = {'mode': mode,
+def write_state(store, decision='skill-fit', mode='advise', policy=None, instrument=None, revision=REV,
+                question=QUESTION, policy_value=POLICY, state=None, runtime=REV, **extra):
+    """A well-formed registry-state.json (as decision_registry writes it) plus the Laya runtime file it binds to."""
+    entry = {'mode': mode, 'pinned': False,
              'policySha256': policy or ta.policy_sha256(decision, question, policy_value),
              'instrumentSha256': instrument or ta.INSTRUMENT_SHA256, 'layaRevision': revision}
     entry.update(extra)
-    (Path(store) / 'registry-state.json').write_text(json.dumps({'decisions': {decision: entry}}))
+    value = {'schemaVersion': 1, 'revision': 1, 'decisions': {decision: entry}}
+    value.update(state or {})
+    (Path(store) / 'registry-state.json').write_text(json.dumps(value))
+    if runtime:
+        (Path(store) / 'laya-runtime.json').write_text(json.dumps({'revision': runtime}))
 
 
 def key_for(decision, held, prefix='k'):
@@ -110,6 +118,97 @@ def test_clean_files_keeps_plain_relative_paths_dedupes_and_caps():
     assert ta.clean_files([f'f{i}.py' for i in range(25)]) == [f'f{i}.py' for i in range(20)]
 
 
+ZW = '\u200b'
+HEAD = 'A1b2C3d4E5f6G7h8I9j0'
+REVIEWER_PROBES = [  # the final reviewers' probes: (text, fragments that must not survive)
+    ('the password is hunter2', ['hunter2']),
+    ('my password hunter2 for the db', ['hunter2']),
+    ('the password was: hunter2', ['hunter2']),
+    ('password=foo bar', ['foo', 'bar']),
+    ('password = foo bar baz, then retry', ['foo', 'bar', 'baz']),
+    ('{\\"password\\": \\"abc def\\"} next', ['abc', 'def']),
+    ('{\\"secret\\":\\"s3cr3tval\\"}', ['s3cr3tval']),
+    ('{"password": "abc def"}', ['abc def']),
+    ('connect to postgres://user:pa55@db:5432/app now', ['pa55', 'user:']),
+    ('git clone https://ghp_token123@github.com/x/y', ['ghp_token123']),
+    ('curl -u admin:s3cret https://example.test/api', ['s3cret']),
+    ('curl --user admin:s3cret https://example.test', ['s3cret']),
+    ('curl -H "Cookie: sid=abc123; theme=dark" https://example.test', ['abc123']),
+    ('Set-Cookie: session=zzz999; Path=/', ['zzz999']),
+    ('Cookie: sid=abc123def456', ['abc123def456']),
+    ('key AKIAIOSFODNN7EXAMPLE leaked', ['AKIAIOSFODNN7EXAMPLE']),
+    ('temporary ASIAIOSFODNN7EXAMPLE', ['ASIAIOSFODNN7EXAMPLE']),
+    ('aws_secret_access_key = wJalrXUtnFEMI', ['wJalrXUtnFEMI']),
+    ('access_key=AKIA-not-real-1234 and more', ['AKIA-not-real-1234']),
+    ('session=abc123xyz after login', ['abc123xyz']),
+    ('sessionid: abc123xyz', ['abc123xyz']),
+    (f'sk-{HEAD}{ZW}{HEAD} tail', [HEAD]),  # a zero-width space splits an opaque token below the run threshold
+    (f'pass{ZW}word=hunter2', ['hunter2']),
+    ('\uff50\uff41\uff53\uff53\uff57\uff4f\uff52\uff44\uff1dhunter2', ['hunter2']),  # fullwidth "password="
+    ('password\u2060=hunter2', ['hunter2']),  # word joiner
+]
+
+
+@pytest.mark.parametrize('text,fragments', REVIEWER_PROBES, ids=[t[:28] for t, _ in REVIEWER_PROBES])
+def test_scrub_masks_the_reviewer_probes(text, fragments):
+    out = ta.scrub(text)
+    assert '<redacted>' in out, out
+    for fragment in fragments:
+        assert fragment not in out, (fragment, out)
+
+
+def test_scrub_keeps_ordinary_text_readable():
+    for text in ('Fix the login page layout', 'Review the session handling docs', 'Rename the users table migration',
+                 'See https://example.test/docs/a?b=1 for details', 'Run tests in src/auth_test.py please'):
+        out = ta.scrub(text)
+        assert out == text, (text, out)
+    assert ta.scrub('See https://example.test/docs/a?b=1') == 'See https://example.test/docs/a?b=1'
+
+
+def test_scrub_redacts_before_truncating(tmp_path):
+    out = ta.scrub('a ' * 745 + 'Z' * 40 + ' tail')  # the opaque run straddles the 1500 character cut
+    assert 'ZZZ' not in out and out.endswith('<redacted>') and len(out) <= ta.REQUEST_CHARS
+    out = ta.scrub('a ' * 745 + 'token=abcdefghijklmnop rest')
+    assert 'abcdef' not in out and len(out) <= ta.REQUEST_CHARS
+
+
+def test_scrub_is_bounded_in_time_on_adversarial_input():
+    start = time.monotonic()
+    for text in ('password' * 8000, 'a' * 100000, 'password=a ' * 6000, 'a://b' * 16000, 'is ' * 30000 + 'password',
+                 'Cookie: a=b; ' * 5000, '{\\"password\\": ' * 5000):
+        assert len(ta.scrub(text)) <= ta.REQUEST_CHARS
+    assert time.monotonic() - start < 5
+
+
+def test_criteria_are_scrubbed_in_the_request_and_the_snapshot(tmp_path):
+    leaky = [{'id': 'a', 'criterion': 'use a when token=abcd1234efgh is set'},
+             {'id': 'b', 'criterion': 'use b for postgres://u:pa55@db jobs'}]
+    payload, _ = ta.build_request('Fix it', [], QUESTION, leaky)
+    text = json.dumps(payload)
+    assert 'abcd1234efgh' not in text and 'pa55' not in text and '<redacted>' in text
+    write_state(tmp_path)
+    result = run(tmp_path, Laya(), candidates=leaky)
+    snapshot = (tmp_path / 'skill-fit' / 'snapshot' / f"{result['decisionId']}.json").read_text()
+    assert 'abcd1234efgh' not in snapshot and 'pa55' not in snapshot
+    assert [c['id'] for c in json.loads(snapshot)['candidates']] == ['a', 'b']
+
+
+@pytest.mark.parametrize('bad', [
+    'secrets/prod.txt', 'app/secret/key.txt', 'a/secrets/b/c.txt', '.netrc', 'home/.netrc', '_netrc', '.npmrc', 'web/.npmrc',
+    '.pypirc', 'kubeconfig', 'deploy/kubeconfig.yaml', '.kube/config', '.ssh/config', '.aws/config',
+    'sa/service-account.json', 'gcp/service-account-prod.json', 'token.json', 'cfg/token.json', 'infra/prod.tfvars',
+    'infra/prod.auto.tfvars', 'a/b.tfvars.json', 'config/.env/anything.txt', 'config/.env.local/x.txt',
+    f'.env{ZW}', f'.n{ZW}etrc', 'a/credentials/x.json', 'keys/server.pem/readme.txt'])
+def test_clean_files_checks_every_component(bad):
+    assert ta.clean_files([bad, 'src/ok.py']) == ['src/ok.py'], bad
+
+
+def test_clean_files_still_keeps_ordinary_names():
+    assert ta.clean_files(['docs/env.md', 'src/token_bucket.py', 'src/secretary.py'.replace('secretary', 'sec'),
+                           'infra/main.tf', 'README.md']) == ['docs/env.md', 'src/token_bucket.py', 'src/sec.py',
+                                                              'infra/main.tf', 'README.md']
+
+
 # ------------------------------------------------------------------ effective_mode
 
 def test_missing_and_corrupt_state_read_as_shadow(tmp_path):
@@ -117,6 +216,8 @@ def test_missing_and_corrupt_state_read_as_shadow(tmp_path):
     (tmp_path / 'registry-state.json').write_text('{not json')
     assert ta.effective_mode('skill-fit', 'p', tmp_path) == 'shadow'
     (tmp_path / 'registry-state.json').write_text('{"decisions": ["x"]}')
+    assert ta.effective_mode('skill-fit', 'p', tmp_path) == 'shadow'
+    (tmp_path / 'registry-state.json').write_text('{"decisions": {}}')
     assert ta.effective_mode('skill-fit', 'p', tmp_path) == 'shadow'
     write_state(tmp_path, mode='bogus')
     assert ta.effective_mode('skill-fit', 'p', tmp_path) == 'shadow'
@@ -140,14 +241,110 @@ def test_advise_requires_every_binding_to_match(tmp_path):
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
     write_state(tmp_path, instrument='0' * 64)
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
-    write_state(tmp_path, revision='abc123')  # state binds a revision, laya-runtime.json absent -> 'unknown'
+    write_state(tmp_path, revision='abc123', runtime=None)  # state binds a revision, laya-runtime.json absent
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
     (tmp_path / 'laya-runtime.json').write_text('{"revision": "abc123"}')
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'
     (tmp_path / 'laya-runtime.json').write_text('{"revision": "def456"}')  # Laya moved on
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
-    write_state(tmp_path, revision=None)  # a null revision binds nothing
+
+
+@pytest.mark.parametrize('revision', [None, 'unknown', 5, ''], ids=['null', 'unknown', 'int', 'empty'])
+def test_an_advise_entry_without_a_real_laya_revision_is_shadow(tmp_path, revision):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'  # control
+    write_state(tmp_path, revision=revision)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+def test_an_advise_entry_missing_its_revision_key_is_shadow(tmp_path):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path)
+    value = json.loads((tmp_path / 'registry-state.json').read_text())
+    del value['decisions']['skill-fit']['layaRevision']
+    (tmp_path / 'registry-state.json').write_text(json.dumps(value))
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+def test_unknown_runtime_never_matches_an_unknown_binding(tmp_path):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path, revision='unknown', runtime=None)  # both sides 'unknown' must not read as a match
+    assert ta.laya_revision(tmp_path) == 'unknown' and ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+@pytest.mark.parametrize('state', [
+    {'schemaVersion': 2}, {'schemaVersion': True}, {'schemaVersion': '1'}, {'schemaVersion': None},
+    {'revision': 0}, {'revision': -1}, {'revision': '3'}, {'revision': True}, {'revision': 1.5}, {'revision': None},
+], ids=lambda v: json.dumps(v))
+def test_a_malformed_state_envelope_is_shadow(tmp_path, state):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'  # control
+    write_state(tmp_path, state=state)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+    write_state(tmp_path, mode='off', state=state)  # an unreadable envelope cannot even switch things off
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+@pytest.mark.parametrize('field', ['schemaVersion', 'revision'])
+def test_a_state_missing_an_envelope_field_is_shadow(tmp_path, field):
+    write_state(tmp_path)
+    value = json.loads((tmp_path / 'registry-state.json').read_text())
+    del value[field]
+    (tmp_path / 'registry-state.json').write_text(json.dumps(value))
+    assert ta.effective_mode('skill-fit', ta.policy_sha256('skill-fit', QUESTION, POLICY), tmp_path) == 'shadow'
+
+
+@pytest.mark.parametrize('pinned', ['yes', 1, None], ids=['string', 'int', 'null'])
+def test_an_entry_whose_pinned_is_not_a_bool_is_shadow(tmp_path, pinned):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path, pinned=pinned)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+    write_state(tmp_path, pinned=True)  # a pin is a valid bool; the mode it pins still applies
     assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'
+    write_state(tmp_path, mode='off', pinned=pinned)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+@pytest.mark.parametrize('bits', [0o664, 0o620, 0o602, 0o666])
+def test_a_group_or_world_writable_state_file_is_shadow(tmp_path, bits):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path)
+    state = tmp_path / 'registry-state.json'
+    state.chmod(0o640)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'  # control: read-only for others is fine
+    state.chmod(bits)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+    state.chmod(0o600)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'
+
+
+@pytest.mark.parametrize('bits', [0o770, 0o707, 0o777])
+def test_a_group_or_world_writable_store_root_is_shadow(tmp_path, bits):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    store = tmp_path / 'store'
+    store.mkdir(mode=0o700)
+    write_state(store)
+    assert ta.effective_mode('skill-fit', good, store) == 'advise'  # control
+    try:
+        store.chmod(bits)
+        assert ta.effective_mode('skill-fit', good, store) == 'shadow'
+    finally:
+        store.chmod(0o700)
+
+
+def test_state_or_root_owned_by_someone_else_is_shadow(tmp_path, monkeypatch):
+    good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
+    write_state(tmp_path)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'advise'  # control
+    monkeypatch.setattr(ta.os, 'geteuid', lambda: os.stat(tmp_path).st_uid + 1)
+    assert ta.effective_mode('skill-fit', good, tmp_path) == 'shadow'
+
+
+def test_off_still_wins_over_a_stale_binding(tmp_path):
+    write_state(tmp_path, mode='off', policy='0' * 64, instrument='0' * 64, revision=None)
+    assert ta.effective_mode('skill-fit', 'x' * 64, tmp_path) == 'off'
 
 
 def test_a_symlinked_state_file_reads_as_shadow(tmp_path):
@@ -156,6 +353,7 @@ def test_a_symlinked_state_file_reads_as_shadow(tmp_path):
     write_state(tmp_path)  # real state elsewhere
     good = ta.policy_sha256('skill-fit', QUESTION, POLICY)
     (store / 'registry-state.json').write_text((tmp_path / 'registry-state.json').read_text())
+    (store / 'laya-runtime.json').write_text((tmp_path / 'laya-runtime.json').read_text())
     assert ta.effective_mode('skill-fit', good, store) == 'advise'  # control: a regular file works
     (store / 'registry-state.json').unlink()
     (store / 'registry-state.json').symlink_to(tmp_path / 'registry-state.json')
@@ -201,7 +399,7 @@ def test_off_makes_no_call_writes_nothing_and_recommends_nothing(tmp_path):
     laya = Laya()
     result = run(tmp_path, laya)
     assert result['mode'] == 'off' and result['recommendation'] is None and laya.calls == []
-    assert sorted(p.name for p in tmp_path.iterdir()) == ['registry-state.json']
+    assert sorted(p.name for p in tmp_path.iterdir()) == ['laya-runtime.json', 'registry-state.json']
 
 
 def test_shadow_records_a_choice_and_snapshot_but_never_recommends(tmp_path):
@@ -321,13 +519,41 @@ def test_unknown_decision_and_empty_key_raise(tmp_path):
                       policy=POLICY, store=tmp_path, call=Laya())
 
 
-def test_group_is_stored_hashed_and_defaults_to_the_key(tmp_path):
+def test_group_is_stored_hashed(tmp_path):
     write_state(tmp_path)
     result = run(tmp_path, Laya(), group='session-7')
     assert ta.load('skill-fit', result['decisionId'], store=tmp_path)['groupSha256'] == ta.sha256('session-7')
 
 
-def test_record_has_the_documented_fields_and_no_raw_request_text(tmp_path):
+@pytest.fixture
+def no_session_env(monkeypatch):
+    for name in ta.SESSION_ENV:
+        monkeypatch.delenv(name, raising=False)
+
+
+def group_of(tmp_path, key):
+    result = run(tmp_path, Laya(), key=key)
+    return ta.load('skill-fit', result['decisionId'], store=tmp_path)['groupSha256']
+
+
+def test_default_group_is_the_host_session_id(tmp_path, monkeypatch, no_session_env):
+    write_state(tmp_path)
+    monkeypatch.setenv('CODEX_THREAD_ID', 'thread-9')
+    assert group_of(tmp_path, 'k-1') == ta.sha256('session:thread-9')
+    assert group_of(tmp_path, 'k-2') == ta.sha256('session:thread-9')  # same session, different occurrence
+    monkeypatch.setenv('CLAUDE_SESSION_ID', 'claude-1')  # earlier names in SESSION_ENV win
+    assert group_of(tmp_path, 'k-3') == ta.sha256('session:claude-1')
+
+
+def test_default_group_falls_back_to_cwd_and_utc_date_never_the_key(tmp_path, no_session_env):
+    write_state(tmp_path)
+    expected = ta.sha256(ta.sha256(os.path.realpath(os.getcwd()) + time.strftime('%Y-%m-%d', time.gmtime())))
+    first, second = group_of(tmp_path, 'k-1'), group_of(tmp_path, 'k-2')
+    assert first == second == expected
+    assert first not in (ta.sha256('k-1'), ta.sha256('k-2'))
+
+
+def test_record_has_the_documented_fields_and_no_raw_request_text(tmp_path, no_session_env):
     write_state(tmp_path)
     laya = Laya()
     result = run(tmp_path, laya, request=SECRET_REQUEST, files=['src/a.py', '/etc/passwd'], critical_if_wrong=True)
@@ -336,11 +562,11 @@ def test_record_has_the_documented_fields_and_no_raw_request_text(tmp_path):
     assert set(record) == {'schema', 'decision', 'decisionId', 'ts', 'mode', 'arm', 'tier', 'policySha256',
                            'instrumentSha256', 'layaRevision', 'candidates', 'criticalIfWrong', 'requestSha256',
                            'files', 'groupSha256', 'laya'}
-    assert record['groupSha256'] == ta.sha256(key_for('skill-fit', False))
+    assert record['groupSha256'] != ta.sha256(key_for('skill-fit', False))  # the key is never the group
     assert record['schema'] == 'rhize-typed-choice-record-v1' and record['decision'] == 'skill-fit'
     assert record['tier'] == 'advisory' and record['arm'] == 'treatment' and record['mode'] == 'advise'
     assert record['candidates'] == ['a', 'b'] and record['criticalIfWrong'] is True and record['files'] == 1
-    assert record['requestSha256'] == sha(ta.scrub(SECRET_REQUEST)) and record['layaRevision'] == 'unknown'
+    assert record['requestSha256'] == sha(ta.scrub(SECRET_REQUEST)) and record['layaRevision'] == REV
     assert record['instrumentSha256'] == ta.INSTRUMENT_SHA256 and record['policySha256'] == result['policySha256']
     assert set(record['laya']) == {'status', 'choice', 'probabilities', 'latencyMs'}
     assert record['decisionId'] == result['decisionId'] == sha('skill-fit:' + key_for('skill-fit', False))[:32]
@@ -418,6 +644,108 @@ def test_critical_decisions_use_the_critical_holdback_and_tier(tmp_path):
     record = ta.load('devflow-next-action', result['decisionId'], store=tmp_path)
     assert record['tier'] == 'critical' and record['criticalIfWrong'] is True
     assert result['recommendation'] == {'id': 'a', 'confidence': 0.8}
+
+
+# ------------------------------------------------------------------ kinds, reuse and the shown marker
+
+@pytest.mark.parametrize('kind', ['../x', 'x/../choice', '', 'Choice', 'choice/', 'labels', 'tmp', '.', 'shown2'])
+def test_write_once_and_load_accept_only_the_known_kinds(tmp_path, kind):
+    decision_id = 'a' * 32
+    with pytest.raises(ValueError):
+        ta.write_once(tmp_path, 'skill-fit', kind, decision_id, {'x': 1})
+    assert not (tmp_path / 'x').exists() and not (tmp_path / 'skill-fit').exists()
+    planted = tmp_path / 'x'
+    planted.mkdir()
+    (planted / f'{decision_id}.json').write_text('{"planted": true}')
+    (tmp_path / 'skill-fit').mkdir()
+    assert ta.load('skill-fit', decision_id, kind=kind, store=tmp_path) is None
+
+
+def test_every_known_kind_round_trips(tmp_path):
+    assert ta.KINDS == ('choice', 'snapshot', 'outcome', 'label', 'shown')
+    for kind in ta.KINDS:
+        assert ta.write_once(tmp_path, 'skill-fit', kind, 'b' * 32, {'kind': kind}) is True
+        assert ta.write_once(tmp_path, 'skill-fit', kind, 'b' * 32, {'kind': 'other'}) is False
+        assert ta.load('skill-fit', 'b' * 32, kind=kind, store=tmp_path) == {'kind': kind}
+
+
+def shown_path(store, result, decision='skill-fit'):
+    return store / decision / 'shown' / f"{result['decisionId']}.json"
+
+
+def test_a_shown_marker_is_written_when_and_only_when_a_recommendation_is_returned(tmp_path):
+    write_state(tmp_path)
+    key = key_for('skill-fit', False)
+    result = run(tmp_path, Laya(probabilities={'a': 0.8, 'b': 0.2}), key=key)
+    assert result['recommendation']['id'] == 'a'
+    marker = json.loads(shown_path(tmp_path, result).read_text())
+    assert marker == {'schema': ta.SHOWN_SCHEMA, 'decision': 'skill-fit', 'decisionId': result['decisionId'],
+                      'recommendation': 'a', 'policySha256': result['policySha256'], 'ts': marker['ts']}
+    assert contract.validate_choice_shown(marker) == marker
+    assert stat.S_IMODE(shown_path(tmp_path, result).stat().st_mode) == 0o600
+    assert stat.S_IMODE((tmp_path / 'skill-fit' / 'shown').stat().st_mode) == 0o700
+    before = shown_path(tmp_path, result).read_text()
+    again = run(tmp_path, Laya(), key=key)  # a repeat reuses the record and the write-once marker
+    assert again['recommendation']['id'] == 'a' and shown_path(tmp_path, result).read_text() == before
+
+
+@pytest.mark.parametrize('case', ['holdback', 'shadow', 'off', 'timeout', 'unknown-pick'])
+def test_no_shown_marker_without_a_returned_recommendation(tmp_path, case):
+    write_state(tmp_path, mode={'shadow': 'shadow', 'off': 'off'}.get(case, 'advise'))
+    laya = {'timeout': Laya('timeout', None, None), 'unknown-pick': Laya('ok', 'not-a-candidate')}.get(case, Laya())
+    result = run(tmp_path, laya, key=key_for('skill-fit', case == 'holdback'))
+    assert result['recommendation'] is None
+    assert not (tmp_path / 'skill-fit' / 'shown').exists()
+
+
+def test_a_failed_marker_write_means_no_recommendation(tmp_path):
+    write_state(tmp_path)
+    (tmp_path / 'skill-fit').mkdir()
+    (tmp_path / 'skill-fit' / 'shown').write_text('not a directory')
+    laya = Laya()
+    result = run(tmp_path, laya)
+    assert result['mode'] == 'advise' and result['recommendation'] is None and len(laya.calls) == 1
+    assert ta.load('skill-fit', result['decisionId'], store=tmp_path) is not None  # the choice record itself exists
+
+
+def test_a_record_written_under_an_older_laya_revision_is_not_shown(tmp_path):
+    write_state(tmp_path)
+    key = key_for('skill-fit', False)
+    first = run(tmp_path, Laya(), key=key)
+    assert first['recommendation']['id'] == 'a' and shown_path(tmp_path, first).exists()  # control
+    shown_path(tmp_path, first).unlink()
+    write_state(tmp_path, revision='rev-advice-2', runtime='rev-advice-2')  # Laya was upgraded and re-earned
+    laya = Laya(choice='b', probabilities={'a': 0.1, 'b': 0.9})
+    second = run(tmp_path, laya, key=key)
+    assert second['mode'] == 'advise' and second['recommendation'] is None
+    assert laya.calls == [] and not shown_path(tmp_path, second).exists()
+    assert ta.load('skill-fit', first['decisionId'], store=tmp_path)['layaRevision'] == REV  # the old record stands
+
+
+def test_a_record_written_under_another_instrument_is_not_shown(tmp_path):
+    write_state(tmp_path)
+    key = key_for('skill-fit', False)
+    first = run(tmp_path, Laya(), key=key)
+    shown_path(tmp_path, first).unlink()
+    path = tmp_path / 'skill-fit' / 'choice' / f"{first['decisionId']}.json"
+    record = json.loads(path.read_text())
+    record['instrumentSha256'] = '0' * 64
+    path.write_text(json.dumps(record))
+    assert run(tmp_path, Laya(), key=key)['recommendation'] is None and not shown_path(tmp_path, first).exists()
+
+
+@pytest.mark.parametrize('change', [{'schema': 'x'}, {'decision': 'nope'}, {'decisionId': 'xyz'},
+                                    {'recommendation': 'bad id!'}, {'recommendation': None}, {'policySha256': 'A' * 64},
+                                    {'ts': 'yesterday'}, {'extra': 1}])
+def test_the_shown_marker_validator_rejects_malformed_markers(tmp_path, change):
+    write_state(tmp_path)
+    result = run(tmp_path, Laya())
+    marker = json.loads(shown_path(tmp_path, result).read_text())
+    assert contract.validate_choice_shown(dict(marker)) == marker  # control
+    with pytest.raises(ValueError):
+        contract.validate_choice_shown({**marker, **change})
+    with pytest.raises(ValueError):
+        contract.validate_choice_shown({k: v for k, v in marker.items() if k != 'recommendation'})
 
 
 # ------------------------------------------------------------------ record_outcome

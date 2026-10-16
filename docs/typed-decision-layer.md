@@ -21,7 +21,7 @@ Nine decisions live in the [earned-authority registry](#earned-authority-registr
 | `browser-qa-selection` | Dev Flow `typed_selection.py --mode advise` | advisory | off, shadow, advise | Legal candidates and approved test surface |
 | `model-routing` | Ops `typed_routing.py --mode advise` | advisory | off, shadow, advise | User pin, host authorization and task graph |
 | `gsd-directive` | Project Launcher `typed_decision.py supervise` (`install --local-laya`) | critical | off, shadow, advise | GSD plan, test and verifier decisions; `finish_candidate` needs checks and review |
-| `check-relaxation` | Dev Flow `check_plan.py` ([S4](../rhize-devflow/docs/check-relaxation.md)) | critical | off, shadow, advise | Deterministic allowlist; Laya can only keep the full list |
+| `check-relaxation` | Dev Flow `check_plan.py` ([S4](../rhize-devflow/docs/check-relaxation.md)) | critical | off, shadow, advise | Deterministic relaxed list; Laya chooses between it and the full list |
 | `credential-procedure` | Context Manager `credential-workflow.js` | workflow | off, shadow, cosign | Manual-only fixed CLI procedures; Dev Flow's Keychain GUI deny is independent |
 
 Observational scorers outside the registry stay `shadow`-only and opt in per call:

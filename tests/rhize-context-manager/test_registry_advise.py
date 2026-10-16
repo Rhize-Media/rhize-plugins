@@ -543,6 +543,10 @@ def test_json_schemas_agree_with_the_contract_constants():
     assert record['properties']['schema']['const'] == contract.CHOICE_RECORD_SCHEMA
     assert set(outcome['required']) == set(contract.CHOICE_OUTCOME_KEYS) == set(outcome['properties'])
     assert outcome['properties']['schema']['const'] == contract.CHOICE_OUTCOME_SCHEMA
+    shown = schema('typed-choice-shown-v1')
+    assert set(shown['required']) == set(contract.CHOICE_SHOWN_KEYS) == set(shown['properties'])
+    assert shown['properties']['schema']['const'] == contract.CHOICE_SHOWN_SCHEMA
+    assert shown['properties']['decision']['enum'] == list(contract.ADVISE_DECISIONS)
 
 
 @pytest.mark.skipif(jsonschema is None, reason='jsonschema not installed; stdlib validators are canonical')

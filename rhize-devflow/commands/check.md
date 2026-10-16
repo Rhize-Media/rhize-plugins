@@ -115,7 +115,7 @@ Before executing Phase 4, for each root write the checks Phase 3 selected as a J
 `production-merge-review`, `other`. Then run:
 
 ```bash
-python3 "$CLAUDE_PLUGIN_ROOT/scripts/check_plan.py" plan --repo <root> --stage check --checks <file> --out <plan-file>
+python3 "$CLAUDE_PLUGIN_ROOT/scripts/check_plan.py" plan --repo <root> [--trunk <ref>] --stage check --checks <file> --out <new-plan-file>
 ```
 
 - Execute exactly `plan[]` from its output, in Phase 4 order. The script computes the complete change
@@ -127,7 +127,8 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/check_plan.py" plan --repo <root> --stage c
 - Required CI, the production-merge review, deploy, publish, credentials, approvals, security review,
   typecheck and build are never relaxed: if listed, they run. Laya's advice (see the end of this file)
   can only keep the full list; it never removes a mandatory item.
-- Right before Phase 5, run `check_plan.py verify --plan-file <plan-file> --stage check`. Exit code 3
+- Right before Phase 5, run `check_plan.py verify --plan-file <plan-file> --repo <root> --stage check --checks <file>`
+  (add the same `--trunk` if `plan` used one; `--out` must name a file that does not exist yet). Exit code 3
   means the diff, checks file or stage changed after planning: discard the relaxation and run the
   `full[]` list. When `advice.decisionId` is present, record what you actually ran with
   `check_plan.py outcome --decision-id <id> --chosen full|relaxed`.

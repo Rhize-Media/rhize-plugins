@@ -288,7 +288,7 @@ def run_live(root, decision, rows, *, policy_sha, instrument_sha, laya_revision,
         advise_ledger.append(root, decision, {**base, 'event': 'open', 'openedAt': opened_at,
                                               'rule': advise_ledger.OPEN_RULE, 'ts': opened_at})
         return {'status': 'held', 'reason': 'cohort_opened', 'cohortId': base['cohortId'], 'attempt': attempt,
-                'openedAt': opened_at}
+                'alpha': base['alpha'], 'openedAt': opened_at}
     cases = collect_cohort(rows, active['openedAt'], advise_ledger.used_groups(root, decision))
     need_critical = (cfg.get('minCriticalCases') or CRITICAL_MIN_CASES) if critical else 0
     if len(cases) < cfg['minCohort'] or sum(bool(c['critical_if_wrong']) for c in cases) < need_critical:
