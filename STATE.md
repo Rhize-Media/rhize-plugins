@@ -2,6 +2,20 @@
 
 ## Verified facts
 
+- 2026-10-16: Perplexity native session setup/refresh now uses auth-start/auth-status and two
+  no-argument MCP tools, plus a shipped host-side browser adapter. Only scoped secure session
+  cookies are selected; five-minute RSA/AES-GCM handoff keeps the private key in memory and
+  ciphertext in owner-only OS temporary storage, writes the fixed Keychain item via stdin,
+  verifies readback and cleans up. Core querying remains stdlib; setup requires cryptography.
+  Synthetic transfer passed in the actual Codex browser host. A live native refresh then passed
+  Keychain storage/readback and GET-only health (Pro / pplx_alpha / ready), with no new query.
+  The browser sandbox refused home-directory writes with EPERM; a private temporary handoff
+  fixed that without broader permissions. All 100 focused tests pass. Cold self-review; installed host activation remains
+  untested. The final repository check had one unchanged Dev Flow process-cleanup failure
+  (533 passed); the failing test and its full 43-test module passed on recheck without edits.
+  Preserve that failed run; do not call the full final suite green. Lesson: test the shipped
+  adapter in its host, including writable-path boundaries.
+
 - 2026-10-16: The Perplexity CLI live proof submitted exactly one Research query via stdlib HTTPS.
   The original parser refused reviewed sources without citation IDs; GET-only recovery now handles
   explicit main-answer citation rows and separate full-report assets. Same-thread UI comparison

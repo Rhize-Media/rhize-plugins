@@ -49,7 +49,8 @@ def test_real_stdio_lifecycle_and_local_result_export(tmp_path):
     output = run_server(tmp_path, messages)
     assert output[0]["error"]["code"] == -32601
     assert output[1]["result"]["protocolVersion"] == "2025-11-25"
-    assert len(output[2]["result"]["tools"]) == 9
+    assert 'transferSession' in output[1]['result']['instructions']
+    assert len(output[2]["result"]["tools"]) == 11
     assert all(not row["result"]["isError"] for row in output[3:])
     assert json.loads(output[4]["result"]["content"][0]["text"])["result"] == value
     assert 'Report [1]' in output[5]["result"]["content"][0]["text"]
@@ -118,3 +119,14 @@ def test_notification_cannot_submit_and_invalid_protocol_is_rejected(tmp_path):
     assert [r.get("error", {}).get("code") for r in output] == [-32602, None, -32602, -32600]
     assert "secret" not in repr(output)
     assert not (tmp_path / "jobs").exists()
+
+
+def test_auth_tools_are_fixed_no_secret_arguments(monkeypatch):
+    run = Mock(return_value=Mock(returncode=0, stdout=b'{"status":"not_started"}'))
+    monkeypatch.setattr(m.subprocess, 'run', run)
+    for name in ('research_auth_start', 'research_auth_status'):
+        m.invoke(name, {}, '/state', '/authorization')
+        assert run.call_args.args[0][-1] == name.replace('research_', '').replace('_', '-')
+        with pytest.raises(ValueError): m.invoke(name, {'cookies': 'secret'}, '/state', '/authorization')
+    annotations = {t['name']: t['annotations'] for t in m.schemas()}
+    assert not annotations['research_auth_start']['readOnlyHint']

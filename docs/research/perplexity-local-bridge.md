@@ -10,9 +10,10 @@ stable undocumented endpoints, provider permission or installed host activation.
 ## Scope
 
 `scripts/perplexity_research.py` provides `submit`, `status`, `result`, `cancel`, `recover`,
-`jobs`, `models`, `health` and `export` using Python 3.10+ on macOS. A thin stdio adapter in
+`jobs`, `models`, `health`, `export`, `auth-start` and `auth-status` using Python 3.10+ on macOS. A thin stdio adapter in
 `scripts/perplexity_research_mcp.py` exposes those same operations through the actual CLI.
-There are no third-party dependencies, marketplace registration, installed plugin changes,
+Querying uses only the standard library. Optional session setup requires the Python `cryptography`
+package in that same interpreter and a Node-capable local browser host. There is no marketplace registration, installed plugin activation,
 API-key fallback, uploads, account creation, browser impersonation or automatic retries.
 
 The HTTP request and answer shapes are adapted from
@@ -35,19 +36,63 @@ allowance. If sign-in or a challenge is required, complete it yourself through t
 this CLI cannot sign in or solve challenges. It does not know your remaining quota, and its
 preflight never claims otherwise. Stop on quota errors.
 
-Provision a macOS Keychain generic-password item
-with service `rhize:perplexity-cookies` and account equal to your macOS username. Its value is a
-JSON object containing only the necessary Perplexity session cookies. Current supported names
-are `__Host-pplx-last-active-account` plus `__Secure-pplx.session.<that-account>`; legacy
-`next-auth.session-token`, `__Secure-next-auth.session-token`, `next-auth.csrf-token` and
-`__Host-next-auth.csrf-token` are also accepted. Unrelated browser cookies are refused.
+## Native session setup and refresh
 
-Use Keychain Access's secure password field or an unrecorded interactive Keychain prompt.
-Never paste cookies into chat, a shell command, a config, a query, source control or a report.
-Follow the repository's credential convention when provisioning a new item: an opt-in helper
-may retrieve it on demand, but never auto-export it into every shell. The CLI retrieves the
-item internally; no helper invocation or secret environment variable is needed. The live proof used an explicitly approved, scoped browser-to-Keychain transfer. Its on-demand
-helper does not auto-export credentials. No password was used.
+Ask the plugin to connect or refresh the signed-in Perplexity session. It uses `auth-start` and
+`auth-status` (MCP: `research_auth_start`, `research_auth_status`), then the shipped
+`scripts/perplexity_session_transfer.mjs` adapter. MCP initialization describes this flow so
+hosts can discover it. Setup and refresh use the same commands and never submit a query.
+
+```sh
+python3 scripts/perplexity_research.py auth-start
+python3 scripts/perplexity_research.py auth-status
+```
+
+`starting` means the detached helper is generating its key. Poll for `waiting`, which includes
+only a public key, transfer ID, expiry, local ciphertext destination and browser-adapter URI.
+Handoff state lives in an owner-only OS temporary directory bound to the job-state path. This
+lets the browser sandbox publish ciphertext without write access to the home directory.
+Durable query jobs stay in their configured state directory; credentials stay in Keychain.
+In the local browser host, bind the signed-in Perplexity tab and its documented CDP capability.
+Import the returned adapter URI, then run:
+
+```js
+const {transferSession} = await import(descriptor.browser_adapter);
+await transferSession(descriptor, (method, params) => cdp.send(method, params));
+```
+
+The host must support local module imports, Node filesystem/crypto APIs and scoped CDP cookie
+access. This runs in the host, never in page JavaScript. Follow the host's browser permission
+rules; setup does not grant or bypass them. Ordinary sign-in remains in the browser. A host
+without these capabilities cannot perform native transfer; do not replace it with cookie
+values pasted into tool arguments, chat or shell commands.
+
+The adapter requests cookies only for `https://www.perplexity.ai/`, filters to secure, unexpired
+root-path cookies from that domain, and selects the active account session plus supported
+legacy session/CSRF names. Duplicate names or unsupported session sets fail closed. Plaintext
+stays in memory. The adapter writes only AES-256-GCM ciphertext, with its key wrapped using
+RSA-OAEP-SHA256 and the transfer ID authenticated. The helper's private key never reaches disk.
+
+The five-minute, single-use receiver validates the existing cookie allowlist and writes the
+fixed macOS Keychain item `rhize:perplexity-cookies` for the current macOS username. The secret
+is supplied to `security` through stdin, never argv; output is suppressed and readback must
+match before `stored`. Only then run `health` to verify subscription access with GETs.
+No automatic refresh, password login, broader cookie export or query retry is added.
+
+Repeated start while a helper is alive reuses it. After completion/failure, start creates a new
+handoff. Terminal state drops the public descriptor and deletes ciphertext; expiry does likewise.
+After a hard process crash, the next status/start marks interruption and cleans any residual
+published ciphertext. A browser-host crash before publication can leave an encrypted temporary
+file until OS cleanup; it contains no plaintext, and the private key expires with the receiver.
+Temporary auth status can be purged by the OS; this does not remove Keychain credentials or jobs.
+A validation failure leaves the existing Keychain value untouched. A write/readback
+failure may mean the item changed but could not be verified; status reports failure honestly.
+This protects against accidental disclosure, not another program running as the same OS user.
+
+The existing opt-in `perplexity-token` shell helper remains on-demand only; never auto-export
+credentials or invoke it into tool output. The bridge retrieves its item internally. No shell
+profile changes are needed for refresh. `auth_requires_python_cryptography` means the setup
+interpreter lacks the dependency; setup never installs packages silently.
 
 ## Commands
 
@@ -204,10 +249,11 @@ Start the adapter with absolute paths in a host's stdio server configuration:
 The optional `--state-dir` must match the CLI's directory. No cookies belong in host config.
 The authorization reference is fixed at startup; tools cannot select arbitrary file paths.
 The adapter exposes `research_submit`, `research_status`, `research_result`, `research_cancel`,
-`research_recover`, `research_jobs`, `research_health`, `research_models` and `research_export`.
+`research_recover`, `research_jobs`, `research_health`, `research_models`, `research_export`,
+`research_auth_start` and `research_auth_status`.
 The `research_` tool prefix is retained for both modes. Submit takes `request_id`, `query`, and
 optional `timeout`, `mode`, `model`, `parent_job_id`; job tools take `job_id`; jobs accepts optional
-`after` and `limit`; health/models take no arguments. Reuse the same ID after uncertainty. Host tool
+`after` and `limit`; health/models/auth tools take no arguments. Reuse the same ID after uncertainty. Host tool
 approval still governs new submissions; health/list/result/export do not submit queries.
 
 This follows the repository's legacy initialize-based MCP pattern with supported revisions
@@ -229,7 +275,14 @@ The focused suite covers detached startup/cleanup, duplicate prevention, deadlin
 HTTP/SSE refusal, credential hygiene, modern report/citation mapping, GET recovery identity,
 health/model discovery without POST, tier/model refusal, parent validation, mode/model/parent
 ID binding, worker forwarding, paginated summaries, export and real stdio MCP/CLI round trips. Synthetic
-fixtures never contact Perplexity or Keychain. The actual completed live job was also read and
+fixtures never contact Perplexity or Keychain. Native auth tests exercise browser-adapter
+encryption, actual receiver decryption, strict scope, tampering/identity/expiry/replay rejection,
+private files, worker launch failure, Keychain stdin/readback and real CLI worker lifecycle.
+A synthetic transfer passed inside the actual Codex browser host. A subsequent live native
+refresh also passed: the shipped adapter transferred the scoped session, Keychain storage and
+readback reported `stored`, and GET-only CLI health returned Pro / pplx_alpha / ready. No query
+was submitted. The live test exposed home-directory write denial (`EPERM`); the owner-only OS
+temporary handoff fixed it without weakening browser permissions. The actual completed live job was also read and
 exported through both production interfaces with equal results and no new submission.
 
 The original live stream stopped on an unsupported citation-less source. GET recovery succeeded

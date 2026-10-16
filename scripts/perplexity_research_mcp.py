@@ -26,14 +26,16 @@ TOOLS = {
                       {"after": UUID, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, []),
     "research_health": ("health", "Check credentials, active subscription and current Research configuration by GET only. Quota remains unknown.", {}, []),
     "research_models": ("models", "List fresh plan-filtered Search and Research model IDs. No submission or stale catalog fallback.", {}, []),
+    "research_auth_start": ("auth-start", "Begin user-requested session setup/refresh. Poll auth status for the public encrypted-handoff descriptor; use the shipped browser adapter with scoped browser access. Never supply cookies to a tool. No query submitted.", {}, []),
+    "research_auth_status": ("auth-status", "Read public setup/refresh descriptor or Keychain storage result. No cookie values returned.", {}, []),
 }
 
 
 def schemas():
     return [{"name": name, "description": description,
              "inputSchema": {"type": "object", "properties": properties, "required": required, "additionalProperties": False},
-             "annotations": {"readOnlyHint": command not in {"submit", "cancel", "recover"},
-                             "destructiveHint": False, "idempotentHint": True,
+             "annotations": {"readOnlyHint": command not in {"submit", "cancel", "recover", "auth-start"},
+                             "destructiveHint": False, "idempotentHint": command != "auth-start",
                              "openWorldHint": command in {"submit", "recover", "health", "models"}}}
             for name, (command, description, properties, required) in TOOLS.items()]
 
@@ -64,7 +66,7 @@ def invoke(name, args, state_dir, permission_reference):
         for key in ("after", "limit"):
             if key in args:
                 argv += ["--" + key, str(args[key])]
-    elif command not in {"health", "models"}:
+    elif command not in {"health", "models", "auth-start", "auth-status"}:
         argv.append(args["job_id"])
     env = {k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "PATH", "LANG") if k in os.environ}
     try:
@@ -112,6 +114,7 @@ def serve(state_dir, permission_reference):
                     requested = params.get("protocolVersion")
                     response["result"] = {"protocolVersion": requested if requested in VERSIONS else VERSIONS[-1],
                                           "capabilities": {"tools": {}},
+                                          "instructions": "For user-requested session setup or refresh, call research_auth_start, then research_auth_status until waiting. In the local browser host import the returned browser_adapter and call transferSession(descriptor, (method, params) => cdp.send(method, params)) using scoped CDP access for the signed-in Perplexity tab. Follow host permission rules. Never print cookies or pass them as tool arguments. Poll auth status for stored, then use research_health. Do not submit a query as an authentication test.",
                                           "serverInfo": {"name": "rhize-perplexity-research", "version": "0.1.0"}}
                     initialized = True
                 elif method == "ping":

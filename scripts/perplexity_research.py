@@ -7,6 +7,7 @@ See docs/research/perplexity-upstream-LICENSE.txt and perplexity-local-bridge.md
 from __future__ import annotations
 
 import argparse
+import base64
 from contextlib import contextmanager
 import fcntl
 import hashlib
@@ -234,6 +235,10 @@ def cookies_from_keychain():
         cookies = json.loads(result.stdout)
     except (ValueError, UnicodeError):
         raise BridgeError("invalid_cookie_json") from None
+    return validate_cookies(cookies)
+
+
+def validate_cookies(cookies):
     if not isinstance(cookies, dict) or not cookies:
         raise BridgeError("invalid_cookie_json")
     for key, value in cookies.items():
@@ -247,7 +252,110 @@ def cookies_from_keychain():
                "next-auth.csrf-token", "__Host-next-auth.csrf-token"}
     if set(cookies) - allowed or not any("session" in key for key in cookies):
         raise BridgeError("unsupported_cookie_set")
+    if len(encoded(cookies)) > 65536:
+        raise BridgeError("cookie_set_too_large")
     return cookies
+
+
+def store_cookies(cookies):
+    value = encoded(validate_cookies(cookies))
+    account = pwd.getpwuid(os.getuid()).pw_name
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", account):
+        raise BridgeError("unsupported_local_account_name")
+    command = f'add-generic-password -a {account} -s {KEYCHAIN_SERVICE} -l "Perplexity local bridge" -U -X {value.hex()}\n'
+    result = subprocess.run(["/usr/bin/security", "-i"], input=command.encode(),
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+    if result.returncode or cookies_from_keychain() != cookies:
+        raise BridgeError("keychain_write_or_verification_failed")
+
+
+def auth_crypto():
+    try:
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding, rsa
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+        return hashes, serialization, padding, rsa, AESGCM
+    except ImportError:
+        raise BridgeError("auth_requires_python_cryptography") from None
+
+
+def auth_status(root):
+    if not (root / "session.json").exists():
+        return {"status": "not_started"}
+    state = read_job(root, "session")
+    if state["status"] in {"starting", "waiting"} and not worker_live(root, "session"):
+        state = {"job_id": "session", "status": "failed", "error": "auth_worker_interrupted"}
+        save(root, state)
+        (root / "payload.json").unlink(missing_ok=True)
+    return state
+
+
+def auth_root(state_root):
+    # Fixed OS temp path keeps CLI/MCP handoffs shared despite sanitized TMPDIR environments.
+    name = f"rhize-perplexity-auth-{os.getuid()}-{sha(str(state_root).encode())[:16]}"
+    return private_root(Path("/tmp").resolve() / name)
+
+
+def auth_start(root):
+    auth_crypto()
+    with locked(root):
+        state = auth_status(root)
+        if worker_live(root, "session"):
+            return state
+        (root / "payload.json").unlink(missing_ok=True)
+        fd = private_open(root / "session.lock", os.O_RDWR | os.O_CREAT)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            state = {"job_id": "session", "status": "starting"}
+            save(root, state)
+            env = {k: os.environ[k] for k in ("HOME", "USER", "LOGNAME", "PATH", "LANG") if k in os.environ}
+            subprocess.Popen([sys.executable, "-I", str(SCRIPT), "--state-dir", str(root),
+                              "_auth-worker", str(fd)], pass_fds=(fd,), env=env,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        except Exception:
+            save(root, {"job_id": "session", "status": "failed", "error": "auth_worker_launch_failed"})
+            raise BridgeError("auth_worker_launch_failed") from None
+        finally:
+            os.close(fd)
+    return state
+
+
+def auth_worker(root, fd, *, store=store_cookies, lifetime=300):
+    payload_path = root / "payload.json"
+    try:
+        hashes, serialization, padding, rsa, AESGCM = auth_crypto()
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        transfer_id = str(uuid.uuid4())
+        deadline = time.monotonic() + lifetime
+        save(root, {"job_id": "session", "status": "waiting", "transfer_id": transfer_id,
+                    "expires_at": time.time() + lifetime, "origin": ORIGIN,
+                    "browser_adapter": SCRIPT.with_name("perplexity_session_transfer.mjs").as_uri(),
+                    "payload_path": str(payload_path), "public_key": key.public_key().public_bytes(
+                        serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo).decode()})
+        while not payload_path.exists():
+            if time.monotonic() >= deadline:
+                raise BridgeError("auth_transfer_expired")
+            time.sleep(0.1)
+        with os.fdopen(private_open(payload_path, os.O_RDONLY), "rb") as stream:
+            raw = stream.read(131073)
+        if len(raw) > 131072 or time.monotonic() >= deadline:
+            raise BridgeError("auth_invalid_or_expired_payload")
+        payload = json.loads(raw)
+        if set(payload) != {"transfer_id", "key", "iv", "ciphertext"} or payload["transfer_id"] != transfer_id:
+            raise BridgeError("auth_transfer_identity_mismatch")
+        decode = lambda name: base64.b64decode(payload[name], validate=True)
+        secret = key.decrypt(decode("key"), padding.OAEP(mgf=padding.MGF1(hashes.SHA256()),
+                                                        algorithm=hashes.SHA256(), label=None))
+        cookies = json.loads(AESGCM(secret).decrypt(decode("iv"), decode("ciphertext"), transfer_id.encode()))
+        store(validate_cookies(cookies))
+        save(root, {"job_id": "session", "status": "stored", "service": KEYCHAIN_SERVICE})
+    except Exception as exc:
+        save(root, {"job_id": "session", "status": "failed",
+                    "error": str(exc) if isinstance(exc, BridgeError) else "auth_transfer_failed"})
+    finally:
+        payload_path.unlink(missing_ok=True)
+        os.close(fd)
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -648,6 +756,9 @@ def main(argv=None):
     add.add_argument("--parent-job-id")
     commands.add_parser("models", help="Read current plan-filtered Search and Research model IDs; no submission")
     commands.add_parser("health", help="Check Keychain, subscription and Research configuration with GETs only")
+    commands.add_parser("auth-start", help="Begin an explicitly requested browser-to-Keychain setup or refresh")
+    commands.add_parser("auth-status", help="Read the public transfer descriptor or completion status")
+    commands.add_parser("_auth-worker").add_argument("lock_fd", type=int)
     jobs = commands.add_parser("jobs", help="List local job summaries, ordered by UUID")
     jobs.add_argument("--after", default="")
     jobs.add_argument("--limit", type=int, default=20)
@@ -660,6 +771,14 @@ def main(argv=None):
     os.umask(0o077)
     try:
         root = private_root(args.state_dir)
+        if args.command in {"auth-start", "auth-status", "_auth-worker"}:
+            if args.command == "_auth-worker":
+                auth_worker(root, args.lock_fd)
+                return 0
+            transfer_root = auth_root(root)
+            output = auth_start(transfer_root) if args.command == "auth-start" else auth_status(transfer_root)
+            print(json.dumps(output))
+            return 2 if output["status"] == "failed" else 0
         if args.command == "_worker":
             if os.getpgrp() != os.getpid():
                 raise BridgeError("worker_requires_own_process_group")
