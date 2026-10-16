@@ -1101,6 +1101,12 @@
     {
       "from": "plugin:rhize-devflow",
       "source": "marketplace",
+      "to": "hook:rhize-devflow/inline-a3a2bdba",
+      "type": "contains"
+    },
+    {
+      "from": "plugin:rhize-devflow",
+      "source": "marketplace",
       "to": "hook:rhize-devflow/inline-d45b5937",
       "type": "contains"
     },
@@ -4237,6 +4243,17 @@
       "kind": "hook",
       "matcher": "",
       "name": "inline-95242299",
+      "owner": "rhize-devflow",
+      "path": "rhize-devflow/hooks/hooks.json",
+      "status": "wired"
+    },
+    {
+      "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post",
+      "event": "PostToolUse",
+      "id": "hook:rhize-devflow/inline-a3a2bdba",
+      "kind": "hook",
+      "matcher": "Bash|exec_command|functions.exec",
+      "name": "inline-a3a2bdba",
       "owner": "rhize-devflow",
       "path": "rhize-devflow/hooks/hooks.json",
       "status": "wired"

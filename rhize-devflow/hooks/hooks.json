@@ -1,5 +1,5 @@
 {
-  "description": "rhize-devflow auto-wires the auto-selection workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits, and reconciliation before commit/completion. Trusted adapters may invoke the same gate with required activation and an explicit implementation task kind; the study control omits the plugin instead of disabling the gate. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
+  "description": "rhize-devflow auto-wires the auto-selection workflow gate: material implementation/refactor prompts require a CodeGraph-or-recorded-fallback impact-map receipt before source edits (native edit tools and recognizable shell writes), flag source a shell changed while no map was prepared, and require reconciliation before commit/completion. Trusted adapters may invoke the same gate with required activation and an explicit implementation task kind; the study control omits the plugin instead of disabling the gate. The mutation and protected-file guards remain opt-in through setup/manifest.json.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -29,6 +29,18 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|exec_command|functions.exec",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/refactor_gate.py\" hook-command-post",
             "timeout": 5
           }
         ]

@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import glob
 import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -163,6 +165,53 @@ LEADING_CD_PREFIX = re.compile(r"^\s*cd\s+(" + _PATH_TOKEN + r")\s*(?:&&|;)\s*")
 # A variable or command-substitution token anywhere in a resolved path keeps the day's
 # behavior (cwd) rather than expanding it ourselves.
 AMBIGUOUS_PATH_TOKEN = re.compile(r"[$`]")
+# Static shell-write detection. It recognizes the common ways an agent writes a file from a
+# shell; anything it misses is caught after the fact by `hook-command-post`.
+HEREDOC = re.compile(
+    r"(?<!<)<<-?[ \t]*(['\"]?)([A-Za-z_][\w.-]*)\1([^\n]*)\n(.*?)^[ \t]*\2[ \t]*(?:\n|\Z)",
+    re.DOTALL | re.MULTILINE,
+)
+SHELL_OPERATOR = re.compile(r"&>>|&>|>>|>\||>&|<&|<<<|<<-|<<|&&|\|\||\|&|;;|[<>|&;()\n]")
+SHELL_SEPARATORS = {"&&", "||", ";", ";;", "|", "|&", "&", "(", ")", "\n"}
+SHELL_OUTPUT_REDIRECTS = {">", ">>", ">|", "&>", "&>>"}
+SHELL_INPUT_REDIRECTS = {"<", "<<", "<<-", "<<<", ">&", "<&"}
+# Characters hidden from the lexer when quoted or escaped: posix shlex drops quotes, so
+# `grep '>' f` would otherwise read as a redirect.
+SHELL_MASK = {char: chr(0xE000 + index) for index, char in enumerate("<>|&;()#\n'\" \t")}
+SHELL_UNMASK = {ord(masked): char for char, masked in SHELL_MASK.items()}
+# Prefixes that run the next word as the command; `rtk`/`rtk proxy` is the local rewrite hook.
+SHELL_WRAPPERS = {
+    "rtk", "proxy", "env", "command", "builtin", "exec", "nohup", "time", "sudo", "npx", "bunx", "pnpx",
+}
+RUNNER_PREFIXES = {("uv", "run"), ("poetry", "run"), ("pipenv", "run"), ("pdm", "run"),
+                   ("pnpm", "exec"), ("npm", "exec"), ("yarn", "exec"), ("bundle", "exec")}
+IN_PLACE_EDITORS = {"sed", "gsed", "perl", "ruby"}
+# Only boolean flags may precede `i` in a cluster: `-pi`, `-ni`, `-i.bak`, never `-Ilib`.
+IN_PLACE_FLAG = re.compile(r"^-[nEsrzuplaw0]*i|^--in-place")
+INTERPRETER = re.compile(r"^(?:python[\d.]*|node|bun|deno|ruby|perl)$")
+SNIPPET_FLAGS = {"-c", "-e", "-E", "--eval"}
+READ_ONLY_APPLY_FLAGS = {"--check", "--stat", "--numstat", "--summary", "--cached"}
+# Text match on purpose, so `bash -c '… && git commit'` counts; global options may precede it.
+GIT_COMMIT = re.compile(r"\bgit(?:\s+(?:-[Cc]\s+\S+|--?[\w-]+(?:=\S+)?))*\s+commit\b")
+STRING_LITERAL = re.compile(r"""^[rRbBuU]{0,2}(['"])([^'"]*)\1$""")
+SNIPPET_STRING = re.compile(r"""(['"])([^'"\n]{1,300})\1""")
+PATH_WRAPPER = re.compile(r"^(?:(?:pathlib\.)?Path|str)\(\s*(.+?)\s*\)$")
+_SNIPPET_ARG = r"((?:[^,()]|\([^()]*\))+?)"
+# Interpreter idioms that write a file; group 1 is the target expression.
+SNIPPET_WRITES = (
+    re.compile(r"\bopen\(\s*" + _SNIPPET_ARG + r"\s*,\s*(?:mode\s*=\s*)?[rRbBuU]?['\"][rbt]*[wax+]"),
+    re.compile(
+        r"((?:pathlib\.)?Path\(\s*(?:['\"][^'\"]*['\"]|[A-Za-z_]\w*)\s*\)|['\"][^'\"]*['\"]|[A-Za-z_]\w*)"
+        r"\.write_(?:text|bytes)\("
+    ),
+    re.compile(
+        r"\b(?:shutil\.(?:copy2?|copyfile|move)|os\.(?:replace|rename))\(\s*"
+        + _SNIPPET_ARG + r"\s*,\s*" + _SNIPPET_ARG + r"\s*[,)]"
+    ),
+    re.compile(r"\b(?:writeFileSync|writeFile|appendFileSync|appendFile|File\.write)\(\s*" + _SNIPPET_ARG + r"\s*,"),
+    re.compile(r"\bopen\s*\(?\s*(?:my\s+)?\$\w+\s*,\s*['\"]\+?>{1,2}['\"]\s*,\s*" + _SNIPPET_ARG + r"\s*\)"),
+)
+DIFF_PATH = re.compile(r"^(?:\+\+\+|---) (?:[ab]/)?(\S+)", re.MULTILINE)
 
 
 def utc_now() -> str:
@@ -634,6 +683,11 @@ def git_status_snapshot(repo: Path) -> dict[str, dict[str, str | None]]:
         if status[0] in {"R", "C"} and index < len(entries):
             path = entries[index]
             index += 1
+        # With --untracked-files=all the only directory entries git prints are untracked nested
+        # repositories/worktrees (e.g. `.claude/worktrees/<agent>/`). Git never commits their
+        # contents and they carry their own receipts, so they are not a change in this repo.
+        if status == "??" and path.endswith("/"):
+            continue
         if path:
             snapshot[path] = {
                 "status": status,
@@ -655,6 +709,20 @@ def repo_display_prefix(workspace: Path, repo: Path) -> str:
     return "" if str(relative) == "." else str(relative)
 
 
+def dirty_snapshots(workspace: Path) -> list[dict[str, Any]]:
+    """Arm-time state per repository. `head` only lets hook-command-post see a `git commit`
+    made while pending (it advances past other HEAD moves); prepare takes HEAD fresh."""
+    return [
+        {
+            "root": str(repo),
+            "workspace_prefix": repo_display_prefix(workspace, repo),
+            "head": git_head(repo),
+            "dirty": git_status_snapshot(repo),
+        }
+        for repo in discover_repositories(workspace)
+    ]
+
+
 def baseline_repository(workspace: Path, repo: Path, query: str) -> dict[str, Any]:
     return {
         "root": str(repo),
@@ -665,11 +733,28 @@ def baseline_repository(workspace: Path, repo: Path, query: str) -> dict[str, An
     }
 
 
+def primary_checkout(workspace: Path) -> Path | None:
+    """The primary checkout when `workspace` is a linked worktree, else None."""
+    result = run(["git", "rev-parse", "--git-dir", "--git-common-dir"], workspace)
+    lines = result.stdout.splitlines()
+    if result.returncode != 0 or len(lines) != 2:
+        return None
+    git_dir, common_dir = (resolve_relative_to(line.strip(), workspace) for line in lines)
+    return common_dir.parent if git_dir != common_dir and common_dir.name == ".git" else None
+
+
 def validate_plan(plan: Path, workspace: Path) -> str:
     try:
         plan.relative_to(workspace)
     except ValueError as exc:
-        raise ValueError("impact map must be stored inside the workspace") from exc
+        # An orchestrator preparing a subagent's linked worktree may keep the map in the
+        # primary checkout's plans directory instead of copying it in.
+        primary = primary_checkout(workspace)
+        if primary is None or not plan.is_relative_to(primary):
+            raise ValueError(
+                "impact map must be stored inside the workspace "
+                "(or, for a linked worktree, inside its primary checkout)"
+            ) from exc
     if not plan.is_file():
         raise ValueError(f"impact map does not exist: {plan}")
     text = plan.read_text(encoding="utf-8", errors="ignore")
@@ -713,6 +798,26 @@ def prepare(workspace: Path, plan: Path, query: str, *, quiet: bool = False) -> 
         and {canonical(item["root"]) for item in previous_repositories}
         == set(repositories)
     )
+    pending_baseline = previous.get("pending_baseline")
+    if preserve_baseline:
+        repository_states = previous_repositories
+    elif (
+        previous.get("phase") == "pending"
+        and isinstance(pending_baseline, list)
+        and {canonical(item["root"]) for item in pending_baseline} == set(repositories)
+    ):
+        # Edits made while pending (before any map existed) must not become baseline: keep
+        # the arm-time dirty tree so reconcile still requires them in the map.
+        repository_states = [
+            {
+                **snapshot,
+                "head": git_head(canonical(snapshot["root"])),
+                "structural_evidence": codegraph_evidence(canonical(snapshot["root"]), query),
+            }
+            for snapshot in pending_baseline
+        ]
+    else:
+        repository_states = [baseline_repository(workspace, repo, query) for repo in repositories]
     prepared_at = utc_now()
     state: dict[str, Any] = {
         "schema_version": SCHEMA_VERSION,
@@ -728,16 +833,16 @@ def prepare(workspace: Path, plan: Path, query: str, *, quiet: bool = False) -> 
         # Re-preparing after an impact-map correction must not bless an already
         # dirty implementation as the new baseline. Preserve the original
         # repository snapshots until reconciliation succeeds.
-        "repositories": (
-            previous_repositories
-            if preserve_baseline
-            else [baseline_repository(workspace, repo, query) for repo in repositories]
-        ),
+        "repositories": repository_states,
         "registries": discover_registries(workspace, repositories, query),
         "reconciliation": None,
     }
     if isinstance(previous.get("lifecycle"), dict):
         state["lifecycle"] = previous["lifecycle"]
+    if previous.get("phase") in {"pending", "prepared", "implementation"} and previous.get(
+        "unprepared_source_changes"
+    ):
+        state["unprepared_source_changes"] = previous["unprepared_source_changes"]
     # Sessions that already wrote under this receipt still own the pending reconciliation.
     if previous.get("phase") in {"prepared", "implementation"} and isinstance(
         previous.get("owner_sessions"), list
@@ -807,13 +912,19 @@ def reconcile(workspace: Path) -> int:
         structural.append({"root": str(repo), "evidence": evidence})
         if evidence.get("mode") != "codegraph":
             exceptions.append(f"{repo}: {evidence.get('reason', 'CodeGraph fallback')}")
+    # Source changed while pending was recorded by hook-command-post; it must be mapped even
+    # if a later re-arm folded it into the baseline.
+    recorded = [path for path in state.get("unprepared_source_changes") or [] if isinstance(path, str)]
     changed = sorted(
-        path for path in set(changed) if not is_internal_evidence_path(path, plan_path, workspace)
+        path
+        for path in set(changed) | set(recorded)
+        if not is_internal_evidence_path(path, plan_path, workspace)
     )
     unmapped = [
         path
         for path in changed
         if not is_config_path(path)
+        and not is_planning_path(path)
         and not is_docs_path(path, workspace)
         and path.lower() not in plan_text
         and Path(path).name.lower() not in plan_text
@@ -1016,23 +1127,26 @@ def hook_prompt(
             if activation_policy == "auto"
             else "caller-declared-implementation"
         )
-        write_state(
-            workspace,
-            {
-                "schema_version": SCHEMA_VERSION,
-                "workspace": str(workspace),
-                "phase": "pending",
-                "created_at": created_at,
-                "lifecycle": new_lifecycle(
-                    workspace,
-                    prompt,
-                    activation_policy,
-                    task_kind,
-                    reason_code,
-                    created_at,
-                ),
-            },
-        )
+        pending: dict[str, Any] = {
+            "schema_version": SCHEMA_VERSION,
+            "workspace": str(workspace),
+            "phase": "pending",
+            "created_at": created_at,
+            "lifecycle": new_lifecycle(
+                workspace,
+                prompt,
+                activation_policy,
+                task_kind,
+                reason_code,
+                created_at,
+            ),
+        }
+        if current and current.get("phase") == "pending" and current.get("unprepared_source_changes"):
+            pending["unprepared_source_changes"] = current["unprepared_source_changes"]
+        # Arm first: if the snapshot below outlives the hook timeout, the gate still holds.
+        write_state(workspace, pending)
+        pending["pending_baseline"] = dirty_snapshots(workspace)
+        write_state(workspace, pending)
     active = read_state(workspace) or {}
     lifecycle = active.get("lifecycle")
     preparation_id = lifecycle.get("trial_id", "") if isinstance(lifecycle, dict) else ""
@@ -1058,13 +1172,15 @@ def enforce_write_payload(
     *,
     count_invocation: bool = True,
     cwd_override: Path | None = None,
+    paths: list[str] | None = None,
 ) -> int:
     cwd = cwd_override if cwd_override is not None else payload_workspace(payload)
     workspace, state = find_state_for_path(cwd)
     if count_invocation and active_receipt(state):
         count_hook_event(state, workspace, "PreToolUse")
         write_state(workspace, state)
-    paths = extract_write_paths(payload)
+    if paths is None:
+        paths = extract_write_paths(payload)
     relevant = [
         relative
         for path in paths
@@ -1086,7 +1202,8 @@ def enforce_write_payload(
             )
             sys.stderr.write(
                 "BLOCKED: source edits require a prepared refactor-evidence receipt; "
-                f"{reason}. Keep the map in .claude/plans and run: python3 "
+                f"{reason}. Blocked paths: {', '.join(relevant[:5])}. "
+                "Keep the map in .claude/plans and run: python3 "
                 f"{Path(__file__).resolve()} prepare --workspace \"{workspace}\" "
                 "--plan \"<selected-map>\" --query \"<same discovery query>\".\n"
             )
@@ -1245,6 +1362,254 @@ def resolve_command_target_directory(command: str, cwd: Path) -> Path:
     return cwd
 
 
+def strip_heredocs(command: str) -> tuple[str, list[str]]:
+    """Return the command with heredoc bodies removed (headers kept) and the bodies."""
+    bodies: list[str] = []
+
+    def keep_header(match: re.Match[str]) -> str:
+        bodies.append(match.group(4))
+        return f"<<{match.group(2)}{match.group(3)}\n"
+
+    return HEREDOC.sub(keep_header, command), bodies
+
+
+def mask_shell_text(command: str) -> str:
+    """Hide quoted/escaped operator characters from the lexer and drop unquoted comments.
+
+    A comment starts only where a word could (bash rules), so `x#frag` stays a word and a
+    comment line no longer swallows the newline that ends it. `$'…'` becomes a plain word.
+    """
+    out: list[str] = []
+    quote = ""
+    index = 0
+    while index < len(command):
+        char = command[index]
+        following = command[index + 1] if index + 1 < len(command) else ""
+        if quote and char == "\\" and quote != "'" and following:
+            out.append(SHELL_MASK.get(following, following))
+            index += 1
+        elif quote and char == quote[-1]:
+            out.append("'" if quote == "$'" else char)
+            quote = ""
+        elif quote:
+            out.append(SHELL_MASK.get(char, char))
+        elif char == "\\" and following:
+            out.append(SHELL_MASK.get(following, following))
+            index += 1
+        elif char == "#" and (not out or out[-1] in " \t\n;&|()<>"):
+            while index + 1 < len(command) and command[index + 1] != "\n":
+                index += 1
+        elif char == "'" and out and out[-1] == "$":
+            out[-1] = "'"
+            quote = "$'"
+        elif char in "'\"":
+            out.append(char)
+            quote = char
+        else:
+            out.append(char)
+        index += 1
+    return "".join(out)
+
+
+def shell_segments(command: str) -> list[list[str]] | None:
+    """Split a heredoc-free command into simple-command token lists; None if unparsable."""
+    lexer = shlex.shlex(
+        mask_shell_text(command.replace("\\\n", " ")), posix=True, punctuation_chars="();<>|&\n"
+    )
+    lexer.whitespace = " \t\r"  # newline separates commands
+    lexer.whitespace_split = True  # any non-operator character belongs to the word
+    lexer.commenters = ""  # stripped by mask_shell_text with bash's word-start rule
+    try:
+        raw = list(lexer)
+    except ValueError:
+        return None
+    segments: list[list[str]] = [[]]
+    for token in raw:
+        # Words stay masked until segment_argv, so a quoted '>' never equals the operator.
+        parts = SHELL_OPERATOR.findall(token) if token and set(token) <= set("();<>|&\n") else [token]
+        for part in parts:
+            if part in SHELL_SEPARATORS:
+                segments.append([])
+            else:
+                segments[-1].append(part)
+    return [segment for segment in segments if segment]
+
+
+def segment_argv(segment: list[str]) -> tuple[list[str], list[str], list[str]]:
+    """Split a simple command into argv, output-redirect targets, and `<` inputs."""
+    argv: list[str] = []
+    outputs: list[str] = []
+    inputs: list[str] = []
+    index = 0
+    while index < len(segment):
+        token = segment[index]
+        following = segment[index + 1].translate(SHELL_UNMASK) if index + 1 < len(segment) else None
+        if token in SHELL_OUTPUT_REDIRECTS or token in SHELL_INPUT_REDIRECTS:
+            if following is not None and token in SHELL_OUTPUT_REDIRECTS:
+                outputs.append(following)
+            elif following is not None and token == "<":
+                inputs.append(following)
+            index += 2
+            continue
+        argv.append(token.translate(SHELL_UNMASK))
+        index += 1
+    while argv:
+        if tuple(argv[:2]) in RUNNER_PREFIXES:
+            del argv[:2]
+        elif argv[0] in SHELL_WRAPPERS or re.match(r"^[A-Za-z_]\w*=", argv[0]):
+            argv.pop(0)
+        else:
+            break
+    return argv, outputs, inputs
+
+
+def expression_paths(expression: str, snippet: str = "", before: int = 0) -> list[str]:
+    """Paths a snippet's write-target expression names: a literal, `Path('lit')`, or a name
+    whose last binding before the write is one of those or a loop over a literal list.
+    Anything else is left to hook-command-post rather than guessed from strings it reads."""
+    expression = re.sub(r"\s+#.*$", "", expression).strip().rstrip(";").strip()
+    wrapped = PATH_WRAPPER.match(expression)
+    if wrapped:
+        expression = wrapped.group(1)
+    literal = STRING_LITERAL.match(expression)
+    if literal:
+        return [literal.group(2)]
+    if not snippet or not re.fullmatch(r"[A-Za-z_]\w*", expression):
+        return []
+    bindings = [
+        binding
+        for binding in re.finditer(
+            rf"(?m)^\s*(?:(?:const|let|var)\s+)?{expression}\s*=(?!=)\s*(.+)$"
+            rf"|\bfor\s+{expression}\s+in\s+([\[(].*)$",
+            snippet,
+        )
+        if binding.start() < before
+    ]
+    if not bindings:
+        return []
+    if bindings[-1].group(2) is not None:
+        return [found.group(2) for found in SNIPPET_STRING.finditer(bindings[-1].group(2))]
+    return expression_paths(bindings[-1].group(1))
+
+
+def snippet_write_targets(snippet: str) -> list[str]:
+    """Paths an interpreter snippet writes (the last group of each idiom is the target)."""
+    return [
+        path
+        for pattern in SNIPPET_WRITES
+        for match in pattern.finditer(snippet)
+        for path in expression_paths(match.group(match.lastindex or 1) or "", snippet, match.start())
+    ]
+
+
+def read_patch_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")[:1_000_000]
+    except OSError:
+        return ""
+
+
+def shell_write_candidates(command: str, cwd: Path) -> tuple[Path, list[Path]]:
+    """Statically find the files a shell command is likely to write.
+
+    Returns the directory relative paths resolve against (a single leading `cd`, else
+    `cwd`) and the candidate files. Misses (`bash -c`, `eval`, scripts, `npm run`,
+    `xargs`, variable paths) are left to `hook-command-post`.
+    """
+    if len(command) > 100_000:
+        # shortcut: shlex is quadratic in word length and the hook has 5 s; the post check covers it.
+        return cwd, []
+    stripped, bodies = strip_heredocs(command)
+    directory = cwd
+    raw_cd = leading_cd_target(stripped)
+    if raw_cd is not None and resolve_relative_to(raw_cd, cwd).is_dir():
+        directory = resolve_relative_to(raw_cd, cwd)
+    segments = shell_segments(stripped)
+    if segments is None:
+        return directory, []
+    targets: list[str] = []  # may be new files
+    existing: list[str] = []  # only counted when they already exist
+    snippets: list[str] = []
+    patch_texts: list[str] = []
+    runs_interpreter = False
+    for segment in segments:
+        argv, outputs, inputs = segment_argv(segment)
+        targets.extend(outputs)
+        if not argv:
+            continue
+        name = PurePosixPath(argv[0]).name
+        args = argv[1:]
+        positional = [arg for arg in args if not arg.startswith("-")]
+        if name == "tee":
+            targets.extend(positional)
+        elif name in IN_PLACE_EDITORS and any(IN_PLACE_FLAG.match(arg) for arg in args):
+            existing.extend(positional)  # drops the expression: it is not an existing file
+        elif name in {"cp", "mv", "install"} and len(positional) >= 2:
+            *sources, destination = positional
+            targets.append(destination)
+            if destination.endswith("/") or resolve_relative_to(destination, directory).is_dir():
+                targets.extend(f"{destination.rstrip('/')}/{PurePosixPath(src).name}" for src in sources)
+            if name == "mv":
+                existing.extend(sources)
+        elif INTERPRETER.match(name):
+            runs_interpreter = True
+            snippets.extend(args[i + 1] for i, arg in enumerate(args[:-1]) if arg in SNIPPET_FLAGS)
+        elif name == "patch" or (
+            name == "git" and "apply" in args and not READ_ONLY_APPLY_FLAGS & set(args)
+        ):
+            # shortcut: diff paths resolve against the command directory, not `git -C`/-p levels.
+            files = inputs + (positional[positional.index("apply") + 1 :] if name == "git" else positional)
+            if name == "patch":
+                existing.extend(positional)  # `patch [originalfile [patchfile]]`
+
+            texts = [read_patch_text(resolve_relative_to(item, directory)) for item in files]
+            patch_texts.extend([text for text in texts if text] or bodies)
+    if runs_interpreter:
+        snippets.extend(bodies)
+    for snippet in snippets:
+        targets.extend(snippet_write_targets(snippet))
+    for text in patch_texts:
+        targets.extend(path for path in DIFF_PATH.findall(text) if path != "/dev/null")
+
+    resolved: dict[str, Path] = {}
+    for items, must_exist in ((targets, False), (existing, True)):
+        for item in items:
+            if not item or AMBIGUOUS_PATH_TOKEN.search(item) or item.startswith("/dev/"):
+                continue
+            base = resolve_relative_to(item, directory)
+            matches = [Path(match) for match in glob.glob(str(base))] if set(item) & set("*?[") else []
+            for path in matches or [base]:
+                if not must_exist or path.is_file():
+                    resolved[str(path)] = path
+    return directory, list(resolved.values())
+
+
+def source_write_paths(paths: list[Path], directory: Path) -> list[str]:
+    """Keep tracked files and new, non-ignored code files; drop scratch, logs and build output."""
+    top = run(["git", "rev-parse", "--show-toplevel"], directory)
+    if top.returncode != 0 or not top.stdout.strip():
+        # shortcut: outside Git there is no tracked/ignored signal; keep code files only.
+        return sorted(str(path) for path in paths if path.suffix in CODE_EXTENSIONS)
+    repo = canonical(top.stdout.strip())
+    inside = {path: str(path.relative_to(repo)) for path in paths if path.is_relative_to(repo)}
+    kept = {str(path) for path in paths if path not in inside and path.suffix in CODE_EXTENSIONS}
+    if inside:
+        relatives = list(inside.values())
+        git_cmd = ["git", "-c", "core.quotePath=false"]
+        tracked = set(
+            run([*git_cmd, "--literal-pathspecs", "ls-files", "-z", "--", *relatives], repo)
+            .stdout.split("\0")
+        )
+        # check-ignore takes plain paths (no pathspec magic) and -z only with --stdin.
+        ignored = set(run([*git_cmd, "check-ignore", "--", *relatives], repo).stdout.splitlines())
+        kept |= {
+            str(path)
+            for path, relative in inside.items()
+            if relative in tracked or (path.suffix in CODE_EXTENSIONS and relative not in ignored)
+        }
+    return sorted(kept)
+
+
 def release_targets_only_exempt_changes(hint: Path) -> bool | None:
     """True if every dirty path at/above `hint` is config, planning, or documentation.
 
@@ -1265,23 +1630,22 @@ def release_targets_only_exempt_changes(hint: Path) -> bool | None:
     )
 
 
+def payload_command(payload: dict[str, Any]) -> str:
+    tool_input = payload.get("tool_input") or {}
+    if isinstance(tool_input, dict):
+        command = tool_input.get("command") or tool_input.get("cmd") or tool_input.get("input") or ""
+    else:
+        command = tool_input
+    return command if isinstance(command, str) else ""
+
+
 def hook_command() -> int:
     if gate_disabled():
         return 0
     payload = read_payload()
     if not payload:
         return 0
-    tool_input = payload.get("tool_input") or {}
-    command = ""
-    if isinstance(tool_input, dict):
-        command = (
-            tool_input.get("command")
-            or tool_input.get("cmd")
-            or tool_input.get("input")
-            or ""
-        )
-    elif isinstance(tool_input, str):
-        command = tool_input
+    command = payload_command(payload)
     cwd = payload_workspace(payload)
     is_release = isinstance(command, str) and bool(RELEASE_COMMAND.search(command))
     # A leading `cd <dir> &&`/`cd <dir>;`, a `git -C <path>`, or a `--git-dir=`/
@@ -1304,6 +1668,23 @@ def hook_command() -> int:
         )
         if write_result != 0:
             return write_result
+    elif isinstance(command, str) and command:
+        # Shell writes (redirects, tee, sed -i, interpreter heredocs, cp/mv, patches) get the
+        # same receipt checks and exemptions as native edit tools.
+        try:
+            directory, written = shell_write_candidates(command, cwd)
+        except (OSError, ValueError):
+            # A path the OS rejects (ENAMETOOLONG/NUL on Python 3.9) is no write target; fail
+            # open here, hook-command-post still sees anything that actually changed.
+            directory, written = cwd, []
+        if written and active_receipt(find_state_for_path(directory)[1]):
+            sources = source_write_paths(written, directory)
+            if sources:
+                write_result = enforce_write_payload(
+                    payload, count_invocation=False, cwd_override=directory, paths=sources
+                )
+                if write_result != 0:
+                    return write_result
     if not is_release:
         return 0
     hint = event_hint
@@ -1325,6 +1706,62 @@ def hook_command() -> int:
         )
         return 2
     return 0
+
+
+def hook_command_post() -> int:
+    """PostToolUse: report source the static check missed that changed while pending.
+
+    It cannot undo the write. It records the drift on the receipt (reconcile then requires
+    those files in the map) and tells the agent, once per file.
+    """
+    if gate_disabled():
+        return 0
+    payload = read_payload()
+    if not payload:
+        return 0
+    workspace, state = find_state_for_path(payload_workspace(payload))
+    baseline = (state or {}).get("pending_baseline")
+    if not state or state.get("phase") != "pending" or not isinstance(baseline, list):
+        return 0
+    # Only this command's own `git commit` is charged; a pull, checkout or rebase just
+    # advances the stored HEAD so other people's commits never count as unprepared edits.
+    committed = bool(GIT_COMMIT.search(payload_command(payload)))
+    heads = {repo_state["root"]: git_head(canonical(repo_state["root"])) for repo_state in baseline}
+    moved = any(repo_state.get("head") != heads[repo_state["root"]] for repo_state in baseline)
+    if not committed:
+        for repo_state in baseline:
+            repo_state["head"] = heads[repo_state["root"]]
+    reported = set(state.get("unprepared_source_changes") or [])
+    changed = {path for repo_state in baseline for path in changed_since_baseline(workspace, repo_state)}
+    for repo_state in baseline:
+        repo_state["head"] = heads[repo_state["root"]]
+    candidates = [
+        path
+        for path in changed - reported
+        if not is_planning_path(path)
+        and not is_config_path(path)
+        and not is_docs_path(path, workspace)
+        and not path.startswith(".codegraph/")
+    ]
+    # Same rule as the pre-command check: tracked files and new code files, not logs or notes.
+    sources = set(source_write_paths([workspace / path for path in candidates], workspace))
+    new = sorted(path for path in candidates if str(workspace / path) in sources)
+    if not new:
+        if moved:
+            write_state(workspace, state)
+        return 0
+    state["unprepared_source_changes"] = sorted(reported | set(new))
+    append_lifecycle_event(state, workspace, "pending", utc_now(), "unprepared-source-change")
+    write_state(workspace, state)
+    sys.stderr.write(
+        "REFACTOR GATE: source changed while no impact map is prepared: "
+        f"{', '.join(new[:10])}. This check runs after the command, so the edit already "
+        "happened outside the pre-edit gate. Stop editing source, write the impact map naming "
+        f"these files, and run: python3 {Path(__file__).resolve()} prepare --workspace "
+        f"\"{workspace}\" --plan \"<map>\" --query \"<discovery query>\". The receipt has "
+        "recorded them; reconcile will require them in the map.\n"
+    )
+    return 2
 
 
 def hook_stop() -> int:
@@ -1406,7 +1843,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--activation-policy", choices=sorted(ACTIVATION_POLICIES), default="auto"
     )
     prompt_parser.add_argument("--task-kind", default="")
-    for hook in ("hook-write", "hook-command", "hook-stop"):
+    for hook in ("hook-write", "hook-command", "hook-command-post", "hook-stop"):
         sub.add_parser(hook)
     prepare_parser = sub.add_parser("prepare")
     prepare_parser.add_argument("--workspace", required=True)
@@ -1431,6 +1868,8 @@ def main() -> int:
         return hook_write()
     if args.command == "hook-command":
         return hook_command()
+    if args.command == "hook-command-post":
+        return hook_command_post()
     if args.command == "hook-stop":
         return hook_stop()
     workspace = canonical(args.workspace)
