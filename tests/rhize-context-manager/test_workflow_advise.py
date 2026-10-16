@@ -272,3 +272,19 @@ def test_recommend_procedure_errors_and_missing_snapshot(tmp_path, store, monkey
 
     (root.parent / 'request-snapshots' / (identity + '.json')).unlink()
     assert ws.recommend_procedure(root, identity, hits(2)) == {'layaAdvice': None, 'reason': 'request_snapshot_missing'}
+
+
+# ------------------------------------------------------------------ skill-fit records in advise mode
+
+def test_skill_fit_record_accepts_advise_mode_and_keeps_the_incumbent_emitted():
+    from typed_decision_testkit import ALT1, make_record
+    from typed_decisions import contract
+    record = make_record(1, mode='advise', choice=ALT1)  # Laya disagrees; the incumbent is still the shown payload
+    assert record['mode'] == 'advise' and record['emitted'] == record['incumbent']['skillId']
+    assert contract.validate_record(record) is record
+    record['emitted'] = None if record['emitted'] else record['emitted']
+    record['mode'] = 'unknown-mode'
+    with pytest.raises(ValueError):
+        contract.validate_record(record)
+    schema = json.loads((ROOT / 'rhize-context-manager/schemas/typed-decision-record-v1.schema.json').read_text())
+    assert schema['properties']['mode']['enum'] == ['shadow', 'advise', 'cosign']

@@ -26,7 +26,8 @@ Laya starts in `shadow`. It earns `cosign` only by passing a frozen statistical 
    | Situation | Hook output |
    |---|---|
    | Mode `cosign`, treatment arm (90%), Laya status `ok`, Laya's choice differs from the incumbent | The output without the router suggestion. A workflow message, if any, is still shown. |
-   | Everything else (`shadow`, the 10% holdback arm, any Laya failure, deadline expiry, any error) | The incumbent output, byte for byte. |
+   | Mode `advise`, treatment arm (90%), Laya status `ok`, Laya picks a shortlisted skill other than the incumbent | The incumbent output unchanged, plus one appended line: `Laya suggests the <plugin:skill> skill (advisory).` The incumbent is still the suggestion shown; the agent may ignore the line. |
+   | Everything else (`shadow`, the 10% holdback arm, Laya agrees or picks `none` in `advise`, any Laya failure, deadline expiry, any error) | The incumbent output, byte for byte. |
 
 6. After stdout has flushed, the hook appends one private decision record. The record holds hashes, ids, probabilities and latency, but never prompt text. The legacy suggestion-log row is written as before. Its `suggested` field now records what was actually shown, plus `typed_mode`, `typed_arm`, `typed_status` and `typed_agrees`.
 
@@ -112,6 +113,25 @@ The existing 07:30 autolabel job, `laya-autolabel.sh`, runs the workflow labeler
 
 The steps run from the native marketplace clone, the same tree the live hook runs from, so the cycle's policy and instrument hashes match the records the hook writes. A step that fails or times out is recorded, and the rest still run. If the job receives SIGTERM, the signal is forwarded to the running step, and any steps not yet started are skipped. `SKIP_SKILLFIT=1` skips the loop.
 
+## Advise mode
+
+`advise` is a second earned mode for skill fit, gated separately from `cosign` (advise policy `advise-v1`,
+majority-baseline gate). It never suppresses the router suggestion; it only appends the line above when
+Laya disagrees. Skill fit therefore ships in `shadow`, and nothing is in `advise` until the live cycle earns
+it or an operator pins it.
+
+- **Records.** A record written in `advise` has `mode: advise`. `emitted` stays the incumbent (or `null`),
+  because the incumbent output is what is shown; whether the line was added follows from the record: mode
+  `advise`, arm `treatment`, Laya `ok` and a choice that is neither the incumbent nor `none`. The cosign
+  gate and demotion windows read only `cosign` records.
+- **Binding.** The hook's reader (`decision-registry.js`) demotes an `advise` state to `shadow` when its
+  `instrumentSha256` is not the `laya-choice-v1` hash, its `layaRevision` differs from `laya-runtime.json`,
+  or an overriding `RHIZE_LAYA_ENDPOINT` is used without `RHIZE_LAYA_ENDPOINT_AUTHORITY=1`. It cannot
+  recompute the `advise-v1` policy hash, so the appended line is gated by the instrument and revision
+  binding (plus the Python cycle that sets the state), not by a policy-hash check in the hook.
+- **Hosts.** Claude and Codex both honour `advise`. Codex records still stay out of the gate's reserve pool
+  (`GATE_HOSTS`).
+
 ## Claude and Codex
 
 Both hosts run the same router from the plugin's `hooks/hooks.json` (`skill-router.js --packaged`, appended as UserPromptSubmit entry 3) and share one registry state, binding and evidence store.
@@ -119,7 +139,7 @@ Both hosts run the same router from the plugin's `hooks/hooks.json` (`skill-rout
 - **Opt-in.** The packaged router runs only when `~/.local/share/rhize/skill-router/config.json` is exactly `{"schemaVersion":1,"enabled":true}`. In Claude it also stays silent while `~/.claude/settings.json` (or `settings.local.json`, or the project's `.claude/` copies) still lists a manual `skill-router.js` hook. Remove that entry once the config is written; until then the router still runs exactly once. The check also looks in the `.claude/` folder of every parent of the session's directory. If your Claude version reads project settings from the session directory only, a manual entry in a parent project silences the packaged hook in subdirectory sessions until you remove it. Codex asks you to approve the appended hook in its native trust prompt.
 - **Host.** Each record carries `host`. The order is: a valid `RHIZE_HOST`, then the `transcript_path` location (`~/.codex/sessions` or `archived_sessions` rollouts mean codex; `~/.claude/projects` means claude), then payload `thread_id` (codex) or `CLAUDE_CODE_ENTRYPOINT` (claude). Conflicting signals record `unknown`. No signal at all records `claude`, the legacy default.
 - **Codex machine threads.** The router reads the first line of the rollout and runs only when `thread_source` is `user`. Guardian reviews, subagents, automations and agent-created threads produce no suggestion, no Laya call and no record. The Codex session identity is the rollout's `session_meta.id`, which is the same UUID the transcript index uses.
-- **Authority.** Codex stays in `shadow` (`COSIGN_HOSTS = ['claude']`). The gate's reserve pool, live unavailability and demotion windows count only `GATE_HOSTS = ('claude',)`. Codex shadow evidence accumulates for a later Codex-stratified gate.
+- **Authority.** Codex stays in `shadow` for `cosign` (`COSIGN_HOSTS = ['claude']`); `advise` is allowed on both hosts. The gate's reserve pool, live unavailability and demotion windows count only `GATE_HOSTS = ('claude',)`. Codex shadow evidence accumulates for a later Codex-stratified gate.
 - **Outcomes.** Codex invocations come from read-shaped shell commands (`cat`, `sed -n`, `head`, `tail`, `nl`, `bat`, `less`) on a `SKILL.md` under a plugin cache or marketplace root, or under the user skill folders (`~/.agents/skills`, `~/.codex/skills`, `~/.claude/skills`). Current Codex rollouts are read through Codex's own parsed command (`item_completed` CommandExecution entries of type `read`), and only a command that exited 0 counts; in those rollouts the coexisting `function_call` lines are ignored. Older rollouts that record only the shell `function_call` carry no exit code, so there a read-shaped command counts on its shape alone. They are recorded as `via: skill_file_read`, a weaker evidence type than Claude's `Skill` tool call. Edits, `apply_patch`, grep, failed reads and `$skill` mentions never count.
 - **Scoreboard.** Every count, arm, status, prevalence figure and outcome is reported per host.
 

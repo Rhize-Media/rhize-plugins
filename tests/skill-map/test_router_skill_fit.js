@@ -69,15 +69,16 @@ async function check(name, fn) {
   }
 }
 
-function stateDoc(mode, { pinned = false, revision = 1 } = {}) {
+function stateDoc(mode, { pinned = false, revision = 1, layaRevision = null, instrumentSha256 } = {}) {
+  const advise = mode === 'advise';
   return {
     schemaVersion: 1, revision, updatedAt: '2026-10-11T12:00:00Z',
     decisions: {
       'skill-fit': {
         mode, pinned, since: '2026-10-11T12:00:00Z', reason: 'test_setup',
-        policySha256: mode === 'cosign' ? td.policySha256() : null,
-        instrumentSha256: mode === 'cosign' ? instrument.instrumentSha256() : null,
-        layaRevision: null, cohortId: null,
+        policySha256: mode === 'cosign' ? td.policySha256() : advise ? sha('advise-v1') : null,
+        instrumentSha256: instrumentSha256 || (mode === 'cosign' || advise ? instrument.instrumentSha256() : null),
+        layaRevision: advise ? (layaRevision || 'unknown') : null, cohortId: null,
       },
     },
   };
@@ -94,7 +95,7 @@ function scenario(opts = {}) {
   if (!opts.noMap) fs.writeFileSync(path.join(ctxDir, 'skill-map.static.json'), JSON.stringify(opts.map || MAP));
   if (opts.mode || opts.state !== undefined) {
     fs.mkdirSync(root, { recursive: true });
-    const body = opts.state !== undefined ? opts.state : stateDoc(opts.mode, { pinned: opts.pinned, revision: opts.revision });
+    const body = opts.state !== undefined ? opts.state : stateDoc(opts.mode, { pinned: opts.pinned, revision: opts.revision, layaRevision: opts.layaRevision, instrumentSha256: opts.instrumentSha256 });
     fs.writeFileSync(path.join(root, 'registry-state.json'), typeof body === 'string' ? body : JSON.stringify(body));
   }
   if (opts.workflow) {
@@ -853,6 +854,117 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     const sc = track(scenario({ mode: 'shadow', endpoint: server.endpoint }));
     await Promise.all(Array.from({ length: 8 }, (_v, i) => runHook(sc, { sessionId: `concurrent-${i}` })));
     assertRecordsValid(sc, 8);
+    await server.close();
+  });
+
+
+  // ---- advise: the incumbent payload is unchanged; a disagreement appends exactly one advisory line
+  const ADVISE_LINE = 'Laya suggests the alpha:git-helper skill (advisory).';
+  const ADVISED = lineFor(`${INCUMBENT_MESSAGE}\n${ADVISE_LINE}`);
+  await check('advise + treatment: agreement leaves the incumbent bytes; disagreement appends one line; record validates', async () => {
+    const agree = await layaServer({ choose: () => 'context-pack' });
+    const scA = track(scenario({ mode: 'advise', endpoint: agree.endpoint }));
+    const outA = await runHook(scA, { sessionId: TREATMENT });
+    assert.strictEqual(outA.stdout, INCUMBENT_LINE);
+    const [recA] = assertRecordsValid(scA, 1);
+    assert.strictEqual(recA.mode, 'advise');
+    assert.strictEqual(recA.arm, 'treatment');
+    assert.strictEqual(recA.emitted, SKILL.ctx);
+    await agree.close();
+
+    const disagree = await layaServer({ choose: () => 'git-helper' });
+    const scD = track(scenario({ mode: 'advise', endpoint: disagree.endpoint }));
+    const outD = await runHook(scD, { sessionId: TREATMENT });
+    assert.strictEqual(outD.code, 0, outD.stderr);
+    assert.strictEqual(outD.stdout, ADVISED);
+    assert.strictEqual(outD.stdout.split('\n').filter(Boolean).length, 1, 'still one JSON line');
+    const [recD] = assertRecordsValid(scD, 1);
+    assert.strictEqual(recD.mode, 'advise');
+    assert.strictEqual(recD.emitted, SKILL.ctx, 'the incumbent is still the shown suggestion');
+    assert.strictEqual(recD.laya.choice, SKILL.git);
+    const [row] = readLog(scD);
+    assert.strictEqual(row.suggested, SKILL.ctx);
+    assert.strictEqual(row.typed_mode, 'advise');
+    assert.strictEqual(row.typed_agrees, false);
+    await disagree.close();
+  });
+  await check('advise keeps a workflow message and appends the line after the router suggestion', async () => {
+    const server = await layaServer({ choose: () => 'git-helper' });
+    const sc = track(scenario({ mode: 'advise', workflow: true, endpoint: server.endpoint }));
+    const shadow = track(scenario({ mode: 'shadow', workflow: true, endpoint: server.endpoint }));
+    const [out, base] = await Promise.all([runHook(sc, { sessionId: TREATMENT }), runHook(shadow, { sessionId: TREATMENT })]);
+    const msg = (o) => JSON.parse(o.stdout).hookSpecificOutput.additionalContext;
+    const norm = (text) => text.replace(/[0-9a-f]{64}/g, 'ID');
+    assert.strictEqual(norm(msg(out)), `${norm(msg(base))}\n${ADVISE_LINE}`);
+    await server.close();
+  });
+  await check('advise + Laya picks none: incumbent bytes unchanged', async () => {
+    const server = await layaServer({ choose: () => 'none' });
+    const sc = track(scenario({ mode: 'advise', endpoint: server.endpoint }));
+    const out = await runHook(sc, { sessionId: TREATMENT });
+    assert.strictEqual(out.stdout, INCUMBENT_LINE);
+    assertRecordsValid(sc, 1);
+    await server.close();
+  });
+  await check('advise + holdback arm / shadow state / stale bindings: incumbent bytes unchanged', async () => {
+    const server = await layaServer({ choose: () => 'git-helper' });
+    const held = track(scenario({ mode: 'advise', endpoint: server.endpoint }));
+    const outHeld = await runHook(held, { sessionId: HOLDBACK });
+    assert.strictEqual(outHeld.stdout, INCUMBENT_LINE);
+    const [recHeld] = assertRecordsValid(held, 1);
+    assert.strictEqual(recHeld.arm, 'holdback');
+    assert.strictEqual(recHeld.mode, 'advise');
+    for (const opts of [{ mode: 'shadow' }, { mode: 'advise', instrumentSha256: sha('another instrument') },
+      { mode: 'advise', layaRevision: 'some-other-revision' }]) {
+      const sc = track(scenario({ ...opts, endpoint: server.endpoint }));
+      const out = await runHook(sc, { sessionId: TREATMENT });
+      assert.strictEqual(out.stdout, INCUMBENT_LINE, JSON.stringify(opts));
+      assert.strictEqual(assertRecordsValid(sc, 1)[0].mode, 'shadow', JSON.stringify(opts));
+    }
+    // an overriding endpoint without the authority assertion also reads as shadow
+    const sc = track(scenario({ mode: 'advise', endpoint: server.endpoint }));
+    delete sc.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
+    const out = await runHook(sc, { sessionId: TREATMENT });
+    assert.strictEqual(out.stdout, INCUMBENT_LINE);
+    assert.strictEqual(assertRecordsValid(sc, 1)[0].mode, 'shadow');
+    await server.close();
+  });
+  for (const fc of [
+    { name: 'timeout (POST never answers)', server: { post: hung }, status: 'timeout' },
+    { name: 'unavailable (HTTP 500)', server: { post: (req, res) => { res.writeHead(500); res.end('{}'); } }, status: 'unavailable' },
+    { name: 'invalid (wrong shape)', server: { post: (req, res) => { res.writeHead(200); res.end(JSON.stringify({ routing: { model: MODEL }, answers: {} })); } }, status: 'invalid' },
+  ]) {
+    await check(`advise + Laya ${fc.name}: incumbent bytes unchanged`, async () => {
+      const server = await layaServer(fc.server);
+      const sc = track(scenario({ mode: 'advise', endpoint: server.endpoint }));
+      const out = await runHook(sc, { sessionId: TREATMENT });
+      assert.strictEqual(out.code, 0, out.stderr);
+      assert.strictEqual(out.stdout, INCUMBENT_LINE);
+      const [rec] = assertRecordsValid(sc, 1);
+      assert.strictEqual(rec.mode, 'advise');
+      assert.strictEqual(rec.laya.status, fc.status);
+      await server.close();
+    });
+  }
+  await check('advise is allowed on the codex host (cosign stays capped at shadow)', async () => {
+    const server = await layaServer({ choose: () => 'git-helper' });
+    const run = async (mode) => {
+      const sc = track(scenario({ mode, layaRevision: '55cf4c4', endpoint: server.endpoint, env: { RHIZE_HOST: 'codex' } }));
+      fs.mkdirSync(sc.root, { recursive: true });
+      fs.writeFileSync(path.join(sc.root, 'laya-runtime.json'), JSON.stringify({ revision: '55cf4c4' }));
+      const rollout = path.join(sc.home, '.codex', 'sessions', '2026', '10', '11', 'rollout-2026-10-11T00-00-00-user.jsonl');
+      fs.mkdirSync(path.dirname(rollout), { recursive: true });
+      fs.writeFileSync(rollout, `${JSON.stringify({ type: 'session_meta', payload: { id: 'codex-user-thread', thread_source: 'user' } })}\n`);
+      const out = await runHook(sc, { input: JSON.stringify({ prompt: PROMPT, session_id: TREATMENT, transcript_path: rollout }) });
+      return { out, rec: assertRecordsValid(sc, 1)[0] };
+    };
+    const advise = await run('advise');
+    assert.strictEqual(advise.out.stdout, ADVISED);
+    assert.strictEqual(advise.rec.host, 'codex');
+    assert.strictEqual(advise.rec.mode, 'advise');
+    const cosign = await run('cosign');
+    assert.strictEqual(cosign.out.stdout, INCUMBENT_LINE, 'cosign on codex is shadow: nothing suppressed, nothing added');
+    assert.strictEqual(cosign.rec.mode, 'shadow');
     await server.close();
   });
 

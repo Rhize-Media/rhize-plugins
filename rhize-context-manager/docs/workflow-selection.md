@@ -36,6 +36,32 @@ changes, so subsequent pilot observations belong to the new source cohort; histo
 receipts remain frozen and must not be pooled or rewritten. Source, native delivery and installed
 activation are separate checks. See the marketplace handoff for the remaining native/release gates.
 
+## Advisory Laya surfaces (`advise` mode)
+
+Two commands can print an advisory Laya recommendation. Both stay in `shadow` until the baseline gate
+earns `advise` for that decision (or an operator pins it), and in `shadow` they print nothing extra. The
+agent decides; the recommendation never selects, executes or approves anything.
+
+- **Workflow fit.** After `context` freezes the enum context, it asks Laya the fixed
+  content/general/none question over the sealed, redacted request snapshot
+  (`typed_advice.advise('workflow-fit', ...)`, 3 s budget). A `layaAdvice` object is added to the JSON
+  output only when the decision is in `advise`, this opportunity is not in the 10% holdback, and Laya
+  answered with a valid candidate. It is labelled `calibrated: false`; any failure (no snapshot, timeout,
+  stale binding, an exception) prints the unchanged context result. `consult --family X` records X as the
+  outcome, so the consult record is the decision and the gate can score Laya against it. The shadow v2/v3
+  pilot collection is untouched.
+- **Procedure pick.** `recommend-procedure --id OPPORTUNITY_ID` reads
+  `{"hits":[{"id","title","summary"}]}` (procedural-memory recall hits) on stdin, takes the first five
+  valid hits plus a `none` candidate, and asks Laya which stored procedure fits. Invalid ids are skipped; no
+  valid hit is an error; a missing request snapshot prints `{"layaAdvice": null, "reason":
+  "request_snapshot_missing"}`. The call is idempotent per opportunity and hit set. `decide --decision
+  reuse|adapt` records `--procedure` (default `--workflow`) as the outcome, and `no_match` records `none`,
+  against the most recent advised decision of that opportunity.
+
+The hook text names the mode it found: in `advise` it says `context` may print an advisory recommendation;
+otherwise it says Laya runs in shadow. The credential procedure (`credential-procedure`) is a separate,
+manual-only decision and never reaches `advise`.
+
 ## Scope and activation
 
 The shared Python checkpoint emits at most one bounded workflow advisory per host/session/turn.
