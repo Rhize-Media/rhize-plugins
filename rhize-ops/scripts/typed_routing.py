@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Optional local Laya shadow assessment of pre-authorized model/worker options."""
+"""Optional local Laya assessment of pre-authorized model/worker options.
+
+--mode shadow ranks the options privately (observational receipts). --mode advise asks the shared
+typed_advice client for one recommendation among the same authorized options; it is shown only when the
+registry earned `advise` for `model-routing`, never overrides a user pin, and never dispatches anything.
+"""
 from __future__ import annotations
 
 import argparse
@@ -17,6 +22,11 @@ from urllib.request import Request, urlopen
 SCHEMA = "rhize-ops-typed-routing-v1"
 TOKEN = re.compile(r"[a-z][a-z0-9_-]{0,47}\Z")
 DIGEST = re.compile(r"[0-9a-f]{64}\Z")
+DESCRIPTION = re.compile(r"[A-Za-z0-9 ,.;:()/_-]{1,160}\Z")
+DECISION = "model-routing"
+QUESTION = ("Which pre-authorized option best fits this task? Advisory only: the user pin, host "
+            "authorization and task graph decide dispatch.")
+POLICY = {"shortlist": "authorized-options", "version": 1}
 
 
 def digest(value: object) -> str:
@@ -24,10 +34,12 @@ def digest(value: object) -> str:
 
 
 def validate(value: object) -> dict:
-    if not isinstance(value, dict) or set(value) != {
-        "schema", "kind", "sourceSha256", "taskSignals", "options", "incumbentId", "userPinned"
-    } or value["schema"] != SCHEMA or value["kind"] not in {"model", "worker"}:
+    required = {"schema", "kind", "sourceSha256", "taskSignals", "options", "incumbentId", "userPinned"}
+    if not isinstance(value, dict) or not required <= set(value) <= required | {"taskId"} \
+            or value["schema"] != SCHEMA or value["kind"] not in {"model", "worker"}:
         raise ValueError("invalid routing envelope")
+    if "taskId" in value and not (isinstance(value["taskId"], str) and TOKEN.fullmatch(value["taskId"])):
+        raise ValueError("invalid task id")
     if not isinstance(value["sourceSha256"], str) or not DIGEST.fullmatch(value["sourceSha256"]):
         raise ValueError("source digest required")
     if (not isinstance(value["taskSignals"], list) or len(value["taskSignals"]) > 8 or any(
@@ -39,7 +51,10 @@ def validate(value: object) -> dict:
         raise ValueError("invalid option count")
     seen = set()
     for option in options:
-        if (not isinstance(option, dict) or set(option) != {"id", "hints", "authorized"}
+        if (not isinstance(option, dict) or not {"id", "hints", "authorized"} <= set(option)
+                or set(option) - {"id", "hints", "authorized", "description"}
+                or not (option.get("description") is None or (isinstance(option["description"], str)
+                                                              and DESCRIPTION.fullmatch(option["description"])))
                 or not isinstance(option["id"], str) or not TOKEN.fullmatch(option["id"])
                 or option["authorized"] is not True
                 or not isinstance(option["hints"], list) or len(option["hints"]) > 6
@@ -106,9 +121,55 @@ def assess(value: dict, model: str, base_url: str, call=call_laya) -> dict:
             "latencyMs": latency, "usage": response["usage"], "dispatchOccurred": False}
 
 
+def _advice():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import typed_advice  # shared byte-identical island client; imported lazily so shadow stays standalone
+    return typed_advice
+
+
+def advise_routing(value: dict, endpoint: str, store=None, call=None) -> dict:
+    """Advise-mode output. A user pin skips Laya entirely and records nothing."""
+    value = validate(value)
+    base = {"schema": SCHEMA, "kind": value["kind"], "sourceSha256": value["sourceSha256"],
+            "incumbentId": value["incumbentId"], "userPinned": value["userPinned"],
+            "recommendation": None, "advice": "", "dispatchOccurred": False}
+    if value["userPinned"]:
+        return {**base, "status": "pinned", "mode": "pinned", "variant": "A_incumbent"}
+    typed_advice = _advice()
+    candidates = [{"id": option["id"],
+                   "criterion": option.get("description") or
+                   (f"{value['kind']} option {option['id']}: " + ", ".join(option["hints"])
+                    if option["hints"] else f"{value['kind']} option {option['id']}")}
+                  for option in value["options"]]
+    request = (f"Choose a pre-authorized {value['kind']} for a task with signals: "
+               + (", ".join(value["taskSignals"]) or "none") + ".")
+    result = typed_advice.advise(DECISION, request, candidates, value.get("taskId") or digest(value),
+                                 critical_if_wrong=False, question=QUESTION, policy=POLICY,
+                                 endpoint=endpoint, store=store, call=call)
+    line = typed_advice.advice_line(DECISION, result, f"the {value['kind']}")
+    return {**base, "status": "advise", "mode": result["mode"], "holdback": result["holdback"],
+            "decisionId": result["decisionId"], "recommendation": result["recommendation"],
+            "advice": line, "variant": "B_laya_advice" if line else "A_incumbent"}
+
+
+def outcome_main(argv) -> int:
+    parser = argparse.ArgumentParser(prog="typed_routing.py outcome")
+    parser.add_argument("--decision-id", required=True)
+    parser.add_argument("--chosen", required=True)
+    args = parser.parse_args(argv)
+    try:
+        recorded = _advice().record_outcome(DECISION, args.decision_id, args.chosen)
+    except (OSError, ValueError):
+        recorded = False
+    print(json.dumps({"recorded": recorded}))
+    return 0 if recorded else 1
+
+
 def main() -> int:
+    if sys.argv[1:2] == ["outcome"]:
+        return outcome_main(sys.argv[2:])
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("disabled", "shadow"), default="disabled")
+    parser.add_argument("--mode", choices=("disabled", "shadow", "advise"), default="disabled")
     parser.add_argument("--model", default="typed-decisions")
     parser.add_argument("--base-url", default="http://127.0.0.1:8000")
     parser.add_argument("--receipt-root", type=Path,
@@ -116,6 +177,18 @@ def main() -> int:
     args = parser.parse_args()
     if args.mode == "disabled":
         print(json.dumps({"status": "disabled", "variant": "A_incumbent"}))
+        return 0
+    if args.mode == "advise":
+        try:
+            raw = sys.stdin.buffer.read(32769)
+            if len(raw) > 32768:
+                raise ValueError("routing envelope too large")
+            output = advise_routing(json.loads(raw), args.base_url)
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            output = {"schema": SCHEMA, "status": "unavailable", "variant": "A_incumbent",
+                      "reasonCode": type(exc).__name__, "recommendation": None, "advice": "",
+                      "dispatchOccurred": False}
+        print(json.dumps(output, sort_keys=True))
         return 0
     try:
         raw = sys.stdin.buffer.read(32769)
