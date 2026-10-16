@@ -6,10 +6,18 @@ evidence. This document records the task; it does not replace host approval or s
 
 ## Source and boundaries
 
-Worktree `/private/tmp/rhize-credential-guard-20261015`, branch `codex/credential-keychain-guard`,
+Worktree `/Users/jamesdeola/dev-local/RHIZE/.worktrees/credential-keychain-guard`, branch `codex/credential-keychain-guard`,
 [PR55](https://github.com/Rhize-Media/rhize-plugins/pull/55). Read current STATE.md and the PR's actual
 head; do not assume an earlier commit is the tested/released head. Preserve unrelated primary-checkout
 STATE.md changes. No VBA source/data work belongs to this release.
+
+A concurrent Claude session owns `claude/laya-advise-v2` in
+`/Users/jamesdeola/dev-local/RHIZE/.worktrees/laya-advise-v2`. Its current changed paths do not
+overlap this branch, but its plan also changes the registry and `workflow-fit` contract. Before
+integrating either branch, compare fresh heads and reconcile that shared decision explicitly:
+the credential policy must retain its fixed catalog, manual runtime binding and independent GUI
+deny; the broader content/general advice policy must not silently replace or inherit them.
+Do not reset, stage or commit the other session's files, or change live modes during its work.
 
 The source now scopes the content/general pilot's shadow instruction and implements a separate
 bounded credential CLI guidance policy. It defaults to shadow until explicitly activated with the
