@@ -126,7 +126,8 @@ python3 "$CLAUDE_PLUGIN_ROOT/scripts/check_plan.py" plan --repo <root> [--trunk 
   `skipped[]` as skipped by relaxation.
 - Required CI, the production-merge review, deploy, publish, credentials, approvals, security review,
   typecheck and build are never relaxed: if listed, they run. Laya's advice (see the end of this file)
-  can only keep the full list; it never removes a mandatory item.
+  chooses between the full list and the deterministic relaxed list (only once `check-relaxation` has
+  earned `advise`); it never removes a mandatory item.
 - Right before Phase 5, run `check_plan.py verify --plan-file <plan-file> --repo <root> --stage check --checks <file>`
   (add the same `--trunk` if `plan` used one; `--out` must name a file that does not exist yet). Exit code 3
   means the diff, checks file or stage changed after planning: discard the relaxation and run the

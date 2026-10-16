@@ -45,7 +45,9 @@ cosign estimand and gate.
   - `cosign-disagreement` — skill fit's existing Clopper–Pearson estimand (unchanged).
   - `majority-baseline` (policy `advise-v1`) — final rule after the Codex review (§11):
     1. **Population.** Labelled choice records of the decision, grouped by session before a stable
-       `sha256('split:'+group)` split: tuning 2/3, promotion 1/3. Candidate search sees tuning only.
+       `sha256('split:'+group)` split: tuning 2/3, promotion 1/3. Candidate search sees tuning only. The
+       **group is the statistical unit**: a cohort holds at most one case per group, and the ledger refuses a
+       cohort whose groups (stored as sha256) intersect any earlier cohort of the decision.
     2. **Baseline.** The majority class of the tuning split, frozen into the cohort at reserve time and
        evaluated as a constant predictor on the same promotion cases.
     3. **Outcomes.** `none` is an ordinary candidate. An abstention, timeout, unavailable or invalid answer
@@ -53,18 +55,32 @@ cosign estimand and gate.
     4. **Test.** Paired exact sign test on discordant cases (Laya right/baseline wrong = b, Laya
        wrong/baseline right = c): promote when the one-sided Clopper–Pearson lower bound of b/(b+c) > 0.5
        at α_k, **and** Laya's balanced accuracy beats the baseline's, **and** every class with ≥ 10% tuning
-       share has ≥ 3 promotion cases with recall ≥ 0.5.
-    5. **Cohorts and retries.** A promotion cohort (≥ 30 cases from distinct sessions) is reserved in the
-       existing cohort ledger before its labels are read and consumed by exactly one attempt. Attempt k uses
-       α_k = 0.10·2^−(k−1); the budget is per decision (a new policy or Laya revision does not reset it).
+       share (zero-count classes included) has ≥ 3 cohort cases with recall ≥ 0.5.
+    5. **Cohorts and retries.** A promotion cohort (≥ 30 cases from distinct groups) is consumed by exactly
+       one attempt. *Live decisions are prospective:* with a tuning baseline and a passing availability probe,
+       the cycle appends an `open` event (policy, instrument, Laya revision, `openedAt`, rule
+       `earliest-record-per-promotion-group-after-open`) to the cohort ledger before any eligible record
+       exists and holds as `cohort_opened`. The cases are the earliest record of each promotion-split group
+       created after `openedAt` on that binding (outcome-independent; groups of earlier cohorts skipped),
+       evaluated once when ≥ `minCohort` such groups are labelled (and, for critical, ≥ `minCriticalCases`
+       critical cases), then `consumed` with the case ids and group hashes. A binding change `abandon`s the
+       open cohort without refunding its attempt. *Replay* (`workflow-fit` corpus) keeps reserve-before-replay,
+       one case per group. Attempt k uses α_k = 0.10·2^−(k−1) (open and reserve both count); the budget is
+       per decision (a new policy or Laya revision does not reset it). The probe is mandatory: it must return
+       exactly `True`; a raise or any other value is "unavailable" and holds with no ledger write.
     6. **Critical.** A critical decision also needs ≥ 10 `critical_if_wrong` cases in the cohort and zero
-       critical misses. `critical_if_wrong` is computed by trusted caller code from hard-gate state and frozen
-       in the record before any advice.
-    7. **Demotion.** Any accepted critical miss demotes to `shadow` in the same locked job that imports the
-       label. Otherwise, each time ≥ 10 fresh advise-arm labels accrue, the latest 30 are scored; two
-       consecutive evaluations where Laya's accuracy is below the baseline's on the same cases demote.
+       critical misses. A critical miss is any `critical_if_wrong` case Laya did not get right, an
+       abstention or unavailable answer included. `critical_if_wrong` is computed by trusted caller code from
+       hard-gate state and frozen in the record before any advice.
+    7. **Demotion.** Any critical miss among *all* labelled cases that were shown (a `shown` marker exists)
+       since the last demotion, not only the latest window, demotes to `shadow` (in the label-import job, and
+       again in the cycle). Otherwise, each time ≥ 10 fresh advise-arm labels accrue, the latest 30 are
+       scored; two consecutive evaluations where Laya's accuracy is below the baseline's on the same cases
+       demote. The pilot's demotion check probes Laya before re-querying it.
     8. **Bindings.** Every earned mode (`advise`, `cosign`) binds `policySha256`, `instrumentSha256` and
-       `layaRevision`; any mismatch reads as `shadow`. Pins and bindings are revalidated inside the lock.
+       `layaRevision`; any mismatch reads as `shadow`. Pins and bindings are revalidated inside the lock. An
+       earned advise is judged on the registry state's own `policySha256`, so a stray record of another policy
+       cannot flap it.
   - **Gates are per target mode.** An entry lists `modes: {advise: {policy: advise-v1, gate: majority-baseline},
     cosign: {policy: cosign-v1, gate: cosign-disagreement}}`. Passing one gate never authorizes the other mode;
     skill fit can hold `advise` (an added line) and later earn `cosign` (suppression) separately.
@@ -181,3 +197,15 @@ modified.
 | Record/outcome contract | Outcomes are separate write-once files referencing `decisionId`; `chosen` must be a candidate; first write wins, a conflicting duplicate returns False; path components validated; no durable record → no advice shown |
 | Holdback unit | Unit = decision key; domain `holdback:` separate from `split:`; holdback still calls Laya (shadow evidence) but never shows advice; outcomes collected in both arms |
 | Test ordering | Contract + safety tests land in wave 1, before surfaces; release requires an integrated label → cycle → registry → reader test |
+
+## 12. Final review fixes (2026-10-16) - F2b gate
+
+| Finding (Codex final) | Resolution |
+|---|---|
+| Repeated cases of one session inflate the sign test | Group is the unit: one case per group in `evaluate`, ledger refuses intersecting groups across attempts (§3.1, §3.5) |
+| A policy picked after seeing outcomes can reuse earlier-recorded cases | Prospective cohort: `open` event first, cases are the earliest record per promotion group created after `openedAt` on that binding (§3.5) |
+| Class coverage skipped tuning classes missing from the cohort | Required classes = tuning prior share ≥ 10%, zero-count included (§3.4) |
+| Unanswered critical cases were not critical misses (10 unanswered + 90 correct passed) | Critical miss = `critical_if_wrong` case not right, abstain/unavailable included, in the gate and in demotion (§3.6, §3.7) |
+| Outage handling ambiguous | Probe mandatory before `open`/`reserve`; must return `True`, else held with no ledger write; pilot demotion probes first (§3.5, §3.7) |
+| Demotion only looked at the window | Critical-tier demotion scans every shown critical case since the last demotion (§3.7) |
+| Binding flapped on stray records | An earned advise uses the registry state's `policySha256`; skill-fit binds the `advise-v1` contract hash on both the Python and Node readers (§3.8) |

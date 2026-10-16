@@ -33,9 +33,14 @@ def envelope(task_id="task-a", pinned=False, **extra):
 
 
 def state(store, mode="advise", **overrides):
-    entry = {"mode": mode, "policySha256": advice.policy_sha256("model-routing", routing.QUESTION, routing.POLICY),
-             "instrumentSha256": advice.INSTRUMENT_SHA256, **overrides}
-    (store / "registry-state.json").write_text(json.dumps({"decisions": {"model-routing": entry}}))
+    entry = {"mode": mode, "pinned": False,
+             "policySha256": advice.policy_sha256("model-routing", routing.QUESTION, routing.POLICY),
+             "instrumentSha256": advice.INSTRUMENT_SHA256, "layaRevision": "rev-advice-1", **overrides}
+    store.chmod(0o700)
+    (store / "registry-state.json").write_text(json.dumps({"schemaVersion": 1, "revision": 1, "decisions": {"model-routing": entry}}))
+    (store / "registry-state.json").chmod(0o600)
+    (store / "laya-runtime.json").write_text(json.dumps({"revision": "rev-advice-1"}))
+    (store / "laya-runtime.json").chmod(0o600)
 
 
 def laya(choice="option_b", status="ok"):

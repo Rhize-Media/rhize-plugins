@@ -1392,10 +1392,11 @@ def typed_promotion_split(group):
 
 
 def mark_shown(root, decision, result):
-    """The 'shown' marker advise() leaves when it returns a recommendation (idempotent: first write wins)."""
+    """The 'shown' marker advise() leaves when it returns a recommendation (first write wins, so a no-op after it)."""
+    record = typed_advice.load(decision, result['decisionId'], store=root)
     typed_advice.write_once(Path(root), decision, 'shown', result['decisionId'], {
         'schema': SHOWN_SCHEMA, 'decision': decision, 'decisionId': result['decisionId'],
-        'recommendation': result['recommendation'], 'policySha256': result['policySha256'], 'ts': NOW})
+        'recommendation': record['laya']['choice'] or 'alpha', 'policySha256': result['policySha256'], 'ts': NOW})
 
 
 def unshow(root, decision, result):

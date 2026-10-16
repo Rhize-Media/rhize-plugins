@@ -102,8 +102,13 @@ class GsdAdviseTests(unittest.TestCase):
 
     def bind(self, mode="advise", policy_sha=None, instrument_sha=None):
         policy = policy_sha or ADVICE.policy_sha256(MODULE.GSD_DECISION, MODULE.GSD_QUESTION, MODULE.GSD_POLICY)
-        (self.store / "registry-state.json").write_text(json.dumps({"decisions": {MODULE.GSD_DECISION: {
-            "mode": mode, "policySha256": policy, "instrumentSha256": instrument_sha or ADVICE.INSTRUMENT_SHA256}}}))
+        self.store.chmod(0o700)
+        (self.store / "registry-state.json").write_text(json.dumps({"schemaVersion": 1, "revision": 1, "decisions": {MODULE.GSD_DECISION: {
+            "mode": mode, "pinned": False, "policySha256": policy,
+            "instrumentSha256": instrument_sha or ADVICE.INSTRUMENT_SHA256, "layaRevision": "rev-advice-1"}}}))
+        (self.store / "registry-state.json").chmod(0o600)
+        (self.store / "laya-runtime.json").write_text(json.dumps({"revision": "rev-advice-1"}))
+        (self.store / "laya-runtime.json").chmod(0o600)
 
     def agent(self, held, state=FAILING):
         """An agent id whose deterministic holdback assignment is `held`."""

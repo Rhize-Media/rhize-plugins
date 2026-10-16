@@ -449,6 +449,6 @@ have an `outcome --decision-id ID --chosen X` subcommand. `RHIZE_LAYA_DEVFLOW_SH
 decides. `scripts/check_plan.py plan|verify|outcome` is the deterministic S4 planner behind `/check` Phase 3a: it may
 relax only routine `test-full`, `lint`, `browser-qa` and `mutation` checks on docs-only or UI/logic-free diffs, never
 protected paths, deploy, publish, credentials, approvals, security review, required CI or the production-merge review,
-and Laya can only keep the full list. See [check relaxation](docs/check-relaxation.md), the
+and Laya only chooses between the full list and the deterministic relaxed list once it has earned `advise`. See [check relaxation](docs/check-relaxation.md), the
 [typed checkpoint contract](docs/typed-checkpoint.md#advise-mode), the
 [advise-everywhere plan](../docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md) and the [decision layer](../docs/typed-decision-layer.md).

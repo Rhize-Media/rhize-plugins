@@ -38,8 +38,13 @@ def store(tmp_path, monkeypatch):
 
 
 def write_state(store, decision, policy_sha, mode='advise'):
-    (store / 'registry-state.json').write_text(json.dumps({'decisions': {decision: {
-        'mode': mode, 'policySha256': policy_sha, 'instrumentSha256': ta.INSTRUMENT_SHA256, 'layaRevision': None}}}))
+    store.chmod(0o700)
+    (store / 'registry-state.json').write_text(json.dumps({'schemaVersion': 1, 'revision': 1, 'decisions': {decision: {
+        'mode': mode, 'pinned': False, 'policySha256': policy_sha, 'instrumentSha256': ta.INSTRUMENT_SHA256,
+        'layaRevision': 'rev-advice-1'}}}))
+    (store / 'registry-state.json').chmod(0o600)
+    (store / 'laya-runtime.json').write_text(json.dumps({'revision': 'rev-advice-1'}))
+    (store / 'laya-runtime.json').chmod(0o600)
 
 
 def workflow_sha():
@@ -87,7 +92,7 @@ def test_workflow_advice_matrix(tmp_path, store, monkeypatch):
     assert ws.workflow_advice(root, identity) is None
     (store / 'registry-state.json').unlink()  # the shadow runs left write-once records; fresh opportunity below
 
-    root, identity = seal_opportunity(tmp_path / 'b')
+    root, identity = seal_opportunity(tmp_path / 'b', turn='two')  # a distinct opportunity: records are write-once
     write_state(store, 'workflow-fit', workflow_sha())
     advice = ws.workflow_advice(root, identity)
     decision_id = ta.sha256('workflow-fit:' + identity)[:32]
@@ -207,7 +212,7 @@ def advised_procedure_opportunity(tmp_path, store, monkeypatch, hit_ids=None):
 def test_recommend_procedure_builds_candidates_and_advises(tmp_path, store, monkeypatch):
     root, identity, laya = advised_procedure_opportunity(tmp_path, store, monkeypatch)
     document = [{'id': 'bad id!', 'title': 'x'}, {'id': '../escape'}, {'id': 'none', 'title': 'shadow'}, 'junk',
-                {'id': 'proc-0', 'title': 'Procedure 0', 'summary': 'does thing ' + 'x' * 400},
+                {'id': 'proc-0', 'title': 'Procedure 0', 'summary': 'does thing ' + 'word ' * 80},
                 {'id': 'proc-0', 'title': 'duplicate'}] + hits(8)[1:]
     out = ws.recommend_procedure(root, identity, document)
     assert laya.calls[-1]['ids'] == ['proc-0', 'proc-1', 'proc-2', 'proc-3', 'proc-4', 'none']

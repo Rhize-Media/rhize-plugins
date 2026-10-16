@@ -392,6 +392,31 @@ def test_earned_advise_is_demoted_after_two_evaluations_below_baseline(tmp_path,
     assert 'gate_demote' in audit and 'gate_pass' in audit
 
 
+def test_the_demotion_check_probes_laya_first_and_an_outage_demotes_nothing(tmp_path, monkeypatch):
+    corpus(monkeypatch, [case(i) for i in range(150)])
+    assert run_cycle(tmp_path)['promotion']['earnedMode'] == 'advise'
+    before = registry_state(tmp_path)
+    corpus(monkeypatch, [case(i) for i in range(180)])
+    with socket.socket() as closed:                                 # Laya is down: every re-query would read as wrong
+        closed.bind(('127.0.0.1', 0))
+        monkeypatch.setattr(cycle, 'LAYA_URL', f'http://127.0.0.1:{closed.getsockname()[1]}')
+    result = run_cycle(tmp_path, call=None)
+    assert result['status'] == 'held' and result['reason'] == 'laya_unavailable'
+    assert result['promotion']['earnedMode'] == 'advise' and registry_state(tmp_path) == before
+    assert len(ledger_events(tmp_path)) == 2
+
+
+def test_a_group_with_many_cases_enters_the_cohort_once(tmp_path, monkeypatch):
+    rows = [case(i) for i in range(150)]
+    for row in rows[:20]:                                           # one session, twenty cases
+        row['grouping_keys'] = [key('session', 0), key('input', row['case_id']), key('prompt', row['case_id'])]
+    corpus(monkeypatch, rows)
+    run_cycle(tmp_path)
+    reserve = next(e for e in ledger_events(tmp_path) if e['event'] == 'reserve')
+    assert len(reserve['caseIds']) == len(reserve['groups']) == len(set(reserve['groups']))
+    assert sum(1 for i in reserve['caseIds'] if int(i) < 20) <= 1
+
+
 def test_a_stale_policy_binding_is_reset_to_shadow_before_a_new_attempt(tmp_path, monkeypatch):
     corpus(monkeypatch, [case(i) for i in range(150)])
     run_cycle(tmp_path)

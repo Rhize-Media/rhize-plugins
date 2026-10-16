@@ -40,11 +40,21 @@ def laya(monkeypatch):
     return fake
 
 
+def runtime(store):
+    store.mkdir(parents=True, exist_ok=True)
+    store.chmod(0o700)
+    (store / "laya-runtime.json").write_text(json.dumps({"revision": "rev-advice-1"}))
+    (store / "laya-runtime.json").chmod(0o600)
+
+
 def earn(store, decision, question, policy):
     store.mkdir(parents=True, exist_ok=True)
-    (store / "registry-state.json").write_text(json.dumps({"decisions": {decision: {
-        "mode": "advise", "policySha256": typed_advice.policy_sha256(decision, question, policy),
-        "instrumentSha256": typed_advice.INSTRUMENT_SHA256, "layaRevision": None}}}))
+    store.chmod(0o700)
+    (store / "registry-state.json").write_text(json.dumps({"schemaVersion": 1, "revision": 1, "decisions": {decision: {
+        "mode": "advise", "pinned": False, "policySha256": typed_advice.policy_sha256(decision, question, policy),
+        "instrumentSha256": typed_advice.INSTRUMENT_SHA256, "layaRevision": "rev-advice-1"}}}))
+    (store / "registry-state.json").chmod(0o600)
+    runtime(store)
 
 
 def state(**kw):
@@ -149,6 +159,7 @@ def test_verdict_and_gates_identical_with_and_without_advice(store, laya, monkey
     def gate_view(out):
         return json.dumps({k: out[k] for k in ("stage", "gates", "gateChanged", "criticalIfWrong")}, sort_keys=True)
 
+    runtime(store)  # the write-once record from the shadow run must bind to the same Laya revision as the earned run
     shadow = run_checkpoint(monkeypatch, capsys, tmp_path, observed, evidence=before)
     earn(store, CP, checkpoint.QUESTION, checkpoint.POLICY)
     laya.pick = "escalate"

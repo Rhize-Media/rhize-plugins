@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import copy
 import json
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -25,6 +27,7 @@ except ImportError:
 
 SKILL, WORKFLOW, CRITICAL = 'skill-fit', 'workflow-fit', 'devflow-next-action'
 REV = 'rev-advise-1'
+ADVISE_V1 = contract.policy_sha256('advise-v1')
 POLICY = 'a' * 64
 NOW = '2026-10-16T12:00:00Z'
 LEGACY_ONLY = (SKILL, WORKFLOW)
@@ -58,10 +61,15 @@ def binding(registry, decision, cohort_id=None, *, policy=POLICY, rev=REV):
             'cohortId': cohort_id}
 
 
+def groups(cohort, count):
+    return sorted(advise_ledger.group_hash(f'{cohort}-{i}') for i in range(count))
+
+
 def write_cohort(root, registry, decision, *, cohort='1' * 32, verdict='pass', consume=True, policy=POLICY, rev=REV):
     base = {'cohortId': cohort, 'decision': decision, 'policySha256': policy,
             'instrumentSha256': instrument_hash(registry, decision), 'layaRevision': rev, 'attempt': 1, 'alpha': 0.1}
-    advise_ledger.append(root, decision, {'event': 'reserve', **base, 'caseIds': ['case-1', 'case-2'], 'ts': NOW})
+    advise_ledger.append(root, decision, {'event': 'reserve', **base, 'caseIds': ['case-1', 'case-2'], 'ts': NOW,
+                                          'groups': groups(cohort, 2)})
     if consume:
         advise_ledger.append(root, decision, {'event': 'consumed', **base, 'verdict': verdict,
                                               'receiptSha256': 'c' * 64, 'ts': NOW})
@@ -305,7 +313,7 @@ def test_cycle_advise_needs_a_consumed_pass_in_the_advise_ledger(root, catalog):
     advise_ledger.append(root, WORKFLOW, {
         'event': 'reserve', 'cohortId': '3' * 32, 'decision': WORKFLOW, 'policySha256': POLICY,
         'instrumentSha256': instrument_hash(catalog, WORKFLOW), 'layaRevision': REV, 'attempt': 2, 'alpha': 0.05,
-        'caseIds': ['case-9'], 'ts': NOW})
+        'caseIds': ['case-9'], 'groups': groups('3' * 32, 1), 'ts': NOW})
     advise_ledger.append(root, WORKFLOW, {
         'event': 'consumed', 'cohortId': '3' * 32, 'decision': WORKFLOW, 'policySha256': POLICY,
         'instrumentSha256': instrument_hash(catalog, WORKFLOW), 'layaRevision': REV, 'attempt': 2, 'alpha': 0.05,
@@ -315,9 +323,9 @@ def test_cycle_advise_needs_a_consumed_pass_in_the_advise_ledger(root, catalog):
     assert err.value.code == 'invalid_binding'
     write_cohort_pass = {'event': 'reserve', 'cohortId': '4' * 32, 'decision': WORKFLOW, 'policySha256': POLICY,
                          'instrumentSha256': instrument_hash(catalog, WORKFLOW), 'layaRevision': REV, 'attempt': 3,
-                         'alpha': 0.025, 'caseIds': ['case-10'], 'ts': NOW}
+                         'alpha': 0.025, 'caseIds': ['case-10'], 'groups': groups('4' * 32, 1), 'ts': NOW}
     advise_ledger.append(root, WORKFLOW, write_cohort_pass)
-    advise_ledger.append(root, WORKFLOW, {**{k: v for k, v in write_cohort_pass.items() if k != 'caseIds'},
+    advise_ledger.append(root, WORKFLOW, {**{k: v for k, v in write_cohort_pass.items() if k not in ('caseIds', 'groups')},
                                           'event': 'consumed', 'verdict': 'pass', 'receiptSha256': 'd' * 64})
     with pytest.raises(reg.RegistryError) as err:           # a pass for another policy hash does not carry over
         reg.mutate(root, WORKFLOW, 'advise', actor='cycle', reason='gate_pass', expected_revision=0,
@@ -430,18 +438,23 @@ def test_cli_sets_advise_with_an_explicit_override(root, catalog, capsys):
 # ---------------------------------------------------------------- staleness (Python reader)
 
 def test_advise_state_is_shadow_when_the_instrument_or_laya_revision_changed(catalog):
-    good = state_with(catalog, SKILL)
+    good = state_with(catalog, SKILL, policySha256=ADVISE_V1)
     assert reg.effective_mode(SKILL, catalog, good, 'ok', REV) == 'advise'
     assert reg.effective_mode(SKILL, catalog, good, 'ok', None) == 'advise'   # revision unknown to the caller
     assert reg.binding_stale(SKILL, catalog, good['decisions'][SKILL], 'newer-rev') == 'laya_revision_changed'
     assert reg.effective_mode(SKILL, catalog, good, 'ok', 'newer-rev') == 'shadow'
-    stale = state_with(catalog, SKILL, instrumentSha256='f' * 64)
+    stale = state_with(catalog, SKILL, instrumentSha256='f' * 64, policySha256=ADVISE_V1)
     assert reg.binding_stale(SKILL, catalog, stale['decisions'][SKILL], REV) == 'binding_stale'
     assert reg.effective_mode(SKILL, catalog, stale, 'ok', REV) == 'shadow'
     # an instrument change in the registry itself also invalidates the earned state
     moved = mutated(catalog, SKILL, lambda e: e['advise'].update(instrument='typed-advice-v1'))
     assert reg.effective_mode(SKILL, moved, good, 'ok', REV) == 'shadow'
-    # the advise policy hash is the surface's to check: any bound policy hash is fine here
+    # skill-fit alone binds the advise-v1 contract hash (its one surface is the Node router) ...
+    for wrong in ('9' * 64, contract.policy_sha256('cosign-v1'), POLICY):
+        bad = state_with(catalog, SKILL, policySha256=wrong)
+        assert reg.binding_stale(SKILL, catalog, bad['decisions'][SKILL], REV) == 'binding_stale'
+        assert reg.effective_mode(SKILL, catalog, bad, 'ok', REV) == 'shadow'
+    # ... every other decision's advise policy hash is the surface's to check: any bound hash is fine here
     other_policy = state_with(catalog, WORKFLOW, policySha256='9' * 64)
     assert reg.effective_mode(WORKFLOW, catalog, other_policy, 'ok', REV) == 'advise'
     # cosign staleness is unchanged
@@ -562,3 +575,35 @@ def test_json_schemas_accept_the_catalog_and_advise_states(catalog):
     state_schema.validate(state_with(catalog, SKILL))
     with pytest.raises(jsonschema.ValidationError):
         state_schema.validate(state_with(catalog, SKILL, layaRevision=None))
+
+
+# ---------------------------------------------------------------- Python / Node reader parity
+
+HOOK_LIB = REPO / 'rhize-context-manager' / 'hooks' / 'lib' / 'decision-registry.js'
+
+
+@pytest.mark.skipif(shutil.which('node') is None, reason='node is not installed')
+def test_python_effective_mode_and_the_node_reader_agree_on_skill_fit_advise_states(tmp_path, catalog):
+    node_script = ("const r = require(process.argv[1]);"
+                   "const c = r.readDecisionConfig('skill-fit', {statePath: process.argv[2], layaRuntimePath: process.argv[3]});"
+                   "process.stdout.write(c.mode);")
+    runtime = tmp_path / 'laya-runtime.json'
+    runtime.write_text(json.dumps({'revision': REV}))
+    instrument_sha = instrument_hash(catalog, SKILL)
+    cases = {
+        'bound': {}, 'cosign policy': {'policySha256': contract.policy_sha256('cosign-v1')},
+        'other policy': {'policySha256': '9' * 64}, 'old fixed hash': {'policySha256': 'b' * 64},
+        'other instrument': {'instrumentSha256': 'f' * 64}, 'other revision': {'layaRevision': 'other-rev'}}
+    for name, change in cases.items():
+        state = state_with(catalog, SKILL, **{'policySha256': ADVISE_V1, 'instrumentSha256': instrument_sha, **change})
+        state['decisions'] = {SKILL: state['decisions'][SKILL]}
+        path = tmp_path / (name.replace(' ', '-') + '.json')
+        path.write_text(json.dumps(state))
+        node = subprocess.run(['node', '-e', node_script, str(HOOK_LIB), str(path), str(runtime)],
+                              capture_output=True, text=True, timeout=30).stdout
+        assert node == reg.effective_mode(SKILL, catalog, state, 'ok', REV), name
+    bound = state_with(catalog, SKILL, policySha256=ADVISE_V1)       # the control: both readers do say advise
+    (tmp_path / 'ok.json').write_text(json.dumps(bound))
+    ok = subprocess.run(['node', '-e', node_script, str(HOOK_LIB), str(tmp_path / 'ok.json'), str(runtime)],
+                        capture_output=True, text=True, timeout=30).stdout
+    assert ok == reg.effective_mode(SKILL, catalog, bound, 'ok', REV) == 'advise'

@@ -524,7 +524,6 @@ def _write_receipt(root, receipt: dict) -> Path:
 # ---------------------------------------------------------------- advise (majority-baseline gate, plan §3, §8)
 
 WORKFLOW_FIT = 'workflow-fit'               # pilot_cycle.py owns its gate
-SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'   # written by typed_advice.advise when a recommendation is returned
 
 
 def skill_advise_policy_sha256(instrument_sha256=None) -> str:
@@ -534,10 +533,8 @@ def skill_advise_policy_sha256(instrument_sha256=None) -> str:
 
 
 def _shown(root, decision, decision_id) -> bool:
-    """True when advice was actually put in front of the agent: the 'shown' marker exists and names this record."""
-    marker = typed_advice.load(decision, decision_id, kind='shown', store=root)
-    return (isinstance(marker, dict) and marker.get('decisionId') == decision_id
-            and marker.get('decision') == decision and marker.get('schema') == SHOWN_SCHEMA)
+    """True when advice was actually put in front of the agent: a valid 'shown' marker exists for this record."""
+    return choice_labels.read_shown(root, decision, decision_id) is not None
 
 
 def _choice_rows(root, decision, instrument_sha, revision, policy=None, with_shown=False):
