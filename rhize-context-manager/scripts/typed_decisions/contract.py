@@ -23,6 +23,7 @@ COHORT_SCHEMA = 'rhize-typed-decision-cohort-v1'
 AUDIT_SCHEMA = 'rhize-typed-decision-registry-audit-v1'
 CHOICE_RECORD_SCHEMA = 'rhize-typed-choice-record-v1'
 CHOICE_OUTCOME_SCHEMA = 'rhize-typed-choice-outcome-v1'
+CHOICE_SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'
 REGISTRY_SCHEMA_VERSION = 1
 STATE_SCHEMA_VERSION = 1
 
@@ -456,6 +457,7 @@ CHOICE_RECORD_OPTIONAL = ('groupSha256',)   # session-like split unit; records w
 CHOICE_LAYA_KEYS = ('status', 'choice', 'probabilities', 'latencyMs')
 CHOICE_LAYA_STATUSES = ('ok', 'timeout', 'unavailable', 'invalid', 'identity_failed', 'redirect_refused')
 CHOICE_OUTCOME_KEYS = ('schema', 'decision', 'decisionId', 'chosen', 'followed', 'ts')
+CHOICE_SHOWN_KEYS = ('schema', 'decision', 'decisionId', 'recommendation', 'policySha256', 'ts')
 CANDIDATE_ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}\Z')
 MAX_CHOICE_CANDIDATES = 16
 MAX_CHOICE_FILES = 20
@@ -521,6 +523,21 @@ def validate_choice_outcome(outcome: dict) -> dict:
         raise ValueError('invalid followed')
     _ts(outcome['ts'], 'ts')
     return outcome
+
+
+def validate_choice_shown(shown: dict) -> dict:
+    """Marker that a recommendation was actually returned to the agent: <root>/<decision>/shown/<decisionId>.json."""
+    _keys(shown, CHOICE_SHOWN_KEYS, 'choice shown marker')
+    if shown['schema'] != CHOICE_SHOWN_SCHEMA:
+        raise ValueError('invalid schema')
+    _enum(shown['decision'], ADVISE_DECISIONS, 'decision')
+    if not isinstance(shown['decisionId'], str) or not HEX32.match(shown['decisionId']):
+        raise ValueError('invalid decisionId')
+    if not isinstance(shown['recommendation'], str) or not CANDIDATE_ID.match(shown['recommendation']):
+        raise ValueError('invalid recommendation')
+    _hex64(shown['policySha256'], 'policySha256')
+    _ts(shown['ts'], 'ts')
+    return shown
 
 
 # ---------------------------------------------------------------- registry and state

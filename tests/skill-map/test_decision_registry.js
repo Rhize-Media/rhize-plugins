@@ -14,6 +14,7 @@ const REPO = path.resolve(__dirname, '..', '..');
 const LIB = path.join(REPO, 'rhize-context-manager', 'hooks', 'lib');
 const FIX = path.join(REPO, 'tests', 'rhize-context-manager', 'fixtures', 'typed-decisions');
 const reg = require(path.join(LIB, 'decision-registry.js'));
+const td = require(path.join(LIB, 'typed-decisions.js'));
 const REGISTRY_PATH = path.join(REPO, 'rhize-context-manager', 'catalog', 'decision-registry.json');
 const baseRegistry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
 const fixtures = JSON.parse(fs.readFileSync(path.join(FIX, 'registry.json'), 'utf8'));
@@ -233,6 +234,7 @@ const adviseState = (fn) => {
   const state = clone(fixtures.validStates.cosign);
   const entry = state.decisions['skill-fit'];
   entry.mode = 'advise';
+  entry.policySha256 = td.policySha256('advise-v1');
   if (fn) fn(state, entry);
   return state;
 };
@@ -247,6 +249,9 @@ check('advise with a stale instrument hash, a changed or unknown Laya revision, 
   assert.strictEqual(read({ statePath: write('adv-instr.json', adviseState((s, e) => { e.instrumentSha256 = 'f'.repeat(64); })) }).mode, 'shadow');
   assert.strictEqual(read({ statePath: write('adv-rev.json', adviseState()), layaRuntimePath: write('rt-other.json', { revision: 'ffffffffffff' }) }).mode, 'shadow');
   assert.strictEqual(read({ statePath: write('adv-rev2.json', adviseState()), layaRuntimePath: missing }).mode, 'shadow');
+  // a promotion bound to the cosign policy hash (or any other) is not an advise-v1 promotion
+  assert.strictEqual(read({ statePath: write('adv-cosign-pol.json', adviseState((s, e) => { e.policySha256 = td.policySha256('cosign-v1'); })) }).mode, 'shadow');
+  assert.strictEqual(read({ statePath: write('adv-bad-pol.json', adviseState((s, e) => { e.policySha256 = 'f'.repeat(64); })) }).mode, 'shadow');
   for (const field of ['policySha256', 'instrumentSha256', 'layaRevision']) {
     const cfg = read({ statePath: write(`adv-null-${field}.json`, adviseState((s, e) => { e[field] = null; })) });
     assert.strictEqual(cfg.mode, 'shadow', field);

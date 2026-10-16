@@ -1,14 +1,20 @@
-"""Append-only cohort ledger for the majority-baseline (advise-v1) gate (plan §3.5, §11).
+"""Append-only cohort ledger for the majority-baseline (advise-v1) gate (plan §3.5, §11, §12).
 
-One file per decision: <root>/<decision>/advise-cohorts.jsonl. A promotion cohort is `reserve`d (with its
-case ids) before it is evaluated and `consumed` by exactly one verdict. Attempts are counted per decision
-across every policy and Laya revision, and a reserved case id can never be reserved again. Appends run under
-an exclusive lock; dirs are 0700, the file is 0600, symlinks are refused.
+One file per decision: <root>/<decision>/advise-cohorts.jsonl. The statistical unit is the group (session):
+a group can appear in at most one cohort of a decision, whatever the attempt. Two ways in:
+  - `open`: a live, prospective cohort. Opened BEFORE any eligible record exists; its cases are the earliest
+    record per group created after `openedAt`. Its single `consumed` event carries the cases and groups used.
+    A binding change `abandoned`s it (the attempt, and its alpha, stay spent).
+  - `reserve`: a replay cohort (workflow-fit corpus): case ids and groups frozen before Laya is called.
+Every cohort ends in exactly one `consumed` verdict or an `abandoned`. Attempts are counted per decision
+across every policy and Laya revision (open and reserve both spend one). Appends run under an exclusive
+lock; dirs are 0700, the file is 0600, symlinks are refused.
 
 Stdlib only, Python 3.9 compatible.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -23,9 +29,17 @@ LOCK_TIMEOUT_SECONDS = 10.0
 
 _DECISION = re.compile(r'[a-z][a-z0-9-]{1,40}\Z')
 _COMMON = {'event', 'cohortId', 'decision', 'policySha256', 'instrumentSha256', 'layaRevision', 'attempt', 'alpha', 'ts'}
-_FIELDS = {'reserve': _COMMON | {'caseIds'}, 'consumed': _COMMON | {'verdict', 'receiptSha256'}}
-_OPTIONAL = {'reserve': {'baseline'}, 'consumed': set()}
+_FIELDS = {'open': _COMMON | {'openedAt', 'rule'}, 'reserve': _COMMON | {'caseIds', 'groups'},
+           'consumed': _COMMON | {'verdict', 'receiptSha256'}, 'abandoned': _COMMON | {'reason'}}
+_OPTIONAL = {'open': set(), 'reserve': {'baseline'}, 'consumed': {'caseIds', 'groups'}, 'abandoned': set()}
 BINDING_KEYS = ('cohortId', 'policySha256', 'instrumentSha256', 'layaRevision')
+OPEN_RULE = 'earliest-record-per-promotion-group-after-open'
+_REASON = re.compile(r'[a-z_]{1,40}\Z')
+
+
+def group_hash(group) -> str:
+    """The stored form of a group id: sha256 hex of its string."""
+    return hashlib.sha256(str(group).encode('utf-8')).hexdigest()
 
 
 def _ledger_path(root, decision) -> Path:
@@ -36,7 +50,7 @@ def _ledger_path(root, decision) -> Path:
 
 def _check(event, decision) -> None:
     if not isinstance(event, dict) or event.get('event') not in _FIELDS:
-        raise ValueError('event must be reserve or consumed')
+        raise ValueError('event must be open, reserve, consumed or abandoned')
     kind = event['event']
     keys = set(event)
     if not _FIELDS[kind] <= keys <= _FIELDS[kind] | _OPTIONAL[kind]:
@@ -57,11 +71,17 @@ def _check(event, decision) -> None:
     if isinstance(alpha, bool) or not isinstance(alpha, (int, float)) or not 0 < alpha <= 1:
         raise ValueError('alpha must be in (0, 1]')
     locked_io.utc(event['ts'])
-    if kind == 'reserve':
-        ids = event['caseIds']
-        if (not isinstance(ids, list) or not ids or any(not isinstance(i, str) or not i for i in ids)
-                or ids != sorted(set(ids))):
-            raise ValueError('caseIds must be a nonempty sorted list of unique strings')
+    if kind == 'open':
+        locked_io.utc(event['openedAt'])
+        if event['rule'] != OPEN_RULE:
+            raise ValueError('unknown cohort selection rule')
+    elif kind == 'abandoned':
+        if not isinstance(event['reason'], str) or not _REASON.match(event['reason']):
+            raise ValueError('invalid abandon reason')
+    elif kind == 'reserve':
+        _sorted_unique(event['caseIds'], 'caseIds')
+        _hex_list(event['groups'], 'groups')
+        _one_per_group(event)
         if 'baseline' in event and (not isinstance(event['baseline'], str) or not event['baseline']):
             raise ValueError('baseline must be a nonempty string')
     else:
@@ -69,6 +89,28 @@ def _check(event, decision) -> None:
             raise ValueError("verdict must be 'pass' or 'hold'")
         if not isinstance(event['receiptSha256'], str) or not HEX64.match(event['receiptSha256']):
             raise ValueError('receiptSha256 must be 64 hex characters')
+        if ('caseIds' in event) != ('groups' in event):
+            raise ValueError('consumed carries caseIds and groups together')
+        if 'caseIds' in event:
+            _sorted_unique(event['caseIds'], 'caseIds')
+            _hex_list(event['groups'], 'groups')
+            _one_per_group(event)
+
+
+def _sorted_unique(ids, name) -> None:
+    if not isinstance(ids, list) or not ids or any(not isinstance(i, str) or not i for i in ids) or ids != sorted(set(ids)):
+        raise ValueError(f'{name} must be a nonempty sorted list of unique strings')
+
+
+def _hex_list(values, name) -> None:
+    _sorted_unique(values, name)
+    if any(not HEX64.match(v) for v in values):
+        raise ValueError(f'{name} must be sha256 hex strings')
+
+
+def _one_per_group(event) -> None:
+    if len(event['groups']) != len(event['caseIds']):
+        raise ValueError('a cohort holds exactly one case per group')
 
 
 def read(root, decision) -> list:
@@ -93,46 +135,94 @@ def read(root, decision) -> list:
     return events
 
 
+def _cohorts(events) -> dict:
+    """{cohortId: opening event} of every open or reserve event."""
+    return {e['cohortId']: e for e in events if e['event'] in ('open', 'reserve')}
+
+
+def _ended(events) -> set:
+    return {e['cohortId'] for e in events if e['event'] in ('consumed', 'abandoned')}
+
+
 def next_attempt(root, decision) -> int:
-    """1 + the cohorts ever reserved for this decision (any policy, any Laya revision, consumed or not)."""
-    return 1 + sum(event['event'] == 'reserve' for event in read(root, decision))
+    """1 + the cohorts ever opened or reserved for this decision (any policy, any Laya revision, ended or not)."""
+    return 1 + len(_cohorts(read(root, decision)))
+
+
+def open_cohort(root, decision):
+    """The active (opened, not yet consumed or abandoned) live cohort of `decision`, or None."""
+    events = read(root, decision)
+    ended = _ended(events)
+    live = [e for e in events if e['event'] == 'open' and e['cohortId'] not in ended]
+    return live[-1] if live else None
+
+
+def used_groups(root, decision) -> set:
+    """Group hashes (see group_hash) in any reserve or consumed event: they can never be in another cohort."""
+    return _used_groups(read(root, decision))
+
+
+def _used_groups(events) -> set:
+    return {g for e in events if e['event'] in ('reserve', 'consumed') for g in e.get('groups', ())}
 
 
 def consumed_case_ids(root, decision) -> set:
-    """Case ids in any reserved cohort: they can never be reserved again."""
-    return {case_id for event in read(root, decision) if event['event'] == 'reserve' for case_id in event['caseIds']}
+    """Case ids in any reserved or consumed cohort: they can never be used again."""
+    return {i for e in read(root, decision) if e['event'] in ('reserve', 'consumed') for i in e.get('caseIds', ())}
 
 
 def append(root, decision, event) -> dict:
     """Validate and append one event under the exclusive lock; returns the event.
 
-    reserve: new cohortId, attempt == next_attempt, caseIds disjoint from every earlier reserve.
-    consumed: needs a prior reserve of the same cohortId (same decision, policy, instrument, revision, attempt,
-    alpha) and at most one consumed per cohort.
+    open: new cohortId, attempt == next_attempt, no other cohort open.
+    reserve: new cohortId, attempt == next_attempt, groups and caseIds disjoint from every earlier cohort.
+    consumed: needs a prior open or reserve of the same cohortId (same decision, policy, instrument, revision,
+    attempt, alpha), at most one end per cohort; an open cohort's consumed names its caseIds and groups, which
+    must be disjoint from every earlier cohort.
+    abandoned: needs a prior open of the same cohort (same fields) that has not ended.
     """
     _check(event, decision)
     directory = locked_io.private_dir(_ledger_path(root, decision).parent, anchor=Path(root))
     with locked_io.file_lock(directory / LOCK_FILE, LOCK_TIMEOUT_SECONDS):
         events = read(root, decision)
-        reserved = {e['cohortId']: e for e in events if e['event'] == 'reserve'}
-        if event['event'] == 'reserve':
-            if event['cohortId'] in reserved:
+        cohorts, ended = _cohorts(events), _ended(events)
+        if event['event'] in ('open', 'reserve'):
+            if event['cohortId'] in cohorts:
                 raise ValueError('cohort already reserved')
-            if event['attempt'] != 1 + len(reserved):
+            if event['attempt'] != 1 + len(cohorts):
                 raise ValueError('attempt must be the next attempt for this decision')
-            if set(event['caseIds']) & {i for e in reserved.values() for i in e['caseIds']}:
-                raise ValueError('case ids already reserved by an earlier cohort')
+            if event['event'] == 'open':
+                if any(e['event'] == 'open' and e['cohortId'] not in ended for e in events):
+                    raise ValueError('an advise cohort is already open')
+            else:
+                _disjoint(events, event)
         else:
-            prior = reserved.get(event['cohortId'])
-            if prior is None:
-                raise ValueError('consumed needs a prior reserve of the same cohort')
-            if any(e['event'] == 'consumed' and e['cohortId'] == event['cohortId'] for e in events):
-                raise ValueError('cohort already consumed')
+            prior = cohorts.get(event['cohortId'])
+            if prior is None or (event['event'] == 'abandoned' and prior['event'] != 'open'):
+                raise ValueError('%s needs a prior %s of the same cohort' % (
+                    event['event'], 'open' if event['event'] == 'abandoned' else 'reserve'))
+            if event['cohortId'] in ended:
+                raise ValueError('cohort already %s' % ('consumed' if any(
+                    e['event'] == 'consumed' and e['cohortId'] == event['cohortId'] for e in events) else 'abandoned'))
             for name in ('policySha256', 'instrumentSha256', 'layaRevision', 'attempt', 'alpha'):
                 if prior[name] != event[name]:
-                    raise ValueError(f'consumed {name} differs from its reserve')
+                    raise ValueError(f'{event["event"]} {name} differs from its {prior["event"]}')
+            if event['event'] == 'consumed':
+                if prior['event'] == 'open':
+                    if 'caseIds' not in event:
+                        raise ValueError('an open cohort is consumed with its caseIds and groups')
+                    _disjoint(events, event)
+                elif 'caseIds' in event:
+                    raise ValueError('a reserved cohort is consumed without caseIds')
         locked_io.append_line(directory / LEDGER_FILE, event)
     return event
+
+
+def _disjoint(events, event) -> None:
+    if set(event['groups']) & _used_groups(events):
+        raise ValueError('groups already used by an earlier cohort')
+    if set(event['caseIds']) & {i for e in events if e['event'] in ('reserve', 'consumed') for i in e.get('caseIds', ())}:
+        raise ValueError('case ids already reserved by an earlier cohort')
 
 
 def verify_pass(root, decision, binding) -> None:

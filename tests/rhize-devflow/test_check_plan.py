@@ -1,6 +1,7 @@
 """S4 check relaxation: deterministic eligibility, never-relaxable set, Laya can only remove relaxable items."""
 import importlib.util
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -40,6 +41,7 @@ def repo(tmp_path):
     (root / "docs/b.md").write_text("b")
     git(root, "add", ".")
     git(root, "commit", "-qm", "two")
+    git(root, "update-ref", "refs/remotes/origin/main", "HEAD")  # the trunk the base is measured from
     return root
 
 
@@ -54,11 +56,14 @@ def env(tmp_path, monkeypatch):
     return store, checks
 
 
-def earn_advise(store):
+def earn_advise(store, mode="advise"):
     ta = cp._advice()
-    (store / "registry-state.json").write_text(json.dumps({"decisions": {cp.DECISION: {
-        "mode": "advise", "policySha256": ta.policy_sha256(cp.DECISION, cp.QUESTION, cp.POLICY),
-        "instrumentSha256": ta.INSTRUMENT_SHA256}}}))
+    (store / "laya-runtime.json").write_text(json.dumps({"revision": "r1"}))
+    (store / "registry-state.json").write_text(json.dumps({
+        "schemaVersion": 1, "revision": 1, "updatedAt": "2026-10-16T00:00:00Z", "decisions": {cp.DECISION: {
+            "mode": mode, "pinned": False, "since": "2026-10-16T00:00:00Z", "reason": "earned",
+            "policySha256": ta.policy_sha256(cp.DECISION, cp.QUESTION, cp.POLICY),
+            "instrumentSha256": ta.INSTRUMENT_SHA256, "layaRevision": "r1", "cohortId": None}}}))
 
 
 def fake(choice):
@@ -67,11 +72,16 @@ def fake(choice):
     return call
 
 
-def plan(repo, env, stage="check", choice="relaxed", earned=True, base="HEAD"):
+def plan(repo, env, stage="check", choice="relaxed", earned=True, base="HEAD", **kwargs):
     store, checks = env
     if earned:
         earn_advise(store)
-    return cp.build_plan(repo, stage, checks, base=base, advise_options={"call": fake(choice), "store": store})
+    return cp.build_plan(repo, stage, checks, base=base, advise_options={"call": fake(choice), "store": store},
+                         **kwargs)
+
+
+def verify(plan_file, repo, env, stage="check", **kwargs):
+    return cp.verify_plan(plan_file, stage, repo, env[1], **kwargs)
 
 
 def ids(result, key="plan"):
@@ -170,10 +180,127 @@ def test_no_changes_and_git_failure_give_full_plan(repo, env, tmp_path):
         assert not bad["eligible"] and bad["plan"] == bad["full"] and bad["diffSha256"] is None
 
 
-def test_default_base_is_head_parent_without_origin(repo, env):
-    result = plan(repo, env, base=None)  # HEAD~ adds docs/b.md
-    assert result["eligible"]
-    assert result["base"] == git(repo, "rev-parse", "HEAD~").strip()
+def commit(repo, rel, text, message):
+    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+    (repo / rel).write_text(text)
+    git(repo, "add", rel)
+    git(repo, "commit", "-qm", message)
+
+
+def test_default_base_is_merge_base_with_trunk(repo, env):
+    (repo / "docs/a.md").write_text("changed")
+    result = plan(repo, env, base=None)
+    assert result["eligible"] and result["base"] == git(repo, "rev-parse", "origin/main").strip()
+    commit(repo, "docs/c.md", "c", "three")  # unpushed commit: the merge-base stays at the trunk
+    assert plan(repo, env, base=None)["base"] == git(repo, "rev-parse", "origin/main").strip()
+
+
+def test_missing_trunk_is_full_and_there_is_no_head_parent_fallback(repo, env):
+    commit(repo, "package.json", '{"scripts":{"x":"y"}}', "protected, two commits back")
+    commit(repo, "docs/c.md", "c", "docs")
+    git(repo, "update-ref", "-d", "refs/remotes/origin/main")
+    (repo / "docs/a.md").write_text("changed")
+    for kwargs in ({}, {"trunk": "no-such-trunk"}, {"trunk": "--output=x"}):
+        result = plan(repo, env, base=None, **kwargs)
+        assert not result["eligible"] and result["plan"] == result["full"] and result["diffSha256"] is None, kwargs
+        assert any("trunk" in r for r in result["reasons"]), kwargs
+    assert not plan(repo, env, base="HEAD")["eligible"]  # an explicit base cannot replace the trunk
+
+
+def test_protected_change_committed_before_head_parent_is_seen(repo, env):
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+    commit(repo, "package.json", '{"scripts":{"x":"y"}}', "protected")
+    commit(repo, "docs/c.md", "c", "docs")
+    (repo / "docs/a.md").write_text("changed")
+    result = plan(repo, env, base=None)  # trunk is still the old HEAD, so both commits are in the window
+    assert result["base"] == git(repo, "rev-parse", "HEAD~2").strip()
+    assert not result["eligible"] and result["plan"] == result["full"]
+    assert any("package.json" in r for r in result["reasons"])
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")  # pushed: only the docs edit remains
+    assert plan(repo, env, base=None)["eligible"]
+
+
+def test_base_must_be_an_ancestor_of_the_merge_base(repo, env):
+    (repo / "docs/a.md").write_text("changed")
+    wider = plan(repo, env, base="HEAD~")  # an older base only widens the window
+    assert wider["eligible"] and wider["base"] == git(repo, "rev-parse", "HEAD~").strip()
+    side = git(repo, "commit-tree", "HEAD^{tree}", "-p", "HEAD~", "-m", "side").strip()  # not an ancestor of HEAD
+    for base in (side, "HEAD~~~", "-p"):
+        result = plan(repo, env, base=base)
+        assert not result["eligible"] and result["plan"] == result["full"] and result["diffSha256"] is None, base
+    git(repo, "update-ref", "refs/remotes/origin/main", "HEAD~")  # trunk behind HEAD: HEAD is no longer an ancestor
+    assert not plan(repo, env, base="HEAD")["eligible"]
+
+
+def test_repo_must_be_the_toplevel(repo, env):
+    (repo / "docs/a.md").write_text("changed")
+    result = plan(repo / "docs", env)
+    assert not result["eligible"] and result["diffSha256"] is None and result["plan"] == result["full"]
+
+
+def test_git_environment_is_ignored(repo, env, tmp_path, monkeypatch):
+    (repo / "package.json").write_text('{"scripts":{"x":"y"}}')
+    other = tmp_path / "other"
+    other.mkdir()
+    git(other, "init", "-q")
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(tmp_path / "bogus-index"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(other))
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.fsmonitor")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "/bin/false")
+    result = plan(repo, env)
+    assert not result["eligible"] and any("package.json" in r for r in result["reasons"])
+    assert "GIT_DIR" not in cp._env() and cp._env()["GIT_CONFIG_NOSYSTEM"] == "1"
+    assert cp._env()["GIT_OPTIONAL_LOCKS"] == "0"
+
+
+@pytest.mark.parametrize("flag", ["--assume-unchanged", "--skip-worktree"])
+def test_hidden_index_flags_refuse_the_plan(repo, env, flag):
+    (repo / "docs/a.md").write_text("changed")
+    assert plan(repo, env)["eligible"]
+    git(repo, "update-index", flag, "package.json")
+    (repo / "package.json").write_text('{"scripts":{"x":"y"}}')
+    assert git(repo, "diff", "--name-only", "HEAD").strip() == "docs/a.md"  # the edit really is invisible to diff
+    result = plan(repo, env)
+    assert not result["eligible"] and result["plan"] == result["full"]
+    assert any("assume-unchanged or skip-worktree" in r and "package.json" in r for r in result["reasons"])
+
+
+def test_staged_protected_change_with_restored_worktree_is_seen_and_bound(repo, env, tmp_path):
+    (repo / "docs/a.md").write_text("changed")
+    relaxed = plan(repo, env)
+    plan_file = write_plan(tmp_path, relaxed)
+    assert relaxed["eligible"] and verify(plan_file, repo, env)["valid"]
+    original = (repo / "package.json").read_text()
+    (repo / "package.json").write_text('{"scripts":{"x":"y"}}')
+    git(repo, "add", "package.json")
+    (repo / "package.json").write_text(original)  # worktree matches the base again
+    assert git(repo, "diff", "--name-only", "HEAD").strip() == "docs/a.md"
+    assert git(repo, "diff", "--cached", "--name-only", "HEAD").strip() == "package.json"
+    result = plan(repo, env)
+    assert not result["eligible"] and result["plan"] == result["full"]
+    assert any("package.json" in r for r in result["reasons"])
+    expired = verify(plan_file, repo, env)
+    assert not expired["valid"] and expired["plan"] == relaxed["full"]
+
+
+def test_index_state_is_bound_not_only_worktree_bytes(repo, env, tmp_path):
+    (repo / "docs/a.md").write_text("changed")
+    plan_file = write_plan(tmp_path, plan(repo, env))
+    assert verify(plan_file, repo, env)["valid"]
+    git(repo, "add", "docs/a.md")  # same bytes, different index
+    assert not verify(plan_file, repo, env)["valid"]
+
+
+def test_test_only_diff_keeps_mutation(repo, env):
+    (repo / "tests/test_a.py").write_text("def test(): assert True\n")
+    result = plan(repo, env)
+    assert result["eligible"] and "mut" in ids(result) and "lint:changed" in ids(result)
+    assert "unit" in ids(result) and "qa" not in ids(result) and ids(result, "skipped") == {"qa"}
+    (repo / "tests/e2e").mkdir()
+    (repo / "tests/e2e/home.ts").write_text("export {}\n")
+    assert "qa" in ids(plan(repo, env))  # an e2e test also keeps browser QA
 
 
 def test_never_relaxable_kinds_always_listed_even_when_laya_says_relaxed(repo, env):
@@ -208,43 +335,49 @@ def test_verify_accepts_unchanged_state_and_expires_on_any_change(repo, env, tmp
     (repo / "docs/a.md").write_text("changed")
     result = plan(repo, env)
     plan_file = write_plan(tmp_path, result)
-    assert cp.verify_plan(plan_file, "check")["valid"]
-    git(repo, "add", "docs/a.md")  # staging does not change the diff
-    assert cp.verify_plan(plan_file)["valid"]
-
+    assert verify(plan_file, repo, env)["valid"]
     (repo / "docs/a.md").write_text("changed again")
-    expired = cp.verify_plan(plan_file)
+    expired = verify(plan_file, repo, env)
     assert not expired["valid"] and expired["plan"] == result["full"]
     (repo / "docs/a.md").write_text("changed")
-    assert cp.verify_plan(plan_file)["valid"]
+    assert verify(plan_file, repo, env)["valid"]
 
     (repo / "docs/new.md").write_text("n")
-    assert not cp.verify_plan(plan_file)["valid"]
+    assert not verify(plan_file, repo, env)["valid"]
     (repo / "docs/new.md").unlink()
     git(repo, "mv", "docs/b.md", "docs/c.md")
-    assert not cp.verify_plan(plan_file)["valid"]
+    assert not verify(plan_file, repo, env)["valid"]
     git(repo, "mv", "docs/c.md", "docs/b.md")
-    assert cp.verify_plan(plan_file)["valid"]
+    assert verify(plan_file, repo, env)["valid"]
 
 
 def test_verify_expires_on_stage_change_and_checks_change(repo, env, tmp_path):
     (repo / "docs/a.md").write_text("changed")
     plan_file = write_plan(tmp_path, plan(repo, env))
     for stage in ("release", "production", "review"):
-        assert not cp.verify_plan(plan_file, stage)["valid"], stage
+        assert not verify(plan_file, repo, env, stage)["valid"], stage
     env[1].write_text(json.dumps(CHECKS[:-1]))
-    assert not cp.verify_plan(plan_file)["valid"]
+    assert not verify(plan_file, repo, env)["valid"]
 
 
 def test_verify_rejects_a_hand_edited_plan_and_git_failure(repo, env, tmp_path):
     (repo / "docs/a.md").write_text("changed")
     result = plan(repo, env)
     result["plan"] = [c for c in result["plan"] if c["id"] != "ci"]
-    assert not cp.verify_plan(write_plan(tmp_path, result))["valid"]
+    assert not verify(write_plan(tmp_path, result), repo, env)["valid"]
     result = plan(repo, env)
     result["repo"] = str(tmp_path)
-    assert not cp.verify_plan(write_plan(tmp_path, result))["valid"]
-    assert not cp.verify_plan(tmp_path / "missing.json")["valid"]
+    assert not verify(write_plan(tmp_path, result), repo, env)["valid"]
+    assert not verify(tmp_path / "missing.json", repo, env)["valid"]
+    result = plan(repo, env)
+    plan_file = write_plan(tmp_path, result)
+    other_checks = tmp_path / "other-checks.json"
+    other_checks.write_text(env[1].read_text())  # identical bytes, different file than the plan names
+    assert not cp.verify_plan(plan_file, "check", repo, other_checks)["valid"]
+    assert not cp.verify_plan(plan_file, "check", repo / "docs", env[1])["valid"]
+    for key, value in (("base", "-p"), ("base", None), ("plan", {"x": 1}), ("stage", 7)):
+        tampered = dict(result, **{key: value})
+        assert not verify(write_plan(tmp_path, tampered), repo, env)["valid"], key
 
 
 def test_cli_plan_verify_outcome_exit_codes(repo, env, tmp_path, capsys):
@@ -254,9 +387,21 @@ def test_cli_plan_verify_outcome_exit_codes(repo, env, tmp_path, capsys):
     assert cp.main(["plan", "--repo", str(repo), "--base", "HEAD", "--stage", "check", "--checks", str(checks),
                     "--out", str(out)]) == 0
     data = json.loads(out.read_text())
-    assert data["eligible"] and cp.main(["verify", "--plan-file", str(out), "--stage", "check"]) == 0
+    assert data["eligible"] and oct(out.stat().st_mode & 0o777) == "0o600"
+    flags = ["verify", "--plan-file", str(out), "--repo", str(repo), "--checks", str(checks)]
+    assert cp.main([*flags, "--stage", "check"]) == 0
     (repo / "docs/a.md").write_text("again")
-    assert cp.main(["verify", "--plan-file", str(out)]) == 3
+    assert cp.main([*flags, "--stage", "check"]) == 3
+    for missing in (["--repo"], ["--checks"], ["--stage", "check", "--repo"]):  # required flags: usage error
+        argv = ["verify", "--plan-file", str(out), "--stage", "check"] + (
+            ["--repo", str(repo)] if "--repo" not in missing else []) + (
+            ["--checks", str(checks)] if "--checks" not in missing else [])
+        with pytest.raises(SystemExit) as usage:
+            cp.main(argv)
+        assert usage.value.code == 2
+    with pytest.raises(SystemExit) as usage:
+        cp.main(flags)  # no --stage
+    assert usage.value.code == 2
     bad = tmp_path / "bad.json"
     bad.write_text("[]")
     assert cp.main(["plan", "--repo", str(repo), "--stage", "check", "--checks", str(bad)]) == 2

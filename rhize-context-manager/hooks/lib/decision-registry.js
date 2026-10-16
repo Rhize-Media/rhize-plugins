@@ -20,8 +20,8 @@
 //   state says advise but its bound instrumentSha256 differs from the hash of the entry's advise.instrument
 //   (this reader can only compute laya-choice-v1; any other instrument is unknown here), or its layaRevision
 //   differs from laya-runtime.json's
-//                                            -> mode 'shadow'. The per-surface advise policy hash is checked by
-//                                               the surface itself (typed_advice.effective_mode), not here.
+//                                            -> mode 'shadow'. It also reads shadow when its bound policySha256 is
+//                                               not the advise-v1 policy hash.
 // RHIZE_LAYA_ENDPOINT overrides the endpoint only when it is a literal loopback
 // http URL (tests use it to point at a random-port fake server).
 //
@@ -31,7 +31,7 @@
 const fs = require('fs');
 const path = require('path');
 const { INSTRUMENT, instrumentSha256 } = require('./laya-instrument.js');
-const { POLICY_COSIGN, policySha256, defaultRoot } = require('./typed-decisions.js');
+const { POLICY_COSIGN, POLICY_ADVISE, policySha256, defaultRoot } = require('./typed-decisions.js');
 
 const REGISTRY_SCHEMA_VERSION = 1;
 const STATE_SCHEMA_VERSION = 1;
@@ -297,11 +297,12 @@ function readDecisionConfig(decisionId, options = {}) {
               && stateEntry.layaRevision !== currentLayaRevision(options.layaRuntimePath)) {
             mode = 'shadow';
           }
-          // advise: bound to the instrument it was earned on (only laya-choice-v1 is computable here) and the
-          // same Laya checkpoint; its per-surface policy hash is the surface's to check.
+          // advise: bound to the advise-v1 policy hash (the one skill-router writes into advise records), the
+          // instrument it was earned on (only laya-choice-v1 is computable here) and the same Laya checkpoint.
           if (mode === 'advise') {
             const adviseInstrument = entry.advise && entry.advise.instrument;
-            if (adviseInstrument !== INSTRUMENT || stateEntry.instrumentSha256 !== instrumentSha256()
+            if (adviseInstrument !== INSTRUMENT || stateEntry.policySha256 !== policySha256(POLICY_ADVISE)
+                || stateEntry.instrumentSha256 !== instrumentSha256()
                 || stateEntry.layaRevision !== currentLayaRevision(options.layaRuntimePath)) {
               mode = 'shadow';
             }

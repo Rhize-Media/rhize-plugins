@@ -13,8 +13,13 @@ an unresolved review is stored as ambiguous). Labels are write-once files:
 
     <root>/<decision>/label/<decisionId>.json   rhize-typed-choice-label-v1
 
-Right after the import, a critical-tier decision whose imported label contradicts an advice shown in the
-treatment arm of a critical case (plan §3.7) is demoted to shadow through the locked registry path.
+AI labels need the operator's opt-in: the private pilot label policy (pilot_labels.load_policy, the one the
+workflow pilot uses) must accept ai_model_reviewed, else the run exits 2 before any model call. The receipt carries
+the policy's sha256. Snapshots older than 90 days are deleted at the start of every non-dry run.
+
+Right after the import, a critical-tier decision whose imported label contradicts a recommendation that was
+actually shown (its `shown` marker, written by typed_advice.advise) on a critical case, with the label among the
+case's candidates (plan §3.7), is demoted to shadow through the locked registry path.
 The run shares pilot_autolabel's run lock (state/run.lock) and spends at most maxCases model-labelled cases.
 
 Exit codes follow skillfit_labels: 0 done or nothing to do, 1 failed, 2 aborted before any model call,
@@ -28,6 +33,7 @@ import json
 import os
 import random
 import re
+import stat
 import sys
 import time
 import uuid
@@ -37,6 +43,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pilot_autolabel as auto  # noqa: E402
+import pilot_labels  # noqa: E402
 import pilot_redaction  # noqa: E402
 import typed_advice  # noqa: E402
 from typed_decisions import contract, decision_registry, evidence_fs, instrument, locked_io, records  # noqa: E402
@@ -44,6 +51,7 @@ from typed_decisions import skillfit_labels as sl  # noqa: E402
 
 LABEL_SCHEMA = 'rhize-typed-choice-label-v1'
 RUBRIC_VERSION = 'choice-rubric-v1'
+SNAPSHOT_RETENTION_DAYS = 90
 OWN_LABELERS = ('skill-fit', 'workflow-fit')
 KEYS = tuple(f'c{i}' for i in range(contract.MAX_CHOICE_CANDIDATES))
 AMBIGUOUS = 'ambiguous'
@@ -145,6 +153,26 @@ def pending(root, decision) -> tuple:
             continue
         todo.append((record, snap))
     return todo, skipped
+
+
+def prune_snapshots(root, decisions, now=None) -> int:
+    """Delete snapshot files older than SNAPSHOT_RETENTION_DAYS (by mtime); symlinks and strays are left alone."""
+    cutoff = (time.time() if now is None else now) - SNAPSHOT_RETENTION_DAYS * 86400
+    removed = 0
+    for decision in decisions:
+        directory = Path(root) / decision / 'snapshot'
+        if directory.is_symlink():
+            continue
+        for decision_id in _ids(root, decision, 'snapshot'):
+            path = directory / f'{decision_id}.json'
+            try:
+                info = os.lstat(path)
+                if stat.S_ISREG(info.st_mode) and info.st_mtime < cutoff:
+                    os.unlink(path)
+                    removed += 1
+            except OSError:
+                continue
+    return removed
 
 
 # ------------------------------------------------------------------ packets
@@ -324,10 +352,22 @@ class ChoiceEngine(sl.Engine):
 
 # ------------------------------------------------------------------ critical-miss demotion
 
-def is_critical_miss(record, label) -> bool:
-    laya = record['laya']
-    return bool(not label['ambiguous'] and record['mode'] == 'advise' and record['arm'] == 'treatment'
-                and record['criticalIfWrong'] and laya['status'] == 'ok' and laya['choice'] != label['label'])
+def read_shown(root, decision, decision_id):
+    """The valid `shown` marker of a record, or None."""
+    marker = typed_advice.load(decision, decision_id, kind='shown', store=root)
+    try:
+        shown = contract.validate_choice_shown(marker) if isinstance(marker, dict) else None
+    except ValueError:
+        return None
+    return shown if shown and shown['decision'] == decision and shown['decisionId'] == decision_id else None
+
+
+def is_critical_miss(record, label, shown) -> bool:
+    """A recommendation that was actually shown on a critical case contradicts a decisive label."""
+    candidates = record.get('candidates') or ()
+    return bool(shown and not label['ambiguous'] and record.get('criticalIfWrong') is True and label['label'] in candidates
+                and shown['policySha256'] == record.get('policySha256') and shown['recommendation'] in candidates
+                and shown['recommendation'] != label['label'])
 
 
 def demote_critical_misses(root, registry, written, now=None) -> list:
@@ -340,7 +380,8 @@ def demote_critical_misses(root, registry, written, now=None) -> list:
         misses = []
         for label in written:
             record = typed_advice.load(decision, label['decisionId'], store=root)
-            if label['decision'] == decision and record and is_critical_miss(record, label):
+            if (label['decision'] == decision and record and record.get('decisionId') == label['decisionId']
+                    and is_critical_miss(record, label, read_shown(root, decision, label['decisionId']))):
                 misses.append(label['decisionId'])
         if not misses:
             continue
@@ -386,7 +427,17 @@ def run(root, decision=None, max_cases=None, dry_run=False, runner=None, config=
     config = sl.make_config(overrides)
     state = auto.ensure_private(config['state'])
 
+    policy_error = None
+    try:
+        policy = pilot_labels.load_policy(Path(config['root']))
+    except (OSError, ValueError):
+        policy, policy_error = None, 'label_policy_invalid'
+    policy_sha = hashlib.sha256(json.dumps(policy, sort_keys=True).encode()).hexdigest() if policy else None
+    if policy and pilot_labels.AI not in policy['acceptedBases']:
+        policy_error = 'ai_labels_not_enabled'
+
     def work():
+        pruned = 0 if dry_run else prune_snapshots(root, decisions)
         groups, skipped = [], 0
         for name in decisions:
             todo, bad = pending(root, name)
@@ -396,10 +447,14 @@ def run(root, decision=None, max_cases=None, dry_run=False, runner=None, config=
         cases = [build_case(name, record, snap, 'C%03d' % (n + 1)) for n, (name, record, snap) in enumerate(picked)]
         summary = {'schema': 'rhize-typed-choice-labels-run-v1', 'decisions': decisions, 'pending': sum(map(len, groups)),
                    'ready': len(cases), 'noSnapshot': skipped, 'maxCases': config['maxCases'], 'modelCalls': 0,
-                   'dryRun': dry_run, 'criticalDemotions': []}
+                   'dryRun': dry_run, 'criticalDemotions': [], 'labelPolicySha256': policy_sha,
+                   'snapshotsPruned': pruned}
         if dry_run or not cases:
             summary['status'] = 'prepared' if dry_run else 'nothing_to_do'
             return summary, EXIT_OK
+        if policy_error:                                    # the operator has not opted in: no model call at all
+            summary.update(status='aborted', reason=policy_error)
+            return summary, EXIT_ABORTED
         engine = ChoiceEngine(root, config, None, clock)
         backend, cleanup = sl.start_runner(runner, config, root, root / 'choice-labels' / 'labeling')
         try:
@@ -440,13 +495,14 @@ def main(argv=None) -> int:
     cmd.add_argument('--max-cases', type=int, default=None, help='total model-labelled cases this run (default 50)')
     cmd.add_argument('--dry-run', action='store_true', help='build cases and print counts; no model calls, no writes')
     cmd.add_argument('--deadline-seconds', type=int, default=None)
+    cmd.add_argument('--pilot-root', default=None, help='pilot root holding label-policy.json (default: the pilot root)')
     cmd.add_argument('--claude-bin', default=None)
     cmd.add_argument('--codex-bin', default=None)
     args = parser.parse_args(argv)
     try:
         summary, code = run(args.root, args.decision, args.max_cases, args.dry_run,
                             config={'deadlineSeconds': args.deadline_seconds, 'claudeBin': args.claude_bin,
-                                    'codexBin': args.codex_bin})
+                                    'codexBin': args.codex_bin, 'root': args.pilot_root})
     except (sl.LabelError, auto.LabelerError) as exc:
         print(json.dumps({'status': 'refused', 'reason': str(exc)}))
         return EXIT_ABORTED

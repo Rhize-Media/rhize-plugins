@@ -524,6 +524,7 @@ def _write_receipt(root, receipt: dict) -> Path:
 # ---------------------------------------------------------------- advise (majority-baseline gate, plan §3, §8)
 
 WORKFLOW_FIT = 'workflow-fit'               # pilot_cycle.py owns its gate
+SHOWN_SCHEMA = 'rhize-typed-choice-shown-v1'   # written by typed_advice.advise when a recommendation is returned
 SKILL_ADVISE_POLICY = 'skill-fit-advise-v1'
 
 
@@ -533,23 +534,34 @@ def skill_advise_policy_sha256(instrument_sha256: str) -> str:
     return hashlib.sha256((SKILL_ADVISE_POLICY + instrument_sha256).encode('utf-8')).hexdigest()
 
 
-def _choice_rows(root, decision, instrument_sha, revision):
-    """(policy hash, rows) for a generic decision: labelled, unambiguous cases of the current homogeneous cohort
-    (the most recent record's policy, the entry's advise instrument, the running Laya revision)."""
+def _shown(root, decision, decision_id) -> bool:
+    """True when advice was actually put in front of the agent: the 'shown' marker exists and names this record."""
+    marker = typed_advice.load(decision, decision_id, kind='shown', store=root)
+    return (isinstance(marker, dict) and marker.get('decisionId') == decision_id
+            and marker.get('decision') == decision and marker.get('schema') == SHOWN_SCHEMA)
+
+
+def _choice_rows(root, decision, instrument_sha, revision, policy=None, with_shown=False):
+    """(policy hash, rows) for a generic decision: every record on one binding - `policy` (the registry state's, once
+    advise is earned) or else the most recent record's - the entry's advise instrument and the running Laya
+    revision. `label` is None while a record is unlabelled or ambiguous; `shown` (only read when `with_shown`)
+    says the recommendation was displayed."""
     recs = choice_labels.read_choice_records(root, decision)
     if not recs:
-        return None, []
-    policy = recs[-1]['policySha256']
+        return policy, []
+    policy = policy or recs[-1]['policySha256']
     labels = choice_labels.read_labels(root, decision)
     rows = []
     for rec in recs:
-        label = labels.get(rec['decisionId'])
-        if (label is None or label['ambiguous'] or rec['policySha256'] != policy or label['label'] not in rec['candidates']
-                or rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision):
+        if rec['policySha256'] != policy or rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision:
             continue
+        label = labels.get(rec['decisionId'])
+        usable = label is not None and not label['ambiguous'] and label['label'] in rec['candidates']
         rows.append({'id': rec['decisionId'], 'group': rec.get('groupSha256') or rec['decisionId'],
-                     'label': label['label'], 'critical_if_wrong': rec['criticalIfWrong'], 'choice': rec['laya']['choice'],
-                     'status': rec['laya']['status'], 'mode': rec['mode'], 'arm': rec['arm'], 'ts': rec['ts']})
+                     'label': label['label'] if usable else None, 'critical_if_wrong': rec['criticalIfWrong'],
+                     'choice': rec['laya']['choice'], 'status': rec['laya']['status'], 'mode': rec['mode'],
+                     'arm': rec['arm'], 'ts': rec['ts'],
+                     'shown': with_shown and rec['criticalIfWrong'] and _shown(root, decision, rec['decisionId'])})
     return policy, rows
 
 
@@ -562,26 +574,36 @@ def _skill_rows(root, instrument_sha, revision):
             by_key.setdefault(label['occurrenceKey'], label)
     rows = []
     for rec in cohorts.gate_records(recs):
-        label = by_key.get(rec['occurrenceKey'])
-        if label is None or rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision:
+        if rec['instrumentSha256'] != instrument_sha or rec['layaRevision'] != revision:
             continue
-        rows.append({'id': rec['occurrenceKey'], 'group': rec['sessionHash'], 'label': label['bestSkill'],
-                     'critical_if_wrong': False, 'choice': rec['laya']['choice'], 'status': rec['laya']['status'],
-                     'mode': rec['mode'], 'arm': rec['arm'], 'ts': rec['ts']})
+        label = by_key.get(rec['occurrenceKey'])
+        rows.append({'id': rec['occurrenceKey'], 'group': rec['sessionHash'],
+                     'label': label['bestSkill'] if label else None, 'critical_if_wrong': False,
+                     'choice': rec['laya']['choice'], 'status': rec['laya']['status'], 'mode': rec['mode'],
+                     'arm': rec['arm'], 'ts': rec['ts'], 'shown': False})
     return skill_advise_policy_sha256(instrument_sha), sorted(rows, key=lambda r: (r['ts'], r['id']))
 
 
+def _rows(root, decision, instrument_sha, revision, policy=None, with_shown=False):
+    if decision == DECISION:
+        return _skill_rows(root, instrument_sha, revision)
+    return _choice_rows(root, decision, instrument_sha, revision, policy, with_shown)
+
+
 def _demote_check(root, registry, decision, cfg, critical, rows, saved, revision, now, dry_run):
-    """Rolling live check of an earned advise on the latest labelled advise-arm treatment cases (plan §3.7)."""
-    window = [r for r in rows if r['mode'] == 'advise' and r['arm'] == 'treatment']
+    """Live check of an earned advise (plan §3.7). The rolling rule scores the latest labelled advise-arm treatment
+    cases; on a critical decision any critical miss among ALL labelled cases that were shown since advise began
+    (`saved['since']`) demotes at once - not only the ones still in the window."""
+    window = [r for r in rows if r['label'] is not None and r['mode'] == 'advise' and r['arm'] == 'treatment']
     history, seen = typed_promotion.read_demotion_state(root, decision)
     latest = window[-cfg['demote']['window']:]
     ids = [r['id'] for r in latest]
-    reserved = [e for e in advise_ledger.read(root, decision) if e['event'] == 'reserve' and e['cohortId'] == saved.get('cohortId')]
+    since = locked_io.utc(saved['since'])
+    scan = [r for r in window if r['shown'] and r['critical_if_wrong'] and locked_io.utc(r['ts']) >= since]
     outcome = typed_promotion.demotion(
-        latest, len(set(ids) - seen), history, baseline=reserved[0].get('baseline') if reserved else None,
+        latest, len(set(ids) - seen), history, baseline=typed_promotion.cohort_baseline(root, decision, saved.get('cohortId')),
         critical=critical, window=cfg['demote']['window'], fresh_labels=cfg['demote']['freshLabels'],
-        consecutive=cfg['demote']['consecutive'])
+        consecutive=cfg['demote']['consecutive'], scan_cases=scan)
     return typed_promotion.demotion_result(
         root, registry, decision, outcome, ids, expected_revision=revision, now=now, dry_run=dry_run,
         reason='critical_miss' if outcome['reason'] == 'critical_miss' else 'gate_demote')
@@ -601,12 +623,12 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
     if revision_laya == 'unknown':
         return {'status': 'held', 'reason': 'laya_revision_unknown'}
     instrument_sha = decision_registry.advise_instrument_sha256(cfg['instrument'])
-    policy, rows = (_skill_rows(root, instrument_sha, revision_laya) if decision == DECISION
-                    else _choice_rows(root, decision, instrument_sha, revision_laya))
     if mode == 'advise':
+        # An earned advise is judged on the state's own binding: a stray record of another policy cannot flap it.
         bound = (decision_registry.effective_mode(decision, registry, state, status, revision_laya) == 'advise'
-                 and saved.get('policySha256') == policy)
+                 and (decision != DECISION or saved.get('policySha256') == skill_advise_policy_sha256(instrument_sha)))
         if bound:
+            _, rows = _rows(root, decision, instrument_sha, revision_laya, saved.get('policySha256'), critical)
             return _demote_check(root, registry, decision, cfg, critical, rows, saved, revision, now, dry_run)
         # A stale binding already reads as shadow at runtime; say so in the state so the gate can earn it again.
         if dry_run:
@@ -615,10 +637,11 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
         if moved['status'] != 'mutated':
             return {'status': 'held', 'reason': 'registry_refused', 'registry': moved}
         revision = moved['revision']
-    tuning = [r['label'] for r in rows if typed_promotion.split_of(r['group']) == 'tuning']
+    policy, rows = _rows(root, decision, instrument_sha, revision_laya)
+    tuning = [r['label'] for r in rows if r['label'] is not None and typed_promotion.split_of(r['group']) == 'tuning']
     baseline = typed_promotion.majority(tuning)
-    if baseline is None:
-        return {'status': 'held', 'reason': 'no_tuning_cases', 'labelled': len(rows)}
+    if baseline is None:    # no baseline, no cohort: an attempt (and its alpha) is only spent once there is one
+        return {'status': 'held', 'reason': 'no_tuning_cases', 'labelled': sum(r['label'] is not None for r in rows)}
     by_id = {r['id']: r for r in rows}
 
     def predict_one(case):
@@ -627,10 +650,11 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
             raise RuntimeError('laya_unavailable_when_recorded')
         return row['choice']
 
-    probe = probe or (lambda: typed_advice.check_identity(entry.get('endpoint') or typed_advice.ENDPOINT))
-    cases = [{k: r[k] for k in ('id', 'group', 'label', 'critical_if_wrong')} for r in rows]
-    receipt = typed_promotion.run_attempt(
-        root, decision, cases, policy_sha=policy, instrument_sha=instrument_sha, laya_revision=revision_laya,
+    # check_identity raises when Laya is down and returns None (or True) when it is up; run_live wants exactly True.
+    url = entry.get('endpoint') or typed_advice.ENDPOINT
+    probe = probe or (lambda: typed_advice.check_identity(url) is not False)
+    receipt = typed_promotion.run_live(
+        root, decision, rows, policy_sha=policy, instrument_sha=instrument_sha, laya_revision=revision_laya,
         gate_cfg=cfg, prior={k: tuning.count(k) for k in set(tuning)}, baseline=baseline, critical=critical, now=now,
         dry_run=dry_run, predict_one=predict_one, probe=probe)
     if receipt['status'] == 'held':
@@ -642,9 +666,10 @@ def _advise_one(root, registry, decision, state, status, revision_laya, now, dry
 
 def run_advise(root, now=None, dry_run: bool = False, registry=None, probe=None) -> dict:
     """One advise pass over every decision with an `advise` entry except workflow-fit (pilot_cycle.py owns it):
-    earn advise through the baseline gate, or run the rolling demotion check on an earned one. Laya's answers come
-    from the stored choice records, so `probe` (Laya availability; default typed_advice.check_identity) only
-    keeps an outage from consuming a cohort. Failures are recorded per decision, never raised."""
+    earn advise through the prospective baseline gate (the first pass opens a cohort; later passes collect the
+    records made after it and evaluate once), or run the demotion check on an earned one. Laya's answers come from
+    the stored choice records, so `probe` (Laya availability; must return True, default typed_advice.check_identity)
+    only keeps an outage from opening a cohort. Failures are recorded per decision, never raised."""
     root, now = Path(root), locked_io.utc(now)
     registry = registry if registry is not None else decision_registry.load_registry()
     state, status = decision_registry.read_state(root, registry)

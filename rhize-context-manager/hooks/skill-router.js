@@ -128,6 +128,8 @@ const DECISION = 'skill-fit';
 // `shadow` for the invocation, whatever the registry or machine state says: Codex has no co-sign
 // evidence yet, and it must not be pooled into the promotion/demotion gate (plan section 7, F6).
 const COSIGN_HOSTS = ['claude'];
+// `advise` is capped the same way: unknown and machine hosts read `shadow`.
+const ADVISE_HOSTS = ['claude', 'codex'];
 const PACKAGED = process.argv.includes('--packaged');
 const MAX_CONFIG_BYTES = 16 * 1024;
 const MAX_SETTINGS_BYTES = 1024 * 1024;
@@ -489,6 +491,7 @@ function packagedMayRun(data, env = process.env, home = os.homedir()) {
 // Caps the effective mode at shadow for hosts outside COSIGN_HOSTS (state and registry stay untouched).
 function capModeForHost(config, host) {
   if (config && config.mode === 'cosign' && !COSIGN_HOSTS.includes(host)) return { ...config, mode: 'shadow' };
+  if (config && config.mode === 'advise' && !ADVISE_HOSTS.includes(host)) return { ...config, mode: 'shadow' };
   return config;
 }
 
@@ -769,11 +772,11 @@ async function finalize(state, plan, laya) {
         && laya.status === 'ok' && laya.choice !== state.match.skillId) {
       payload = state.suppressedPayload;
       shown = null;
-    } else if (plan && laya && plan.config.mode === 'advise' && plan.arm === 'treatment'
+    } else if (plan && laya && plan.config.mode === 'advise' && plan.arm === 'treatment' && state.incumbentMessage
         && laya.status === 'ok' && laya.choice !== 'none' && laya.choice !== state.match.skillId) {
       // advise: the incumbent payload is unchanged and one advisory line is appended; `shown` stays the incumbent.
       const ref = formatSkillRef(laya.choice);
-      if (ref) payload = payloadFor([state.incumbentMessage, `Laya suggests the ${ref} skill (advisory).`].filter(Boolean).join('\n'));
+      if (ref) payload = payloadFor(`${state.incumbentMessage}\nLaya suggests the ${ref} skill (advisory).`);
     }
   } catch (_) { payload = state.incumbentPayload; shown = state.incumbentShown; }
   await emit(payload); // flush BEFORE any persistence or exit

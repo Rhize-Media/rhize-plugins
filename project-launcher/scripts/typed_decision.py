@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 from urllib.error import URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 SKILL = "skills/rhize-typed-decision"
 CLIENT = ".claude/rhize-decision/typed_decision.py"
@@ -220,6 +220,12 @@ def endpoint() -> tuple[str, str, str]:
     return base + "/v1/systemone", key, provider
 
 
+class _NoRedirect(HTTPRedirectHandler):
+    # A 3xx is an error here (HTTPError), so the Authorization header is never re-sent to another URL.
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
 def call_provider(request: dict) -> tuple[dict, int, str]:
     url, key, provider = endpoint()
     payload = dict(request)
@@ -233,7 +239,8 @@ def call_provider(request: dict) -> tuple[dict, int, str]:
         headers["Authorization"] = f"Bearer {key}"
     started = time.monotonic()
     try:
-        with urlopen(Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST"), timeout=8) as response:
+        opener = build_opener(ProxyHandler({}), _NoRedirect())  # no env proxy, no redirects: the key goes only to `url`
+        with opener.open(Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST"), timeout=8) as response:
             raw = response.read(262145)
         if len(raw) > 262144:
             raise DecisionError("provider response too large")

@@ -76,7 +76,7 @@ function stateDoc(mode, { pinned = false, revision = 1, layaRevision = null, ins
     decisions: {
       'skill-fit': {
         mode, pinned, since: '2026-10-11T12:00:00Z', reason: 'test_setup',
-        policySha256: mode === 'cosign' ? td.policySha256() : advise ? sha('advise-v1') : null,
+        policySha256: mode === 'cosign' ? td.policySha256() : advise ? td.policySha256('advise-v1') : null,
         instrumentSha256: instrumentSha256 || (mode === 'cosign' || advise ? instrument.instrumentSha256() : null),
         layaRevision: advise ? (layaRevision || 'unknown') : null, cohortId: null,
       },
@@ -923,6 +923,13 @@ function track(sc) { cleanup.push(sc.home); return sc; }
       assert.strictEqual(out.stdout, INCUMBENT_LINE, JSON.stringify(opts));
       assert.strictEqual(assertRecordsValid(sc, 1)[0].mode, 'shadow', JSON.stringify(opts));
     }
+    // an advise state bound to a different policy hash (e.g. cosign-v1's) reads as shadow
+    const wrong = stateDoc('advise', { layaRevision: undefined });
+    wrong.decisions['skill-fit'].policySha256 = td.policySha256('cosign-v1');
+    const scW = track(scenario({ state: wrong, endpoint: server.endpoint }));
+    const outW = await runHook(scW, { sessionId: TREATMENT });
+    assert.strictEqual(outW.stdout, INCUMBENT_LINE);
+    assert.strictEqual(assertRecordsValid(scW, 1)[0].mode, 'shadow');
     // an overriding endpoint without the authority assertion also reads as shadow
     const sc = track(scenario({ mode: 'advise', endpoint: server.endpoint }));
     delete sc.env.RHIZE_LAYA_ENDPOINT_AUTHORITY;
@@ -967,6 +974,20 @@ function track(sc) { cleanup.push(sc.home); return sc; }
     const cosign = await run('cosign');
     assert.strictEqual(cosign.out.stdout, INCUMBENT_LINE, 'cosign on codex is shadow: nothing suppressed, nothing added');
     assert.strictEqual(cosign.rec.mode, 'shadow');
+    await server.close();
+  });
+
+  await check('advise on an unknown host is capped at shadow: no advisory line', async () => {
+    const server = await layaServer({ choose: () => 'git-helper' });
+    // codex thread_id with a Claude entrypoint and no transcript: detectHost cannot tell, so 'unknown'
+    const sc = track(scenario({ mode: 'advise', layaRevision: '55cf4c4', endpoint: server.endpoint, env: { CLAUDE_CODE_ENTRYPOINT: 'cli' } }));
+    fs.mkdirSync(sc.root, { recursive: true });
+    fs.writeFileSync(path.join(sc.root, 'laya-runtime.json'), JSON.stringify({ revision: '55cf4c4' }));
+    const out = await runHook(sc, { input: JSON.stringify({ prompt: PROMPT, session_id: TREATMENT, thread_id: 'x-thread' }) });
+    assert.strictEqual(out.stdout, INCUMBENT_LINE);
+    const [rec] = assertRecordsValid(sc, 1);
+    assert.strictEqual(rec.host, 'unknown');
+    assert.strictEqual(rec.mode, 'shadow');
     await server.close();
   });
 

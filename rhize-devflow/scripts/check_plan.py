@@ -5,8 +5,8 @@ Eligibility, the mandatory set and the relaxed plan come from git facts and stat
 Laya (decision `check-relaxation`) may only choose between the full plan and the relaxed plan, and only
 on an eligible diff in an earned `advise` mode; anything unknown, missing or failing means the full plan.
 
-  check_plan.py plan   --repo R [--base REF] --stage S --checks FILE [--out FILE]
-  check_plan.py verify --plan-file FILE [--stage S]     # exit 3: expired, run the full checks
+  check_plan.py plan   --repo R [--trunk REF] [--base REF] --stage S --checks FILE [--out NEWFILE]
+  check_plan.py verify --plan-file FILE --repo R --stage S --checks FILE [--trunk REF]   # exit 3: run the full checks
   check_plan.py outcome --decision-id ID --chosen full|relaxed
 
 Spec: docs/superpowers/specs/2026-10-16-laya-advise-everywhere-plan.md section 7 and 11.
@@ -26,7 +26,7 @@ from pathlib import Path
 DECISION = 'check-relaxation'
 QUESTION = ('This change already qualifies for a deterministic reduced check set. Is the reduced set '
             'sufficient, or should the full set run?')
-POLICY = {'candidates': ['full', 'relaxed'], 'rules': 's4-v1'}
+DEFAULT_TRUNK = 'origin/main'
 CANDIDATES = [
     {'id': 'full', 'criterion': 'Run the complete set of checks the repository normally requires; choose it '
                                 'when the change could affect behavior outside its classified paths or any doubt remains.'},
@@ -45,6 +45,11 @@ NEVER_RELAXABLE = ('security-review', 'required-ci', 'deploy', 'publish', 'crede
 ROUTINE_STAGES = ('implement', 'check', 'impact-map', 'test-evidence')  # review, release, production, unknown: full
 MAX_PATHS = 2000
 _ID = re.compile(r'[A-Za-z0-9][A-Za-z0-9_.:/-]{0,79}')
+
+
+def sha256(value) -> str:
+    data = value if isinstance(value, bytes) else json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+    return hashlib.sha256(data).hexdigest()
 
 
 class GitError(Exception):
@@ -78,6 +83,8 @@ _P_NAME = re.compile(
     r'^(dockerfile.*|.*\.dockerfile|docker-compose.*|compose\.ya?ml|g?makefile|jenkinsfile|procfile|vercel\.json|'
     r'netlify\.toml|fly\.toml|render\.yaml|wrangler\.toml|app\.yaml|serverless\.ya?ml|cloudbuild.*|buildspec.*|'
     r'azure-pipelines.*|\.gitlab-ci.*|\.travis.*|bitbucket-pipelines.*|codeowners|\.npmrc|\.netrc|\.pgpass|'
+    r'.+\.config\.[a-z0-9]+|\..+rc(\.(js|cjs|mjs|ts|json|ya?ml))?|conftest\.py|package\.swift|build\.rs|'
+    r'(deploy|release|publish).*|'
     r'\.env.*|.*\.env|.*\.env\..*|env\..*|\.nvmrc|\.node-version|\.python-version|\.tool-versions|'
     r'\.pre-commit-config\.ya?ml|hooks\.json|settings.*\.json|\.mcp\.json|plugin\.json|marketplace\.json|'
     r'package\.json|package-lock\.json|npm-shrinkwrap\.json|pnpm-workspace\.ya?ml|requirements.*\.txt|'
@@ -88,8 +95,11 @@ _LOCK = re.compile(r'(^|[._-])lock(file)?([._-]|$)|\.lockb?$')
 _P_DIRS = {'.github', '.circleci', '.gitlab', '.vercel', 'netlify', '.claude', '.codex', '.agents', '.claude-plugin',
            '.codex-plugin', '.husky', 'hooks', 'terraform', 'k8s', 'kubernetes', 'helm', 'ansible', 'charts',
            'infra', 'infrastructure', 'deploy', 'deployment', 'deployments', 'migrations', 'migration', 'migrate',
-           'prisma', 'drizzle', 'supabase', 'pulumi'}
-_CI_DIRS = {'ci', 'cd', '.ci', 'pipelines', 'workflows', 'release', 'releases'}
+           'prisma', 'drizzle', 'supabase', 'pulumi', 'alembic'}
+_CI_DIRS = {'ci', 'cd', '.ci', 'pipelines', 'workflows', 'release', 'releases'}  # protected for any extension
+# Substrings of the squashed path (camelCase, acronyms and separators removed): signIn, JWTVerifier, authutils.
+_AUTH_SUBSTR = ('auth', 'passw', 'jwt', 'oauth', 'secret', 'credential', 'token', 'login', 'logout', 'signin',
+                'signup', 'session', 'crypt', 'csrf', 'permission', 'rbac', 'apikey', 'privatekey')
 _AUTH_TOKENS = {'auth', 'authn', 'authz', 'authentication', 'authorization', 'authorize', 'authorise', 'session',
                 'sessions', 'permission', 'permissions', 'rbac', 'acl', 'oauth', 'oauth2', 'sso', 'saml', 'jwt',
                 'login', 'logout', 'signin', 'signup', 'password', 'passwd', 'csrf', 'cors', 'security',
@@ -98,14 +108,20 @@ _AUTH_TOKENS = {'auth', 'authn', 'authz', 'authentication', 'authorization', 'au
                 '2fa', 'otp'}
 
 
+def _words(path) -> list:
+    spaced = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', re.sub(r'([A-Z]+)([A-Z][a-z])', r'\1 \2', path))
+    return re.findall(r'[a-z0-9]+', spaced.lower())
+
+
 def _protected(path, parts, name) -> bool:
     if _P_NAME.match(name) or _LOCK.search(name):
         return True
-    if set(parts[:-1]) & _P_DIRS or (set(parts[:-1]) & _CI_DIRS and name.endswith(('.yml', '.yaml'))):
+    dirs = set(parts[:-1])
+    if dirs & _P_DIRS or dirs & _CI_DIRS or ('scripts' in dirs and name.endswith(('.sh', '.bash'))):
         return True
-    tokens = set(re.findall(r'[a-z0-9]+', re.sub(r'([a-z])([A-Z])', r'\1 \2', path).lower()))
-    squashed = re.sub(r'[^a-z0-9]', '', path.lower())
-    return bool(tokens & _AUTH_TOKENS) or 'apikey' in squashed or 'privatekey' in squashed
+    words = [w for w in _words(path) if w not in ('author', 'authors')]  # AUTHORS.md is documentation
+    squashed = ''.join(words)
+    return bool(set(words) & _AUTH_TOKENS) or any(sub in squashed for sub in _AUTH_SUBSTR)
 
 
 def classify(path) -> set:
@@ -132,12 +148,34 @@ def classify(path) -> set:
     return classes
 
 
+def _tables() -> dict:
+    return {'docExt': sorted(_DOC_EXT), 'docName': _DOC_NAME.pattern, 'behaviorNames': sorted(_BEHAVIOR_NAMES),
+            'behaviorDirs': sorted(_BEHAVIOR_DIRS), 'uiOnly': sorted(_UI_ONLY), 'uiCode': sorted(_UI_CODE),
+            'logic': sorted(_LOGIC), 'config': sorted(_CONFIG), 'uiDirs': sorted(_UI_DIRS),
+            'testDirs': sorted(_TEST_DIRS), 'testName': _TEST_NAME.pattern, 'e2e': _E2E.pattern,
+            'protectedName': _P_NAME.pattern, 'lock': _LOCK.pattern, 'protectedDirs': sorted(_P_DIRS),
+            'ciDirs': sorted(_CI_DIRS), 'authTokens': sorted(_AUTH_TOKENS), 'authSubstr': sorted(_AUTH_SUBSTR),
+            'relaxable': list(RELAXABLE_KINDS), 'never': list(NEVER_RELAXABLE), 'stages': list(ROUTINE_STAGES),
+            'kinds': list(KINDS), 'maxPaths': MAX_PATHS}
+
+
+# The earned `advise` binding covers the candidate text and the classifier tables: editing either resets to shadow.
+POLICY = {'candidates': CANDIDATES, 'rules': 's4-v2', 'classifierSha256': sha256(_tables())}
+
+
 # ------------------------------------------------------------------ git facts
+
+def _env() -> dict:
+    env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}  # GIT_DIR, GIT_INDEX_FILE, GIT_CONFIG_*
+    env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull, GIT_OPTIONAL_LOCKS='0')
+    return env
+
 
 def _git(top, *args) -> bytes:
     try:
         done = subprocess.run(['git', '-c', 'core.excludesFile=/dev/null', '-c', 'core.quotepath=off',
-                               '-C', str(top), *args], capture_output=True, timeout=60)
+                               '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', str(top), *args],
+                              capture_output=True, timeout=60, env=_env(), stdin=subprocess.DEVNULL)
     except (OSError, subprocess.SubprocessError) as exc:
         raise GitError(type(exc).__name__) from None
     if done.returncode != 0:
@@ -145,21 +183,22 @@ def _git(top, *args) -> bytes:
     return done.stdout
 
 
-def collect(repo, base) -> dict:
-    """Complete change set against `base` (default: merge-base with origin/main, else HEAD~): committed,
-    staged, unstaged and untracked paths, renames/copies with both paths, deletions and mode changes."""
-    top = _git(repo, 'rev-parse', '--show-toplevel').decode().strip()
-    if base:
-        if base.startswith('-'):
-            raise GitError('invalid base ref')
-        sha = _git(top, 'rev-parse', '--verify', base + '^{commit}').decode().strip()
-    else:
-        try:
-            sha = _git(top, 'merge-base', 'origin/main', 'HEAD').decode().strip()
-        except GitError:
-            sha = _git(top, 'rev-parse', '--verify', 'HEAD~^{commit}').decode().strip()
-    tokens = _git(top, 'diff', '--raw', '-z', '-M', '--find-copies', '--no-ext-diff', '--no-color',
-                  '--ignore-submodules=none', sha).decode('utf-8', 'surrogateescape').split('\0')
+def _text(raw) -> str:
+    return raw.decode('utf-8', 'surrogateescape')
+
+
+def _commit(top, ref, label) -> str:
+    if not isinstance(ref, str) or not ref or ref.startswith('-') or '\0' in ref:
+        raise GitError('invalid ' + label)
+    try:
+        return _text(_git(top, 'rev-parse', '--verify', '--quiet', ref + '^{commit}')).strip()
+    except GitError:
+        raise GitError(label + ' ref not found') from None
+
+
+def _diff_raw(top, sha, *extra) -> tuple:
+    tokens = _text(_git(top, 'diff', *extra, '--raw', '-z', '-M', '--find-copies', '--no-ext-diff', '--no-color',
+                        '--ignore-submodules=none', sha, '--')).split('\0')
     entries, flags, i = [], [], 0
     while i < len(tokens) and tokens[i]:
         meta = tokens[i].lstrip(':').split(' ')
@@ -177,8 +216,33 @@ def collect(repo, base) -> dict:
         if '120000' in (meta[0], meta[1]) or '160000' in (meta[0], meta[1]):
             flags.append(f'symlink or submodule: {paths[-1]}')
         i += 1 + count
-    for path in _git(top, 'ls-files', '--others', '--exclude-standard', '--full-name', '-z'
-                     ).decode('utf-8', 'surrogateescape').split('\0'):
+    return entries, flags
+
+
+def collect(repo, base, trunk=DEFAULT_TRUNK) -> dict:
+    """Complete change set against the base: committed, staged, unstaged and untracked paths, renames/copies with
+    both paths, deletions and mode changes. base = merge-base(trunk, HEAD); a missing trunk raises GitError.
+    `base` may only widen the window: it must be an ancestor of that merge-base."""
+    root = os.path.realpath(str(repo))
+    top = _text(_git(root, 'rev-parse', '--show-toplevel')).rstrip('\n')
+    if os.path.realpath(top) != root:
+        raise GitError('repo is not the repository root')
+    merge_base = _text(_git(top, 'merge-base', _commit(top, trunk, 'trunk'), 'HEAD')).strip()
+    sha = merge_base
+    if base:
+        sha = _commit(top, base, 'base')
+        try:
+            _git(top, 'merge-base', '--is-ancestor', sha, merge_base)
+        except GitError:
+            raise GitError('base is not an ancestor of the merge-base with the trunk') from None
+    entries, flags = _diff_raw(top, sha)
+    staged, staged_flags = _diff_raw(top, sha, '--cached')  # a staged change may be hidden by a restored worktree
+    entries += [e for e in staged if e not in entries]
+    flags += [f for f in staged_flags if f not in flags]
+    hidden = [rec[2:] for rec in _text(_git(top, 'ls-files', '-v', '-z')).split('\0')
+              if rec and (rec[0].islower() or rec[0] == 'S')]  # assume-unchanged / skip-worktree hide edits from diff
+    flags += [f'assume-unchanged or skip-worktree entry: {p}' for p in hidden[:3]]
+    for path in _text(_git(top, 'ls-files', '--others', '--exclude-standard', '--full-name', '-z')).split('\0'):
         if path:
             entries.append({'status': '?', 'paths': [path], 'mode': ''})
     content = {}
@@ -194,15 +258,11 @@ def collect(repo, base) -> dict:
     for e in entries:
         if e['status'] == '?':
             e['mode'] = '100755' if os.access(Path(top) / e['paths'][0], os.X_OK) else '100644'
-    return {'base': sha, 'entries': entries, 'content': content, 'flags': flags}
+    index = hashlib.sha256(_git(top, 'ls-files', '-s', '-z')).hexdigest()  # staged blobs and modes
+    return {'base': sha, 'entries': entries, 'content': content, 'flags': flags, 'index': index}
 
 
 # ------------------------------------------------------------------ deterministic plan
-
-def sha256(value) -> str:
-    data = value if isinstance(value, bytes) else json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
-    return hashlib.sha256(data).hexdigest()
-
 
 def normalize_stage(stage) -> str:
     return re.sub(r'[^a-z0-9-]', '', str(stage).lower())
@@ -227,19 +287,20 @@ def load_checks(path) -> tuple:
     return checks, sha256(raw)
 
 
-def analyse(repo, base, stage, checks, checks_sha) -> dict:
+def analyse(repo, base, stage, checks, checks_sha, trunk=DEFAULT_TRUNK) -> dict:
     stage = normalize_stage(stage)
     out = {'eligible': False, 'reasons': [], 'diffSha256': None, 'base': None, 'stage': stage, 'classes': {},
            'full': checks, 'mandatory': checks, 'relaxable': [], 'relaxedPlan': checks, 'skipped': [], 'paths': []}
     try:
-        change = collect(repo, base)
+        change = collect(repo, base, trunk)
     except (GitError, ValueError, OSError) as exc:
         out['reasons'].append(f'git failure: {exc}')
         return out
     paths = sorted(change['content'])
     lines = sorted('\t'.join([e['status'], *e['paths'], e['mode']]) for e in change['entries'])
     out.update(base=change['base'], paths=paths, diffSha256=sha256(
-        {'lines': lines, 'content': change['content'], 'stage': stage, 'checks': checks_sha}))
+        {'lines': lines, 'content': change['content'], 'index': change['index'], 'base': change['base'],
+         'stage': stage, 'checks': checks_sha}))
     by_path = {p: classify(p) for p in paths}
     for name in ('protected', 'unknown', 'config', 'docs', 'ui', 'logic', 'test'):
         out['classes'][name] = sum(name in c for c in by_path.values())
@@ -258,7 +319,7 @@ def analyse(repo, base, stage, checks, checks_sha) -> dict:
         return out
     docs_only = all(c == {'docs'} for c in by_path.values())
     has_ui = any('ui' in c for c in by_path.values())
-    has_logic = any('logic' in c for c in by_path.values())
+    has_logic = any('logic' in c or 'test' in c for c in by_path.values())  # tests are what mutation exercises
     relaxable, relaxed, skipped = [], [], []
     for check in checks:
         kind, replacement = check['kind'], 'skip'
@@ -308,9 +369,9 @@ def _advice():
     return _ADVICE[0]
 
 
-def build_plan(repo, stage, checks_path, base=None, advise_options=None) -> dict:
+def build_plan(repo, stage, checks_path, base=None, advise_options=None, trunk=DEFAULT_TRUNK) -> dict:
     checks, checks_sha = load_checks(checks_path)
-    state = analyse(repo, base, stage, checks, checks_sha)
+    state = analyse(repo, base, stage, checks, checks_sha, trunk)
     advice, recommendation = {'asked': False}, None
     if state['eligible']:
         summary = (f"stage={state['stage']}; changed={len(state['paths'])}; "
@@ -322,8 +383,8 @@ def build_plan(repo, stage, checks_path, base=None, advise_options=None) -> dict
                                       **(advise_options or {}))
             rec = result.get('recommendation')
             recommendation = rec['id'] if rec else None
-            advice = {'asked': True, 'decisionId': result['decisionId'], 'mode': result['mode'],
-                      'holdback': result['holdback'], 'recommendation': recommendation}
+            advice = {'asked': True, 'decisionId': result['decisionId'], 'policySha256': result['policySha256'],
+                      'mode': result['mode'], 'holdback': result['holdback'], 'recommendation': recommendation}
         except Exception as exc:  # noqa: BLE001 - advice is optional; failure means the full plan
             advice = {'asked': True, 'error': type(exc).__name__}
     plan, reasons = state['full'], list(state['reasons'])
@@ -336,30 +397,56 @@ def build_plan(repo, stage, checks_path, base=None, advise_options=None) -> dict
     elif state['eligible']:
         reasons.append('Laya did not recommend relaxation (shadow, off, holdback or no recommendation); full plan')
     return {'eligible': state['eligible'], 'reasons': reasons, 'diffSha256': state['diffSha256'],
-            'stage': state['stage'], 'base': state['base'], 'repo': str(Path(repo).resolve()),
-            'checksFile': str(Path(checks_path).resolve()), 'classes': state['classes'],
+            'stage': state['stage'], 'base': state['base'], 'trunk': trunk, 'repo': os.path.realpath(str(repo)),
+            'checksFile': os.path.realpath(str(checks_path)), 'classes': state['classes'],
             'mandatory': state['mandatory'], 'relaxable': state['relaxable'], 'plan': plan,
             'full': state['full'], 'skipped': state['skipped'] if plan is state['relaxedPlan'] else [],
             'advice': advice}
 
 
-def verify_plan(plan_file, stage=None) -> dict:
+def _authorized(advice, diff_sha) -> bool:
+    """A relaxed plan is honoured only while the advice record on disk still says Laya chose `relaxed` for this
+    exact diff, in the treatment arm, under the same earned policy, and the registry is still in `advise`."""
+    ta = _advice()
+    try:
+        decision_id, policy_sha = advice['decisionId'], advice['policySha256']
+        record = ta.load(DECISION, decision_id)
+        laya = record.get('laya') or {}
+        return bool(
+            decision_id == sha256(DECISION + ':' + diff_sha)[:32]
+            and policy_sha == ta.policy_sha256(DECISION, QUESTION, POLICY)
+            and record.get('decisionId') == decision_id and record.get('policySha256') == policy_sha
+            and record.get('instrumentSha256') == ta.INSTRUMENT_SHA256 and record.get('arm') == 'treatment'
+            and laya.get('status') == 'ok' and laya.get('choice') == 'relaxed'
+            and ta.effective_mode(DECISION, policy_sha) == 'advise')
+    except Exception:  # noqa: BLE001 - anything unreadable or malformed is not authorization
+        return False
+
+
+def verify_plan(plan_file, stage, repo, checks, trunk=DEFAULT_TRUNK) -> dict:
     """{'valid': bool, 'reasons': [...], 'plan': [...]}; when not valid, `plan` is the full list (or empty)."""
     try:
         saved = json.loads(Path(plan_file).read_text())
-        checks, checks_sha = load_checks(saved['checksFile'])
-        now = analyse(saved['repo'], saved['base'], saved['stage'], checks, checks_sha)
-    except (OSError, ValueError, KeyError, TypeError):
+        saved_plan, saved_stage = saved['plan'], saved['stage']
+        if not isinstance(saved_plan, list):
+            raise TypeError
+        checks_list, checks_sha = load_checks(checks)
+        now = analyse(repo, saved['base'], stage, checks_list, checks_sha, trunk)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return {'valid': False, 'reasons': ['plan file or checks file unreadable'], 'plan': []}
     reasons = []
-    if stage is not None and normalize_stage(stage) != saved['stage']:
+    if normalize_stage(stage) != saved_stage:
         reasons.append('stage changed')
+    if os.path.realpath(str(repo)) != saved.get('repo') or os.path.realpath(str(checks)) != saved.get('checksFile'):
+        reasons.append('repo or checks file differs from the plan')
     if now['diffSha256'] is None or now['diffSha256'] != saved.get('diffSha256'):
-        reasons.append('diff, checks file or stage changed')
-    plan = saved.get('plan')
-    if not reasons and plan != now['full'] and not (now['eligible'] and plan == now['relaxedPlan']):
-        reasons.append('plan does not match the deterministic plan')
-    return {'valid': not reasons, 'reasons': reasons or ['unchanged'], 'plan': plan if not reasons else now['full']}
+        reasons.append('diff, index, base, checks file or stage changed')
+    if not reasons and saved_plan != now['full']:
+        if not (now['eligible'] and saved_plan == now['relaxedPlan']):
+            reasons.append('plan does not match the deterministic plan')
+        elif not _authorized(saved.get('advice'), now['diffSha256']):
+            reasons.append('no valid advice record authorizes the relaxed plan')
+    return {'valid': not reasons, 'reasons': reasons or ['unchanged'], 'plan': saved_plan if not reasons else now['full']}
 
 
 def main(argv=None) -> int:
@@ -367,31 +454,41 @@ def main(argv=None) -> int:
     sub = parser.add_subparsers(dest='cmd', required=True)
     p = sub.add_parser('plan')
     p.add_argument('--repo', required=True)
+    p.add_argument('--trunk', default=DEFAULT_TRUNK)
     p.add_argument('--base')
     p.add_argument('--stage', required=True)
     p.add_argument('--checks', required=True)
     p.add_argument('--out')
     v = sub.add_parser('verify')
     v.add_argument('--plan-file', required=True)
-    v.add_argument('--stage')
+    v.add_argument('--repo', required=True)
+    v.add_argument('--trunk', default=DEFAULT_TRUNK)
+    v.add_argument('--stage', required=True)
+    v.add_argument('--checks', required=True)
     o = sub.add_parser('outcome')
     o.add_argument('--decision-id', required=True)
     o.add_argument('--chosen', required=True, choices=('full', 'relaxed'))
     args = parser.parse_args(argv)
     if args.cmd == 'plan':
+        out_fd = None
         try:
-            result = build_plan(args.repo, args.stage, args.checks, args.base)
+            if args.out:  # new file only: never follow a symlink or overwrite
+                out_fd = os.open(args.out, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0), 0o600)
+            result = build_plan(args.repo, args.stage, args.checks, args.base, trunk=args.trunk)
         except (OSError, ValueError) as exc:
+            if out_fd is not None:
+                os.close(out_fd)
+                os.unlink(args.out)
             print(json.dumps({'error': str(exc)}), file=sys.stderr)
             return 2
         text = json.dumps(result, indent=2, sort_keys=True)
-        if args.out:
-            Path(args.out).write_text(text + '\n')
-            os.chmod(args.out, 0o600)
+        if out_fd is not None:
+            with os.fdopen(out_fd, 'w') as stream:
+                stream.write(text + '\n')
         print(text)
         return 0
     if args.cmd == 'verify':
-        result = verify_plan(args.plan_file, args.stage)
+        result = verify_plan(args.plan_file, args.stage, args.repo, args.checks, args.trunk)
         print(json.dumps(result, indent=2, sort_keys=True))
         return 0 if result['valid'] else 3
     return 0 if _advice().record_outcome(DECISION, args.decision_id, args.chosen) else 1
