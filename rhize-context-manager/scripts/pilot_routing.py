@@ -5,8 +5,7 @@ CHOICES = ('content', 'general', 'none')
 EXCLUSIONS = frozenset({'content_creation', 'publishing', 'deployment', 'external_messages'})
 
 
-def decode_scores(scores, abstain_below=0.0, exclusions=()):
-    """Return observational argmax with explicit exclusions; never authority."""
+def _decode(scores, abstain_below, exclusions):
     if not isinstance(scores, dict) or set(scores) != set(CHOICES):
         raise ValueError('invalid routing scores')
     if any(type(score) not in (int, float) or not math.isfinite(score) or not 0 <= score <= 1
@@ -25,3 +24,13 @@ def decode_scores(scores, abstain_below=0.0, exclusions=()):
     abstained = ranking[0]['score'] < abstain_below
     return {'choice': None if abstained else ranking[0]['candidateId'], 'ranking': ranking,
             'reason': 'below_threshold' if abstained else None}
+
+
+def decode_scores(scores, abstain_below=0.0, exclusions=()):
+    """Historical v1/v2 replay decoder: observational argmax; never authority."""
+    return _decode(scores, abstain_below, exclusions)
+
+
+def decode_choice(probabilities, abstain_below=0.0, exclusions=()):
+    """Typed `choice` decoder (workflow-input-v3): same shape and validation as decode_scores."""
+    return _decode(probabilities, abstain_below, exclusions)

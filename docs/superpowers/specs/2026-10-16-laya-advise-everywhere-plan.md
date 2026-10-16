@@ -43,18 +43,31 @@ cosign estimand and gate.
   default, 15% for critical) that never sees advice; assigned and recorded before any advice is emitted.
 - **`gateKind` per decision:**
   - `cosign-disagreement` — skill fit's existing Clopper–Pearson estimand (unchanged).
-  - `majority-baseline` (policy `advise-v1`) — salvaged from the 2026-10-06 S1 gate:
-    1. labels split by stable hash into tuning and promotion; each attempt needs ≥10 promotion cases the
-       previous attempt did not see;
-    2. promote when the one-sided 90% Wilson lower bound of promotion accuracy exceeds the majority
-       baseline (27/30, 44/50, 86/100 at an 80% baseline) **and** balanced accuracy beats the baseline's;
-    3. every class with ≥10% prior share has ≥3 promotion cases and recall ≥0.5;
-    4. zero critical misses (a wrong, non-abstaining answer on a `critical_if_wrong` case);
-    5. minimum 30 labelled cases (the retired 200 floor is not reinstated);
-    6. demote immediately on any critical miss, otherwise after two consecutive cycles below baseline;
-    7. state binds `policySha256` (instructions, criteria, candidate set, abstain threshold) and
-       `instrumentSha256`; any change returns the decision to `shadow`.
-  - Skill fit may reach `advise` by the same gate (its advice is an added line, not suppression).
+  - `majority-baseline` (policy `advise-v1`) — final rule after the Codex review (§11):
+    1. **Population.** Labelled choice records of the decision, grouped by session before a stable
+       `sha256('split:'+group)` split: tuning 2/3, promotion 1/3. Candidate search sees tuning only.
+    2. **Baseline.** The majority class of the tuning split, frozen into the cohort at reserve time and
+       evaluated as a constant predictor on the same promotion cases.
+    3. **Outcomes.** `none` is an ordinary candidate. An abstention, timeout, unavailable or invalid answer
+       counts as **Laya wrong**. Answer coverage must be ≥ 90%.
+    4. **Test.** Paired exact sign test on discordant cases (Laya right/baseline wrong = b, Laya
+       wrong/baseline right = c): promote when the one-sided Clopper–Pearson lower bound of b/(b+c) > 0.5
+       at α_k, **and** Laya's balanced accuracy beats the baseline's, **and** every class with ≥ 10% tuning
+       share has ≥ 3 promotion cases with recall ≥ 0.5.
+    5. **Cohorts and retries.** A promotion cohort (≥ 30 cases from distinct sessions) is reserved in the
+       existing cohort ledger before its labels are read and consumed by exactly one attempt. Attempt k uses
+       α_k = 0.10·2^−(k−1); the budget is per decision (a new policy or Laya revision does not reset it).
+    6. **Critical.** A critical decision also needs ≥ 10 `critical_if_wrong` cases in the cohort and zero
+       critical misses. `critical_if_wrong` is computed by trusted caller code from hard-gate state and frozen
+       in the record before any advice.
+    7. **Demotion.** Any accepted critical miss demotes to `shadow` in the same locked job that imports the
+       label. Otherwise, each time ≥ 10 fresh advise-arm labels accrue, the latest 30 are scored; two
+       consecutive evaluations where Laya's accuracy is below the baseline's on the same cases demote.
+    8. **Bindings.** Every earned mode (`advise`, `cosign`) binds `policySha256`, `instrumentSha256` and
+       `layaRevision`; any mismatch reads as `shadow`. Pins and bindings are revalidated inside the lock.
+  - **Gates are per target mode.** An entry lists `modes: {advise: {policy: advise-v1, gate: majority-baseline},
+    cosign: {policy: cosign-v1, gate: cosign-disagreement}}`. Passing one gate never authorizes the other mode;
+    skill fit can hold `advise` (an added line) and later earn `cosign` (suppression) separately.
 
 ## 4. Registry entries
 
@@ -149,3 +162,22 @@ modified.
 - Gate fixtures: 27/30 at 80% passes, 26/30 holds; class coverage; hysteresis; ≥10 new cases.
 - Full suite, Node router tests, Python 3.9, manifests/config-lint/skill-map freshness all pass.
 - No decision is in `advise` at release unless the live cycle earned it; the release ships the ability.
+
+## 11. Codex review (gpt-6.1-sol, job bc36574c, 2026-10-16) — adopted
+
+| Finding | Resolution |
+|---|---|
+| Wilson bound has no control over repeated attempts | Disjoint, ledger-reserved cohorts; per-decision alpha spending (§3.5) |
+| Baseline estimand underspecified | Majority from tuning, frozen; paired sign test on the same promotion cases (§3.2, §3.4) |
+| Abstention/unavailable denominators | Count as wrong; `none` is a candidate; coverage ≥ 90% (§3.3) |
+| Zero critical misses with zero critical cases | ≥ 10 critical cases; trusted, frozen `critical_if_wrong`; demotion inside the label-import job (§3.6–3.7) |
+| Skill fit needs two gates | Per-mode gate and policy map; no substitution; regression tests (§3) |
+| Bindings must cover advise | Every earned mode binds policy, instrument and Laya revision; revalidated under lock (§3.8) |
+| S4 needs an executable contract | Trusted `check_plan.py`: complete diff (status incl. renames/deletes) + stage + config → mandatory set; advice can only remove items from the relaxable set; missing input → full. Next-action and GSD advice are text only and never change a gate result (tested) |
+| Independent labels | Session grouping before split; annotators see only the frozen snapshot and candidates (no recommendation, outcome or mode); labels carry `rubricVersion`; labels in a consumed cohort are frozen by hash |
+| Demotion hysteresis vague | Fresh-label rolling rule (§3.7) |
+| Persistence vs "hooks persist no text" | Hooks persist nothing new (skill fit keeps its transcript-backfill path). Only CLI surfaces store snapshots, from caller text passed through the versioned redactor (`pilot_redaction` in Context Manager, `typed_advice.scrub` in islands, version recorded); 0600, 90-day retention |
+| Drift from `laya_choice.py` | Shared behavioural conformance suite runs both transports through the same cases |
+| Record/outcome contract | Outcomes are separate write-once files referencing `decisionId`; `chosen` must be a candidate; first write wins, a conflicting duplicate returns False; path components validated; no durable record → no advice shown |
+| Holdback unit | Unit = decision key; domain `holdback:` separate from `split:`; holdback still calls Laya (shadow evidence) but never shows advice; outcomes collected in both arms |
+| Test ordering | Contract + safety tests land in wave 1, before surfaces; release requires an integrated label → cycle → registry → reader test |
